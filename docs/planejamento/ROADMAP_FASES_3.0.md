@@ -37,7 +37,8 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 |------|------|--------|
 | 1 | Fundação e estrutura visual | Concluída (~90%) |
 | 2 | Arquitetura de Dados e Estrutura Funcional | Concluída (schema + services) |
-| 3–10 | — | Pendentes |
+| 3 | Catálogo e estrutura comercial real | Concluída (admin catálogo + dados reais) |
+| 4–10 | — | Pendentes |
 
 ---
 
@@ -69,9 +70,17 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Pergunta:** Como colocamos o conteúdo real nessa estrutura?
 
-**Escopo:** categorias/montadoras/modelos reais; referências; fabricantes; fornecedores; aplicações; imagens; atributos; disponibilidade.
+**Escopo:** categorias/montadoras/modelos reais; referências; fabricantes; fornecedores; aplicações; imagens; atributos; disponibilidade; **backoffice de catálogo** (`/admin` — adianta parte da Fase 8 só para catálogo).
 
-**Critérios de saída:** catálogo publicado no banco refletindo o que a FAL quer vender (mesmo que parcial).
+**Fora:** checkout, pedidos completos, importador complexo, busca por placa, pagamento/frete.
+
+**Spec:** [ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md](./ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md)  
+**Execução:** [EXECUCAO_FASE3.md](./EXECUCAO_FASE3.md)  
+**Auditoria:** [AUDITORIA_FASE3_2026-10-03.md](./AUDITORIA_FASE3_2026-10-03.md) — **APROVADA**.
+
+**Antecipação:** backoffice de **catálogo** da Fase 8 foi entregue na Fase 3. Vendas/estoque/relatórios admin permanecem na F8.
+
+**Critérios de saída:** cumpridos (CA-01…CA-26) — ver auditoria.
 
 ---
 

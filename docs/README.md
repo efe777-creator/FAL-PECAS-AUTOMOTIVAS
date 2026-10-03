@@ -19,14 +19,28 @@ docs/
 └── planejamento/
     ├── ROADMAP_FASES_3.0.md
     ├── ESPECIFICACAO_FASE2_ARQUITETURA_DADOS.md
+    ├── ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md
+    ├── EXECUCAO_FASE3.md
+    ├── RELATORIO_FASE3_COMPLETO_2026-10-03.md
+    ├── AUDITORIA_FASE2_2026-10-03.md
+    ├── AUDITORIA_FASE3_2026-10-03.md
     └── ALINHAMENTO_FASE1_PRD.md
 ```
+
+## Fases (resumo)
+
+| Fase | Spec / status |
+|------|----------------|
+| 1 | Fundação UI — concluída |
+| 2 | [ESPECIFICACAO_FASE2…](planejamento/ESPECIFICACAO_FASE2_ARQUITETURA_DADOS.md) — concluída |
+| 3 | [ESPECIFICACAO_FASE3…](planejamento/ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md) — concluída ([auditoria](planejamento/AUDITORIA_FASE3_2026-10-03.md) · [relatório](planejamento/RELATORIO_FASE3_COMPLETO_2026-10-03.md)) |
 
 ## Como contribuir
 
 1. Novos briefs/PRDs → `docs/entrada/`
 2. Decisões de fase → `docs/planejamento/`
 3. Não duplicar specs dentro de `fal-pecas/docs/` (lá há apenas ponteiros)
+4. Branch `plan` para planejamento/implementação de fase; `dev` para integração antes de `main`
 
 ## Código da aplicação
 
