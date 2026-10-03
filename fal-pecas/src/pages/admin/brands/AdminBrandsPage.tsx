@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { entityStatusLabel } from '@/lib/adminLabels'
 import { adminListBrands, adminSetBrandStatus, adminUpsertBrand } from '@/services/admin/adminBrandService'
 import type { ProductBrand } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -67,7 +68,7 @@ export function AdminBrandsPage() {
               <tr key={b.id} className="border-t border-fal-line">
                 <td className="px-3 py-2 font-semibold">{b.name}</td>
                 <td className="px-3 py-2 text-fal-muted">{b.slug}</td>
-                <td className="px-3 py-2">{b.status}</td>
+                <td className="px-3 py-2">{entityStatusLabel(b.status)}</td>
                 <td className="px-3 py-2 space-x-2">
                   <button type="button" className="font-semibold text-fal-auth-link" onClick={() => { setEditing(b); setName(b.name) }}>Editar</button>
                   <button type="button" className="font-semibold text-fal-muted" onClick={() => void adminSetBrandStatus(b.id, b.status === 'active' ? 'inactive' : 'active').then(reload)}>

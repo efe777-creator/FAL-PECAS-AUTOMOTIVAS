@@ -111,7 +111,7 @@ export function AdminCategoriesPage() {
                 <tr className="border-t border-fal-line">
                   <td className="px-3 py-2 font-bold">{root.name}</td>
                   <td className="px-3 py-2 text-fal-muted">{root.slug}</td>
-                  <td className="px-3 py-2">{root.status}</td>
+                  <td className="px-3 py-2">{root.status === 'archived' ? 'Arquivado' : root.status === 'published' ? 'Publicado' : root.status === 'draft' ? 'Rascunho' : root.status}</td>
                   <td className="px-3 py-2 space-x-2">
                     <button type="button" className="text-fal-auth-link font-semibold" onClick={() => { setEditing(root); setName(root.name); setParentId(root.parentId ?? '') }}>Editar</button>
                     <button type="button" className="text-fal-muted font-semibold" onClick={() => void adminSetCategoryStatus(root.id, root.status === 'archived' ? 'published' : 'archived').then(reload)}>
@@ -123,7 +123,7 @@ export function AdminCategoriesPage() {
                   <tr key={child.id} className="border-t border-fal-line bg-fal-bg/40">
                     <td className="px-3 py-2 pl-8">↳ {child.name}</td>
                     <td className="px-3 py-2 text-fal-muted">{child.slug}</td>
-                    <td className="px-3 py-2">{child.status}</td>
+                    <td className="px-3 py-2">{child.status === 'archived' ? 'Arquivado' : child.status === 'published' ? 'Publicado' : child.status === 'draft' ? 'Rascunho' : child.status}</td>
                     <td className="px-3 py-2 space-x-2">
                       <button type="button" className="text-fal-auth-link font-semibold" onClick={() => { setEditing(child); setName(child.name); setParentId(child.parentId ?? '') }}>Editar</button>
                       <button type="button" className="text-fal-muted font-semibold" onClick={() => void adminSetCategoryStatus(child.id, child.status === 'archived' ? 'published' : 'archived').then(reload)}>

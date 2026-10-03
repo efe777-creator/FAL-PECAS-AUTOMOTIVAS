@@ -13,7 +13,7 @@ export function AdminDashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-extrabold text-fal-navy">Dashboard</h1>
-      <p className="mt-1 text-fal-muted">Administração do catálogo FAL — Fase 3.</p>
+      <p className="mt-1 text-fal-muted">Painel administrativo do catálogo FAL.</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((c) => (
           <Link

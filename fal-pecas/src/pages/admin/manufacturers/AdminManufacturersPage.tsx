@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { entityStatusLabel } from '@/lib/adminLabels'
 import {
   adminListManufacturers,
   adminSetManufacturerStatus,
@@ -71,7 +72,7 @@ export function AdminManufacturersPage() {
               <tr key={m.id} className="border-t border-fal-line">
                 <td className="px-3 py-2 font-semibold">{m.name}</td>
                 <td className="px-3 py-2 text-fal-muted">{m.slug}</td>
-                <td className="px-3 py-2">{m.status}</td>
+                <td className="px-3 py-2">{entityStatusLabel(m.status)}</td>
                 <td className="px-3 py-2 space-x-2">
                   <button type="button" className="font-semibold text-fal-auth-link" onClick={() => { setEditing(m); setName(m.name) }}>Editar</button>
                   <button

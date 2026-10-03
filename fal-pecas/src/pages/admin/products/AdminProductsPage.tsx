@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { productStatusLabel } from '@/lib/adminLabels'
 import { adminListProducts, adminSetProductStatus } from '@/services/admin/adminProductService'
 import type { Product } from '@/types'
 import { useEffect, useState } from 'react'
@@ -12,6 +13,7 @@ export function AdminProductsPage() {
   const [withoutImage, setWithoutImage] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
   async function reload() {
     setLoading(true)
@@ -29,10 +31,34 @@ export function AdminProductsPage() {
     void reload()
   }, [withoutImage])
 
+  async function toggleArchive(p: Product) {
+    const next = p.status === 'archived' ? 'published' : 'archived'
+    if (next === 'archived') {
+      const ok = window.confirm(
+        `Remover "${p.name}" do catálogo público?\n\nO produto será arquivado (permanece no banco; some da loja e da busca).`,
+      )
+      if (!ok) return
+    }
+    setMessage(null)
+    setError(null)
+    try {
+      await adminSetProductStatus(p.id, next)
+      setMessage(next === 'archived' ? 'Produto arquivado e removido da loja.' : 'Produto publicado novamente.')
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao alterar status')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
+        <div>
+          <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
+          <p className="mt-1 text-sm text-fal-muted">
+            Arquivar = remoção comercial da loja. Exclusão permanente não é usada (integridade).
+          </p>
+        </div>
         <Link to="/admin/produtos/novo">
           <Button variant="primary">Novo produto</Button>
         </Link>
@@ -52,6 +78,7 @@ export function AdminProductsPage() {
       </div>
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
+      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {loading ? <Loading /> : null}
 
       <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
@@ -66,6 +93,13 @@ export function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
+            {items.length === 0 && !loading ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-fal-muted">
+                  Nenhum produto encontrado.
+                </td>
+              </tr>
+            ) : null}
             {items.map((p) => (
               <tr key={p.id} className="border-t border-fal-line">
                 <td className="px-3 py-2 font-mono text-xs">{p.sku}</td>
@@ -75,7 +109,7 @@ export function AdminProductsPage() {
                     <span className="ml-2 text-xs font-bold text-fal-yellow-dark">INCOMPLETO</span>
                   ) : null}
                 </td>
-                <td className="px-3 py-2">{p.status}</td>
+                <td className="px-3 py-2">{productStatusLabel(p.status)}</td>
                 <td className="px-3 py-2">
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
@@ -83,17 +117,8 @@ export function AdminProductsPage() {
                   <Link className="font-semibold text-fal-auth-link" to={`/admin/produtos/${p.id}`}>
                     Editar
                   </Link>
-                  <button
-                    type="button"
-                    className="font-semibold text-fal-muted"
-                    onClick={() =>
-                      void adminSetProductStatus(
-                        p.id,
-                        p.status === 'archived' ? 'published' : 'archived',
-                      ).then(reload)
-                    }
-                  >
-                    {p.status === 'archived' ? 'Publicar' : 'Arquivar'}
+                  <button type="button" className="font-semibold text-fal-muted" onClick={() => void toggleArchive(p)}>
+                    {p.status === 'archived' ? 'Publicar' : 'Arquivar (remover da loja)'}
                   </button>
                 </td>
               </tr>

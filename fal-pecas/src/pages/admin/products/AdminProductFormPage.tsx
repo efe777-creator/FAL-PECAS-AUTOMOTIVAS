@@ -213,9 +213,9 @@ export function AdminProductFormPage() {
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Status</span>
             <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={status} onChange={(e) => setStatus(e.target.value as Product['status'] & string)}>
-              <option value="draft">draft</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
+              <option value="draft">Rascunho</option>
+              <option value="published">Publicado</option>
+              <option value="archived">Arquivado (fora da loja)</option>
             </select>
           </label>
         </div>
