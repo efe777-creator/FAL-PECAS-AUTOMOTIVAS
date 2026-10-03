@@ -1,0 +1,112 @@
+import { Badge } from '@/components/common/Badge'
+import { Button } from '@/components/common/Button'
+import { useCart } from '@/contexts/CartContext'
+import { useToast } from '@/components/common/Toast'
+import type { Product } from '@/types'
+import { Link } from 'react-router-dom'
+
+function formatPrice(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+export function ProductCard({ product }: { product: Product }) {
+  const { addItem, items, updateQty } = useCart()
+  const { push } = useToast()
+  const price = product.promoPrice ?? product.price
+  const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
+  const inCart = cartQty > 0
+
+  return (
+    <article
+      className={[
+        'relative rounded-fal border bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5',
+        inCart ? 'border-fal-yellow-dark' : 'border-fal-line',
+      ].join(' ')}
+    >
+      {product.promoPrice ? (
+        <div className="absolute top-3.5 left-3.5 z-[1]">
+          <Badge>Oferta</Badge>
+        </div>
+      ) : null}
+
+      {inCart ? (
+        <div
+          className="absolute top-3.5 right-3.5 z-[1] flex min-w-8 items-center justify-center gap-1 rounded-full bg-fal-navy px-2 py-1 text-xs font-extrabold text-white"
+          aria-label={`${cartQty} no carrinho`}
+          title={`${cartQty} no carrinho`}
+        >
+          <span aria-hidden>🛒</span>
+          <span>{cartQty}</span>
+        </div>
+      ) : null}
+
+      <Link to={`/produto/${product.id}`} className="block">
+        <div className="grid h-[100px] place-items-center rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
+          🧩
+        </div>
+        <p className="mt-3 mb-0 text-xs text-fal-muted">{product.brand}</p>
+        <h3 className="my-1 h-9 overflow-hidden text-xs font-bold sm:h-[43px] sm:text-[15px]">
+          {product.name}
+        </h3>
+        <p className="m-0 text-[11px] text-fal-muted">SKU {product.sku}</p>
+        {product.compatibilitySummary ? (
+          <p className="my-2 text-xs text-fal-success">{product.compatibilitySummary}</p>
+        ) : null}
+        <p className="m-0 text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
+        {product.promoPrice ? (
+          <p className="m-0 text-xs text-fal-muted line-through">{formatPrice(product.price)}</p>
+        ) : null}
+      </Link>
+
+      <div className="mt-3 flex gap-2">
+        <Link to={`/produto/${product.id}`} className="hidden flex-1 sm:block">
+          <Button variant="light" size="sm" fullWidth>
+            Ver
+          </Button>
+        </Link>
+
+        {inCart ? (
+          <div className="flex flex-1 items-center gap-1">
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-base font-bold text-fal-navy hover:bg-fal-bg"
+              aria-label="Diminuir quantidade"
+              onClick={() => updateQty(product.id, cartQty - 1)}
+            >
+              −
+            </button>
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-[#fff8db] px-1 py-1 text-center">
+              <span className="text-[10px] leading-none text-fal-muted">No carrinho</span>
+              <span className="text-sm font-black text-fal-navy">{cartQty}</span>
+            </div>
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-base font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
+              aria-label="Aumentar quantidade"
+              onClick={() => {
+                addItem(product, 1)
+                push('Quantidade atualizada', 'success')
+              }}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1">
+            <Button
+              variant="primary"
+              size="sm"
+              fullWidth
+              onClick={() => {
+                addItem(product, 1)
+                push('Produto adicionado ao carrinho', 'success')
+              }}
+            >
+              Adicionar
+            </Button>
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}

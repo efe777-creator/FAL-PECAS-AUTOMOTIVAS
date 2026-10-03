@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Build
+dist/
+**/dist/
+build/
+*.local
+
+# Logs / cache
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+.vite/
+.turbo/
+coverage/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Archives / local dumps
+*.zip
+*.rar
+*.7z
+
+# Supabase temp
+fal-pecas/supabase/migrations/_*.sql
+fal-pecas/supabase/migrations/part*.sql
+fal-pecas/supabase/migrations/_query.json
+
+# OS
+desktop.ini

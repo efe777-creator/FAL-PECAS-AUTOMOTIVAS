@@ -1,0 +1,262 @@
+import { mockProducts } from '@/data/mocks/products'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import type { Product } from '@/types'
+
+type Named = { name: string; id?: string }
+
+function asNamed(value: unknown): Named | null {
+  if (!value) return null
+  if (Array.isArray(value)) {
+    const first = value[0] as Named | undefined
+    return first?.name ? first : null
+  }
+  const obj = value as Named
+  return obj.name ? obj : null
+}
+
+function mapProduct(row: Record<string, unknown>): Product {
+  const brand = asNamed(row.product_brands)
+  const category = asNamed(row.product_categories)
+
+  return {
+    id: String(row.id),
+    sku: String(row.sku),
+    name: String(row.name),
+    slug: String(row.slug),
+    description: (row.description as string | null) ?? undefined,
+    brand: brand?.name,
+    categoryId: category?.id ?? (row.category_id as string | undefined),
+    categoryName: category?.name,
+    price: Number(row.price),
+    promoPrice: row.promo_price == null ? null : Number(row.promo_price),
+    status: row.status as Product['status'],
+    manufacturerCode: (row.manufacturer_code as string | null) ?? undefined,
+    available: Boolean(row.is_available),
+    isIncomplete: Boolean(row.is_incomplete),
+    stock: undefined,
+  }
+}
+
+const PRODUCT_SELECT = `
+  id, sku, name, slug, description, price, promo_price, status,
+  manufacturer_code, is_available, is_incomplete, category_id,
+  product_brands ( name ),
+  product_categories ( id, name )
+`
+
+/**
+ * Produtos published via Supabase + RLS.
+ * Fallback mock só sem configuração Supabase.
+ */
+export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
+  return listPublishedProducts(limit)
+}
+
+export async function listPublishedProducts(limit = 40): Promise<Product[]> {
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProducts.filter((p) => p.status === 'published').slice(0, limit)
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+}
+
+/** IDs de produtos compatíveis com filtros parciais de veículo. */
+export async function filterProductIdsByVehicle(filter: {
+  maker?: string | null
+  model?: string | null
+  year?: string | null
+  engine?: string | null
+}): Promise<string[] | null> {
+  const maker = filter.maker?.trim()
+  const model = filter.model?.trim()
+  const year = filter.year?.trim()
+  const engine = filter.engine?.trim()
+  if (!maker && !model && !year && !engine) return null
+
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProducts
+      .filter((p) => {
+        const hay = (p.compatibilitySummary ?? '').toLowerCase()
+        return (
+          (!maker || hay.includes(maker.toLowerCase())) &&
+          (!model || hay.includes(model.toLowerCase())) &&
+          (!year || hay.includes(year)) &&
+          (!engine || hay.includes(engine.toLowerCase()))
+        )
+      })
+      .map((p) => p.id)
+  }
+
+  let versionQuery = supabase
+    .from('vehicle_versions')
+    .select('id, year, engine, manufacturers!inner(name), models!inner(name)')
+    .eq('status', 'active')
+
+  if (year) versionQuery = versionQuery.eq('year', Number(year))
+  if (engine) versionQuery = versionQuery.eq('engine', engine)
+
+  const { data: versions, error: vErr } = await versionQuery
+  if (vErr) throw vErr
+
+  const versionIds = (versions ?? [])
+    .filter((v) => {
+      const makerName = asNamed(v.manufacturers)?.name
+      const modelName = asNamed(v.models)?.name
+      if (maker && makerName?.toLowerCase() !== maker.toLowerCase()) return false
+      if (model && modelName?.toLowerCase() !== model.toLowerCase()) return false
+      return true
+    })
+    .map((v) => String(v.id))
+
+  if (!versionIds.length) return []
+
+  const { data: apps, error: aErr } = await supabase
+    .from('product_vehicle_compatibility')
+    .select('product_id')
+    .in('vehicle_version_id', versionIds)
+
+  if (aErr) throw aErr
+  return [...new Set((apps ?? []).map((a) => String(a.product_id)))]
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProducts.find((p) => p.id === id) ?? null
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('id', id)
+    .eq('status', 'published')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const product = mapProduct(data as Record<string, unknown>)
+
+  const { data: refs } = await supabase
+    .from('product_references')
+    .select('code, ref_type, brand_label')
+    .eq('product_id', id)
+
+  const { data: apps } = await supabase
+    .from('product_vehicle_compatibility')
+    .select(
+      `
+      notes,
+      vehicle_versions (
+        year, engine, version_name,
+        manufacturers ( name ),
+        models ( name )
+      )
+    `,
+    )
+    .eq('product_id', id)
+
+  if (refs?.length) {
+    product.references = refs.map((r) => ({
+      code: String(r.code),
+      type: String(r.ref_type),
+      brandLabel: (r.brand_label as string | null) ?? undefined,
+    }))
+  }
+
+  if (apps?.length) {
+    product.compatibilitySummary = apps
+      .map((a) => {
+        const raw = a.vehicle_versions as unknown
+        const v = (Array.isArray(raw) ? raw[0] : raw) as
+          | {
+              year: number | null
+              engine: string | null
+              version_name: string | null
+              manufacturers: unknown
+              models: unknown
+            }
+          | null
+        if (!v) return (a.notes as string | null) ?? ''
+        const maker = asNamed(v.manufacturers)?.name
+        const model = asNamed(v.models)?.name
+        return [maker, model, v.year, v.engine, v.version_name].filter(Boolean).join(' ')
+      })
+      .filter(Boolean)
+      .join(' · ')
+  }
+
+  return product
+}
+
+export async function searchProducts(query: string): Promise<Product[]> {
+  const terms = query
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+
+  if (!terms.length) return []
+
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProducts.filter((p) => {
+      const haystack = [p.name, p.brand, p.sku, p.manufacturerCode, p.categoryName, p.compatibilitySummary]
+        .filter(Boolean)
+        .join(' ')
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLowerCase()
+      return terms.every((t) => haystack.includes(t))
+    })
+  }
+
+  // Fase 2: ilike simples. FTS/relevância = Fase 4.
+  const orFilter = [
+    `name.ilike.%${query}%`,
+    `sku.ilike.%${query}%`,
+    `manufacturer_code.ilike.%${query}%`,
+    `search_document.ilike.%${query}%`,
+  ].join(',')
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('status', 'published')
+    .or(orFilter)
+    .limit(40)
+
+  if (error) throw error
+
+  let results = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+
+  const { data: refHits } = await supabase
+    .from('product_references')
+    .select('product_id')
+    .ilike('code', `%${query}%`)
+    .limit(20)
+
+  const missingIds = (refHits ?? [])
+    .map((r) => String(r.product_id))
+    .filter((id) => !results.some((p) => p.id === id))
+
+  if (missingIds.length) {
+    const { data: extra } = await supabase
+      .from('products')
+      .select(PRODUCT_SELECT)
+      .eq('status', 'published')
+      .in('id', missingIds)
+    if (extra) {
+      results = [...results, ...extra.map((row) => mapProduct(row as Record<string, unknown>))]
+    }
+  }
+
+  return results
+}

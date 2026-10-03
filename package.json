@@ -1,0 +1,15 @@
+{
+  "name": "PROGRAMAS WEB",
+  "version": "1.0.0",
+  "description": "Workspace — app em fal-pecas/",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -C fal-pecas dev",
+    "build": "pnpm -C fal-pecas build",
+    "preview": "pnpm -C fal-pecas preview",
+    "lint": "pnpm -C fal-pecas lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
