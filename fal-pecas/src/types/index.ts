@@ -131,6 +131,41 @@ export interface VehicleFilter {
   version?: string
 }
 
+/** Ordenação do motor de busca (Fase 4). */
+export type ProductSearchSort =
+  | 'relevance'
+  | 'price_asc'
+  | 'price_desc'
+  | 'name_asc'
+  | 'name_desc'
+
+/** Parâmetros do contrato searchCatalog / RPC search_products. */
+export interface ProductSearchParams {
+  q?: string | null
+  /** Slug, id ou nome da categoria (inclui filhas no backend). */
+  category?: string | null
+  /** Nome ou id do fabricante (product_brands). */
+  brand?: string | null
+  maker?: string | null
+  model?: string | null
+  year?: string | null
+  engine?: string | null
+  version?: string | null
+  sort?: ProductSearchSort | null
+  /** 1-based. */
+  page?: number | null
+  /** Padrão 24. */
+  pageSize?: number | null
+}
+
+export interface ProductSearchResult {
+  items: Product[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
 export interface VehicleOptionTree {
   makers: string[]
   modelsByMaker: Record<string, string[]>

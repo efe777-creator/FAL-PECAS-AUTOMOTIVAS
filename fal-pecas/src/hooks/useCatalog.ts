@@ -1,5 +1,6 @@
 import { listCategories } from '@/services/categories/categoryService'
-import { listFeaturedProducts, searchProducts } from '@/services/products/productService'
+import { listFeaturedProducts } from '@/services/products/productService'
+import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import type { Category, Product, VehicleOptionTree } from '@/types'
 import { useEffect, useState } from 'react'
@@ -118,8 +119,8 @@ export function useProductSearch(query: string) {
       void (async () => {
         setState((s) => ({ ...s, loading: true }))
         try {
-          const data = await searchProducts(q)
-          if (active) setState({ data, loading: false, error: null })
+          const result = await searchCatalog({ q, page: 1, pageSize: 8, sort: 'relevance' })
+          if (active) setState({ data: result.items, loading: false, error: null })
         } catch (e) {
           if (active)
             setState({

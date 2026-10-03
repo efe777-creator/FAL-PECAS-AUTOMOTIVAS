@@ -20,10 +20,16 @@ docs/
     ├── ROADMAP_FASES_3.0.md
     ├── ESPECIFICACAO_FASE2_ARQUITETURA_DADOS.md
     ├── ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md
+    ├── ESPECIFICACAO_FASE4_MOTOR_BUSCA.md
+    ├── ESPECIFICACAO_FASE4B_ADMIN.md
     ├── EXECUCAO_FASE3.md
+    ├── EXECUCAO_FASE4.md
+    ├── EXECUCAO_FASE4B.md
     ├── RELATORIO_FASE3_COMPLETO_2026-10-03.md
     ├── AUDITORIA_FASE2_2026-10-03.md
     ├── AUDITORIA_FASE3_2026-10-03.md
+    ├── AUDITORIA_FASE4_2026-10-03.md
+    ├── AUDITORIA_FASE4B_2026-10-03.md
     └── ALINHAMENTO_FASE1_PRD.md
 ```
 
@@ -34,6 +40,8 @@ docs/
 | 1 | Fundação UI — concluída |
 | 2 | [ESPECIFICACAO_FASE2…](planejamento/ESPECIFICACAO_FASE2_ARQUITETURA_DADOS.md) — concluída |
 | 3 | [ESPECIFICACAO_FASE3…](planejamento/ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md) — concluída ([auditoria](planejamento/AUDITORIA_FASE3_2026-10-03.md) · [relatório](planejamento/RELATORIO_FASE3_COMPLETO_2026-10-03.md)) |
+| 4 | [ESPECIFICACAO_FASE4…](planejamento/ESPECIFICACAO_FASE4_MOTOR_BUSCA.md) — concluída ([auditoria](planejamento/AUDITORIA_FASE4_2026-10-03.md)) |
+| 4B | [ESPECIFICACAO_FASE4B…](planejamento/ESPECIFICACAO_FASE4B_ADMIN.md) — concluída ([auditoria](planejamento/AUDITORIA_FASE4B_2026-10-03.md)) |
 
 ## Como contribuir
 

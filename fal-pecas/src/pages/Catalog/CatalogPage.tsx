@@ -7,16 +7,33 @@ import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
 import { ProductCard } from '@/components/product/ProductCard'
 import { listActiveBrands } from '@/services/brands/brandService'
-import { listAllCategories, listCategories } from '@/services/categories/categoryService'
-import {
-  filterProductIdsByVehicle,
-  listPublishedProducts,
-  searchProducts,
-} from '@/services/products/productService'
+import { listCategories } from '@/services/categories/categoryService'
+import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
-import type { Category, Product, ProductBrand, VehicleOptionTree } from '@/types'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import type { Category, Product, ProductBrand, ProductSearchSort, VehicleOptionTree } from '@/types'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+
+const PAGE_SIZE = 24
+
+const SORT_OPTIONS: Array<{ value: ProductSearchSort; label: string }> = [
+  { value: 'relevance', label: 'Relevância' },
+  { value: 'price_asc', label: 'Menor preço' },
+  { value: 'price_desc', label: 'Maior preço' },
+  { value: 'name_asc', label: 'Nome A–Z' },
+  { value: 'name_desc', label: 'Nome Z–A' },
+]
+
+function parseSort(value: string | null): ProductSearchSort {
+  const allowed = SORT_OPTIONS.map((o) => o.value)
+  if (value && (allowed as string[]).includes(value)) return value as ProductSearchSort
+  return 'relevance'
+}
+
+function parsePage(value: string | null): number {
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1
+}
 
 export function CatalogPage() {
   const [params, setParams] = useSearchParams()
@@ -28,14 +45,21 @@ export function CatalogPage() {
   const engine = params.get('engine') ?? ''
   const version = params.get('version') ?? ''
   const brand = params.get('brand') ?? ''
+  const sort = parseSort(params.get('sort'))
+  const urlPage = parsePage(params.get('page'))
 
   const [searchDraft, setSearchDraft] = useState(q)
   const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadedPage, setLoadedPage] = useState(1)
   const [rootCategories, setRootCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [vehicleTree, setVehicleTree] = useState<VehicleOptionTree | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestId = useRef(0)
 
   useEffect(() => {
     setSearchDraft(q)
@@ -58,65 +82,68 @@ export function CatalogPage() {
     })()
   }, [])
 
+  const searchArgs = useMemo(
+    () => ({
+      q,
+      category: cat,
+      brand,
+      maker,
+      model,
+      year,
+      engine,
+      version,
+      sort,
+    }),
+    [q, cat, brand, maker, model, year, engine, version, sort],
+  )
+
   useEffect(() => {
-    let active = true
+    const id = ++requestId.current
+    const targetPage = urlPage
     void (async () => {
       setLoading(true)
       setError(null)
       try {
-        let list: Product[]
-        if (q.trim()) {
-          list = await searchProducts(q)
-        } else {
-          list = await listPublishedProducts(60)
-        }
-
-        if (cat.trim()) {
-          const categories = await listAllCategories()
-          const match = categories.find(
-            (c) =>
-              c.slug === cat ||
-              c.name.toLowerCase() === cat.toLowerCase() ||
-              c.id === cat,
-          )
-          if (match) {
-            const relatedIds = new Set(
-              categories
-                .filter((c) => c.id === match.id || c.parentId === match.id)
-                .map((c) => c.id),
-            )
-            list = list.filter((p) => p.categoryId && relatedIds.has(p.categoryId))
-          }
-        }
-
-        const vehicleIds = await filterProductIdsByVehicle({
-          maker,
-          model,
-          year,
-          engine,
-          version,
+        const first = await searchCatalog({
+          ...searchArgs,
+          page: 1,
+          pageSize: PAGE_SIZE,
         })
-        if (vehicleIds) {
-          const allowed = new Set(vehicleIds)
-          list = list.filter((p) => allowed.has(p.id))
+        if (id !== requestId.current) return
+
+        if (targetPage <= 1) {
+          setProducts(first.items)
+          setTotal(first.total)
+          setHasMore(first.hasMore)
+          setLoadedPage(1)
+          return
         }
 
-        if (brand.trim()) {
-          list = list.filter((p) => (p.brand ?? '').toLowerCase() === brand.toLowerCase())
-        }
-
-        if (active) setProducts(list)
+        const rest = await Promise.all(
+          Array.from({ length: targetPage - 1 }, (_, i) =>
+            searchCatalog({
+              ...searchArgs,
+              page: i + 2,
+              pageSize: PAGE_SIZE,
+            }),
+          ),
+        )
+        if (id !== requestId.current) return
+        const last = rest[rest.length - 1] ?? first
+        setProducts([...first.items, ...rest.flatMap((p) => p.items)])
+        setTotal(first.total)
+        setHasMore(last.hasMore)
+        setLoadedPage(targetPage)
       } catch (e) {
-        if (active)
+        if (id === requestId.current)
           setError(e instanceof Error ? e.message : 'Erro ao carregar o catálogo')
       } finally {
-        if (active) setLoading(false)
+        if (id === requestId.current) setLoading(false)
       }
     })()
-    return () => {
-      active = false
-    }
-  }, [q, cat, maker, model, year, engine, version, brand])
+    // urlPage lido no momento em que searchArgs muda (filtros resetam page; deep-link na 1ª carga).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMore não deve refetch
+  }, [searchArgs])
 
   const modelOptions = useMemo(() => {
     if (!vehicleTree || !maker) return []
@@ -148,11 +175,14 @@ export function CatalogPage() {
     [brands],
   )
 
-  function patchParams(next: Record<string, string | null>) {
+  function patchParams(next: Record<string, string | null>, resetPage = true) {
     const draft = new URLSearchParams(params)
     for (const [key, value] of Object.entries(next)) {
       if (!value) draft.delete(key)
       else draft.set(key, value)
+    }
+    if (resetPage && !('page' in next)) {
+      draft.delete('page')
     }
     setParams(draft, { replace: true })
   }
@@ -167,6 +197,32 @@ export function CatalogPage() {
     setParams({}, { replace: true })
   }
 
+  async function loadMore() {
+    if (loadingMore || !hasMore) return
+    const nextPage = loadedPage + 1
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const result = await searchCatalog({
+        ...searchArgs,
+        page: nextPage,
+        pageSize: PAGE_SIZE,
+      })
+      setProducts((prev) => {
+        const seen = new Set(prev.map((p) => p.id))
+        return [...prev, ...result.items.filter((p) => !seen.has(p.id))]
+      })
+      setTotal(result.total)
+      setHasMore(result.hasMore)
+      setLoadedPage(nextPage)
+      patchParams({ page: String(nextPage) }, false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   const activeChips = [
     q && { key: 'q', label: `Busca: ${q}` },
     cat && {
@@ -179,6 +235,10 @@ export function CatalogPage() {
     engine && { key: 'engine', label: `Motor: ${engine}` },
     version && { key: 'version', label: `Versão: ${version}` },
     brand && { key: 'brand', label: `Fabricante: ${brand}` },
+    sort !== 'relevance' && {
+      key: 'sort',
+      label: `Ordenar: ${SORT_OPTIONS.find((o) => o.value === sort)?.label ?? sort}`,
+    },
   ].filter(Boolean) as Array<{ key: string; label: string }>
 
   return (
@@ -218,7 +278,7 @@ export function CatalogPage() {
         </div>
       </form>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <Select
           label="Categoria"
           name="cat"
@@ -234,6 +294,17 @@ export function CatalogPage() {
           value={brand}
           options={brandOptions}
           onChange={(e) => patchParams({ brand: e.target.value || null })}
+        />
+        <Select
+          label="Ordenar"
+          name="sort"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={(e) =>
+            patchParams({
+              sort: e.target.value === 'relevance' ? null : e.target.value || null,
+            })
+          }
         />
         <Select
           label="Montadora"
@@ -309,11 +380,13 @@ export function CatalogPage() {
               className="rounded-full border border-[#d8dee3] bg-[#f7f9fa] px-2.5 py-1.5 text-xs hover:border-fal-navy"
               onClick={() => {
                 if (chip.key === 'maker') {
-                  patchParams({ maker: null, model: null, year: null, engine: null })
+                  patchParams({ maker: null, model: null, year: null, engine: null, version: null })
                 } else if (chip.key === 'model') {
-                  patchParams({ model: null, year: null, engine: null })
+                  patchParams({ model: null, year: null, engine: null, version: null })
                 } else if (chip.key === 'year') {
-                  patchParams({ year: null, engine: null })
+                  patchParams({ year: null })
+                } else if (chip.key === 'sort') {
+                  patchParams({ sort: null })
                 } else {
                   patchParams({ [chip.key]: null })
                 }
@@ -340,13 +413,26 @@ export function CatalogPage() {
         {!loading && !error && products.length > 0 ? (
           <>
             <p className="mb-3 text-sm text-fal-muted">
-              {products.length} produto{products.length === 1 ? '' : 's'}
+              {total} produto{total === 1 ? '' : 's'}
+              {products.length < total ? ` · mostrando ${products.length}` : ''}
             </p>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-[18px] lg:grid-cols-4">
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
+            {hasMore ? (
+              <div className="mt-6 flex justify-center">
+                <Button
+                  type="button"
+                  variant="light"
+                  onClick={() => void loadMore()}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais'}
+                </Button>
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>

@@ -208,68 +208,9 @@ export async function getProductById(id: string): Promise<Product | null> {
   return product
 }
 
+/** @deprecated Preferir `searchCatalog` (Fase 4). Mantido como fachada. */
 export async function searchProducts(query: string): Promise<Product[]> {
-  const terms = query
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-
-  if (!terms.length) return []
-
-  if (!isSupabaseConfigured || !supabase) {
-    return mockProducts.filter((p) => {
-      const haystack = [p.name, p.brand, p.sku, p.manufacturerCode, p.categoryName, p.compatibilitySummary]
-        .filter(Boolean)
-        .join(' ')
-        .normalize('NFD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase()
-      return terms.every((t) => haystack.includes(t))
-    })
-  }
-
-  // Fase 2: ilike simples. FTS/relevância = Fase 4.
-  const orFilter = [
-    `name.ilike.%${query}%`,
-    `sku.ilike.%${query}%`,
-    `manufacturer_code.ilike.%${query}%`,
-    `search_document.ilike.%${query}%`,
-  ].join(',')
-
-  const { data, error } = await supabase
-    .from('products')
-    .select(PRODUCT_SELECT)
-    .eq('status', 'published')
-    .or(orFilter)
-    .limit(40)
-
-  if (error) throw error
-
-  let results = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
-
-  const { data: refHits } = await supabase
-    .from('product_references')
-    .select('product_id')
-    .eq('status', 'active')
-    .ilike('code', `%${query}%`)
-    .limit(20)
-
-  const missingIds = (refHits ?? [])
-    .map((r) => String(r.product_id))
-    .filter((id) => !results.some((p) => p.id === id))
-
-  if (missingIds.length) {
-    const { data: extra } = await supabase
-      .from('products')
-      .select(PRODUCT_SELECT)
-      .eq('status', 'published')
-      .in('id', missingIds)
-    if (extra) {
-      results = [...results, ...extra.map((row) => mapProduct(row as Record<string, unknown>))]
-    }
-  }
-
-  return results
+  const { searchCatalog } = await import('@/services/search/searchService')
+  const result = await searchCatalog({ q: query, page: 1, pageSize: 40, sort: 'relevance' })
+  return result.items
 }

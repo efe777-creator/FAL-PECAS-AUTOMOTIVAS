@@ -38,7 +38,9 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 | 1 | Fundação e estrutura visual | Concluída (~90%) |
 | 2 | Arquitetura de Dados e Estrutura Funcional | Concluída (schema + services) |
 | 3 | Catálogo e estrutura comercial real | Concluída (admin catálogo + dados reais) |
-| 4–10 | — | Pendentes |
+| 4 | Motor de busca | Concluída (RPC + searchCatalog + UI) |
+| 4B | Painel admin (auditoria/polimento) | Concluída |
+| 5–10 | — | Pendentes |
 
 ---
 
@@ -90,7 +92,23 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Escopo:** texto, código, referência, categoria, fabricante, veículo (filtros parciais/combinados), ordenação, paginação, relevância.
 
-**Critérios de saída:** buscas do tipo “Pivô Palio”, “Nakata PVI1032” e Fiat→Palio→2015 retornam resultados corretos.
+**Spec:** [ESPECIFICACAO_FASE4_MOTOR_BUSCA.md](./ESPECIFICACAO_FASE4_MOTOR_BUSCA.md)  
+**Execução:** [EXECUCAO_FASE4.md](./EXECUCAO_FASE4.md)  
+**Auditoria:** [AUDITORIA_FASE4_2026-10-03.md](./AUDITORIA_FASE4_2026-10-03.md) — **APROVADA**.
+
+**Critérios de saída:** cumpridos — “Pivô Palio”, “Nakata PVI1032”, Fiat→Palio→2015, 1.0≠1.4, paginação Carregar mais.
+
+---
+
+## Fase 4B — Painel admin (auditoria e polimento)
+
+**Pergunta:** O painel `/admin` está completo o suficiente para operar o catálogo?
+
+**Escopo:** entrada staff na Conta/Header; veículos editar/status; arquivar com confirmação; labels PT. Sem novo painel; sem F5–F8.
+
+**Spec:** [ESPECIFICACAO_FASE4B_ADMIN.md](./ESPECIFICACAO_FASE4B_ADMIN.md)  
+**Execução:** [EXECUCAO_FASE4B.md](./EXECUCAO_FASE4B.md)  
+**Auditoria:** [AUDITORIA_FASE4B_2026-10-03.md](./AUDITORIA_FASE4B_2026-10-03.md) — **APROVADA**.
 
 ---
 
