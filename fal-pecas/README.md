@@ -94,4 +94,4 @@ A integração Vite/Tailwind/Supabase Auth foi alinhada com documentação atual
 
 ## Fora da Fase 2 (próximas)
 
-Catálogo comercial real (F3), busca avançada (F4), conta completa (F5), checkout (F6), operação/admin/importação (F7–F8).
+Fase 3 concluída: catálogo comercial + `/admin` (catálogo). Próximas: busca avançada (F4), conta (F5), checkout (F6), operação/estoque (F7–F8 restante).

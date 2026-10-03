@@ -49,4 +49,10 @@ export const mockVehicleTree: VehicleOptionTree = {
     'Corolla|2020': ['2.0', '1.8 Hybrid'],
     'Argo|2020': ['1.0', '1.3', '1.8'],
   },
+  enginesByModel: {
+    Onix: ['1.0', '1.0 Turbo'],
+    Gol: ['1.0', '1.6'],
+    Argo: ['1.0', '1.3', '1.8'],
+  },
+  versionsByModel: {},
 }

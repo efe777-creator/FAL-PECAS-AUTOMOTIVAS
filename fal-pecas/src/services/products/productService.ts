@@ -24,7 +24,10 @@ function mapProduct(row: Record<string, unknown>): Product {
     name: String(row.name),
     slug: String(row.slug),
     description: (row.description as string | null) ?? undefined,
+    shortDescription: (row.short_description as string | null) ?? undefined,
     brand: brand?.name,
+    brandId: (row.brand_id as string | null) ?? null,
+    supplierId: (row.supplier_id as string | null) ?? null,
     categoryId: category?.id ?? (row.category_id as string | undefined),
     categoryName: category?.name,
     price: Number(row.price),
@@ -33,13 +36,14 @@ function mapProduct(row: Record<string, unknown>): Product {
     manufacturerCode: (row.manufacturer_code as string | null) ?? undefined,
     available: Boolean(row.is_available),
     isIncomplete: Boolean(row.is_incomplete),
+    attrs: (row.attrs as Record<string, unknown> | null) ?? {},
     stock: undefined,
   }
 }
 
 const PRODUCT_SELECT = `
-  id, sku, name, slug, description, price, promo_price, status,
-  manufacturer_code, is_available, is_incomplete, category_id,
+  id, sku, name, slug, description, short_description, price, promo_price, status,
+  manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id, attrs,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -74,12 +78,14 @@ export async function filterProductIdsByVehicle(filter: {
   model?: string | null
   year?: string | null
   engine?: string | null
+  version?: string | null
 }): Promise<string[] | null> {
   const maker = filter.maker?.trim()
   const model = filter.model?.trim()
   const year = filter.year?.trim()
   const engine = filter.engine?.trim()
-  if (!maker && !model && !year && !engine) return null
+  const version = filter.version?.trim()
+  if (!maker && !model && !year && !engine && !version) return null
 
   if (!isSupabaseConfigured || !supabase) {
     return mockProducts
@@ -89,19 +95,22 @@ export async function filterProductIdsByVehicle(filter: {
           (!maker || hay.includes(maker.toLowerCase())) &&
           (!model || hay.includes(model.toLowerCase())) &&
           (!year || hay.includes(year)) &&
-          (!engine || hay.includes(engine.toLowerCase()))
+          (!engine || hay.includes(engine.toLowerCase())) &&
+          (!version || hay.includes(version.toLowerCase()))
         )
       })
       .map((p) => p.id)
   }
 
+  // NULL estrito: eq('year', 2012) NÃO inclui year NULL (evita falso positivo).
   let versionQuery = supabase
     .from('vehicle_versions')
-    .select('id, year, engine, manufacturers!inner(name), models!inner(name)')
+    .select('id, year, engine, version_name, manufacturers!inner(name), models!inner(name)')
     .eq('status', 'active')
 
   if (year) versionQuery = versionQuery.eq('year', Number(year))
   if (engine) versionQuery = versionQuery.eq('engine', engine)
+  if (version) versionQuery = versionQuery.eq('version_name', version)
 
   const { data: versions, error: vErr } = await versionQuery
   if (vErr) throw vErr
@@ -146,8 +155,9 @@ export async function getProductById(id: string): Promise<Product | null> {
 
   const { data: refs } = await supabase
     .from('product_references')
-    .select('code, ref_type, brand_label')
+    .select('code, ref_type, brand_label, brand_id, status')
     .eq('product_id', id)
+    .eq('status', 'active')
 
   const { data: apps } = await supabase
     .from('product_vehicle_compatibility')
@@ -167,7 +177,9 @@ export async function getProductById(id: string): Promise<Product | null> {
     product.references = refs.map((r) => ({
       code: String(r.code),
       type: String(r.ref_type),
+      brandId: (r.brand_id as string | null) ?? null,
       brandLabel: (r.brand_label as string | null) ?? undefined,
+      status: (r.status as 'active' | 'inactive' | null) ?? 'active',
     }))
   }
 
@@ -240,6 +252,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
   const { data: refHits } = await supabase
     .from('product_references')
     .select('product_id')
+    .eq('status', 'active')
     .ilike('code', `%${query}%`)
     .limit(20)
 

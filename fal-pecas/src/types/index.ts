@@ -31,12 +31,17 @@ export interface Category {
   description?: string
   emoji?: string
   parentId?: string | null
+  sortOrder?: number
+  status?: 'draft' | 'published' | 'archived'
 }
 
 export interface ProductReference {
+  id?: string
   code: string
   type: string
+  brandId?: string | null
   brandLabel?: string
+  status?: 'active' | 'inactive'
 }
 
 export interface Product {
@@ -45,7 +50,10 @@ export interface Product {
   name: string
   slug: string
   description?: string
+  shortDescription?: string
   brand?: string
+  brandId?: string | null
+  supplierId?: string | null
   categoryId?: string
   categoryName?: string
   price: number
@@ -60,6 +68,58 @@ export interface Product {
   manufacturerCode?: string
   compatibilitySummary?: string
   references?: ProductReference[]
+  attrs?: Record<string, unknown>
+}
+
+export type EntityStatus = 'active' | 'inactive'
+
+export interface Manufacturer {
+  id: string
+  name: string
+  slug: string
+  status: EntityStatus
+}
+
+export interface VehicleModel {
+  id: string
+  manufacturerId: string
+  name: string
+  slug: string
+  status: EntityStatus
+}
+
+export interface VehicleVersion {
+  id: string
+  manufacturerId: string
+  modelId: string
+  year: number | null
+  engine: string | null
+  versionName: string | null
+  status: EntityStatus
+}
+
+export interface ProductBrand {
+  id: string
+  name: string
+  slug: string
+  status: EntityStatus
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  code?: string | null
+  status: EntityStatus
+}
+
+export interface ProductImage {
+  id: string
+  productId: string
+  storagePath: string
+  alt?: string | null
+  sortOrder: number
+  isPrimary: boolean
+  publicUrl?: string
 }
 
 export interface VehicleFilter {
@@ -76,6 +136,9 @@ export interface VehicleOptionTree {
   modelsByMaker: Record<string, string[]>
   yearsByModel: Record<string, string[]>
   enginesByModelYear: Record<string, string[]>
+  /** Motores por modelo (inclui configs com year NULL). */
+  enginesByModel: Record<string, string[]>
+  versionsByModel: Record<string, string[]>
 }
 
 export interface CartItem {

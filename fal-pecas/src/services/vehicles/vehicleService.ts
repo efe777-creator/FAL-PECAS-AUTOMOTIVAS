@@ -30,7 +30,7 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
         .order('name'),
       supabase
         .from('vehicle_versions')
-        .select('year, engine, model_id, manufacturers(name), models(name)')
+        .select('year, engine, version_name, model_id, manufacturers(name), models(name)')
         .eq('status', 'active'),
     ])
 
@@ -42,6 +42,8 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
   const modelsByMaker: Record<string, string[]> = {}
   const yearsByModel: Record<string, string[]> = {}
   const enginesByModelYear: Record<string, string[]> = {}
+  const enginesByModel: Record<string, string[]> = {}
+  const versionsByModel: Record<string, string[]> = {}
 
   for (const m of models ?? []) {
     const makerName =
@@ -57,17 +59,36 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
 
   for (const v of versions ?? []) {
     const modelName = relationName(v.models)
-    if (!modelName || v.year == null) continue
-    const year = String(v.year)
-    yearsByModel[modelName] ??= []
-    if (!yearsByModel[modelName].includes(year)) yearsByModel[modelName].push(year)
+    if (!modelName) continue
+
+    if (v.year != null) {
+      const year = String(v.year)
+      yearsByModel[modelName] ??= []
+      if (!yearsByModel[modelName].includes(year)) yearsByModel[modelName].push(year)
+
+      if (v.engine) {
+        const key = `${modelName}|${year}`
+        enginesByModelYear[key] ??= []
+        const engine = String(v.engine)
+        if (!enginesByModelYear[key].includes(engine)) {
+          enginesByModelYear[key].push(engine)
+        }
+      }
+    }
 
     if (v.engine) {
-      const key = `${modelName}|${year}`
-      enginesByModelYear[key] ??= []
+      enginesByModel[modelName] ??= []
       const engine = String(v.engine)
-      if (!enginesByModelYear[key].includes(engine)) {
-        enginesByModelYear[key].push(engine)
+      if (!enginesByModel[modelName].includes(engine)) {
+        enginesByModel[modelName].push(engine)
+      }
+    }
+
+    if (v.version_name) {
+      versionsByModel[modelName] ??= []
+      const vn = String(v.version_name)
+      if (!versionsByModel[modelName].includes(vn)) {
+        versionsByModel[modelName].push(vn)
       }
     }
   }
@@ -81,6 +102,8 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
     modelsByMaker,
     yearsByModel,
     enginesByModelYear,
+    enginesByModel,
+    versionsByModel,
   }
 }
 

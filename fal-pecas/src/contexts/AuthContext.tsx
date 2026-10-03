@@ -8,9 +8,10 @@ import {
   signOut,
   signUp,
 } from '@/services/supabase/authService'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import { fetchProfileRole } from '@/services/admin/staffService'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { UserProfile } from '@/types'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import {
   createContext,
   useCallback,
@@ -25,6 +26,7 @@ interface AuthContextValue {
   user: UserProfile | null
   session: Session | null
   loading: boolean
+  profileLoading: boolean
   isConfigured: boolean
   signIn: (emailOrUsername: string, password: string) => Promise<void>
   signUp: (params: {
@@ -41,10 +43,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+async function enrichUser(authUser: User | null): Promise<UserProfile | null> {
+  const base = mapUser(authUser)
+  if (!base || !supabase) return base
+  try {
+    const role = await fetchProfileRole(base.id)
+    if (role) return { ...base, role }
+  } catch (err) {
+    console.error('[FAL] Erro ao carregar role do profile', err)
+  }
+  return base
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -54,18 +69,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const current = await getSession()
         if (!active) return
         setSession(current)
-        setUser(mapUser(current?.user ?? null))
+        setProfileLoading(true)
+        setUser(await enrichUser(current?.user ?? null))
       } catch (err) {
         console.error('[FAL] Erro ao carregar sessão', err)
       } finally {
-        if (active) setLoading(false)
+        if (active) {
+          setLoading(false)
+          setProfileLoading(false)
+        }
       }
     })()
 
     const unsubscribe = onAuthStateChange((next) => {
       setSession(next)
-      setUser(mapUser(next?.user ?? null))
       setLoading(false)
+      setProfileLoading(true)
+      void enrichUser(next?.user ?? null).then((profile) => {
+        if (active) {
+          setUser(profile)
+          setProfileLoading(false)
+        }
+      })
     })
 
     return () => {
@@ -77,7 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignIn = useCallback(async (emailOrUsername: string, password: string) => {
     const result = await signInWithIdentifier({ emailOrUsername, password })
     setSession(result.session)
-    setUser(result.user)
+    setProfileLoading(true)
+    setUser(await enrichUser(result.session?.user ?? null))
+    setProfileLoading(false)
   }, [])
 
   const handleSignUp = useCallback(
@@ -91,7 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       const result = await signUp(params)
       setSession(result.session)
-      setUser(result.user)
+      setProfileLoading(true)
+      setUser(await enrichUser(result.session?.user ?? null))
+      setProfileLoading(false)
     },
     [],
   )
@@ -111,13 +140,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       session,
       loading,
+      profileLoading,
       isConfigured: isSupabaseConfigured,
       signIn: handleSignIn,
       signUp: handleSignUp,
       signOut: handleSignOut,
       resetPassword: handleReset,
     }),
-    [user, session, loading, handleSignIn, handleSignUp, handleSignOut, handleReset],
+    [user, session, loading, profileLoading, handleSignIn, handleSignUp, handleSignOut, handleReset],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

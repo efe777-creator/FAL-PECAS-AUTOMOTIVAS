@@ -6,6 +6,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
 import { ProductCard } from '@/components/product/ProductCard'
+import { listActiveBrands } from '@/services/brands/brandService'
 import { listAllCategories, listCategories } from '@/services/categories/categoryService'
 import {
   filterProductIdsByVehicle,
@@ -13,7 +14,7 @@ import {
   searchProducts,
 } from '@/services/products/productService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
-import type { Category, Product, VehicleOptionTree } from '@/types'
+import type { Category, Product, ProductBrand, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -25,10 +26,13 @@ export function CatalogPage() {
   const model = params.get('model') ?? ''
   const year = params.get('year') ?? ''
   const engine = params.get('engine') ?? ''
+  const version = params.get('version') ?? ''
+  const brand = params.get('brand') ?? ''
 
   const [searchDraft, setSearchDraft] = useState(q)
   const [products, setProducts] = useState<Product[]>([])
   const [rootCategories, setRootCategories] = useState<Category[]>([])
+  const [brands, setBrands] = useState<ProductBrand[]>([])
   const [vehicleTree, setVehicleTree] = useState<VehicleOptionTree | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,9 +44,14 @@ export function CatalogPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [cats, vehicles] = await Promise.all([listCategories(), getVehicleOptions()])
+        const [cats, vehicles, brandList] = await Promise.all([
+          listCategories(),
+          getVehicleOptions(),
+          listActiveBrands(),
+        ])
         setRootCategories(cats)
         setVehicleTree(vehicles)
+        setBrands(brandList)
       } catch {
         /* filtros ficam vazios; listagem ainda tenta carregar */
       }
@@ -80,10 +89,20 @@ export function CatalogPage() {
           }
         }
 
-        const vehicleIds = await filterProductIdsByVehicle({ maker, model, year, engine })
+        const vehicleIds = await filterProductIdsByVehicle({
+          maker,
+          model,
+          year,
+          engine,
+          version,
+        })
         if (vehicleIds) {
           const allowed = new Set(vehicleIds)
           list = list.filter((p) => allowed.has(p.id))
+        }
+
+        if (brand.trim()) {
+          list = list.filter((p) => (p.brand ?? '').toLowerCase() === brand.toLowerCase())
         }
 
         if (active) setProducts(list)
@@ -97,7 +116,7 @@ export function CatalogPage() {
     return () => {
       active = false
     }
-  }, [q, cat, maker, model, year, engine])
+  }, [q, cat, maker, model, year, engine, version, brand])
 
   const modelOptions = useMemo(() => {
     if (!vehicleTree || !maker) return []
@@ -110,10 +129,24 @@ export function CatalogPage() {
   }, [vehicleTree, model])
 
   const engineOptions = useMemo(() => {
-    if (!vehicleTree || !model || !year) return []
-    const key = `${model}|${year}`
-    return (vehicleTree.enginesByModelYear[key] ?? []).map((e) => ({ value: e, label: e }))
+    if (!vehicleTree || !model) return []
+    if (year) {
+      const key = `${model}|${year}`
+      const byYear = vehicleTree.enginesByModelYear[key] ?? []
+      if (byYear.length) return byYear.map((e) => ({ value: e, label: e }))
+    }
+    return (vehicleTree.enginesByModel[model] ?? []).map((e) => ({ value: e, label: e }))
   }, [vehicleTree, model, year])
+
+  const versionOptions = useMemo(() => {
+    if (!vehicleTree || !model) return []
+    return (vehicleTree.versionsByModel[model] ?? []).map((v) => ({ value: v, label: v }))
+  }, [vehicleTree, model])
+
+  const brandOptions = useMemo(
+    () => brands.map((b) => ({ value: b.name, label: b.name })),
+    [brands],
+  )
 
   function patchParams(next: Record<string, string | null>) {
     const draft = new URLSearchParams(params)
@@ -144,6 +177,8 @@ export function CatalogPage() {
     model && { key: 'model', label: `Modelo: ${model}` },
     year && { key: 'year', label: `Ano: ${year}` },
     engine && { key: 'engine', label: `Motor: ${engine}` },
+    version && { key: 'version', label: `Versão: ${version}` },
+    brand && { key: 'brand', label: `Fabricante: ${brand}` },
   ].filter(Boolean) as Array<{ key: string; label: string }>
 
   return (
@@ -183,7 +218,7 @@ export function CatalogPage() {
         </div>
       </form>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Select
           label="Categoria"
           name="cat"
@@ -191,6 +226,14 @@ export function CatalogPage() {
           value={cat}
           options={rootCategories.map((c) => ({ value: c.slug, label: c.name }))}
           onChange={(e) => patchParams({ cat: e.target.value || null })}
+        />
+        <Select
+          label="Fabricante"
+          name="brand"
+          placeholder="Todos / opcional"
+          value={brand}
+          options={brandOptions}
+          onChange={(e) => patchParams({ brand: e.target.value || null })}
         />
         <Select
           label="Montadora"
@@ -204,6 +247,7 @@ export function CatalogPage() {
               model: null,
               year: null,
               engine: null,
+              version: null,
             })
           }
         />
@@ -219,6 +263,7 @@ export function CatalogPage() {
               model: e.target.value || null,
               year: null,
               engine: null,
+              version: null,
             })
           }
         />
@@ -232,7 +277,6 @@ export function CatalogPage() {
           onChange={(e) =>
             patchParams({
               year: e.target.value || null,
-              engine: null,
             })
           }
         />
@@ -242,8 +286,17 @@ export function CatalogPage() {
           placeholder="Todos / opcional"
           value={engine}
           options={engineOptions}
-          disabled={!year}
+          disabled={!model}
           onChange={(e) => patchParams({ engine: e.target.value || null })}
+        />
+        <Select
+          label="Versão"
+          name="version"
+          placeholder="Todas / opcional"
+          value={version}
+          options={versionOptions}
+          disabled={!model}
+          onChange={(e) => patchParams({ version: e.target.value || null })}
         />
       </div>
 
