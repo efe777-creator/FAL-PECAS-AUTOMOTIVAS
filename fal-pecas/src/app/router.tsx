@@ -24,11 +24,31 @@ const CartPage = lazy(() =>
 const CheckoutPage = lazy(() =>
   import('@/pages/Checkout/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
 )
-const AccountPage = lazy(() =>
-  import('@/pages/Account/AccountPage').then((m) => ({ default: m.AccountPage })),
+const AccountLayout = lazy(() =>
+  import('@/components/account/AccountLayout').then((m) => ({ default: m.AccountLayout })),
 )
-const OrdersPage = lazy(() =>
-  import('@/pages/Orders/OrdersPage').then((m) => ({ default: m.OrdersPage })),
+const AccountHomePage = lazy(() =>
+  import('@/pages/Account/AccountHomePage').then((m) => ({ default: m.AccountHomePage })),
+)
+const AccountProfilePage = lazy(() =>
+  import('@/pages/Account/AccountProfilePage').then((m) => ({ default: m.AccountProfilePage })),
+)
+const AccountAddressesPage = lazy(() =>
+  import('@/pages/Account/AccountAddressesPage').then((m) => ({ default: m.AccountAddressesPage })),
+)
+const AccountVehiclesPage = lazy(() =>
+  import('@/pages/Account/AccountVehiclesPage').then((m) => ({ default: m.AccountVehiclesPage })),
+)
+const AccountFavoritesPage = lazy(() =>
+  import('@/pages/Account/AccountFavoritesPage').then((m) => ({ default: m.AccountFavoritesPage })),
+)
+const AccountOrdersPage = lazy(() =>
+  import('@/pages/Account/AccountOrdersPage').then((m) => ({ default: m.AccountOrdersPage })),
+)
+const AccountOrderDetailPage = lazy(() =>
+  import('@/pages/Account/AccountOrderDetailPage').then((m) => ({
+    default: m.AccountOrderDetailPage,
+  })),
 )
 const LoginPage = lazy(() =>
   import('@/pages/Login/LoginPage').then((m) => ({ default: m.LoginPage })),
@@ -178,7 +198,9 @@ export const router = createBrowserRouter([
         path: 'checkout',
         element: (
           <Suspend>
-            <CheckoutPage />
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
           </Suspend>
         ),
       },
@@ -187,20 +209,23 @@ export const router = createBrowserRouter([
         element: (
           <Suspend>
             <ProtectedRoute>
-              <AccountPage />
+              <AccountLayout />
             </ProtectedRoute>
           </Suspend>
         ),
+        children: [
+          { index: true, element: <AccountHomePage /> },
+          { path: 'perfil', element: <AccountProfilePage /> },
+          { path: 'enderecos', element: <AccountAddressesPage /> },
+          { path: 'veiculos', element: <AccountVehiclesPage /> },
+          { path: 'favoritos', element: <AccountFavoritesPage /> },
+          { path: 'pedidos', element: <AccountOrdersPage /> },
+          { path: 'pedidos/:id', element: <AccountOrderDetailPage /> },
+        ],
       },
       {
         path: 'pedidos',
-        element: (
-          <Suspend>
-            <ProtectedRoute>
-              <OrdersPage />
-            </ProtectedRoute>
-          </Suspend>
-        ),
+        element: <Navigate to="/conta/pedidos" replace />,
       },
       {
         path: 'login',

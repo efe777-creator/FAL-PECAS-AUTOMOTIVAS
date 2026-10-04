@@ -1,0 +1,97 @@
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
+import { Loading } from '@/components/common/Loading'
+import { listMyOrders } from '@/services/customers/orderQueryService'
+import type { CustomerOrderSummary } from '@/types'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+
+const statusLabel: Record<string, string> = {
+  pendente: 'Pendente',
+  aguardando_pagamento: 'Aguardando pagamento',
+  pagamento_aprovado: 'Pagamento aprovado',
+  em_separacao: 'Em separação',
+  preparando_envio: 'Preparando envio',
+  enviado: 'Enviado',
+  entregue: 'Entregue',
+  cancelado: 'Cancelado',
+}
+
+export function AccountOrdersPage() {
+  const [items, setItems] = useState<CustomerOrderSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      setLoading(true)
+      try {
+        setItems(await listMyOrders())
+        setError(null)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  if (loading) return <Loading label="Carregando pedidos…" />
+  if (error) return <ErrorState message={error} />
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-fal border border-fal-line bg-white p-5">
+        <h2 className="mt-0 text-xl font-extrabold">Meus pedidos</h2>
+        <p className="text-sm text-fal-muted">
+          Pedidos criados no checkout. Clique para ver detalhes e histórico.
+        </p>
+      </div>
+
+      {items.length === 0 ? (
+        <EmptyState
+          title="Você ainda não possui pedidos."
+          description="Quando houver compras, elas aparecerão aqui."
+          actionLabel="Ver catálogo"
+          actionTo="/catalogo"
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-fal border border-fal-line bg-white">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-fal-bg text-fal-muted">
+              <tr>
+                <th className="px-3 py-2">Pedido</th>
+                <th className="px-3 py-2">Data</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Itens</th>
+                <th className="px-3 py-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((o) => (
+                <tr key={o.id} className="border-t border-fal-line">
+                  <td className="px-3 py-2 font-mono text-xs">
+                    <Link
+                      to={`/conta/pedidos/${o.id}`}
+                      className="font-semibold text-fal-auth-link underline-offset-2 hover:underline"
+                    >
+                      {o.id.slice(0, 8)}…
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    {new Date(o.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-3 py-2">{statusLabel[o.status] ?? o.status}</td>
+                  <td className="px-3 py-2">{o.itemCount}</td>
+                  <td className="px-3 py-2 font-semibold">
+                    {o.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -9,6 +9,7 @@ import {
   signUp,
 } from '@/services/supabase/authService'
 import { fetchProfileRole } from '@/services/admin/staffService'
+import { getCustomerProfile } from '@/services/customers/customerService'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { UserProfile } from '@/types'
 import type { Session, User } from '@supabase/supabase-js'
@@ -47,10 +48,28 @@ async function enrichUser(authUser: User | null): Promise<UserProfile | null> {
   const base = mapUser(authUser)
   if (!base || !supabase) return base
   try {
-    const role = await fetchProfileRole(base.id)
-    if (role) return { ...base, role }
+    const [{ profile }, role] = await Promise.all([
+      getCustomerProfile(base.id),
+      fetchProfileRole(base.id),
+    ])
+    return {
+      ...base,
+      fullName: profile.fullName ?? base.fullName,
+      phone: profile.phone ?? base.phone,
+      username: profile.username ?? base.username,
+      role: role ?? profile.role ?? base.role,
+      customerId: profile.customerId,
+      cpf: profile.cpf,
+      cnpj: profile.cnpj,
+    }
   } catch (err) {
-    console.error('[FAL] Erro ao carregar role do profile', err)
+    console.error('[FAL] Erro ao carregar perfil', err)
+    try {
+      const role = await fetchProfileRole(base.id)
+      if (role) return { ...base, role }
+    } catch {
+      /* ignore */
+    }
   }
   return base
 }

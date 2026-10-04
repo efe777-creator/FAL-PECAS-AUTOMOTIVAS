@@ -1,9 +1,12 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { useCart } from '@/contexts/CartContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
 import type { Product } from '@/types'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type MouseEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 function formatPrice(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -11,10 +14,39 @@ function formatPrice(value: number) {
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem, items, updateQty } = useCart()
+  const { user } = useAuth()
   const { push } = useToast()
+  const navigate = useNavigate()
+  const [liked, setLiked] = useState(false)
   const price = product.promoPrice ?? product.price
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
+
+  useEffect(() => {
+    if (!user) {
+      setLiked(false)
+      return
+    }
+    void isFavorite(product.id)
+      .then(setLiked)
+      .catch(() => setLiked(false))
+  }, [user, product.id])
+
+  async function onFavoriteClick(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user) {
+      navigate('/login', { state: { from: `/produto/${product.id}` } })
+      return
+    }
+    try {
+      const next = await toggleFavorite(product.id)
+      setLiked(next)
+      push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
+    } catch (err) {
+      push(err instanceof Error ? err.message : 'Erro ao favoritar', 'error')
+    }
+  }
 
   return (
     <article
@@ -29,9 +61,18 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       ) : null}
 
+      <button
+        type="button"
+        className="absolute top-3.5 right-3.5 z-[2] grid h-8 w-8 place-items-center rounded-full border border-fal-line bg-white/95 text-sm shadow-sm hover:border-fal-navy"
+        aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
+        onClick={(e) => void onFavoriteClick(e)}
+      >
+        {liked ? '♥' : '♡'}
+      </button>
+
       {inCart ? (
         <div
-          className="absolute top-3.5 right-3.5 z-[1] flex min-w-8 items-center justify-center gap-1 rounded-full bg-fal-navy px-2 py-1 text-xs font-extrabold text-white"
+          className="absolute top-12 right-3.5 z-[1] flex min-w-8 items-center justify-center gap-1 rounded-full bg-fal-navy px-2 py-1 text-xs font-extrabold text-white"
           aria-label={`${cartQty} no carrinho`}
           title={`${cartQty} no carrinho`}
         >

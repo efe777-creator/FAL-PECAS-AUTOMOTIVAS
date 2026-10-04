@@ -1,5 +1,5 @@
 /**
- * Tipos centrais da FAL Peças Automotivas 3.0
+ * Tipos centrais da FAL Peças Automotivas
  * Preparados para entidades futuras do PRD — sem inventar schema definitivo.
  */
 
@@ -13,6 +13,167 @@ export interface UserProfile {
   fullName?: string | null
   phone?: string | null
   role?: UserRole
+  /** ID da linha em customers (quando existir). */
+  customerId?: string | null
+  cpf?: string | null
+  cnpj?: string | null
+}
+
+export interface CustomerAddress {
+  id: string
+  customerId: string
+  label?: string | null
+  recipient: string
+  street: string
+  number: string
+  complement?: string | null
+  district?: string | null
+  city: string
+  state: string
+  postalCode: string
+  isDefault: boolean
+}
+
+export interface CustomerSavedVehicle {
+  id: string
+  customerId: string
+  manufacturerId?: string | null
+  modelId?: string | null
+  versionId: string
+  year?: number | null
+  engine?: string | null
+  nickname?: string | null
+  isPrimary: boolean
+  /** Labels para UI */
+  makerName?: string
+  modelName?: string
+  versionName?: string | null
+}
+
+export interface CustomerOrderSummary {
+  id: string
+  status: string
+  total: number
+  createdAt: string
+  itemCount: number
+}
+
+export interface OrderItemSnapshot {
+  id: string
+  productId?: string | null
+  sku: string
+  nameSnapshot: string
+  unitPrice: number
+  quantity: number
+}
+
+export interface OrderStatusEvent {
+  id: string
+  status: string
+  note?: string | null
+  createdAt: string
+}
+
+export interface OrderDetail {
+  id: string
+  status: string
+  subtotal: number
+  shippingAmount: number
+  total: number
+  createdAt: string
+  addressSnapshot?: Record<string, unknown> | null
+  paymentRef?: string | null
+  items: OrderItemSnapshot[]
+  history: OrderStatusEvent[]
+  payment?: {
+    id: string
+    provider?: string | null
+    status: string
+    amount?: number | null
+    externalRef?: string | null
+  } | null
+  shipment?: {
+    id: string
+    provider?: string | null
+    status: string
+    amount?: number | null
+    trackingCode?: string | null
+    metadata?: Record<string, unknown> | null
+  } | null
+}
+
+/** Cotação de frete — contrato interno FAL (F6 mock; F9 troca provider). */
+export interface ShippingQuoteRequest {
+  postalCode: string
+  state: string
+  city: string
+  subtotal: number
+  itemCount: number
+}
+
+export interface ShippingQuoteOption {
+  id: string
+  provider: string
+  serviceCode: string
+  label: string
+  amount: number
+  etaDaysMin?: number
+  etaDaysMax?: number
+  metadata?: Record<string, unknown>
+}
+
+export interface ShippingProvider {
+  quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]>
+}
+
+export type SimulatedPaymentMethod = 'pix_simulated' | 'card_simulated'
+
+export interface PaymentIntentInput {
+  orderId: string
+  amount: number
+  method: SimulatedPaymentMethod
+}
+
+export interface PaymentIntentResult {
+  paymentId: string
+  provider: 'simulated'
+  status: 'pending' | 'approved' | 'failed' | 'cancelled'
+  externalRef?: string
+  amount?: number
+  orderId?: string
+  orderStatus?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface PaymentProvider {
+  createIntent(input: PaymentIntentInput): Promise<PaymentIntentResult>
+  confirmSimulated(
+    paymentId: string,
+    outcome: 'approve' | 'fail',
+  ): Promise<PaymentIntentResult>
+}
+
+export interface PlaceOrderItemInput {
+  productId: string
+  quantity: number
+}
+
+export interface PlaceOrderInput {
+  idempotencyKey: string
+  addressId: string
+  shippingOptionId: string
+  paymentMethod: SimulatedPaymentMethod
+  documentKind: 'cpf' | 'cnpj'
+  documentValue: string
+  items?: PlaceOrderItemInput[]
+}
+
+export interface PlaceOrderResult {
+  orderId: string
+  status: string
+  total: number
+  paymentId?: string
+  alreadyExisted: boolean
 }
 
 /** Papéis futuros (admin) — Fase 1 só tipa. */
@@ -56,6 +217,7 @@ export interface Product {
   supplierId?: string | null
   categoryId?: string
   categoryName?: string
+  categorySlug?: string
   price: number
   promoPrice?: number | null
   /** Quantidade: só mocks/admin. Loja pública usa `available`. */
