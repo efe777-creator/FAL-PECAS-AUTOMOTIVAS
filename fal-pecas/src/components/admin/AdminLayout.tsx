@@ -1,7 +1,7 @@
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
-import { Suspense } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Suspense, useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const catalogLinks = [
   { to: '/admin/produtos', label: 'Produtos' },
@@ -13,9 +13,12 @@ const catalogLinks = [
   { to: '/admin/fornecedores', label: 'Fornecedores' },
 ]
 
-const placeholderLinks = [
+const salesLinks = [
   { to: '/admin/pedidos', label: 'Pedidos' },
   { to: '/admin/clientes', label: 'Clientes' },
+]
+
+const opsLinks = [
   { to: '/admin/estoque', label: 'Estoque' },
   { to: '/admin/frete', label: 'Frete / origem' },
   { to: '/admin/relatorios', label: 'Relatórios' },
@@ -28,77 +31,150 @@ function linkClass({ isActive }: { isActive: boolean }) {
   ].join(' ')
 }
 
+function NavSection({
+  title,
+  links,
+  onNavigate,
+}: {
+  title: string
+  links: { to: string; label: string }[]
+  onNavigate: () => void
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-wide text-white/45">
+        {title}
+      </p>
+      <div className="space-y-0.5">
+        {links.map((l) => (
+          <NavLink key={l.to} to={l.to} className={linkClass} onClick={onNavigate}>
+            {l.label}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function AdminLayout() {
   const { user, signOut } = useAuth()
+  const location = useLocation()
+  const [navOpen, setNavOpen] = useState(false)
 
-  return (
-    <div className="min-h-screen bg-fal-bg lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="bg-fal-navy text-white">
-        <div className="border-b border-white/10 px-4 py-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-fal-yellow">FAL ADMIN</p>
-          <p className="mt-1 text-sm text-white/70">Catálogo comercial</p>
+  useEffect(() => {
+    setNavOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!navOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [navOpen])
+
+  const closeNav = () => setNavOpen(false)
+  const userLabel = user?.email ?? user?.fullName ?? 'staff'
+
+  const aside = (
+    <aside
+      className={[
+        'flex w-[min(288px,88vw)] flex-col bg-fal-navy text-white lg:w-[260px] lg:shrink-0',
+        'fixed inset-y-0 left-0 z-40 h-screen transition-transform duration-200 ease-out',
+        'lg:sticky lg:top-0 lg:z-0 lg:translate-x-0 lg:transition-none',
+        navOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+      ].join(' ')}
+    >
+      <div className="shrink-0 border-b border-white/10 px-4 py-4 lg:py-5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-fal-yellow">FAL ADMIN</p>
+            <p className="mt-1 truncate text-sm text-white/65">Painel operacional</p>
+          </div>
+          <button
+            type="button"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
+            aria-label="Fechar menu"
+            onClick={closeNav}
+          >
+            <span className="text-xl leading-none" aria-hidden>
+              ×
+            </span>
+          </button>
         </div>
-        <nav className="space-y-4 p-3">
+      </div>
+
+      <nav className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-3">
           <div>
-            <NavLink to="/admin" end className={linkClass}>
+            <NavLink to="/admin" end className={linkClass} onClick={closeNav}>
               Dashboard
             </NavLink>
           </div>
-          <div>
-            <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Catálogo
-            </p>
-            <div className="space-y-1">
-              {catalogLinks.map((l) => (
-                <NavLink key={l.to} to={l.to} className={linkClass}>
-                  {l.label}
-                </NavLink>
-              ))}
-            </div>
+          <NavSection title="Catálogo" links={catalogLinks} onNavigate={closeNav} />
+          <NavSection title="Vendas" links={salesLinks} onNavigate={closeNav} />
+          <NavSection title="Operação" links={opsLinks} onNavigate={closeNav} />
+        </div>
+
+        <div className="shrink-0 space-y-0.5 border-t border-white/10 p-3">
+          <NavLink to="/" className={linkClass} onClick={closeNav}>
+            Voltar à loja
+          </NavLink>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            title={userLabel}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-white/70 hover:bg-white/10"
+          >
+            <span className="shrink-0">Sair</span>
+            <span className="min-w-0 truncate text-white/45">({userLabel})</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+  )
+
+  return (
+    <div className="min-h-screen bg-fal-bg lg:flex">
+      {navOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-black/45 lg:hidden"
+          aria-label="Fechar menu"
+          onClick={closeNav}
+        />
+      ) : null}
+
+      {aside}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-fal-line bg-white px-4 py-3 lg:hidden">
+          <button
+            type="button"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-navy"
+            aria-label="Abrir menu"
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen(true)}
+          >
+            <span className="flex flex-col gap-1" aria-hidden>
+              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
+              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
+              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
+            </span>
+          </button>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-fal-navy">FAL ADMIN</p>
+            <p className="truncate text-sm text-fal-muted">Menu</p>
           </div>
-          <div>
-            <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Vendas
-            </p>
-            <div className="space-y-1">
-              {placeholderLinks.slice(0, 2).map((l) => (
-                <NavLink key={l.to} to={l.to} className={linkClass}>
-                  {l.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-wide text-white/50">
-              Operação
-            </p>
-            <div className="space-y-1">
-              {placeholderLinks.slice(2).map((l) => (
-                <NavLink key={l.to} to={l.to} className={linkClass}>
-                  {l.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-          <div className="border-t border-white/10 pt-3">
-            <NavLink to="/" className={linkClass}>
-              Voltar à loja
-            </NavLink>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-white/70 hover:bg-white/10"
-            >
-              Sair ({user?.email ?? user?.fullName ?? 'staff'})
-            </button>
-          </div>
-        </nav>
-      </aside>
-      <main className="min-w-0 p-4 md:p-6">
-        <Suspense fallback={<Loading label="Carregando admin…" />}>
-          <Outlet />
-        </Suspense>
-      </main>
+        </header>
+
+        <main className="min-w-0 flex-1 p-4 md:p-6">
+          <Suspense fallback={<Loading label="Carregando admin…" />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </div>
     </div>
   )
 }
