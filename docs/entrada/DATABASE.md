@@ -139,6 +139,7 @@ imports ── import_items
 | **Índices** | unique(`sku`), unique(`slug`), (`status`), full-text futuro |
 | **Público** | Apenas `published` |
 | **Regras** | SKU único; produto sem imagem pode existir (`is_incomplete` / flag admin) |
+| **Preço (Fase 6B)** | `price` / `promo_price` permanecem como **legado/espelho** na transição. Fonte comercial canônica: `price_lists` + `price_list_items` + `resolve_product_price` — ver [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) |
 
 ### 3.12 product_images
 
@@ -188,9 +189,21 @@ imports ── import_items
 |--|--|
 | **Finalidade** | Pedidos e histórico |
 | **Campos pedidos** | `id`, `customer_id`, `status`, `subtotal`, `shipping_amount`, `total`, `address_snapshot`, `payment_ref`?, `created_at` |
-| **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity` |
+| **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity`; **Fase 6B:** `price_list_id` (lista que originou o unitário) |
 | **Status (PRD)** | Pendente → Aguardando pagamento → Pagamento aprovado → Em separação → Preparando envio → Enviado → Entregue |
 | **RLS** | Cliente vê os próprios; operadores/admin conforme role |
+
+### 3.17b price_lists / price_list_items / price_change_history (Fase 6B)
+
+| | |
+|--|--|
+| **Finalidade** | Motor comercial de múltiplas listas de preço |
+| **Campos listas** | `id`, `name`, `slug` (unique), `description`, `status`, `scope` (`public`\|`assigned`), `priority`, `valid_from`, `valid_until`, `is_default`, timestamps |
+| **Campos itens** | `price_list_id`, `product_id`, `price`; **UNIQUE(`price_list_id`,`product_id`)** |
+| **Histórico** | `product_id`, `price_list_id`, `old_price`, `new_price`, `changed_by`, `source` (`manual`\|`import`\|`system`), `import_id`? |
+| **Regras** | Uma lista `is_default`; resolução storefront = listas `public` ativas/vigentes com item → maior `priority` → fallback default |
+| **RLS** | Preço público só via resolução/`scope=public`; listas `assigned` não listáveis anonimamente; escrita staff |
+| **Spec** | [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) |
 
 ### 3.18 favorites
 
@@ -215,6 +228,7 @@ imports ── import_items
 |--|--|
 | **Finalidade** | Importação Excel/CSV |
 | **Campos** | import: `id`, `filename`, `status`, `created_by`, `report`; items: linha, erros, avisos, payload, resultado upsert |
+| **Fase 6B** | Uso para importação de **preços por lista** (`kind`/metadata + `price_list_id` no report); pipeline upload→validação→preview→confirmação. Importador genérico de catálogo permanece Fase 8 |
 | **RLS** | Admin/operacional |
 
 ### 3.21 payments / shipments

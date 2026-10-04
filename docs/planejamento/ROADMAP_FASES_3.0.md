@@ -40,7 +40,10 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 | 3 | Catálogo e estrutura comercial real | Concluída (admin catálogo + dados reais) |
 | 4 | Motor de busca | Concluída (RPC + searchCatalog + UI) |
 | 4B | Painel admin (auditoria/polimento) | Concluída |
-| 5–10 | — | Pendentes |
+| 5 | Experiência do cliente | Concluída |
+| 6 | E-commerce | Concluída (checkout auth + frete mock + pagamento simulado) |
+| 6B | Listas de preços | Planejada (spec/execução; código após gate) |
+| 7–10 | — | Pendentes |
 
 ---
 
@@ -118,7 +121,11 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Escopo:** cadastro/login/recuperação, perfil, CPF/CNPJ, telefone, endereços, veículos salvos, favoritos, histórico/pedidos (consulta).
 
-**Critérios de saída:** visitante vira cliente identificado com dados persistidos sob RLS.
+**Spec:** [ESPECIFICACAO_FASE5_CLIENTE.md](./ESPECIFICACAO_FASE5_CLIENTE.md)  
+**Execução:** [EXECUCAO_FASE5.md](./EXECUCAO_FASE5.md)  
+**Auditoria:** [AUDITORIA_FASE5_2026-10-03.md](./AUDITORIA_FASE5_2026-10-03.md) — **APROVADA**.
+
+**Critérios de saída:** cumpridos — conta sob RLS; role travada; sem checkout.
 
 ---
 
@@ -126,11 +133,31 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Pergunta:** Como ele efetivamente compra?
 
-**Escopo:** Carrinho → Identificação → Endereço → Entrega → Pagamento → Revisão → Pedido; carrinho persistente; guest checkout; erros.
+**Escopo:** Carrinho → Identificação → CPF/CNPJ → Endereço → Entrega → Pagamento → Revisão → Pedido; carrinho persistente (auth); checkout **somente logado**; cotação de frete via contrato interno + provider **mock**; pagamento **simulado**; `place_order` atômico (recálculo server-side, reserva, idempotência, snapshots); erros.
 
-**Fora:** go-live público.
+**Spec:** [ESPECIFICACAO_FASE6_ECOMMERCE.md](./ESPECIFICACAO_FASE6_ECOMMERCE.md)  
+**Execução:** [EXECUCAO_FASE6.md](./EXECUCAO_FASE6.md)  
+**Auditoria:** [AUDITORIA_FASE6_2026-10-03.md](./AUDITORIA_FASE6_2026-10-03.md) — **APROVADA**.
 
-**Critérios de saída:** compra de ponta a ponta em ambiente de teste.
+**Fora:** go-live público; **guest checkout** (adiado); gateway real; APIs reais de frete/transportadora.
+
+**Critérios de saída:** cumpridos — compra ponta a ponta em ambiente de teste; adapters de frete/pagamento isolados para troca na F9.
+
+---
+
+## Fase 6B — Listas de preços e precificação comercial
+
+**Pergunta:** Qual é o preço aplicável deste produto neste contexto comercial?
+
+**Escopo:** `price_lists` / `price_list_items`; Lista Base + Promocional; migração a partir de `products.price`/`promo_price`; `resolve_product_price`; admin `/admin/precos`; importação CSV/XLSX com preview; histórico; integração catálogo + ajuste mínimo em `place_order` (preservar F6); ganchos para cliente/grupo→lista no futuro.
+
+**Spec:** [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](./ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md)  
+**Execução:** [EXECUCAO_FASE6B.md](./EXECUCAO_FASE6B.md)  
+**Auditoria (planejamento):** [AUDITORIA_FASE6B_2026-10-03.md](./AUDITORIA_FASE6B_2026-10-03.md) — aguardando aprovação Etapa B.
+
+**Fora:** cupons/CRM/descontos complexos; segmentação completa B2B; reconstruir checkout; importador genérico de catálogo (permanece F8).
+
+**Critérios de saída:** preço resolvido por lista; importação segura; F6 intacta (totais server-side, reserva, idempotência, snapshots).
 
 ---
 
@@ -148,7 +175,7 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Pergunta:** Como a equipe administra sem depender de código?
 
-**Escopo:** CRUD produtos/categorias/veículos/referências/estoque/pedidos/clientes; importação Excel/CSV (upload→validação→prévia→upsert→relatório).
+**Escopo:** CRUD produtos/categorias/veículos/referências/estoque/pedidos/clientes; importação Excel/CSV de **catálogo** (upload→validação→prévia→upsert→relatório). *(Importação de **preços por lista** antecipada na Fase 6B.)*
 
 **Critérios de saída:** operação diária possível via painel + importação.
 
@@ -158,9 +185,9 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Pergunta:** Como conectamos externos e endurecemos o sistema?
 
-**Escopo:** gateway pagamento, frete, HF, analytics, SEO, segurança, performance, a11y, testes automatizados, monitoramento.
+**Escopo:** **gateway real de pagamento** e **APIs/provedores de frete/transportadoras** (substituem adapters mock/simulado da F6 sem redesenhar o checkout); HF; analytics; SEO; segurança; performance; a11y; testes automatizados; monitoramento.
 
-**Critérios de saída:** integrações críticas plugadas; suíte mínima de testes; observabilidade básica.
+**Critérios de saída:** integrações críticas plugadas nos contratos FAL da F6; suíte mínima de testes; observabilidade básica.
 
 ---
 

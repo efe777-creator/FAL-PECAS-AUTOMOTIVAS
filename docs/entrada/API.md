@@ -50,29 +50,41 @@ Arquivos-chave:
 
 ---
 
-## 4. Services atuais (fundação)
+## 4. Services atuais (fundação → F6)
 
 | Service | Estado |
 |---------|--------|
 | `authService` | Supabase Auth real |
-| `productService` / `categoryService` / `vehicleService` | **Supabase (Fase 2)** — fallback mock só sem env |
-| `cartStorage` | localStorage visitante + stub sync |
-| `orderService` / `customerService` | Stubs (schema pronto) |
+| `productService` / `categoryService` / `vehicleService` / `searchService` | Supabase + RPC busca |
+| `cart` / `CartContext` | local + sync auth (`carts`) |
+| `placeOrderService` / `orderDetailService` / `orderQueryService` | Pedido F6 |
+| `paymentService` / `shippingService` | Adapters simulados/mock (F6); reais na F9 |
+| `customers/*` | Perfil, endereços, veículos, favoritos |
 
 Troca de mock → Supabase deve ocorrer **dentro dos services**, sem reescrever a UI.
 
 ---
 
-## 5. Contratos futuros (sem implementação)
+## 4b. Precificação (Fase 6B — planejada)
 
-- `searchService` — texto + filtros veículo
-- `compatibilityService`
-- `inventoryService`
-- `orderService` (criação + consulta própria)
-- `addressService`
-- `favoriteService`
-- `importService` (orquestra Edge Function)
-- `paymentService` / `shippingService` — **DECISÃO PENDENTE** provedores
+| Contrato | Papel |
+|----------|--------|
+| `resolveProductPrice` / RPC SQL | **Única** camada que determina preço aplicável (contexto storefront; futuro assigned) |
+| `adminPriceListService` | CRUD listas/itens (staff) |
+| `adminPriceImportService` | Pipeline CSV/XLSX com preview (staff) |
+
+**Invariantes:** frontend não envia preço nem `price_list_id` aceito; `place_order` continua recalculando no servidor; listas `assigned` não são enumeráveis publicamente.
+
+Spec: [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md).
+
+---
+
+## 5. Contratos futuros / outras fases
+
+- `compatibilityService` (avançado)
+- `inventoryService` (UI operação — F7/F8)
+- `importService` catálogo completo (F8; preços por lista = 6B)
+- `paymentService` / `shippingService` reais — F9
 - `admin/*` — protegido por roles
 
 ---
