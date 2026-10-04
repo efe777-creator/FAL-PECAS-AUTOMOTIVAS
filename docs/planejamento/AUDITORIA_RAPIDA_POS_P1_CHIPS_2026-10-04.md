@@ -58,4 +58,7 @@ Não foram encontradas regressões evidentes durante a auditoria rápida realiza
 
 ## Git
 
-Consolidação F7 + estas correções deve estar commitada e enviada em `plan` nesta mesma etapa (ver status do repositório após o push).
+- Branch: `plan`
+- Commit: `5ab714b` — Consolida a Fase 7 operacional, fecha o P1 de UPDATE em orders e corrige labels dos chips admin.
+- Push: `origin/plan` (`5bd0043..5ab714b`)
+- Working tree: limpa e alinhada ao remote.
