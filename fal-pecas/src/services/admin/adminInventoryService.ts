@@ -8,6 +8,27 @@ export const INVENTORY_MODE_LABELS: Record<InventoryMode, string> = {
   sem_estoque: 'Sem estoque',
 }
 
+export const INVENTORY_MODE_SUCCESS_MSG: Record<InventoryMode, string> = {
+  com_estoque: 'Loja agora em Com estoque — reservas e baixas físicas estão ativas.',
+  estoque_ficticio: 'Loja agora em Estoque fictício — vendas não dependem do estoque físico.',
+  sem_estoque: 'Loja agora em Sem estoque — vendas usam disponibilidade comercial.',
+}
+
+/** Extrai mensagem útil de erros Supabase/PostgREST (não só instanceof Error). */
+export function formatInventoryError(err: unknown, fallback: string): string {
+  if (err == null) return fallback
+  if (typeof err === 'string' && err.trim()) return err.trim()
+  if (err instanceof Error && err.message.trim()) return err.message.trim()
+  if (typeof err === 'object') {
+    const o = err as Record<string, unknown>
+    const parts = [o.message, o.error_description, o.details, o.hint, o.code]
+      .map((v) => (typeof v === 'string' ? v.trim() : ''))
+      .filter(Boolean)
+    if (parts.length) return parts.join(' — ')
+  }
+  return fallback
+}
+
 export interface InventoryRow {
   productId: string
   sku: string
@@ -38,7 +59,9 @@ export async function getStoreInventoryMode(): Promise<InventoryMode> {
 export async function setStoreInventoryMode(mode: InventoryMode): Promise<InventoryMode> {
   const { data, error } = await getSupabase().rpc('set_store_inventory_mode', { p_mode: mode })
   if (error) throw error
-  return (data as InventoryMode) ?? mode
+  const m = String(data ?? mode)
+  if (m === 'estoque_ficticio' || m === 'sem_estoque' || m === 'com_estoque') return m
+  return mode
 }
 
 export async function staffCanAdjustInventory(): Promise<boolean> {

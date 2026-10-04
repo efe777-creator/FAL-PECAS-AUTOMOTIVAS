@@ -4,8 +4,10 @@ import { Loading } from '@/components/common/Loading'
 import { formatDateTime } from '@/lib/datetime'
 import {
   adjustInventory,
+  formatInventoryError,
   getStoreInventoryMode,
   INVENTORY_MODE_LABELS,
+  INVENTORY_MODE_SUCCESS_MSG,
   isAdministrador,
   listInventory,
   listInventoryMovements,
@@ -17,8 +19,11 @@ import {
 } from '@/services/admin/adminInventoryService'
 import { useEffect, useState } from 'react'
 
+const MODE_OPTIONS = Object.keys(INVENTORY_MODE_LABELS) as InventoryMode[]
+
 export function AdminInventoryPage() {
   const [mode, setMode] = useState<InventoryMode>('com_estoque')
+  const [pendingMode, setPendingMode] = useState<InventoryMode | null>(null)
   const [rows, setRows] = useState<InventoryRow[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -31,6 +36,9 @@ export function AdminInventoryPage() {
   const [delta, setDelta] = useState('1')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
+
+  const showPhysicalCols = mode === 'com_estoque' || mode === 'estoque_ficticio'
+  const allowAdjust = canAdjust && mode === 'com_estoque'
 
   async function reload(q?: string) {
     setLoading(true)
@@ -46,8 +54,17 @@ export function AdminInventoryPage() {
       setRows(list)
       setCanAdjust(adj)
       setIsAdmin(adm)
+      if (selected) {
+        const refreshed = list.find((r) => r.productId === selected.productId) ?? null
+        setSelected(refreshed)
+        if (refreshed) {
+          setMovements(await listInventoryMovements(refreshed.productId))
+        } else {
+          setMovements([])
+        }
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar estoque')
+      setError(formatInventoryError(e, 'Erro ao carregar estoque'))
     } finally {
       setLoading(false)
     }
@@ -55,6 +72,7 @@ export function AdminInventoryPage() {
 
   useEffect(() => {
     void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   async function openProduct(row: InventoryRow) {
@@ -63,29 +81,52 @@ export function AdminInventoryPage() {
     try {
       setMovements(await listInventoryMovements(row.productId))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar movimentos')
+      setError(formatInventoryError(e, 'Erro ao carregar movimentos'))
     }
   }
 
-  async function onChangeMode(next: InventoryMode) {
-    if (!window.confirm(`Alterar modo da loja para “${INVENTORY_MODE_LABELS[next]}”? Pedidos já criados não mudam.`)) {
+  function requestModeChange(next: InventoryMode) {
+    if (next === mode) {
+      setPendingMode(null)
       return
     }
+    setError(null)
+    setMsg(null)
+    setPendingMode(next)
+  }
+
+  function cancelModeChange() {
+    setPendingMode(null)
+  }
+
+  async function confirmModeChange() {
+    if (!pendingMode) return
+    const next = pendingMode
     setBusy(true)
     setError(null)
+    setMsg(null)
     try {
       const m = await setStoreInventoryMode(next)
+      setPendingMode(null)
       setMode(m)
-      setMsg(`Modo atualizado: ${INVENTORY_MODE_LABELS[m]}`)
+      setMsg(INVENTORY_MODE_SUCCESS_MSG[m])
+      await reload(search)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao alterar modo')
+      setPendingMode(null)
+      setError(formatInventoryError(e, 'Falha ao alterar modo'))
+      try {
+        const current = await getStoreInventoryMode()
+        setMode(current)
+      } catch {
+        /* keep previous mode state */
+      }
     } finally {
       setBusy(false)
     }
   }
 
   async function onAdjust(sign: 1 | -1) {
-    if (!selected) return
+    if (!selected || !allowAdjust) return
     const n = Number(delta)
     if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
       setError('Informe um delta inteiro positivo')
@@ -103,7 +144,7 @@ export function AdminInventoryPage() {
         setMovements(await listInventoryMovements(refreshed.productId))
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha no ajuste')
+      setError(formatInventoryError(e, 'Falha no ajuste'))
     } finally {
       setBusy(false)
     }
@@ -114,8 +155,8 @@ export function AdminInventoryPage() {
       <header>
         <h1 className="text-2xl font-extrabold text-fal-navy">Estoque</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Saldos, movimentos e modo da loja. Em <strong>com_estoque</strong> o fluxo F7 (reserva/baixa)
-          permanece ativo.
+          Centro operacional de estoque da loja. O modo define se a venda usa disponibilidade comercial
+          ou saldo físico.
         </p>
       </header>
 
@@ -129,10 +170,10 @@ export function AdminInventoryPage() {
             <select
               className="rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm"
               value={mode}
-              disabled={busy}
-              onChange={(e) => void onChangeMode(e.target.value as InventoryMode)}
+              disabled={busy || pendingMode != null}
+              onChange={(e) => requestModeChange(e.target.value as InventoryMode)}
             >
-              {(Object.keys(INVENTORY_MODE_LABELS) as InventoryMode[]).map((k) => (
+              {MODE_OPTIONS.map((k) => (
                 <option key={k} value={k}>
                   {INVENTORY_MODE_LABELS[k]}
                 </option>
@@ -142,13 +183,43 @@ export function AdminInventoryPage() {
             <p className="text-sm text-fal-muted">Somente administrador altera o modo.</p>
           )}
         </div>
+
         {mode === 'sem_estoque' ? (
-          <p className="mt-2 text-sm text-fal-muted">Saldos ocultos na operação comercial; listagem abaixo é só consulta.</p>
+          <p className="mt-2 text-sm text-fal-muted">
+            Saldos físicos não são controlados — exibidos como —. Vendas usam a disponibilidade comercial
+            do produto (<code className="text-xs">is_available</code>).
+          </p>
         ) : null}
         {mode === 'estoque_ficticio' ? (
           <p className="mt-2 text-sm text-fal-muted">
-            Quantidades são apresentacionais — pedidos neste modo não reservam nem baixam estoque real.
+            Quantidades são apresentacionais e não representam necessariamente estoque físico auditado.
+            Pedidos neste modo não reservam nem baixam estoque real.
           </p>
+        ) : null}
+        {mode === 'com_estoque' ? (
+          <p className="mt-2 text-sm text-fal-muted">
+            Estoque real ativo: reserva no pedido e baixa na expedição (fluxo F7).
+          </p>
+        ) : null}
+
+        {pendingMode ? (
+          <div className="mt-4 rounded-[12px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
+            <h2 className="m-0 text-base font-extrabold text-fal-navy">
+              Alterar modo para “{INVENTORY_MODE_LABELS[pendingMode]}”?
+            </h2>
+            <p className="mt-1 mb-0 text-sm text-fal-muted">
+              Pedidos já criados não mudam — cada pedido mantém o modo gravado na criação (
+              <code className="text-xs">inventory_mode_at_order</code>).
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" disabled={busy} onClick={() => void confirmModeChange()}>
+                Confirmar
+              </Button>
+              <Button type="button" variant="light" disabled={busy} onClick={cancelModeChange}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
         ) : null}
       </section>
 
@@ -159,7 +230,7 @@ export function AdminInventoryPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="SKU ou nome"
         />
-        <Button type="button" variant="light" onClick={() => void reload(search)} disabled={loading}>
+        <Button type="button" variant="light" onClick={() => void reload(search)} disabled={loading || busy}>
           Filtrar
         </Button>
       </div>
@@ -176,9 +247,10 @@ export function AdminInventoryPage() {
                 <tr>
                   <th className="px-3 py-2">SKU</th>
                   <th className="px-3 py-2">Produto</th>
-                  {mode !== 'sem_estoque' ? (
+                  {mode === 'sem_estoque' ? <th className="px-3 py-2">Saldo</th> : null}
+                  {showPhysicalCols ? (
                     <>
-                      <th className="px-3 py-2">Físico</th>
+                      <th className="px-3 py-2">{mode === 'estoque_ficticio' ? 'Qtd (exib.)' : 'Físico'}</th>
                       <th className="px-3 py-2">Reservado</th>
                       <th className="px-3 py-2">Disponível</th>
                     </>
@@ -197,7 +269,12 @@ export function AdminInventoryPage() {
                   >
                     <td className="px-3 py-2 font-mono text-xs">{r.sku}</td>
                     <td className="px-3 py-2">{r.name}</td>
-                    {mode !== 'sem_estoque' ? (
+                    {mode === 'sem_estoque' ? (
+                      <td className="px-3 py-2 text-fal-muted" title="Estoque físico não controlado">
+                        —
+                      </td>
+                    ) : null}
+                    {showPhysicalCols ? (
                       <>
                         <td className="px-3 py-2">{r.onHand}</td>
                         <td className="px-3 py-2">{r.reserved}</td>
@@ -218,7 +295,7 @@ export function AdminInventoryPage() {
                 <h2 className="m-0 text-lg font-extrabold text-fal-navy">
                   {selected.sku} — {selected.name}
                 </h2>
-                {canAdjust && mode !== 'sem_estoque' ? (
+                {allowAdjust ? (
                   <div className="flex flex-wrap items-end gap-2">
                     <Input label="Delta" value={delta} onChange={(e) => setDelta(e.target.value)} />
                     <Input
@@ -235,7 +312,11 @@ export function AdminInventoryPage() {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-fal-muted">Sem permissão de ajuste ou modo sem estoque.</p>
+                  <p className="text-sm text-fal-muted">
+                    {mode === 'com_estoque'
+                      ? 'Sem permissão de ajuste.'
+                      : 'Ajuste físico disponível apenas no modo Com estoque (real).'}
+                  </p>
                 )}
                 <div>
                   <h3 className="text-xs font-bold uppercase text-fal-muted">Movimentos</h3>
