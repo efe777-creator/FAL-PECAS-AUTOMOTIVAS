@@ -14,7 +14,7 @@ export function Header() {
         <SearchBar />
         <div className="hidden items-center gap-4 lg:flex">
           <AccountButton />
-          <Link className="text-center text-[13px] text-fal-navy" to="/pedidos">
+          <Link className="text-center text-[13px] text-fal-navy" to="/conta/pedidos">
             <b className="block text-xl">📦</b>
             Pedidos
           </Link>

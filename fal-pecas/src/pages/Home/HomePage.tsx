@@ -19,7 +19,7 @@ export function HomePage() {
         <Container className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-[45px]">
           <div>
             <div className="text-xs font-extrabold tracking-[0.08em] text-fal-yellow uppercase">
-              FAL Peças Automotivas 3.0
+              FAL Peças Automotivas
             </div>
             <h1 className="my-3 text-[34px] leading-[1.02] font-black sm:text-[38px] lg:text-[clamp(34px,5vw,62px)]">
               Encontre a peça certa para o seu carro.

@@ -9,7 +9,7 @@ export function MainLayout() {
     <div className="flex min-h-screen flex-col">
       <Topbar />
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
         <Outlet />
       </main>
       <Footer />

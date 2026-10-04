@@ -2,7 +2,7 @@ import { mockProducts } from '@/data/mocks/products'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Product } from '@/types'
 
-type Named = { name: string; id?: string }
+type Named = { name: string; id?: string; slug?: string }
 
 function asNamed(value: unknown): Named | null {
   if (!value) return null
@@ -30,6 +30,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     supplierId: (row.supplier_id as string | null) ?? null,
     categoryId: category?.id ?? (row.category_id as string | undefined),
     categoryName: category?.name,
+    categorySlug: category?.slug,
     price: Number(row.price),
     promoPrice: row.promo_price == null ? null : Number(row.promo_price),
     status: row.status as Product['status'],
@@ -45,7 +46,7 @@ const PRODUCT_SELECT = `
   id, sku, name, slug, description, short_description, price, promo_price, status,
   manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id, attrs,
   product_brands ( name ),
-  product_categories ( id, name )
+  product_categories ( id, name, slug )
 `
 
 /**

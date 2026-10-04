@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /**
- * Design tokens — fidelidade ao protótipo FAL 3.3/3.5
- * Não alterar cores/tipografia/espaçamentos arbitrariamente nesta fase.
+ * Design tokens — identidade visual FAL Peças Automotivas
+ * Não alterar cores/tipografia/espaçamentos arbitrariamente.
  */
 :root {
   --fal-navy: #303846;
@@ -82,8 +82,8 @@ button {
   min-height: 100vh;
 }
 
-/* Espaço para bottom nav mobile */
-@media (max-width: 900px) {
+/* Espaço para bottom nav mobile (< md) */
+@media (max-width: 767px) {
   body {
     padding-bottom: 72px;
   }

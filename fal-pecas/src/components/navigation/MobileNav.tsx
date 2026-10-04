@@ -12,7 +12,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed right-0 bottom-0 left-0 z-[150] flex justify-around border-t border-fal-line bg-white px-0.5 py-[7px] pb-[calc(7px+env(safe-area-inset-bottom))] lg:hidden"
+      className="fixed right-0 bottom-0 left-0 z-[150] flex justify-around border-t border-fal-line bg-white px-0.5 py-[7px] pb-[calc(7px+env(safe-area-inset-bottom))] md:hidden"
       aria-label="Navegação mobile"
     >
       <NavLink to="/" end className={linkClass}>

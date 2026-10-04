@@ -6,6 +6,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
 import { ProductCard } from '@/components/product/ProductCard'
+import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { listCategories } from '@/services/categories/categoryService'
 import { searchCatalog } from '@/services/search/searchService'
@@ -368,6 +369,20 @@ export function CatalogPage() {
           options={versionOptions}
           disabled={!model}
           onChange={(e) => patchParams({ version: e.target.value || null })}
+        />
+      </div>
+
+      <div className="mt-3 rounded-fal border border-dashed border-[#d8dee3] bg-[#fafbfc] px-3 py-2.5">
+        <SavedVehiclesQuickPick
+          onPick={(v) =>
+            patchParams({
+              maker: v.makerName || null,
+              model: v.modelName || null,
+              year: v.year != null ? String(v.year) : null,
+              engine: v.engine || null,
+              version: v.versionName || null,
+            })
+          }
         />
       </div>
 

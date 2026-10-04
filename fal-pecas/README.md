@@ -1,4 +1,4 @@
-# FAL Peças Automotivas 3.0
+# FAL Peças Automotivas
 
 Plataforma de e-commerce B2C da FAL — **Fase 1 (UI) + Fase 2 (schema/RLS/services)**.
 

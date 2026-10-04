@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Select } from '@/components/common/Select'
+import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { useVehicleOptions } from '@/hooks/useCatalog'
 import { buildVehicleQuery } from '@/services/vehicles/vehicleService'
 import type { VehicleFilter } from '@/types'
@@ -66,6 +67,10 @@ export function VehicleSelector({ compact = false }: { compact?: boolean }) {
         Você pode informar apenas um critério ou combinar Montadora, Modelo, Ano e Motor para
         refinar a busca. Nenhum campo é obrigatório.
       </p>
+
+      <div className="mt-3 border-t border-fal-line/60 pt-3">
+        <SavedVehiclesQuickPick />
+      </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Select

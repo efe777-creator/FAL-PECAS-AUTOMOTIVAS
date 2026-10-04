@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Container } from './Container'
 import logoFal from '@/assets/logos/logo-fal-transparente.png'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Footer() {
+  const { user } = useAuth()
+
   return (
     <footer className="mt-8 bg-fal-navy-dark py-[38px] text-[#dfe5e9] sm:mt-12">
       <Container className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
@@ -18,35 +21,52 @@ export function Footer() {
         </div>
         <div>
           <h4 className="mt-0 mb-3 text-white">Comprar</h4>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/catalogo">
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/catalogo">
             Catálogo
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/carrinho">
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/carrinho">
             Carrinho
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/veiculo">
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/veiculo">
             Busca por veículo
           </Link>
         </div>
         <div>
           <h4 className="mt-0 mb-3 text-white">Minha FAL</h4>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/conta">
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/conta">
             Minha conta
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/pedidos">
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/conta/pedidos"
+          >
             Pedidos
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/login">
-            Entrar
+          {!user ? (
+            <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/login">
+              Entrar
+            </Link>
+          ) : null}
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/conta/favoritos"
+          >
+            Favoritos
+          </Link>
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/conta/veiculos"
+          >
+            Meus veículos
           </Link>
         </div>
         <div>
           <h4 className="mt-0 mb-3 text-white">Projeto</h4>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1]" to="/">
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/">
             Home
           </Link>
-          <span className="mb-2 block text-[13px] text-[#c5cbd1]">Privacidade</span>
-          <span className="mb-2 block text-[13px] text-[#c5cbd1]">Termos</span>
+          <span className="mb-2 block text-[13px] text-[#8a9299]">Privacidade (em breve)</span>
+          <span className="mb-2 block text-[13px] text-[#8a9299]">Termos (em breve)</span>
         </div>
       </Container>
     </footer>
