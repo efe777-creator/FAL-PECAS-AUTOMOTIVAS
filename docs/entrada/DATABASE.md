@@ -200,9 +200,11 @@ imports ── import_items
 | **Finalidade** | Pedidos e histórico |
 | **Campos pedidos** | `id`, `customer_id`, `status`, `subtotal`, `shipping_amount`, `total`, `address_snapshot`, `payment_ref`?, `created_at` |
 | **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity`; **Fase 6B:** `price_list_id` (lista que originou o unitário) |
-| **Status (legado F2/F6 — CHECK atual)** | `pendente` → `aguardando_pagamento` → `pagamento_aprovado` → `em_separacao` → `preparando_envio` → `enviado` → `entregue` / `cancelado` |
-| **Ciclo operacional (F6D / F7A)** | Status interno canônico (`recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `enviado`, `entregue`, `cancelado`) + checkout legado; tabela `order_events` (append-only, visibility internal/customer); RPC `transition_order_status` (staff). Ver [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) e [EXECUCAO_FASE7A.md](../planejamento/EXECUCAO_FASE7A.md) |
-| **RLS** | Cliente vê os próprios; operadores/admin conforme role |
+| **Status (CHECK F7A no remoto)** | Legado checkout + ciclo operacional: `pendente`, `aguardando_pagamento`, `pagamento_aprovado`, `recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `preparando_envio` (legado), `enviado`, `entregue`, `cancelado` |
+| **Ciclo operacional (F6D / F7A — entregue)** | Tabela `order_events` (append-only; `visibility` internal\|customer); helpers `emit_order_event`, `order_transition_allowed`; RPC `transition_order_status` (`is_staff()`). Migration local: `20261004040000_fase7a_order_lifecycle.sql`. Spec master: [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7A](../planejamento/EXECUCAO_FASE7A.md) · [AUDITORIA_FASE7](../planejamento/AUDITORIA_FASE7_2026-10-04.md) |
+| **Lacuna estoque (F7A → F7F)** | Cancel via `transition_order_status` **não** chama `release_order_reservations`. Release hoje só no fail de pagamento simulado. Corrigir na F7F — não “consertar escondido” antes. |
+| **Contratos F7B–F7F (não criados)** | Availability por item; checklist separação; campos extras em `shipments`/entrega; baixa operacional — ver spec F7. **Sem DDL neste gate.** |
+| **RLS** | Cliente vê os próprios pedidos/eventos customer; staff via `is_staff()`; cancel granular gerente+ = evolução F7B+ da RPC |
 
 ### 3.17b price_lists / price_list_items / price_change_history / product_price_overrides (Fase 6B / 6B.1)
 
@@ -281,12 +283,16 @@ o Postgres avalia todas as policies permissivas e o `anon` quebrava com
 - Códigos: tabela `product_references`
 - `payments` / `shipments`: placeholders sem provedor
 
+**Fechadas na auditoria de campos (2026-10-04)**
+
+- Validação de DV CPF/CNPJ no backend: `is_valid_cpf` / `is_valid_cnpj` + uso em `place_order` (`20261004060000_fase_audit_document_validation.sql`, aplicada no remoto)
+
 **Ainda pendentes**
 
 - Fonte dos dados de veículos
 - Gateway pagamento / frete
 - Integração HF via `suppliers`
-- Regras fiscais CPF/CNPJ
+- Regras fiscais amplas além da validação de documento no checkout
 
 ---
 

@@ -1,7 +1,7 @@
 # Roadmap de Fases — FAL Peças Automotivas 3.0
 
 **Status:** Fonte oficial de execução  
-**Data:** 2026-10-04 (F6D)  
+**Data:** 2026-10-04 (gate documental F7 / F7A entregue)  
 **PRD:** [../entrada/FAL_PRD_3.0.md](../entrada/FAL_PRD_3.0.md) (visão de produto; §16 antigo é substituído por este documento)  
 **Stack:** Vite + React + TypeScript + Tailwind + Supabase
 
@@ -45,8 +45,10 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 | 6B | Listas de preços | Concluída |
 | 6C | Endereços, CEP e motor de frete | Concluída |
 | 6D | Ciclo completo do pedido (especificação) | Concluída (docs) |
-| 7A | Fundação do ciclo de pedidos | Concluída |
-| 7B–7F | Confirmação → entrega → estoque | Pendente |
+| 7 | Operação do pedido (master) | Gate documental concluído — [spec](./ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [execução](./EXECUCAO_FASE7.md) · [auditoria](./AUDITORIA_FASE7_2026-10-04.md) |
+| 7A | Fundação do ciclo de pedidos | Concluída — [EXECUCAO_FASE7A](./EXECUCAO_FASE7A.md) |
+| 7B | Recepção e confirmação pela FAL | **Próximo gate de código** |
+| 7C–7F | Separação → entrega → estoque operacional | Contratos registrados; sem schema/UI ainda |
 | 8–10 | Backoffice / integrações / go-live | Pendentes |
 
 ---
@@ -196,35 +198,59 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ---
 
-## Fase 7A — Fundação do ciclo de pedidos
+## Fase 7 — Operação completa do pedido (master)
 
-**Escopo:** evoluir status/transições; `order_events` (ou evolução do history); timeline cliente; serviço/RPC de transição; Comprar novamente; validar sessão persistente.
+**Pergunta:** Como a FAL opera o pedido pago até entrega, com estoque consistente?
 
-**Execução:** [EXECUCAO_FASE7A.md](./EXECUCAO_FASE7A.md) — **concluída**.
+**Spec:** [ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md](./ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md)  
+**Execução:** [EXECUCAO_FASE7.md](./EXECUCAO_FASE7.md)  
+**Auditoria:** [AUDITORIA_FASE7_2026-10-04.md](./AUDITORIA_FASE7_2026-10-04.md) — **APROVADA** (gate documental).
 
-**Gate:** histórico consistente + timeline correta + recompra funcional.
+**Base de construção:** `order_events` → `transition_order_status` → projeção timeline → UI admin.
+
+**Permissões (roles existentes):** operar/confirmar/avançar = `operador`+`gerente`+`administrador`; cancelar = `gerente`+`administrador`; cliente **nunca** altera status.
+
+**Lacuna F7A registrada (não corrigir escondido):** cancel via `transition_order_status` **não** libera reserva → requisito **F7F**.
+
+**Fora do master neste momento:** implementar `/admin/pedidos` ou schema F7B–F7F antes do gate F7B.
 
 ---
 
-## Fase 7B — Recepção e confirmação
+## Fase 7A — Fundação do ciclo de pedidos
 
-**Escopo:** `/admin/pedidos`; fila; análise por item; prazo/ressalva; confirmar; cancelamento controlado; cliente vê atualização.
+**Escopo:** evoluir status/transições; `order_events`; timeline cliente; RPC `transition_order_status`; Comprar novamente; sessão persistente.
 
-**Gate:** FAL recebe → analisa → decide destino de pedido pago.
+**Execução:** [EXECUCAO_FASE7A.md](./EXECUCAO_FASE7A.md) — **concluída** (remoto + frontend).
+
+**Gate:** histórico consistente + timeline correta + recompra funcional — **cumprido**.
+
+---
+
+## Fase 7B — Recepção e confirmação pela FAL
+
+**Status:** próximo gate de **código** (após gate documental F7).
+
+**Escopo:** substituir placeholder `/admin/pedidos`; fila + filtros + detalhe; disponibilidade por item (`disponivel` \| `disponivel_com_prazo` \| `indisponivel`); ressalva / `aguardando_*`; cancel controlado (gerente+); contadores reais no dashboard; cliente só vê projeção.
+
+**Construir sobre:** `order_events` → `transition_order_status` → timeline → operação administrativa.
+
+**Não neste gate:** separação, expedição, baixa de estoque, APIs externas.
+
+**Gate de saída:** FAL recebe pedido pago → analisa por item → confirma / ressalva / encaminha decisão / cancela controlado.
 
 ---
 
 ## Fase 7C — Separação
 
-**Escopo:** fila de separação; itens/quantidades; conclusão → `pronto_para_envio`.
+**Escopo:** fila `confirmado` → `em_separacao`; checklist por item; conclusão → `pronto_para_envio` + evento.
 
-**Gate:** pedido confirmado pode ser separado e marcado pronto para envio.
+**Gate:** pedido confirmado separado e marcado pronto para envio.
 
 ---
 
 ## Fase 7D — Expedição
 
-**Escopo:** modalidade/transportadora; rastreamento; `enviado`; update cliente.
+**Escopo:** evoluir `shipments` (carrier/service/tracking); `pronto_para_envio` → `enviado`; sem API real de transportadora.
 
 **Gate:** pedido sai da FAL como enviado.
 
@@ -232,7 +258,7 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 7E — Entrega e encerramento
 
-**Escopo:** confirmação de entrega; histórico; timeline final.
+**Escopo:** `enviado` → `entregue`; prova/método (contrato); timeline final cliente.
 
 **Gate:** ciclo Pedido → Pagamento → FAL → Confirmação → Separação → Envio → Entrega.
 
@@ -240,9 +266,9 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 7F — Estoque operacional
 
-**Escopo:** reserva → confirmação → separação → baixa; liberação; divergência; concorrência; auditoria.
+**Escopo:** reserva (já em `place_order`) → baixa na operação; **liberar reserva no cancel staff** (corrige lacuna F7A); divergência; concorrência; auditoria de movimentos.
 
-**Gate:** estoque e pedidos consistentes em cenário real.
+**Gate:** estoque e pedidos consistentes; cancel não deixa reserva órfã.
 
 ---
 

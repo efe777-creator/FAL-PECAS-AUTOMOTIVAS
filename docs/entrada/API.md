@@ -102,20 +102,28 @@ Spec: [ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md](../planejamento/ESPECIFICACAO_FA
 |----------|--------|
 | `projectCustomerTimeline` (`orderLifecycle.ts`) | Projeção timeline cliente |
 | `order_events` + RLS | Fatos append-only (`visibility`: internal \| customer) |
-| `transition_order_status` / `orderTransitionService` | Única via staff para mudar `orders.status` |
+| `transition_order_status` / `orderTransitionService` | Única via staff para mudar `orders.status` (hoje: qualquer `is_staff()`) |
 | `buyAgainService` | Itens antigos → carrinho com preço/estoque atuais |
 | `confirm_simulated_payment` | Após approve: `pagamento_aprovado` → `recebido` → `em_analise` + eventos |
+| `is_valid_cpf` / `is_valid_cnpj` | DV no `place_order` (auditoria de campos) |
 
-**Invariantes:** cliente não altera status; indisponibilidade pós-pagamento não cancela automaticamente; site/admin/app compartilham o mesmo modelo.
+**Invariantes:** cliente não altera status; indisponibilidade pós-pagamento não cancela automaticamente; site/admin/app compartilham o mesmo modelo; UI nunca faz `update orders.status` direto.
 
-Spec: [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) · Execução: [EXECUCAO_FASE7A.md](../planejamento/EXECUCAO_FASE7A.md).
+**Permissões (contrato F7B+):** operar/confirmar/avançar = `operador`+`gerente`+`administrador`; cancelar = `gerente`+`administrador`. Evoluir a RPC — não inventar roles.
+
+**Lacuna:** cancel via `transition_order_status` **não** libera reserva (`release_order_reservations` só no fail de pagamento) → F7F.
+
+**UI admin:** `/admin/pedidos` ainda é placeholder — implementação = **F7B**.
+
+Spec: [ESPECIFICACAO_FASE6D…](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) · [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7A](../planejamento/EXECUCAO_FASE7A.md) · [AUDITORIA_FASE7](../planejamento/AUDITORIA_FASE7_2026-10-04.md).
 
 ---
 
 ## 5. Contratos futuros / outras fases
 
+- Operação admin pedido **F7B–F7E** (fila, availability, separação, expedição, entrega) — contratos na spec F7; sem endpoints inventados antes do gate
+- Liberação de reserva no cancel + baixa — **F7F** (`inventoryService` operacional)
 - `compatibilityService` (avançado)
-- Operação pedido F7A–F7E; `inventoryService` operacional — F7F / F8
 - `importService` catálogo completo (F8; preços por lista = 6B)
 - `paymentService` / providers de frete **reais** — F9 (adapters preparados na 6C)
 - `admin/*` — protegido por roles
