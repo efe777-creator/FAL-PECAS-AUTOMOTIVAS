@@ -2,105 +2,38 @@
 
 **Data:** 2026-10-04  
 **Spec:** [ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md](./ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md)  
-**Auditoria:** [AUDITORIA_FASE7_2026-10-04.md](./AUDITORIA_FASE7_2026-10-04.md)  
-**F7A:** [EXECUCAO_FASE7A.md](./EXECUCAO_FASE7A.md) — concluída
+**Auditoria final:** [AUDITORIA_FASE7_FINAL_2026-10-04.md](./AUDITORIA_FASE7_FINAL_2026-10-04.md)
 
 ---
 
-## Gate documental atual (este documento)
+## Pré-gate: Ajuste Global de preços
 
-Escopo executado **neste gate** (sem código F7B–F7F):
-
-- [x] Auditar estado real F7A no código e no remoto
-- [x] Aplicar validation CPF/CNPJ no Supabase remoto (`fase_audit_document_validation` + `…_place_order`; local `20261004060000_*.sql`)
-- [x] Criar `ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md`
-- [x] Criar `AUDITORIA_FASE7_2026-10-04.md`
-- [x] Criar este `EXECUCAO_FASE7.md`
-- [x] Atualizar ROADMAP, DATABASE, API, docs/README
-- [x] Registrar lacuna: cancel staff não libera reserva → requisito F7F
-- [x] Registrar matriz de permissões (roles existentes)
-- [x] **Não** criar `/admin/pedidos`
-- [x] **Não** criar schema de availability / separação / baixa
-- [ ] Push — só com autorização explícita
+- [x] RPC atômica `adjust_price_list_items`
+- [x] Client + preview; Lista Base reparada
+- [x] [AUDITORIA_AJUSTE_GLOBAL_PRECOS_2026-10-04.md](./AUDITORIA_AJUSTE_GLOBAL_PRECOS_2026-10-04.md)
 
 ---
 
-## Ordem de implementação (código)
+## Subfases
 
-| Subfase | Escopo | Status |
-|---------|--------|--------|
-| **F7A** | Fundação: status, events, RPC transição, timeline, recompra | **Concluída** |
-| **F7B** | `/admin/pedidos`, fila, disponibilidade por item, ressalva, cancel controlado | **Próximo gate** |
-| **F7C** | Separação / checklist | Pendente |
-| **F7D** | Expedição / shipment / enviado | Pendente |
-| **F7E** | Entrega / encerramento | Pendente |
-| **F7F** | Liberação no cancel + baixa + auditoria estoque | Pendente |
-
----
-
-## Gate F7B (quando abrir implementação)
-
-Critérios de entrada:
-
-1. Spec F7 + auditoria aprovadas (este gate)
-2. F7A estável no remoto
-3. Decisão de permissões documentada
-
-Entregáveis F7B:
-
-- Substituir placeholder `/admin/pedidos`
-- Listagem + filtros + detalhe operacional
-- Consumir `transitionOrderStatus` / RPCs
-- Availability por item (schema + UI)
-- Ressalva / aguardando decisão / cancel (gerente+)
-- Contadores reais no dashboard
-- Cliente continua vendo só projeção (sem detalhes internos)
-- Testes: TS, smoke pedido pago → análise → confirmar / cancelar
-
-**Não** implementar separação, envio, baixa neste gate.
+| Subfase | Status | Migrations / notas |
+|---------|--------|---------------------|
+| F7A | Concluída | `20261004040000_fase7a_*` |
+| F7B | Concluída | `20261004110000_fase7b_*` — admin pedidos, availability, cancel gerente+ |
+| F7C | Concluída | `20261004120000_fase7c_*` — `separated` + RPCs |
+| F7D | Concluída | `20261004130000_fase7d_*` — `ship_order` |
+| F7E | Concluída | `20261004140000_fase7e_*` — `deliver_order` |
+| F7F | Concluída | `20261004150000_fase7f_*` — release cancel + fulfill envio |
 
 ---
 
-## Checklist de regressão (todas as subfases)
+## Frontend
 
-### Pedido normal
+- `AdminOrdersPage` / `AdminOrderDetailPage`
+- `adminOrderService.ts`
+- Dashboard com contadores reais
+- Router: `/admin/pedidos`, `/admin/pedidos/:id`
 
-```text
-Compra → pagamento → recebido/em_analise → confirmação → separação → envio → entrega
-```
+## Push
 
-### Indisponível
-
-```text
-Compra → pagamento → análise → indisponível → aguardando_decisao → cancelar (gerente+)
-```
-
-### Prazo / ressalva
-
-```text
-Compra → pagamento → análise → prazo → confirmado (com ressalva customer)
-```
-
-### Recompra (já F7A)
-
-```text
-Pedido antigo → comprar novamente → mix disponível/indisponível → preço atual → carrinho
-```
-
-### Segurança
-
-- Cliente não altera status
-- Transição inválida rejeitada
-- Cancel sem role gerente/admin rejeitado (após granularidade F7B+)
-
-### Estoque (F7F)
-
-- Cancel libera reserva
-- Baixa sem negativo
-- Sem duplicar movimentos
-
----
-
-## Checkpoints por subfase
-
-Após cada uma: TypeScript · Build · Lint · SQL/RLS · Smoke · Regressão · Docs → **Gate** antes da próxima.
+Somente com autorização explícita.

@@ -1,3 +1,6 @@
+import { ADMIN_ORDER_COUNTER_KEYS, orderStatusAdminLabel } from '@/lib/orderLifecycle'
+import { adminOrderStatusCounts } from '@/services/admin/adminOrderService'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 type DashCard = { to: string; title: string; desc: string }
@@ -18,7 +21,7 @@ const sections: { title: string; cards: DashCard[] }[] = [
   {
     title: 'Vendas',
     cards: [
-      { to: '/admin/pedidos', title: 'Pedidos', desc: 'Operação de pedidos (em evolução)' },
+      { to: '/admin/pedidos', title: 'Pedidos', desc: 'Recepção, confirmação e operação' },
       { to: '/admin/clientes', title: 'Clientes', desc: 'Cadastro e consulta (em breve)' },
     ],
   },
@@ -33,6 +36,14 @@ const sections: { title: string; cards: DashCard[] }[] = [
 ]
 
 export function AdminDashboardPage() {
+  const [counts, setCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    void adminOrderStatusCounts()
+      .then(setCounts)
+      .catch(() => setCounts({}))
+  }, [])
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <header>
@@ -41,6 +52,22 @@ export function AdminDashboardPage() {
           Atalhos do painel FAL — catálogo, vendas e operação. Use o menu lateral para navegar.
         </p>
       </header>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-fal-muted">Pedidos (real)</h2>
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {ADMIN_ORDER_COUNTER_KEYS.map((k) => (
+            <Link
+              key={k}
+              to={`/admin/pedidos?status=${k}`}
+              className="rounded-[12px] border border-fal-line bg-white px-3 py-2 shadow-sm"
+            >
+              <div className="text-xs text-fal-muted">{orderStatusAdminLabel[k] ?? k}</div>
+              <div className="text-xl font-extrabold text-fal-navy">{counts[k] ?? 0}</div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">

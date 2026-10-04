@@ -39,9 +39,9 @@ docs/
 | 6C | Endereços / CEP / frete — concluída |
 | 6D | [ESPECIFICACAO_FASE6D…](planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) — docs concluídos |
 | 7A | [EXECUCAO_FASE7A…](planejamento/EXECUCAO_FASE7A.md) — fundação concluída |
-| **7** | [ESPECIFICACAO_FASE7…](planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7](planejamento/EXECUCAO_FASE7.md) · [AUDITORIA](planejamento/AUDITORIA_FASE7_2026-10-04.md) — **gate documental OK** |
-| **7B** | Recepção e confirmação — **próximo gate de código** (sem `/admin/pedidos` ainda) |
-| 7C–7F | Separação → expedição → entrega → estoque (contratos na spec F7) |
+| **7** | [ESPECIFICACAO_FASE7…](planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO](planejamento/EXECUCAO_FASE7.md) · [auditoria final](planejamento/AUDITORIA_FASE7_FINAL_2026-10-04.md) — **concluída** |
+| 7B–7F | Recepção → separação → expedição → entrega → estoque — concluídas |
+| Pré-F7 | [Ajuste global preços](planejamento/AUDITORIA_AJUSTE_GLOBAL_PRECOS_2026-10-04.md) — gate aprovado |
 | 8–10 | Back office / integrações / go-live — pendentes |
 
 ## Como contribuir

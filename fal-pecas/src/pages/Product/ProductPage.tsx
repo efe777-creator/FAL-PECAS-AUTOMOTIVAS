@@ -17,9 +17,11 @@ export function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [liked, setLiked] = useState(false)
-  const { addItem } = useCart()
+  const { addItem, items, updateQty } = useCart()
   const { user } = useAuth()
   const { push } = useToast()
+  const cartQty = product ? (items.find((i) => i.productId === product.id)?.quantity ?? 0) : 0
+  const inCart = cartQty > 0
 
   useEffect(() => {
     let active = true
@@ -173,17 +175,48 @@ export function ProductPage() {
             </div>
           ) : null}
           <div className="mt-5">
-            <Button
-              variant="primary"
-              fullWidth
-              disabled={current.available === false}
-              onClick={() => {
-                addItem(current, 1)
-                push('Produto adicionado ao carrinho', 'success')
-              }}
-            >
-              Adicionar ao carrinho
-            </Button>
+            {current.available === false ? (
+              <Button variant="primary" fullWidth disabled>
+                Indisponível
+              </Button>
+            ) : inCart ? (
+              <div className="flex w-full items-center gap-2">
+                <button
+                  type="button"
+                  className="grid h-[51px] w-12 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg"
+                  aria-label="Diminuir quantidade"
+                  onClick={() => updateQty(current.id, cartQty - 1)}
+                >
+                  −
+                </button>
+                <div className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-[#fff8db] px-2 py-2 text-center">
+                  <span className="text-xs leading-none text-fal-muted">No carrinho</span>
+                  <span className="text-base font-black text-fal-navy">{cartQty}</span>
+                </div>
+                <button
+                  type="button"
+                  className="grid h-[51px] w-12 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-lg font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
+                  aria-label="Aumentar quantidade"
+                  onClick={() => {
+                    addItem(current, 1)
+                    push('Quantidade atualizada', 'success')
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => {
+                  addItem(current, 1)
+                  push('Produto adicionado ao carrinho', 'success')
+                }}
+              >
+                Adicionar ao carrinho
+              </Button>
+            )}
           </div>
           <p className="mt-4 text-xs text-fal-muted">
             Dados via Supabase (Fase 2). Galeria e abas técnicas avançam nas próximas fases.

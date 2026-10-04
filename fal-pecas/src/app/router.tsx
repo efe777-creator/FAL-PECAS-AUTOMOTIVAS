@@ -68,6 +68,14 @@ const AdminDashboardPage = lazy(() =>
 const AdminPlaceholderPage = lazy(() =>
   import('@/pages/admin/AdminPlaceholderPage').then((m) => ({ default: m.AdminPlaceholderPage })),
 )
+const AdminOrdersPage = lazy(() =>
+  import('@/pages/admin/orders/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
+)
+const AdminOrderDetailPage = lazy(() =>
+  import('@/pages/admin/orders/AdminOrderDetailPage').then((m) => ({
+    default: m.AdminOrderDetailPage,
+  })),
+)
 const AdminCategoriesPage = lazy(() =>
   import('@/pages/admin/categories/AdminCategoriesPage').then((m) => ({
     default: m.AdminCategoriesPage,
@@ -149,10 +157,8 @@ export const router = createBrowserRouter([
       { path: 'veiculos', element: <AdminVehiclesPage /> },
       { path: 'fabricantes', element: <AdminBrandsPage /> },
       { path: 'fornecedores', element: <AdminSuppliersPage /> },
-      {
-        path: 'pedidos',
-        element: <AdminPlaceholderPage title="Pedidos" />,
-      },
+      { path: 'pedidos', element: <AdminOrdersPage /> },
+      { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
       {
         path: 'clientes',
         element: <AdminPlaceholderPage title="Clientes" />,

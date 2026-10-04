@@ -27,12 +27,6 @@ export function NavBar() {
             </Link>
           ))}
         </div>
-        <Link
-          to="/veiculo"
-          className="ml-auto shrink-0 whitespace-nowrap bg-fal-yellow px-[15px] py-[13px] text-sm font-extrabold text-fal-navy-dark"
-        >
-          🚗 Encontre peças para seu veículo
-        </Link>
       </Container>
     </nav>
   )

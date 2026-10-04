@@ -202,9 +202,12 @@ imports ── import_items
 | **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity`; **Fase 6B:** `price_list_id` (lista que originou o unitário) |
 | **Status (CHECK F7A no remoto)** | Legado checkout + ciclo operacional: `pendente`, `aguardando_pagamento`, `pagamento_aprovado`, `recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `preparando_envio` (legado), `enviado`, `entregue`, `cancelado` |
 | **Ciclo operacional (F6D / F7A — entregue)** | Tabela `order_events` (append-only; `visibility` internal\|customer); helpers `emit_order_event`, `order_transition_allowed`; RPC `transition_order_status` (`is_staff()`). Migration local: `20261004040000_fase7a_order_lifecycle.sql`. Spec master: [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7A](../planejamento/EXECUCAO_FASE7A.md) · [AUDITORIA_FASE7](../planejamento/AUDITORIA_FASE7_2026-10-04.md) |
-| **Lacuna estoque (F7A → F7F)** | Cancel via `transition_order_status` **não** chama `release_order_reservations`. Release hoje só no fail de pagamento simulado. Corrigir na F7F — não “consertar escondido” antes. |
-| **Contratos F7B–F7F (não criados)** | Availability por item; checklist separação; campos extras em `shipments`/entrega; baixa operacional — ver spec F7. **Sem DDL neste gate.** |
-| **RLS** | Cliente vê os próprios pedidos/eventos customer; staff via `is_staff()`; cancel granular gerente+ = evolução F7B+ da RPC |
+| **F7B itens** | `order_items.availability`, `lead_days`, `staff_note` |
+| **F7C** | `order_items.separated` |
+| **F7D/E shipments** | `carrier`, `service`, `shipped_at`, `delivered_at`, `proof_ref` |
+| **F7F estoque** | Cancel → `release_order_reservations`; enviado → `fulfill_order_reservations` (`out`) |
+| **Ajuste global** | RPC `adjust_price_list_items`; history source `bulk_adjust` |
+| **RLS** | Cliente próprios pedidos/eventos customer; staff `is_staff()`; cancel `gerente`\|`administrador` |
 
 ### 3.17b price_lists / price_list_items / price_change_history / product_price_overrides (Fase 6B / 6B.1)
 

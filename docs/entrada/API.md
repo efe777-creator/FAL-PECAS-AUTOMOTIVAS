@@ -113,16 +113,18 @@ Spec: [ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md](../planejamento/ESPECIFICACAO_FA
 
 **Lacuna:** cancel via `transition_order_status` **não** libera reserva (`release_order_reservations` só no fail de pagamento) → F7F.
 
-**UI admin:** `/admin/pedidos` ainda é placeholder — implementação = **F7B**.
+**UI admin:** `/admin/pedidos` + `/admin/pedidos/:id` operacionais (F7B–F7E).
 
-Spec: [ESPECIFICACAO_FASE6D…](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) · [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7A](../planejamento/EXECUCAO_FASE7A.md) · [AUDITORIA_FASE7](../planejamento/AUDITORIA_FASE7_2026-10-04.md).
+**RPCs F7B–F7F:** `set_order_item_availability`, `finalize_order_confirmation`, `admin_order_status_counts`, `staff_can_cancel`, `set_order_item_separated`, `complete_order_separation`, `ship_order`, `deliver_order`, `fulfill_order_reservations` (interno). Cancel libera reserva; envio faz baixa.
+
+**Preços:** `adjust_price_list_items` (ajuste global atômico).
+
+Spec: [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7](../planejamento/EXECUCAO_FASE7.md) · [AUDITORIA_FINAL](../planejamento/AUDITORIA_FASE7_FINAL_2026-10-04.md).
 
 ---
 
 ## 5. Contratos futuros / outras fases
 
-- Operação admin pedido **F7B–F7E** (fila, availability, separação, expedição, entrega) — contratos na spec F7; sem endpoints inventados antes do gate
-- Liberação de reserva no cancel + baixa — **F7F** (`inventoryService` operacional)
 - `compatibilityService` (avançado)
 - `importService` catálogo completo (F8; preços por lista = 6B)
 - `paymentService` / providers de frete **reais** — F9 (adapters preparados na 6C)

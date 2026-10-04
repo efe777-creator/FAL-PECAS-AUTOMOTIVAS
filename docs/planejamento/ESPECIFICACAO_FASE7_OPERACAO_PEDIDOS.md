@@ -1,6 +1,6 @@
 # Especificação — Fase 7: Operação completa do pedido
 
-**Status:** Planejamento consolidado (F7A entregue; F7B–F7F contratos)  
+**Status:** Implementada (F7A–F7F + gate ajuste global)  
 **Data:** 2026-10-04  
 **Branch:** `plan`  
 **Base conceitual:** [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](./ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md)  

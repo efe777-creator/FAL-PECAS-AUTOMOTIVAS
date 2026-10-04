@@ -241,72 +241,65 @@ function roundMoney2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+export type PriceAdjustSample = { sku: string; old: number; new: number }
+
 /**
- * Ajuste global em todos os itens da lista.
+ * Ajuste global atômico (RPC).
  * - percent: value = 10 → +10%; value = -5 → -5%
  * - fixed: value em R$ somado (negativo reduz)
- * Não altera preço avulso. Espelha products.price / promo_price se for Base/Promo.
+ * Não altera preço avulso. Base/Promo sincronizam via trigger.
  */
 export async function adminAdjustAllPriceListItems(input: {
   priceListId: string
   mode: PriceAdjustMode
   value: number
   changedBy?: string | null
-}): Promise<{ updated: number; skipped: number }> {
+}): Promise<{ updated: number; skipped: number; sample: PriceAdjustSample[] }> {
   if (!Number.isFinite(input.value) || input.value === 0) {
     throw new Error('Informe um valor de ajuste diferente de zero.')
   }
-
-  const sb = getSupabase()
-  const { data, error } = await sb
-    .from('price_list_items')
-    .select('product_id, price')
-    .eq('price_list_id', input.priceListId)
-  if (error) throw error
-
-  const rows = data ?? []
-  let updated = 0
-  let skipped = 0
-
-  for (const row of rows) {
-    const oldPrice = Number(row.price)
-    if (!Number.isFinite(oldPrice)) {
-      skipped += 1
-      continue
-    }
-
-    let next =
-      input.mode === 'percent'
-        ? oldPrice * (1 + input.value / 100)
-        : oldPrice + input.value
-
-    next = roundMoney2(next)
-    if (next < 0) next = 0
-
-    if (Math.abs(next - oldPrice) < 0.001) {
-      skipped += 1
-      continue
-    }
-
-    const productId = String(row.product_id)
-    await adminUpsertPriceListItem({
-      priceListId: input.priceListId,
-      productId,
-      price: next,
-      source: 'manual',
-      changedBy: input.changedBy ?? null,
-    })
-
-    if (input.priceListId === PRICE_LIST_BASE_ID) {
-      await sb.from('products').update({ price: next }).eq('id', productId)
-    } else if (input.priceListId === PRICE_LIST_PROMO_ID) {
-      await sb.from('products').update({ promo_price: next }).eq('id', productId)
-    }
-
-    updated += 1
+  if (input.mode === 'percent' && Math.abs(input.value) > 100) {
+    throw new Error('Percentual deve estar entre -100 e 100.')
+  }
+  if (input.mode === 'percent' && input.value <= -100) {
+    throw new Error('Redução de 100% zera a lista e foi bloqueada.')
   }
 
-  return { updated, skipped }
+  const { data, error } = await getSupabase().rpc('adjust_price_list_items', {
+    p_price_list_id: input.priceListId,
+    p_mode: input.mode,
+    p_value: input.value,
+    p_changed_by: input.changedBy ?? null,
+  })
+  if (error) throw error
+
+  const row = (data ?? {}) as {
+    updated?: number
+    skipped?: number
+    sample?: { sku?: string; old?: number; new?: number }[]
+  }
+  const sample = (row.sample ?? []).map((s) => ({
+    sku: String(s.sku ?? ''),
+    old: Number(s.old),
+    new: Number(s.new),
+  }))
+  return {
+    updated: Number(row.updated ?? 0),
+    skipped: Number(row.skipped ?? 0),
+    sample,
+  }
+}
+
+/** Calcula próximo preço (mesma regra da RPC). */
+export function computeAdjustedPrice(
+  oldPrice: number,
+  mode: PriceAdjustMode,
+  value: number,
+): number {
+  let next = mode === 'percent' ? oldPrice * (1 + value / 100) : oldPrice + value
+  next = roundMoney2(next)
+  if (next < 0) next = 0
+  return next
 }
 
 export type ProductListPriceRow = {

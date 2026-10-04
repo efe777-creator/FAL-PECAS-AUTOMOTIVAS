@@ -106,6 +106,7 @@ export function projectCustomerTimeline(status: string): CustomerTimelineStep[] 
   }))
 }
 
+/** Labels simplificados para a área do cliente (conta / timeline). */
 export const orderStatusLabel: Record<string, string> = {
   pendente: 'Pendente',
   aguardando_pagamento: 'Aguardando pagamento',
@@ -122,6 +123,34 @@ export const orderStatusLabel: Record<string, string> = {
   entregue: 'Entregue',
   cancelado: 'Cancelado',
 }
+
+/** Labels operacionais granulares para o painel admin (filas distintas). */
+export const orderStatusAdminLabel: Record<string, string> = {
+  pendente: 'Pendente',
+  aguardando_pagamento: 'Aguardando pagamento',
+  pagamento_aprovado: 'Pagamento aprovado',
+  recebido: 'Recebido pela FAL',
+  em_analise: 'Em análise',
+  aguardando_disponibilidade: 'Aguardando disponibilidade',
+  aguardando_decisao: 'Aguardando decisão',
+  confirmado: 'Confirmado',
+  em_separacao: 'Em separação',
+  pronto_para_envio: 'Pronto para envio',
+  preparando_envio: 'Preparando envio',
+  enviado: 'Enviado',
+  entregue: 'Entregue',
+  cancelado: 'Cancelado',
+}
+
+/** Chaves canônicas dos chips de contagem (Dashboard + Pedidos). */
+export const ADMIN_ORDER_COUNTER_KEYS = [
+  'recebido',
+  'em_analise',
+  'aguardando_decisao',
+  'aguardando_disponibilidade',
+  'confirmado',
+  'em_separacao',
+] as const
 
 export const orderEventLabel: Record<string, string> = {
   order_created: 'Pedido realizado',

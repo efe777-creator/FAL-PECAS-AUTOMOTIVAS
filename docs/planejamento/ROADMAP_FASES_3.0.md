@@ -45,10 +45,13 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 | 6B | Listas de preços | Concluída |
 | 6C | Endereços, CEP e motor de frete | Concluída |
 | 6D | Ciclo completo do pedido (especificação) | Concluída (docs) |
-| 7 | Operação do pedido (master) | Gate documental concluído — [spec](./ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [execução](./EXECUCAO_FASE7.md) · [auditoria](./AUDITORIA_FASE7_2026-10-04.md) |
-| 7A | Fundação do ciclo de pedidos | Concluída — [EXECUCAO_FASE7A](./EXECUCAO_FASE7A.md) |
-| 7B | Recepção e confirmação pela FAL | **Próximo gate de código** |
-| 7C–7F | Separação → entrega → estoque operacional | Contratos registrados; sem schema/UI ainda |
+| 7 | Operação do pedido (master) | **Concluída** — [spec](./ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [execução](./EXECUCAO_FASE7.md) · [auditoria final](./AUDITORIA_FASE7_FINAL_2026-10-04.md) |
+| 7A | Fundação do ciclo de pedidos | Concluída |
+| 7B | Recepção e confirmação | Concluída — [auditoria](./AUDITORIA_FASE7B_2026-10-04.md) |
+| 7C | Separação | Concluída — [auditoria](./AUDITORIA_FASE7C_2026-10-04.md) |
+| 7D | Expedição | Concluída — [auditoria](./AUDITORIA_FASE7D_2026-10-04.md) |
+| 7E | Entrega | Concluída — [auditoria](./AUDITORIA_FASE7E_2026-10-04.md) |
+| 7F | Estoque operacional | Concluída — [auditoria](./AUDITORIA_FASE7F_2026-10-04.md) |
 | 8–10 | Backoffice / integrações / go-live | Pendentes |
 
 ---

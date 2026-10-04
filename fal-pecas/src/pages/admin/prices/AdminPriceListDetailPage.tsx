@@ -13,6 +13,7 @@ import {
   adminGetPriceList,
   adminListPriceListItems,
   adminUpsertPriceListItem,
+  computeAdjustedPrice,
   type ImportPreviewRow,
   type PriceAdjustMode,
   type PriceList,
@@ -217,19 +218,36 @@ export function AdminPriceListDetailPage() {
   async function onApplyGlobalAdjust() {
     setError(null)
     setAdjustReport(null)
-    const raw = parseMoneyBr(adjustValue)
-    if (raw == null || raw <= 0) {
+    const raw =
+      adjustMode === 'percent'
+        ? Number(String(adjustValue).trim().replace(',', '.'))
+        : parseMoneyBr(adjustValue)
+    if (raw == null || !Number.isFinite(raw) || raw <= 0) {
       setError('Informe um valor de ajuste maior que zero.')
+      return
+    }
+    if (adjustMode === 'percent' && raw > 100) {
+      setError('Percentual deve ser no máximo 100.')
       return
     }
     const signed = adjustDirection === 'up' ? raw : -raw
     const label =
       adjustMode === 'percent'
-        ? `${adjustDirection === 'up' ? '+' : '−'}${formatMoneyInput(raw)}%`
+        ? `${adjustDirection === 'up' ? '+' : '−'}${raw}%`
         : `${adjustDirection === 'up' ? '+' : '−'}${formatMoney(raw)}`
+
+    const sampleLines = items.slice(0, 5).map((it) => {
+      const next = computeAdjustedPrice(it.price, adjustMode, signed)
+      return `${it.sku ?? '—'}: ${formatMoney(it.price)} → ${formatMoney(next)}`
+    })
+    const preview =
+      sampleLines.length > 0
+        ? `\n\nAmostra:\n${sampleLines.join('\n')}`
+        : '\n\n(Lista sem itens visíveis na tela — o ajuste atômico vale para todos os itens no banco.)'
+
     if (
       !window.confirm(
-        `Aplicar ajuste global ${label} em TODOS os itens desta lista?\n\nPreço avulso dos produtos não é alterado.`,
+        `Aplicar ajuste global ${label} em TODOS os itens desta lista?${preview}\n\nPreço avulso não é alterado. Operação atômica.`,
       )
     ) {
       return
@@ -242,8 +260,12 @@ export function AdminPriceListDetailPage() {
         value: signed,
         changedBy: user?.id ?? null,
       })
+      const rpcSample =
+        result.sample.length > 0
+          ? ` Amostra: ${result.sample.map((s) => `${s.sku} ${formatMoney(s.old)}→${formatMoney(s.new)}`).join('; ')}.`
+          : ''
       setAdjustReport(
-        `Ajuste ${label}: ${result.updated} atualizado(s), ${result.skipped} sem mudança.`,
+        `Ajuste ${label}: ${result.updated} atualizado(s), ${result.skipped} sem mudança.${rpcSample}`,
       )
       setAdjustValue('')
       await reload()
