@@ -106,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : i,
         )
       }
-      const price = product.promoPrice ?? product.price
+      const price = product.resolvedPrice ?? product.promoPrice ?? product.price
       return [
         ...prev,
         {

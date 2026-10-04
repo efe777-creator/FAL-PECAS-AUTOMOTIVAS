@@ -1,21 +1,18 @@
+import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useCart } from '@/contexts/CartContext'
+import {
+  orderEventLabel,
+  orderStatusLabel,
+  projectCustomerTimeline,
+} from '@/lib/orderLifecycle'
+import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-
-const statusLabel: Record<string, string> = {
-  pendente: 'Pendente',
-  aguardando_pagamento: 'Aguardando pagamento',
-  pagamento_aprovado: 'Pagamento aprovado',
-  em_separacao: 'Em separação',
-  preparando_envio: 'Preparando envio',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-}
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 function money(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -23,9 +20,13 @@ function money(v: number) {
 
 export function AccountOrderDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { addItem } = useCart()
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rebuyBusy, setRebuyBusy] = useState(false)
+  const [rebuyMsg, setRebuyMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -42,6 +43,42 @@ export function AccountOrderDetailPage() {
     })()
   }, [id])
 
+  const timeline = useMemo(
+    () => (order ? projectCustomerTimeline(order.status) : []),
+    [order],
+  )
+
+  async function onBuyAgain() {
+    if (!order) return
+    setRebuyBusy(true)
+    setRebuyMsg(null)
+    try {
+      const result = await buildBuyAgainCart(order.items)
+      for (const row of result.products) {
+        addItem(row.product, row.quantity)
+      }
+      const parts: string[] = []
+      if (result.products.length) {
+        parts.push(`${result.products.length} item(ns) adicionados ao carrinho com preços atuais.`)
+      }
+      if (result.skipped.length) {
+        parts.push(
+          `Não incluídos: ${result.skipped.map((s) => `${s.sku} (${s.reason})`).join('; ')}`,
+        )
+      }
+      if (!result.products.length) {
+        setRebuyMsg(parts.join(' ') || 'Nenhum item disponível para recompra.')
+        return
+      }
+      setRebuyMsg(parts.join(' '))
+      navigate('/carrinho')
+    } catch (e) {
+      setRebuyMsg(e instanceof Error ? e.message : 'Falha ao montar recompra')
+    } finally {
+      setRebuyBusy(false)
+    }
+  }
+
   if (loading) return <Loading label="Carregando pedido…" />
   if (error) return <ErrorState message={error} />
   if (!order) {
@@ -56,6 +93,16 @@ export function AccountOrderDetailPage() {
   }
 
   const addr = order.addressSnapshot
+  const updates =
+    order.events.length > 0
+      ? order.events
+      : order.history.map((h) => ({
+          id: h.id,
+          eventType: 'status_changed',
+          payload: { note: h.note, status: h.status },
+          visibility: 'customer' as const,
+          createdAt: h.createdAt,
+        }))
 
   return (
     <div className="space-y-4">
@@ -65,18 +112,57 @@ export function AccountOrderDetailPage() {
             ← Pedidos
           </Link>
         </p>
-        <h2 className="mt-2 text-xl font-extrabold">Pedido {order.id.slice(0, 8)}…</h2>
-        <p className="mb-0 text-sm text-fal-muted">
-          {new Date(order.createdAt).toLocaleString('pt-BR')} ·{' '}
-          <strong>{statusLabel[order.status] ?? order.status}</strong>
-        </p>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="mt-0 text-xl font-extrabold">Pedido {order.id.slice(0, 8)}…</h2>
+            <p className="mb-0 text-sm text-fal-muted">
+              {new Date(order.createdAt).toLocaleString('pt-BR')} ·{' '}
+              <strong>{orderStatusLabel[order.status] ?? order.status}</strong>
+            </p>
+          </div>
+          <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>
+            {rebuyBusy ? 'Preparando…' : 'Comprar novamente'}
+          </Button>
+        </div>
+        {rebuyMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{rebuyMsg}</p> : null}
+      </div>
+
+      <div className="rounded-fal border border-fal-line bg-white p-5">
+        <h3 className="mt-0 text-base font-extrabold">Andamento</h3>
+        <ol className="m-0 list-none space-y-2 p-0">
+          {timeline.map((step) => (
+            <li key={step.id} className="flex items-center gap-2 text-sm">
+              <span
+                className={
+                  step.state === 'done'
+                    ? 'font-extrabold text-fal-success'
+                    : step.state === 'current'
+                      ? 'font-extrabold text-fal-navy'
+                      : 'text-fal-muted'
+                }
+              >
+                {step.state === 'done' ? '✓' : step.state === 'current' ? '●' : '○'}
+              </span>
+              <span
+                className={
+                  step.state === 'todo' ? 'text-fal-muted' : 'font-semibold text-fal-ink'
+                }
+              >
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="rounded-fal border border-fal-line bg-white p-5">
         <h3 className="mt-0 text-base font-extrabold">Itens</h3>
         <ul className="m-0 list-none space-y-2 p-0">
           {order.items.map((i) => (
-            <li key={i.id} className="flex justify-between gap-3 border-b border-fal-line py-2 text-sm last:border-0">
+            <li
+              key={i.id}
+              className="flex justify-between gap-3 border-b border-fal-line py-2 text-sm last:border-0"
+            >
               <span>
                 {i.quantity}× {i.nameSnapshot}
                 <span className="block text-xs text-fal-muted">SKU {i.sku}</span>
@@ -111,7 +197,8 @@ export function AccountOrderDetailPage() {
             {addr.complement ? ` — ${String(addr.complement)}` : ''}
             <br />
             {addr.district ? `${String(addr.district)} · ` : ''}
-            {String(addr.city ?? '')}/{String(addr.state ?? '')} · CEP {String(addr.postal_code ?? '')}
+            {String(addr.city ?? '')}/{String(addr.state ?? '')} · CEP{' '}
+            {String(addr.postal_code ?? '')}
           </p>
         </div>
       ) : null}
@@ -143,6 +230,12 @@ export function AccountOrderDetailPage() {
               {order.shipment.status}
               <br />
               {order.shipment.amount != null ? money(order.shipment.amount) : null}
+              {order.shipment.trackingCode ? (
+                <>
+                  <br />
+                  Rastreio: {order.shipment.trackingCode}
+                </>
+              ) : null}
             </p>
           ) : (
             <p className="m-0 text-fal-muted">Sem registro</p>
@@ -151,17 +244,23 @@ export function AccountOrderDetailPage() {
       </div>
 
       <div className="rounded-fal border border-fal-line bg-white p-5">
-        <h3 className="mt-0 text-base font-extrabold">Histórico</h3>
+        <h3 className="mt-0 text-base font-extrabold">Atualizações do pedido</h3>
         <ol className="m-0 list-none space-y-2 p-0">
-          {order.history.map((h) => (
-            <li key={h.id} className="border-l-2 border-fal-yellow pl-3 text-sm">
-              <strong>{statusLabel[h.status] ?? h.status}</strong>
-              <span className="block text-xs text-fal-muted">
-                {new Date(h.createdAt).toLocaleString('pt-BR')}
-                {h.note ? ` — ${h.note}` : ''}
-              </span>
-            </li>
-          ))}
+          {updates.map((ev) => {
+            const note =
+              typeof ev.payload.note === 'string' && ev.payload.note
+                ? ev.payload.note
+                : null
+            return (
+              <li key={ev.id} className="border-l-2 border-fal-yellow pl-3 text-sm">
+                <strong>{orderEventLabel[ev.eventType] ?? ev.eventType}</strong>
+                <span className="block text-xs text-fal-muted">
+                  {new Date(ev.createdAt).toLocaleString('pt-BR')}
+                  {note ? ` — ${note}` : ''}
+                </span>
+              </li>
+            )
+          })}
         </ol>
       </div>
     </div>

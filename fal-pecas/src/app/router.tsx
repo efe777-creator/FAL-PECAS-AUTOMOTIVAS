@@ -101,6 +101,21 @@ const AdminProductFormPage = lazy(() =>
     default: m.AdminProductFormPage,
   })),
 )
+const AdminPriceListsPage = lazy(() =>
+  import('@/pages/admin/prices/AdminPriceListsPage').then((m) => ({
+    default: m.AdminPriceListsPage,
+  })),
+)
+const AdminPriceListDetailPage = lazy(() =>
+  import('@/pages/admin/prices/AdminPriceListDetailPage').then((m) => ({
+    default: m.AdminPriceListDetailPage,
+  })),
+)
+const AdminShippingOriginPage = lazy(() =>
+  import('@/pages/admin/shipping/AdminShippingOriginPage').then((m) => ({
+    default: m.AdminShippingOriginPage,
+  })),
+)
 
 function Suspend({ children }: { children: ReactNode }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>
@@ -127,6 +142,8 @@ export const router = createBrowserRouter([
       { path: 'produtos', element: <AdminProductsPage /> },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
+      { path: 'precos', element: <AdminPriceListsPage /> },
+      { path: 'precos/:id', element: <AdminPriceListDetailPage /> },
       { path: 'categorias', element: <AdminCategoriesPage /> },
       { path: 'montadoras', element: <AdminManufacturersPage /> },
       { path: 'veiculos', element: <AdminVehiclesPage /> },
@@ -144,6 +161,7 @@ export const router = createBrowserRouter([
         path: 'estoque',
         element: <AdminPlaceholderPage title="Estoque" />,
       },
+      { path: 'frete', element: <AdminShippingOriginPage /> },
       {
         path: 'relatorios',
         element: <AdminPlaceholderPage title="Relatórios" />,

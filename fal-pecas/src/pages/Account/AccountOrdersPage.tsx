@@ -1,21 +1,11 @@
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { orderStatusLabel } from '@/lib/orderLifecycle'
 import { listMyOrders } from '@/services/customers/orderQueryService'
 import type { CustomerOrderSummary } from '@/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-
-const statusLabel: Record<string, string> = {
-  pendente: 'Pendente',
-  aguardando_pagamento: 'Aguardando pagamento',
-  pagamento_aprovado: 'Pagamento aprovado',
-  em_separacao: 'Em separação',
-  preparando_envio: 'Preparando envio',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-}
 
 export function AccountOrdersPage() {
   const [items, setItems] = useState<CustomerOrderSummary[]>([])
@@ -81,7 +71,7 @@ export function AccountOrdersPage() {
                   <td className="px-3 py-2">
                     {new Date(o.createdAt).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="px-3 py-2">{statusLabel[o.status] ?? o.status}</td>
+                  <td className="px-3 py-2">{orderStatusLabel[o.status] ?? o.status}</td>
                   <td className="px-3 py-2">{o.itemCount}</td>
                   <td className="px-3 py-2 font-semibold">
                     {o.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

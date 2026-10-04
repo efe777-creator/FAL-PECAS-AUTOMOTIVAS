@@ -68,7 +68,9 @@ export function ProductPage() {
   }
 
   const current = product
-  const price = current.promoPrice ?? current.price
+  const price = current.resolvedPrice ?? current.promoPrice ?? current.price
+  const listPrice = current.listPrice ?? current.price
+  const showStrike = listPrice > price + 0.001
   const categoryHref = current.categorySlug
     ? `/catalogo?cat=${encodeURIComponent(current.categorySlug)}`
     : null
@@ -142,6 +144,11 @@ export function ProductPage() {
           <p className="mt-4 text-3xl font-black">
             {price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </p>
+          {showStrike ? (
+            <p className="mt-1 text-sm text-fal-muted line-through">
+              {listPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </p>
+          ) : null}
           <p className="mt-2 text-sm">
             {current.available === false ? (
               <span className="text-fal-danger">Indisponível</span>

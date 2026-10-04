@@ -27,11 +27,36 @@ export interface CustomerAddress {
   street: string
   number: string
   complement?: string | null
+  reference?: string | null
   district?: string | null
   city: string
   state: string
   postalCode: string
   isDefault: boolean
+}
+
+/** Resultado normalizado de consulta CEP (UI desacoplada do fornecedor). */
+export interface CepLookupResult {
+  cep: string
+  street: string
+  district: string
+  city: string
+  state: string
+}
+
+export interface CepProvider {
+  lookupByCep(cep: string): Promise<CepLookupResult>
+}
+
+export interface StoreShippingOrigin {
+  id: string
+  postalCode: string
+  street: string
+  number: string
+  complement?: string | null
+  district?: string | null
+  city: string
+  state: string
 }
 
 export interface CustomerSavedVehicle {
@@ -74,6 +99,14 @@ export interface OrderStatusEvent {
   createdAt: string
 }
 
+export interface OrderLifecycleEvent {
+  id: string
+  eventType: string
+  payload: Record<string, unknown>
+  visibility: 'internal' | 'customer'
+  createdAt: string
+}
+
 export interface OrderDetail {
   id: string
   status: string
@@ -85,6 +118,8 @@ export interface OrderDetail {
   paymentRef?: string | null
   items: OrderItemSnapshot[]
   history: OrderStatusEvent[]
+  /** Eventos customer-visible (F7A). */
+  events: OrderLifecycleEvent[]
   payment?: {
     id: string
     provider?: string | null
@@ -102,6 +137,16 @@ export interface OrderDetail {
   } | null
 }
 
+/** Item logístico opcional na cotação (F6C; mock pode ignorar). */
+export interface ShippingQuoteItem {
+  productId: string
+  quantity: number
+  weightKg?: number | null
+  heightCm?: number | null
+  widthCm?: number | null
+  lengthCm?: number | null
+}
+
 /** Cotação de frete — contrato interno FAL (F6 mock; F9 troca provider). */
 export interface ShippingQuoteRequest {
   postalCode: string
@@ -109,6 +154,9 @@ export interface ShippingQuoteRequest {
   city: string
   subtotal: number
   itemCount: number
+  originPostalCode?: string
+  items?: ShippingQuoteItem[]
+  totalWeightKg?: number
 }
 
 export interface ShippingQuoteOption {
@@ -220,6 +268,11 @@ export interface Product {
   categorySlug?: string
   price: number
   promoPrice?: number | null
+  /** Preço resolvido pela lista comercial (F6B). */
+  resolvedPrice?: number
+  /** Preço da lista Base (espelho/legado). */
+  listPrice?: number
+  resolvedPriceListId?: string | null
   /** Quantidade: só mocks/admin. Loja pública usa `available`. */
   stock?: number
   /** Disponibilidade pública (sem quantidade). */
@@ -231,6 +284,11 @@ export interface Product {
   compatibilitySummary?: string
   references?: ProductReference[]
   attrs?: Record<string, unknown>
+  /** Logística opcional (F6C) — não inventar no seed. */
+  weightKg?: number | null
+  heightCm?: number | null
+  widthCm?: number | null
+  lengthCm?: number | null
 }
 
 export type EntityStatus = 'active' | 'inactive'

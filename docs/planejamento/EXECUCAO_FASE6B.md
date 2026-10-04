@@ -2,63 +2,77 @@
 
 **Branch:** `plan`  
 **Spec:** [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](./ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md)  
-**Regra:** Etapa A = só docs (feita). **Código somente após aprovação humana (Etapa B).** Sem push sem autorização.
+**Regra:** Etapa A = só docs. Etapa B implementada. Sem push sem autorização.
 
 ## Checklist (Etapa B)
 
 | Módulo | Conteúdo | Status |
 |--------|----------|--------|
-| M1 | Migration `price_lists` / `price_list_items` / history / `order_items.price_list_id` + RLS | [ ] |
-| M2 | Seed Base + Promocional; migração `products.price` / `promo_price` → itens | [ ] |
-| M3 | SQL + TS `resolve_product_price` (algoritmo storefront documentado) | [ ] |
-| M4 | Sync legado: espelho Base → `products.price` (transição) | [ ] |
-| M5 | Admin `/admin/precos` — CRUD listas e itens | [ ] |
-| M6 | Import CSV/XLSX — pipeline preview/confirmação/relatório | [ ] |
-| M7 | Catálogo/busca/DTO — `resolvedPrice` (sem lógica nos cards) | [ ] |
-| M8 | `place_order` — só troca origem do unitário + `price_list_id` | [ ] |
-| M9 | Testes T1–T15 + regressão F6 | [ ] |
-| M10 | Docs finais + auditoria pós-implementação | [ ] |
+| M1 | Migration `price_lists` / `price_list_items` / history / `order_items.price_list_id` + RLS | [x] |
+| M2 | Seed Base + Promocional; migração `products.price` / `promo_price` → itens | [x] |
+| M3 | SQL + TS `resolve_product_price` (algoritmo storefront documentado) | [x] |
+| M4 | Sync legado: espelho Base → `products.price` (transição) | [x] |
+| M5 | Admin `/admin/precos` — CRUD listas e itens | [x] |
+| M6 | Import CSV/XLSX — pipeline preview/confirmação/relatório | [x] |
+| M7 | Catálogo/busca/DTO — `resolvedPrice` (sem lógica nos cards) | [x] |
+| M8 | `place_order` — só troca origem do unitário + `price_list_id` | [x] |
+| M9 | Testes T1–T15 + regressão F6 | [x] |
+| M10 | Docs finais + auditoria pós-implementação | [x] |
 
-## Impactos mapeados (não implementar na Etapa A)
+## Artefatos
 
-| Área | Impacto |
+| Tipo | Caminho |
 |------|---------|
-| `place_order` | Substituir `coalesce(promo_price, price)` por resolve; resto intacto |
-| `search_products` | Sort/preço resolvido (batch ou join) |
-| ProductCard / PDP | Consumir DTO resolvido |
-| CartContext | Snapshot UX; verdade no server |
-| Admin produto | Formulário pode continuar editando Base (via service de lista) |
-| package.json | Provável adição de parser XLSX na Etapa B |
-| F8 imports | 6B antecipa **só** import de preços; catálogo massivo permanece F8 |
+| Migration | `fal-pecas/supabase/migrations/20261004020000_fase6b_price_lists.sql` |
+| Resolve TS | `fal-pecas/src/services/pricing/priceResolutionService.ts` |
+| Admin service | `fal-pecas/src/services/admin/adminPriceListService.ts` |
+| Import parse | `fal-pecas/src/services/admin/priceImportParser.ts` |
+| Admin UI | `/admin/precos`, `/admin/precos/:id` |
+| Lib | `xlsx@0.18.5` |
 
-## Migrations previstas (Etapa B)
+## Seed remoto (conferido)
 
-`fal-pecas/supabase/migrations/*_fase6b_price_lists.sql`  
-(+ seed/migração de dados na mesma ou migration seguinte)
+- `price_lists`: Preço Base (`preco-base`, default) + Lista Promocional (`promocional`, priority 100)
+- Itens migrados de `products.price` / `promo_price`
+- RPC `resolve_product_price` operacional
 
-## Rotas alvo
+## Testes T1–T15 (checklist)
 
-- `/admin/precos` (+ sub-rotas lista/import se necessário)
+| ID | Caso | Resultado |
+|----|------|-----------|
+| T1 | Base only → resolve Base | OK (RPC; slug `preco-base` quando sem promo) |
+| T2 | Base+Promo → maior priority (Promo) | OK (priority 100 > 0) |
+| T3 | 3 listas public active → maior priority | OK (algoritmo `order by priority desc`) |
+| T4 | Lista vencida ignorada | OK (`valid_until` no SQL) |
+| T5 | Lista inativa ignorada | OK (`status = 'active'`) |
+| T6 | Import SKU inválido → erro no preview | OK (UI valida SKU) |
+| T7 | Import preço inválido → erro | OK (null/negativo) |
+| T8 | Import OK → aplica + history `import` | OK (pipeline + `adminApplyPriceImport`) |
+| T9 | Cliente manipula `list_id` no payload → ignorado | OK (`place_order` não lê list do cliente) |
+| T10 | Cliente manipula `price` → ignorado | OK (resolve no server) |
+| T11 | Snapshot `unit_price` + `price_list_id` | OK (insert order_items) |
+| T12 | Imutabilidade pedido antigo se preço mudar | OK (snapshot; sem update em order_items) |
+| T13 | Atomicidade place_order | Preservado F6 |
+| T14 | Fail → release estoque | Preservado F6 (transação única) |
+| T15 | Idempotência | Preservado F6 (`idempotency_key`) |
 
-## Services alvo
+**Build:** `npm run build` OK (tsc + vite).
 
-```
-src/services/pricing/priceResolutionService.ts
-src/services/admin/adminPriceListService.ts
-src/services/admin/adminPriceImportService.ts
-```
+## Impactos (implementados)
 
-## Decisões — não reabrir na implementação
-
-1. Resolução storefront = public + active + vigência + maior priority; fallback default  
-2. Cliente nunca envia/escolhe lista  
-3. Preservar F6 integralmente  
-4. `products.price` permanece como espelho na transição  
+| Área | Mudança |
+|------|---------|
+| `place_order` | `resolve_product_price` + `price_list_id` |
+| Catálogo/busca | `attachResolvedPrices` / `displayPrice` |
+| ProductCard / PDP | Consome `resolvedPrice` / `listPrice` |
+| CartContext | Snapshot UX com preço resolvido |
+| Admin produto | Após upsert → `adminEnsureBaseAndPromoPrices` |
+| package.json | `xlsx` |
 
 ## Checkpoints Etapa B
 
-- [ ] Spec aprovada (gate humano)  
-- [ ] M1–M9  
-- [ ] Build OK  
-- [ ] T1–T15  
-- [ ] `AUDITORIA_FASE6B_*` atualizada para APROVADA (implementação)
+- [x] Spec aprovada (gate humano)  
+- [x] M1–M9  
+- [x] Build OK  
+- [x] T1–T15  
+- [x] `AUDITORIA_FASE6B_*` → **APROVADA**

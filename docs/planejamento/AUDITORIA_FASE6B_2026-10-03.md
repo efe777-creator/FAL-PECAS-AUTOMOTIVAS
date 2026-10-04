@@ -1,29 +1,32 @@
 # Auditoria Fase 6B — Listas de Preços — 2026-10-03
 
-**STATUS: PLANEJAMENTO CONCLUÍDO — AGUARDANDO APROVAÇÃO PARA IMPLEMENTAÇÃO**
+**STATUS: APROVADA**
 
-**Etapa:** A (somente documentação; **sem código**)  
+**Etapa:** B (implementação concluída)  
 **Spec:** [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](./ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md)  
 **Execução:** [EXECUCAO_FASE6B.md](./EXECUCAO_FASE6B.md)
 
-## Resumo da auditoria técnica (pré-código)
+## Resumo pós-implementação
 
 | Item | Resultado |
 |------|-----------|
-| `products.price` / `promo_price` | Única fonte atual; UI e `place_order` acoplados |
-| `place_order` | Recalcula no server com `coalesce(promo, price)` — ponto único para plugar resolve |
-| Listas existentes | Nenhuma |
-| Import preços | Schema stub `imports`; sem UI; sem lib Excel |
-| Risco F6 | Baixo se alteração em `place_order` for só origem do unitário |
-| Segurança | Listas `assigned` futuras não podem ser listadas publicamente |
+| Schema + RLS | `price_lists`, `price_list_items`, `price_change_history`; `order_items.price_list_id`; imports `kind`/`price_list_id` |
+| Seed | Preço Base (default) + Lista Promocional; migração de `products.price` / `promo_price` |
+| Resolve | RPC `resolve_product_price` / batch + `priceResolutionService.ts` |
+| Sync legado | Trigger Base → `products.price`; Promo → `promo_price` |
+| Admin | `/admin/precos` CRUD + import CSV/XLSX com preview |
+| Catálogo | DTO `resolvedPrice` / `listPrice`; cards/PDP/busca |
+| `place_order` | Resolve + `price_list_id`; F6 preservado |
+| Build | `npm run build` OK |
+| T1–T15 | Checklist em EXECUCAO_FASE6B |
 
 ## Gate
 
-- [x] Etapa A entregue (spec + execução + roadmap/docs)  
-- [ ] Aprovação humana para Etapa B  
-- [ ] Implementação + testes T1–T15  
-- [ ] Reabrir este arquivo como **APROVADA** pós-código  
+- [x] Etapa A entregue  
+- [x] Aprovação humana para Etapa B  
+- [x] Implementação + testes T1–T15  
+- [x] Status **APROVADA**
 
 ## Mensagem de status
 
-**Fase 6B pronta para implementação. Aguardando aprovação.**
+**Fase 6B implementada e aprovada.**

@@ -1,7 +1,7 @@
 # Roadmap de Fases — FAL Peças Automotivas 3.0
 
 **Status:** Fonte oficial de execução  
-**Data:** 2026-10-03  
+**Data:** 2026-10-04 (F6D)  
 **PRD:** [../entrada/FAL_PRD_3.0.md](../entrada/FAL_PRD_3.0.md) (visão de produto; §16 antigo é substituído por este documento)  
 **Stack:** Vite + React + TypeScript + Tailwind + Supabase
 
@@ -42,8 +42,12 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 | 4B | Painel admin (auditoria/polimento) | Concluída |
 | 5 | Experiência do cliente | Concluída |
 | 6 | E-commerce | Concluída (checkout auth + frete mock + pagamento simulado) |
-| 6B | Listas de preços | Planejada (spec/execução; código após gate) |
-| 7–10 | — | Pendentes |
+| 6B | Listas de preços | Concluída |
+| 6C | Endereços, CEP e motor de frete | Concluída |
+| 6D | Ciclo completo do pedido (especificação) | Concluída (docs) |
+| 7A | Fundação do ciclo de pedidos | Concluída |
+| 7B–7F | Confirmação → entrega → estoque | Pendente |
+| 8–10 | Backoffice / integrações / go-live | Pendentes |
 
 ---
 
@@ -153,7 +157,7 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 **Spec:** [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](./ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md)  
 **Execução:** [EXECUCAO_FASE6B.md](./EXECUCAO_FASE6B.md)  
-**Auditoria (planejamento):** [AUDITORIA_FASE6B_2026-10-03.md](./AUDITORIA_FASE6B_2026-10-03.md) — aguardando aprovação Etapa B.
+**Auditoria:** [AUDITORIA_FASE6B_2026-10-03.md](./AUDITORIA_FASE6B_2026-10-03.md) — **APROVADA**.
 
 **Fora:** cupons/CRM/descontos complexos; segmentação completa B2B; reconstruir checkout; importador genérico de catálogo (permanece F8).
 
@@ -161,13 +165,84 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ---
 
-## Fase 7 — Operação interna
+## Fase 6C — Endereços, CEP e motor de frete
 
-**Pergunta:** Como a FAL processa a compra internamente?
+**Pergunta:** Como o cliente informa o destino e obtém frete rápido, com arquitetura pronta para carriers reais?
 
-**Escopo:** status pós-pagamento, separação, conferência, envio, estoque/movimentações, indisponibilidade.
+**Escopo:** `CepProvider` (ViaCEP) + form CEP-first; campo `reference`; endereço inline no checkout; `FreightService` (cache/debounce) sobre `ShippingProvider` mock; peso/dims opcionais; origem FAL admin simples; stubs futuros Correios/Frenet/Carrier; preservar `place_order` e F6/F6B.
 
-**Critérios de saída:** pedido flui do pagamento à entrega com histórico.
+**Spec:** [ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md](./ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md)  
+**Execução:** [EXECUCAO_FASE6C.md](./EXECUCAO_FASE6C.md)  
+**Auditoria:** [AUDITORIA_FASE6C_2026-10-03.md](./AUDITORIA_FASE6C_2026-10-03.md) — **APROVADA**.
+
+**Fora:** integrações comerciais reais de frete (F9); guest; gateway; reconstruir checkout.
+
+**Critérios de saída:** CEP autofill; endereço no checkout; cotação rápida; mock abstraído; F6/F6B intactas.
+
+---
+
+## Fase 6D — Ciclo completo do pedido (especificação)
+
+**Pergunta:** Qual é a única fonte de verdade do ciclo pós-pagamento (status, eventos, projeção cliente, confirmação, estoque conceitual)?
+
+**Escopo:** documentação apenas — máquina de estados interna vs timeline cliente; eventos append-only; confirmação por item; indisponibilidade sem cancelamento automático (operador altera prazo ou cancela controlado); contratos futuros; gates F7A–F7F. **Sem** Dashboard, RPCs, migrations aplicadas ou alteração de `place_order`.
+
+**Spec:** [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](./ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md)  
+**Execução:** [EXECUCAO_FASE6D.md](./EXECUCAO_FASE6D.md)
+
+**Fora:** implementação operacional; aceite do cliente à ressalva; notificações; APIs reais.
+
+**Critérios de saída:** modelo consumível por site/admin/app sem regras divergentes; F7A tem gate claro.
+
+---
+
+## Fase 7A — Fundação do ciclo de pedidos
+
+**Escopo:** evoluir status/transições; `order_events` (ou evolução do history); timeline cliente; serviço/RPC de transição; Comprar novamente; validar sessão persistente.
+
+**Execução:** [EXECUCAO_FASE7A.md](./EXECUCAO_FASE7A.md) — **concluída**.
+
+**Gate:** histórico consistente + timeline correta + recompra funcional.
+
+---
+
+## Fase 7B — Recepção e confirmação
+
+**Escopo:** `/admin/pedidos`; fila; análise por item; prazo/ressalva; confirmar; cancelamento controlado; cliente vê atualização.
+
+**Gate:** FAL recebe → analisa → decide destino de pedido pago.
+
+---
+
+## Fase 7C — Separação
+
+**Escopo:** fila de separação; itens/quantidades; conclusão → `pronto_para_envio`.
+
+**Gate:** pedido confirmado pode ser separado e marcado pronto para envio.
+
+---
+
+## Fase 7D — Expedição
+
+**Escopo:** modalidade/transportadora; rastreamento; `enviado`; update cliente.
+
+**Gate:** pedido sai da FAL como enviado.
+
+---
+
+## Fase 7E — Entrega e encerramento
+
+**Escopo:** confirmação de entrega; histórico; timeline final.
+
+**Gate:** ciclo Pedido → Pagamento → FAL → Confirmação → Separação → Envio → Entrega.
+
+---
+
+## Fase 7F — Estoque operacional
+
+**Escopo:** reserva → confirmação → separação → baixa; liberação; divergência; concorrência; auditoria.
+
+**Gate:** estoque e pedidos consistentes em cenário real.
 
 ---
 

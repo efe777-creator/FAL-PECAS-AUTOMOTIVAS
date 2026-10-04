@@ -72,13 +72,15 @@ Hero → VehicleSelector → Categorias → Destaques → Notice → Footer
 ### Checkout (alvo PRD)
 
 Carrinho → Identificação → CPF/CNPJ quando aplicável → Endereço → Entrega → Pagamento → Revisão → Pedido  
-Fase atual: placeholder de steps
+Fase atual (F6): steps reais com frete mock e pagamento simulado.  
+**F6C (planejado):** CEP com autofill; **+ Adicionar endereço** inline no checkout; cotação rápida com feedback de loading/erro.
 
 ### Conta
 
 - Login / cadastro / recuperar senha (Supabase)
 - Alvo: dados, endereços, pedidos, favoritos, veículos salvos, segurança
-- Fase atual: shell + dados Auth
+- Fase atual: hub conta F5 + pedidos F6
+- **F6C (planejado):** formulário de endereço CEP-first (máscara, consulta, número obrigatório, complemento/referência opcionais)
 
 ### Pedidos
 
@@ -127,4 +129,6 @@ Container máx. ~1240px; tipografia fluida no hero.
 - Microcopy final do checkout e indisponibilidade
 - Empty states de catálogo com recomendações
 - Validação visual de logo no footer (fundo escuro)
+- F6C: estados CEP (loading / não encontrado / provider offline) e frete (calculando / indisponível) em PT-BR
+- F6C: ProductCard — remover badge absoluto de qty no carrinho (manter controle inferior)
 - Acessibilidade WCAG formal (auditoria futura)

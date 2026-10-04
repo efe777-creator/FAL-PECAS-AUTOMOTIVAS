@@ -60,18 +60,19 @@ Arquivos-chave:
 | `placeOrderService` / `orderDetailService` / `orderQueryService` | Pedido F6 |
 | `paymentService` / `shippingService` | Adapters simulados/mock (F6); reais na F9 |
 | `customers/*` | Perfil, endereços, veículos, favoritos |
+| `addressLookup` / `CepProvider` (F6C) | Consulta CEP → endereço normalizado; UI desacoplada do fornecedor |
+| `FreightService` (F6C) | Facade sobre `ShippingProvider` com cache/debounce; mock permanece ativo |
 
 Troca de mock → Supabase deve ocorrer **dentro dos services**, sem reescrever a UI.
 
 ---
 
-## 4b. Precificação (Fase 6B — planejada)
+## 4b. Precificação (Fase 6B)
 
 | Contrato | Papel |
 |----------|--------|
 | `resolveProductPrice` / RPC SQL | **Única** camada que determina preço aplicável (contexto storefront; futuro assigned) |
-| `adminPriceListService` | CRUD listas/itens (staff) |
-| `adminPriceImportService` | Pipeline CSV/XLSX com preview (staff) |
+| `adminPriceListService` | CRUD listas/itens + pipeline import CSV/XLSX (staff) |
 
 **Invariantes:** frontend não envia preço nem `price_list_id` aceito; `place_order` continua recalculando no servidor; listas `assigned` não são enumeráveis publicamente.
 
@@ -79,12 +80,43 @@ Spec: [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE
 
 ---
 
+## 4c. Endereço / frete (Fase 6C)
+
+| Contrato | Papel |
+|----------|--------|
+| `CepProvider.lookupByCep` | Retorna logradouro/bairro/cidade/UF normalizados |
+| `FreightService.quote` | Cotação com cache curto; delega a `ShippingProvider` |
+| `ShippingProvider` | Contrato F6 (mock ativo); stubs Correios/Frenet/Carrier na 6C; reais na F9 |
+| Admin origem | Configuração CEP/endereço de origem da loja (staff) |
+
+**Invariantes:** UI não acopla a ViaCEP; `place_order` revalida frete no server; client não define valor de frete.
+
+Spec: [ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md](../planejamento/ESPECIFICACAO_FASE6C_ENDERECOS_FRETE.md).
+
+---
+
+## 4d. Ciclo do pedido (F6D spec / F7A implementado)
+
+| Contrato | Papel |
+|----------|--------|
+| `projectCustomerTimeline` (`orderLifecycle.ts`) | Projeção timeline cliente |
+| `order_events` + RLS | Fatos append-only (`visibility`: internal \| customer) |
+| `transition_order_status` / `orderTransitionService` | Única via staff para mudar `orders.status` |
+| `buyAgainService` | Itens antigos → carrinho com preço/estoque atuais |
+| `confirm_simulated_payment` | Após approve: `pagamento_aprovado` → `recebido` → `em_analise` + eventos |
+
+**Invariantes:** cliente não altera status; indisponibilidade pós-pagamento não cancela automaticamente; site/admin/app compartilham o mesmo modelo.
+
+Spec: [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) · Execução: [EXECUCAO_FASE7A.md](../planejamento/EXECUCAO_FASE7A.md).
+
+---
+
 ## 5. Contratos futuros / outras fases
 
 - `compatibilityService` (avançado)
-- `inventoryService` (UI operação — F7/F8)
+- Operação pedido F7A–F7E; `inventoryService` operacional — F7F / F8
 - `importService` catálogo completo (F8; preços por lista = 6B)
-- `paymentService` / `shippingService` reais — F9
+- `paymentService` / providers de frete **reais** — F9 (adapters preparados na 6C)
 - `admin/*` — protegido por roles
 
 ---

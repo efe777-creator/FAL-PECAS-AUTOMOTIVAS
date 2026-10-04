@@ -1,5 +1,6 @@
 import { mockProducts } from '@/data/mocks/products'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import { attachResolvedPrices } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 
 type Named = { name: string; id?: string; slug?: string }
@@ -70,7 +71,8 @@ export async function listPublishedProducts(limit = 40): Promise<Product[]> {
     .limit(limit)
 
   if (error) throw error
-  return (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+  const products = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+  return attachResolvedPrices(products)
 }
 
 /** IDs de produtos compatíveis com filtros parciais de veículo. */
@@ -206,7 +208,8 @@ export async function getProductById(id: string): Promise<Product | null> {
       .join(' · ')
   }
 
-  return product
+  const [resolved] = await attachResolvedPrices([product])
+  return resolved ?? product
 }
 
 /** @deprecated Preferir `searchCatalog` (Fase 4). Mantido como fachada. */

@@ -1,7 +1,11 @@
 import { mockShippingProvider } from '@/services/shipping/mockShippingProvider'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
-/** Adapter ativo na F6. Na F9, trocar por provider real mantendo o contrato. */
+/**
+ * Adapter ativo (F6 mock).
+ * Cotação com cache: preferir `quoteFreight` (FreightService).
+ * F9: setShippingProvider(correios|frenet|carrier) — stubs em providers/*.
+ */
 let activeProvider: ShippingProvider = mockShippingProvider
 
 export function setShippingProvider(provider: ShippingProvider) {

@@ -55,6 +55,10 @@ export function AdminProductFormPage() {
   const [price, setPrice] = useState('0')
   const [promoPrice, setPromoPrice] = useState('')
   const [available, setAvailable] = useState(false)
+  const [weightKg, setWeightKg] = useState('')
+  const [heightCm, setHeightCm] = useState('')
+  const [widthCm, setWidthCm] = useState('')
+  const [lengthCm, setLengthCm] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
 
@@ -107,6 +111,10 @@ export function AdminProductFormPage() {
         setPrice(String(p.price))
         setPromoPrice(p.promoPrice != null ? String(p.promoPrice) : '')
         setAvailable(Boolean(p.available))
+        setWeightKg(p.weightKg != null ? String(p.weightKg) : '')
+        setHeightCm(p.heightCm != null ? String(p.heightCm) : '')
+        setWidthCm(p.widthCm != null ? String(p.widthCm) : '')
+        setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
         setRefs(await adminListReferences(p.id))
@@ -152,6 +160,10 @@ export function AdminProductFormPage() {
         price: Number(price),
         promoPrice: promoPrice.trim() ? Number(promoPrice) : null,
         isAvailable: available,
+        weightKg: weightKg.trim() ? Number(weightKg) : null,
+        heightCm: heightCm.trim() ? Number(heightCm) : null,
+        widthCm: widthCm.trim() ? Number(widthCm) : null,
+        lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
         shortDescription,
         description,
       })
@@ -228,6 +240,14 @@ export function AdminProductFormPage() {
             <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />
             Disponível
           </label>
+        </div>
+
+        <h2 className="pt-2 font-extrabold text-fal-navy">Logística (opcional)</h2>
+        <div className="grid gap-3 md:grid-cols-4">
+          <Input label="Peso (kg)" type="number" step="0.001" min="0" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+          <Input label="Altura (cm)" type="number" step="0.01" min="0" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+          <Input label="Largura (cm)" type="number" step="0.01" min="0" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
+          <Input label="Comprimento (cm)" type="number" step="0.01" min="0" value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} />
         </div>
 
         <h2 className="pt-2 font-extrabold text-fal-navy">Descrição</h2>

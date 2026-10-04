@@ -5,6 +5,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const catalogLinks = [
   { to: '/admin/produtos', label: 'Produtos' },
+  { to: '/admin/precos', label: 'Preços' },
   { to: '/admin/categorias', label: 'Categorias' },
   { to: '/admin/montadoras', label: 'Montadoras' },
   { to: '/admin/veiculos', label: 'Veículos' },
@@ -16,6 +17,7 @@ const placeholderLinks = [
   { to: '/admin/pedidos', label: 'Pedidos' },
   { to: '/admin/clientes', label: 'Clientes' },
   { to: '/admin/estoque', label: 'Estoque' },
+  { to: '/admin/frete', label: 'Frete / origem' },
   { to: '/admin/relatorios', label: 'Relatórios' },
 ]
 

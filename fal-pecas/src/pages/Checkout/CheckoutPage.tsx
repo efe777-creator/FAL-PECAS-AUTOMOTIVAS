@@ -7,16 +7,19 @@ import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { isValidCnpj, isValidCpf, onlyDigits } from '@/lib/document'
-import { listAddresses } from '@/services/customers/addressService'
+import { AddressForm } from '@/components/address/AddressForm'
+import { formatCepMask } from '@/lib/cep'
+import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
+import { listAddresses, upsertAddress } from '@/services/customers/addressService'
 import { confirmSimulatedPayment } from '@/services/payments/paymentService'
 import { placeOrder } from '@/services/orders/placeOrderService'
-import { quoteShipping } from '@/services/shipping/shippingService'
+import { quoteFreight } from '@/services/shipping/freightService'
 import type {
   CustomerAddress,
   ShippingQuoteOption,
   SimulatedPaymentMethod,
 } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
@@ -36,6 +39,8 @@ export function CheckoutPage() {
   const [docValue, setDocValue] = useState('')
   const [addresses, setAddresses] = useState<CustomerAddress[]>([])
   const [addressId, setAddressId] = useState<string>('')
+  const [showNewAddress, setShowNewAddress] = useState(false)
+  const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
   const [shippingOptions, setShippingOptions] = useState<ShippingQuoteOption[]>([])
   const [shippingOptionId, setShippingOptionId] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<SimulatedPaymentMethod>('pix_simulated')
@@ -44,6 +49,7 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [idempotencyKey] = useState(() => crypto.randomUUID())
   const [error, setError] = useState<string | null>(null)
+  const quoteKeyRef = useRef('')
 
   useEffect(() => {
     if (user?.cpf) {
@@ -55,20 +61,30 @@ export function CheckoutPage() {
     }
   }, [user?.cpf, user?.cnpj])
 
+  async function reloadAddresses(selectId?: string) {
+    setLoadingAddrs(true)
+    try {
+      const list = await listAddresses()
+      setAddresses(list)
+      const preferred =
+        (selectId ? list.find((a) => a.id === selectId) : null) ??
+        list.find((a: CustomerAddress) => a.isDefault) ??
+        list[0]
+      if (preferred) setAddressId(preferred.id)
+      else setAddressId('')
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
+    } finally {
+      setLoadingAddrs(false)
+    }
+  }
+
   useEffect(() => {
-    void (async () => {
-      setLoadingAddrs(true)
-      try {
-        const list = await listAddresses()
-        setAddresses(list)
-        const def = list.find((a: CustomerAddress) => a.isDefault) ?? list[0]
-        if (def) setAddressId(def.id)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
-      } finally {
-        setLoadingAddrs(false)
-      }
-    })()
+    void reloadAddresses()
+    void getStoreShippingOrigin()
+      .then((o) => setOriginPostalCode(o?.postalCode))
+      .catch(() => setOriginPostalCode(undefined))
   }, [])
 
   const selectedAddress = useMemo(
@@ -81,21 +97,32 @@ export function CheckoutPage() {
     [shippingOptions, shippingOptionId],
   )
 
+  const itemCount = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items])
   const shippingAmount = selectedShipping?.amount ?? 0
   const total = subtotal + shippingAmount
 
-  async function loadQuotes() {
+  async function loadQuotes(force = false) {
     if (!selectedAddress) return
+    const key = [
+      originPostalCode ?? '',
+      selectedAddress.postalCode,
+      itemCount,
+      subtotal.toFixed(2),
+    ].join('|')
+    if (!force && key === quoteKeyRef.current && shippingOptions.length) return
     setQuoting(true)
     setError(null)
     try {
-      const opts = await quoteShipping({
+      const opts = await quoteFreight({
         postalCode: selectedAddress.postalCode,
         state: selectedAddress.state,
         city: selectedAddress.city,
         subtotal,
-        itemCount: items.reduce((s, i) => s + i.quantity, 0),
+        itemCount,
+        originPostalCode,
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       })
+      quoteKeyRef.current = key
       setShippingOptions(opts)
       setShippingOptionId((prev) => (opts.some((o) => o.id === prev) ? prev : opts[0]?.id ?? ''))
     } catch (e) {
@@ -106,6 +133,14 @@ export function CheckoutPage() {
       setQuoting(false)
     }
   }
+
+  // Recota quando endereço/carrinho mudam no step de entrega
+  useEffect(() => {
+    if (step !== 2 || !selectedAddress) return
+    const t = window.setTimeout(() => void loadQuotes(), 300)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, addressId, itemCount, subtotal, originPostalCode])
 
   function validateDoc(): boolean {
     const digits = onlyDigits(docValue)
@@ -130,7 +165,7 @@ export function CheckoutPage() {
         return
       }
       setStep(2)
-      await loadQuotes()
+      await loadQuotes(true)
       return
     }
     if (step === 2) {
@@ -267,16 +302,8 @@ export function CheckoutPage() {
           {step === 1 ? (
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Endereço de entrega</h2>
-              {loadingAddrs ? (
-                <Loading label="Carregando endereços…" />
-              ) : addresses.length === 0 ? (
-                <EmptyState
-                  title="Nenhum endereço salvo"
-                  description="Cadastre um endereço na sua conta para continuar."
-                  actionLabel="Meus endereços"
-                  actionTo="/conta/enderecos"
-                />
-              ) : (
+              {loadingAddrs ? <Loading label="Carregando endereços…" /> : null}
+              {!loadingAddrs && addresses.length > 0 ? (
                 <ul className="m-0 list-none space-y-2 p-0">
                   {addresses.map((a) => (
                     <li key={a.id}>
@@ -294,16 +321,54 @@ export function CheckoutPage() {
                           {a.complement ? ` — ${a.complement}` : ''}
                           <br />
                           {a.district ? `${a.district} · ` : ''}
-                          {a.city}/{a.state} · CEP {a.postalCode}
+                          {a.city}/{a.state} · CEP {formatCepMask(a.postalCode)}
                         </span>
                       </label>
                     </li>
                   ))}
                 </ul>
+              ) : null}
+              {!loadingAddrs && addresses.length === 0 && !showNewAddress ? (
+                <p className="text-sm text-fal-muted">
+                  Nenhum endereço salvo. Cadastre um abaixo para continuar.
+                </p>
+              ) : null}
+
+              {showNewAddress ? (
+                <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-4">
+                  <h3 className="mt-0 text-base font-extrabold">Novo endereço</h3>
+                  <p className="mt-0 mb-3 text-sm text-fal-muted">
+                    Digite o CEP para preencher o endereço automaticamente.
+                  </p>
+                  <AddressForm
+                    key="checkout-new-address"
+                    initial={{
+                      recipient: user?.fullName?.trim() || user?.email || '',
+                      isDefault: addresses.length === 0,
+                    }}
+                    submitLabel="Salvar e continuar"
+                    showCancel
+                    onCancel={() => setShowNewAddress(false)}
+                    onSubmit={async (values) => {
+                      const saved = await upsertAddress({
+                        ...values,
+                        label: values.label || null,
+                        complement: values.complement || null,
+                        reference: values.reference || null,
+                        district: values.district || null,
+                        isDefault: values.isDefault || addresses.length === 0,
+                      })
+                      setShowNewAddress(false)
+                      await reloadAddresses(saved.id)
+                      push('Endereço salvo', 'success')
+                    }}
+                  />
+                </div>
+              ) : (
+                <Button type="button" variant="light" onClick={() => setShowNewAddress(true)}>
+                  + Adicionar novo endereço
+                </Button>
               )}
-              <Link to="/conta/enderecos" className="text-sm font-semibold text-fal-auth-link">
-                Gerenciar endereços
-              </Link>
             </div>
           ) : null}
 
@@ -346,7 +411,7 @@ export function CheckoutPage() {
               <button
                 type="button"
                 className="text-sm font-semibold text-fal-navy underline"
-                onClick={() => void loadQuotes()}
+                onClick={() => void loadQuotes(true)}
               >
                 Recalcular frete
               </button>

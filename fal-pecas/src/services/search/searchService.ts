@@ -1,5 +1,9 @@
 import { mockProducts } from '@/data/mocks/products'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import {
+  attachResolvedPrices,
+  displayPrice,
+} from '@/services/pricing/priceResolutionService'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
@@ -78,8 +82,8 @@ function mockSearch(params: ProductSearchParams): ProductSearchResult {
 
   const sort = normalizeSort(params.sort)
   list = [...list].sort((a, b) => {
-    if (sort === 'price_asc') return a.price - b.price
-    if (sort === 'price_desc') return b.price - a.price
+    if (sort === 'price_asc') return displayPrice(a) - displayPrice(b)
+    if (sort === 'price_desc') return displayPrice(b) - displayPrice(a)
     if (sort === 'name_desc') return b.name.localeCompare(a.name, 'pt-BR')
     return a.name.localeCompare(b.name, 'pt-BR')
   })
@@ -130,7 +134,16 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
 
   const rows = (data ?? []) as Record<string, unknown>[]
   const total = rows.length ? Number(rows[0].total_count ?? 0) : 0
-  const items = rows.map(mapRpcRow)
+  let items = await attachResolvedPrices(rows.map(mapRpcRow))
+
+  // Reordena a página pelo preço resolvido (RPC ainda usa preço legado)
+  if (sort === 'price_asc' || sort === 'price_desc') {
+    items = [...items].sort((a, b) =>
+      sort === 'price_asc'
+        ? displayPrice(a) - displayPrice(b)
+        : displayPrice(b) - displayPrice(a),
+    )
+  }
 
   return {
     items,

@@ -1,6 +1,6 @@
 # Especificação — Fase 6B: Listas de Preços e Precificação Comercial
 
-**Status:** Planejada — **aguardando aprovação humana** antes de código (Etapa B)  
+**Status:** Implementada  
 **Data:** 2026-10-03  
 **Branch:** `plan`  
 **Base:** [ESPECIFICACAO_FASE6_ECOMMERCE.md](./ESPECIFICACAO_FASE6_ECOMMERCE.md) (aprovada), [DATABASE.md](../entrada/DATABASE.md), [API.md](../entrada/API.md), [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md)  
@@ -306,4 +306,4 @@ Conforme prompt mestre (Base only; Base+Promo; três listas; vencida; inativa; S
 3. Sem push sem autorização  
 4. Não editar `.cursor/plans`  
 
-**Estado ao fim da Etapa A:** planejamento completo — **aguardando aprovação**.
+**Estado:** Etapa B concluída — implementação + build + checklist T1–T15.

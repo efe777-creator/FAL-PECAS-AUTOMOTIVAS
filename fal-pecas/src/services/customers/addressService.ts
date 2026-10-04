@@ -10,6 +10,7 @@ type Row = {
   street: string
   number: string
   complement: string | null
+  reference: string | null
   district: string | null
   city: string
   state: string
@@ -26,6 +27,7 @@ function mapAddress(row: Row): CustomerAddress {
     street: row.street,
     number: row.number,
     complement: row.complement,
+    reference: row.reference,
     district: row.district,
     city: row.city,
     state: row.state,
@@ -54,6 +56,7 @@ export async function upsertAddress(input: {
   street: string
   number: string
   complement?: string | null
+  reference?: string | null
   district?: string | null
   city: string
   state: string
@@ -70,6 +73,7 @@ export async function upsertAddress(input: {
     street: input.street.trim(),
     number: input.number.trim(),
     complement: input.complement?.trim() || null,
+    reference: input.reference?.trim() || null,
     district: input.district?.trim() || null,
     city: input.city.trim(),
     state: input.state.trim().toUpperCase().slice(0, 2),

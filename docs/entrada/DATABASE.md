@@ -69,6 +69,7 @@ imports ── import_items
 | **Finalidade** | Múltiplos endereços do cliente |
 | **Campos** | `id`, `customer_id`, `label`, `recipient`, `street`, `number`, `complement`, `district`, `city`, `state`, `postal_code`, `is_default`, `created_at` |
 | **RLS** | Privado — próprio cliente |
+| **F6C** | `reference` text nullable (ponto de referência opcional) |
 
 ### 3.4 customer_vehicles
 
@@ -140,6 +141,15 @@ imports ── import_items
 | **Público** | Apenas `published` |
 | **Regras** | SKU único; produto sem imagem pode existir (`is_incomplete` / flag admin) |
 | **Preço (Fase 6B)** | `price` / `promo_price` permanecem como **legado/espelho** na transição. Fonte comercial canônica: `price_lists` + `price_list_items` + `resolve_product_price` — ver [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) |
+| **Logística (F6C)** | `weight_kg`, `height_cm`, `width_cm`, `length_cm` nullable — opcionais; sem inventar valores no seed |
+
+### 3.11b store_shipping_origin (F6C)
+
+| | |
+|--|--|
+| **Finalidade** | CEP/endereço de origem da FAL para cotação |
+| **Campos** | cep, street, number, complement?, district?, city, state (1 registro ou settings) |
+| **RLS** | Leitura autenticada/staff conforme implementação; escrita staff |
 
 ### 3.12 product_images
 
@@ -190,7 +200,8 @@ imports ── import_items
 | **Finalidade** | Pedidos e histórico |
 | **Campos pedidos** | `id`, `customer_id`, `status`, `subtotal`, `shipping_amount`, `total`, `address_snapshot`, `payment_ref`?, `created_at` |
 | **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity`; **Fase 6B:** `price_list_id` (lista que originou o unitário) |
-| **Status (PRD)** | Pendente → Aguardando pagamento → Pagamento aprovado → Em separação → Preparando envio → Enviado → Entregue |
+| **Status (legado F2/F6 — CHECK atual)** | `pendente` → `aguardando_pagamento` → `pagamento_aprovado` → `em_separacao` → `preparando_envio` → `enviado` → `entregue` / `cancelado` |
+| **Ciclo operacional (F6D / F7A)** | Status interno canônico (`recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `enviado`, `entregue`, `cancelado`) + checkout legado; tabela `order_events` (append-only, visibility internal/customer); RPC `transition_order_status` (staff). Ver [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) e [EXECUCAO_FASE7A.md](../planejamento/EXECUCAO_FASE7A.md) |
 | **RLS** | Cliente vê os próprios; operadores/admin conforme role |
 
 ### 3.17b price_lists / price_list_items / price_change_history (Fase 6B)

@@ -43,7 +43,7 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
     const price =
       row.unit_price_snapshot != null
         ? Number(row.unit_price_snapshot)
-        : Number(p?.promo_price ?? p?.price ?? 0)
+        : Number(p?.promo_price ?? p?.price ?? 0) // snapshot UX; verdade no place_order (resolve)
     return {
       productId: String(row.product_id),
       sku: String(p?.sku ?? ''),

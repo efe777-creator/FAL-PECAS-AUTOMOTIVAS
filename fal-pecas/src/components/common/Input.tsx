@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import { forwardRef, type InputHTMLAttributes } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -6,7 +6,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
-export function Input({ label, hint, error, id, className = '', ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, hint, error, id, className = '', ...props },
+  ref,
+) {
   const inputId = id ?? props.name
   return (
     <div className="flex flex-col gap-1.5">
@@ -16,6 +19,7 @@ export function Input({ label, hint, error, id, className = '', ...props }: Inpu
         </label>
       ) : null}
       <input
+        ref={ref}
         id={inputId}
         className={[
           'w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 outline-none',
@@ -31,4 +35,4 @@ export function Input({ label, hint, error, id, className = '', ...props }: Inpu
       {error ? <p className="text-[13px] text-fal-danger">{error}</p> : null}
     </div>
   )
-}
+})

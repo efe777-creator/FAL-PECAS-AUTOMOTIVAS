@@ -4,6 +4,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
+import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -18,7 +19,9 @@ export function ProductCard({ product }: { product: Product }) {
   const { push } = useToast()
   const navigate = useNavigate()
   const [liked, setLiked] = useState(false)
-  const price = product.promoPrice ?? product.price
+  const price = displayPrice(product)
+  const listPrice = product.listPrice ?? product.price
+  const showStrike = listPrice > price + 0.001
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
 
@@ -55,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
         inCart ? 'border-fal-yellow-dark' : 'border-fal-line',
       ].join(' ')}
     >
-      {product.promoPrice ? (
+      {showStrike ? (
         <div className="absolute top-3.5 left-3.5 z-[1]">
           <Badge>Oferta</Badge>
         </div>
@@ -70,17 +73,6 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      {inCart ? (
-        <div
-          className="absolute top-12 right-3.5 z-[1] flex min-w-8 items-center justify-center gap-1 rounded-full bg-fal-navy px-2 py-1 text-xs font-extrabold text-white"
-          aria-label={`${cartQty} no carrinho`}
-          title={`${cartQty} no carrinho`}
-        >
-          <span aria-hidden>🛒</span>
-          <span>{cartQty}</span>
-        </div>
-      ) : null}
-
       <Link to={`/produto/${product.id}`} className="block">
         <div className="grid h-[100px] place-items-center rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
           🧩
@@ -94,8 +86,8 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="my-2 text-xs text-fal-success">{product.compatibilitySummary}</p>
         ) : null}
         <p className="m-0 text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
-        {product.promoPrice ? (
-          <p className="m-0 text-xs text-fal-muted line-through">{formatPrice(product.price)}</p>
+        {showStrike ? (
+          <p className="m-0 text-xs text-fal-muted line-through">{formatPrice(listPrice)}</p>
         ) : null}
       </Link>
 

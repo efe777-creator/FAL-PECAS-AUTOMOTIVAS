@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
+import { adminEnsureBaseAndPromoPrices } from '@/services/admin/adminPriceListService'
 import type { Product, ProductReference } from '@/types'
 
 type ProductRow = {
@@ -19,6 +20,10 @@ type ProductRow = {
   is_incomplete: boolean
   is_available: boolean
   attrs: Record<string, unknown> | null
+  weight_kg?: number | null
+  height_cm?: number | null
+  width_cm?: number | null
+  length_cm?: number | null
   product_brands?: { name: string } | { name: string }[] | null
   product_categories?: { id: string; name: string } | { id: string; name: string }[] | null
 }
@@ -50,13 +55,17 @@ function mapProduct(row: ProductRow): Product {
     available: row.is_available,
     isIncomplete: row.is_incomplete,
     attrs: row.attrs ?? {},
+    weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
+    heightCm: row.height_cm == null ? null : Number(row.height_cm),
+    widthCm: row.width_cm == null ? null : Number(row.width_cm),
+    lengthCm: row.length_cm == null ? null : Number(row.length_cm),
   }
 }
 
 const SELECT = `
   id, sku, name, slug, description, short_description, brand_id, supplier_id,
   category_id, price, promo_price, status, manufacturer_code, is_incomplete,
-  is_available, attrs,
+  is_available, attrs, weight_kg, height_cm, width_cm, length_cm,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -110,6 +119,10 @@ export async function adminUpsertProduct(input: {
   description?: string
   attrs?: Record<string, unknown>
   isAvailable?: boolean
+  weightKg?: number | null
+  heightCm?: number | null
+  widthCm?: number | null
+  lengthCm?: number | null
 }): Promise<Product> {
   const payload = {
     name: input.name.trim(),
@@ -125,6 +138,10 @@ export async function adminUpsertProduct(input: {
     description: input.description?.trim() || null,
     attrs: input.attrs ?? {},
     is_available: input.isAvailable ?? false,
+    weight_kg: input.weightKg ?? null,
+    height_cm: input.heightCm ?? null,
+    width_cm: input.widthCm ?? null,
+    length_cm: input.lengthCm ?? null,
     search_document: [input.name, input.sku, input.shortDescription, input.description]
       .filter(Boolean)
       .join(' ')
@@ -138,6 +155,7 @@ export async function adminUpsertProduct(input: {
   if (error) throw error
 
   const product = mapProduct(data as ProductRow)
+  await adminEnsureBaseAndPromoPrices(product.id, input.price, input.promoPrice ?? null)
   await refreshIncompleteFlag(product.id)
   return (await adminGetProduct(product.id)) ?? product
 }

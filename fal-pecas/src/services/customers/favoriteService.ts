@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase'
+import { attachResolvedPrices } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 
 const PRODUCT_SELECT = `
@@ -37,13 +38,14 @@ export async function listFavoriteProducts(): Promise<Product[]> {
     .order('created_at', { ascending: false })
   if (error) throw error
 
-  return (data ?? [])
+  const products = (data ?? [])
     .map((row) => {
       const raw = row.products as unknown
       const p = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown> | null
       return p ? mapProduct(p) : null
     })
     .filter((p): p is Product => Boolean(p))
+  return attachResolvedPrices(products)
 }
 
 export async function isFavorite(productId: string): Promise<boolean> {
