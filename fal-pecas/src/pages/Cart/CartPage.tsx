@@ -1,10 +1,12 @@
 import { Button } from '@/components/common/Button'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
+import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
+  const { user } = useAuth()
   const { items, itemCount, subtotal, updateQty, removeItem } = useCart()
 
   if (!items.length) {
@@ -90,13 +92,17 @@ export function CartPage() {
               {subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </span>
           </div>
-          <Link to="/checkout" className="mt-4 block">
+          <Link
+            to={user ? '/checkout' : '/login'}
+            state={user ? undefined : { from: '/checkout' }}
+            className="mt-4 block"
+          >
             <Button variant="primary" fullWidth>
-              Ir para checkout
+              {user ? 'Ir para checkout' : 'Entrar para finalizar'}
             </Button>
           </Link>
           <p className="mt-3 text-xs text-fal-muted">
-            Checkout real (pagamento/frete) fora da Fase 1.
+            Frete e pagamento são definidos no checkout. Totais finais no servidor.
           </p>
         </aside>
       </div>

@@ -26,16 +26,18 @@ export const localCartStorage: CartStorage = {
   },
 }
 
-/** Stub para sincronização futura com Supabase (usuário autenticado). */
+/**
+ * @deprecated Prefer `supabaseCartService` (async). Mantido só por compatibilidade de tipo.
+ */
 export const supabaseCartStorageStub: CartStorage = {
   kind: 'supabase',
   load() {
     return []
   },
   save() {
-    // Fase futura: upsert cart_items sob RLS (auth.uid())
+    /* use saveRemoteCart */
   },
   clear() {
-    // Fase futura
+    /* use clearRemoteCart */
   },
 }

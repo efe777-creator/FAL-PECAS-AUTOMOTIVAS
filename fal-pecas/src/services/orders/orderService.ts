@@ -1,5 +1,4 @@
-/** Stub — pedidos (futuro: Supabase com RLS por auth.uid()). */
-export async function listMyOrders(): Promise<unknown[]> {
-  await Promise.resolve()
+/** @deprecated Use placeOrderService / orderDetailService / orderQueryService (F6). */
+export async function listOrders() {
   return []
 }
