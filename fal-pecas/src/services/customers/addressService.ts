@@ -1,3 +1,4 @@
+import { normalizeCep } from '@/lib/cep'
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
 import type { CustomerAddress } from '@/types'
@@ -77,7 +78,7 @@ export async function upsertAddress(input: {
     district: input.district?.trim() || null,
     city: input.city.trim(),
     state: input.state.trim().toUpperCase().slice(0, 2),
-    postal_code: input.postalCode.replace(/\D/g, ''),
+    postal_code: normalizeCep(input.postalCode),
     is_default: Boolean(input.isDefault),
   }
 

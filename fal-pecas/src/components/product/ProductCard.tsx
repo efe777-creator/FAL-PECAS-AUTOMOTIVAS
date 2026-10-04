@@ -4,13 +4,14 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
+import { formatMoney } from '@/lib/money'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 function formatPrice(value: number) {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return formatMoney(value)
 }
 
 export function ProductCard({ product }: { product: Product }) {

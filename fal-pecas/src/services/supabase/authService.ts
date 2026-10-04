@@ -1,3 +1,4 @@
+import { normalizePhone } from '@/lib/phone'
 import { getSupabase, isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { UserProfile } from '@/types'
 import type { Session, User } from '@supabase/supabase-js'
@@ -66,6 +67,7 @@ export async function signUp(params: {
   if (!isSupabaseConfigured) throw new AuthNotConfiguredError()
 
   const fullName = `${params.firstName} ${params.lastName}`.trim()
+  const phone = params.phone?.trim() ? normalizePhone(params.phone) : null
   const { data, error } = await getSupabase().auth.signUp({
     email: params.email.trim(),
     password: params.password,
@@ -75,7 +77,7 @@ export async function signUp(params: {
         first_name: params.firstName,
         last_name: params.lastName,
         username: params.username ?? null,
-        phone: params.phone ?? null,
+        phone,
       },
     },
   })

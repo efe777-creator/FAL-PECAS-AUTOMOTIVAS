@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { onlyDigits } from '@/lib/document'
+import { normalizePhone } from '@/lib/phone'
 import type { UserProfile } from '@/types'
 
 export async function getCustomerProfile(userId: string): Promise<{
@@ -39,12 +40,14 @@ export async function updateCustomerProfile(input: {
   const cpf = input.cpf?.trim() ? onlyDigits(input.cpf) : null
   const cnpj = input.cnpj?.trim() ? onlyDigits(input.cnpj) : null
 
+  const phone = input.phone?.trim() ? normalizePhone(input.phone) : null
+
   // Nunca enviar role
   const { error: pErr } = await sb
     .from('profiles')
     .update({
       full_name: input.fullName.trim(),
-      phone: input.phone?.trim() || null,
+      phone: phone || null,
     })
     .eq('id', input.userId)
   if (pErr) throw pErr

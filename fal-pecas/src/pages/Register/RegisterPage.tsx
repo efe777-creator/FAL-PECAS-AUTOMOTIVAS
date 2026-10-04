@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
@@ -32,6 +33,11 @@ export function RegisterPage() {
       setError('Aceite os termos para continuar.')
       return
     }
+    const phoneDigits = phone.trim() ? normalizePhone(phone) : ''
+    if (phoneDigits && !isValidPhone(phoneDigits)) {
+      setError('Telefone inválido. Use DDD + número (10 ou 11 dígitos).')
+      return
+    }
     setSubmitting(true)
     try {
       await signUp({
@@ -40,7 +46,7 @@ export function RegisterPage() {
         firstName,
         lastName,
         username: username || undefined,
-        phone: phone || undefined,
+        phone: phoneDigits || undefined,
       })
       navigate('/conta', { replace: true })
     } catch (err) {
@@ -115,8 +121,11 @@ export function RegisterPage() {
               <Input
                 label="Telefone"
                 name="phone"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(11) 99999-9999"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatPhoneMask(e.target.value))}
               />
               <Input
                 label="Senha"

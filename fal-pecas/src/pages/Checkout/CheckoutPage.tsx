@@ -6,9 +6,15 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
-import { isValidCnpj, isValidCpf, onlyDigits } from '@/lib/document'
+import {
+  formatDocumentMask,
+  isValidCnpj,
+  isValidCpf,
+  onlyDigits,
+} from '@/lib/document'
 import { AddressForm } from '@/components/address/AddressForm'
 import { formatCepMask } from '@/lib/cep'
+import { formatMoney } from '@/lib/money'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { listAddresses, upsertAddress } from '@/services/customers/addressService'
 import { confirmSimulatedPayment } from '@/services/payments/paymentService'
@@ -25,7 +31,7 @@ import { Link, useNavigate } from 'react-router-dom'
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
 
 function money(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return formatMoney(v)
 }
 
 export function CheckoutPage() {
@@ -54,10 +60,10 @@ export function CheckoutPage() {
   useEffect(() => {
     if (user?.cpf) {
       setDocKind('cpf')
-      setDocValue(user.cpf)
+      setDocValue(formatDocumentMask('cpf', user.cpf))
     } else if (user?.cnpj) {
       setDocKind('cnpj')
-      setDocValue(user.cnpj)
+      setDocValue(formatDocumentMask('cnpj', user.cnpj))
     }
   }, [user?.cpf, user?.cnpj])
 
@@ -275,7 +281,10 @@ export function CheckoutPage() {
                     type="radio"
                     name="docKind"
                     checked={docKind === 'cpf'}
-                    onChange={() => setDocKind('cpf')}
+                    onChange={() => {
+                      setDocKind('cpf')
+                      setDocValue((v) => formatDocumentMask('cpf', v))
+                    }}
                   />
                   Pessoa física (CPF)
                 </label>
@@ -284,7 +293,10 @@ export function CheckoutPage() {
                     type="radio"
                     name="docKind"
                     checked={docKind === 'cnpj'}
-                    onChange={() => setDocKind('cnpj')}
+                    onChange={() => {
+                      setDocKind('cnpj')
+                      setDocValue((v) => formatDocumentMask('cnpj', v))
+                    }}
                   />
                   Pessoa jurídica (CNPJ)
                 </label>
@@ -292,8 +304,9 @@ export function CheckoutPage() {
               <Input
                 label={docKind === 'cpf' ? 'CPF' : 'CNPJ'}
                 name="document"
+                inputMode="numeric"
                 value={docValue}
-                onChange={(e) => setDocValue(e.target.value)}
+                onChange={(e) => setDocValue(formatDocumentMask(docKind, e.target.value))}
                 placeholder={docKind === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
               />
             </div>
@@ -450,7 +463,8 @@ export function CheckoutPage() {
               <h2 className="mt-0 text-lg font-extrabold">Revisão</h2>
               <div className="text-sm">
                 <p>
-                  <strong>Documento:</strong> {docKind.toUpperCase()} {onlyDigits(docValue)}
+                  <strong>Documento:</strong> {docKind.toUpperCase()}{' '}
+                  {formatDocumentMask(docKind, docValue)}
                 </p>
                 <p>
                   <strong>Endereço:</strong>{' '}

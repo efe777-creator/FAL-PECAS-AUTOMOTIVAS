@@ -3,6 +3,7 @@ import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
+import { formatMoney } from '@/lib/money'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
@@ -67,10 +68,7 @@ export function CartPage() {
                 </div>
               </div>
               <div className="text-right font-black">
-                {(item.price * item.quantity).toLocaleString('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                })}
+                {formatMoney(item.price * item.quantity)}
               </div>
             </div>
           ))}
@@ -79,7 +77,7 @@ export function CartPage() {
           <div className="mb-3 flex justify-between">
             <span>Subtotal</span>
             <strong>
-              {subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {formatMoney(subtotal)}
             </strong>
           </div>
           <div className="mb-3 flex justify-between text-fal-muted">
@@ -88,9 +86,7 @@ export function CartPage() {
           </div>
           <div className="flex justify-between border-t border-fal-line pt-3 text-2xl font-black">
             <span>Total</span>
-            <span>
-              {subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </span>
+            <span>{formatMoney(subtotal)}</span>
           </div>
           <Link
             to={user ? '/checkout' : '/login'}

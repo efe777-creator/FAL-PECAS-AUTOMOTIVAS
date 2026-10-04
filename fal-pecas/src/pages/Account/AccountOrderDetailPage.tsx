@@ -3,6 +3,8 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { useCart } from '@/contexts/CartContext'
+import { formatDateTime } from '@/lib/datetime'
+import { formatMoney } from '@/lib/money'
 import {
   orderEventLabel,
   orderStatusLabel,
@@ -15,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 function money(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return formatMoney(v)
 }
 
 export function AccountOrderDetailPage() {
@@ -116,7 +118,7 @@ export function AccountOrderDetailPage() {
           <div>
             <h2 className="mt-0 text-xl font-extrabold">Pedido {order.id.slice(0, 8)}…</h2>
             <p className="mb-0 text-sm text-fal-muted">
-              {new Date(order.createdAt).toLocaleString('pt-BR')} ·{' '}
+              {formatDateTime(order.createdAt)} ·{' '}
               <strong>{orderStatusLabel[order.status] ?? order.status}</strong>
             </p>
           </div>
@@ -255,7 +257,7 @@ export function AccountOrderDetailPage() {
               <li key={ev.id} className="border-l-2 border-fal-yellow pl-3 text-sm">
                 <strong>{orderEventLabel[ev.eventType] ?? ev.eventType}</strong>
                 <span className="block text-xs text-fal-muted">
-                  {new Date(ev.createdAt).toLocaleString('pt-BR')}
+                  {formatDateTime(ev.createdAt)}
                   {note ? ` — ${note}` : ''}
                 </span>
               </li>

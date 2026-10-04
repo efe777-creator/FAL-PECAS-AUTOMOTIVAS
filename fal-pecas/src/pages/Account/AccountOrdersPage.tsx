@@ -1,6 +1,7 @@
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { formatDate } from '@/lib/datetime'
 import { orderStatusLabel } from '@/lib/orderLifecycle'
 import { listMyOrders } from '@/services/customers/orderQueryService'
 import type { CustomerOrderSummary } from '@/types'
@@ -69,7 +70,7 @@ export function AccountOrdersPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2">
-                    {new Date(o.createdAt).toLocaleDateString('pt-BR')}
+                    {formatDate(o.createdAt)}
                   </td>
                   <td className="px-3 py-2">{orderStatusLabel[o.status] ?? o.status}</td>
                   <td className="px-3 py-2">{o.itemCount}</td>
