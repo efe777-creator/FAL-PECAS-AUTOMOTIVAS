@@ -1,3 +1,5 @@
+import { parseMoneyBr } from '@/lib/money'
+
 export type ParsedPriceRow = {
   line: number
   sku: string
@@ -5,7 +7,26 @@ export type ParsedPriceRow = {
   price: number | null
 }
 
-/** Parse CSV SKU;PRECO (também aceita vírgula ou tab). */
+/** Separa SKU e preço preservando vírgulas do valor BR (ex.: 1.234,56). */
+function splitSkuPrice(line: string): { sku: string; priceRaw: string } {
+  if (line.includes(';')) {
+    const idx = line.indexOf(';')
+    return { sku: line.slice(0, idx).trim(), priceRaw: line.slice(idx + 1).trim() }
+  }
+  if (line.includes('\t')) {
+    const idx = line.indexOf('\t')
+    return { sku: line.slice(0, idx).trim(), priceRaw: line.slice(idx + 1).trim() }
+  }
+  const idx = line.indexOf(',')
+  if (idx === -1) return { sku: line.trim(), priceRaw: '' }
+  return { sku: line.slice(0, idx).trim(), priceRaw: line.slice(idx + 1).trim() }
+}
+
+function stripQuotes(s: string): string {
+  return s.replace(/^["']|["']$/g, '')
+}
+
+/** Parse CSV SKU;PRECO (também aceita tab ou vírgula). */
 export function parsePriceCsv(text: string): ParsedPriceRow[] {
   const lines = text
     .replace(/^\uFEFF/, '')
@@ -20,16 +41,15 @@ export function parsePriceCsv(text: string): ParsedPriceRow[] {
   }
 
   for (let i = start; i < lines.length; i++) {
-    const parts = lines[i]!.split(/[;\t,]/).map((p) => p.trim().replace(/^["']|["']$/g, ''))
-    const sku = parts[0] ?? ''
-    const priceRaw = parts[1] ?? ''
-    const normalized = priceRaw.replace(/\s/g, '').replace(',', '.')
-    const price = normalized === '' ? null : Number(normalized)
+    const { sku: rawSku, priceRaw: rawPrice } = splitSkuPrice(lines[i]!)
+    const sku = stripQuotes(rawSku)
+    const priceRaw = stripQuotes(rawPrice)
+    const price = parseMoneyBr(priceRaw)
     rows.push({
       line: i + 1,
       sku,
       priceRaw,
-      price: price != null && !Number.isNaN(price) ? price : null,
+      price,
     })
   }
   return rows
@@ -56,15 +76,16 @@ export async function parsePriceXlsx(file: ArrayBuffer): Promise<ParsedPriceRow[
   for (let i = start; i < data.length; i++) {
     const row = data[i] ?? []
     const sku = String(row[0] ?? '').trim()
-    const priceRaw = String(row[1] ?? '').trim()
+    const cell = row[1]
+    const priceRaw = cell === '' || cell == null ? '' : String(cell).trim()
     if (!sku && !priceRaw) continue
-    const normalized = priceRaw.replace(/\s/g, '').replace(',', '.')
-    const price = normalized === '' ? null : Number(normalized)
+    // Célula numérica do Excel já é number
+    const price = typeof cell === 'number' ? (Number.isFinite(cell) ? cell : null) : parseMoneyBr(priceRaw)
     rows.push({
       line: i + 1,
       sku,
-      priceRaw,
-      price: price != null && !Number.isNaN(price) ? price : null,
+      priceRaw: priceRaw || (typeof cell === 'number' ? String(cell) : ''),
+      price,
     })
   }
   return rows

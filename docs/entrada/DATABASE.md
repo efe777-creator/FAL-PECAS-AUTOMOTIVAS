@@ -204,17 +204,18 @@ imports ── import_items
 | **Ciclo operacional (F6D / F7A)** | Status interno canônico (`recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `enviado`, `entregue`, `cancelado`) + checkout legado; tabela `order_events` (append-only, visibility internal/customer); RPC `transition_order_status` (staff). Ver [ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md](../planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) e [EXECUCAO_FASE7A.md](../planejamento/EXECUCAO_FASE7A.md) |
 | **RLS** | Cliente vê os próprios; operadores/admin conforme role |
 
-### 3.17b price_lists / price_list_items / price_change_history (Fase 6B)
+### 3.17b price_lists / price_list_items / price_change_history / product_price_overrides (Fase 6B / 6B.1)
 
 | | |
 |--|--|
-| **Finalidade** | Motor comercial de múltiplas listas de preço |
+| **Finalidade** | Motor comercial de múltiplas listas de preço + exceção avulsa |
 | **Campos listas** | `id`, `name`, `slug` (unique), `description`, `status`, `scope` (`public`\|`assigned`), `priority`, `valid_from`, `valid_until`, `is_default`, timestamps |
 | **Campos itens** | `price_list_id`, `product_id`, `price`; **UNIQUE(`price_list_id`,`product_id`)** |
-| **Histórico** | `product_id`, `price_list_id`, `old_price`, `new_price`, `changed_by`, `source` (`manual`\|`import`\|`system`), `import_id`? |
-| **Regras** | Uma lista `is_default`; resolução storefront = listas `public` ativas/vigentes com item → maior `priority` → fallback default |
+| **Avulso** | `product_price_overrides`: `product_id`, `amount`, `note`, `status` (`active`\|`inactive`), vigência; no máx. um active por produto |
+| **Histórico** | `product_id`, `price_list_id` (nullable), `old_price`, `new_price`, `changed_by`, `source` (`manual`\|`import`\|`system`\|`override`), `import_id`? |
+| **Regras** | Resolução: **avulso válido** → lista `public` elegível (maior `priority`) → `is_default` → erro. Import CSV/XLSX atualiza só itens da lista (SKU). |
 | **RLS** | Preço público só via resolução/`scope=public`; listas `assigned` não listáveis anonimamente; escrita staff |
-| **Spec** | [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) |
+| **Spec** | [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) · [EXECUCAO_FASE6B1.md](../planejamento/EXECUCAO_FASE6B1.md) |
 
 ### 3.18 favorites
 

@@ -123,6 +123,8 @@ export async function adminUpsertProduct(input: {
   heightCm?: number | null
   widthCm?: number | null
   lengthCm?: number | null
+  /** Quando false, o caller sincroniza as listas (modo listas no formulário). */
+  syncBasePromoLists?: boolean
 }): Promise<Product> {
   const payload = {
     name: input.name.trim(),
@@ -155,7 +157,9 @@ export async function adminUpsertProduct(input: {
   if (error) throw error
 
   const product = mapProduct(data as ProductRow)
-  await adminEnsureBaseAndPromoPrices(product.id, input.price, input.promoPrice ?? null)
+  if (input.syncBasePromoLists !== false) {
+    await adminEnsureBaseAndPromoPrices(product.id, input.price, input.promoPrice ?? null)
+  }
   await refreshIncompleteFlag(product.id)
   return (await adminGetProduct(product.id)) ?? product
 }

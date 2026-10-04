@@ -231,9 +231,167 @@ export async function adminFindProductIdBySku(sku: string): Promise<string | nul
   return data?.id ? String(data.id) : null
 }
 
+/** IDs seed das listas Base e Promocional (F6B). */
+export const PRICE_LIST_BASE_ID = 'a1111111-1111-1111-1111-111111111101'
+export const PRICE_LIST_PROMO_ID = 'a1111111-1111-1111-1111-111111111102'
+
+export type PriceAdjustMode = 'percent' | 'fixed'
+
+function roundMoney2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/**
+ * Ajuste global em todos os itens da lista.
+ * - percent: value = 10 → +10%; value = -5 → -5%
+ * - fixed: value em R$ somado (negativo reduz)
+ * Não altera preço avulso. Espelha products.price / promo_price se for Base/Promo.
+ */
+export async function adminAdjustAllPriceListItems(input: {
+  priceListId: string
+  mode: PriceAdjustMode
+  value: number
+  changedBy?: string | null
+}): Promise<{ updated: number; skipped: number }> {
+  if (!Number.isFinite(input.value) || input.value === 0) {
+    throw new Error('Informe um valor de ajuste diferente de zero.')
+  }
+
+  const sb = getSupabase()
+  const { data, error } = await sb
+    .from('price_list_items')
+    .select('product_id, price')
+    .eq('price_list_id', input.priceListId)
+  if (error) throw error
+
+  const rows = data ?? []
+  let updated = 0
+  let skipped = 0
+
+  for (const row of rows) {
+    const oldPrice = Number(row.price)
+    if (!Number.isFinite(oldPrice)) {
+      skipped += 1
+      continue
+    }
+
+    let next =
+      input.mode === 'percent'
+        ? oldPrice * (1 + input.value / 100)
+        : oldPrice + input.value
+
+    next = roundMoney2(next)
+    if (next < 0) next = 0
+
+    if (Math.abs(next - oldPrice) < 0.001) {
+      skipped += 1
+      continue
+    }
+
+    const productId = String(row.product_id)
+    await adminUpsertPriceListItem({
+      priceListId: input.priceListId,
+      productId,
+      price: next,
+      source: 'manual',
+      changedBy: input.changedBy ?? null,
+    })
+
+    if (input.priceListId === PRICE_LIST_BASE_ID) {
+      await sb.from('products').update({ price: next }).eq('id', productId)
+    } else if (input.priceListId === PRICE_LIST_PROMO_ID) {
+      await sb.from('products').update({ promo_price: next }).eq('id', productId)
+    }
+
+    updated += 1
+  }
+
+  return { updated, skipped }
+}
+
+export type ProductListPriceRow = {
+  priceListId: string
+  listName: string
+  listSlug: string
+  status: PriceListStatus
+  priority: number
+  isDefault: boolean
+  itemId: string | null
+  price: number | null
+}
+
+/** Todas as listas + preço do produto em cada uma (se houver). */
+export async function adminListProductListPrices(productId: string): Promise<ProductListPriceRow[]> {
+  const sb = getSupabase()
+  const [{ data: lists, error: lErr }, { data: items, error: iErr }] = await Promise.all([
+    sb.from('price_lists').select(LIST_SELECT).order('priority', { ascending: false }),
+    sb
+      .from('price_list_items')
+      .select('id, price_list_id, price')
+      .eq('product_id', productId),
+  ])
+  if (lErr) throw lErr
+  if (iErr) throw iErr
+
+  const byList = new Map<string, { id: string; price: number }>()
+  for (const row of items ?? []) {
+    byList.set(String(row.price_list_id), {
+      id: String(row.id),
+      price: Number(row.price),
+    })
+  }
+
+  return (lists ?? []).map((raw) => {
+    const list = mapList(raw as Record<string, unknown>)
+    const hit = byList.get(list.id)
+    return {
+      priceListId: list.id,
+      listName: list.name,
+      listSlug: list.slug,
+      status: list.status,
+      priority: list.priority,
+      isDefault: list.isDefault,
+      itemId: hit?.id ?? null,
+      price: hit?.price ?? null,
+    }
+  })
+}
+
+/**
+ * Sincroniza o produto nas listas: preço definido = upsert; null = remove da lista.
+ * A lista Base deve sempre receber preço (≥ 0) quando o modo for listas.
+ */
+export async function adminSyncProductListPrices(input: {
+  productId: string
+  entries: { priceListId: string; price: number | null }[]
+  changedBy?: string | null
+}): Promise<void> {
+  for (const entry of input.entries) {
+    if (entry.price == null) {
+      const { data: existing } = await getSupabase()
+        .from('price_list_items')
+        .select('id')
+        .eq('price_list_id', entry.priceListId)
+        .eq('product_id', input.productId)
+        .maybeSingle()
+      if (existing?.id) {
+        await adminDeletePriceListItem(String(existing.id))
+      }
+      continue
+    }
+    await adminUpsertPriceListItem({
+      priceListId: entry.priceListId,
+      productId: input.productId,
+      price: entry.price,
+      source: 'manual',
+      changedBy: input.changedBy ?? null,
+    })
+  }
+}
+
 export async function adminEnsureBaseAndPromoPrices(productId: string, price: number, promoPrice?: number | null) {
-  const BASE = 'a1111111-1111-1111-1111-111111111101'
-  const PROMO = 'a1111111-1111-1111-1111-111111111102'
+  const BASE = PRICE_LIST_BASE_ID
+  const PROMO = PRICE_LIST_PROMO_ID
   await adminUpsertPriceListItem({
     priceListId: BASE,
     productId,

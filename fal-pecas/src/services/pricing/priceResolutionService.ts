@@ -1,29 +1,38 @@
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Product } from '@/types'
 
+export type PriceSource = 'override' | 'list' | 'default'
+
 export interface ResolvedPrice {
   productId: string
   amount: number
-  priceListId: string
+  priceListId: string | null
   priceListSlug: string
+  usedOverride: boolean
   usedDefaultFallback: boolean
+  priceSource: PriceSource
 }
 
 type ResolveRow = {
   product_id: string
   amount: number | string
-  price_list_id: string
+  price_list_id: string | null
   price_list_slug: string
+  used_override?: boolean
   used_default_fallback: boolean
 }
 
 function mapRow(row: ResolveRow): ResolvedPrice {
+  const usedOverride = Boolean(row.used_override)
+  const usedDefaultFallback = Boolean(row.used_default_fallback)
   return {
     productId: String(row.product_id),
     amount: Number(row.amount),
-    priceListId: String(row.price_list_id),
+    priceListId: row.price_list_id != null ? String(row.price_list_id) : null,
     priceListSlug: String(row.price_list_slug),
-    usedDefaultFallback: Boolean(row.used_default_fallback),
+    usedOverride,
+    usedDefaultFallback,
+    priceSource: usedOverride ? 'override' : usedDefaultFallback ? 'default' : 'list',
   }
 }
 
@@ -82,12 +91,12 @@ export async function attachResolvedPrices(products: Product[]): Promise<Product
       listPrice: p.price,
       resolvedPrice: p.promoPrice ?? p.price,
       resolvedPriceListId: null,
+      priceSource: 'default' as const,
     }))
   }
 
   const resolved = await resolveProductPrices(products.map((p) => p.id))
 
-  // listPrice = item da Base (espelho/legado)
   const { data: baseItems } = await supabase
     .from('price_list_items')
     .select('product_id, price')
@@ -110,7 +119,7 @@ export async function attachResolvedPrices(products: Product[]): Promise<Product
       listPrice,
       resolvedPrice,
       resolvedPriceListId: r?.priceListId ?? null,
-      // compat: promoPrice quando resolvido ≠ base
+      priceSource: r?.priceSource,
       promoPrice:
         resolvedPrice < listPrice - 0.001
           ? resolvedPrice

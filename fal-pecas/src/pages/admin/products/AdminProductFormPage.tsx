@@ -20,8 +20,23 @@ import {
   adminUpsertProduct,
   adminUpsertReference,
 } from '@/services/admin/adminProductService'
+import {
+  adminClearPriceOverride,
+  adminGetActivePriceOverride,
+  adminUpsertPriceOverride,
+} from '@/services/admin/adminPriceOverrideService'
+import {
+  PRICE_LIST_BASE_ID,
+  PRICE_LIST_PROMO_ID,
+  adminListPriceLists,
+  adminListProductListPrices,
+  type ProductListPriceRow,
+} from '@/services/admin/adminPriceListService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
+import { useAuth } from '@/contexts/AuthContext'
+import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
+import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import type {
   Category,
   Manufacturer,
@@ -40,6 +55,7 @@ export function AdminProductFormPage() {
   const { id } = useParams()
   const isNew = !id || id === 'novo'
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
@@ -52,8 +68,18 @@ export function AdminProductFormPage() {
   const [categoryId, setCategoryId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [supplierId, setSupplierId] = useState('')
-  const [price, setPrice] = useState('0')
-  const [promoPrice, setPromoPrice] = useState('')
+  /** Preços nas listas — somente leitura (exceto preço inicial Base no novo produto). */
+  const [listRows, setListRows] = useState<ProductListPriceRow[]>([])
+  /** Espelho products.price / promo_price (não editáveis na UI após criação). */
+  const [mirrorPrice, setMirrorPrice] = useState(0)
+  const [mirrorPromo, setMirrorPromo] = useState<number | null>(null)
+  /** Só no cadastro novo: semente da Lista Base. */
+  const [initialBasePrice, setInitialBasePrice] = useState('')
+  const [overrideEnabled, setOverrideEnabled] = useState(false)
+  const [overrideAmount, setOverrideAmount] = useState('')
+  const [overrideNote, setOverrideNote] = useState('')
+  const [overrideValidFrom, setOverrideValidFrom] = useState('')
+  const [overrideValidUntil, setOverrideValidUntil] = useState('')
   const [available, setAvailable] = useState(false)
   const [weightKg, setWeightKg] = useState('')
   const [heightCm, setHeightCm] = useState('')
@@ -81,18 +107,33 @@ export function AdminProductFormPage() {
 
   useEffect(() => {
     void (async () => {
-      const [cats, brs, sups, mfrs] = await Promise.all([
+      const [cats, brs, sups, mfrs, lists] = await Promise.all([
         adminListCategories(),
         adminListBrands(),
         adminListSuppliers(),
         adminListManufacturers(),
+        adminListPriceLists(),
       ])
       setCategories(cats)
       setBrands(brs.filter((b) => b.status === 'active'))
       setSuppliers(sups.filter((s) => s.status === 'active'))
       setMakers(mfrs.filter((m) => m.status === 'active'))
+      if (isNew) {
+        setListRows(
+          lists.map((l) => ({
+            priceListId: l.id,
+            listName: l.name,
+            listSlug: l.slug,
+            status: l.status,
+            priority: l.priority,
+            isDefault: l.isDefault,
+            itemId: null,
+            price: null,
+          })),
+        )
+      }
     })()
-  }, [])
+  }, [isNew])
 
   useEffect(() => {
     if (isNew || !id) return
@@ -108,15 +149,35 @@ export function AdminProductFormPage() {
         setCategoryId(p.categoryId ?? '')
         setBrandId(p.brandId ?? '')
         setSupplierId(p.supplierId ?? '')
-        setPrice(String(p.price))
-        setPromoPrice(p.promoPrice != null ? String(p.promoPrice) : '')
         setAvailable(Boolean(p.available))
+        setMirrorPrice(p.price)
+        setMirrorPromo(p.promoPrice ?? null)
         setWeightKg(p.weightKg != null ? String(p.weightKg) : '')
         setHeightCm(p.heightCm != null ? String(p.heightCm) : '')
         setWidthCm(p.widthCm != null ? String(p.widthCm) : '')
         setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
+
+        const [rows, ov] = await Promise.all([
+          adminListProductListPrices(p.id),
+          adminGetActivePriceOverride(p.id),
+        ])
+        setListRows(rows)
+
+        if (ov) {
+          setOverrideEnabled(true)
+          setOverrideAmount(formatMoneyInput(ov.amount))
+          setOverrideNote(ov.note ?? '')
+          setOverrideValidFrom(isoToDatetimeLocal(ov.validFrom))
+          setOverrideValidUntil(isoToDatetimeLocal(ov.validUntil))
+        } else {
+          setOverrideEnabled(false)
+          setOverrideAmount('')
+          setOverrideNote('')
+          setOverrideValidFrom('')
+          setOverrideValidUntil('')
+        }
         setRefs(await adminListReferences(p.id))
         setApps(await adminListApplications(p.id))
         setImages(await adminListImages(p.id))
@@ -149,16 +210,40 @@ export function AdminProductFormPage() {
     setSaving(true)
     setError(null)
     try {
+      let priceNum: number
+      let promoNum: number | null = null
+
+      if (isNew) {
+        const baseParsed = parseMoneyBr(initialBasePrice)
+        if (baseParsed == null || baseParsed < 0) {
+          throw new Error('Informe o preço inicial da Lista Base.')
+        }
+        priceNum = baseParsed
+        promoNum = null
+      } else {
+        const baseFromList = listRows.find((r) => r.priceListId === PRICE_LIST_BASE_ID)?.price
+        const promoFromList = listRows.find((r) => r.priceListId === PRICE_LIST_PROMO_ID)?.price
+        priceNum = baseFromList ?? mirrorPrice
+        promoNum = promoFromList ?? mirrorPromo
+      }
+
+      if (overrideEnabled) {
+        const overrideNum = parseMoneyBr(overrideAmount)
+        if (overrideNum == null || overrideNum < 0) {
+          throw new Error('Informe o valor do preço avulso.')
+        }
+      }
+
       const saved = await adminUpsertProduct({
         id: productId ?? undefined,
         name,
-        sku,
+        sku: sku.trim(),
         status,
         categoryId: categoryId || null,
         brandId: brandId || null,
         supplierId: supplierId || null,
-        price: Number(price),
-        promoPrice: promoPrice.trim() ? Number(promoPrice) : null,
+        price: priceNum,
+        promoPrice: promoNum,
         isAvailable: available,
         weightKg: weightKg.trim() ? Number(weightKg) : null,
         heightCm: heightCm.trim() ? Number(heightCm) : null,
@@ -166,8 +251,32 @@ export function AdminProductFormPage() {
         lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
         shortDescription,
         description,
+        // Novo: semente Base via ensure. Edição: não mexer nas listas aqui.
+        syncBasePromoLists: isNew,
       })
       setProductId(saved.id)
+      setMirrorPrice(saved.price)
+      setMirrorPromo(saved.promoPrice ?? null)
+
+      if (overrideEnabled) {
+        const overrideNum = parseMoneyBr(overrideAmount)!
+        await adminUpsertPriceOverride({
+          productId: saved.id,
+          amount: overrideNum,
+          note: overrideNote,
+          status: 'active',
+          validFrom: datetimeLocalToIso(overrideValidFrom),
+          validUntil: datetimeLocalToIso(overrideValidUntil),
+          changedBy: user?.id ?? null,
+        })
+      } else {
+        await adminClearPriceOverride(saved.id, user?.id ?? null)
+      }
+
+      if (!isNew) {
+        setListRows(await adminListProductListPrices(saved.id))
+      }
+
       if (isNew) navigate(`/admin/produtos/${saved.id}`, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar')
@@ -232,14 +341,114 @@ export function AdminProductFormPage() {
           </label>
         </div>
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Comercial</h2>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Input label="Preço" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
-          <Input label="Preço promocional" type="number" step="0.01" value={promoPrice} onChange={(e) => setPromoPrice(e.target.value)} />
-          <label className="flex items-end gap-2 pb-2 text-sm font-semibold">
-            <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />
-            Disponível
+        <h2 className="pt-2 font-extrabold text-fal-navy">Precificação</h2>
+        <p className="m-0 text-sm text-fal-muted">
+          Preços de lista são só leitura aqui. Para alterar, use{' '}
+          <Link to="/admin/precos" className="font-semibold text-fal-navy underline">
+            Listas de preços
+          </Link>
+          . Neste formulário você pode apenas <strong>ativar ou editar o preço avulso</strong> (exceção).
+        </p>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />
+          Disponível na loja
+        </label>
+
+        {isNew ? (
+          <Input
+            label="Preço inicial (Lista Base)"
+            inputMode="decimal"
+            placeholder="0,00"
+            value={initialBasePrice}
+            onChange={(e) => setInitialBasePrice(e.target.value)}
+            hint="Após criar o produto, alterações de preço de lista só em /admin/precos."
+            required
+          />
+        ) : null}
+
+        <div className="space-y-2 rounded-[12px] border border-fal-line bg-fal-bg/40 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Preços nas listas</h3>
+            <Link to="/admin/precos" className="text-xs font-semibold text-fal-navy underline">
+              Gerenciar em Listas de preços
+            </Link>
+          </div>
+          {listRows.length === 0 ? (
+            <p className="m-0 text-sm text-fal-muted">Nenhuma lista cadastrada.</p>
+          ) : (
+            <ul className="m-0 list-none space-y-1.5 p-0">
+              {listRows.map((row) => (
+                <li
+                  key={row.priceListId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+                >
+                  <div>
+                    <span className="font-semibold text-fal-navy">{row.listName}</span>
+                    <span className="ml-2 text-xs text-fal-muted">
+                      {row.status}
+                      {row.isDefault ? ' · padrão' : ''}
+                      {row.priceListId === PRICE_LIST_BASE_ID ? ' · Base' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <strong>
+                      {row.price != null ? formatMoney(row.price) : '—'}
+                    </strong>
+                    <Link
+                      to={`/admin/precos/${row.priceListId}`}
+                      className="text-xs font-semibold text-fal-auth-link underline"
+                    >
+                      Abrir lista
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="grid gap-3 rounded-[12px] border border-fal-yellow/60 bg-[#fffdf3] p-3 md:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm font-semibold md:col-span-2">
+            <input
+              type="checkbox"
+              checked={overrideEnabled}
+              onChange={(e) => setOverrideEnabled(e.target.checked)}
+            />
+            Ativar preço avulso
           </label>
+          <p className="m-0 text-sm text-fal-muted md:col-span-2">
+            Enquanto ativo, o avulso sobrescreve qualquer lista na vitrine e no checkout.
+          </p>
+          {overrideEnabled ? (
+            <>
+              <Input
+                label="Valor avulso"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={overrideAmount}
+                onChange={(e) => setOverrideAmount(e.target.value)}
+                required
+              />
+              <Input
+                label="Motivo / nota"
+                value={overrideNote}
+                onChange={(e) => setOverrideNote(e.target.value)}
+                placeholder="Ex.: acordo comercial pontual"
+              />
+              <Input
+                label="Válido de (opcional)"
+                type="datetime-local"
+                value={overrideValidFrom}
+                onChange={(e) => setOverrideValidFrom(e.target.value)}
+              />
+              <Input
+                label="Válido até (opcional)"
+                type="datetime-local"
+                value={overrideValidUntil}
+                onChange={(e) => setOverrideValidUntil(e.target.value)}
+              />
+            </>
+          ) : null}
         </div>
 
         <h2 className="pt-2 font-extrabold text-fal-navy">Logística (opcional)</h2>

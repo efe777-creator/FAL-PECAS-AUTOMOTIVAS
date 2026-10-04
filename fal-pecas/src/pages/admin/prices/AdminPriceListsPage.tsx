@@ -8,6 +8,7 @@ import {
   type PriceListScope,
   type PriceListStatus,
 } from '@/services/admin/adminPriceListService'
+import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -47,8 +48,8 @@ export function AdminPriceListsPage() {
     setScope(list.scope)
     setPriority(String(list.priority))
     setIsDefault(list.isDefault)
-    setValidFrom(list.validFrom ? list.validFrom.slice(0, 16) : '')
-    setValidUntil(list.validUntil ? list.validUntil.slice(0, 16) : '')
+    setValidFrom(isoToDatetimeLocal(list.validFrom))
+    setValidUntil(isoToDatetimeLocal(list.validUntil))
   }
 
   function resetForm() {
@@ -72,8 +73,8 @@ export function AdminPriceListsPage() {
         scope,
         priority: Number(priority) || 0,
         isDefault,
-        validFrom: validFrom ? new Date(validFrom).toISOString() : null,
-        validUntil: validUntil ? new Date(validUntil).toISOString() : null,
+        validFrom: datetimeLocalToIso(validFrom),
+        validUntil: datetimeLocalToIso(validUntil),
         description: editing?.description,
         slug: editing?.slug,
       })
@@ -193,7 +194,7 @@ export function AdminPriceListsPage() {
                       className="text-sm font-semibold text-fal-navy underline"
                       to={`/admin/precos/${list.id}`}
                     >
-                      Itens
+                      Gerenciar preços
                     </Link>
                     <button
                       type="button"

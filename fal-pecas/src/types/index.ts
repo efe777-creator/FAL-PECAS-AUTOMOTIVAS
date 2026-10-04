@@ -273,6 +273,8 @@ export interface Product {
   /** Preço da lista Base (espelho/legado). */
   listPrice?: number
   resolvedPriceListId?: string | null
+  /** Origem da resolução (F6B.1). */
+  priceSource?: 'override' | 'list' | 'default'
   /** Quantidade: só mocks/admin. Loja pública usa `available`. */
   stock?: number
   /** Disponibilidade pública (sem quantidade). */

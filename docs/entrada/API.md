@@ -67,16 +67,17 @@ Troca de mock → Supabase deve ocorrer **dentro dos services**, sem reescrever 
 
 ---
 
-## 4b. Precificação (Fase 6B)
+## 4b. Precificação (Fase 6B / 6B.1)
 
 | Contrato | Papel |
 |----------|--------|
-| `resolveProductPrice` / RPC SQL | **Única** camada que determina preço aplicável (contexto storefront; futuro assigned) |
+| `resolveProductPrice` / RPC SQL | **Única** camada: avulso → lista (priority) → base (`is_default`) |
 | `adminPriceListService` | CRUD listas/itens + pipeline import CSV/XLSX (staff) |
+| `adminPriceOverrideService` | CRUD preço avulso por produto (staff); não confundir com `products.price` |
 
-**Invariantes:** frontend não envia preço nem `price_list_id` aceito; `place_order` continua recalculando no servidor; listas `assigned` não são enumeráveis publicamente.
+**Invariantes:** frontend não envia preço nem `price_list_id` aceito; `place_order` continua recalculando no servidor; import de lista não altera avulso; listas `assigned` não são enumeráveis publicamente.
 
-Spec: [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md).
+Spec: [ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md](../planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) · Execução avulso: [EXECUCAO_FASE6B1.md](../planejamento/EXECUCAO_FASE6B1.md).
 
 ---
 

@@ -1,10 +1,10 @@
 # Especificação — Fase 6B: Listas de Preços e Precificação Comercial
 
-**Status:** Implementada  
-**Data:** 2026-10-03  
+**Status:** Implementada (+ F6B.1 preço avulso)  
+**Data:** 2026-10-04  
 **Branch:** `plan`  
 **Base:** [ESPECIFICACAO_FASE6_ECOMMERCE.md](./ESPECIFICACAO_FASE6_ECOMMERCE.md) (aprovada), [DATABASE.md](../entrada/DATABASE.md), [API.md](../entrada/API.md), [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md)  
-**Execução:** [EXECUCAO_FASE6B.md](./EXECUCAO_FASE6B.md)
+**Execução:** [EXECUCAO_FASE6B.md](./EXECUCAO_FASE6B.md) · [EXECUCAO_FASE6B1.md](./EXECUCAO_FASE6B1.md)
 
 ---
 
@@ -13,6 +13,24 @@
 Criar o **motor comercial de listas de preços** da FAL, permitindo múltiplas condições (Base, Promocional, Oficinas, Parceiros, Atacado, Especial…) **sem alterar a identidade do produto** e **sem reconstruir** o e-commerce da Fase 6.
 
 Responde: *qual é o preço aplicável deste produto para este contexto comercial?*
+
+### 1.1 Modelo comercial FAL (oficial)
+
+| Camada | Papel |
+|--------|--------|
+| **Produto** | Identidade; `products.price` / `promo_price` = espelho/legado, não verdade comercial |
+| **Lista de preços** | Forma **padrão** de precificar: item `(lista, produto) → preço`. Alteração geral = editar/importar a lista |
+| **Preço avulso** | Exceção controlada por produto (`product_price_overrides`). Sobrescreve a lista enquanto ativo/vigente. Uso excepcional, com nota/rastreio |
+
+Exemplo:
+
+| Produto | Lista | Preço da lista | Preço avulso | Preço aplicado |
+|---------|-------|---------------:|-------------:|---------------:|
+| Bandeja X | Varejo | 150,00 | — | **150,00** |
+| Terminal Y | Varejo | 80,00 | 72,00 | **72,00** |
+| Amortecedor Z | Promoção | 210,00 | — | **210,00** |
+
+**Regra FAL:** a alteração comercial de preços deve ocorrer prioritariamente por meio de listas de preços. Cada produto pode possuir um preço dentro de uma determinada lista. O sistema também poderá aceitar preço avulso para exceções específicas, que terá precedência sobre o preço da lista quando estiver configurado e válido. As listas deverão ser editáveis individualmente e poderão receber atualização em massa por importação CSV/XLSX, utilizando o SKU como chave operacional. Importação **não** cria/altera avulso.
 
 ---
 
@@ -62,15 +80,16 @@ Responde: *qual é o preço aplicável deste produto para este contexto comercia
 
 | Tema | Decisão |
 |------|---------|
-| Fonte comercial | `price_list_items` via `resolve_product_price`; UI/services **não** usam `product.price` como verdade |
-| `products.price` | Mantido; espelha Lista Base após migração; deprecado para lógica nova |
+| Fonte comercial | `resolve_product_price` (avulso → lista → base); UI/services **não** usam `product.price` como verdade |
+| `products.price` | Mantido; espelha Lista Base após migração; deprecado para lógica nova — **não** é o preço avulso |
 | `products.promo_price` | Migrado para itens da Lista Promocional; deprecado para lógica nova |
+| Preço avulso (F6B.1) | Tabela `product_price_overrides`; exceção por produto; precedência sobre qualquer lista enquanto `active` e vigente |
 | Listas iniciais | **Preço Base** (default) + **Lista Promocional** |
 | Escopo de lista | `public` (vitrine/checkout comum) \| `assigned` (futuro B2B — não atribuível pelo cliente) |
-| F6B resolução vitrine | Só listas `scope=public`, `status=active`, dentro da vigência, com item do produto; **maior `priority` vence**; se nenhuma → lista `is_default`; se ainda falhar → erro (sem inventar preço) |
+| F6B resolução vitrine | **1)** override ativo/vigente → **2)** listas `public`+`active`+vigentes com item (maior `priority`) → **3)** lista `is_default` → **4)** erro `price_unresolved` |
 | Cliente escolhe lista? | **Não** — nunca via frontend |
 | Totais pedido | Continuam **somente** no servidor (`place_order`) |
-| Import | Pipeline upload → parse → validação → preview → confirmação → relatório; chave = **SKU** |
+| Import | Pipeline upload → parse → validação → preview → confirmação → relatório; chave = **SKU**; atualiza **somente** itens da lista (não toca avulso) |
 | Lib Excel | Não existe hoje; Etapa B adiciona **uma** lib leve (`xlsx` SheetJS ou equivalente) só se necessário para `.xlsx`; CSV pode ser parser nativo |
 | Imports genéricos F8 | 6B usa/estende `imports`/`import_items` com `kind='price_list'` (ou metadado equivalente), sem antecipar importador completo de catálogo |
 
@@ -110,13 +129,25 @@ Responde: *qual é o preço aplicável deste produto para este contexto comercia
 |-------|------|
 | id | uuid |
 | product_id | uuid |
-| price_list_id | uuid |
+| price_list_id | uuid **null** (null quando alteração de avulso) |
 | old_price | numeric null |
 | new_price | numeric |
 | changed_by | uuid null (auth.users) |
-| source | `manual` \| `import` \| `system` |
+| source | `manual` \| `import` \| `system` \| `override` |
 | import_id | uuid null |
 | created_at | timestamptz |
+
+### 5.3b `product_price_overrides` (F6B.1)
+
+| Campo | Tipo | Regra |
+|-------|------|--------|
+| id | uuid PK | |
+| product_id | uuid FK | Unique parcial: no máx. um `status=active` por produto |
+| amount | numeric(12,2) | `>= 0` |
+| note | text | Motivo da exceção (recomendado) |
+| status | text | `active` \| `inactive` |
+| valid_from / valid_until | timestamptz null | Vigência opcional |
+| created_by / timestamps | | Auditoria |
 
 ### 5.4 Extensões
 
@@ -156,9 +187,11 @@ interface PriceResolutionContext {
 interface ResolvedProductPrice {
   productId: string
   amount: number
-  priceListId: string
+  priceListId: string | null
   priceListSlug: string
   currency: 'BRL'
+  /** true se veio de product_price_overrides */
+  usedOverride: boolean
   /** true se veio da lista default por fallback */
   usedDefaultFallback: boolean
 }
@@ -173,18 +206,19 @@ Implementação canônica: **RPC/SQL** `resolve_product_price(p_product_id, p_cu
 - `place_order` (por item)
 - admin preview (opcional)
 
-### 6.2 Algoritmo F6B (explícito — sem comportamento implícito)
+### 6.2 Algoritmo F6B / F6B.1 (explícito — sem comportamento implícito)
 
-Para canal `storefront` e produto publicado:
+Para canal `storefront`:
 
+0. Se existir `product_price_overrides` com `status=active` e vigência válida em `p_at` → retornar `amount`, `used_override=true`, `price_list_id=null`, slug `override`.
 1. Considerar listas com `status = 'active'`, `scope = 'public'`, vigência válida em `p_at` (`valid_from/until` null = sem limite).
 2. Entre essas, manter só as que possuem `price_list_items` para o `product_id`.
-3. Se houver ≥1: escolher **maior `priority`**; empate → lista com `updated_at` mais recente (documentar).
-4. Se zero: usar item na lista `is_default = true` (ainda que priority baixa).
+3. Se houver ≥1: escolher **maior `priority`**; empate → lista com `updated_at` mais recente.
+4. Se zero: usar item na lista `is_default = true` (ainda que priority baixa) → `used_default_fallback=true`.
 5. Se ainda sem preço: **erro** `price_unresolved` (não cair em número mágico).
 6. Listas `scope = 'assigned'` **ignoradas** no storefront até existir vínculo admin (futuro).
 
-**Promocional vs Base:** Promocional tem `priority` maior → se tiver item e estiver ativa/vigente, **vence** a Base. Não “toda lista ativa” no sistema substitui a Base — só as elegíveis pelo algoritmo acima.
+**Promocional vs Base:** Promocional tem `priority` maior → se tiver item e estiver ativa/vigente, **vence** a Base (após o avulso). Avulso vence qualquer lista.
 
 ### 6.3 Onde NÃO pode viver a lógica
 
