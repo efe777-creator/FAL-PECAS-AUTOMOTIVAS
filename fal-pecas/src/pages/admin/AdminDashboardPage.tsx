@@ -22,15 +22,15 @@ const sections: { title: string; cards: DashCard[] }[] = [
     title: 'Vendas',
     cards: [
       { to: '/admin/pedidos', title: 'Pedidos', desc: 'Recepção, confirmação e operação' },
-      { to: '/admin/clientes', title: 'Clientes', desc: 'Cadastro e consulta (em breve)' },
+      { to: '/admin/clientes', title: 'Clientes', desc: 'Consulta e detalhe' },
     ],
   },
   {
     title: 'Operação',
     cards: [
-      { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos e movimentações (em breve)' },
+      { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos, movimentos e modo da loja' },
       { to: '/admin/frete', title: 'Frete / origem', desc: 'CEP e endereço de origem da loja' },
-      { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais (em breve)' },
+      { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais mínimos' },
     ],
   },
 ]

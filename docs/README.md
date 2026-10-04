@@ -42,7 +42,9 @@ docs/
 | **7** | [ESPECIFICACAO_FASE7…](planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO](planejamento/EXECUCAO_FASE7.md) · [auditoria final](planejamento/AUDITORIA_FASE7_FINAL_2026-10-04.md) — **concluída** |
 | 7B–7F | Recepção → separação → expedição → entrega → estoque — concluídas |
 | Pré-F7 | [Ajuste global preços](planejamento/AUDITORIA_AJUSTE_GLOBAL_PRECOS_2026-10-04.md) — gate aprovado |
-| 8–10 | Back office / integrações / go-live — pendentes |
+| **8** | [ESPECIFICACAO_FASE8…](planejamento/ESPECIFICACAO_FASE8_BACKOFFICE.md) · [EXECUCAO](planejamento/EXECUCAO_FASE8.md) · [auditoria](planejamento/AUDITORIA_FASE8_2026-10-04.md) — **Fatia A implementada** |
+| 8.1 | Import catálogo — futura |
+| 9–10 | Integrações / go-live — pendentes |
 
 ## Como contribuir
 

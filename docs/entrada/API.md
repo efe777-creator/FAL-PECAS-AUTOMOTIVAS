@@ -123,12 +123,29 @@ Spec: [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDI
 
 ---
 
+## 4e. Back office F8 (Fatia A — implementada)
+
+Spec: [ESPECIFICACAO_FASE8_BACKOFFICE.md](../planejamento/ESPECIFICACAO_FASE8_BACKOFFICE.md) · [EXECUCAO_FASE8](../planejamento/EXECUCAO_FASE8.md) · [AUDITORIA](../planejamento/AUDITORIA_FASE8_2026-10-04.md).
+
+| Contrato | Papel |
+|----------|--------|
+| `get_store_inventory_mode` / `set_store_inventory_mode` | Modo loja; set = admin |
+| `inventory_mode_at_order` | Snapshot no `place_order`; release/fulfill usam o snapshot |
+| `adjust_inventory` | Ajuste auditável (admin/gerente/estoque) |
+| `adminInventoryService` / UI `/admin/estoque` | Saldos + movimentos + modo |
+| `adminCustomerService` / UI `/admin/clientes` | Consulta/detalhe |
+| `admin_orders_basic_totals` / UI `/admin/relatorios` | Totais + contadores |
+
+**Invariantes F8:** `com_estoque` ≡ F7; sem reserva/baixa real nos outros modos; anti-retroatividade por snapshot; `atendimento` sem permissões F8 novas.
+
+---
+
 ## 5. Contratos futuros / outras fases
 
 - `compatibilityService` (avançado)
-- `importService` catálogo completo (F8; preços por lista = 6B)
+- `importService` catálogo completo — **F8.1** (preços por lista = 6B)
 - `paymentService` / providers de frete **reais** — F9 (adapters preparados na 6C)
-- `admin/*` — protegido por roles
+- `admin/*` — protegido por roles (matriz F8 na spec)
 
 ---
 

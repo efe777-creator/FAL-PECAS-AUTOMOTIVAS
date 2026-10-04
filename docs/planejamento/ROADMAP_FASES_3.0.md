@@ -231,57 +231,81 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 7B — Recepção e confirmação pela FAL
 
-**Status:** próximo gate de **código** (após gate documental F7).
+**Status:** **concluída** (código + remoto + UI `/admin/pedidos`).
 
-**Escopo:** substituir placeholder `/admin/pedidos`; fila + filtros + detalhe; disponibilidade por item (`disponivel` \| `disponivel_com_prazo` \| `indisponivel`); ressalva / `aguardando_*`; cancel controlado (gerente+); contadores reais no dashboard; cliente só vê projeção.
+**Escopo:** fila + filtros + detalhe; disponibilidade por item; ressalva / `aguardando_*`; cancel controlado (gerente+); contadores reais.
 
-**Construir sobre:** `order_events` → `transition_order_status` → timeline → operação administrativa.
-
-**Não neste gate:** separação, expedição, baixa de estoque, APIs externas.
-
-**Gate de saída:** FAL recebe pedido pago → analisa por item → confirma / ressalva / encaminha decisão / cancela controlado.
+**Gate de saída:** cumprido.
 
 ---
 
 ## Fase 7C — Separação
 
+**Status:** **concluída.**
+
 **Escopo:** fila `confirmado` → `em_separacao`; checklist por item; conclusão → `pronto_para_envio` + evento.
 
-**Gate:** pedido confirmado separado e marcado pronto para envio.
+**Gate:** cumprido.
 
 ---
 
 ## Fase 7D — Expedição
 
-**Escopo:** evoluir `shipments` (carrier/service/tracking); `pronto_para_envio` → `enviado`; sem API real de transportadora.
+**Status:** **concluída.**
 
-**Gate:** pedido sai da FAL como enviado.
+**Escopo:** `shipments` (carrier/service/tracking); `pronto_para_envio` → `enviado`; sem API real de transportadora.
+
+**Gate:** cumprido.
 
 ---
 
 ## Fase 7E — Entrega e encerramento
 
-**Escopo:** `enviado` → `entregue`; prova/método (contrato); timeline final cliente.
+**Status:** **concluída.**
 
-**Gate:** ciclo Pedido → Pagamento → FAL → Confirmação → Separação → Envio → Entrega.
+**Escopo:** `enviado` → `entregue`; prova/método; timeline final cliente.
+
+**Gate:** cumprido.
 
 ---
 
 ## Fase 7F — Estoque operacional
 
-**Escopo:** reserva (já em `place_order`) → baixa na operação; **liberar reserva no cancel staff** (corrige lacuna F7A); divergência; concorrência; auditoria de movimentos.
+**Status:** **concluída** (RPCs; UI estoque permanece F8).
 
-**Gate:** estoque e pedidos consistentes; cancel não deixa reserva órfã.
+**Escopo:** reserva (`place_order`) → baixa na expedição; liberar reserva no cancel staff; movimentos auditáveis.
+
+**Gate:** cumprido. Smoke visual chips/filtros admin: **PASS** (2026-10-04) — ver [EXECUCAO_FASE8.md](./EXECUCAO_FASE8.md).
+
+**Fase 7 (master):** **encerrada** para avanço ao gate F8.
 
 ---
 
-## Fase 8 — Back Office e Operação Administrativa
+## Fase 8 — Back Office e Operação Administrativa (Fatia A)
 
-**Pergunta:** Como a equipe administra sem depender de código?
+**Pergunta:** Como a equipe administra estoque, clientes e indicadores sem depender de código?
 
-**Escopo:** CRUD produtos/categorias/veículos/referências/estoque/pedidos/clientes; importação Excel/CSV de **catálogo** (upload→validação→prévia→upsert→relatório). *(Importação de **preços por lista** antecipada na Fase 6B.)*
+**Status:** **Fatia A implementada** — [ESPECIFICACAO_FASE8_BACKOFFICE.md](./ESPECIFICACAO_FASE8_BACKOFFICE.md) · [EXECUCAO_FASE8.md](./EXECUCAO_FASE8.md) · [AUDITORIA_FASE8_2026-10-04.md](./AUDITORIA_FASE8_2026-10-04.md)
 
-**Critérios de saída:** operação diária possível via painel + importação.
+**Escopo (Fatia A):**
+
+- UI estoque + modos de loja: `com_estoque` \| `estoque_ficticio` \| `sem_estoque`
+- Snapshot `inventory_mode_at_order` (anti-retroatividade); `com_estoque` ≡ F7
+- Consulta de clientes (listagem + detalhe)
+- Relatórios mínimos
+- *(Catálogo admin e pedidos operacionais já entregues nas F3/F7.)*
+
+**Fora desta fatia:** import catálogo (F8.1); integrações reais (F9); WMS/multiestoque; reabrir F7.
+
+**Critérios de saída:** cumpridos na Fatia A (placeholders substituídos; modos/snapshot; permissões F8).
+
+---
+
+## Fase 8.1 — Importação de catálogo
+
+**Escopo:** importação Excel/CSV de **catálogo** (upload→validação→prévia→upsert→relatório). *(Importação de **preços por lista** já na Fase 6B.)*
+
+**Critérios de saída:** operação de carga de catálogo via painel.
 
 ---
 

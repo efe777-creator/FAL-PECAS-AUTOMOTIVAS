@@ -26,6 +26,36 @@ type Draft = {
   staffNote: string
 }
 
+type PendingAction =
+  | { kind: 'finalize' }
+  | { kind: 'separate' }
+  | { kind: 'ship' }
+  | { kind: 'deliver' }
+  | { kind: 'cancel' }
+
+const PENDING_COPY: Record<PendingAction['kind'], { title: string; body: string }> = {
+  finalize: {
+    title: 'Finalizar confirmação?',
+    body: 'O pedido avançará com base nas disponibilidades salvas nos itens.',
+  },
+  separate: {
+    title: 'Concluir separação?',
+    body: 'Todos os itens devem estar marcados como separados.',
+  },
+  ship: {
+    title: 'Registrar expedição?',
+    body: 'O pedido será marcado como enviado e o estoque será baixado (modo com_estoque).',
+  },
+  deliver: {
+    title: 'Confirmar entrega?',
+    body: 'O pedido será encerrado como entregue.',
+  },
+  cancel: {
+    title: 'Cancelar pedido?',
+    body: 'Informe o motivo. Somente gerente/administrador. A reserva será liberada se houver.',
+  },
+}
+
 export function AdminOrderDetailPage() {
   const { id = '' } = useParams()
   const [order, setOrder] = useState<AdminOrderDetail | null>(null)
@@ -39,6 +69,8 @@ export function AdminOrderDetailPage() {
   const [service, setService] = useState('')
   const [tracking, setTracking] = useState('')
   const [proofRef, setProofRef] = useState('')
+  const [pending, setPending] = useState<PendingAction | null>(null)
+  const [cancelNote, setCancelNote] = useState('')
 
   async function reload() {
     setLoading(true)
@@ -94,13 +126,13 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  async function finalize() {
-    if (!window.confirm('Finalizar confirmação com base nas disponibilidades?')) return
+  async function runFinalize() {
     setBusy(true)
     setError(null)
     try {
       const r = await adminFinalizeConfirmation(id)
       setMsg(`Resultado: ${r.result} → ${orderStatusAdminLabel[r.status] ?? r.status}`)
+      setPending(null)
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao finalizar')
@@ -109,14 +141,15 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  async function cancel() {
-    const note = window.prompt('Motivo do cancelamento (gerente/admin):')
-    if (note == null) return
+  async function runCancel() {
+    const note = cancelNote.trim() || 'Cancelamento administrativo'
     setBusy(true)
     setError(null)
     try {
-      await adminCancelOrder(id, note || 'Cancelamento administrativo')
+      await adminCancelOrder(id, note)
       setMsg('Pedido cancelado')
+      setPending(null)
+      setCancelNote('')
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao cancelar')
@@ -138,13 +171,13 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  async function completeSeparation() {
-    if (!window.confirm('Concluir separação? Todos os itens devem estar separados.')) return
+  async function runCompleteSeparation() {
     setBusy(true)
     setError(null)
     try {
       await adminCompleteSeparation(id)
       setMsg('Separação concluída')
+      setPending(null)
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha na separação')
@@ -153,8 +186,7 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  async function ship() {
-    if (!window.confirm('Registrar expedição e marcar como enviado?')) return
+  async function runShip() {
     setBusy(true)
     setError(null)
     try {
@@ -165,6 +197,7 @@ export function AdminOrderDetailPage() {
         trackingCode: tracking || undefined,
       })
       setMsg('Pedido expedido')
+      setPending(null)
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha na expedição')
@@ -173,19 +206,28 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  async function deliver() {
-    if (!window.confirm('Confirmar entrega?')) return
+  async function runDeliver() {
     setBusy(true)
     setError(null)
     try {
       await adminDeliverOrder(id, proofRef || undefined)
       setMsg('Pedido entregue')
+      setPending(null)
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha na entrega')
     } finally {
       setBusy(false)
     }
+  }
+
+  function confirmPending() {
+    if (!pending) return
+    if (pending.kind === 'finalize') void runFinalize()
+    else if (pending.kind === 'separate') void runCompleteSeparation()
+    else if (pending.kind === 'ship') void runShip()
+    else if (pending.kind === 'deliver') void runDeliver()
+    else if (pending.kind === 'cancel') void runCancel()
   }
 
   if (loading) return <Loading label="Carregando pedido…" />
@@ -218,6 +260,39 @@ export function AdminOrderDetailPage() {
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
+
+      {pending ? (
+        <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
+          <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+            {PENDING_COPY[pending.kind].title}
+          </h2>
+          <p className="mt-1 mb-3 text-sm text-fal-muted">{PENDING_COPY[pending.kind].body}</p>
+          {pending.kind === 'cancel' ? (
+            <Input
+              label="Motivo do cancelamento"
+              value={cancelNote}
+              onChange={(e) => setCancelNote(e.target.value)}
+              placeholder="Ex.: item indisponível / pedido duplicado"
+            />
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" disabled={busy} onClick={() => confirmPending()}>
+              Confirmar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy}
+              onClick={() => {
+                setPending(null)
+                setCancelNote('')
+              }}
+            >
+              Voltar
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <section className="rounded-[14px] border border-fal-line bg-white p-4">
@@ -357,17 +432,26 @@ export function AdminOrderDetailPage() {
 
       <div className="flex flex-wrap gap-2">
         {inAnalysis ? (
-          <Button type="button" disabled={busy} onClick={() => void finalize()}>
+          <Button type="button" disabled={busy || pending != null} onClick={() => setPending({ kind: 'finalize' })}>
             Finalizar confirmação
           </Button>
         ) : null}
         {order.status === 'confirmado' || order.status === 'em_separacao' ? (
-          <Button type="button" disabled={busy} onClick={() => void completeSeparation()}>
+          <Button
+            type="button"
+            disabled={busy || pending != null}
+            onClick={() => setPending({ kind: 'separate' })}
+          >
             Concluir separação
           </Button>
         ) : null}
         {canCancel && order.status === 'aguardando_decisao' ? (
-          <Button type="button" variant="light" disabled={busy} onClick={() => void cancel()}>
+          <Button
+            type="button"
+            variant="light"
+            disabled={busy || pending != null}
+            onClick={() => setPending({ kind: 'cancel' })}
+          >
             Cancelar pedido
           </Button>
         ) : null}
@@ -386,7 +470,11 @@ export function AdminOrderDetailPage() {
             <Input label="Serviço" value={service} onChange={(e) => setService(e.target.value)} />
             <Input label="Rastreio" value={tracking} onChange={(e) => setTracking(e.target.value)} />
             <div className="flex items-end">
-              <Button type="button" disabled={busy} onClick={() => void ship()}>
+              <Button
+                type="button"
+                disabled={busy || pending != null}
+                onClick={() => setPending({ kind: 'ship' })}
+              >
                 Registrar envio
               </Button>
             </div>
@@ -404,7 +492,11 @@ export function AdminOrderDetailPage() {
               onChange={(e) => setProofRef(e.target.value)}
             />
             <div className="flex items-end">
-              <Button type="button" disabled={busy} onClick={() => void deliver()}>
+              <Button
+                type="button"
+                disabled={busy || pending != null}
+                onClick={() => setPending({ kind: 'deliver' })}
+              >
                 Confirmar entrega
               </Button>
             </div>

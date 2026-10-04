@@ -176,6 +176,7 @@ imports ── import_items
 | **Finalidade** | Saldo atual |
 | **Campos** | `product_id` (PK/FK), `quantity_on_hand`, `quantity_reserved`, `updated_at` |
 | **RLS** | Leitura pública limitada (ex.: disponibilidade booleana) **DECISÃO PENDENTE**; escrita admin/estoque |
+| **F8 (planejado)** | UI admin + ajuste só via RPC auditável; modo da loja (`com_estoque` \| `estoque_ficticio` \| `sem_estoque`) em settings — ver [ESPECIFICACAO_FASE8](../planejamento/ESPECIFICACAO_FASE8_BACKOFFICE.md) |
 
 ### 3.15 inventory_movements
 
@@ -184,6 +185,7 @@ imports ── import_items
 | **Finalidade** | Histórico de movimentações |
 | **Campos** | `id`, `product_id`, `type`, `quantity`, `reason`, `order_id`?, `user_id`?, `created_at` |
 | **RLS** | Privado operacional |
+| **F8 (planejado)** | Exibição na UI estoque; tipo `adjust` via RPC `adjust_inventory` |
 
 ### 3.16 carts / cart_items
 
@@ -198,7 +200,7 @@ imports ── import_items
 | | |
 |--|--|
 | **Finalidade** | Pedidos e histórico |
-| **Campos pedidos** | `id`, `customer_id`, `status`, `subtotal`, `shipping_amount`, `total`, `address_snapshot`, `payment_ref`?, `created_at` |
+| **Campos pedidos** | `id`, `customer_id`, `status`, `subtotal`, `shipping_amount`, `total`, `address_snapshot`, `payment_ref`?, `created_at`; **F8 (planejado):** `inventory_mode_at_order` (snapshot do modo da loja na criação — anti-retroatividade) |
 | **Campos itens** | `product_id`, `sku`, `name_snapshot`, `unit_price` (preservado), `quantity`; **Fase 6B:** `price_list_id` (lista que originou o unitário) |
 | **Status (CHECK F7A no remoto)** | Legado checkout + ciclo operacional: `pendente`, `aguardando_pagamento`, `pagamento_aprovado`, `recebido`, `em_analise`, `aguardando_disponibilidade`, `aguardando_decisao`, `confirmado`, `em_separacao`, `pronto_para_envio`, `preparando_envio` (legado), `enviado`, `entregue`, `cancelado` |
 | **Ciclo operacional (F6D / F7A — entregue)** | Tabela `order_events` (append-only; `visibility` internal\|customer); helpers `emit_order_event`, `order_transition_allowed`; RPC `transition_order_status` (`is_staff()`). Migration local: `20261004040000_fase7a_order_lifecycle.sql`. Spec master: [ESPECIFICACAO_FASE7…](../planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO_FASE7A](../planejamento/EXECUCAO_FASE7A.md) · [AUDITORIA_FASE7](../planejamento/AUDITORIA_FASE7_2026-10-04.md) |

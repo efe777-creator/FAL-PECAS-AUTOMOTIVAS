@@ -65,11 +65,23 @@ const ForgotPasswordPage = lazy(() =>
 const AdminDashboardPage = lazy(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
-const AdminPlaceholderPage = lazy(() =>
-  import('@/pages/admin/AdminPlaceholderPage').then((m) => ({ default: m.AdminPlaceholderPage })),
-)
 const AdminOrdersPage = lazy(() =>
   import('@/pages/admin/orders/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
+)
+const AdminInventoryPage = lazy(() =>
+  import('@/pages/admin/inventory/AdminInventoryPage').then((m) => ({
+    default: m.AdminInventoryPage,
+  })),
+)
+const AdminCustomersPage = lazy(() =>
+  import('@/pages/admin/customers/AdminCustomersPage').then((m) => ({
+    default: m.AdminCustomersPage,
+  })),
+)
+const AdminReportsPage = lazy(() =>
+  import('@/pages/admin/reports/AdminReportsPage').then((m) => ({
+    default: m.AdminReportsPage,
+  })),
 )
 const AdminOrderDetailPage = lazy(() =>
   import('@/pages/admin/orders/AdminOrderDetailPage').then((m) => ({
@@ -159,19 +171,10 @@ export const router = createBrowserRouter([
       { path: 'fornecedores', element: <AdminSuppliersPage /> },
       { path: 'pedidos', element: <AdminOrdersPage /> },
       { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
-      {
-        path: 'clientes',
-        element: <AdminPlaceholderPage title="Clientes" />,
-      },
-      {
-        path: 'estoque',
-        element: <AdminPlaceholderPage title="Estoque" />,
-      },
+      { path: 'clientes', element: <AdminCustomersPage /> },
+      { path: 'estoque', element: <AdminInventoryPage /> },
       { path: 'frete', element: <AdminShippingOriginPage /> },
-      {
-        path: 'relatorios',
-        element: <AdminPlaceholderPage title="Relatórios" />,
-      },
+      { path: 'relatorios', element: <AdminReportsPage /> },
     ],
   },
   {
