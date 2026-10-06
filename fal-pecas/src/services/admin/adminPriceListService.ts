@@ -217,8 +217,44 @@ export interface PriceChangeHistoryRow {
   sku?: string
 }
 
-const LIST_SELECT =
+/** Sem % — fallback enquanto prepared 20261006160000 não estiver aplicada. */
+const LIST_SELECT_BASE =
   'id, name, slug, description, status, scope, priority, valid_from, valid_until, is_default, pricing_method, pricing_percent, rounding_mode, list_extra_cost, created_at, updated_at'
+
+/** Inclui adicional de custo (%) da lista (Opção A). */
+const LIST_SELECT = `${LIST_SELECT_BASE}, list_extra_cost_percent`
+
+function isMissingListExtraCostPercentColumn(error: {
+  message?: string
+  code?: string
+  details?: string
+} | null): boolean {
+  if (!error) return false
+  const msg = `${error.message ?? ''} ${error.code ?? ''} ${error.details ?? ''}`.toLowerCase()
+  return (
+    msg.includes('list_extra_cost_percent') ||
+    msg.includes('schema cache') ||
+    msg.includes('pgrst204') ||
+    error.code === 'PGRST204' ||
+    error.code === '42703'
+  )
+}
+
+type PgErr = { message?: string; code?: string; details?: string } | null
+
+/**
+ * Tenta SELECT com list_extra_cost_percent; se a coluna prepared ainda não existir,
+ * repete sem ela (listExtraCostPercent fica 0 via mapList).
+ */
+async function selectPriceListsWithPercentFallback<T>(
+  execute: (columns: string) => PromiseLike<{ data: T; error: PgErr }>,
+): Promise<{ data: T; error: PgErr }> {
+  const first = await execute(LIST_SELECT)
+  if (!first.error || !isMissingListExtraCostPercentColumn(first.error)) {
+    return first
+  }
+  return execute(LIST_SELECT_BASE)
+}
 
 function mapList(row: Record<string, unknown>, itemCount?: number): PriceList {
   return {
@@ -236,7 +272,6 @@ function mapList(row: Record<string, unknown>, itemCount?: number): PriceList {
     pricingPercent: Number(row.pricing_percent ?? 0),
     roundingMode: String(row.rounding_mode ?? 'two_decimals'),
     listExtraCost: Number(row.list_extra_cost ?? 0),
-    // Coluna opcional até migration prepared ser aplicada
     listExtraCostPercent: Number(
       (row as { list_extra_cost_percent?: unknown }).list_extra_cost_percent ?? 0,
     ),
@@ -254,12 +289,12 @@ export async function adminListPriceLists(): Promise<PriceList[]> {
 /** Visão geral F8.1-I: listas + cards (agrega price_list_items existentes). */
 export async function adminGetPriceListsOverview(): Promise<PriceListsOverview> {
   const sb = getSupabase()
-  const { data, error } = await sb.from('price_lists').select(LIST_SELECT).order('priority', {
-    ascending: false,
-  })
+  const { data, error } = await selectPriceListsWithPercentFallback((columns) =>
+    sb.from('price_lists').select(columns).order('priority', { ascending: false }),
+  )
   if (error) throw error
 
-  const lists = (data ?? []).map((r) => mapList(r as Record<string, unknown>))
+  const lists = (data ?? []).map((r) => mapList(r as unknown as Record<string, unknown>))
   if (!lists.length) {
     return { lists: [], activeLists: 0, totalItems: 0, withPrice: 0, withoutPrice: 0 }
   }
@@ -278,14 +313,12 @@ export async function adminGetPriceListsOverview(): Promise<PriceListsOverview> 
 }
 
 export async function adminGetPriceList(id: string): Promise<PriceList | null> {
-  const { data, error } = await getSupabase()
-    .from('price_lists')
-    .select(LIST_SELECT)
-    .eq('id', id)
-    .maybeSingle()
+  const { data, error } = await selectPriceListsWithPercentFallback((columns) =>
+    getSupabase().from('price_lists').select(columns).eq('id', id).maybeSingle(),
+  )
   if (error) throw error
   if (!data) return null
-  return mapList(data as Record<string, unknown>)
+  return mapList(data as unknown as Record<string, unknown>)
 }
 
 export async function adminUpsertPriceList(input: {
@@ -329,11 +362,13 @@ export async function adminUpsertPriceList(input: {
     await sb.from('price_lists').update({ is_default: false }).neq('id', input.id ?? '00000000-0000-0000-0000-000000000000')
   }
 
-  const { data, error } = input.id
-    ? await sb.from('price_lists').update(payload).eq('id', input.id).select(LIST_SELECT).single()
-    : await sb.from('price_lists').insert(payload).select(LIST_SELECT).single()
+  const { data, error } = await selectPriceListsWithPercentFallback((columns) =>
+    input.id
+      ? sb.from('price_lists').update(payload).eq('id', input.id).select(columns).single()
+      : sb.from('price_lists').insert(payload).select(columns).single(),
+  )
   if (error) throw error
-  return mapList(data as Record<string, unknown>)
+  return mapList(data as unknown as Record<string, unknown>)
 }
 
 /**
@@ -393,28 +428,30 @@ export async function adminDuplicatePriceList(id: string): Promise<PriceList> {
   const copyName = formatDuplicatePriceListName(source.name)
   const slug = buildUniquePriceListSlug(toSlug(copyName), existingSlugs)
 
-  const { data: created, error: createError } = await sb
-    .from('price_lists')
-    .insert({
-      name: copyName,
-      slug,
-      description: source.description ?? null,
-      status: source.status,
-      scope: source.scope,
-      priority: source.priority,
-      valid_from: source.validFrom ?? null,
-      valid_until: source.validUntil ?? null,
-      is_default: false,
-      pricing_method: source.pricingMethod,
-      pricing_percent: source.pricingPercent,
-      rounding_mode: source.roundingMode,
-      list_extra_cost: source.listExtraCost,
-    })
-    .select(LIST_SELECT)
-    .single()
+  const { data: created, error: createError } = await selectPriceListsWithPercentFallback((columns) =>
+    sb
+      .from('price_lists')
+      .insert({
+        name: copyName,
+        slug,
+        description: source.description ?? null,
+        status: source.status,
+        scope: source.scope,
+        priority: source.priority,
+        valid_from: source.validFrom ?? null,
+        valid_until: source.validUntil ?? null,
+        is_default: false,
+        pricing_method: source.pricingMethod,
+        pricing_percent: source.pricingPercent,
+        rounding_mode: source.roundingMode,
+        list_extra_cost: source.listExtraCost,
+      })
+      .select(columns)
+      .single(),
+  )
   if (createError) throw createError
 
-  const newList = mapList(created as Record<string, unknown>)
+  const newList = mapList(created as unknown as Record<string, unknown>)
 
   const { data: items, error: itemsError } = await sb
     .from('price_list_items')
@@ -1035,7 +1072,9 @@ export type ProductListPriceRow = {
 export async function adminListProductListPrices(productId: string): Promise<ProductListPriceRow[]> {
   const sb = getSupabase()
   const [{ data: lists, error: lErr }, { data: items, error: iErr }] = await Promise.all([
-    sb.from('price_lists').select(LIST_SELECT).order('priority', { ascending: false }),
+    selectPriceListsWithPercentFallback((columns) =>
+      sb.from('price_lists').select(columns).order('priority', { ascending: false }),
+    ),
     sb
       .from('price_list_items')
       .select('id, price_list_id, price')
@@ -1053,7 +1092,7 @@ export async function adminListProductListPrices(productId: string): Promise<Pro
   }
 
   return (lists ?? []).map((raw) => {
-    const list = mapList(raw as Record<string, unknown>)
+    const list = mapList(raw as unknown as Record<string, unknown>)
     const hit = byList.get(list.id)
     return {
       priceListId: list.id,
