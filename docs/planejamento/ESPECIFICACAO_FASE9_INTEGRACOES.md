@@ -1,6 +1,6 @@
 # Especificação Fase 9 — Integrações + qualidade
 
-**Status:** F9-A + **F9-B DONE** em `main` (`ede8acf`). F9-C…E abertas.  
+**Status:** F9-A/B/**C DONE** em `main` (`1abea37`). F9-D…E abertas.  
 **Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9 · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md)  
 **Princípio F6:** checkout e admin continuam falando com **contratos internos FAL**; F9 troca **adapters**, não redesenha fluxos.
 
@@ -43,7 +43,7 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 1. **F9-A — Frete Correios (sandbox)** — **DONE** — cotação PAC/SEDEX; `VITE_SHIPPING_PROVIDER=correios`; testes unitários PASS
 2. **F9-B — Frenet ou agregador** — **DONE** — multi-transportadora sandbox; `VITE_SHIPPING_PROVIDER=frenet`
-3. **F9-C — Pagamento gateway** — criar pedido + confirmar pagamento; mapear para `confirm_simulated_payment` ou RPC dedicada com mesmo efeito no ciclo F7
+3. **F9-C — Pagamento gateway** — **DONE** — sandbox via `VITE_PAYMENT_PROVIDER`; ciclo F7 via `confirm_simulated_payment`
 4. **F9-D — Observabilidade** — logs estruturados, alertas falha cotação/pagamento
 5. **F9-E — Testes live** — checklist checkout + pedido pago em sandbox
 
@@ -52,8 +52,8 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 ## 5. Critérios de saída (Fase 9)
 
 - [x] Checkout produz cotações reais (≥1 provider) em sandbox — **F9-A Correios + F9-B Frenet**
-- [ ] Pagamento sandbox completa ciclo até status compatível com F7 (confirmação)
-- [x] Adapters isolados — troca de provider sem alterar páginas checkout — **via `VITE_SHIPPING_PROVIDER` / `setShippingProvider`**
+- [x] Pagamento sandbox completa ciclo até status compatível com F7 — **F9-C gateway sandbox → confirm_simulated_payment**
+- [x] Adapters isolados — troca de provider sem alterar páginas checkout — **via `VITE_SHIPPING_PROVIDER` / `VITE_PAYMENT_PROVIDER`**
 - [ ] Documentação de env vars e rotação de secrets
 - [ ] Regressão F7/F8 smoke mínima PASS pós-integração pagamento
 
@@ -80,4 +80,4 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 8. Próximo passo
 
-Abrir **F9-C** (gateway pagamento) com MARCHA. Não implementar F9-D…E até F9-C.
+Abrir **F9-D** (observabilidade) com MARCHA. Depois F9-E.

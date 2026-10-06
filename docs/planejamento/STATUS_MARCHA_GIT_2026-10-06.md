@@ -1,34 +1,27 @@
-﻿# Status marcha Git — F9-B 2026-10-06
+﻿# Status marcha Git — F9-C 2026-10-06
 
-## Tips (local ≡ origin)
+## Tips
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `b061abf` |
-| `main` | `ede8acf` (PR #3 mergeado) |
+| `dev` | `a739c9d` |
+| `main` | `1abea37` (PR #4) |
 
-## Feito nesta marcha (F9-B)
+## Feito (F9-C)
 
-- `feat/f9-b-frenet-sandbox` → `dev` → **PR #3 MERGED**
-- `frenetSandboxProvider`: Jadlog / Correios PAC / Total Express (sandbox)
-- Vitest shipping **4 PASS** + build **PASS**
-- `.env.example` documenta `VITE_SHIPPING_PROVIDER`
+- `gatewaySandboxPaymentProvider` + `VITE_PAYMENT_PROVIDER`
+- Ciclo F7 preservado (`confirm_simulated_payment`)
+- Vitest payments+shipping **7 PASS** + build **PASS**
+- PR #4 MERGED
 
-## Já fechado
+## Fechado na sequência
 
-- F8.5 + P1 + migration apply/registro
-- F9-A Correios sandbox
-- Vitrine (PR #2)
-- F9-B Frenet sandbox (PR #3)
+F8.5 · F9-A · vitrine · F9-B · **F9-C**
 
-## Fora / residual (MARCHA seguinte)
+## Residual (MARCHA)
 
-- F9-C…E
+- F9-D observabilidade
+- F9-E testes live
 - F8.6–F8.9
-- Repair em massa
-- HTTP real Frenet/Correios (credenciais)
-
-## Ruído local (não versionar)
-
-`agent-tools-*`, `.temp`, `ARQUIVOS IMPORTAÇÕES/`
+- Repair em massa / HTTP real
