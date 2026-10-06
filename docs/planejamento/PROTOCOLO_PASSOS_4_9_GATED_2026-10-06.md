@@ -25,9 +25,12 @@ Documento de execução da sequência corrigida.
 
 1. `migration repair` em massa / `db push` completo (histórico remoto divergente)
 2. Force-push / alterar remote
-3. Merge UI vitrine → `dev`/`main`
-4. Iniciar F9-B…E sem auth explícita
+3. Iniciar F9-B…E ou F8.6–F8.9 sem auth explícita
 
 ## Fora de escopo
 
 F8.6–F8.9; promoção cega `plan→dev`.
+
+## Nota 2026-10-06 (pós-MARCHA)
+
+Vitrine promovida: `feat/vitrine-category-icons` → `dev` `a32d499` → `main` `5d5b545` (PR #2).
