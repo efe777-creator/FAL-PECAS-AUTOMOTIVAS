@@ -1,7 +1,7 @@
 # Checklist Fase 9 — Pagamentos Mercado Pago
 
-**Baseline docs:** 2026-10-06 · Spec + auditoria FEITAS · **F9-A impl DONE** (`main` `c03afd4`)  
-**Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)
+**Baseline docs:** 2026-10-06 · **F9-A + F9-B DONE** (`main` `06be4e4`) · STOP antes F9-C  
+**Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
 
 ---
 
@@ -13,6 +13,7 @@
 - [x] Este checklist
 - [x] Sync ESPECIFICACAO_FASE9_INTEGRACOES + PLANO_INICIALIZACAO_F9
 - [x] MARCHA → F9-A impl
+- [x] MARCHA → F9-B create payment
 
 ---
 
@@ -32,11 +33,13 @@
 
 ## F9-B — MP Sandbox
 
-- [ ] Edge/service create payment
-- [ ] Access Token só backend
-- [ ] Public Key no FE
-- [ ] `X-Idempotency-Key`
-- [ ] Credenciais TEST
+- [x] Auditoria F9-A + docs oficiais MP ([AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md))
+- [x] Edge `create-mp-payment` (amount = `orders.total`, sem aprovar pedido)
+- [x] Access Token só backend (`MP_ACCESS_TOKEN` secret — deploy manual)
+- [x] Public Key layout no FE (`.env.example`)
+- [x] `X-Idempotency-Key` = `fal-pay-{paymentId}`
+- [ ] Credenciais TEST configuradas no projeto Supabase (humano)
+- [x] PR #6 MERGED (`06be4e4`)
 
 ---
 

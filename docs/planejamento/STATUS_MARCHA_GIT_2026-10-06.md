@@ -1,26 +1,27 @@
-﻿# Status marcha Git — F9-A impl 2026-10-06
+﻿# Status marcha Git — F9-B 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `23cd21e` |
-| `main` | `c03afd4` (PR #5) |
+| `dev` | `fd697c8` |
+| `main` | `06be4e4` (PR #6) |
 
-## Feito (F9-A impl)
+## Feito (F9-B)
 
-- Migration `20261006200000_fase9a_payments_mp_foundation_prepared.sql`
-- Colunas MP em `payments` + tabela `payment_events`
-- RLS + revoke write customer
-- Apply linked + `schema_migrations`
-- Vitest payments 6 PASS + build PASS
-- PR #5 MERGED
+- [AUDITORIA_F9B_PRE_IMPL…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
+- Edge `create-mp-payment` + core idempotente
+- FE `createMercadoPagoPayment` (sem checkout)
+- Vitest payments **12 PASS** + build PASS
+- PR #6 MERGED
 
 ## STOP
 
-Sem Edge Functions · SDK MP · webhook · checkout MP · `db push` completo · F9-B até MARCHA.
+Sem deploy Edge obrigatório nesta fatia · sem webhook · sem Pix UI · sem checkout MP · sem F7.
 
-## Residual
+**Próximo:** `MARCHA F9-C` (Pix UX + webhook mínimo).
 
-F9-B…I · F8.6–8.8 · F10
+## Humano
+
+Configurar `MP_ACCESS_TOKEN` TEST + `npx supabase functions deploy create-mp-payment --linked` quando for testar live.

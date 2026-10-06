@@ -1,20 +1,20 @@
-# STOP — pós F9-A impl (antes F9-B)
+# STOP — pós F9-B (antes F9-C)
 
 **Data:** 2026-10-06  
-**main:** `c03afd4`
+**main:** `06be4e4`
 
 ## Feito
 
-F9-A fundação: schema `payments` estendido, `payment_events`, RLS, secrets layout, apply linked.
+F9-B: Edge `create-mp-payment` versionada; amount server-side; `X-Idempotency-Key`; não aprova pedido.
 
-## Proibido até MARCHA F9-B
+## Proibido até MARCHA F9-C
 
-- Edge `create-mp-payment` / `mercado-pago-webhook`
-- `@mercadopago/sdk-react`
-- Access Token em qualquer `VITE_*` ou commit
-- Alterar `place_order` / ciclo F7 sem evidência
-- Produção MP (F9-I)
+- Webhook `mercado-pago-webhook`
+- Pix QR UI / Card Brick no checkout
+- Alterar `CheckoutPage` / `place_order` / ciclo F7
+- Produção MP
+- Commit de Access Token
 
 ## Próximo
 
-`MARCHA F9-B` — cliente MP sandbox + create payment + idempotência.
+`MARCHA F9-C` — Pix (QR/copia-cola) + webhook mínimo → pending/approved.

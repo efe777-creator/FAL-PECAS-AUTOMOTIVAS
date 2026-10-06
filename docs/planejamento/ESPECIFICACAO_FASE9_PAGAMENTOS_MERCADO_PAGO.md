@@ -1,7 +1,7 @@
 # Especificação Fase 9 — Pagamentos Mercado Pago
 
 **Data:** 2026-10-06  
-**Status:** F9-A **docs + impl DONE** (`main` `c03afd4`). **STOP antes F9-B** (Edge/SDK).  
+**Status:** F9-A + **F9-B DONE** (`main` `06be4e4`). **STOP antes F9-C** (Pix UI + webhook).  
 **Baseline:** F8.5 FECHADO · F9.0 DONE · migration `20261006200000` aplicada/registrada  
 **Refs:** [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) · [CHECKLIST…](./CHECKLIST_FASE9_PAGAMENTOS.md) · [PLANO_MESTRE adendo](./PLANO_MESTRE_F8_PROXIMAS_FASES_2026-10-06.md)
 
@@ -159,7 +159,7 @@ Filtros avançados (pago/pendente/método) = preparação; não obrigatórios na
 |------|----------|------|
 | F9-A docs | Esta spec + auditoria + checklist | **DONE** |
 | **F9-A impl** | Migrations + RLS + secrets layout | **DONE** (`c03afd4` / PR #5) |
-| F9-B | Cliente MP sandbox + create payment + idempotência | STOP / MARCHA |
+| F9-B | Cliente MP sandbox + create payment + idempotência | **DONE** (`06be4e4` / PR #6) |
 | F9-C | Pix + QR + webhook mínimo | pendente |
 | F9-D | Card Payment Brick | pendente |
 | F9-E | HMAC completo + concurrency + reconciliação | pendente |
@@ -202,4 +202,4 @@ Nunca misturar tokens test/prod.
 
 ## 15. STOP atual
 
-F9-A impl **fechada**. **Não** iniciar F9-B (Edge/SDK/webhook) até `MARCHA F9-B`.
+F9-B **fechada**. **Não** iniciar F9-C (Pix UI / webhook) até `MARCHA F9-C`.
