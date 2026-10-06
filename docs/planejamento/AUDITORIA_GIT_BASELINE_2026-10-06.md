@@ -1,67 +1,31 @@
-# Auditoria baseline Git — 2026-10-06 (estado REAL revalidado)
+# Auditoria baseline Git — FINAL 2026-10-06
 
-**Coletado em:** 2026-10-06 ~15:35 (local)  
-**HEAD no momento:** `dev` @ `454ce50`  
+**Coletado em:** 2026-10-06 ~16:15 (local)  
 **Remote:** `origin` → `https://github.com/efe777-creator/FAL-PECAS-AUTOMOTIVAS.git`  
-**safe.directory:** OK  
-**Opção A:** FECHADA (Plano Mestre §6.4)
+**Opção A / Gate F8.5:** **FECHADOS**  
+**PR #1:** MERGED
 
 ---
 
-## Correção da discrepância tip
+## Tips atuais
 
-| Ref | Tip real | Não confundir com |
-|-----|----------|-------------------|
-| `dev` / `origin/dev` / `HEAD` | **`454ce50`** | — |
-| `main` / `origin/main` | **`aa83df5`** | NÃO é tip de `dev` |
-| `plan` / `origin/plan` | **`9d552d2`** | — |
+| Branch | Tip | Nota |
+|--------|-----|------|
+| `main` / `origin/main` | **`762c697`** | Merge PR #1 (`dev→main`) |
+| `dev` / `origin/dev` | **`ae4c054`** | ancestral de main (fast-forward via merge commit) |
+| `plan` / `origin/plan` | _(docs gate final)_ | só docs |
 
-**Por que a auditoria antiga dizia `dev = aa83df5`?**  
-Esse era o tip **histórico** (quando `dev ≡ main`). Depois entraram 5 commits em `dev`.  
-`aa83df5` **é ancestral** de `dev` (está no histórico), mas o tip atual de `dev` é `454ce50`.  
-A cópia do arquivo `AUDITORIA_GIT_*` vista em checkout `dev` podia estar **desatualizada** porque a reauditoria vivia só em `plan` (`3edf68d`/`9d552d2` ∉ `dev`).
+`main` contém F8.4 + F8.5 (+P1) + F9-A.
 
----
+### Feature branches (já ancestral de `main`)
 
-## Branches
-
-| Branch | Tip | Tracking | Nota |
-|--------|-----|----------|------|
-| `plan` | `9d552d2` | `origin/plan` | só docs |
-| `dev` | `454ce50` | `origin/dev` | F8.4 + F8.5 código + F9-A |
-| `main` | `aa83df5` | `origin/main` | atrasada 5 commits |
-
-`main...dev` = `0 | 5` (main atrás; correto — sem promoção).
-
-### Commits em `dev` e não em `main`
-
-1. `0eb01f8` docs(f8.1)…  
-2. `3d016f7` docs(f8): Opção A…  
-3. `bba6c47` feat(f8.4)…  
-4. `f1fe91c` feat(f8.5)…  
-5. `454ce50` feat(f9-a)…
-
-### Feature branches (locais)
-
-| Branch | Tip | Já ancestral de `dev`? |
-|--------|-----|------------------------|
-| `feat/f8.4-baseline` | `bba6c47` | sim — **não re-mergear** |
-| `feat/f8.5-list-extra-cost-percent` | `f1fe91c` | sim — **não re-mergear** |
-| `feat/f9-a-frete-correios` | `454ce50` | sim (= tip `dev`) |
-
----
-
-## Working tree em `dev` (não publicar neste pacote)
-
-### UI vitrine — fora da trilha
-- `M` CategoryCard / ProductCard  
-- `??` `categoryEmoji.ts` (+ test), `public/icons/categories/*.png`
-
-### Outros tracked
-- `M` `docs/entrada/IMPORT.md`
-
-### Ruído — **nunca versionar**
-`agent-tools-*`, `fal-pecas/supabase/.temp/`, `ARQUIVOS IMPORTAÇÕES/`
+| Branch | Tip | Nota |
+|--------|-----|------|
+| `feat/f8.4-baseline` | `bba6c47` | não re-mergear |
+| `feat/f8.5-list-extra-cost-percent` | `f1fe91c` | não re-mergear |
+| `feat/f8.5-p1-list-select-save-order` | `27c53bf` | não re-mergear |
+| `feat/f9-a-frete-correios` | `454ce50` | não re-mergear |
+| `feat/vitrine-category-icons` | `69ed277` | **fora** da trilha — ainda não em `dev`/`main` |
 
 ---
 
@@ -69,16 +33,17 @@ A cópia do arquivo `AUDITORIA_GIT_*` vista em checkout `dev` podia estar **desa
 
 | Item | Status |
 |------|--------|
-| Prepared F8.5 | `…/20261006160000_list_extra_cost_percent_prepared.sql` versionada |
-| `db push` | **NÃO** |
-| Smoke pós-apply | **PENDENTE** |
-| PR `dev→main` | **NÃO** abrir até gate |
+| Prepared F8.5 | versionada + **aplicada** no linked |
+| `schema_migrations` `20261006160000` | **registrada** (insert pontual) |
+| Smoke pós-apply | SQL **PASS** (limites de seed aceitos) |
+| PR `dev→main` | **MERGED** #1 |
+| F9-A | **validado** em `main` (testes shipping PASS) |
 
 ---
 
-## Conclusão deste pacote
+## Conclusão
 
-1. Tip real de `dev` = **`454ce50`** (não `aa83df5`).  
-2. Baseline de código em `dev` **já preparado** — promoção F8.4/F8.5/F9-A **já feita** via `feat/*`.  
-3. Próximo gate operacional: protocolo F8.5 apply (auth → `db push` → smoke) — **sem** mexer em `main` ainda.  
-4. UI vitrine e ruído ficam fora até auth separada.
+1. Pacote crítico F8.4/F8.5/F9-A está em **`main` @ `762c697`**.  
+2. Gate F8.5 **fechado**.  
+3. Próximo trabalho: F9-B+ ou vitrine — **só com auth explícita**.  
+4. Não rodar repair em massa sem auth.

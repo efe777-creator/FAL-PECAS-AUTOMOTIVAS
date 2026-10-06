@@ -1,6 +1,6 @@
-# Protocolo passos 4→9 (gated) — 2026-10-06
+# Protocolo passos 4→9 (gated) — FINAL 2026-10-06
 
-Documento de execução da sequência corrigida. **Não substitui** autorização explícita para publish perigoso (`db push`, merge `main`).
+Documento de execução da sequência corrigida.
 
 ## Papéis
 
@@ -12,21 +12,21 @@ Documento de execução da sequência corrigida. **Não substitui** autorizaçã
 
 ## Checklist
 
-| Passo | Ação | Resultado nesta sessão |
-|-------|------|------------------------|
-| 4 | Commit+push docs em `plan` (auditoria + gate) | **feito** (`3edf68d` em `plan`) |
-| 5 | F8.4 → `dev` | **já feito** (`bba6c47`) — sem re-merge |
-| 6 | F8.5 feat → test/build → (auth) apply → smoke → merge `dev` | código **já em `dev`**; apply/smoke **aguardam auth** |
-| 7 | PR `dev→main` | **não** — gate F8.5 incompleto |
-| 8 | Init F9 docs em `plan` | **já feito** (`1940e12`) |
-| 9 | F9-A `feat/f9-a-frete-correios` → `dev` | **já feito** (`454ce50`) |
+| Passo | Ação | Resultado |
+|-------|------|-----------|
+| 4 | Commit+push docs em `plan` (auditoria + gate) | **feito** |
+| 5 | F8.4 → `dev` | **feito** (`bba6c47`) |
+| 6 | F8.5 feat → test/build → apply → smoke → merge `dev` | **feito** (`ae4c054` + apply + histórico) |
+| 7 | PR `dev→main` | **MERGED** [#1](https://github.com/efe777-creator/FAL-PECAS-AUTOMOTIVAS/pull/1) → `762c697` |
+| 8 | Init F9 docs em `plan` | **feito** |
+| 9 | F9-A `feat/f9-a-frete-correios` → `dev` → `main` | **feito** (`454ce50` ⊂ `762c697`) |
 
-## Bloqueios explícitos (não fazer sem nova auth)
+## Bloqueios residuals (não fazer sem nova auth)
 
-1. `supabase db push` / apply da prepared F8.5  
-2. Abrir ou mergear PR `dev→main`  
-3. Force-push / alterar remote  
-4. Commitar UI vitrine (ícones / ProductCard clamp) no meio desta trilha  
+1. `migration repair` em massa / `db push` completo (histórico remoto divergente)
+2. Force-push / alterar remote
+3. Merge UI vitrine → `dev`/`main`
+4. Iniciar F9-B…E sem auth explícita
 
 ## Fora de escopo
 

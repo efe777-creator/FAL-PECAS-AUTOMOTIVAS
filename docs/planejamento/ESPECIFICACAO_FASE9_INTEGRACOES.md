@@ -1,6 +1,6 @@
 # Especificação Fase 9 — Integrações + qualidade
 
-**Status:** INICIALIZAÇÃO — docs + F9-A a partir de `dev` (F8.4/F8.5 código em `dev`; apply migration F8.5 pendente).  
+**Status:** F9-A **DONE** em `main` (`762c697`). F9-B…E abertas.  
 **Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9 · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md)  
 **Princípio F6:** checkout e admin continuam falando com **contratos internos FAL**; F9 troca **adapters**, não redesenha fluxos.
 
@@ -41,7 +41,7 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 4. Fatias sugeridas (ordem)
 
-1. **F9-A — Frete Correios (sandbox)** — cotação PAC/SEDEX; origem [AdminShippingOriginPage](../../fal-pecas/src/pages/admin/shipping/AdminShippingOriginPage.tsx)
+1. **F9-A — Frete Correios (sandbox)** — **DONE** — cotação PAC/SEDEX; `VITE_SHIPPING_PROVIDER=correios`; testes unitários PASS
 2. **F9-B — Frenet ou agregador** — multi-transportadora
 3. **F9-C — Pagamento gateway** — criar pedido + confirmar pagamento; mapear para `confirm_simulated_payment` ou RPC dedicada com mesmo efeito no ciclo F7
 4. **F9-D — Observabilidade** — logs estruturados, alertas falha cotação/pagamento
@@ -51,21 +51,20 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 5. Critérios de saída (Fase 9)
 
-- [ ] Checkout produz cotações reais (≥1 provider) em sandbox
+- [x] Checkout produz cotações reais (≥1 provider) em sandbox — **F9-A Correios sandbox**
 - [ ] Pagamento sandbox completa ciclo até status compatível com F7 (confirmação)
-- [ ] Adapters isolados — troca de provider sem alterar páginas checkout
+- [x] Adapters isolados — troca de provider sem alterar páginas checkout — **via `VITE_SHIPPING_PROVIDER` / `setShippingProvider`**
 - [ ] Documentação de env vars e rotação de secrets
-- [ ] Regressão F7/F8 smoke mínima PASS pós-integração
+- [ ] Regressão F7/F8 smoke mínima PASS pós-integração pagamento
 
 ---
 
 ## 6. Dependências
 
-- **F8.4** código em `dev` + docs em `plan` (2026-10-06).
-- **F8.5 Opção A** código/prepared em `dev`; **apply migration** ainda pendente de autorização + smoke.
-- Contas sandbox: Correios/Frenet/gateway (credenciais eFe).
+- **F8.4** + **F8.5 Opção A** + P1 em `main` (`762c697`).
+- **Apply migration F8.5** feito + histórico `schema_migrations` registrado.
+- Contas sandbox: Correios/Frenet/gateway (credenciais eFe) — para HTTP real / F9-B+.
 - Supabase: possíveis migrations leves (webhook secrets, payment_attempts) — gate separado.
-- Promote `main`: só após gate F8.5 + aprovação humana.
 
 ---
 
@@ -81,4 +80,4 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 8. Próximo passo
 
-Abrir **F9-A** (`feat/f9-a-frete-correios`) a partir de `dev`. Não implementar F9-B…E até F9-A mergeado.
+Abrir **F9-B** (`feat/f9-b-…`) a partir de `dev`/`main` com auth explícita. Não implementar F9-C…E até F9-B (ou decisão de pular agregador).
