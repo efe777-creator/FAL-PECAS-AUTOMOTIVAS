@@ -1,31 +1,22 @@
-# Gate F8.5 — status 2026-10-06 (conclusão pré-migration)
+﻿# Gate F8.5 — status 2026-10-06 (pós-apply)
 
 | Item | Status |
 |------|--------|
-| Opção A | **FECHADA** (Plano Mestre §6.4) |
-| Código F8.5 + prepared SQL | em `dev` (`f1fe91c` ⊂ tip) |
-| P1-1 LIST_SELECT `%` + fallback | **PASS** — `feat/f8.5-p1-list-select-save-order` @ `27c53bf` → `dev` `ae4c054` |
-| P1-2 ordem save `%` → regra/recalc | **PASS** |
-| Testes | **73 PASS** / 11 files (pós-P1) |
-| Build | **PASS** |
-| Smoke **pré-migration** (`/admin/precos`) | **PASS** — `pendingMigration` ao salvar `%`; regra salva; manual skip; preview `40→46` @ 10%; sem vazamento entre listas |
-| Smoke pós-apply | **PENDENTE** |
-| `db push` / apply `20261006160000_…` | **NÃO EXECUTADO** — exige frase explícita (este relatório **não** autoriza) |
-| PR `dev→main` | **não aberto** |
-| `feat/vitrine-category-icons` | **fora** (intacta) |
-
-## Tips
-
-| Branch | Tip |
-|--------|-----|
-| `dev` | `ae4c054` |
-| `feat/f8.5-p1-list-select-save-order` | `27c53bf` |
-| `main` | `aa83df5` (atrasada) |
+| Opção A | **FECHADA** |
+| Código em `dev` | `ae4c054` (P1 incluso) |
+| Apply prepared `20261006160000…` | **APLICADO** via `supabase db query --linked -f` (`db push` completo bloqueado por histórico remoto divergente — SQL prepared idempotente executado) |
+| Coluna `list_extra_cost_percent` | **existe** (numeric) |
+| Overload `compute_item_cost_total(..., price_list_id)` | **existe** |
+| Persistência `%` (Promocional=10) | **PASS** |
+| Manual TDI1083 R$ 55 | **estável** (origin manual) |
+| Preview TS `40→46` @ 10% | **PASS** |
+| Smoke UI save pós-apply | parcial (confirm dialog / ambiente); SQL confirma coluna+persistência |
+| Recalc calculated com custo real | **N/A dataset** — nenhum `product_base_cost` populado no ambiente |
+| Checkout smoke | **pendente** (sem SKU calculated com custo) |
+| PR `dev→main` | **não aberto** — STOP |
 
 ## STOP
 
-Pré-migration **concluída**. Próximo só com auth explícita:
+Apply + evidências SQL OK. PR `dev→main` só com sua autorização humana após aceitar limites do smoke (sem custo base no seed).
 
-`autorizo db push da prepared 20261006160000_list_extra_cost_percent_prepared.sql`
-
-Depois: smoke pós-apply → auth PR `dev→main`.
+Nota: `supabase db push --linked` falhou com `DbPushMissingLocalError` (versões remotas ausentes localmente). Não rodamos `migration repair` em massa. Apply foi o arquivo prepared pontual.
