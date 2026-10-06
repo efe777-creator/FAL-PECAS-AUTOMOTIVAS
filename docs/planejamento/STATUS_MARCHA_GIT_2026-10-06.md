@@ -1,17 +1,19 @@
-﻿# Status marcha Git — F9-E webhook hardening 2026-10-06
+﻿# Status marcha Git — Operadores admin 2026-10-06
 
-**main tip:** `5d7086a` (PR#12) · **dev tip:** `1a26e3d` (PR#11)  
-**feat tip:** `3879898` (`feat/f9-e-webhook-hardening`) · **plan tip:** sync após este commit
+**main / dev tip:** `8ac2780` (PR#15) · **feat tip:** `f12950e`
 
-## Diff principal
+## Confirmado
 
-- `fal-pecas/src/services/payments/mpWebhookCore.ts` (+test)
-- `fal-pecas/supabase/functions/_shared/mpWebhookCore.ts`
-- `fal-pecas/supabase/functions/mercado-pago-webhook/index.ts`
-- Docs STOP / checklist / relatório F9-E
+- Migration aplicada (`admin_search_users`, `admin_set_user_role`)
+- UI `/admin/operadores` no menu Operação
+- 124 testes + build OK
+- Staff: `efe.comercioltda@gmail.com` = administrador
+- `lucasfeliciober@gmail.com`: sem conta Auth ainda — cadastrar e promover na tela
+
+## Uso
+
+Admin → Operadores → pesquisar e-mail → definir role (ou Cliente para revogar).
 
 ## STOP
 
-Sem F9-F · sem produção · sem commit de secrets.
-
-**Próximo:** `MARCHA F9-F` (ou secret humano + smoke, se prioridade).
+Sem F9-F neste pacote. Sem secrets no git.
