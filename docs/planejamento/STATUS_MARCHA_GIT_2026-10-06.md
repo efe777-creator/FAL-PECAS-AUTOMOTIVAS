@@ -1,7 +1,7 @@
 ﻿# Status marcha Git — F9-E webhook hardening 2026-10-06
 
-**Branch:** `feat/f9-e-webhook-hardening`  
-**Alvo:** PR → `main` (via fluxo habitual)
+**main tip:** `5d7086a` (PR#12) · **dev tip:** `1a26e3d` (PR#11)  
+**feat tip:** `3879898` (`feat/f9-e-webhook-hardening`) · **plan tip:** sync após este commit
 
 ## Diff principal
 
