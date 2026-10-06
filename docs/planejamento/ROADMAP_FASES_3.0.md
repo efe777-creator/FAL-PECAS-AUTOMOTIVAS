@@ -311,6 +311,8 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 9 — Integrações + qualidade
 
+**Status (2026-10-06):** **Inicialização** — ver [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) e [ESPECIFICACAO_FASE9…](./ESPECIFICACAO_FASE9_INTEGRACOES.md). Primeira fatia **F9-A Correios sandbox**.
+
 **Pergunta:** Como conectamos externos e endurecemos o sistema?
 
 **Escopo:** **gateway real de pagamento** e **APIs/provedores de frete/transportadoras** (substituem adapters mock/simulado da F6 sem redesenhar o checkout); HF; analytics; SEO; segurança; performance; a11y; testes automatizados; monitoramento.

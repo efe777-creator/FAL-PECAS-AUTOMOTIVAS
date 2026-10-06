@@ -1,7 +1,7 @@
-# Especificação Fase 9 — Integrações + qualidade (rascunho)
+# Especificação Fase 9 — Integrações + qualidade
 
-**Status:** PLANEJAMENTO — não implementar antes do commit/push F8.1 fechados.  
-**Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9  
+**Status:** INICIALIZAÇÃO — docs + F9-A a partir de `dev` (F8.4/F8.5 código em `dev`; apply migration F8.5 pendente).  
+**Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9 · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md)  
 **Princípio F6:** checkout e admin continuam falando com **contratos internos FAL**; F9 troca **adapters**, não redesenha fluxos.
 
 ---
@@ -61,9 +61,11 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 6. Dependências
 
-- **F8.1 fechada:** commit Git com 5 migrations + código; smoke live H PASS
-- Contas sandbox: Correios/Frenet/gateway (credenciais eFe)
-- Supabase: possíveis migrations leves (webhook secrets, payment_attempts) — gate separado
+- **F8.4** código em `dev` + docs em `plan` (2026-10-06).
+- **F8.5 Opção A** código/prepared em `dev`; **apply migration** ainda pendente de autorização + smoke.
+- Contas sandbox: Correios/Frenet/gateway (credenciais eFe).
+- Supabase: possíveis migrations leves (webhook secrets, payment_attempts) — gate separado.
+- Promote `main`: só após gate F8.5 + aprovação humana.
 
 ---
 
@@ -79,4 +81,4 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 8. Próximo passo
 
-Após **commit + push F8.1**, revisar este rascunho com eFe (prioridade frete vs pagamento) e abrir **F9-A** com gate de implementação próprio.
+Abrir **F9-A** (`feat/f9-a-frete-correios`) a partir de `dev`. Não implementar F9-B…E até F9-A mergeado.
