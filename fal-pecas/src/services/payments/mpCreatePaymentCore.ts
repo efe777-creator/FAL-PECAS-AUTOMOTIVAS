@@ -1,6 +1,7 @@
 /**
  * Núcleo puro F9-B — create payment Mercado Pago (testável sem Deno/Edge).
  * Fonte de verdade do amount: sempre server (order.total). FE não dita valor.
+ * Body client permitido: somente { orderId }. Method = pix (server-side F9-B).
  */
 
 export type MpCreateMethod = 'pix' | 'credit_card' | 'debit_card'
@@ -9,6 +10,11 @@ export interface MpCreatePaymentRequestBody {
   orderId?: unknown
   amount?: unknown
   method?: unknown
+  status?: unknown
+  payment_method?: unknown
+  provider_payment_id?: unknown
+  external_reference?: unknown
+  customer_id?: unknown
 }
 
 export interface MpPayerInput {
@@ -27,22 +33,33 @@ export interface BuildMpPaymentBodyInput {
   payer: MpPayerInput
 }
 
-/** Rejeita amount vindo do client — só orderId (+ method opcional). */
+const FORBIDDEN_CLIENT_KEYS = [
+  'amount',
+  'method',
+  'status',
+  'payment_method',
+  'provider_payment_id',
+  'external_reference',
+  'customer_id',
+] as const
+
+/** Só orderId. Rejeita amount/method/status e demais campos financeiros do FE. */
 export function parseCreateMpPaymentClientBody(body: MpCreatePaymentRequestBody): {
   orderId: string
-  method: MpCreateMethod
 } {
-  if (body.amount !== undefined && body.amount !== null) {
-    throw new Error('amount não pode ser enviado pelo client; use total do pedido no servidor')
+  for (const key of FORBIDDEN_CLIENT_KEYS) {
+    if (body[key] !== undefined && body[key] !== null) {
+      throw new Error(`campo '${key}' não permitido no client; use somente orderId`)
+    }
   }
   const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
   if (!orderId) throw new Error('orderId obrigatório')
+  return { orderId }
+}
 
-  const raw = typeof body.method === 'string' ? body.method.toLowerCase() : 'pix'
-  const method: MpCreateMethod =
-    raw === 'credit_card' || raw === 'debit_card' || raw === 'pix' ? raw : 'pix'
-
-  return { orderId, method }
+/** Método fixo F9-B (Pix); cartão = F9-D. */
+export function serverPaymentMethod(): MpCreateMethod {
+  return 'pix'
 }
 
 export function buildIdempotencyKey(paymentId: string): string {
@@ -91,7 +108,10 @@ export interface MpPaymentApiResponse {
   date_of_expiration?: string
 }
 
-/** Mapeia resposta MP → colunas FAL (sempre pending interno até webhook). */
+/**
+ * Mapeia resposta MP → colunas FAL.
+ * status interno SEMPRE pending nesta fatia (mesmo se provider_status=approved).
+ */
 export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   provider_payment_id: string
   provider_status: string | null
@@ -101,6 +121,7 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   payment_url: string | null
   expires_at: string | null
   status: 'pending'
+  orderApproved: false
 } {
   const td = mp.point_of_interaction?.transaction_data
   const id = mp.id != null ? String(mp.id) : ''
@@ -115,5 +136,6 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
     payment_url: td?.ticket_url ?? null,
     expires_at: mp.date_of_expiration ?? null,
     status: 'pending',
+    orderApproved: false,
   }
 }

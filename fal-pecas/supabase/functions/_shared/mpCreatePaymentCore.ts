@@ -1,6 +1,5 @@
 /**
  * Cópia Deno do núcleo F9-B (espelha src/services/payments/mpCreatePaymentCore.ts).
- * Manter alinhado — testes unitários vivem no Vite/vitest.
  */
 
 export type MpCreateMethod = 'pix' | 'credit_card' | 'debit_card'
@@ -9,29 +8,38 @@ export interface MpCreatePaymentRequestBody {
   orderId?: unknown
   amount?: unknown
   method?: unknown
+  status?: unknown
+  payment_method?: unknown
+  provider_payment_id?: unknown
+  external_reference?: unknown
+  customer_id?: unknown
 }
 
-export interface MpPayerInput {
-  email: string
-  firstName?: string
-  lastName?: string
-  identificationType?: 'CPF' | 'CNPJ'
-  identificationNumber?: string
-}
+const FORBIDDEN = [
+  'amount',
+  'method',
+  'status',
+  'payment_method',
+  'provider_payment_id',
+  'external_reference',
+  'customer_id',
+] as const
 
 export function parseCreateMpPaymentClientBody(body: MpCreatePaymentRequestBody): {
   orderId: string
-  method: MpCreateMethod
 } {
-  if (body.amount !== undefined && body.amount !== null) {
-    throw new Error('amount não pode ser enviado pelo client; use total do pedido no servidor')
+  for (const key of FORBIDDEN) {
+    if ((body as Record<string, unknown>)[key] !== undefined && (body as Record<string, unknown>)[key] !== null) {
+      throw new Error(`campo '${key}' não permitido no client; use somente orderId`)
+    }
   }
   const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
   if (!orderId) throw new Error('orderId obrigatório')
-  const raw = typeof body.method === 'string' ? body.method.toLowerCase() : 'pix'
-  const method: MpCreateMethod =
-    raw === 'credit_card' || raw === 'debit_card' || raw === 'pix' ? raw : 'pix'
-  return { orderId, method }
+  return { orderId }
+}
+
+export function serverPaymentMethod(): MpCreateMethod {
+  return 'pix'
 }
 
 export function buildIdempotencyKey(paymentId: string): string {
@@ -44,7 +52,13 @@ export function buildMpPaymentBody(input: {
   description: string
   paymentMethodId: MpCreateMethod
   externalReference: string
-  payer: MpPayerInput
+  payer: {
+    email: string
+    firstName?: string
+    lastName?: string
+    identificationType?: 'CPF' | 'CNPJ'
+    identificationNumber?: string
+  }
 }): Record<string, unknown> {
   if (!(input.transactionAmount > 0)) throw new Error('transaction_amount inválido')
   const payer: Record<string, unknown> = { email: input.payer.email }
@@ -90,5 +104,6 @@ export function mapMpResponseToPaymentFields(mp: {
     payment_url: td?.ticket_url ?? null,
     expires_at: mp.date_of_expiration ?? null,
     status: 'pending' as const,
+    orderApproved: false as const,
   }
 }
