@@ -14,7 +14,7 @@ Documento de execução da sequência corrigida. **Não substitui** autorizaçã
 
 | Passo | Ação | Resultado nesta sessão |
 |-------|------|------------------------|
-| 4 | Commit+push docs em `plan` (auditoria + gate) | a executar se tip mudar |
+| 4 | Commit+push docs em `plan` (auditoria + gate) | **feito** (`3edf68d` em `plan`) |
 | 5 | F8.4 → `dev` | **já feito** (`bba6c47`) — sem re-merge |
 | 6 | F8.5 feat → test/build → (auth) apply → smoke → merge `dev` | código **já em `dev`**; apply/smoke **aguardam auth** |
 | 7 | PR `dev→main` | **não** — gate F8.5 incompleto |
