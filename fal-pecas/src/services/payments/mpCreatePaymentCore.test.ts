@@ -63,4 +63,33 @@ describe('buildIdempotencyKey / buildMpPaymentBody / mapMpResponse', () => {
     expect(fields.provider_status).toBe('approved')
     expect(fields.orderApproved).toBe(false)
   })
+
+  it('aceita cartão token sem amount', () => {
+    expect(
+      parseCreateMpPaymentClientBody({
+        orderId: 'o1',
+        token: 'tok',
+        paymentMethodId: 'master',
+        installments: 3,
+      }),
+    ).toMatchObject({
+      orderId: 'o1',
+      card: { token: 'tok', paymentMethodId: 'master', installments: 3 },
+    })
+  })
+
+  it('monta body cartão com token', () => {
+    const body = buildMpPaymentBody({
+      transactionAmount: 50,
+      description: 'Pedido',
+      paymentMethodId: 'visa',
+      externalReference: 'o1',
+      payer: { email: 'a@b.com' },
+      token: 'tok-1',
+      installments: 2,
+    })
+    expect(body.token).toBe('tok-1')
+    expect(body.installments).toBe(2)
+    expect(body.payment_method_id).toBe('visa')
+  })
 })

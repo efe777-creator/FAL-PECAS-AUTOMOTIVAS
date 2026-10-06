@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
 import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -62,9 +63,13 @@ export function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
   const mpEnabled = isMercadoPagoCheckoutEnabled()
+  const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
+  const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
   const [mpAwaiting, setMpAwaiting] = useState<{
+    channel: 'pix' | 'card'
     orderId: string
-    paymentId: string
+    paymentId?: string
+    amount: number
   } | null>(null)
 
   const onMpApproved = useCallback(
@@ -73,6 +78,14 @@ export function CheckoutPage() {
       navigate(`/conta/pedidos/${oid}`)
     },
     [navigate, push],
+  )
+
+  const onMpError = useCallback(
+    (msg: string) => {
+      setError(msg)
+      push(msg, 'error')
+    },
+    [push],
   )
 
   useEffect(() => {
@@ -229,9 +242,27 @@ export function CheckoutPage() {
       }
 
       if (mpEnabled) {
+        if (mpChannel === 'card') {
+          if (!mpPublicKey) {
+            throw new Error('VITE_MP_PUBLIC_KEY não configurada')
+          }
+          clear()
+          setMpAwaiting({
+            channel: 'card',
+            orderId: placed.orderId,
+            amount: placed.total,
+          })
+          push('Pedido criado — informe o cartão', 'success')
+          return
+        }
         const mp = await createMercadoPagoPayment(placed.orderId)
         clear()
-        setMpAwaiting({ orderId: placed.orderId, paymentId: mp.paymentId })
+        setMpAwaiting({
+          channel: 'pix',
+          orderId: placed.orderId,
+          paymentId: mp.paymentId,
+          amount: placed.total,
+        })
         push('Cobrança Pix criada — aguardando pagamento', 'success')
         return
       }
@@ -460,14 +491,28 @@ export function CheckoutPage() {
             <div className="space-y-4">
               {mpEnabled ? (
                 <>
-                  <h2 className="mt-0 text-lg font-extrabold">Pagamento — Pix</h2>
+                  <h2 className="mt-0 text-lg font-extrabold">Pagamento — Mercado Pago</h2>
                   <p className="text-sm text-fal-muted">
-                    Ao finalizar, geramos a cobrança Pix no Mercado Pago. A confirmação chega via
-                    webhook — esta tela não marca o pedido como pago.
+                    Pix ou cartão. Confirmação só via webhook — esta tela não marca o pedido como
+                    pago.
                   </p>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
-                    <input type="radio" name="pay" checked readOnly />
-                    <span className="text-sm font-semibold">Pix (Mercado Pago)</span>
+                    <input
+                      type="radio"
+                      name="mpChannel"
+                      checked={mpChannel === 'pix'}
+                      onChange={() => setMpChannel('pix')}
+                    />
+                    <span className="text-sm font-semibold">Pix</span>
+                  </label>
+                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                    <input
+                      type="radio"
+                      name="mpChannel"
+                      checked={mpChannel === 'card'}
+                      onChange={() => setMpChannel('card')}
+                    />
+                    <span className="text-sm font-semibold">Cartão (crédito/débito)</span>
                   </label>
                 </>
               ) : (
@@ -504,11 +549,23 @@ export function CheckoutPage() {
           {step === 4 ? (
             <div className="space-y-4">
               {mpAwaiting ? (
-                <MercadoPagoPixPanel
-                  paymentId={mpAwaiting.paymentId}
-                  orderId={mpAwaiting.orderId}
-                  onApproved={onMpApproved}
-                />
+                mpAwaiting.channel === 'card' ? (
+                  <MercadoPagoCardBrickPanel
+                    orderId={mpAwaiting.orderId}
+                    amount={mpAwaiting.amount}
+                    publicKey={mpPublicKey}
+                    onApproved={onMpApproved}
+                    onError={onMpError}
+                  />
+                ) : mpAwaiting.paymentId ? (
+                  <MercadoPagoPixPanel
+                    paymentId={mpAwaiting.paymentId}
+                    orderId={mpAwaiting.orderId}
+                    onApproved={onMpApproved}
+                  />
+                ) : (
+                  <Loading label="Preparando Pix…" />
+                )
               ) : (
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Revisão</h2>
@@ -530,7 +587,9 @@ export function CheckoutPage() {
                     <p>
                       <strong>Pagamento:</strong>{' '}
                       {mpEnabled
-                        ? 'Pix (Mercado Pago)'
+                        ? mpChannel === 'card'
+                          ? 'Cartão (Mercado Pago)'
+                          : 'Pix (Mercado Pago)'
                         : paymentMethod === 'pix_simulated'
                           ? 'Pix simulado'
                           : 'Cartão simulado'}
@@ -552,7 +611,11 @@ export function CheckoutPage() {
                       disabled={submitting}
                       onClick={() => void finalize('approve')}
                     >
-                      {submitting ? 'Gerando Pix…' : 'Gerar cobrança Pix'}
+                      {submitting
+                        ? 'Processando…'
+                        : mpChannel === 'card'
+                          ? 'Continuar para cartão'
+                          : 'Gerar cobrança Pix'}
                     </Button>
                   ) : (
                     <div className="flex flex-col gap-2 sm:flex-row">
