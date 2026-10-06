@@ -73,7 +73,7 @@ Ver [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md) § security — sem
 
 ### 12. Commit hash
 
-*(preenchido no promote — tip do commit de conformidade)*
+`1d3f937` — `fix(f9-b): conform create-mp-payment to Prompt Mestre`
 
 ### 13. Push
 
@@ -81,18 +81,18 @@ Branch `feat/f9-b-mp-create-payment-conform` → origin.
 
 ### 14. PR
 
-PR de conformidade → `main` (padrão do repo via `dev` se aplicável).
+PR de conformidade → `main` via `dev` (padrão do repo).
 
 ### 15. Merge
 
-Core F9-B: PR **#6** @ `06be4e4`. Gap-close: PR deste pacote.
+Core F9-B: PR **#6** @ `06be4e4`. Gap-close: tip `1d3f937` (+ merge commits).
 
 ### 16. Estado final main / dev / plan
 
-| Branch | Tip (atualizar pós-merge) |
-|--------|---------------------------|
-| `main` | pós-merge conform |
-| `dev` | pós-merge conform |
+| Branch | Tip |
+|--------|-----|
+| `main` | pós-merge PR conformidade |
+| `dev` | inclui `1d3f937` |
 | `plan` | docs STOP + checklist + relatório |
 
 ### 17. STOP F9-B
