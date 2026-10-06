@@ -1,6 +1,6 @@
 # Especificação Fase 9 — Integrações + qualidade
 
-**Status:** F9-A **DONE** em `main` (`762c697`). F9-B…E abertas.  
+**Status:** F9-A + **F9-B DONE** em `main` (`ede8acf`). F9-C…E abertas.  
 **Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9 · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md)  
 **Princípio F6:** checkout e admin continuam falando com **contratos internos FAL**; F9 troca **adapters**, não redesenha fluxos.
 
@@ -42,7 +42,7 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 ## 4. Fatias sugeridas (ordem)
 
 1. **F9-A — Frete Correios (sandbox)** — **DONE** — cotação PAC/SEDEX; `VITE_SHIPPING_PROVIDER=correios`; testes unitários PASS
-2. **F9-B — Frenet ou agregador** — multi-transportadora
+2. **F9-B — Frenet ou agregador** — **DONE** — multi-transportadora sandbox; `VITE_SHIPPING_PROVIDER=frenet`
 3. **F9-C — Pagamento gateway** — criar pedido + confirmar pagamento; mapear para `confirm_simulated_payment` ou RPC dedicada com mesmo efeito no ciclo F7
 4. **F9-D — Observabilidade** — logs estruturados, alertas falha cotação/pagamento
 5. **F9-E — Testes live** — checklist checkout + pedido pago em sandbox
@@ -51,7 +51,7 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 5. Critérios de saída (Fase 9)
 
-- [x] Checkout produz cotações reais (≥1 provider) em sandbox — **F9-A Correios sandbox**
+- [x] Checkout produz cotações reais (≥1 provider) em sandbox — **F9-A Correios + F9-B Frenet**
 - [ ] Pagamento sandbox completa ciclo até status compatível com F7 (confirmação)
 - [x] Adapters isolados — troca de provider sem alterar páginas checkout — **via `VITE_SHIPPING_PROVIDER` / `setShippingProvider`**
 - [ ] Documentação de env vars e rotação de secrets
@@ -80,4 +80,4 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 ## 8. Próximo passo
 
-Abrir **F9-B** (`feat/f9-b-…`) a partir de `dev`/`main` com auth explícita. Não implementar F9-C…E até F9-B (ou decisão de pular agregador).
+Abrir **F9-C** (gateway pagamento) com MARCHA. Não implementar F9-D…E até F9-C.

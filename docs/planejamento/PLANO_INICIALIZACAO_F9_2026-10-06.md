@@ -1,8 +1,8 @@
 # Plano de inicialização — Fase 9
 
 **Data:** 2026-10-06  
-**Status:** F9-A **ENTREGUE** em `main` (`762c697`); F9-B…E ainda não iniciadas  
-**Deps:** F8.4 + F8.5 Opção A + P1 em `main`; migration F8.5 aplicada + registrada; Git `plan`/`dev`/`main` alinhados no pacote crítico.
+**Status:** F9-A + **F9-B DONE** em `main` (`ede8acf`); F9-C…E ainda não iniciadas  
+**Deps:** F8.4 + F8.5 + vitrine + F9-A/B em `main`.
 
 ## Objetivo
 
@@ -12,8 +12,8 @@ Trocar adapters mock de **frete** e **pagamento** por integrações sandbox/reai
 
 | Fatia | Conteúdo | Ordem | Status |
 |-------|----------|-------|--------|
-| F9-A | Frete Correios sandbox | **1ª** | **DONE** (`454ce50` → `dev` → `main`) |
-| F9-B | Frenet / agregador | 2 | pendente |
+| F9-A | Frete Correios sandbox | **1ª** | **DONE** |
+| F9-B | Frenet / agregador sandbox | 2 | **DONE** (`be677a2` → `dev` → `main`) |
 | F9-C | Gateway pagamento | 3 | pendente |
 | F9-D | Observabilidade | 4 | pendente |
 | F9-E | Testes live | 5 | pendente |
@@ -28,26 +28,33 @@ Trocar adapters mock de **frete** e **pagamento** por integrações sandbox/reai
 ## Env (sem valores)
 
 - `VITE_SHIPPING_PROVIDER=correios|mock|frenet|carrier`
-- Credenciais Correios sandbox (quando houver conta)
+- Credenciais Correios/Frenet reais → Edge Function (nunca no frontend)
 
 ## Critérios F9-A
 
-- [x] Provider Correios retorna PAC/SEDEX (ou equivalente sandbox)
-- [x] Origem admin (`AdminShippingOriginPage`) usada (contrato F6C preservado)
-- [x] Fallback seguro se credencial ausente (sandbox determinístico; sem HTTP)
-- [x] Testes unitários do provider (`correiosSandboxProvider.test.ts` — 2 PASS)
+- [x] Provider Correios retorna PAC/SEDEX (sandbox)
+- [x] Fallback seguro sem credencial
+- [x] Testes unitários
+- [x] Sem alterar UX checkout
+
+## Critérios F9-B
+
+- [x] Provider Frenet retorna multi-transportadora (Jadlog / Correios PAC / Total Express)
+- [x] `VITE_SHIPPING_PROVIDER=frenet`
+- [x] Sandbox determinístico sem HTTP / sem token no frontend
+- [x] Testes unitários (`frenetSandboxProvider.test.ts` — 2 PASS)
 - [x] Sem alterar UX checkout
 
 ## Validação 2026-10-06
 
-- Código em `origin/main`: `shippingService` resolve via `VITE_SHIPPING_PROVIDER`
-- `correiosSandboxProvider` em `correiosStubProvider.ts` — PAC/SEDEX
-- Vitest shipping+pricing: **9 PASS**
+- Shipping tests: **4 PASS** (correios + frenet)
+- Build PASS
+- PR #3 MERGED → `main` @ `ede8acf`
 
 ## Fora
 
-WMS, ERP, reescrever F7/F8, guest checkout.
+WMS, ERP, reescrever F7/F8, guest checkout, HTTP Frenet real.
 
 ## Próximo
 
-Abrir **F9-B** só com auth explícita. Não iniciar F9-C…E até F9-B (ou decisão de pular agregador).
+**F9-C** (gateway pagamento) — só com MARCHA/auth. Não iniciar F9-D…E até F9-C.

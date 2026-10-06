@@ -11,11 +11,11 @@
 
 | Branch | Tip | Nota |
 |--------|-----|------|
-| `main` / `origin/main` | **`5d5b545`** | PR #2 vitrine; inclui #1 (`762c697`) |
-| `dev` / `origin/dev` | **`a32d499`** | F8.x + F9-A + vitrine |
+| `main` / `origin/main` | **`ede8acf`** | PR #3 F9-B; inclui vitrine (#2) + F8.5 (#1) |
+| `dev` / `origin/dev` | **`b061abf`** | F8.x + F9-A/B + vitrine |
 | `plan` / `origin/plan` | _(docs)_ | só docs |
 
-`main` contém F8.4 + F8.5 (+P1) + F9-A + vitrine.
+`main` contém F8.4 + F8.5 (+P1) + F9-A + vitrine + **F9-B**.
 
 ### Feature branches (já ancestral de `main`)
 
@@ -43,7 +43,7 @@
 
 ## Conclusão
 
-1. Pacote crítico F8.4/F8.5/F9-A + vitrine em **`main` @ `5d5b545`**.  
-2. Gate F8.5 **fechado**; vitrine **promovida** (PR #2).  
-3. Próximo: F9-B+ ou F8.6+ — **só com auth explícita**.  
+1. Pacote crítico + vitrine + **F9-B** em **`main` @ `ede8acf`**.  
+2. Gate F8.5 **fechado**; F9-A/B **promovidos**.  
+3. Próximo: F9-C ou F8.6+ — **MARCHA**.  
 4. Não rodar repair em massa sem auth.

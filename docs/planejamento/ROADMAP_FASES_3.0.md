@@ -311,7 +311,7 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 9 — Integrações + qualidade
 
-**Status (2026-10-06):** **F9-A DONE** em `main` (`762c697`) — Correios sandbox PAC/SEDEX. Ver [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) e [ESPECIFICACAO_FASE9…](./ESPECIFICACAO_FASE9_INTEGRACOES.md). Próximo: F9-B…E com auth.
+**Status (2026-10-06):** **F9-A + F9-B DONE** em `main` (`ede8acf`) — Correios + Frenet sandbox. Ver [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md). Próximo: F9-C…E / F8.6+ com MARCHA.
 
 **Pergunta:** Como conectamos externos e endurecemos o sistema?
 

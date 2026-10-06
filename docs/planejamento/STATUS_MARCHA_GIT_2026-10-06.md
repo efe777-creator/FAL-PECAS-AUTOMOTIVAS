@@ -1,32 +1,33 @@
-﻿# Status marcha Git — vitrine 2026-10-06
+﻿# Status marcha Git — F9-B 2026-10-06
 
 ## Tips (local ≡ origin)
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `a32d499` |
-| `main` | `5d5b545` (PR #2 mergeado) |
+| `dev` | `b061abf` |
+| `main` | `ede8acf` (PR #3 mergeado) |
 
-## Feito nesta marcha (vitrine)
+## Feito nesta marcha (F9-B)
 
-- Merge `feat/vitrine-category-icons` → `dev` (`a32d499`)
-- Vitest `categoryEmoji` **5 PASS** + build **PASS**
-- **PR #2 `dev→main` MERGED** → `main` @ `5d5b545`
-- Ícones categorias (filtros/freios/suspensão) + clamp ProductCard
+- `feat/f9-b-frenet-sandbox` → `dev` → **PR #3 MERGED**
+- `frenetSandboxProvider`: Jadlog / Correios PAC / Total Express (sandbox)
+- Vitest shipping **4 PASS** + build **PASS**
+- `.env.example` documenta `VITE_SHIPPING_PROVIDER`
 
-## Já fechado (pacote crítico)
+## Já fechado
 
-- F8.5 + P1 + apply/registro migration
+- F8.5 + P1 + migration apply/registro
 - F9-A Correios sandbox
-- PR #1 → `main` @ `762c697` (ancestral)
+- Vitrine (PR #2)
+- F9-B Frenet sandbox (PR #3)
 
-## Fora / residual (nova auth)
+## Fora / residual (MARCHA seguinte)
 
+- F9-C…E
 - F8.6–F8.9
-- F9-B…E
 - Repair em massa
-- Checkout smoke calculated com custo real (sem seed)
+- HTTP real Frenet/Correios (credenciais)
 
 ## Ruído local (não versionar)
 
