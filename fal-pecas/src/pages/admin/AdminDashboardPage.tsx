@@ -31,6 +31,11 @@ const sections: { title: string; cards: DashCard[] }[] = [
       { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos, movimentos e modo da loja' },
       { to: '/admin/frete', title: 'Frete / origem', desc: 'CEP e endereço de origem da loja' },
       { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais mínimos' },
+      {
+        to: '/admin/operadores',
+        title: 'Operadores',
+        desc: 'Liberar ou revogar acesso ao painel por e-mail',
+      },
     ],
   },
 ]
