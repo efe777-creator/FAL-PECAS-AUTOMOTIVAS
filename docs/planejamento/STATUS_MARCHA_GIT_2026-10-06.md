@@ -1,27 +1,20 @@
-﻿# Status marcha Git — F9-C Pix + webhook 2026-10-06
+﻿# Status marcha Git — F9-D Card Brick 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
-| `feat/f9-c-mp-pix-webhook` | _(este pacote)_ |
-| `main` | `d851617` (pré-merge) |
-| `dev` | `3eaf0ef` (pré-merge) |
-| `plan` | sync docs pós-merge |
+| `feat/f9-d-mp-card-brick` | _(este pacote)_ |
+| `main` | `1aef9b6` (pré-merge) |
 
-## Feito (F9-C)
+## Feito
 
-- Edge `mercado-pago-webhook` + core HMAC
-- RPC `confirm_mercadopago_payment` (aplicada no linked)
-- Checkout Pix (`VITE_PAYMENT_PROVIDER=mercadopago`)
-- Vitest payments **37 PASS** + build PASS
+- Card Payment Brick + create-mp-payment com token
+- Checkout Pix | Cartão
+- Tests payments + build PASS
 
 ## STOP
 
-Sem F9-D (cartões/Brick) · sem produção · sem commit de secrets.
+Sem F9-E avançado · sem produção.
 
-**Próximo:** `MARCHA F9-D`.
-
-## Humano
-
-Secrets + deploy Edges + configurar webhook URL no DevPanel MP (app FALPecasSandbox).
+**Próximo:** `MARCHA F9-E` (ou prioridade humana).

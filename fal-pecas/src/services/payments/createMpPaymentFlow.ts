@@ -1,5 +1,5 @@
 /**
- * Fluxo F9-B testável (deps injetáveis) — casos A–I do Prompt Mestre.
+ * Fluxo create-mp-payment testável (deps injetáveis) — F9-B/C/D.
  * Não aprova pedido; não chama transition_order_status.
  */
 import {
@@ -7,7 +7,7 @@ import {
   buildMpPaymentBody,
   mapMpResponseToPaymentFields,
   parseCreateMpPaymentClientBody,
-  serverPaymentMethod,
+  resolveInternalMethod,
 } from '@/services/payments/mpCreatePaymentCore'
 
 const MP_API = 'https://api.mercadopago.com/v1/payments'
@@ -45,8 +45,9 @@ export async function executeCreateMpPayment(
   }
 
   let orderId: string
+  let card: ReturnType<typeof parseCreateMpPaymentClientBody>['card']
   try {
-    ;({ orderId } = parseCreateMpPaymentClientBody(
+    ;({ orderId, card } = parseCreateMpPaymentClientBody(
       (rawBody ?? {}) as Record<string, unknown>,
     ))
   } catch (e) {
@@ -56,7 +57,9 @@ export async function executeCreateMpPayment(
     }
   }
 
-  const method = serverPaymentMethod()
+  const internalMethod = resolveInternalMethod(card)
+  const mpPaymentMethodId = card?.paymentMethodId ?? 'pix'
+
   const customerId = await deps.findCustomerId(deps.authUser.id)
   if (!customerId) return { httpStatus: 404, body: { error: 'customer_not_found' } }
 
@@ -94,8 +97,9 @@ export async function executeCreateMpPayment(
     await deps.updatePayment(paymentId, {
       provider: 'mercadopago',
       amount,
-      method,
+      method: internalMethod,
       currency: 'BRL',
+      installments: card?.installments ?? null,
     })
   } else {
     paymentId = await deps.insertPayment({
@@ -103,8 +107,9 @@ export async function executeCreateMpPayment(
       provider: 'mercadopago',
       status: 'pending',
       amount,
-      method,
+      method: internalMethod,
       currency: 'BRL',
+      installments: card?.installments ?? null,
       external_ref: orderId,
     })
   }
@@ -116,13 +121,16 @@ export async function executeCreateMpPayment(
   const mpBody = buildMpPaymentBody({
     transactionAmount: amount,
     description: `Pedido FAL ${orderId}`,
-    paymentMethodId: method,
+    paymentMethodId: mpPaymentMethodId,
     externalReference: orderId,
     payer: {
       email,
       firstName: fullName?.split(/\s+/)[0],
       lastName: fullName?.split(/\s+/).slice(1).join(' ') || undefined,
     },
+    token: card?.token,
+    installments: card?.installments,
+    issuerId: card?.issuerId,
   })
 
   const idempotencyKey = buildIdempotencyKey(paymentId)
@@ -157,11 +165,12 @@ export async function executeCreateMpPayment(
     provider: 'mercadopago',
     provider_payment_id: fields.provider_payment_id,
     provider_status: fields.provider_status,
-    method: fields.method ?? method,
+    method: internalMethod,
     pix_qr_code: fields.pix_qr_code,
     pix_qr_code_base64: fields.pix_qr_code_base64,
     payment_url: fields.payment_url,
     expires_at: fields.expires_at,
+    installments: card?.installments ?? null,
     status: 'pending',
     external_ref: orderId,
     metadata: {
@@ -178,7 +187,7 @@ export async function executeCreateMpPayment(
       providerStatus: fields.provider_status,
       orderId,
       amount,
-      method: fields.method ?? method,
+      method: internalMethod,
       pixQrCode: fields.pix_qr_code,
       reused: false,
       orderApproved: false,

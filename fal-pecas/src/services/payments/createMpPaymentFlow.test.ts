@@ -197,6 +197,34 @@ describe('executeCreateMpPayment — casos A–I', () => {
     expect(keys[0]).toBe('fal-pay-pay-stable')
   })
 
+  it('J: cartão envia token e amount do banco', async () => {
+    const fetchMp = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body))
+      expect(body.transaction_amount).toBe(150.5)
+      expect(body.token).toBe('card-tok')
+      expect(body.payment_method_id).toBe('master')
+      expect(body.installments).toBe(3)
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 55, status: 'pending', payment_method_id: 'master' }),
+      }
+    })
+    const res = await executeCreateMpPayment(
+      {
+        orderId: 'ord-1',
+        token: 'card-tok',
+        paymentMethodId: 'master',
+        installments: 3,
+        paymentTypeId: 'credit_card',
+      },
+      baseDeps({ fetchMp }),
+    )
+    expect(res.httpStatus).toBe(201)
+    expect(res.body.method).toBe('credit_card')
+    expect(res.body.orderApproved).toBe(false)
+  })
+
   it('unauthorized sem user', async () => {
     const res = await executeCreateMpPayment(
       { orderId: 'ord-1' },

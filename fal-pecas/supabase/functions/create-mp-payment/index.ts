@@ -1,12 +1,12 @@
-// F9-B — create-mp-payment
-// Amount = orders.total. Method = pix (server). Não aprova pedido.
+// F9-B/C/D — create-mp-payment
+// Amount = orders.total. Pix ou cartão (token Brick). Não aprova pedido.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   buildIdempotencyKey,
   buildMpPaymentBody,
   mapMpResponseToPaymentFields,
   parseCreateMpPaymentClientBody,
-  serverPaymentMethod,
+  resolveInternalMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
 
 const MP_API = 'https://api.mercadopago.com/v1/payments'
@@ -59,10 +59,11 @@ Deno.serve(async (req) => {
       return json(400, { error: 'invalid_json' })
     }
 
-    const { orderId } = parseCreateMpPaymentClientBody(
+    const { orderId, card } = parseCreateMpPaymentClientBody(
       (rawBody ?? {}) as Record<string, unknown>,
     )
-    const method = serverPaymentMethod()
+    const internalMethod = resolveInternalMethod(card)
+    const mpPaymentMethodId = card?.paymentMethodId ?? 'pix'
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
@@ -124,7 +125,13 @@ Deno.serve(async (req) => {
       paymentId = existing.id
       await admin
         .from('payments')
-        .update({ provider: 'mercadopago', amount, method, currency: 'BRL' })
+        .update({
+          provider: 'mercadopago',
+          amount,
+          method: internalMethod,
+          currency: 'BRL',
+          installments: card?.installments ?? null,
+        })
         .eq('id', paymentId)
     } else {
       const { data: inserted, error: insErr } = await admin
@@ -134,8 +141,9 @@ Deno.serve(async (req) => {
           provider: 'mercadopago',
           status: 'pending',
           amount,
-          method,
+          method: internalMethod,
           currency: 'BRL',
+          installments: card?.installments ?? null,
           external_ref: orderId,
         })
         .select('id')
@@ -158,13 +166,16 @@ Deno.serve(async (req) => {
     const mpBody = buildMpPaymentBody({
       transactionAmount: amount,
       description: `Pedido FAL ${orderId}`,
-      paymentMethodId: method,
+      paymentMethodId: mpPaymentMethodId,
       externalReference: orderId,
       payer: {
         email,
         firstName: profile?.full_name?.split(/\s+/)[0],
         lastName: profile?.full_name?.split(/\s+/).slice(1).join(' ') || undefined,
       },
+      token: card?.token,
+      installments: card?.installments,
+      issuerId: card?.issuerId,
     })
 
     const idempotencyKey = buildIdempotencyKey(paymentId)
@@ -201,11 +212,12 @@ Deno.serve(async (req) => {
         provider: 'mercadopago',
         provider_payment_id: fields.provider_payment_id,
         provider_status: fields.provider_status,
-        method: fields.method ?? method,
+        method: internalMethod,
         pix_qr_code: fields.pix_qr_code,
         pix_qr_code_base64: fields.pix_qr_code_base64,
         payment_url: fields.payment_url,
         expires_at: fields.expires_at,
+        installments: card?.installments ?? null,
         status: 'pending',
         external_ref: orderId,
         metadata: {
@@ -225,7 +237,7 @@ Deno.serve(async (req) => {
       providerStatus: fields.provider_status,
       orderId,
       amount,
-      method: fields.method ?? method,
+      method: internalMethod,
       pixQrCode: fields.pix_qr_code,
       pixQrCodeBase64: fields.pix_qr_code_base64,
       paymentUrl: fields.payment_url,

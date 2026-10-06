@@ -13,17 +13,35 @@ export interface CreateMercadoPagoPaymentResult {
   expiresAt?: string | null
   reused?: boolean
   orderApproved?: false
+  providerStatus?: string
+}
+
+export interface CreateMercadoPagoCardInput {
+  token: string
+  paymentMethodId: string
+  installments: number
+  issuerId?: string
+  paymentTypeId?: string
 }
 
 /**
- * F9-B — invoca Edge create-mp-payment.
- * Body: somente { orderId }. Nunca amount/method.
+ * F9-B/D — invoca Edge create-mp-payment.
+ * Pix: só orderId. Cartão: + token Brick (nunca amount).
  */
 export async function createMercadoPagoPayment(
   orderId: string,
+  card?: CreateMercadoPagoCardInput,
 ): Promise<CreateMercadoPagoPaymentResult> {
+  const body: Record<string, unknown> = { orderId }
+  if (card) {
+    body.token = card.token
+    body.paymentMethodId = card.paymentMethodId
+    body.installments = card.installments
+    if (card.issuerId) body.issuerId = card.issuerId
+    if (card.paymentTypeId) body.paymentTypeId = card.paymentTypeId
+  }
   const { data, error } = await getSupabase().functions.invoke('create-mp-payment', {
-    body: { orderId },
+    body,
   })
   if (error) throw error
   const row = data as CreateMercadoPagoPaymentResult & { error?: string }
