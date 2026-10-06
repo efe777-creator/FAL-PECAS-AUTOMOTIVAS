@@ -1,10 +1,10 @@
 # Especificação — Fase 8.1: Catálogo comercial + fornecedores + custos + listas de preço
 
-**Status:** Gate documental — **APROVAÇÃO PENDENTE** (não implementar sem autorização)  
-**Data:** 2026-10-04  
+**Status:** Spec aprovada. **F8.1-A…H DONE** (H = E2E/regressão local; smoke remoto pendente apply migrations).  
+**Data:** 2026-10-04 (rev. 2026-10-05)  
 **Branch:** `plan`  
-**Tipo:** Planejamento / especificação apenas  
-**Fontes:** PRD 3.0 · IMPORT.md · DATABASE.md · AUDITORIA_GERAL_PRD_VS_SITUACAO · F6B · F8 Fatia A · schema remoto `wtbpwuiayednvlhvuhbh`
+**Tipo:** Especificação + execução fatia a fatia  
+**Fontes:** PRD 3.0 · IMPORT.md · DATABASE.md · AUDITORIA_GERAL_PRD_VS_SITUACAO · F6B · F8 Fatia A · prompt mestre F8 · schema remoto `wtbpwuiayednvlhvuhbh`
 
 ---
 
@@ -80,6 +80,10 @@ Fechar o gap MVP do PRD (RF12) sem misturar estoque físico, sem auto-publicar e
 | D12 | Confirmação aplica **só linhas válidas**; apply preferencialmente via **RPC transacional** |
 | D13 | Importar/confirmar: **administrador + gerente** |
 | D14 | Template provisório até validar arquivo real FAL |
+| D15 | Custo preparado: `custo_total = custo_base + custo_adicional_item` (+ `custo_adicional_da_lista` futuro no schema, sem rateio agora) |
+| D16 | Origem anti-circular: `calculated` = custo+regra→preço; `imported`/`manual` = preço é fonte; % efetivos são consequência; custo **não** recalcula imported/manual |
+| D17 | Conversão upsert por `(fornecedor, supplier_sku)` — reimport não duplica; SKU FAL inexistente = erro; sem auto-criar produto |
+| D18 | Importação ≠ publicação ≠ disponibilidade comercial |
 
 ## 6. Conceitos fundamentais
 
@@ -151,12 +155,18 @@ Persistir em `supplier_products`:
 
 **Proposto:** índice UNIQUE parcial `(supplier_id, supplier_sku) WHERE supplier_sku IS NOT NULL` para lookup seguro.
 
-Regra: fornecedor + código fornecedor → **no máximo um** produto FAL. Conflito = erro; nunca auto-escolher.
+Regras (D17):
+
+- Fornecedor + código fornecedor → **no máximo um** produto FAL.  
+- SKU FAL inexistente → **erro**; **não** auto-criar produto.  
+- Se `(fornecedor, supplier_sku)` já existir → **atualizar** associação (`product_id`); **nunca** duplicar.  
+- Reimportar a mesma planilha = idempotente.
 
 ## 11. Custos
 
-- Custo por relacionamento: `supplier_products.cost`.  
-- Distinto do “custo usado na formação” (pode ser o custo do fornecedor escolhido / principal / mais recente — MVP: custo do fornecedor da importação).  
+- Custo base por relacionamento: `supplier_products.cost` (`custo_base`).  
+- **Fonte na formação F8.1-E:** `supplier_products.cost` onde `supplier_id = products.supplier_id` (fornecedor principal). **Sem** lowest-cost / prioridade inventada.  
+- **D15:** `custo_total = custo_base + price_list_items.extra_cost`. `price_lists.list_extra_cost` = **placeholder** (fora do cálculo até rateio definido).  
 - Histórico completo de custo: **futuro**; MVP audita via `imports`/`import_items`.
 
 ## 12. Listas de preço — modelo atual (6B)
@@ -193,16 +203,21 @@ UI deve rotular claramente **Margem sobre venda** vs **Acréscimo/markup sobre c
 - `price_origin` = `calculated` \| `imported` \| `manual`  
 - `override_method` / `override_percent` nullable (exceção)
 
-### Comportamento
+### Comportamento (D16 — sem circularidade)
 
-- Import de venda → `price_origin=imported`; regra padrão da lista **permanece**.  
-- “Voltar à regra padrão” → recalcula e `origin=calculated`.  
-- Mudança de custo → só recalcula `origin=calculated`.  
-- Sem custo → não calcula; permite importado/manual; flag “Sem custo”.
+- Import de venda → `price_origin=imported`; preço é a **fonte**; regra padrão da lista **permanece**.  
+- Preço editado na UI → `price_origin=manual`.  
+- “Voltar à regra padrão” (ação explícita) → recalcula e `origin=calculated`.  
+- Mudança de custo / regra → **só** recalcula `origin=calculated`.  
+- Em `imported`/`manual`: % margem e markup **efetivos** são consequência exibida, nunca alimentam o preço de volta.  
+- Nunca fórmula circular (preço → custo → mesmo preço).  
+- Sem custo → não calcula; permite importado/manual; flag “Sem custo”.  
+- UI deve exibir: **Custo | Preço de venda | Margem % | Markup % | Origem** (50% markup ≠ 50% margem).
 
 ## 17. Exceções por produto
 
 MVP: regra padrão da lista + exceção por item (margem/markup/fixo).  
+Custo adicional de lista: schema preparado (D15); UI/rateio = futuro.  
 Fora: regras por categoria/marca/cliente/região.
 
 ## 18–22. Quatro importações
@@ -498,14 +513,14 @@ Estrutura de preço duplicada · margem≠markup confundidos · custo mal modela
 
 | Fatia | Objetivo | Gate |
 |-------|----------|------|
-| **F8.1-A** | Contratos CSV, parsers compartilhados, kinds, validação | parser+validação unit OK |
-| **F8.1-B** | Import cadastro + `/admin/produtos/importar` + apply RPC | CA cadastro |
-| **F8.1-C** | Conversões UI + import + UNIQUE supplier_sku | CA conversão |
-| **F8.1-D** | Import/gestão custos + pendências | CA custo |
-| **F8.1-E** | Extensão listas: regra, margem/markup, origem | fórmulas + UI regra |
-| **F8.1-F** | Import venda com origem (evoluir 6B) | CA preço importado |
-| **F8.1-G** | UX detalhe lista, filtros, ações em massa com preview | UX operacional |
-| **F8.1-H** | Auditoria, E2E, regressão F7/F8/checkout | gate final F8.1 |
+| **F8.1-A** | Contratos CSV, parsers compartilhados, kinds, validação, fórmulas preço (pure) | **DONE 2026-10-05** — 20 testes unit + build OK |
+| **F8.1-B** | Import cadastro + `/admin/produtos/importar` + apply RPC | **DONE 2026-10-05** — migration `20261005120000_fase81b_catalog_import.sql` |
+| **F8.1-C** | Conversões UI + import + UNIQUE supplier_sku + upsert D17 | **DONE 2026-10-05** — migration `20261005130000_fase81c_supplier_conversions.sql` |
+| **F8.1-D** | Import/gestão custos + `extra_cost` item + placeholder lista | **DONE 2026-10-05** — migration `20261005140000_fase81d_supplier_costs.sql` |
+| **F8.1-E** | Extensão listas: regra, margem/markup, origem D16, UI % | **DONE 2026-10-05** — migration `20261005150000_fase81e_pricing_formation.sql` |
+| **F8.1-F** | Import venda com origem (evoluir 6B) | **DONE 2026-10-05** — migration `20261005160000_fase81f_price_list_import_rpc.sql` |
+| **F8.1-G** | UX detalhe lista, filtros, ações em massa com preview | **DONE 2026-10-05** — indicadores, filtros/sort, export CSV, origem explícita |
+| **F8.1-H** | Auditoria, E2E, regressão F7/F8/checkout | **DONE 2026-10-05** — Vitest cadeia+migrations; ver `GATE_FASE8_1_H_E2E_REGRESSAO.md` |
 
 Cada fatia, na implementação: arquivos · migration · RPC · UI · testes · aceite · sem push sem autorização.
 
@@ -523,15 +538,17 @@ WMS · multi-depósito · lote · barcode · FIFO · custo médio contábil · c
 
 ## 60. Gate de implementação
 
-**Esta etapa:** especificação publicada.  
-**Implementação:** somente após autorização explícita, fatia por fatia.  
-**Não feito agora:** migration, RPC, RLS, UI, services, import real, commit, push.
+**F8.1-A…H entregues (local).**  
+**F8.1-H:** simulador E2E + auditoria migrations B–F + regressão estática F7/F8/checkout. Doc: `GATE_FASE8_1_H_E2E_REGRESSAO.md`.  
+**Migrations remotas pendentes:** fase81b…f (bloqueiam smoke live).  
+**Não feito:** commit/push.
 
 ---
 
 ## Apêndice A — Checklist “preparado para venda” (visão derivada)
 
-Não é novo status. Indicadores:
+**D18:** Importação ≠ publicação ≠ disponibilidade — ter cadastro/custo/preço **não** torna vendável.  
+Não é novo status nem motor obrigatório nesta fase. Indicadores futuros:
 
 | Check | Fonte |
 |-------|--------|
