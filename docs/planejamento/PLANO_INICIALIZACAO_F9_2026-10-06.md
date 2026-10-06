@@ -1,41 +1,43 @@
 # Plano de inicialização — Fase 9
 
 **Data:** 2026-10-06  
-**Status:** F9-A/B/C **DONE** em `main` (`1abea37`); F9-D…E pendentes  
-**Deps:** F8.4 + F8.5 + vitrine + F9-A/B/C em `main`.
+**Status:** F9.0 **DONE** · F9-MP docs (auditoria/spec) **DONE** · F9-MP impl **STOP** até MARCHA  
+**Deps:** F8.4 + F8.5 + vitrine + F9.0 em `main` (`1abea37`).
 
 ## Objetivo
 
-Trocar adapters mock de **frete** e **pagamento** por integrações sandbox/reais, sem redesenhar checkout/F7/F8.
+1. Adapters de contrato (frete/pagamento) — **entregue (F9.0)**.  
+2. **Mercado Pago real** (sandbox→prod) — trilha F9-A…I.  
+3. Frete HTTP real — **F10**.
 
 ## Fatias
 
-| Fatia | Conteúdo | Ordem | Status |
-|-------|----------|-------|--------|
-| F9-A | Frete Correios sandbox | 1 | **DONE** |
-| F9-B | Frenet / agregador sandbox | 2 | **DONE** |
-| F9-C | Gateway pagamento sandbox | 3 | **DONE** (`feb1678` → PR #4) |
-| F9-D | Observabilidade | 4 | pendente |
-| F9-E | Testes live | 5 | pendente |
+### F9.0 — DONE
+
+| Fatia | Conteúdo | Status |
+|-------|----------|--------|
+| Correios sandbox | PAC/SEDEX determinístico | DONE |
+| Frenet sandbox | Multi-carrier determinístico | DONE |
+| Gateway sandbox | Metadata gateway; ciclo via `confirm_simulated_payment` | DONE |
+
+### F9 — Mercado Pago
+
+| Gate | Conteúdo | Status |
+|------|----------|--------|
+| F9-A docs | [AUDITORIA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) + [SPEC…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) + [CHECKLIST…](./CHECKLIST_FASE9_PAGAMENTOS.md) | **DONE** |
+| F9-A impl … F9-I | Migrations → Pix → cartões → webhook → checkout → admin → homolog → prod | **Aguardando MARCHA** |
 
 ## Env (sem valores)
 
 - `VITE_SHIPPING_PROVIDER=correios|mock|frenet|carrier`
-- `VITE_PAYMENT_PROVIDER=simulated|gateway|sandbox`
-- Credenciais reais → Edge Function (nunca no frontend)
-
-## Critérios F9-C
-
-- [x] Adapter gateway sandbox no contrato `PaymentProvider`
-- [x] Ciclo F7 via `confirm_simulated_payment` (DB provider=`simulated`)
-- [x] `VITE_PAYMENT_PROVIDER=gateway|sandbox`
-- [x] Checkout UX inalterada
-- [x] Testes unitários (resolve + enrich metadata)
+- `VITE_PAYMENT_PROVIDER=simulated|gateway|sandbox|mercadopago`
+- `VITE_MP_PUBLIC_KEY` (só public)
+- Secrets BE: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` (nunca `VITE_*` privado)
 
 ## Fora
 
-HTTP gateway real, webhooks, WMS/ERP, reescrever checkout.
+HTTP frete real (F10); F8.6–F8.8 (paralelo); repair em massa; implementação MP sem MARCHA.
 
 ## Próximo
 
-**F9-D** (observabilidade) — MARCHA. Depois F9-E / F8.6+.
+**STOP** → revisão humana → MARCHA F9-A impl (migrations + RLS + layout secrets).

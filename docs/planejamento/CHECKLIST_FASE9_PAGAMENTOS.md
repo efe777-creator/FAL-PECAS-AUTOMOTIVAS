@@ -1,0 +1,126 @@
+# Checklist Fase 9 — Pagamentos Mercado Pago
+
+**Baseline docs:** 2026-10-06 · Spec + auditoria FEITAS · Impl **não** iniciada  
+**Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)
+
+---
+
+## Planejamento (fatia atual)
+
+- [x] Adendo Plano Mestre (F8.5/F9.0 DONE; F9=MP; F8.6–8.8 paralelo; F10 frete)
+- [x] Auditoria arquitetura checkout/pedido/pagamento
+- [x] Especificação Mercado Pago
+- [x] Este checklist
+- [x] Sync ESPECIFICACAO_FASE9_INTEGRACOES + PLANO_INICIALIZACAO_F9
+- [ ] Revisão humana
+- [ ] MARCHA → F9-A impl
+
+---
+
+## F9-A impl — Fundação
+
+- [ ] Migration estende `payments`
+- [ ] Migration cria `payment_events` + unique evento
+- [ ] Estados internos documentados no SQL/CHECK
+- [ ] RLS: customer não aprova payment
+- [ ] Secrets layout documentado (sem valores no git)
+- [ ] Feature flag / `VITE_PAYMENT_PROVIDER` planejada
+- [ ] Sem alteração indevida em `place_order` / inventário
+
+---
+
+## F9-B — MP Sandbox
+
+- [ ] Edge/service create payment
+- [ ] Access Token só backend
+- [ ] Public Key no FE
+- [ ] `X-Idempotency-Key`
+- [ ] Credenciais TEST
+
+---
+
+## F9-C — Pix
+
+- [ ] Criar cobrança Pix
+- [ ] QR Code + copia-e-cola
+- [ ] Expiração
+- [ ] Webhook mínimo → pending/approved
+- [ ] UI pendente (sem “pago” no FE)
+
+---
+
+## F9-D — Cartões
+
+- [ ] Card Payment Brick
+- [ ] Crédito + parcelas
+- [ ] Débito se disponível na conta
+- [ ] Sem PAN/CVV na FAL
+- [ ] Aprovado / rejeitado
+
+---
+
+## F9-E — Webhook + concurrency
+
+- [ ] Validação `x-signature` / HMAC
+- [ ] Evento duplicado = no-op
+- [ ] Consulta MP + valida amount + order
+- [ ] Fora de ordem tratado
+- [ ] Logs sem secrets/PAN
+
+---
+
+## F9-F — Checkout FAL
+
+- [ ] Fluxo carrinho→pedido→pagamento→confirmação
+- [ ] Amount só do backend
+- [ ] Poll/consulta status
+- [ ] Simulado ainda disponível se flag off
+
+---
+
+## F9-G — Admin
+
+- [ ] Painel pagamento no pedido
+- [ ] IDs externos / método / status / datas
+- [ ] Eventos básicos
+
+---
+
+## F9-H — Homologação
+
+### Pix
+- [ ] gerar cobrança · QR · copiar · expiração · webhook · aprovação · pedido atualizado
+
+### Crédito
+- [ ] Brick · tokenizar · parcelas · aprovado · rejeitado
+
+### Débito
+- [ ] disponível quando habilitado · processar
+
+### Segurança
+- [ ] Access Token backend · Public Key FE · secrets · webhook validado · RLS · sem cartão armazenado · idempotência
+
+### Pedido
+- [ ] pending não confirma · approved confirma ciclo F7 · rejected não confirma · duplicidade · amount validado
+
+### Regressão
+- [ ] F7 · F8 · estoque · pedidos legados · catálogo · listas preço · build/test PASS
+
+---
+
+## F9-I — Produção (auth humana)
+
+- [ ] Credenciais PROD
+- [ ] Webhook HTTPS
+- [ ] Smoke produção
+- [ ] Rollback documentado
+- [ ] Monitoramento mínimo
+
+---
+
+## Fora deste checklist
+
+- F8.6 / F8.7 / F8.8 (backlog paralelo)
+- F10 frete real
+- Refund automático
+- Repair migrations em massa

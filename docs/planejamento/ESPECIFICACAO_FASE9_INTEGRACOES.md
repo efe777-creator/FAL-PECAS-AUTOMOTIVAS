@@ -1,70 +1,79 @@
 # Especificação Fase 9 — Integrações + qualidade
 
-**Status:** F9-A/B/**C DONE** em `main` (`1abea37`). F9-D…E abertas.  
-**Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) § Fase 9 · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md)  
-**Princípio F6:** checkout e admin continuam falando com **contratos internos FAL**; F9 troca **adapters**, não redesenha fluxos.
+**Status:** **F9.0 adapters sandbox DONE** em `main` (`1abea37`). **F9 negócio = Mercado Pago** em especificação (docs). Frete real = **F10**.  
+**Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) · [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)  
+**Princípio F6:** checkout e admin falam com **contratos internos FAL**; integrações trocam **adapters**.
 
 ---
 
 ## 1. Objetivo
 
-Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, endurecer qualidade (testes, observabilidade, segurança operacional), mantendo F7 operação de pedidos e F8 modos de estoque intactos.
+- **Pagamento real:** Mercado Pago (Pix / crédito / débito) — ver spec dedicada.
+- **Frete real:** adiado para **F10** (F9.0 já entregou sandboxes Correios/Frenet sem HTTP).
+- Qualidade: testes, observabilidade, secrets, regressão F7/F8.
 
 ---
 
-## 2. Escopo in
+## 2. Escopo in / out
 
-| Área | Entrega |
-|------|---------|
-| Pagamento | Adapter de gateway real implementando `PaymentProvider` (substituir/sim complementar simulado) |
-| Frete | Implementar `ShippingProvider`: Correios, Frenet, transportadora própria (`carrier`) — stubs hoje em `fal-pecas/src/services/shipping/providers/*` |
-| Config | Secrets via env/Supabase vault; sandbox vs produção documentados |
-| Checkout | Zero mudança de UX de contrato: `quoteShipping`, `placeOrder`, confirmação de pagamento |
-| Qualidade | Suíte mínima E2E/live para cotação + webhook/callback pagamento; monitoramento básico |
-| Runbook migrations | Documentar playbook pós-R1: disco 31 SQL vs ledger 74 (repair/fetch) para novos clones |
-
-## 3. Escopo out
-
-- WMS, multi-depósito, PIM, ERP (F8.1+ roadmap)
-- Reescrever F7/F8 ou checkout
-- Guest checkout (se não priorizado no roadmap)
+**In:** MP conforme [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md); preservar `place_order` + ciclo F7.  
+**Out:** WMS/ERP/PIM; reescrever F7/F8; guest checkout; frete HTTP real nesta fase; refund automático na 1ª entrega.
 
 ---
 
 ## 3. Contratos existentes (não quebrar)
 
-- **Frete:** `shippingService` + `ShippingProvider` — [shippingService.ts](../../fal-pecas/src/services/shipping/shippingService.ts)
-- **Pagamento:** adapter simulado F6 — substituir implementação, manter interface consumida pelo checkout
-- **Pedido:** `place_order`, ciclo F7 inalterado
+- Frete: `ShippingProvider` / `shippingService` (F9.0 sandboxes).
+- Pagamento: `PaymentProvider` / `paymentService` — evoluir para MP sem redesenhar checkout.
+- Pedido: `place_order`, ciclo F7.
 
 ---
 
-## 4. Fatias sugeridas (ordem)
+## 4. Mapa de fatias
 
-1. **F9-A — Frete Correios (sandbox)** — **DONE** — cotação PAC/SEDEX; `VITE_SHIPPING_PROVIDER=correios`; testes unitários PASS
-2. **F9-B — Frenet ou agregador** — **DONE** — multi-transportadora sandbox; `VITE_SHIPPING_PROVIDER=frenet`
-3. **F9-C — Pagamento gateway** — **DONE** — sandbox via `VITE_PAYMENT_PROVIDER`; ciclo F7 via `confirm_simulated_payment`
-4. **F9-D — Observabilidade** — logs estruturados, alertas falha cotação/pagamento
-5. **F9-E — Testes live** — checklist checkout + pedido pago em sandbox
+### F9.0 — Adapters sandbox (DONE)
+
+| Fatia legada | Conteúdo | Status |
+|--------------|----------|--------|
+| Correios sandbox | `VITE_SHIPPING_PROVIDER=correios` | DONE |
+| Frenet sandbox | `VITE_SHIPPING_PROVIDER=frenet` | DONE |
+| Gateway sandbox | `VITE_PAYMENT_PROVIDER=gateway\|sandbox` → ainda `confirm_simulated_payment` | DONE |
+
+### F9 — Mercado Pago (gates novos)
+
+| Gate | Conteúdo | Status |
+|------|----------|--------|
+| F9-A docs | Auditoria + spec + checklist | **DONE** (plan) |
+| F9-A impl | Migrations `payments` + `payment_events` + RLS | pendente MARCHA |
+| F9-B…I | Sandbox MP → Pix → cartões → webhook → checkout → admin → testes → prod | pendente |
+
+### F10 — Frete real
+
+HTTP Correios / Melhor Envio / carrier — **fora** da trilha MP.
+
+### Observabilidade / testes live
+
+Absorvidos em F9-E / F9-H do plano MP (não como “F9-D/E” legados de frete).
 
 ---
 
-## 5. Critérios de saída (Fase 9)
+## 5. Critérios de saída
 
-- [x] Checkout produz cotações reais (≥1 provider) em sandbox — **F9-A Correios + F9-B Frenet**
-- [x] Pagamento sandbox completa ciclo até status compatível com F7 — **F9-C gateway sandbox → confirm_simulated_payment**
-- [x] Adapters isolados — troca de provider sem alterar páginas checkout — **via `VITE_SHIPPING_PROVIDER` / `VITE_PAYMENT_PROVIDER`**
-- [ ] Documentação de env vars e rotação de secrets
-- [ ] Regressão F7/F8 smoke mínima PASS pós-integração pagamento
+- [x] Cotações sandbox (≥1 provider frete) — F9.0
+- [x] Pagamento **simulado/sandbox adapter** completa ciclo F7 — F9.0
+- [ ] Pagamento **Mercado Pago** sandbox (Pix + cartão + webhook) — F9-C…H
+- [x] Adapters isolados via env
+- [ ] Secrets/rotação documentados na impl MP
+- [ ] Regressão F7/F8 pós-MP
 
 ---
 
 ## 6. Dependências
 
-- **F8.4** + **F8.5 Opção A** + P1 em `main` (`762c697`).
-- **Apply migration F8.5** feito + histórico `schema_migrations` registrado.
-- Contas sandbox: Correios/Frenet/gateway (credenciais eFe) — para HTTP real / F9-B+.
-- Supabase: possíveis migrations leves (webhook secrets, payment_attempts) — gate separado.
+- F8.4 + **F8.5 FECHADO** + F9.0 em `main`.
+- Conta MP teste (eFe) para F9-B+.
+- Edge Functions a criar (hoje: zero no repo).
+- F8.6–F8.8 **não** bloqueiam.
 
 ---
 
@@ -72,12 +81,14 @@ Conectar **pagamento real** e **frete/transportadoras reais** ao e-commerce F6, 
 
 | Risco | Mitigação |
 |-------|-----------|
-| Drift migrations 31 vs 74 em clone novo | Runbook repair/fetch; não versionar 43 MCP (decisão R1) |
-| Webhook pagamento fora de ordem | Idempotência + ledger payment_status |
-| Cotação lenta no checkout | Timeout, fallback mensagem, cache curto CEP |
+| Confundir F9.0 com F9-MP | Nomenclatura explícita neste doc |
+| Webhook sem Edge | Criar na F9-B/E |
+| Drift migrations | Sem repair em massa |
+| Marcar pago no FE | Proibido |
 
 ---
 
 ## 8. Próximo passo
 
-Abrir **F9-D** (observabilidade) com MARCHA. Depois F9-E.
+Revisão humana da [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) + [ESPECIFICACAO_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md).  
+**STOP** de código até MARCHA → F9-A impl.

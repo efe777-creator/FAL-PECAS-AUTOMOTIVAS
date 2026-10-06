@@ -21,6 +21,42 @@ inspeção `fal-pecas/src` + `fal-pecas/supabase/migrations`.
 
 ---
 
+## ADENDO — estado real pós-marcha (2026-10-06, tip `main` `1abea37`)
+
+Este adendo **substitui** as recomendações de ordem das §§1–2 e §17 quanto a F8.5/F9. O corpo histórico abaixo permanece como snapshot da inspeção original pós-F8.4.
+
+### Status corrigido
+
+| Área | Classificação | Evidência |
+|------|---------------|-----------|
+| F8.5 Adicional % (Opção A + P1) | **FECHADO** | Apply `20261006160000` via `db query`; histórico registrado; PR #1; [GATE_F8_5…](./GATE_F8_5_STATUS_2026-10-06.md) |
+| F9.0 Adapters sandbox | **FECHADO** | Correios + Frenet + gateway sandbox em `main` (PRs #1–#4 / commits feat) |
+| F9 negócio = **Mercado Pago** | **PLANEJADO** | [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) |
+| F8.6 Classificação L3 dados/políticas | **BACKLOG paralelo** | Não bloqueia MP |
+| F8.7 Import GRUPO→folha L3 | **BACKLOG paralelo** | Montadora ≠ compatibilidade veículo |
+| F8.8 Filtros/massa catálogo restantes | **BACKLOG paralelo** | Marca, preço/custo, export, arquivar vs excluir |
+| F8.9 Polimento UX | **OPCIONAL** | — |
+| F10 Frete/logística reais | **FUTURO** | HTTP Correios/Melhor Envio; F9.0 sandbox não é frete real |
+
+### Trilha crítica atualizada
+
+```text
+F8.4 DONE → F8.5 DONE → F9.0 adapters DONE
+        → F9-A auditoria/docs MP (esta fatia)
+        → F9-B…H Mercado Pago (após MARCHA)
+        → F9-I produção (auth humana)
+F8.6–F8.8 ∥ paralelo (não gateiam pagamento)
+F10 frete real (depois)
+```
+
+### Nomenclatura
+
+- **F9.0** = adapters sandbox já em `main` (não confundir com gates F9-A…I do Mercado Pago).
+- **F9-A…I** = gates Mercado Pago do prompt de pagamentos.
+- **Não** reexecutar F8.5.
+
+---
+
 ## 1. Resumo executivo
 
 O backoffice F8.1–F8.4 entregou um núcleo operacional utilizável: **listas de preços** (consulta rápida + detalhe + formação + import de venda), **classificação 3 níveis na UI**, **produtos/categorias/fabricantes/montadoras/fornecedores**, e **quatro pipelines de import** (catálogo, conversão, custo, preço). Smoke real e testes unitários da rodada F8.4 passaram.

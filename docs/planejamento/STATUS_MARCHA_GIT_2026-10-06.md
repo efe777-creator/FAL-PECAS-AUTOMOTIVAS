@@ -1,27 +1,27 @@
-﻿# Status marcha Git — F9-C 2026-10-06
+﻿# Status marcha Git — encaixe F9-MP docs 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `a739c9d` |
-| `main` | `1abea37` (PR #4) |
+| `dev` | `a739c9d` (código; sem docs MP) |
+| `main` | `1abea37` |
 
-## Feito (F9-C)
+## Feito nesta fatia (só `plan`)
 
-- `gatewaySandboxPaymentProvider` + `VITE_PAYMENT_PROVIDER`
-- Ciclo F7 preservado (`confirm_simulated_payment`)
-- Vitest payments+shipping **7 PASS** + build **PASS**
-- PR #4 MERGED
+- Adendo [PLANO_MESTRE…](./PLANO_MESTRE_F8_PROXIMAS_FASES_2026-10-06.md): F8.5/F9.0 DONE; F9=MP; F8.6–8.8 paralelo; F10 frete
+- [AUDITORIA_F9_ARQUITETURA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)
+- [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md)
+- [CHECKLIST_FASE9_PAGAMENTOS…](./CHECKLIST_FASE9_PAGAMENTOS.md)
+- Sync INTEGRACOES + PLANO_INICIALIZACAO_F9
 
-## Fechado na sequência
+## STOP
 
-F8.5 · F9-A · vitrine · F9-B · **F9-C**
+Sem migration · SDK MP · Edge Function · `db push` · alteração F7/F8 até MARCHA pós-revisão.
 
-## Residual (MARCHA)
+## Residual
 
-- F9-D observabilidade
-- F9-E testes live
-- F8.6–F8.9
-- Repair em massa / HTTP real
+- F9-A impl … F9-I (MARCHA)
+- F8.6–F8.8 paralelo
+- F10 frete real
