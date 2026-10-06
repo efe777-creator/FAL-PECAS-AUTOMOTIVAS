@@ -265,7 +265,7 @@ export function CatalogPage() {
           name="catalog-q"
           value={searchDraft}
           onChange={(e) => setSearchDraft(e.target.value)}
-          placeholder="Peça, SKU, código ou referência"
+          placeholder="Peça, código ou referência"
         />
         <div className="flex items-end gap-2">
           <Button type="submit" variant="primary">

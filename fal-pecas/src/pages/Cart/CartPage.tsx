@@ -16,7 +16,7 @@ export function CartPage() {
         <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Carrinho</h1>
         <EmptyState
           title="Seu carrinho está vazio"
-          description="Adicione peças pela Home ou pelo catálogo. Persistência atual: localStorage (visitante)."
+          description="Adicione peças pelo início ou pelo catálogo."
           actionLabel="Explorar catálogo"
           actionTo="/catalogo"
         />
@@ -41,7 +41,7 @@ export function CartPage() {
               </div>
               <div>
                 <h3 className="m-0 text-base font-bold">{item.name}</h3>
-                <p className="m-0 text-xs text-fal-muted">SKU {item.sku}</p>
+                <p className="m-0 text-xs text-fal-muted">Código {item.sku}</p>
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
@@ -94,11 +94,11 @@ export function CartPage() {
             className="mt-4 block"
           >
             <Button variant="primary" fullWidth>
-              {user ? 'Ir para checkout' : 'Entrar para finalizar'}
+              {user ? 'Finalizar compra' : 'Entrar para finalizar'}
             </Button>
           </Link>
           <p className="mt-3 text-xs text-fal-muted">
-            Frete e pagamento são definidos no checkout. Totais finais no servidor.
+            Frete e pagamento são definidos ao finalizar a compra.
           </p>
         </aside>
       </div>

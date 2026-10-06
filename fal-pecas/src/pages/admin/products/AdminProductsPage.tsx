@@ -2,23 +2,59 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { productStatusLabel } from '@/lib/adminLabels'
+import {
+  adminListCategories,
+  categoryPath,
+  collectCategorySubtreeIds,
+} from '@/services/admin/adminCategoryService'
+import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListProducts, adminSetProductStatus } from '@/services/admin/adminProductService'
-import type { Product } from '@/types'
-import { useEffect, useState } from 'react'
+import type { Category, Manufacturer, Product } from '@/types'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminProductsPage() {
   const [items, setItems] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [q, setQ] = useState('')
+  const [status, setStatus] = useState('')
+  const [manufacturerId, setManufacturerId] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [withoutImage, setWithoutImage] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [busyBulk, setBusyBulk] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+
+  const categoryOptions = useMemo(
+    () =>
+      [...categories].sort((a, b) =>
+        categoryPath(categories, a.id).localeCompare(categoryPath(categories, b.id)),
+      ),
+    [categories],
+  )
+
+  const allPageSelected = items.length > 0 && items.every((p) => selected.has(p.id))
+  const somePageSelected = items.some((p) => selected.has(p.id))
 
   async function reload() {
     setLoading(true)
+    setSelected(new Set())
     try {
-      setItems(await adminListProducts({ q, withoutImage }))
+      const categoryIds = categoryId
+        ? collectCategorySubtreeIds(categories, categoryId)
+        : undefined
+      setItems(
+        await adminListProducts({
+          q,
+          status: status || undefined,
+          withoutImage,
+          categoryIds,
+          manufacturerId: manufacturerId || undefined,
+        }),
+      )
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao listar produtos')
@@ -28,8 +64,41 @@ export function AdminProductsPage() {
   }
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const [cats, makers] = await Promise.all([
+          adminListCategories(),
+          adminListManufacturers(),
+        ])
+        setCategories(cats)
+        setManufacturers(makers)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Erro ao carregar filtros')
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
     void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [withoutImage])
+
+  function toggleSelectAllPage() {
+    if (allPageSelected) {
+      setSelected(new Set())
+      return
+    }
+    setSelected(new Set(items.map((p) => p.id)))
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function toggleArchive(p: Product) {
     const next = p.status === 'archived' ? 'published' : 'archived'
@@ -50,6 +119,33 @@ export function AdminProductsPage() {
     }
   }
 
+  async function bulkSetStatus(next: 'published' | 'archived') {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    if (next === 'archived') {
+      const ok = window.confirm(
+        `Arquivar ${ids.length} produto(s)?\n\nRemoção comercial da loja (permanecem no banco).`,
+      )
+      if (!ok) return
+    }
+    setBusyBulk(true)
+    setMessage(null)
+    setError(null)
+    try {
+      await Promise.all(ids.map((id) => adminSetProductStatus(id, next)))
+      setMessage(
+        next === 'archived'
+          ? `${ids.length} produto(s) arquivado(s).`
+          : `${ids.length} produto(s) ativado(s) (publicado).`,
+      )
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha na ação em massa')
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -59,15 +155,63 @@ export function AdminProductsPage() {
             Arquivar = remoção comercial da loja. Exclusão permanente não é usada (integridade).
           </p>
         </div>
-        <Link to="/admin/produtos/novo">
-          <Button variant="primary">Novo produto</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin/produtos/importar">
+            <Button variant="light">Importar</Button>
+          </Link>
+          <Link to="/admin/produtos/novo">
+            <Button variant="primary">Novo produto</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4">
-        <div className="min-w-[220px] flex-1">
+        <div className="min-w-[180px] flex-1">
           <Input label="Buscar (nome/SKU)" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <label className="block min-w-[140px] text-sm">
+          <span className="mb-1 block font-semibold text-fal-navy">Status</span>
+          <select
+            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="">Todos</option>
+            <option value="draft">Rascunho</option>
+            <option value="published">Publicado</option>
+            <option value="archived">Arquivado</option>
+          </select>
+        </label>
+        <label className="block min-w-[160px] flex-1 text-sm">
+          <span className="mb-1 block font-semibold text-fal-navy">Montadora</span>
+          <select
+            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+            value={manufacturerId}
+            onChange={(e) => setManufacturerId(e.target.value)}
+          >
+            <option value="">Todas</option>
+            {manufacturers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block min-w-[200px] flex-[1.4] text-sm">
+          <span className="mb-1 block font-semibold text-fal-navy">Classificação</span>
+          <select
+            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+          >
+            <option value="">Todas</option>
+            {categoryOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {categoryPath(categories, c.id)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-fal-navy">
           <input type="checkbox" checked={withoutImage} onChange={(e) => setWithoutImage(e.target.checked)} />
           Sem imagem / incompletos
@@ -77,6 +221,35 @@ export function AdminProductsPage() {
         </Button>
       </div>
 
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
+          <span className="text-sm font-semibold text-fal-navy">{selected.size} selecionado(s)</span>
+          <Button
+            type="button"
+            variant="primary"
+            disabled={busyBulk}
+            onClick={() => void bulkSetStatus('published')}
+          >
+            Ativar
+          </Button>
+          <Button
+            type="button"
+            variant="light"
+            disabled={busyBulk}
+            onClick={() => void bulkSetStatus('archived')}
+          >
+            Arquivar
+          </Button>
+          <button
+            type="button"
+            className="text-sm font-semibold text-fal-muted underline"
+            onClick={() => setSelected(new Set())}
+          >
+            Limpar seleção
+          </button>
+        </div>
+      ) : null}
+
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {loading ? <Loading /> : null}
@@ -85,6 +258,18 @@ export function AdminProductsPage() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
+              <th className="px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={allPageSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = somePageSelected && !allPageSelected
+                  }}
+                  onChange={toggleSelectAllPage}
+                  aria-label="Selecionar página"
+                  disabled={items.length === 0 || loading}
+                />
+              </th>
               <th className="px-3 py-2">SKU</th>
               <th className="px-3 py-2">Nome</th>
               <th className="px-3 py-2">Status</th>
@@ -95,13 +280,21 @@ export function AdminProductsPage() {
           <tbody>
             {items.length === 0 && !loading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-fal-muted">
+                <td colSpan={6} className="px-3 py-6 text-fal-muted">
                   Nenhum produto encontrado.
                 </td>
               </tr>
             ) : null}
             {items.map((p) => (
               <tr key={p.id} className="border-t border-fal-line">
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(p.id)}
+                    onChange={() => toggleRow(p.id)}
+                    aria-label={`Selecionar ${p.sku}`}
+                  />
+                </td>
                 <td className="px-3 py-2 font-mono text-xs">{p.sku}</td>
                 <td className="px-3 py-2 font-semibold">
                   {p.name}

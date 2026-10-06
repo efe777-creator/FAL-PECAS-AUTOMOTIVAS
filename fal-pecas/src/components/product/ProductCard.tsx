@@ -82,7 +82,7 @@ export function ProductCard({ product }: { product: Product }) {
         <h3 className="my-1 h-9 overflow-hidden text-xs font-bold sm:h-[43px] sm:text-[15px]">
           {product.name}
         </h3>
-        <p className="m-0 text-[11px] text-fal-muted">SKU {product.sku}</p>
+        <p className="m-0 text-[11px] text-fal-muted">Código {product.sku}</p>
         {product.compatibilitySummary ? (
           <p className="my-2 text-xs text-fal-success">{product.compatibilitySummary}</p>
         ) : null}

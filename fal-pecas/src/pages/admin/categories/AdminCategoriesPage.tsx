@@ -2,20 +2,39 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import {
+  adminCountProductsInCategory,
   adminListCategories,
   adminSetCategoryStatus,
   adminUpsertCategory,
+  allowedCategoryParents,
+  categoryDepth,
+  categoryLevelLabel,
+  categoryPath,
+  CATEGORY_MAX_DEPTH,
 } from '@/services/admin/adminCategoryService'
 import type { Category } from '@/types'
-import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+
+function statusLabel(status: Category['status']): string {
+  if (status === 'archived') return 'Arquivado'
+  if (status === 'published') return 'Publicado'
+  if (status === 'draft') return 'Rascunho'
+  return status ?? '—'
+}
 
 export function AdminCategoriesPage() {
   const [items, setItems] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [parentId, setParentId] = useState('')
+  const [sortOrder, setSortOrder] = useState('0')
   const [editing, setEditing] = useState<Category | null>(null)
+  const [search, setSearch] = useState('')
+  const formRef = useRef<HTMLFormElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   async function reload() {
     setLoading(true)
@@ -34,65 +53,254 @@ export function AdminCategoriesPage() {
   }, [])
 
   const roots = useMemo(() => items.filter((c) => !c.parentId), [items])
-  const childrenOf = (id: string) => items.filter((c) => c.parentId === id)
+  const childrenOf = (id: string) =>
+    items
+      .filter((c) => c.parentId === id)
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
+      )
+
+  const parentOptions = useMemo(
+    () =>
+      allowedCategoryParents(items, editing?.id).sort((a, b) =>
+        categoryPath(items, a.id).localeCompare(categoryPath(items, b.id)),
+      ),
+    [items, editing?.id],
+  )
+
+  const resultingDepth = parentId ? categoryDepth(items, parentId) + 1 : 1
+
+  const searchQ = search.trim().toLowerCase()
+  const matchesSearch = (c: Category) =>
+    !searchQ ||
+    c.name.toLowerCase().includes(searchQ) ||
+    c.slug.toLowerCase().includes(searchQ) ||
+    (c.description ?? '').toLowerCase().includes(searchQ) ||
+    categoryPath(items, c.id).toLowerCase().includes(searchQ)
+
+  const visibleRoots = useMemo(() => {
+    const sorted = roots
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
+      )
+    if (!searchQ) return sorted
+    return sorted.filter((root) => {
+      const cats = childrenOf(root.id)
+      const hasMatch =
+        matchesSearch(root) ||
+        cats.some(
+          (cat) =>
+            matchesSearch(cat) || childrenOf(cat.id).some((sub) => matchesSearch(sub)),
+        )
+      return hasMatch
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roots, items, searchQ])
+
+  function resetForm() {
+    setEditing(null)
+    setName('')
+    setDescription('')
+    setParentId('')
+    setSortOrder('0')
+  }
+
+  function startEdit(cat: Category) {
+    setEditing(cat)
+    setName(cat.name)
+    setDescription(cat.description ?? '')
+    setParentId(cat.parentId ?? '')
+    setSortOrder(String(cat.sortOrder ?? 0))
+    setError(null)
+    setInfo(null)
+    window.requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      nameInputRef.current?.focus()
+      nameInputRef.current?.select()
+    })
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    setError(null)
+    setInfo(null)
     try {
       await adminUpsertCategory({
         id: editing?.id,
         name,
+        description: description || undefined,
         parentId: parentId || null,
         status: editing?.status ?? 'published',
-        sortOrder: editing?.sortOrder ?? 0,
+        sortOrder: Number(sortOrder) || 0,
+        allCategories: items,
       })
-      setName('')
-      setParentId('')
-      setEditing(null)
+      resetForm()
       await reload()
+      setInfo('Classificação salva.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar')
     }
   }
 
+  async function onArchiveToggle(cat: Category) {
+    setError(null)
+    try {
+      if (cat.status !== 'archived') {
+        const kids = childrenOf(cat.id)
+        if (kids.length > 0) {
+          setError(
+            `Não é possível arquivar "${cat.name}" enquanto houver filhos (${kids.length}). Arquive ou mova os filhos antes.`,
+          )
+          return
+        }
+        const productCount = await adminCountProductsInCategory(cat.id)
+        if (productCount > 0) {
+          setError(
+            `Há ${productCount} produto(s) nesta classificação. Reclassifique-os antes de arquivar.`,
+          )
+          return
+        }
+      }
+      await adminSetCategoryStatus(
+        cat.id,
+        cat.status === 'archived' ? 'published' : 'archived',
+      )
+      await reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao alterar status')
+    }
+  }
+
+  function renderRow(cat: Category, indentClass: string) {
+    const depth = categoryDepth(items, cat.id)
+    const level = categoryLevelLabel(depth)
+    return (
+      <tr
+        key={cat.id}
+        className={`border-t border-fal-line ${
+          editing?.id === cat.id ? 'bg-fal-yellow/20' : depth > 1 ? 'bg-fal-bg/40' : ''
+        }`}
+      >
+        <td className={`px-3 py-2 ${indentClass}`}>
+          {depth > 1 ? <span className="text-fal-muted">{'↳ '.repeat(depth - 1)}</span> : null}
+          <span className={depth === 1 ? 'font-bold' : ''}>{cat.name}</span>
+          <div className="text-xs text-fal-muted">
+            {level}
+            {cat.description ? ` · ${cat.description}` : ''}
+          </div>
+        </td>
+        <td className="px-3 py-2 text-xs text-fal-muted">{categoryPath(items, cat.id)}</td>
+        <td className="px-3 py-2">{cat.sortOrder}</td>
+        <td className="px-3 py-2 text-fal-muted">{cat.slug}</td>
+        <td className="px-3 py-2">{statusLabel(cat.status)}</td>
+        <td className="space-x-2 px-3 py-2">
+          <button
+            type="button"
+            className="font-semibold text-fal-auth-link"
+            onClick={() => startEdit(cat)}
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            className="font-semibold text-fal-muted"
+            onClick={() => void onArchiveToggle(cat)}
+          >
+            {cat.status === 'archived' ? 'Publicar' : 'Arquivar'}
+          </button>
+        </td>
+      </tr>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">Categorias</h1>
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-3">
+      <h1 className="text-2xl font-extrabold text-fal-navy">Classificação</h1>
+      <p className="text-sm text-fal-muted">
+        Hierarquia de {CATEGORY_MAX_DEPTH} níveis: <strong>Grupo</strong> →{' '}
+        <strong>Categoria</strong> → <strong>Subcategoria</strong>. Quarto nível bloqueado.
+      </p>
+      <form
+        ref={formRef}
+        onSubmit={onSubmit}
+        className={`grid gap-3 rounded-[14px] border bg-white p-4 md:grid-cols-2 ${
+          editing ? 'border-fal-yellow-dark ring-2 ring-fal-yellow/40' : 'border-fal-line'
+        }`}
+      >
         <Input
-          label={editing ? 'Editar categoria' : 'Nova categoria'}
+          ref={nameInputRef}
+          label={
+            editing
+              ? `Editar ${categoryLevelLabel(categoryDepth(items, editing.id)).toLowerCase()}`
+              : `Novo ${categoryLevelLabel(resultingDepth).toLowerCase()}`
+          }
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
+        <Input
+          label="Descrição (opcional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
         <label className="block text-sm">
-          <span className="mb-1 block font-semibold text-fal-navy">Categoria pai</span>
+          <span className="mb-1 block font-semibold text-fal-navy">Pai (opcional)</span>
           <select
             className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
             value={parentId}
             onChange={(e) => setParentId(e.target.value)}
           >
-            <option value="">(raiz)</option>
-            {roots.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
+            <option value="">(nenhum — cria Grupo)</option>
+            {parentOptions.map((p) => {
+              const d = categoryDepth(items, p.id)
+              return (
+                <option key={p.id} value={p.id}>
+                  {categoryPath(items, p.id)} ({categoryLevelLabel(d)})
+                </option>
+              )
+            })}
           </select>
+          <span className="mt-1 block text-[13px] text-fal-muted">
+            Resultado: {categoryLevelLabel(resultingDepth)}
+            {resultingDepth > CATEGORY_MAX_DEPTH
+              ? ' — inválido (4º nível)'
+              : resultingDepth === 3
+                ? ' (folha)'
+                : ''}
+          </span>
         </label>
-        <div className="flex items-end gap-2">
-          <Button type="submit" variant="primary">
+        <Input
+          label="Ordem (sort_order)"
+          inputMode="numeric"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          hint="Menor número aparece primeiro."
+        />
+        <div className="flex items-end gap-2 md:col-span-2">
+          <Button type="submit" variant="primary" disabled={resultingDepth > CATEGORY_MAX_DEPTH}>
             {editing ? 'Salvar' : 'Criar'}
           </Button>
           {editing ? (
-            <Button type="button" variant="light" onClick={() => { setEditing(null); setName(''); setParentId('') }}>
+            <Button type="button" variant="light" onClick={resetForm}>
               Cancelar
             </Button>
           ) : null}
         </div>
       </form>
 
+      <Input
+        label="Buscar classificação"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Nome, path, slug ou descrição…"
+      />
+
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
+      {info ? <p className="text-sm text-green-700">{info}</p> : null}
       {loading ? <Loading /> : null}
 
       <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
@@ -100,40 +308,54 @@ export function AdminCategoriesPage() {
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
               <th className="px-3 py-2">Nome</th>
+              <th className="px-3 py-2">Path</th>
+              <th className="px-3 py-2">Ordem</th>
               <th className="px-3 py-2">Slug</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {roots.map((root) => (
-              <Fragment key={root.id}>
-                <tr className="border-t border-fal-line">
-                  <td className="px-3 py-2 font-bold">{root.name}</td>
-                  <td className="px-3 py-2 text-fal-muted">{root.slug}</td>
-                  <td className="px-3 py-2">{root.status === 'archived' ? 'Arquivado' : root.status === 'published' ? 'Publicado' : root.status === 'draft' ? 'Rascunho' : root.status}</td>
-                  <td className="px-3 py-2 space-x-2">
-                    <button type="button" className="text-fal-auth-link font-semibold" onClick={() => { setEditing(root); setName(root.name); setParentId(root.parentId ?? '') }}>Editar</button>
-                    <button type="button" className="text-fal-muted font-semibold" onClick={() => void adminSetCategoryStatus(root.id, root.status === 'archived' ? 'published' : 'archived').then(reload)}>
-                      {root.status === 'archived' ? 'Publicar' : 'Arquivar'}
-                    </button>
-                  </td>
-                </tr>
-                {childrenOf(root.id).map((child) => (
-                  <tr key={child.id} className="border-t border-fal-line bg-fal-bg/40">
-                    <td className="px-3 py-2 pl-8">↳ {child.name}</td>
-                    <td className="px-3 py-2 text-fal-muted">{child.slug}</td>
-                    <td className="px-3 py-2">{child.status === 'archived' ? 'Arquivado' : child.status === 'published' ? 'Publicado' : child.status === 'draft' ? 'Rascunho' : child.status}</td>
-                    <td className="px-3 py-2 space-x-2">
-                      <button type="button" className="text-fal-auth-link font-semibold" onClick={() => { setEditing(child); setName(child.name); setParentId(child.parentId ?? '') }}>Editar</button>
-                      <button type="button" className="text-fal-muted font-semibold" onClick={() => void adminSetCategoryStatus(child.id, child.status === 'archived' ? 'published' : 'archived').then(reload)}>
-                        {child.status === 'archived' ? 'Publicar' : 'Arquivar'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </Fragment>
-            ))}
+            {visibleRoots.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
+                  Nenhuma classificação encontrada.
+                </td>
+              </tr>
+            ) : (
+              visibleRoots.map((root) => {
+                const cats = childrenOf(root.id)
+                return (
+                  <Fragment key={root.id}>
+                    {(!searchQ ||
+                      matchesSearch(root) ||
+                      cats.some(
+                        (c) =>
+                          matchesSearch(c) ||
+                          childrenOf(c.id).some((s) => matchesSearch(s)),
+                      )) &&
+                      renderRow(root, '')}
+                    {cats.map((cat) => {
+                      const subs = childrenOf(cat.id)
+                      const showCat =
+                        !searchQ ||
+                        matchesSearch(root) ||
+                        matchesSearch(cat) ||
+                        subs.some(matchesSearch)
+                      if (!showCat) return null
+                      return (
+                        <Fragment key={cat.id}>
+                          {renderRow(cat, 'pl-4')}
+                          {subs
+                            .filter((s) => !searchQ || matchesSearch(s) || matchesSearch(cat))
+                            .map((sub) => renderRow(sub, 'pl-8'))}
+                        </Fragment>
+                      )
+                    })}
+                  </Fragment>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>

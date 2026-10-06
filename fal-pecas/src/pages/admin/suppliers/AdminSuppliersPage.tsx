@@ -9,6 +9,7 @@ import {
 } from '@/services/admin/adminSupplierService'
 import type { Supplier } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 export function AdminSuppliersPage() {
   const [items, setItems] = useState<Supplier[]>([])
@@ -54,7 +55,17 @@ export function AdminSuppliersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">Fornecedores</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-fal-navy">Fornecedores</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin/fornecedores/importar-conversoes">
+            <Button variant="light">Importar conversões</Button>
+          </Link>
+          <Link to="/admin/fornecedores/importar-custos">
+            <Button variant="light">Importar custos</Button>
+          </Link>
+        </div>
+      </div>
       <form onSubmit={onSubmit} className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-3">
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input label="Código" value={code} onChange={(e) => setCode(e.target.value)} />

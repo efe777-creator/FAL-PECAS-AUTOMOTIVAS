@@ -142,7 +142,7 @@ export function ProductPage() {
           </button>
           <p className="text-sm text-fal-muted">{current.brand}</p>
           <h1 className="mt-1 pr-12 text-[28px] font-extrabold sm:text-[34px]">{current.name}</h1>
-          <p className="text-sm text-fal-muted">SKU {current.sku}</p>
+          <p className="text-sm text-fal-muted">Código {current.sku}</p>
           <p className="mt-4 text-3xl font-black">
             {price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </p>
@@ -219,7 +219,7 @@ export function ProductPage() {
             )}
           </div>
           <p className="mt-4 text-xs text-fal-muted">
-            Dados via Supabase (Fase 2). Galeria e abas técnicas avançam nas próximas fases.
+            Imagens e fichas técnicas detalhadas serão ampliadas em atualizações futuras.
           </p>
         </div>
       </div>

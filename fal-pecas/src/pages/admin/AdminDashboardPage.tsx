@@ -14,7 +14,7 @@ const sections: { title: string; cards: DashCard[] }[] = [
       { to: '/admin/categorias', title: 'Categorias', desc: 'Árvore comercial' },
       { to: '/admin/montadoras', title: 'Montadoras', desc: 'Cadastro de montadoras' },
       { to: '/admin/veiculos', title: 'Veículos', desc: 'Modelos e configurações' },
-      { to: '/admin/fabricantes', title: 'Fabricantes', desc: 'Marcas de peça' },
+      { to: '/admin/fabricantes', title: 'Fabricantes', desc: 'Fabricante de peça' },
       { to: '/admin/fornecedores', title: 'Fornecedores', desc: 'Fornecedores atuais' },
     ],
   },
