@@ -1,31 +1,32 @@
 # Checklist Fase 9 — Pagamentos Mercado Pago
 
-**Baseline docs:** 2026-10-06 · Spec + auditoria FEITAS · Impl **não** iniciada  
+**Baseline docs:** 2026-10-06 · Spec + auditoria FEITAS · **F9-A impl DONE** (`main` `c03afd4`)  
 **Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)
 
 ---
 
-## Planejamento (fatia atual)
+## Planejamento
 
 - [x] Adendo Plano Mestre (F8.5/F9.0 DONE; F9=MP; F8.6–8.8 paralelo; F10 frete)
 - [x] Auditoria arquitetura checkout/pedido/pagamento
 - [x] Especificação Mercado Pago
 - [x] Este checklist
 - [x] Sync ESPECIFICACAO_FASE9_INTEGRACOES + PLANO_INICIALIZACAO_F9
-- [ ] Revisão humana
-- [ ] MARCHA → F9-A impl
+- [x] MARCHA → F9-A impl
 
 ---
 
 ## F9-A impl — Fundação
 
-- [ ] Migration estende `payments`
-- [ ] Migration cria `payment_events` + unique evento
-- [ ] Estados internos documentados no SQL/CHECK
-- [ ] RLS: customer não aprova payment
-- [ ] Secrets layout documentado (sem valores no git)
-- [ ] Feature flag / `VITE_PAYMENT_PROVIDER` planejada
-- [ ] Sem alteração indevida em `place_order` / inventário
+- [x] Migration estende `payments` (`20261006200000`)
+- [x] Migration cria `payment_events` + unique evento
+- [x] Estados internos documentados no SQL/CHECK
+- [x] RLS: customer não aprova payment (revoke write authenticated)
+- [x] Secrets layout documentado em `.env.example` (sem valores)
+- [x] Feature flag / `VITE_PAYMENT_PROVIDER` + `VITE_MP_PUBLIC_KEY` planejados
+- [x] Sem alteração indevida em `place_order` / inventário
+- [x] Apply linked + histórico `schema_migrations`
+- [x] PR #5 MERGED
 
 ---
 

@@ -1,26 +1,20 @@
-# STOP — F9 Mercado Pago (pós-encaixe docs)
+# STOP — pós F9-A impl (antes F9-B)
 
 **Data:** 2026-10-06  
-**Branch:** `plan`
+**main:** `c03afd4`
 
 ## Feito
 
-Documentação de encaixe no roadmap real (sem código MP):
+F9-A fundação: schema `payments` estendido, `payment_events`, RLS, secrets layout, apply linked.
 
-- Adendo Plano Mestre
-- Auditoria arquitetura checkout/pedido/pagamento
-- Especificação Mercado Pago
-- Checklist
-- Sync INTEGRACOES / INICIALIZACAO / ROADMAP / STATUS / AUDITORIA_GIT
+## Proibido até MARCHA F9-B
 
-## Proibido até MARCHA explícita pós-revisão
-
-- Migrations F9 / `db push` / `db repair`
-- Edge Functions MP
-- `@mercadopago/sdk-react` ou SDK server
-- Alterar `place_order` / inventário / ciclo F7
-- Credenciais no git / `VITE_*` com Access Token
+- Edge `create-mp-payment` / `mercado-pago-webhook`
+- `@mercadopago/sdk-react`
+- Access Token em qualquer `VITE_*` ou commit
+- Alterar `place_order` / ciclo F7 sem evidência
+- Produção MP (F9-I)
 
 ## Próximo
 
-Revisão humana → `MARCHA` = F9-A **impl** (migrations + RLS + layout secrets) conforme checklist.
+`MARCHA F9-B` — cliente MP sandbox + create payment + idempotência.

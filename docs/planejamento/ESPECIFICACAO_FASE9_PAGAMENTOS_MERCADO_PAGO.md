@@ -1,8 +1,8 @@
 # Especificação Fase 9 — Pagamentos Mercado Pago
 
 **Data:** 2026-10-06  
-**Status:** ESPECIFICAÇÃO + AUDITORIA (docs) — **implementação NÃO iniciada**  
-**Baseline:** `main` @ `1abea37` · F8.5 FECHADO · F9.0 adapters sandbox FECHADOS  
+**Status:** F9-A **docs + impl DONE** (`main` `c03afd4`). **STOP antes F9-B** (Edge/SDK).  
+**Baseline:** F8.5 FECHADO · F9.0 DONE · migration `20261006200000` aplicada/registrada  
 **Refs:** [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) · [CHECKLIST…](./CHECKLIST_FASE9_PAGAMENTOS.md) · [PLANO_MESTRE adendo](./PLANO_MESTRE_F8_PROXIMAS_FASES_2026-10-06.md)
 
 ---
@@ -157,15 +157,15 @@ Filtros avançados (pago/pendente/método) = preparação; não obrigatórios na
 
 | Gate | Conteúdo | Auth |
 |------|----------|------|
-| **F9-A docs** | Esta spec + auditoria + checklist | **FEITO** (fatia atual) |
-| **F9-A impl** | Migrations + RLS + secrets layout | MARCHA pós-revisão |
-| F9-B | Cliente MP sandbox + create payment + idempotência | MARCHA |
-| F9-C | Pix + QR + webhook mínimo | MARCHA |
-| F9-D | Card Payment Brick | MARCHA |
-| F9-E | HMAC completo + concurrency + reconciliação | MARCHA |
-| F9-F | Checkout FAL integrado | MARCHA |
-| F9-G | Admin pagamento/eventos | MARCHA |
-| F9-H | Testes + homologação | MARCHA |
+| F9-A docs | Esta spec + auditoria + checklist | **DONE** |
+| **F9-A impl** | Migrations + RLS + secrets layout | **DONE** (`c03afd4` / PR #5) |
+| F9-B | Cliente MP sandbox + create payment + idempotência | STOP / MARCHA |
+| F9-C | Pix + QR + webhook mínimo | pendente |
+| F9-D | Card Payment Brick | pendente |
+| F9-E | HMAC completo + concurrency + reconciliação | pendente |
+| F9-F | Checkout FAL integrado | pendente |
+| F9-G | Admin pagamento/eventos | pendente |
+| F9-H | Testes + homologação | pendente |
 | F9-I | Produção | Auth humana explícita |
 
 ---
@@ -202,4 +202,4 @@ Nunca misturar tokens test/prod.
 
 ## 15. STOP atual
 
-**Não** executar F9-A impl (migrations/SDK/Edge/`db push`) até MARCHA após revisão desta especificação + auditoria.
+F9-A impl **fechada**. **Não** iniciar F9-B (Edge/SDK/webhook) até `MARCHA F9-B`.

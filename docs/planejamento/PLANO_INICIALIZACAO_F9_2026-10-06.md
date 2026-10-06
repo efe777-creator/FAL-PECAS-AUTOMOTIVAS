@@ -1,43 +1,38 @@
 # Plano de inicialização — Fase 9
 
 **Data:** 2026-10-06  
-**Status:** F9.0 **DONE** · F9-MP docs (auditoria/spec) **DONE** · F9-MP impl **STOP** até MARCHA  
-**Deps:** F8.4 + F8.5 + vitrine + F9.0 em `main` (`1abea37`).
+**Status:** F9.0 DONE · F9-A docs DONE · **F9-A impl DONE** (`main` `c03afd4`) · **STOP antes F9-B**  
+**Deps:** F8.4 + F8.5 + vitrine + F9.0 + F9-A schema em `main`.
 
 ## Objetivo
 
-1. Adapters de contrato (frete/pagamento) — **entregue (F9.0)**.  
-2. **Mercado Pago real** (sandbox→prod) — trilha F9-A…I.  
-3. Frete HTTP real — **F10**.
+1. Adapters de contrato (frete/pagamento) — **F9.0 DONE**.  
+2. Fundação schema MP — **F9-A DONE**.  
+3. Mercado Pago sandbox HTTP (create/webhook) — **F9-B+** (próxima MARCHA).  
+4. Frete HTTP real — **F10**.
 
 ## Fatias
 
 ### F9.0 — DONE
 
-| Fatia | Conteúdo | Status |
-|-------|----------|--------|
-| Correios sandbox | PAC/SEDEX determinístico | DONE |
-| Frenet sandbox | Multi-carrier determinístico | DONE |
-| Gateway sandbox | Metadata gateway; ciclo via `confirm_simulated_payment` | DONE |
+| Fatia | Status |
+|-------|--------|
+| Correios / Frenet / gateway sandbox | DONE |
 
 ### F9 — Mercado Pago
 
 | Gate | Conteúdo | Status |
 |------|----------|--------|
-| F9-A docs | [AUDITORIA…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) + [SPEC…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) + [CHECKLIST…](./CHECKLIST_FASE9_PAGAMENTOS.md) | **DONE** |
-| F9-A impl … F9-I | Migrations → Pix → cartões → webhook → checkout → admin → homolog → prod | **Aguardando MARCHA** |
+| F9-A docs | Auditoria + spec + checklist | DONE |
+| F9-A impl | Migration `20261006200000` + RLS + secrets layout | **DONE** PR #5 |
+| F9-B … F9-I | Edge MP → Pix → cartões → webhook → checkout → admin → homolog → prod | **STOP** até MARCHA |
 
 ## Env (sem valores)
 
-- `VITE_SHIPPING_PROVIDER=correios|mock|frenet|carrier`
 - `VITE_PAYMENT_PROVIDER=simulated|gateway|sandbox|mercadopago`
-- `VITE_MP_PUBLIC_KEY` (só public)
-- Secrets BE: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` (nunca `VITE_*` privado)
-
-## Fora
-
-HTTP frete real (F10); F8.6–F8.8 (paralelo); repair em massa; implementação MP sem MARCHA.
+- `VITE_MP_PUBLIC_KEY`
+- Secrets BE: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_ENV` (nunca `VITE_*` privado)
 
 ## Próximo
 
-**STOP** → revisão humana → MARCHA F9-A impl (migrations + RLS + layout secrets).
+**STOP** → MARCHA **F9-B** (Edge create-mp-payment + idempotência + Access Token backend).

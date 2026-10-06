@@ -311,7 +311,7 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 
 ## Fase 9 — Integrações + qualidade
 
-**Status (2026-10-06):** **F9.0 DONE** em `main` (`1abea37`). **F9-MP** = Mercado Pago (docs em `plan`; impl STOP). Frete real = **F10**. Ver [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) · [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md). F8.6–F8.8 paralelo.
+**Status (2026-10-06):** **F9.0 + F9-A impl DONE** (`main` `c03afd4`). F9-MP próximo = **F9-B** (Edge). Frete real = **F10**. Ver [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) · [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md).
 
 **Pergunta:** Como conectamos externos e endurecemos o sistema?
 

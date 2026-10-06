@@ -1,7 +1,7 @@
 # Especificação Fase 9 — Integrações + qualidade
 
-**Status:** **F9.0 adapters sandbox DONE** em `main` (`1abea37`). **F9 negócio = Mercado Pago** em especificação (docs). Frete real = **F10**.  
-**Base:** [ROADMAP_FASES_3.0.md](./ROADMAP_FASES_3.0.md) · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) · [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md)  
+**Status:** **F9.0 DONE** · **F9-A impl DONE** (`main` `c03afd4`). **STOP antes F9-B**.  
+**Base:** [ROADMAP…](./ROADMAP_FASES_3.0.md) · [PLANO_INICIALIZACAO_F9…](./PLANO_INICIALIZACAO_F9_2026-10-06.md) · [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md)  
 **Princípio F6:** checkout e admin falam com **contratos internos FAL**; integrações trocam **adapters**.
 
 ---
@@ -44,8 +44,8 @@
 | Gate | Conteúdo | Status |
 |------|----------|--------|
 | F9-A docs | Auditoria + spec + checklist | **DONE** (plan) |
-| F9-A impl | Migrations `payments` + `payment_events` + RLS | pendente MARCHA |
-| F9-B…I | Sandbox MP → Pix → cartões → webhook → checkout → admin → testes → prod | pendente |
+| F9-A impl | Migrations `payments` + `payment_events` + RLS | **DONE** (`c03afd4` PR #5) |
+| F9-B…I | Sandbox MP → Pix → cartões → webhook → checkout → admin → testes → prod | **STOP** até MARCHA F9-B |
 
 ### F10 — Frete real
 
@@ -90,5 +90,4 @@ Absorvidos em F9-E / F9-H do plano MP (não como “F9-D/E” legados de frete).
 
 ## 8. Próximo passo
 
-Revisão humana da [AUDITORIA_F9…](./AUDITORIA_F9_ARQUITETURA_CHECKOUT_PAGAMENTO_2026-10-06.md) + [ESPECIFICACAO_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md).  
-**STOP** de código até MARCHA → F9-A impl.
+Revisão humana ok. F9-A impl fechada. **STOP** até `MARCHA F9-B`.
