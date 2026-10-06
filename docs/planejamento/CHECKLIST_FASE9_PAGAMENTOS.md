@@ -1,7 +1,7 @@
 # Checklist Fase 9 — Pagamentos Mercado Pago
 
-**Baseline docs:** 2026-10-06 · **F9-A + F9-B DONE** (`main` `06be4e4`) · STOP antes F9-C  
-**Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
+**Baseline docs:** 2026-10-06 · **F9-A + F9-B DONE** (`main` `06be4e4` + gap-close) · STOP antes F9-C  
+**Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md) · [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md) · [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md)
 
 ---
 
@@ -14,6 +14,7 @@
 - [x] Sync ESPECIFICACAO_FASE9_INTEGRACOES + PLANO_INICIALIZACAO_F9
 - [x] MARCHA → F9-A impl
 - [x] MARCHA → F9-B create payment
+- [x] Gap-close Prompt Mestre F9-B (body só orderId + testes A–I + docs)
 
 ---
 
@@ -35,11 +36,15 @@
 
 - [x] Auditoria F9-A + docs oficiais MP ([AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md))
 - [x] Edge `create-mp-payment` (amount = `orders.total`, sem aprovar pedido)
+- [x] Body FE só `orderId` (rejeita `amount`/`method`; method server `pix`)
 - [x] Access Token só backend (`MP_ACCESS_TOKEN` secret — deploy manual)
 - [x] Public Key layout no FE (`.env.example`)
 - [x] `X-Idempotency-Key` = `fal-pay-{paymentId}`
+- [x] Testes A–I fetch mock ([CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md))
+- [x] Security scan + [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md)
 - [ ] Credenciais TEST configuradas no projeto Supabase (humano)
-- [x] PR #6 MERGED (`06be4e4`)
+- [x] PR #6 MERGED (`06be4e4`) + gap-close conformidade Prompt Mestre
+- [x] STOP F9-B (sem F9-C)
 
 ---
 
@@ -118,13 +123,3 @@
 - [ ] Webhook HTTPS
 - [ ] Smoke produção
 - [ ] Rollback documentado
-- [ ] Monitoramento mínimo
-
----
-
-## Fora deste checklist
-
-- F8.6 / F8.7 / F8.8 (backlog paralelo)
-- F10 frete real
-- Refund automático
-- Repair migrations em massa

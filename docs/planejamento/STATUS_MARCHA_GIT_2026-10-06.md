@@ -1,24 +1,28 @@
-﻿# Status marcha Git — F9-B 2026-10-06
+﻿# Status marcha Git — F9-B conformidade 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `fd697c8` |
-| `main` | `06be4e4` (PR #6) |
+| `dev` | `3eaf0ef` |
+| `main` | `d851617` (PR #7) |
 
-## Feito (F9-B)
+## Feito (F9-B + gap-close)
 
-- [AUDITORIA_F9B_PRE_IMPL…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
-- Edge `create-mp-payment` + core idempotente
-- FE `createMercadoPagoPayment` (sem checkout)
-- Vitest payments **12 PASS** + build PASS
-- PR #6 MERGED
+- [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
+- Edge `create-mp-payment` + body só `orderId`
+- Flow testável A–I (`createMpPaymentFlow`)
+- FE `createMercadoPagoPayment(orderId)` sem method
+- Vitest payments **28 PASS** + build PASS
+- [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md)
+- [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md)
+- Security scan §22 PASS
+- PR #6 MERGED (core `06be4e4`); PR #7 MERGED (conformidade `d851617`)
 
 ## STOP
 
-Sem deploy Edge obrigatório nesta fatia · sem webhook · sem Pix UI · sem checkout MP · sem F7.
+Sem webhook · sem Pix UI · sem checkout MP · sem F7 · sem produção.
 
 **Próximo:** `MARCHA F9-C` (Pix UX + webhook mínimo).
 

@@ -1,8 +1,8 @@
 # Auditoria F9-B pré-impl — 2026-10-06
 
 **Tipo:** leitura + docs oficiais MP — **antes** de código F9-B  
-**Baseline código:** `origin/main` @ `c03afd4`  
-**Refs:** [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [STOP…](./STOP_F9_MP_POS_AUDITORIA_2026-10-06.md)
+**Baseline código (pré-impl original):** `c03afd4` · **pós F9-B core:** `06be4e4` · **gap-close:** branch `feat/f9-b-mp-create-payment-conform`  
+**Refs:** [ESPECIFICACAO_FASE9_PAGAMENTOS…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md) · [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md) · [STOP…](./STOP_F9_MP_POS_AUDITORIA_2026-10-06.md)
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Branch | Tip |
 |--------|-----|
-| `main` | `c03afd4` |
-| `dev` | `23cd21e` |
-| `plan` | `d530f75` (docs; tip sobe com este pacote) |
+| `main` | `d851617` (PR #7) |
+| `dev` | `3eaf0ef` |
+| `plan` | docs STOP + checklist + relatório |
 
 ## 2. Estado real F9-A (linked)
 
