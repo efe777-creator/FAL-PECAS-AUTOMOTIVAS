@@ -1,0 +1,236 @@
+import { parseMoneyBr } from '@/lib/money'
+import { getSupabase } from '@/lib/supabase'
+import { getImportContract } from '@/services/import/contracts'
+import { parseCsvToGrid } from '@/services/import/parseCsv'
+import { parseXlsxToGrid } from '@/services/import/parseXlsx'
+import { validateImportGrid } from '@/services/import/validate'
+import type { ImportGrid } from '@/services/import/types'
+
+export type CostImportPreviewRow = {
+  line: number
+  supplierSku: string
+  cost: number | null
+  costRaw: string
+  oldCost: number | null
+  productId: string | null
+  productSku: string | null
+  action: 'update' | null
+  errors: string[]
+  warnings: string[]
+  ok: boolean
+}
+
+export type CostImportApplyResult = {
+  created: number
+  updated: number
+  failed: number
+  skipped: number
+}
+
+type ConversionRow = {
+  id: string
+  supplier_sku: string | null
+  product_id: string
+  cost: number | null
+  products?: { sku: string } | { sku: string }[] | null
+}
+
+async function parseCostFile(file: File): Promise<ImportGrid> {
+  const contract = getImportContract('supplier_cost')
+  const lower = file.name.toLowerCase()
+  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+    return parseXlsxToGrid(await file.arrayBuffer(), { contract })
+  }
+  return parseCsvToGrid(await file.text(), { contract })
+}
+
+function productSkuFromJoin(
+  products: ConversionRow['products'],
+): string | null {
+  if (!products) return null
+  const row = Array.isArray(products) ? products[0] : products
+  return row?.sku ? String(row.sku) : null
+}
+
+async function loadConversionsBySupplierSku(
+  supplierId: string,
+  supplierSkus: string[],
+): Promise<Map<string, { productId: string; productSku: string | null; cost: number | null }>> {
+  const map = new Map<
+    string,
+    { productId: string; productSku: string | null; cost: number | null }
+  >()
+  const unique = [...new Set(supplierSkus.map((s) => s.trim()).filter(Boolean))]
+  if (!unique.length) return map
+
+  const sb = getSupabase()
+  const chunkSize = 200
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize)
+    const { data, error } = await sb
+      .from('supplier_products')
+      .select('id, supplier_sku, product_id, cost, products ( sku )')
+      .eq('supplier_id', supplierId)
+      .in('supplier_sku', chunk)
+    if (error) throw error
+    for (const row of (data ?? []) as ConversionRow[]) {
+      if (!row.supplier_sku) continue
+      map.set(String(row.supplier_sku), {
+        productId: String(row.product_id),
+        productSku: productSkuFromJoin(row.products),
+        cost: row.cost == null ? null : Number(row.cost),
+      })
+    }
+  }
+  return map
+}
+
+/**
+ * Preview: resolve conversão por código do fornecedor.
+ * Sem conversão = erro (pendência). Não cria vínculo nem produto.
+ */
+export async function adminPreviewCostImport(input: {
+  file: File
+  supplierId: string
+}): Promise<{
+  rows: CostImportPreviewRow[]
+  delimiter: string | null
+  fileErrors: string[]
+}> {
+  if (!input.supplierId) {
+    return { rows: [], delimiter: null, fileErrors: ['Selecione o fornecedor'] }
+  }
+
+  const contract = getImportContract('supplier_cost')
+  const grid = await parseCostFile(input.file)
+  const validation = validateImportGrid(grid, contract, {
+    duplicateKeyField: 'supplier_sku',
+  })
+
+  const fileErrors = validation.errors
+    .filter((e) => e.lineNumber === 0)
+    .map((e) => e.message)
+
+  if (fileErrors.length > 0) {
+    return { rows: [], delimiter: grid.delimiter, fileErrors }
+  }
+
+  const errorsByLine = new Map<number, string[]>()
+  for (const e of validation.errors) {
+    if (e.lineNumber === 0) continue
+    const list = errorsByLine.get(e.lineNumber) ?? []
+    list.push(e.message)
+    errorsByLine.set(e.lineNumber, list)
+  }
+
+  const conversions = await loadConversionsBySupplierSku(
+    input.supplierId,
+    validation.mapped.map((m) => m.values.supplier_sku ?? ''),
+  )
+
+  const rows: CostImportPreviewRow[] = []
+  for (const mapped of validation.mapped) {
+    const supplierSku = (mapped.values.supplier_sku ?? '').trim()
+    const costRaw = (mapped.values.cost ?? '').trim()
+    const cost = parseMoneyBr(costRaw)
+    const lineErrors = [...(errorsByLine.get(mapped.lineNumber) ?? [])]
+    let productId: string | null = null
+    let productSku: string | null = null
+    let oldCost: number | null = null
+    let action: 'update' | null = null
+
+    if (lineErrors.length === 0) {
+      const conv = conversions.get(supplierSku)
+      if (!conv) {
+        lineErrors.push('Sem conversão: código fornecedor não vinculado a produto FAL')
+      } else if (cost == null || cost < 0) {
+        lineErrors.push('Custo inválido')
+      } else {
+        productId = conv.productId
+        productSku = conv.productSku
+        oldCost = conv.cost
+        action = 'update'
+      }
+    }
+
+    rows.push({
+      line: mapped.lineNumber,
+      supplierSku,
+      cost: lineErrors.length === 0 ? cost : cost,
+      costRaw,
+      oldCost,
+      productId,
+      productSku,
+      action,
+      errors: lineErrors,
+      warnings: [],
+      ok: lineErrors.length === 0,
+    })
+  }
+
+  return { rows, delimiter: grid.delimiter, fileErrors: [] }
+}
+
+export async function adminCreateCostImport(input: {
+  filename: string
+  supplierId: string
+  createdBy?: string | null
+  rows: CostImportPreviewRow[]
+}): Promise<string> {
+  const sb = getSupabase()
+  const { data, error } = await sb
+    .from('imports')
+    .insert({
+      filename: input.filename,
+      status: 'preview',
+      kind: 'supplier_cost',
+      supplier_id: input.supplierId,
+      created_by: input.createdBy ?? null,
+      report: {
+        total: input.rows.length,
+        valid: input.rows.filter((r) => r.ok).length,
+        invalid: input.rows.filter((r) => !r.ok).length,
+      },
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  const importId = String(data.id)
+
+  const items = input.rows.map((r) => ({
+    import_id: importId,
+    line_number: r.line,
+    errors: r.errors,
+    warnings: r.warnings,
+    payload: {
+      supplier_sku: r.supplierSku,
+      cost: r.cost,
+      old_cost: r.oldCost,
+      product_id: r.productId,
+      product_sku: r.productSku,
+      action: r.action,
+      supplier_id: input.supplierId,
+    },
+    result: r.ok ? 'ok' : 'error',
+  }))
+  if (items.length) {
+    const { error: itemsErr } = await sb.from('import_items').insert(items)
+    if (itemsErr) throw itemsErr
+  }
+  return importId
+}
+
+export async function adminApplyCostImport(importId: string): Promise<CostImportApplyResult> {
+  const sb = getSupabase()
+  const { data, error } = await sb.rpc('apply_supplier_cost_import', {
+    p_import_id: importId,
+  })
+  if (error) throw error
+  const report = (data ?? {}) as Record<string, unknown>
+  return {
+    created: Number(report.created ?? 0),
+    updated: Number(report.updated ?? 0),
+    failed: Number(report.failed ?? 0),
+    skipped: Number(report.skipped ?? 0),
+  }
+}

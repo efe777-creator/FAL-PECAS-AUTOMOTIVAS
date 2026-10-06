@@ -74,9 +74,30 @@ export async function adminListProducts(params?: {
   q?: string
   status?: string
   withoutImage?: boolean
+  /** category_id IN (nó + descendentes). */
+  categoryIds?: string[]
+  /** Montadora: produtos com aplicação em vehicle_versions dessa manufacturer. */
+  manufacturerId?: string
 }): Promise<Product[]> {
+  let productIdsByMaker: string[] | null = null
+  if (params?.manufacturerId) {
+    const { data: compat, error: compatErr } = await getSupabase()
+      .from('product_vehicle_compatibility')
+      .select('product_id, vehicle_versions!inner(manufacturer_id)')
+      .eq('vehicle_versions.manufacturer_id', params.manufacturerId)
+    if (compatErr) throw compatErr
+    productIdsByMaker = [
+      ...new Set((compat ?? []).map((r) => String((r as { product_id: string }).product_id))),
+    ]
+    if (productIdsByMaker.length === 0) return []
+  }
+
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
   if (params?.status) q = q.eq('status', params.status)
+  if (params?.categoryIds && params.categoryIds.length > 0) {
+    q = q.in('category_id', params.categoryIds)
+  }
+  if (productIdsByMaker) q = q.in('id', productIdsByMaker)
   if (params?.q?.trim()) {
     const term = params.q.trim()
     q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)

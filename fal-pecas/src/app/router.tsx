@@ -111,6 +111,16 @@ const AdminSuppliersPage = lazy(() =>
     default: m.AdminSuppliersPage,
   })),
 )
+const AdminSupplierConversionImportPage = lazy(() =>
+  import('@/pages/admin/suppliers/AdminSupplierConversionImportPage').then((m) => ({
+    default: m.AdminSupplierConversionImportPage,
+  })),
+)
+const AdminSupplierCostImportPage = lazy(() =>
+  import('@/pages/admin/suppliers/AdminSupplierCostImportPage').then((m) => ({
+    default: m.AdminSupplierCostImportPage,
+  })),
+)
 const AdminProductsPage = lazy(() =>
   import('@/pages/admin/products/AdminProductsPage').then((m) => ({
     default: m.AdminProductsPage,
@@ -119,6 +129,11 @@ const AdminProductsPage = lazy(() =>
 const AdminProductFormPage = lazy(() =>
   import('@/pages/admin/products/AdminProductFormPage').then((m) => ({
     default: m.AdminProductFormPage,
+  })),
+)
+const AdminProductImportPage = lazy(() =>
+  import('@/pages/admin/products/AdminProductImportPage').then((m) => ({
+    default: m.AdminProductImportPage,
   })),
 )
 const AdminPriceListsPage = lazy(() =>
@@ -160,6 +175,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'produtos', element: <AdminProductsPage /> },
+      { path: 'produtos/importar', element: <AdminProductImportPage /> },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
       { path: 'precos', element: <AdminPriceListsPage /> },
@@ -169,6 +185,14 @@ export const router = createBrowserRouter([
       { path: 'veiculos', element: <AdminVehiclesPage /> },
       { path: 'fabricantes', element: <AdminBrandsPage /> },
       { path: 'fornecedores', element: <AdminSuppliersPage /> },
+      {
+        path: 'fornecedores/importar-conversoes',
+        element: <AdminSupplierConversionImportPage />,
+      },
+      {
+        path: 'fornecedores/importar-custos',
+        element: <AdminSupplierCostImportPage />,
+      },
       { path: 'pedidos', element: <AdminOrdersPage /> },
       { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
       { path: 'clientes', element: <AdminCustomersPage /> },

@@ -229,7 +229,7 @@ export function CheckoutPage() {
   if (!items.length) {
     return (
       <Container className="py-8">
-        <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Checkout</h1>
+        <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
         <EmptyState
           title="Carrinho vazio"
           description="Adicione peças antes de finalizar a compra."
@@ -242,7 +242,7 @@ export function CheckoutPage() {
 
   return (
     <Container className="py-8">
-      <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Checkout</h1>
+      <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
       <div className="mt-4 flex flex-wrap gap-2">
         {STEPS.map((label, i) => (
           <span

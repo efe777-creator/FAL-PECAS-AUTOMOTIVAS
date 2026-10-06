@@ -63,7 +63,7 @@ export function Footer() {
         <div>
           <h4 className="mt-0 mb-3 text-white">Projeto</h4>
           <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/">
-            Home
+            Início
           </Link>
           <span className="mb-2 block text-[13px] text-[#8a9299]">Privacidade (em breve)</span>
           <span className="mb-2 block text-[13px] text-[#8a9299]">Termos (em breve)</span>

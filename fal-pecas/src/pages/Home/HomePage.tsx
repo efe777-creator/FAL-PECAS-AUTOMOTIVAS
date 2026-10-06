@@ -74,9 +74,7 @@ export function HomePage() {
           <div className="mb-5 flex flex-col items-start justify-between gap-2 sm:mb-6 sm:flex-row sm:items-end">
             <div>
               <h2 className="m-0 text-[23px] font-extrabold sm:text-[28px]">Produtos em destaque</h2>
-              <p className="mt-1 text-fal-muted">
-                Dados via Supabase (seed estrutural da Fase 2 — catálogo comercial entra na Fase 3).
-              </p>
+              <p className="mt-1 text-fal-muted">Seleção do catálogo publicada na loja.</p>
             </div>
             <Link to="/catalogo" className="font-semibold text-fal-navy">
               Ver catálogo →

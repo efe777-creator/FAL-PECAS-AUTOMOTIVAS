@@ -2,7 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { adminListBrands } from '@/services/admin/adminBrandService'
-import { adminListCategories } from '@/services/admin/adminCategoryService'
+import { adminListCategories, categoryPath } from '@/services/admin/adminCategoryService'
 import {
   adminDeleteImage,
   adminListImages,
@@ -305,12 +305,24 @@ export function AdminProductFormPage() {
           <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
           <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} required />
           <label className="text-sm">
-            <span className="mb-1 block font-semibold">Categoria</span>
-            <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <span className="mb-1 block font-semibold">
+              Classificação (Grupo / Categoria / Subcategoria)
+            </span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+            >
               <option value="">—</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.parentId ? `↳ ${c.name}` : c.name}</option>
-              ))}
+              {[...categories]
+                .sort((a, b) =>
+                  categoryPath(categories, a.id).localeCompare(categoryPath(categories, b.id)),
+                )
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {categoryPath(categories, c.id)}
+                  </option>
+                ))}
             </select>
           </label>
           <label className="text-sm">
