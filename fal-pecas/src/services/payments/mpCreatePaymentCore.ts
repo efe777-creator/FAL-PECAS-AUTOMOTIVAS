@@ -1,10 +1,18 @@
 /**
- * Núcleo puro F9-B — create payment Mercado Pago (testável sem Deno/Edge).
- * Fonte de verdade do amount: sempre server (order.total). FE não dita valor.
- * Body client permitido: somente { orderId }. Method = pix (server-side F9-B).
+ * Núcleo puro create payment Mercado Pago (F9-B/C/D).
+ * Amount sempre do servidor (orders.total). FE não envia amount.
+ * Pix: body { orderId }. Cartão: + token + paymentMethodId + installments (Brick).
  */
 
 export type MpCreateMethod = 'pix' | 'credit_card' | 'debit_card'
+
+export interface MpCardClientFields {
+  token: string
+  paymentMethodId: string
+  installments: number
+  issuerId?: string
+  paymentTypeId?: 'credit_card' | 'debit_card' | string
+}
 
 export interface MpCreatePaymentRequestBody {
   orderId?: unknown
@@ -15,6 +23,11 @@ export interface MpCreatePaymentRequestBody {
   provider_payment_id?: unknown
   external_reference?: unknown
   customer_id?: unknown
+  token?: unknown
+  paymentMethodId?: unknown
+  installments?: unknown
+  issuerId?: unknown
+  paymentTypeId?: unknown
 }
 
 export interface MpPayerInput {
@@ -28,9 +41,13 @@ export interface MpPayerInput {
 export interface BuildMpPaymentBodyInput {
   transactionAmount: number
   description: string
-  paymentMethodId: MpCreateMethod
+  /** MP payment_method_id: pix | visa | master | … */
+  paymentMethodId: string
   externalReference: string
   payer: MpPayerInput
+  token?: string
+  installments?: number
+  issuerId?: string
 }
 
 const FORBIDDEN_CLIENT_KEYS = [
@@ -43,21 +60,53 @@ const FORBIDDEN_CLIENT_KEYS = [
   'customer_id',
 ] as const
 
-/** Só orderId. Rejeita amount/method/status e demais campos financeiros do FE. */
 export function parseCreateMpPaymentClientBody(body: MpCreatePaymentRequestBody): {
   orderId: string
+  card?: MpCardClientFields
 } {
   for (const key of FORBIDDEN_CLIENT_KEYS) {
     if (body[key] !== undefined && body[key] !== null) {
-      throw new Error(`campo '${key}' não permitido no client; use somente orderId`)
+      throw new Error(`campo '${key}' não permitido no client; use somente orderId (+ token cartão)`)
     }
   }
   const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
   if (!orderId) throw new Error('orderId obrigatório')
-  return { orderId }
+
+  const hasToken = body.token != null && String(body.token).trim() !== ''
+  if (!hasToken) {
+    return { orderId }
+  }
+
+  const token = String(body.token).trim()
+  const paymentMethodId =
+    typeof body.paymentMethodId === 'string' ? body.paymentMethodId.trim() : ''
+  const installments = Number(body.installments)
+  if (!paymentMethodId) throw new Error('paymentMethodId obrigatório para cartão')
+  if (!Number.isFinite(installments) || installments < 1) {
+    throw new Error('installments inválido')
+  }
+  const issuerId =
+    body.issuerId != null && String(body.issuerId).trim() !== ''
+      ? String(body.issuerId).trim()
+      : undefined
+  const paymentTypeId =
+    body.paymentTypeId != null ? String(body.paymentTypeId).trim() : undefined
+
+  return {
+    orderId,
+    card: { token, paymentMethodId, installments, issuerId, paymentTypeId },
+  }
 }
 
-/** Método fixo F9-B (Pix); cartão = F9-D. */
+/** Método interno FAL a partir do fluxo (pix default; cartão via Brick). */
+export function resolveInternalMethod(card?: MpCardClientFields): MpCreateMethod {
+  if (!card) return 'pix'
+  const t = (card.paymentTypeId ?? '').toLowerCase()
+  if (t === 'debit_card' || t === 'debit') return 'debit_card'
+  return 'credit_card'
+}
+
+/** @deprecated use resolveInternalMethod — Pix default F9-B */
 export function serverPaymentMethod(): MpCreateMethod {
   return 'pix'
 }
@@ -84,13 +133,21 @@ export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<strin
     }
   }
 
-  return {
+  const body: Record<string, unknown> = {
     transaction_amount: Math.round(input.transactionAmount * 100) / 100,
     description: input.description,
     payment_method_id: input.paymentMethodId,
     external_reference: input.externalReference,
     payer,
   }
+
+  if (input.token) {
+    body.token = input.token
+    body.installments = input.installments ?? 1
+    if (input.issuerId) body.issuer_id = Number(input.issuerId) || input.issuerId
+  }
+
+  return body
 }
 
 export interface MpPaymentApiResponse {
@@ -110,7 +167,7 @@ export interface MpPaymentApiResponse {
 
 /**
  * Mapeia resposta MP → colunas FAL.
- * status interno SEMPRE pending nesta fatia (mesmo se provider_status=approved).
+ * status interno SEMPRE pending na create (approve = webhook F9-C).
  */
 export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   provider_payment_id: string

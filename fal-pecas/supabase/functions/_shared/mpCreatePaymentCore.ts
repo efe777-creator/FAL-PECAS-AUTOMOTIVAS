@@ -1,8 +1,18 @@
 /**
- * Cópia Deno do núcleo F9-B (espelha src/services/payments/mpCreatePaymentCore.ts).
+ * Núcleo puro create payment Mercado Pago (F9-B/C/D).
+ * Amount sempre do servidor (orders.total). FE não envia amount.
+ * Pix: body { orderId }. Cartão: + token + paymentMethodId + installments (Brick).
  */
 
 export type MpCreateMethod = 'pix' | 'credit_card' | 'debit_card'
+
+export interface MpCardClientFields {
+  token: string
+  paymentMethodId: string
+  installments: number
+  issuerId?: string
+  paymentTypeId?: 'credit_card' | 'debit_card' | string
+}
 
 export interface MpCreatePaymentRequestBody {
   orderId?: unknown
@@ -13,9 +23,34 @@ export interface MpCreatePaymentRequestBody {
   provider_payment_id?: unknown
   external_reference?: unknown
   customer_id?: unknown
+  token?: unknown
+  paymentMethodId?: unknown
+  installments?: unknown
+  issuerId?: unknown
+  paymentTypeId?: unknown
 }
 
-const FORBIDDEN = [
+export interface MpPayerInput {
+  email: string
+  firstName?: string
+  lastName?: string
+  identificationType?: 'CPF' | 'CNPJ'
+  identificationNumber?: string
+}
+
+export interface BuildMpPaymentBodyInput {
+  transactionAmount: number
+  description: string
+  /** MP payment_method_id: pix | visa | master | … */
+  paymentMethodId: string
+  externalReference: string
+  payer: MpPayerInput
+  token?: string
+  installments?: number
+  issuerId?: string
+}
+
+const FORBIDDEN_CLIENT_KEYS = [
   'amount',
   'method',
   'status',
@@ -27,17 +62,51 @@ const FORBIDDEN = [
 
 export function parseCreateMpPaymentClientBody(body: MpCreatePaymentRequestBody): {
   orderId: string
+  card?: MpCardClientFields
 } {
-  for (const key of FORBIDDEN) {
-    if ((body as Record<string, unknown>)[key] !== undefined && (body as Record<string, unknown>)[key] !== null) {
-      throw new Error(`campo '${key}' não permitido no client; use somente orderId`)
+  for (const key of FORBIDDEN_CLIENT_KEYS) {
+    if (body[key] !== undefined && body[key] !== null) {
+      throw new Error(`campo '${key}' não permitido no client; use somente orderId (+ token cartão)`)
     }
   }
   const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
   if (!orderId) throw new Error('orderId obrigatório')
-  return { orderId }
+
+  const hasToken = body.token != null && String(body.token).trim() !== ''
+  if (!hasToken) {
+    return { orderId }
+  }
+
+  const token = String(body.token).trim()
+  const paymentMethodId =
+    typeof body.paymentMethodId === 'string' ? body.paymentMethodId.trim() : ''
+  const installments = Number(body.installments)
+  if (!paymentMethodId) throw new Error('paymentMethodId obrigatório para cartão')
+  if (!Number.isFinite(installments) || installments < 1) {
+    throw new Error('installments inválido')
+  }
+  const issuerId =
+    body.issuerId != null && String(body.issuerId).trim() !== ''
+      ? String(body.issuerId).trim()
+      : undefined
+  const paymentTypeId =
+    body.paymentTypeId != null ? String(body.paymentTypeId).trim() : undefined
+
+  return {
+    orderId,
+    card: { token, paymentMethodId, installments, issuerId, paymentTypeId },
+  }
 }
 
+/** Método interno FAL a partir do fluxo (pix default; cartão via Brick). */
+export function resolveInternalMethod(card?: MpCardClientFields): MpCreateMethod {
+  if (!card) return 'pix'
+  const t = (card.paymentTypeId ?? '').toLowerCase()
+  if (t === 'debit_card' || t === 'debit') return 'debit_card'
+  return 'credit_card'
+}
+
+/** @deprecated use resolveInternalMethod — Pix default F9-B */
 export function serverPaymentMethod(): MpCreateMethod {
   return 'pix'
 }
@@ -47,21 +116,14 @@ export function buildIdempotencyKey(paymentId: string): string {
   return `fal-pay-${paymentId}`
 }
 
-export function buildMpPaymentBody(input: {
-  transactionAmount: number
-  description: string
-  paymentMethodId: MpCreateMethod
-  externalReference: string
-  payer: {
-    email: string
-    firstName?: string
-    lastName?: string
-    identificationType?: 'CPF' | 'CNPJ'
-    identificationNumber?: string
+/** Payload POST /v1/payments — sem Access Token. */
+export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<string, unknown> {
+  if (!(input.transactionAmount > 0)) {
+    throw new Error('transaction_amount inválido')
   }
-}): Record<string, unknown> {
-  if (!(input.transactionAmount > 0)) throw new Error('transaction_amount inválido')
-  const payer: Record<string, unknown> = { email: input.payer.email }
+  const payer: Record<string, unknown> = {
+    email: input.payer.email,
+  }
   if (input.payer.firstName) payer.first_name = input.payer.firstName
   if (input.payer.lastName) payer.last_name = input.payer.lastName
   if (input.payer.identificationType && input.payer.identificationNumber) {
@@ -70,18 +132,28 @@ export function buildMpPaymentBody(input: {
       number: input.payer.identificationNumber,
     }
   }
-  return {
+
+  const body: Record<string, unknown> = {
     transaction_amount: Math.round(input.transactionAmount * 100) / 100,
     description: input.description,
     payment_method_id: input.paymentMethodId,
     external_reference: input.externalReference,
     payer,
   }
+
+  if (input.token) {
+    body.token = input.token
+    body.installments = input.installments ?? 1
+    if (input.issuerId) body.issuer_id = Number(input.issuerId) || input.issuerId
+  }
+
+  return body
 }
 
-export function mapMpResponseToPaymentFields(mp: {
+export interface MpPaymentApiResponse {
   id?: number | string
   status?: string
+  status_detail?: string
   payment_method_id?: string
   point_of_interaction?: {
     transaction_data?: {
@@ -91,10 +163,27 @@ export function mapMpResponseToPaymentFields(mp: {
     }
   }
   date_of_expiration?: string
-}) {
+}
+
+/**
+ * Mapeia resposta MP → colunas FAL.
+ * status interno SEMPRE pending na create (approve = webhook F9-C).
+ */
+export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
+  provider_payment_id: string
+  provider_status: string | null
+  method: string | null
+  pix_qr_code: string | null
+  pix_qr_code_base64: string | null
+  payment_url: string | null
+  expires_at: string | null
+  status: 'pending'
+  orderApproved: false
+} {
   const td = mp.point_of_interaction?.transaction_data
   const id = mp.id != null ? String(mp.id) : ''
   if (!id) throw new Error('Resposta MP sem id')
+
   return {
     provider_payment_id: id,
     provider_status: mp.status ?? null,
@@ -103,7 +192,7 @@ export function mapMpResponseToPaymentFields(mp: {
     pix_qr_code_base64: td?.qr_code_base64 ?? null,
     payment_url: td?.ticket_url ?? null,
     expires_at: mp.date_of_expiration ?? null,
-    status: 'pending' as const,
-    orderApproved: false as const,
+    status: 'pending',
+    orderApproved: false,
   }
 }
