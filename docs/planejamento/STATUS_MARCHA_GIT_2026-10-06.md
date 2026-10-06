@@ -1,4 +1,4 @@
-﻿# Status marcha Git — F9-B conformidade 2026-10-06
+﻿# Status marcha Git — F9-B DONE + MCPs verificados (2026-10-06)
 
 ## Tips
 
@@ -20,12 +20,20 @@
 - Security scan §22 PASS
 - PR #6 MERGED (core `06be4e4`); PR #7 MERGED (conformidade `d851617`)
 
+## MCPs verificados (consolidação)
+
+| MCP | Status |
+|-----|--------|
+| Supabase | OK — projeto `wtbpwuiayednvlhvuhbh` ACTIVE_HEALTHY |
+| Context7 | OK — após `mcp_auth` |
+| Mercado Pago | OK — app **FALPecasSandbox** (`8320396999442614`, checkout_api / payments / MLB) |
+
 ## STOP
 
-Sem webhook · sem Pix UI · sem checkout MP · sem F7 · sem produção.
+Sem webhook · sem Pix UI · sem checkout MP · sem F7 · sem produção · **sem F9-C** até MARCHA explícita.
 
 **Próximo:** `MARCHA F9-C` (Pix UX + webhook mínimo).
 
-## Humano
+## Humano (opcional, live sandbox — não é F9-C)
 
-Configurar `MP_ACCESS_TOKEN` TEST + `npx supabase functions deploy create-mp-payment --linked` quando for testar live.
+Credenciais TEST da app FALPecasSandbox → `MP_ACCESS_TOKEN` no Supabase secrets + `npx supabase functions deploy create-mp-payment --linked`.

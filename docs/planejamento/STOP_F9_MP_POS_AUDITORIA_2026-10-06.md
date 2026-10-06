@@ -1,7 +1,8 @@
 # STOP — pós F9-B conformidade (antes F9-C)
 
 **Data:** 2026-10-06  
-**Status:** **F9-B DONE** (core PR #6 @ `06be4e4` + gap-close PR #7 @ `d851617`)
+**Status:** **F9-B DONE** (core PR #6 @ `06be4e4` + gap-close PR #7 @ `d851617`)  
+**Consolidação MCP:** Context7 + Supabase + Mercado Pago OK; app TEST `FALPecasSandbox` criada — **ainda sem F9-C**.
 
 ## Feito
 
