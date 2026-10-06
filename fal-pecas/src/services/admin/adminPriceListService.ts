@@ -468,6 +468,17 @@ export async function adminListPriceListItems(
   const productIds = raw.map((row) => String((row as Record<string, unknown>).product_id))
   const costMap = await loadPrincipalCosts(productIds)
 
+  const { data: listRow } = await getSupabase()
+    .from('price_lists')
+    .select('list_extra_cost_percent')
+    .eq('id', priceListId)
+    .maybeSingle()
+  const listPct = Number(
+    (listRow as { list_extra_cost_percent?: unknown } | null)?.list_extra_cost_percent ?? 0,
+  )
+  // Opção A: R$ da lista (list_extra_cost) NÃO entra — 3º arg sempre 0
+  const listExtraCostRs = 0
+
   const supplierIds = [
     ...new Set(
       raw
@@ -508,7 +519,9 @@ export async function adminListPriceListItems(
       supplierId != null ? (costMap.get(`${supplierId}:${productId}`) ?? null) : null
     const extraCost = Number(r.extra_cost ?? 0)
     const costTotal =
-      baseCost == null ? null : computeCostTotal(baseCost, extraCost, 0)
+      baseCost == null
+        ? null
+        : computeCostTotal(baseCost, extraCost, listExtraCostRs, listPct)
     const price = Number(r.price)
     return {
       id: String(r.id),
@@ -771,6 +784,8 @@ export function previewCalculatedPrice(input: {
   extraCost: number
   method: PricingMethod
   percent: number
+  /** Opção A: % da lista. R$ da lista não entra. */
+  listExtraCostPercent?: number
 }): { costTotal: number | null; price: number | null; error: string | null } {
   if (input.method === 'fixed') {
     return { costTotal: null, price: null, error: 'Lista em modo fixo' }
@@ -788,7 +803,12 @@ export function previewCalculatedPrice(input: {
   if (input.method === 'margin_on_sell' && input.percent >= 100) {
     return { costTotal: null, price: null, error: 'Margem deve ser < 100%' }
   }
-  const costTotal = computeCostTotal(input.baseCost, input.extraCost, 0)
+  const costTotal = computeCostTotal(
+    input.baseCost,
+    input.extraCost,
+    0,
+    input.listExtraCostPercent ?? 0,
+  )
   const price = calculateSellPrice(costTotal, input.method, input.percent)
   if (price == null) {
     return { costTotal, price: null, error: 'Não foi possível calcular o preço' }
