@@ -1,0 +1,17 @@
+# Netlify — app Vite em fal-pecas/
+# Site Settings → Build: este arquivo sobrescreve UI se existir no branch.
+
+[build]
+  base = "fal-pecas"
+  command = "npm run build"
+  # relativo ao base (fal-pecas/)
+  publish = "dist"
+
+# SPA: todas as rotas → index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "22"
