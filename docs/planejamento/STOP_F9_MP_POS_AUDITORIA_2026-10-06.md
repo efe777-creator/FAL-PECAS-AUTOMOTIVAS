@@ -1,28 +1,32 @@
-# STOP — pós F9-B conformidade (antes F9-C)
+# STOP — pós F9-C (antes F9-D)
 
 **Data:** 2026-10-06  
-**Status:** **F9-B DONE** (core PR #6 + gap-close Prompt Mestre)
+**Status:** **F9-C DONE** (Pix UI + webhook mínimo)  
+**Baseline main pré-PR:** `d851617`
 
 ## Feito
 
-- Edge `create-mp-payment` versionada
-- Body FE só `orderId` (rejeita `amount`/`method`)
-- Amount = `orders.total`; método server-side `pix`
-- `X-Idempotency-Key` = `fal-pay-{paymentId}`
-- Casos A–I com fetch mock (sem MP real no CI)
-- Security scan documentado
-- Checklist + relatório final (§23/§30)
-- Pedido **não** aprovado automaticamente
+- Edge `mercado-pago-webhook` (x-signature HMAC, payment_events, amount check)
+- RPC `confirm_mercadopago_payment` (service_role) → ciclo F7
+- Checkout Pix quando `VITE_PAYMENT_PROVIDER=mercadopago` (QR + copia-e-cola + poll)
+- Rejected/expired **não** cancelam pedido
+- FE **não** marca pago
 
-## Proibido até MARCHA F9-C
+## Proibido até MARCHA F9-D
 
-- Webhook `mercado-pago-webhook`
-- Pix QR UI / Card Brick no checkout
-- Alterar `CheckoutPage` / `place_order` / ciclo F7
-- Produção MP
-- Commit de Access Token
+- Card Payment Brick / crédito / débito
 - SDK `@mercadopago/sdk-react`
+- Produção MP
+- Commit de Access Token / webhook secret
+
+## Humano (live)
+
+1. Apply migration `20261006210000` (se não via MCP)
+2. Secrets: `MP_ACCESS_TOKEN` + `MP_WEBHOOK_SECRET`
+3. Deploy: `create-mp-payment` + `mercado-pago-webhook`
+4. Webhook URL no DevPanel → `…/functions/v1/mercado-pago-webhook`
+5. `.env`: `VITE_PAYMENT_PROVIDER=mercadopago`
 
 ## Próximo
 
-`MARCHA F9-C` — Pix (QR/copia-cola) + webhook mínimo → pending/approved.
+`MARCHA F9-D` — Cartões (Brick).

@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import {
@@ -17,7 +18,11 @@ import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { listAddresses, upsertAddress } from '@/services/customers/addressService'
-import { confirmSimulatedPayment } from '@/services/payments/paymentService'
+import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
+import {
+  confirmSimulatedPayment,
+  isMercadoPagoCheckoutEnabled,
+} from '@/services/payments/paymentService'
 import { placeOrder } from '@/services/orders/placeOrderService'
 import { quoteFreight } from '@/services/shipping/freightService'
 import type {
@@ -25,7 +30,7 @@ import type {
   ShippingQuoteOption,
   SimulatedPaymentMethod,
 } from '@/types'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
@@ -56,6 +61,19 @@ export function CheckoutPage() {
   const [idempotencyKey] = useState(() => crypto.randomUUID())
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
+  const mpEnabled = isMercadoPagoCheckoutEnabled()
+  const [mpAwaiting, setMpAwaiting] = useState<{
+    orderId: string
+    paymentId: string
+  } | null>(null)
+
+  const onMpApproved = useCallback(
+    (oid: string) => {
+      push('Pagamento confirmado — pedido em análise', 'success')
+      navigate(`/conta/pedidos/${oid}`)
+    },
+    [navigate, push],
+  )
 
   useEffect(() => {
     if (user?.cpf) {
@@ -196,7 +214,7 @@ export function CheckoutPage() {
         idempotencyKey,
         addressId,
         shippingOptionId,
-        paymentMethod,
+        paymentMethod: mpEnabled ? 'pix_simulated' : paymentMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -204,10 +222,17 @@ export function CheckoutPage() {
 
       const paymentId = placed.paymentId
       if (!paymentId) {
-        // pedido já existia — buscar payment via intent não necessário se approve path
         push('Pedido já registrado', 'success')
         clear()
         navigate(`/conta/pedidos/${placed.orderId}`)
+        return
+      }
+
+      if (mpEnabled) {
+        const mp = await createMercadoPagoPayment(placed.orderId)
+        clear()
+        setMpAwaiting({ orderId: placed.orderId, paymentId: mp.paymentId })
+        push('Cobrança Pix criada — aguardando pagamento', 'success')
         return
       }
 
@@ -433,79 +458,122 @@ export function CheckoutPage() {
 
           {step === 3 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">Pagamento (simulado)</h2>
-              <p className="text-sm text-fal-muted">
-                Ambiente de teste — nenhum gateway real. Na F9 o adapter será trocado.
-              </p>
-              <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
-                <input
-                  type="radio"
-                  name="pay"
-                  checked={paymentMethod === 'pix_simulated'}
-                  onChange={() => setPaymentMethod('pix_simulated')}
-                />
-                <span className="text-sm font-semibold">Pix simulado</span>
-              </label>
-              <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
-                <input
-                  type="radio"
-                  name="pay"
-                  checked={paymentMethod === 'card_simulated'}
-                  onChange={() => setPaymentMethod('card_simulated')}
-                />
-                <span className="text-sm font-semibold">Cartão simulado</span>
-              </label>
+              {mpEnabled ? (
+                <>
+                  <h2 className="mt-0 text-lg font-extrabold">Pagamento — Pix</h2>
+                  <p className="text-sm text-fal-muted">
+                    Ao finalizar, geramos a cobrança Pix no Mercado Pago. A confirmação chega via
+                    webhook — esta tela não marca o pedido como pago.
+                  </p>
+                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                    <input type="radio" name="pay" checked readOnly />
+                    <span className="text-sm font-semibold">Pix (Mercado Pago)</span>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-0 text-lg font-extrabold">Pagamento (simulado)</h2>
+                  <p className="text-sm text-fal-muted">
+                    Ambiente de teste — nenhum gateway real. Use{' '}
+                    <code className="text-xs">VITE_PAYMENT_PROVIDER=mercadopago</code> para Pix
+                    sandbox.
+                  </p>
+                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                    <input
+                      type="radio"
+                      name="pay"
+                      checked={paymentMethod === 'pix_simulated'}
+                      onChange={() => setPaymentMethod('pix_simulated')}
+                    />
+                    <span className="text-sm font-semibold">Pix simulado</span>
+                  </label>
+                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                    <input
+                      type="radio"
+                      name="pay"
+                      checked={paymentMethod === 'card_simulated'}
+                      onChange={() => setPaymentMethod('card_simulated')}
+                    />
+                    <span className="text-sm font-semibold">Cartão simulado</span>
+                  </label>
+                </>
+              )}
             </div>
           ) : null}
 
           {step === 4 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">Revisão</h2>
-              <div className="text-sm">
-                <p>
-                  <strong>Documento:</strong> {docKind.toUpperCase()}{' '}
-                  {formatDocumentMask(docKind, docValue)}
-                </p>
-                <p>
-                  <strong>Endereço:</strong>{' '}
-                  {selectedAddress
-                    ? `${selectedAddress.street}, ${selectedAddress.number} — ${selectedAddress.city}/${selectedAddress.state}`
-                    : '—'}
-                </p>
-                <p>
-                  <strong>Entrega:</strong> {selectedShipping?.label ?? '—'} ({money(shippingAmount)})
-                </p>
-                <p>
-                  <strong>Pagamento:</strong>{' '}
-                  {paymentMethod === 'pix_simulated' ? 'Pix simulado' : 'Cartão simulado'}
-                </p>
-              </div>
-              <ul className="m-0 list-none space-y-2 border-t border-fal-line p-0 pt-3">
-                {items.map((i) => (
-                  <li key={i.productId} className="flex justify-between text-sm">
-                    <span>
-                      {i.quantity}× {i.name}
-                    </span>
-                    <span>{money(i.price * i.quantity)}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  variant="primary"
-                  disabled={submitting}
-                  onClick={() => void finalize('approve')}
-                >
-                  {submitting ? 'Processando…' : 'Simular pagamento aprovado'}
-                </Button>
-                <Button
-                  variant="light"
-                  disabled={submitting}
-                  onClick={() => void finalize('fail')}
-                >
-                  Simular pagamento recusado
-                </Button>
-              </div>
+              {mpAwaiting ? (
+                <MercadoPagoPixPanel
+                  paymentId={mpAwaiting.paymentId}
+                  orderId={mpAwaiting.orderId}
+                  onApproved={onMpApproved}
+                />
+              ) : (
+                <>
+                  <h2 className="mt-0 text-lg font-extrabold">Revisão</h2>
+                  <div className="text-sm">
+                    <p>
+                      <strong>Documento:</strong> {docKind.toUpperCase()}{' '}
+                      {formatDocumentMask(docKind, docValue)}
+                    </p>
+                    <p>
+                      <strong>Endereço:</strong>{' '}
+                      {selectedAddress
+                        ? `${selectedAddress.street}, ${selectedAddress.number} — ${selectedAddress.city}/${selectedAddress.state}`
+                        : '—'}
+                    </p>
+                    <p>
+                      <strong>Entrega:</strong> {selectedShipping?.label ?? '—'} (
+                      {money(shippingAmount)})
+                    </p>
+                    <p>
+                      <strong>Pagamento:</strong>{' '}
+                      {mpEnabled
+                        ? 'Pix (Mercado Pago)'
+                        : paymentMethod === 'pix_simulated'
+                          ? 'Pix simulado'
+                          : 'Cartão simulado'}
+                    </p>
+                  </div>
+                  <ul className="m-0 list-none space-y-2 border-t border-fal-line p-0 pt-3">
+                    {items.map((i) => (
+                      <li key={i.productId} className="flex justify-between text-sm">
+                        <span>
+                          {i.quantity}× {i.name}
+                        </span>
+                        <span>{money(i.price * i.quantity)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {mpEnabled ? (
+                    <Button
+                      variant="primary"
+                      disabled={submitting}
+                      onClick={() => void finalize('approve')}
+                    >
+                      {submitting ? 'Gerando Pix…' : 'Gerar cobrança Pix'}
+                    </Button>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        variant="primary"
+                        disabled={submitting}
+                        onClick={() => void finalize('approve')}
+                      >
+                        {submitting ? 'Processando…' : 'Simular pagamento aprovado'}
+                      </Button>
+                      <Button
+                        variant="light"
+                        disabled={submitting}
+                        onClick={() => void finalize('fail')}
+                      >
+                        Simular pagamento recusado
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ) : null}
 
