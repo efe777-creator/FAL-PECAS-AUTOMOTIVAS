@@ -55,7 +55,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article
       className={[
-        'relative rounded-fal border bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5',
+        'relative min-w-0 overflow-hidden rounded-fal border bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5',
         inCart ? 'border-fal-yellow-dark' : 'border-fal-line',
       ].join(' ')}
     >
@@ -74,21 +74,30 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <Link to={`/produto/${product.id}`} className="block">
+      <Link to={`/produto/${product.id}`} className="block min-w-0">
         <div className="grid h-[100px] place-items-center rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
           🧩
         </div>
-        <p className="mt-3 mb-0 text-xs text-fal-muted">{product.brand}</p>
-        <h3 className="my-1 h-9 overflow-hidden text-xs font-bold sm:h-[43px] sm:text-[15px]">
+        {product.brand ? (
+          <p className="mt-3 mb-0 truncate text-xs text-fal-muted">{product.brand}</p>
+        ) : (
+          <p className="mt-3 mb-0 text-xs text-fal-muted">&nbsp;</p>
+        )}
+        <h3
+          className="my-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
+          title={product.name}
+        >
           {product.name}
         </h3>
-        <p className="m-0 text-[11px] text-fal-muted">Código {product.sku}</p>
+        <p className="m-0 truncate text-[11px] text-fal-muted">Código {product.sku}</p>
         {product.compatibilitySummary ? (
-          <p className="my-2 text-xs text-fal-success">{product.compatibilitySummary}</p>
+          <p className="my-2 line-clamp-2 break-words text-xs text-fal-success" title={product.compatibilitySummary}>
+            {product.compatibilitySummary}
+          </p>
         ) : null}
-        <p className="m-0 text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
+        <p className="m-0 truncate text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
         {showStrike ? (
-          <p className="m-0 text-xs text-fal-muted line-through">{formatPrice(listPrice)}</p>
+          <p className="m-0 truncate text-xs text-fal-muted line-through">{formatPrice(listPrice)}</p>
         ) : null}
       </Link>
 
