@@ -96,10 +96,25 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (existing?.provider_payment_id) {
+      const { data: full } = await admin
+        .from('payments')
+        .select(
+          'id, provider_payment_id, status, amount, method, pix_qr_code, pix_qr_code_base64, payment_url, expires_at, provider_status',
+        )
+        .eq('id', existing.id)
+        .maybeSingle()
       return json(200, {
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
         status: 'pending',
+        orderId,
+        amount: full?.amount != null ? Number(full.amount) : undefined,
+        method: full?.method ?? undefined,
+        pixQrCode: full?.pix_qr_code ?? null,
+        pixQrCodeBase64: full?.pix_qr_code_base64 ?? null,
+        paymentUrl: full?.payment_url ?? null,
+        expiresAt: full?.expires_at ?? null,
+        providerStatus: full?.provider_status ?? undefined,
         reused: true,
         orderApproved: false,
       })

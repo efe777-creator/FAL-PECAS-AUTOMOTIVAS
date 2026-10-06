@@ -1,31 +1,27 @@
-﻿# Status marcha Git — F9-B conformidade 2026-10-06
+﻿# Status marcha Git — F9-C Pix + webhook 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
-| `plan` | _(este commit de docs)_ |
-| `dev` | _(pós-merge conform)_ |
-| `main` | _(pós-merge conform; baseline core `06be4e4`)_ |
+| `feat/f9-c-mp-pix-webhook` | _(este pacote)_ |
+| `main` | `d851617` (pré-merge) |
+| `dev` | `3eaf0ef` (pré-merge) |
+| `plan` | sync docs pós-merge |
 
-## Feito (F9-B + gap-close)
+## Feito (F9-C)
 
-- [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
-- Edge `create-mp-payment` + body só `orderId`
-- Flow testável A–I (`createMpPaymentFlow`)
-- FE `createMercadoPagoPayment(orderId)` sem method
-- Vitest payments **28 PASS** + build PASS
-- [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md)
-- [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md)
-- Security scan §22 PASS
-- PR #6 MERGED (core); PR conformidade em promoção
+- Edge `mercado-pago-webhook` + core HMAC
+- RPC `confirm_mercadopago_payment` (aplicada no linked)
+- Checkout Pix (`VITE_PAYMENT_PROVIDER=mercadopago`)
+- Vitest payments **37 PASS** + build PASS
 
 ## STOP
 
-Sem webhook · sem Pix UI · sem checkout MP · sem F7 · sem produção.
+Sem F9-D (cartões/Brick) · sem produção · sem commit de secrets.
 
-**Próximo:** `MARCHA F9-C` (Pix UX + webhook mínimo).
+**Próximo:** `MARCHA F9-D`.
 
 ## Humano
 
-Configurar `MP_ACCESS_TOKEN` TEST + `npx supabase functions deploy create-mp-payment --linked` quando for testar live.
+Secrets + deploy Edges + configurar webhook URL no DevPanel MP (app FALPecasSandbox).
