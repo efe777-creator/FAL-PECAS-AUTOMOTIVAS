@@ -176,6 +176,25 @@ export interface ShippingProvider {
 
 export type SimulatedPaymentMethod = 'pix_simulated' | 'card_simulated'
 
+/** Status interno F9-A (payments.status). `failed` = legado simulated. */
+export type FalPaymentStatus =
+  | 'created'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'failed'
+  | 'cancelled'
+  | 'expired'
+  | 'refunded'
+
+export type FalPaymentMethod =
+  | 'pix'
+  | 'credit_card'
+  | 'debit_card'
+  | 'pix_simulated'
+  | 'card_simulated'
+  | 'other'
+
 export interface PaymentIntentInput {
   orderId: string
   amount: number
