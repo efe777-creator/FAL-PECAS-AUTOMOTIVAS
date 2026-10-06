@@ -1,39 +1,27 @@
-﻿# Status marcha Git — F9-B DONE + MCPs verificados (2026-10-06)
+﻿# Status marcha Git — F9-C Pix + webhook 2026-10-06
 
 ## Tips
 
 | Branch | Tip |
 |--------|-----|
 | `plan` | _(este commit)_ |
-| `dev` | `3eaf0ef` |
-| `main` | `d851617` (PR #7) |
+| `dev` | `95d7bb0` |
+| `main` | `1aef9b6` (PR #8) |
 
-## Feito (F9-B + gap-close)
+## Feito (F9-C)
 
-- [AUDITORIA_F9B…](./AUDITORIA_F9B_PRE_IMPL_2026-10-06.md)
-- Edge `create-mp-payment` + body só `orderId`
-- Flow testável A–I (`createMpPaymentFlow`)
-- FE `createMercadoPagoPayment(orderId)` sem method
-- Vitest payments **28 PASS** + build PASS
-- [CHECKLIST_F9B…](./CHECKLIST_F9B_MP_CREATE_PAYMENT.md)
-- [RELATORIO_FINAL…](./RELATORIO_FINAL_F9B_MP_CREATE_PAYMENT_2026-10-06.md)
-- Security scan §22 PASS
-- PR #6 MERGED (core `06be4e4`); PR #7 MERGED (conformidade `d851617`)
-
-## MCPs verificados (consolidação)
-
-| MCP | Status |
-|-----|--------|
-| Supabase | OK — projeto `wtbpwuiayednvlhvuhbh` ACTIVE_HEALTHY |
-| Context7 | OK — após `mcp_auth` |
-| Mercado Pago | OK — app **FALPecasSandbox** (`8320396999442614`, checkout_api / payments / MLB) |
+- Edge `mercado-pago-webhook` + core HMAC
+- RPC `confirm_mercadopago_payment` (aplicada no linked)
+- Checkout Pix (`VITE_PAYMENT_PROVIDER=mercadopago`)
+- Vitest payments **37 PASS** + build PASS
+- PR #8 MERGED
 
 ## STOP
 
-Sem webhook · sem Pix UI · sem checkout MP · sem F7 · sem produção · **sem F9-C** até MARCHA explícita.
+Sem F9-D (cartões/Brick) · sem produção · sem commit de secrets.
 
-**Próximo:** `MARCHA F9-C` (Pix UX + webhook mínimo).
+**Próximo:** `MARCHA F9-D`.
 
-## Humano (opcional, live sandbox — não é F9-C)
+## Humano
 
-Credenciais TEST da app FALPecasSandbox → `MP_ACCESS_TOKEN` no Supabase secrets + `npx supabase functions deploy create-mp-payment --linked`.
+Secrets + deploy Edges + configurar webhook URL no DevPanel MP (app FALPecasSandbox).
