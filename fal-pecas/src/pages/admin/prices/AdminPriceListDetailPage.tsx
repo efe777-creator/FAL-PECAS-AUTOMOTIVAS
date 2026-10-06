@@ -494,12 +494,7 @@ export function AdminPriceListDetailPage() {
     }
     setBusy(true)
     try {
-      const result = await adminSetPriceListPricingRule({
-        priceListId: id,
-        pricingMethod: ruleMethod,
-        pricingPercent: pct,
-        recalculate: willRecalc,
-      })
+      // P1-2: persistir % antes da regra/recalc para o SQL ler o valor salvo (pós-apply).
       const extraPct = Number(String(ruleExtraCostPercent).replace(',', '.'))
       let extraMsg = ''
       if (Number.isFinite(extraPct) && extraPct >= 0) {
@@ -511,6 +506,12 @@ export function AdminPriceListDetailPage() {
           extraMsg = ` Adicional de custo: ${extraPct}%.`
         }
       }
+      const result = await adminSetPriceListPricingRule({
+        priceListId: id,
+        pricingMethod: ruleMethod,
+        pricingPercent: pct,
+        recalculate: willRecalc,
+      })
       const recalc = (result.recalculate ?? {}) as Record<string, unknown>
       setRuleReport(
         `Regra salva. Recalc: ${Number(recalc.updated ?? 0)}; manual: ${Number(recalc.skipped_manual ?? 0)}; importado: ${Number(recalc.skipped_imported ?? 0)}.${extraMsg}`,
