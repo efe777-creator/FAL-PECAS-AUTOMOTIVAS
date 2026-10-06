@@ -1,12 +1,12 @@
 // F9-B — create-mp-payment
-// Amount = orders.total no servidor. Não aprova pedido (webhook = F9-C/E).
+// Amount = orders.total. Method = pix (server). Não aprova pedido.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   buildIdempotencyKey,
   buildMpPaymentBody,
   mapMpResponseToPaymentFields,
   parseCreateMpPaymentClientBody,
-  type MpCreateMethod,
+  serverPaymentMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
 
 const MP_API = 'https://api.mercadopago.com/v1/payments'
@@ -24,18 +24,12 @@ function json(status: number, body: Record<string, unknown>) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-  if (req.method !== 'POST') {
-    return json(405, { error: 'method_not_allowed' })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' })
 
   try {
     const mpToken = Deno.env.get('MP_ACCESS_TOKEN')
-    if (!mpToken) {
-      return json(503, { error: 'MP_ACCESS_TOKEN missing' })
-    }
+    if (!mpToken) return json(503, { error: 'MP_ACCESS_TOKEN missing' })
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
@@ -65,9 +59,10 @@ Deno.serve(async (req) => {
       return json(400, { error: 'invalid_json' })
     }
 
-    const { orderId, method } = parseCreateMpPaymentClientBody(
+    const { orderId } = parseCreateMpPaymentClientBody(
       (rawBody ?? {}) as Record<string, unknown>,
     )
+    const method = serverPaymentMethod()
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
@@ -90,7 +85,6 @@ Deno.serve(async (req) => {
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
-    // Reusa payment pending sem provider_payment_id; senão cria linha mercadopago.
     let paymentId: string
     const { data: existing } = await admin
       .from('payments')
@@ -107,6 +101,7 @@ Deno.serve(async (req) => {
         providerPaymentId: existing.provider_payment_id,
         status: 'pending',
         reused: true,
+        orderApproved: false,
       })
     }
 
@@ -114,12 +109,7 @@ Deno.serve(async (req) => {
       paymentId = existing.id
       await admin
         .from('payments')
-        .update({
-          provider: 'mercadopago',
-          amount,
-          method,
-          currency: 'BRL',
-        })
+        .update({ provider: 'mercadopago', amount, method, currency: 'BRL' })
         .eq('id', paymentId)
     } else {
       const { data: inserted, error: insErr } = await admin
@@ -153,7 +143,7 @@ Deno.serve(async (req) => {
     const mpBody = buildMpPaymentBody({
       transactionAmount: amount,
       description: `Pedido FAL ${orderId}`,
-      paymentMethodId: method as MpCreateMethod,
+      paymentMethodId: method,
       externalReference: orderId,
       payer: {
         email,
@@ -185,7 +175,7 @@ Deno.serve(async (req) => {
       return json(502, {
         error: 'mercadopago_create_failed',
         httpStatus: mpRes.status,
-        detail: mpJson,
+        orderApproved: false,
       })
     }
 
@@ -203,7 +193,9 @@ Deno.serve(async (req) => {
         expires_at: fields.expires_at,
         status: 'pending',
         external_ref: orderId,
-        metadata: { mp_create: { id: fields.provider_payment_id, status: fields.provider_status } },
+        metadata: {
+          mp_create: { id: fields.provider_payment_id, status: fields.provider_status },
+        },
       })
       .eq('id', paymentId)
 
@@ -215,6 +207,7 @@ Deno.serve(async (req) => {
       paymentId,
       providerPaymentId: fields.provider_payment_id,
       status: 'pending',
+      providerStatus: fields.provider_status,
       orderId,
       amount,
       method: fields.method ?? method,
@@ -223,6 +216,7 @@ Deno.serve(async (req) => {
       paymentUrl: fields.payment_url,
       expiresAt: fields.expires_at,
       reused: false,
+      orderApproved: false,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'unknown_error'
