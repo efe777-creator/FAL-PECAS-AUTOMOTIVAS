@@ -151,6 +151,11 @@ const AdminShippingOriginPage = lazy(() =>
     default: m.AdminShippingOriginPage,
   })),
 )
+const AdminOperatorsPage = lazy(() =>
+  import('@/pages/admin/operators/AdminOperatorsPage').then((m) => ({
+    default: m.AdminOperatorsPage,
+  })),
+)
 
 function Suspend({ children }: { children: ReactNode }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>
@@ -199,6 +204,7 @@ export const router = createBrowserRouter([
       { path: 'estoque', element: <AdminInventoryPage /> },
       { path: 'frete', element: <AdminShippingOriginPage /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
+      { path: 'operadores', element: <AdminOperatorsPage /> },
     ],
   },
   {
