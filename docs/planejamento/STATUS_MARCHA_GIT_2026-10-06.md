@@ -1,26 +1,17 @@
-﻿# Status marcha Git — F9-D Card Brick 2026-10-06
+﻿# Status marcha Git — F9-E webhook hardening 2026-10-06
 
-## Tips
+**Branch:** `feat/f9-e-webhook-hardening`  
+**Alvo:** PR → `main` (via fluxo habitual)
 
-| Branch | Tip |
-|--------|-----|
-| `plan` | _(este commit)_ |
-| `dev` | `0eeb5ea` |
-| `main` | `3e698c8` (PR #9) |
+## Diff principal
 
-## Feito
-
-- Card Payment Brick + create-mp-payment com token
-- Checkout Pix | Cartão
-- Tests payments **40 PASS** + build PASS
-- PR #9 MERGED
+- `fal-pecas/src/services/payments/mpWebhookCore.ts` (+test)
+- `fal-pecas/supabase/functions/_shared/mpWebhookCore.ts`
+- `fal-pecas/supabase/functions/mercado-pago-webhook/index.ts`
+- Docs STOP / checklist / relatório F9-E
 
 ## STOP
 
-Sem F9-E avançado · sem produção.
+Sem F9-F · sem produção · sem commit de secrets.
 
-**Próximo:** `MARCHA F9-E` (ou prioridade humana).
-
-## Humano
-
-`VITE_MP_PUBLIC_KEY` TEST + redeploy `create-mp-payment`.
+**Próximo:** `MARCHA F9-F` (ou secret humano + smoke, se prioridade).
