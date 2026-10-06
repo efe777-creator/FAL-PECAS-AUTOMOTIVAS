@@ -1,6 +1,6 @@
 # Checklist Fase 9 — Pagamentos Mercado Pago
 
-**Baseline:** 2026-10-06 · **F9-A…D** · STOP antes F9-E  
+**Baseline:** 2026-10-06 · **F9-A…E** · STOP antes F9-F  
 **Refs:** [ESPECIFICACAO…](./ESPECIFICACAO_FASE9_PAGAMENTOS_MERCADO_PAGO.md) · [STOP…](./STOP_F9_MP_POS_AUDITORIA_2026-10-06.md)
 
 ---
@@ -25,9 +25,12 @@
 
 ## F9-E — Webhook + concurrency
 
-- [ ] Validação assinatura reforçada / fora de ordem
-- [ ] Evento duplicado = no-op (base F9-C)
-- [ ] Logs sem secrets/PAN
+- [x] Validação assinatura reforçada + freshness ts (10 min)
+- [x] Fora de ordem / approved prevalece (`decideWebhookTransition`)
+- [x] Evento duplicado = no-op (unique + processed)
+- [x] Logs/ledger sanitizados (sem secrets/PAN)
+- [x] Re-read status antes de approve (race)
+- [x] STOP F9-E
 
 ---
 

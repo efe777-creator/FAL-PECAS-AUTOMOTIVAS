@@ -1,26 +1,31 @@
-# STOP — pós F9-D (antes F9-E)
+# STOP — pós F9-E (antes F9-F)
 
 **Data:** 2026-10-06  
-**Status:** **F9-D DONE** (Card Payment Brick)  
-**Baseline:** pós F9-C `1aef9b6`
+**Status:** **F9-E DONE** (webhook concurrency / hardening)  
+**Baseline:** branch `feat/f9-e-webhook-hardening`
 
 ## Feito
 
-- `@mercadopago/sdk-react` + Card Payment Brick (sem PAN/CVV na FAL)
-- `create-mp-payment` aceita token/paymentMethodId/installments (sem amount do FE)
-- Checkout: Pix **ou** cartão quando `VITE_PAYMENT_PROVIDER=mercadopago`
-- Approve continua só via webhook F9-C
+- `decideWebhookTransition` — approved prevalece; fora de ordem = no-op / set_terminal / approve
+- `sanitizeWebhookPayload` — ledger sem token/cvv/PAN
+- `isWebhookTsFresh` — rejeita `signature_ts_stale` (>10 min)
+- Edge `mercado-pago-webhook`: claim idempotente por `(provider, provider_event_id)`, race insert, re-read status antes de approve, fallback por `external_reference`
+- Core sync em `supabase/functions/_shared/mpWebhookCore.ts`
+- 13 testes vitest verdes + build OK
 
-## Proibido até MARCHA F9-E
+## Proibido até MARCHA F9-F
 
-- Refinos concurrency webhook / fora de ordem avançado
-- Produção MP
-- Commit de Access Token / Public Key real no git
+- Polimento checkout / UX pós-pago avançada
+- Admin financeiro MP
+- Produção MP (credenciais live)
+- Commit de secrets no git
 
-## Humano
+## Humano (bloqueia smoke live)
 
-`VITE_MP_PUBLIC_KEY` (TEST) no `.env` + redeploy `create-mp-payment` se necessário.
+1. Colar **secret completo** do webhook MP no painel → `supabase secrets set MP_WEBHOOK_SECRET=... --project-ref wtbpwuiayednvlhvuhbh`
+2. Redeploy: `supabase functions deploy mercado-pago-webhook --project-ref wtbpwuiayednvlhvuhbh`
+3. Smoke Pix/cartão sandbox (assinatura + approve)
 
 ## Próximo
 
-`MARCHA F9-E` — webhook concurrency / hardening (ou F9-F/G conforme prioridade).
+`MARCHA F9-F` — checkout polish / pós-pago (ou F9-G admin / F9-H homolog conforme prioridade).

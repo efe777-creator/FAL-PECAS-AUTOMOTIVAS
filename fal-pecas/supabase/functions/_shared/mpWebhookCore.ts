@@ -75,6 +75,9 @@ export async function verifyMpWebhookSignature(input: {
   if (!timingSafeEqualHex(computed, parsed.v1)) {
     return { ok: false, reason: 'signature_mismatch' }
   }
+  if (!isWebhookTsFresh(parsed.ts)) {
+    return { ok: false, reason: 'signature_ts_stale' }
+  }
   return { ok: true }
 }
 
@@ -119,4 +122,89 @@ export function extractWebhookEventType(body: unknown): string {
     if (typeof a === 'string' && a) return a
   }
   return 'unknown'
+}
+
+export function isTerminalInternalStatus(status: string): boolean {
+  return ['approved', 'rejected', 'cancelled', 'expired', 'refunded'].includes(status)
+}
+
+/**
+ * F9-E — decide ação frente ao status atual do payment (fora de ordem / concurrency).
+ * Approved interno prevalece: eventos posteriores pending/rejected = no-op.
+ */
+export function decideWebhookTransition(input: {
+  currentPaymentStatus: string
+  incomingInternal: InternalPaymentStatus
+}): {
+  action: 'approve' | 'set_terminal' | 'noop'
+  reason: string
+} {
+  const cur = input.currentPaymentStatus
+  const next = input.incomingInternal
+
+  if (cur === 'approved') {
+    return { action: 'noop', reason: 'already_approved' }
+  }
+
+  if (next === 'approved') {
+    if (cur === 'pending' || cur === 'created') {
+      return { action: 'approve', reason: 'approve_from_pending' }
+    }
+    // rejected/expired depois approved no MP: tenta approve (RPC valida order)
+    return { action: 'approve', reason: 'approve_override_terminal' }
+  }
+
+  if (next === 'pending') {
+    return { action: 'noop', reason: 'still_pending' }
+  }
+
+  // rejected/cancelled/expired
+  if (isTerminalInternalStatus(cur) && cur !== 'pending') {
+    return { action: 'noop', reason: 'already_terminal' }
+  }
+  return { action: 'set_terminal', reason: `set_${next}` }
+}
+
+const SENSITIVE_KEYS = new Set(
+  [
+    'token',
+    'card_number',
+    'cardnumber',
+    'security_code',
+    'securitycode',
+    'cvv',
+    'cvc',
+    'pan',
+    'password',
+    'access_token',
+    'authorization',
+    'secret',
+  ].map((k) => k.toLowerCase()),
+)
+
+/** Remove campos sensíveis de payloads de log/ledger. */
+export function sanitizeWebhookPayload(value: unknown, depth = 0): unknown {
+  if (depth > 6) return '[truncated]'
+  if (Array.isArray(value)) {
+    return value.map((v) => sanitizeWebhookPayload(v, depth + 1))
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (SENSITIVE_KEYS.has(k.toLowerCase())) {
+        out[k] = '[redacted]'
+      } else {
+        out[k] = sanitizeWebhookPayload(v, depth + 1)
+      }
+    }
+    return out
+  }
+  return value
+}
+
+/** ts do x-signature não pode ser velho demais (replay). Default 10 min. */
+export function isWebhookTsFresh(ts: string, nowSec = Math.floor(Date.now() / 1000), maxAgeSec = 600): boolean {
+  const n = Number(ts)
+  if (!Number.isFinite(n)) return false
+  return Math.abs(nowSec - n) <= maxAgeSec
 }
