@@ -1,11 +1,13 @@
-// F9-C — mercado-pago-webhook
-// Valida x-signature; ledger payment_events; consulta MP; amount check; approve via RPC.
+// F9-C/E — mercado-pago-webhook
+// Assinatura + freshness; ledger idempotente; fora de ordem; sanitize; approve via RPC.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   amountsMatch,
+  decideWebhookTransition,
   extractWebhookDataId,
   extractWebhookEventType,
   mapMpProviderStatusToInternal,
+  sanitizeWebhookPayload,
   verifyMpWebhookSignature,
 } from '../_shared/mpWebhookCore.ts'
 
@@ -59,8 +61,9 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey)
     const providerEventId = xRequestId!.trim()
     const eventType = extractWebhookEventType(body)
+    const safeBody = sanitizeWebhookPayload(body)
 
-    // Idempotência: evento já processado
+    // Claim idempotente do evento (concurrency: unique provider+event)
     const { data: existingEvent } = await admin
       .from('payment_events')
       .select('id, processed, payment_id')
@@ -72,56 +75,90 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, reused: true, paymentId: existingEvent.payment_id })
     }
 
+    if (!existingEvent) {
+      const { error: insEvErr } = await admin.from('payment_events').insert({
+        payment_id: null,
+        provider: 'mercadopago',
+        provider_event_id: providerEventId,
+        event_type: eventType,
+        action: 'received',
+        payload: safeBody,
+        processed: false,
+      })
+      // Unique race: outro worker já inseriu → re-lê e no-op se processed
+      if (insEvErr) {
+        const { data: raced } = await admin
+          .from('payment_events')
+          .select('id, processed, payment_id')
+          .eq('provider', 'mercadopago')
+          .eq('provider_event_id', providerEventId)
+          .maybeSingle()
+        if (raced?.processed) {
+          return json(200, { ok: true, reused: true, paymentId: raced.payment_id })
+        }
+      }
+    }
+
     const mpRes = await fetch(`${MP_API}/${dataId}`, {
       headers: { Authorization: `Bearer ${mpToken}`, 'Content-Type': 'application/json' },
     })
     const mpJson = (await mpRes.json().catch(() => ({}))) as Record<string, unknown>
     if (!mpRes.ok) {
-      return json(502, { error: 'mp_fetch_failed', status: mpRes.status, detail: mpJson })
+      console.error('mp_fetch_failed', { status: mpRes.status, dataId })
+      return json(502, { error: 'mp_fetch_failed', status: mpRes.status })
     }
 
     const providerPaymentId = String(mpJson.id ?? dataId)
     const providerStatus = String(mpJson.status ?? '')
     const mpAmount = Number(mpJson.transaction_amount)
     const externalRef = mpJson.external_reference != null ? String(mpJson.external_reference) : null
+    const safeMp = sanitizeWebhookPayload({
+      id: providerPaymentId,
+      status: providerStatus,
+      transaction_amount: mpAmount,
+      external_reference: externalRef,
+    })
 
-    const { data: payment } = await admin
+    let { data: payment } = await admin
       .from('payments')
       .select('id, order_id, status, amount, provider, provider_payment_id')
       .eq('provider', 'mercadopago')
       .eq('provider_payment_id', providerPaymentId)
       .maybeSingle()
 
+    // Fallback: payment ainda sem provider_payment_id (race create vs webhook)
+    if (!payment && externalRef) {
+      const { data: byOrder } = await admin
+        .from('payments')
+        .select('id, order_id, status, amount, provider, provider_payment_id')
+        .eq('provider', 'mercadopago')
+        .eq('order_id', externalRef)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (byOrder) {
+        payment = byOrder
+        await admin
+          .from('payments')
+          .update({ provider_payment_id: providerPaymentId, provider_status: providerStatus })
+          .eq('id', byOrder.id)
+          .is('provider_payment_id', null)
+      }
+    }
+
     if (!payment) {
-      // Grava evento órfão para auditoria; não falha com 5xx (retry infinito)
-      await admin.from('payment_events').upsert(
-        {
-          payment_id: null,
-          provider: 'mercadopago',
-          provider_event_id: providerEventId,
-          event_type: eventType,
+      await admin
+        .from('payment_events')
+        .update({
           action: 'payment_not_found',
-          payload: { dataId, providerStatus, externalRef },
-          processed: true,
-          processed_at: new Date().toISOString(),
-          error: 'payment_not_found',
-        },
-        { onConflict: 'provider,provider_event_id' },
-      ).then(() => undefined).catch(() => undefined)
-      // unique index is partial — upsert onConflict may fail; insert ignore
-      if (!existingEvent) {
-        await admin.from('payment_events').insert({
-          payment_id: null,
-          provider: 'mercadopago',
-          provider_event_id: providerEventId,
-          event_type: eventType,
-          action: 'payment_not_found',
-          payload: { dataId, providerStatus, externalRef },
+          payload: safeMp,
           processed: true,
           processed_at: new Date().toISOString(),
           error: 'payment_not_found',
         })
-      }
+        .eq('provider', 'mercadopago')
+        .eq('provider_event_id', providerEventId)
       return json(200, { ok: true, ignored: true, reason: 'payment_not_found' })
     }
 
@@ -132,59 +169,90 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!order || !amountsMatch(Number(order.total), mpAmount)) {
-      await admin.from('payment_events').insert({
-        payment_id: payment.id,
-        provider: 'mercadopago',
-        provider_event_id: providerEventId,
-        event_type: eventType,
-        action: 'amount_mismatch',
-        payload: { mpAmount, orderTotal: order?.total, providerStatus },
-        processed: true,
-        processed_at: new Date().toISOString(),
-        error: 'amount_mismatch',
-      })
+      await admin
+        .from('payment_events')
+        .update({
+          payment_id: payment.id,
+          action: 'amount_mismatch',
+          payload: { mpAmount, orderTotal: order?.total, providerStatus },
+          processed: true,
+          processed_at: new Date().toISOString(),
+          error: 'amount_mismatch',
+        })
+        .eq('provider', 'mercadopago')
+        .eq('provider_event_id', providerEventId)
       return json(200, { ok: true, ignored: true, reason: 'amount_mismatch' })
     }
 
-    const internal = mapMpProviderStatusToInternal(providerStatus)
-
-    await admin
+    // Re-lê status (concurrency)
+    const { data: fresh } = await admin
       .from('payments')
-      .update({
-        provider_status: providerStatus,
-        ...(internal === 'pending' ? {} : { status: internal === 'approved' ? payment.status : internal }),
-      })
+      .select('id, status')
       .eq('id', payment.id)
+      .maybeSingle()
+    const currentStatus = fresh?.status ?? payment.status
+    const incoming = mapMpProviderStatusToInternal(providerStatus)
+    const transition = decideWebhookTransition({
+      currentPaymentStatus: currentStatus,
+      incomingInternal: incoming,
+    })
 
-    // rejected/cancelled/expired: atualiza status interno sem cancelar pedido
-    if (internal === 'rejected' || internal === 'cancelled' || internal === 'expired') {
+    let approveResult: unknown = null
+
+    if (transition.action === 'noop') {
+      await admin
+        .from('payments')
+        .update({ provider_status: providerStatus })
+        .eq('id', payment.id)
+      await admin
+        .from('payment_events')
+        .update({
+          payment_id: payment.id,
+          action: transition.reason,
+          payload: safeMp,
+          processed: true,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('provider', 'mercadopago')
+        .eq('provider_event_id', providerEventId)
+      return json(200, {
+        ok: true,
+        noop: true,
+        reason: transition.reason,
+        paymentId: payment.id,
+      })
+    }
+
+    if (transition.action === 'set_terminal') {
       await admin
         .from('payments')
         .update({
-          status: internal,
+          status: incoming,
           provider_status: providerStatus,
-          ...(internal === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
+          ...(incoming === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
         })
         .eq('id', payment.id)
+        .eq('status', 'pending')
     }
 
-    let approveResult: unknown = null
-    if (internal === 'approved' && payment.status === 'pending') {
+    if (transition.action === 'approve') {
       const { data, error } = await admin.rpc('confirm_mercadopago_payment', {
         p_payment_id: payment.id,
       })
       if (error) {
-        await admin.from('payment_events').insert({
-          payment_id: payment.id,
-          provider: 'mercadopago',
-          provider_event_id: providerEventId,
-          event_type: eventType,
-          action: 'approve_failed',
-          payload: { providerStatus, error: error.message },
-          processed: false,
-          error: error.message,
-        })
-        return json(500, { error: 'approve_failed', detail: error.message })
+        console.error('approve_failed', { paymentId: payment.id, msg: error.message })
+        await admin
+          .from('payment_events')
+          .update({
+            payment_id: payment.id,
+            action: 'approve_failed',
+            payload: { providerStatus, error: error.message },
+            processed: false,
+            error: error.message,
+          })
+          .eq('provider', 'mercadopago')
+          .eq('provider_event_id', providerEventId)
+        return json(500, { error: 'approve_failed' })
       }
       approveResult = data
       await admin
@@ -193,38 +261,29 @@ Deno.serve(async (req) => {
         .eq('id', payment.id)
     }
 
-    if (!existingEvent) {
-      await admin.from('payment_events').insert({
+    await admin
+      .from('payment_events')
+      .update({
         payment_id: payment.id,
-        provider: 'mercadopago',
-        provider_event_id: providerEventId,
-        event_type: eventType,
-        action: internal === 'approved' ? 'approved' : internal,
-        payload: { dataId, providerStatus, mpAmount },
+        action: transition.action === 'approve' ? 'approved' : incoming,
+        payload: safeMp,
         processed: true,
         processed_at: new Date().toISOString(),
+        error: null,
       })
-    } else {
-      await admin
-        .from('payment_events')
-        .update({
-          payment_id: payment.id,
-          processed: true,
-          processed_at: new Date().toISOString(),
-          action: internal === 'approved' ? 'approved' : internal,
-          error: null,
-        })
-        .eq('id', existingEvent.id)
-    }
+      .eq('provider', 'mercadopago')
+      .eq('provider_event_id', providerEventId)
 
     return json(200, {
       ok: true,
       paymentId: payment.id,
-      internalStatus: internal,
+      internalStatus: incoming,
       providerStatus,
+      transition: transition.action,
       approve: approveResult,
     })
   } catch (e) {
-    return json(500, { error: e instanceof Error ? e.message : 'internal_error' })
+    console.error('webhook_internal_error', e instanceof Error ? e.message : 'unknown')
+    return json(500, { error: 'internal_error' })
   }
 })
