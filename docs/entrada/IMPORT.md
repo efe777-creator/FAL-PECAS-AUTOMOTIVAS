@@ -1,7 +1,9 @@
 # Importação de produtos — FAL Peças Automotivas 3.0
 
-**Status:** Especificação futura (Fase 1.5)  
-**NÃO implementado.** Ver PRD §9 e [DATABASE.md](./DATABASE.md) (`imports` / `import_items`).
+**Status:** Supersedido pontualmente pela [Fase 8.1](../planejamento/ESPECIFICACAO_FASE8_1_IMPORTACAO_CATALOGO.md).  
+**Implementação:** F8.1-A (parsers) entregue; cadastro/conversões/custos/preços nas fatias B–F.
+
+> Decisões oficiais F8.1 (Apêndice B da spec): delimitador **`;`**; sem coluna `stock`; sem auto-publicar; sem auto-criar marca/categoria; limite 2.000 linhas; apply via RPC.
 
 ---
 
