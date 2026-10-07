@@ -22,6 +22,10 @@ import {
   summarizePriceImportActions,
   type PriceImportMode,
 } from '@/services/admin/priceImportActions'
+import {
+  FAL_PRINCIPAL_SUPPLIER_CODE,
+  isFalPrincipalSupplier,
+} from '@/services/admin/adminCostImportService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import {
   detectImportProfile,
@@ -600,8 +604,17 @@ export function PriceImportWizard({
               </select>
             </label>
             <p className="text-xs text-fal-muted">
-              Formato: codigo_fornecedor;custo. Exige conversão prévia. Não grava em listas de
-              preços.
+              Formato: codigo_fornecedor;custo. Demais fornecedores exigem conversão prévia.
+              {isFalPrincipalSupplier(selectedSupplier?.code) ? (
+                <>
+                  {' '}
+                  <strong className="text-fal-navy">
+                    FAL Principal ({FAL_PRINCIPAL_SUPPLIER_CODE}): código = SKU FAL
+                  </strong>{' '}
+                  — sem conversão.
+                </>
+              ) : null}{' '}
+              Não grava em listas de preços.
             </p>
             <div>
               <p className="mb-2 text-sm font-semibold text-fal-navy">Arquivo (CSV / XLSX)</p>

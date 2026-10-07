@@ -598,7 +598,8 @@ export async function adminListPriceListItems(
 
 /** Indicadores da lista (estado real; leve — sem nomes de produto). */
 export async function adminGetPriceListStats(priceListId: string): Promise<PriceListStats> {
-  const { data, error } = await getSupabase()
+  const sb = getSupabase()
+  const { data, error } = await sb
     .from('price_list_items')
     .select('product_id, price, price_origin, products ( supplier_id )')
     .eq('price_list_id', priceListId)
@@ -606,6 +607,7 @@ export async function adminGetPriceListStats(priceListId: string): Promise<Price
 
   const raw = data ?? []
   const productIds = raw.map((row) => String((row as Record<string, unknown>).product_id))
+  const inList = new Set(productIds)
   const costMap = await loadPrincipalCosts(productIds)
 
   let calculated = 0
@@ -636,6 +638,16 @@ export async function adminGetPriceListStats(priceListId: string): Promise<Price
     if (!hasCost) withoutCost += 1
   }
 
+  // Published fora da lista = sem preço nesta lista
+  const { data: published, error: pubErr } = await sb
+    .from('products')
+    .select('id')
+    .eq('status', 'published')
+  if (pubErr) throw pubErr
+  for (const row of published ?? []) {
+    if (!inList.has(String(row.id))) withoutPrice += 1
+  }
+
   return {
     total: raw.length,
     calculated,
@@ -644,6 +656,89 @@ export async function adminGetPriceListStats(priceListId: string): Promise<Price
     withoutCost,
     withoutPrice,
   }
+}
+
+export function isVirtualPriceListItemId(id: string): boolean {
+  return id.startsWith('missing:')
+}
+
+/**
+ * Produtos sem preço nesta lista: itens com price<=0 + published ausentes da lista.
+ * Ausentes vêm como itens virtuais (id `missing:{productId}`) para add/edição.
+ */
+export async function adminListProductsWithoutPriceOnList(
+  priceListId: string,
+): Promise<PriceListItem[]> {
+  const sb = getSupabase()
+
+  const zeroOnList = await adminListPriceListItems(priceListId)
+  const zeroItems = zeroOnList.filter((i) => !(i.price > 0))
+
+  const { data: listRows, error: listErr } = await sb
+    .from('price_list_items')
+    .select('product_id')
+    .eq('price_list_id', priceListId)
+  if (listErr) throw listErr
+  const inList = new Set((listRows ?? []).map((r) => String(r.product_id)))
+
+  const { data: published, error: pubErr } = await sb
+    .from('products')
+    .select('id, sku, name, supplier_id, manufacturer_code')
+    .eq('status', 'published')
+    .order('sku')
+    .limit(2000)
+  if (pubErr) throw pubErr
+
+  const missing = (published ?? []).filter((p) => !inList.has(String(p.id)))
+  const missingIds = missing.map((p) => String(p.id))
+  const costMap = await loadPrincipalCosts(missingIds)
+  const supplierIds = [
+    ...new Set(
+      missing
+        .map((p) => (p.supplier_id as string | null) ?? null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]
+  const supplierNames = await loadSupplierNames(supplierIds)
+
+  const { data: listRow } = await sb
+    .from('price_lists')
+    .select('list_extra_cost_percent')
+    .eq('id', priceListId)
+    .maybeSingle()
+  const listPct = Number(
+    (listRow as { list_extra_cost_percent?: unknown } | null)?.list_extra_cost_percent ?? 0,
+  )
+
+  const virtual: PriceListItem[] = missing.map((p) => {
+    const productId = String(p.id)
+    const supplierId = (p.supplier_id as string | null) ?? null
+    const baseCost =
+      supplierId != null ? (costMap.get(`${supplierId}:${productId}`) ?? null) : null
+    const costTotal =
+      baseCost == null ? null : computeCostTotal(baseCost, 0, 0, listPct)
+    return {
+      id: `missing:${productId}`,
+      priceListId,
+      productId,
+      price: 0,
+      extraCost: 0,
+      priceOrigin: 'manual',
+      calculatedPrice: null,
+      baseCost,
+      costTotal,
+      effectiveMarginPct: null,
+      effectiveMarkupPct: null,
+      sku: String(p.sku),
+      productName: String(p.name),
+      manufacturerCode: (p.manufacturer_code as string | null) ?? null,
+      supplierId,
+      supplierName: supplierId ? (supplierNames.get(supplierId) ?? null) : null,
+      updatedAt: undefined,
+    }
+  })
+
+  return [...zeroItems, ...virtual]
 }
 
 export function filterPriceListItems(

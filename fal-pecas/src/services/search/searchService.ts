@@ -4,6 +4,7 @@ import {
   attachResolvedPrices,
   displayPrice,
 } from '@/services/pricing/priceResolutionService'
+import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
@@ -27,9 +28,42 @@ function mapRpcRow(row: Record<string, unknown>): Product {
     manufacturerCode: (row.manufacturer_code as string | null) ?? undefined,
     available: Boolean(row.is_available),
     isIncomplete: Boolean(row.is_incomplete),
+    posicao: (row.posicao as Product['posicao']) ?? null,
+    lado: (row.lado as Product['lado']) ?? null,
     attrs: (row.attrs as Record<string, unknown> | null) ?? {},
     stock: undefined,
   }
+}
+
+/** Completa posicao/lado da página atual (RPC search ainda não devolve esses campos). */
+async function enrichPageProductMeta(products: Product[]): Promise<Product[]> {
+  if (!products.length || !isSupabaseConfigured || !supabase) return products
+  const ids = products.map((p) => p.id)
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, posicao, lado, manufacturer_code')
+    .in('id', ids)
+  if (error) throw error
+  const meta = new Map(
+    (data ?? []).map((r) => [
+      String(r.id),
+      {
+        posicao: (r.posicao as Product['posicao']) ?? null,
+        lado: (r.lado as Product['lado']) ?? null,
+        manufacturerCode: (r.manufacturer_code as string | null) ?? undefined,
+      },
+    ]),
+  )
+  return products.map((p) => {
+    const m = meta.get(p.id)
+    if (!m) return p
+    return {
+      ...p,
+      posicao: p.posicao ?? m.posicao,
+      lado: p.lado ?? m.lado,
+      manufacturerCode: p.manufacturerCode ?? m.manufacturerCode,
+    }
+  })
 }
 
 function normalizeSort(sort?: ProductSearchSort | null): ProductSearchSort {
@@ -134,7 +168,13 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
 
   const rows = (data ?? []) as Record<string, unknown>[]
   const total = rows.length ? Number(rows[0].total_count ?? 0) : 0
-  let items = await attachResolvedPrices(rows.map(mapRpcRow))
+  const mapped = rows.map(mapRpcRow)
+  const withMeta = await enrichPageProductMeta(mapped)
+  const withApps = await attachCompatibilitySummaries(withMeta, {
+    compact: true,
+    maxEntries: 4,
+  })
+  let items = await attachResolvedPrices(withApps)
 
   // Reordena a página pelo preço resolvido (RPC ainda usa preço legado)
   if (sort === 'price_asc' || sort === 'price_desc') {

@@ -16,6 +16,7 @@ import {
   adminListPriceListImports,
   adminListPriceListItems,
   adminListPriceLists,
+  adminListProductsWithoutPriceOnList,
   adminRecalculatePriceListItems,
   adminSetPriceListItemPricing,
   adminSetPriceListPricingRule,
@@ -25,6 +26,7 @@ import {
   buildPriceListItemsCsv,
   computeAdjustedPrice,
   filterPriceListItems,
+  isVirtualPriceListItemId,
   priceListStatusLabel,
   pricingMethodLabel,
   pricingRuleLabel,
@@ -103,6 +105,7 @@ export function AdminPriceListDetailPage() {
   const [list, setList] = useState<PriceList | null>(null)
   const [allLists, setAllLists] = useState<PriceList[]>([])
   const [items, setItems] = useState<PriceListItem[]>([])
+  const [withoutPriceItems, setWithoutPriceItems] = useState<PriceListItem[] | null>(null)
   const [stats, setStats] = useState<PriceListStats | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [imports, setImports] = useState<PriceListImportSummary[]>([])
@@ -169,6 +172,7 @@ export function AdminPriceListDetailPage() {
   function resetUiForListChange() {
     setList(null)
     setItems([])
+    setWithoutPriceItems(null)
     setStats(null)
     setFilterQ('')
     setFilterQDebounced('')
@@ -250,12 +254,32 @@ export function AdminPriceListDetailPage() {
     return () => window.clearTimeout(t)
   }, [filterQ])
 
+  useEffect(() => {
+    if (!id || !filterWithoutPrice) {
+      setWithoutPriceItems(null)
+      return
+    }
+    let cancelled = false
+    void adminListProductsWithoutPriceOnList(id)
+      .then((rows) => {
+        if (!cancelled) setWithoutPriceItems(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setWithoutPriceItems([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, filterWithoutPrice, items])
+
   const visibleItems = useMemo(() => {
-    const filtered = filterPriceListItems(items, {
+    const source =
+      filterWithoutPrice && withoutPriceItems != null ? withoutPriceItems : items
+    const filtered = filterPriceListItems(source, {
       q: filterQDebounced,
       origin: filterOrigin,
       withoutCost: filterWithoutCost,
-      withoutPrice: filterWithoutPrice,
+      withoutPrice: filterWithoutPrice && withoutPriceItems == null,
       onlyCalculated: filterOnlyCalculated,
       withOverride: filterWithOverride,
       supplierId: filterSupplierId,
@@ -263,6 +287,7 @@ export function AdminPriceListDetailPage() {
     return sortPriceListItems(filtered, sort.key, sort.asc)
   }, [
     items,
+    withoutPriceItems,
     filterQDebounced,
     filterOrigin,
     filterWithoutCost,
@@ -354,7 +379,17 @@ export function AdminPriceListDetailPage() {
     }
     setRowBusy(item.id)
     try {
-      await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      if (isVirtualPriceListItemId(item.id)) {
+        await adminUpsertPriceListItem({
+          priceListId: id,
+          productId: item.productId,
+          price: priceNum,
+          source: 'manual',
+          changedBy: user?.id ?? null,
+        })
+      } else {
+        await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      }
       setEditingId(null)
       await reload()
     } catch (err) {
@@ -1321,8 +1356,17 @@ export function AdminPriceListDetailPage() {
         createdBy={user?.id ?? null}
         allowed={allowed}
         onApplied={() => {
+          setFilterQ('')
+          setFilterQDebounced('')
+          setFilterOrigin('')
+          setFilterWithoutCost(false)
+          setFilterWithoutPrice(false)
+          setFilterOnlyCalculated(false)
+          setFilterWithOverride(false)
+          setFilterSupplierId('')
+          setWithoutPriceItems(null)
+          selectTab('produtos')
           void reload()
-          setTab('importacoes')
         }}
       />
     </div>

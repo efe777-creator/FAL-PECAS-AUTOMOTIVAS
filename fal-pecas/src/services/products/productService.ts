@@ -1,6 +1,7 @@
 import { mockProducts } from '@/data/mocks/products'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { attachResolvedPrices } from '@/services/pricing/priceResolutionService'
+import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import type { Product } from '@/types'
 
 type Named = { name: string; id?: string; slug?: string }
@@ -75,7 +76,11 @@ export async function listPublishedProducts(limit = 40): Promise<Product[]> {
 
   if (error) throw error
   const products = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
-  return attachResolvedPrices(products)
+  const withApps = await attachCompatibilitySummaries(products, {
+    compact: true,
+    maxEntries: 4,
+  })
+  return attachResolvedPrices(withApps)
 }
 
 /** IDs de produtos compatíveis com filtros parciais de veículo. */
@@ -165,20 +170,6 @@ export async function getProductById(id: string): Promise<Product | null> {
     .eq('product_id', id)
     .eq('status', 'active')
 
-  const { data: apps } = await supabase
-    .from('product_vehicle_compatibility')
-    .select(
-      `
-      notes,
-      vehicle_versions (
-        year, engine, version_name,
-        manufacturers ( name ),
-        models ( name )
-      )
-    `,
-    )
-    .eq('product_id', id)
-
   if (refs?.length) {
     product.references = refs.map((r) => ({
       code: String(r.code),
@@ -189,30 +180,12 @@ export async function getProductById(id: string): Promise<Product | null> {
     }))
   }
 
-  if (apps?.length) {
-    product.compatibilitySummary = apps
-      .map((a) => {
-        const raw = a.vehicle_versions as unknown
-        const v = (Array.isArray(raw) ? raw[0] : raw) as
-          | {
-              year: number | null
-              engine: string | null
-              version_name: string | null
-              manufacturers: unknown
-              models: unknown
-            }
-          | null
-        if (!v) return (a.notes as string | null) ?? ''
-        const maker = asNamed(v.manufacturers)?.name
-        const model = asNamed(v.models)?.name
-        return [maker, model, v.year, v.engine, v.version_name].filter(Boolean).join(' ')
-      })
-      .filter(Boolean)
-      .join(' · ')
-  }
-
-  const [resolved] = await attachResolvedPrices([product])
-  return resolved ?? product
+  const [withApps] = await attachCompatibilitySummaries([product], {
+    compact: false,
+    maxEntries: 40,
+  })
+  const [resolved] = await attachResolvedPrices([withApps ?? product])
+  return resolved ?? withApps ?? product
 }
 
 /** @deprecated Preferir `searchCatalog` (Fase 4). Mantido como fachada. */

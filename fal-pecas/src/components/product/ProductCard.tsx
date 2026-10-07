@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
 import { formatMoney } from '@/lib/money'
+import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 import { useEffect, useState, type MouseEvent } from 'react'
@@ -85,6 +86,25 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </h3>
         <p className="m-0 truncate text-[11px] text-fal-muted">Código FAL: {product.sku}</p>
+        {product.brand || product.manufacturerCode ? (
+          <p className="m-0 truncate text-[11px] text-fal-muted">
+            {product.brand ? <span>{product.brand}</span> : null}
+            {product.brand && product.manufacturerCode ? ' · ' : null}
+            {product.manufacturerCode ? (
+              <span className="font-mono">{product.manufacturerCode}</span>
+            ) : null}
+          </p>
+        ) : null}
+        {product.posicao || product.lado ? (
+          <p className="m-0 truncate text-[11px] text-fal-ink">
+            {[
+              product.posicao ? formatPosicaoLabel(product.posicao) : null,
+              product.lado ? formatLadoLabel(product.lado) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        ) : null}
         {product.compatibilitySummary ? (
           <p
             className="my-2 line-clamp-3 break-words text-xs text-fal-success"

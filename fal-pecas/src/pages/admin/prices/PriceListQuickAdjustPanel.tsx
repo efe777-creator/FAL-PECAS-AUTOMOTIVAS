@@ -5,9 +5,11 @@ import { formatMoney, parseMoneyBr } from '@/lib/money'
 import {
   adminFindProductIdBySku,
   adminListPriceListItems,
+  adminListProductsWithoutPriceOnList,
   adminSetPriceListItemPricing,
   adminUpsertPriceListItem,
   filterPriceListItems,
+  isVirtualPriceListItemId,
   priceListStatusLabel,
   type PriceListItem,
   type PriceListOverviewRow,
@@ -47,6 +49,7 @@ export function PriceListQuickAdjustPanel({
 }: Props) {
   const [listId, setListId] = useState('')
   const [items, setItems] = useState<PriceListItem[]>([])
+  const [withoutPriceItems, setWithoutPriceItems] = useState<PriceListItem[] | null>(null)
   const [loadingItems, setLoadingItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -109,6 +112,7 @@ export function PriceListQuickAdjustPanel({
 
     // Anti-vazamento A→B: limpa imediatamente
     setItems([])
+    setWithoutPriceItems(null)
     setEditingId(null)
     setEditPrice('')
     setError(null)
@@ -140,14 +144,41 @@ export function PriceListQuickAdjustPanel({
     }
   }, [listId])
 
+  useEffect(() => {
+    if (!listId || !filterWithoutPrice) {
+      setWithoutPriceItems(null)
+      return
+    }
+    let cancelled = false
+    void adminListProductsWithoutPriceOnList(listId)
+      .then((rows) => {
+        if (!cancelled) setWithoutPriceItems(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setWithoutPriceItems([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [listId, filterWithoutPrice, items])
+
   const filteredItems = useMemo(() => {
     if (loadingItems) return []
-    return filterPriceListItems(items, {
+    const source =
+      filterWithoutPrice && withoutPriceItems != null ? withoutPriceItems : items
+    return filterPriceListItems(source, {
       q: filterQDebounced,
       origin: filterOrigin,
-      withoutPrice: filterWithoutPrice,
+      withoutPrice: filterWithoutPrice && withoutPriceItems == null,
     })
-  }, [items, filterQDebounced, filterOrigin, filterWithoutPrice, loadingItems])
+  }, [
+    items,
+    withoutPriceItems,
+    filterQDebounced,
+    filterOrigin,
+    filterWithoutPrice,
+    loadingItems,
+  ])
 
   const visibleItems = useMemo(
     () => filteredItems.slice(0, QUICK_RESULT_LIMIT),
@@ -233,7 +264,17 @@ export function PriceListQuickAdjustPanel({
     setRowBusy(item.id)
     setError(null)
     try {
-      await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      if (isVirtualPriceListItemId(item.id)) {
+        await adminUpsertPriceListItem({
+          priceListId: listId,
+          productId: item.productId,
+          price: priceNum,
+          source: 'manual',
+          changedBy: changedBy ?? null,
+        })
+      } else {
+        await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      }
       setEditingId(null)
       setInfo(
         `Preço atualizado na lista ${selectedList?.name ?? ''}. Origem: Manual.`,

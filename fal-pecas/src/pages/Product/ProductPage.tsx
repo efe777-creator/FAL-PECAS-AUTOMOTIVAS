@@ -150,23 +150,41 @@ export function ProductPage() {
             {current.name}
           </h1>
           <p className="mt-1 text-sm text-fal-muted">Código FAL: {current.sku}</p>
-          {current.posicao || current.lado ? (
-            <p className="mt-2 text-sm text-fal-ink">
-              {current.posicao ? (
-                <span>
-                  <span className="font-semibold text-fal-navy">Posição:</span>{' '}
-                  {formatPosicaoLabel(current.posicao)}
-                </span>
-              ) : null}
-              {current.posicao && current.lado ? ' · ' : null}
-              {current.lado ? (
-                <span>
-                  <span className="font-semibold text-fal-navy">Lado:</span>{' '}
-                  {formatLadoLabel(current.lado)}
-                </span>
-              ) : null}
-            </p>
-          ) : null}
+          <div className="mt-2 space-y-1 text-sm text-fal-ink">
+            {current.brand ? (
+              <p className="m-0">
+                <span className="font-semibold text-fal-navy">Fabricante:</span> {current.brand}
+              </p>
+            ) : null}
+            {current.manufacturerCode ? (
+              <p className="m-0">
+                <span className="font-semibold text-fal-navy">Cód. fabricante:</span>{' '}
+                <span className="font-mono">{current.manufacturerCode}</span>
+              </p>
+            ) : null}
+            {current.categoryName ? (
+              <p className="m-0">
+                <span className="font-semibold text-fal-navy">Categoria:</span> {current.categoryName}
+              </p>
+            ) : null}
+            {current.posicao || current.lado ? (
+              <p className="m-0">
+                {current.posicao ? (
+                  <span>
+                    <span className="font-semibold text-fal-navy">Posição:</span>{' '}
+                    {formatPosicaoLabel(current.posicao)}
+                  </span>
+                ) : null}
+                {current.posicao && current.lado ? ' · ' : null}
+                {current.lado ? (
+                  <span>
+                    <span className="font-semibold text-fal-navy">Lado:</span>{' '}
+                    {formatLadoLabel(current.lado)}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
           <p className="mt-4 text-3xl font-black">
             {current.available === false
               ? '—'
@@ -187,9 +205,15 @@ export function ProductPage() {
           {current.compatibilitySummary ? (
             <div className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-3 text-sm">
               <p className="m-0 font-semibold text-fal-navy">Aplicações</p>
-              <p className="mb-0 mt-1 whitespace-pre-line text-fal-ink">{current.compatibilitySummary}</p>
+              <ul className="mb-0 mt-1 list-none space-y-0.5 p-0 text-fal-ink">
+                {current.compatibilitySummary.split(' · ').map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-4 text-sm text-fal-muted">Aplicações sob consulta</p>
+          )}
           {current.references?.length ? (
             <div className="mt-3 text-sm text-fal-muted">
               <p className="m-0 font-semibold text-fal-ink">Códigos / referências</p>
