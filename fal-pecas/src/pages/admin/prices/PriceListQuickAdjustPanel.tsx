@@ -4,8 +4,7 @@ import { Loading } from '@/components/common/Loading'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
 import {
   adminFindProductIdBySku,
-  adminListPriceListItems,
-  adminListProductsWithoutPriceOnList,
+  adminListPriceListOperationalItems,
   adminSetPriceListItemPricing,
   adminUpsertPriceListItem,
   filterPriceListItems,
@@ -49,7 +48,6 @@ export function PriceListQuickAdjustPanel({
 }: Props) {
   const [listId, setListId] = useState('')
   const [items, setItems] = useState<PriceListItem[]>([])
-  const [withoutPriceItems, setWithoutPriceItems] = useState<PriceListItem[] | null>(null)
   const [loadingItems, setLoadingItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -112,7 +110,6 @@ export function PriceListQuickAdjustPanel({
 
     // Anti-vazamento A→B: limpa imediatamente
     setItems([])
-    setWithoutPriceItems(null)
     setEditingId(null)
     setEditPrice('')
     setError(null)
@@ -126,10 +123,10 @@ export function PriceListQuickAdjustPanel({
     let cancelled = false
     void (async () => {
       try {
-        const rows = await adminListPriceListItems(listId)
+        const rows = await adminListPriceListOperationalItems(listId)
         if (cancelled || gen !== loadGenRef.current) return
         setItems(rows)
-        setAddOpen(rows.length === 0)
+        setAddOpen(rows.filter((r) => !isVirtualPriceListItemId(r.id)).length === 0)
       } catch (e) {
         if (cancelled || gen !== loadGenRef.current) return
         setItems([])
@@ -144,41 +141,14 @@ export function PriceListQuickAdjustPanel({
     }
   }, [listId])
 
-  useEffect(() => {
-    if (!listId || !filterWithoutPrice) {
-      setWithoutPriceItems(null)
-      return
-    }
-    let cancelled = false
-    void adminListProductsWithoutPriceOnList(listId)
-      .then((rows) => {
-        if (!cancelled) setWithoutPriceItems(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setWithoutPriceItems([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [listId, filterWithoutPrice, items])
-
   const filteredItems = useMemo(() => {
     if (loadingItems) return []
-    const source =
-      filterWithoutPrice && withoutPriceItems != null ? withoutPriceItems : items
-    return filterPriceListItems(source, {
+    return filterPriceListItems(items, {
       q: filterQDebounced,
       origin: filterOrigin,
-      withoutPrice: filterWithoutPrice && withoutPriceItems == null,
+      withoutPrice: filterWithoutPrice,
     })
-  }, [
-    items,
-    withoutPriceItems,
-    filterQDebounced,
-    filterOrigin,
-    filterWithoutPrice,
-    loadingItems,
-  ])
+  }, [items, filterQDebounced, filterOrigin, filterWithoutPrice, loadingItems])
 
   const visibleItems = useMemo(
     () => filteredItems.slice(0, QUICK_RESULT_LIMIT),
@@ -217,7 +187,7 @@ export function PriceListQuickAdjustPanel({
     setError(null)
     setItems([])
     try {
-      const rows = await adminListPriceListItems(listId)
+      const rows = await adminListPriceListOperationalItems(listId)
       if (gen !== loadGenRef.current) return
       setItems(rows)
       if (opts?.keepAddOpen) {

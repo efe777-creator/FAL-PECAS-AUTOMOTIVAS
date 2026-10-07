@@ -498,7 +498,7 @@ export async function adminListPriceListItems(
     )
     .eq('price_list_id', priceListId)
     .order('updated_at', { ascending: false })
-    .limit(500)
+    .limit(5000)
 
   if (error) throw error
 
@@ -662,34 +662,141 @@ export function isVirtualPriceListItemId(id: string): boolean {
   return id.startsWith('missing:')
 }
 
-/**
- * Produtos sem preço nesta lista: itens com price<=0 + published ausentes da lista.
- * Ausentes vêm como itens virtuais (id `missing:{productId}`) para add/edição.
- */
-export async function adminListProductsWithoutPriceOnList(
-  priceListId: string,
-): Promise<PriceListItem[]> {
-  const sb = getSupabase()
+export type SyncOntoPriceListResult = {
+  created: number
+  alreadyOnList: number
+  skippedManual: number
+  skippedImported: number
+}
 
-  const zeroOnList = await adminListPriceListItems(priceListId)
-  const zeroItems = zeroOnList.filter((i) => !(i.price > 0))
+/**
+ * Garante linhas na lista como calculated/price=0.
+ * Não sobrescreve imported/manual. Não recalcula venda.
+ */
+export async function adminSyncProductsOntoPriceList(input: {
+  priceListId: string
+  productIds: string[]
+}): Promise<SyncOntoPriceListResult> {
+  const sb = getSupabase()
+  const unique = [...new Set(input.productIds.filter(Boolean))]
+  const result: SyncOntoPriceListResult = {
+    created: 0,
+    alreadyOnList: 0,
+    skippedManual: 0,
+    skippedImported: 0,
+  }
+  if (!unique.length) return result
+
+  const chunkSize = 200
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize)
+    const { data: existing, error } = await sb
+      .from('price_list_items')
+      .select('product_id, price_origin')
+      .eq('price_list_id', input.priceListId)
+      .in('product_id', chunk)
+    if (error) throw error
+
+    const byProduct = new Map(
+      (existing ?? []).map((r) => [
+        String(r.product_id),
+        (r.price_origin as PriceOrigin) || 'manual',
+      ]),
+    )
+
+    const toInsert: Array<{
+      price_list_id: string
+      product_id: string
+      price: number
+      price_origin: PriceOrigin
+      extra_cost: number
+    }> = []
+
+    for (const productId of chunk) {
+      const origin = byProduct.get(productId)
+      if (!origin) {
+        toInsert.push({
+          price_list_id: input.priceListId,
+          product_id: productId,
+          price: 0,
+          price_origin: 'calculated',
+          extra_cost: 0,
+        })
+        continue
+      }
+      if (origin === 'manual') result.skippedManual += 1
+      else if (origin === 'imported') result.skippedImported += 1
+      else result.alreadyOnList += 1
+    }
+
+    if (toInsert.length) {
+      const { error: insErr } = await sb.from('price_list_items').insert(toInsert)
+      if (insErr) throw insErr
+      result.created += toInsert.length
+    }
+  }
+  return result
+}
+
+/** Published (opcionalmente só com custo principal) ausentes da lista → sync calculated/0. */
+export async function adminMaterializePublishedOntoPriceList(input: {
+  priceListId: string
+  /** Se true, só produtos com custo no fornecedor principal. Default true. */
+  onlyWithPrincipalCost?: boolean
+}): Promise<SyncOntoPriceListResult> {
+  const sb = getSupabase()
+  const onlyCost = input.onlyWithPrincipalCost !== false
 
   const { data: listRows, error: listErr } = await sb
     .from('price_list_items')
     .select('product_id')
-    .eq('price_list_id', priceListId)
+    .eq('price_list_id', input.priceListId)
   if (listErr) throw listErr
   const inList = new Set((listRows ?? []).map((r) => String(r.product_id)))
 
   const { data: published, error: pubErr } = await sb
     .from('products')
+    .select('id, supplier_id')
+    .eq('status', 'published')
+    .limit(5000)
+  if (pubErr) throw pubErr
+
+  let candidates = (published ?? [])
+    .map((p) => ({
+      id: String(p.id),
+      supplierId: (p.supplier_id as string | null) ?? null,
+    }))
+    .filter((p) => !inList.has(p.id))
+
+  if (onlyCost && candidates.length) {
+    const costMap = await loadPrincipalCosts(candidates.map((c) => c.id))
+    candidates = candidates.filter(
+      (c) => c.supplierId != null && costMap.has(`${c.supplierId}:${c.id}`),
+    )
+  }
+
+  return adminSyncProductsOntoPriceList({
+    priceListId: input.priceListId,
+    productIds: candidates.map((c) => c.id),
+  })
+}
+
+async function buildVirtualMissingItems(
+  priceListId: string,
+  inList: Set<string>,
+): Promise<PriceListItem[]> {
+  const sb = getSupabase()
+  const { data: published, error: pubErr } = await sb
+    .from('products')
     .select('id, sku, name, supplier_id, manufacturer_code')
     .eq('status', 'published')
     .order('sku')
-    .limit(2000)
+    .limit(5000)
   if (pubErr) throw pubErr
 
   const missing = (published ?? []).filter((p) => !inList.has(String(p.id)))
+  if (!missing.length) return []
+
   const missingIds = missing.map((p) => String(p.id))
   const costMap = await loadPrincipalCosts(missingIds)
   const supplierIds = [
@@ -710,7 +817,7 @@ export async function adminListProductsWithoutPriceOnList(
     (listRow as { list_extra_cost_percent?: unknown } | null)?.list_extra_cost_percent ?? 0,
   )
 
-  const virtual: PriceListItem[] = missing.map((p) => {
+  return missing.map((p) => {
     const productId = String(p.id)
     const supplierId = (p.supplier_id as string | null) ?? null
     const baseCost =
@@ -723,7 +830,7 @@ export async function adminListProductsWithoutPriceOnList(
       productId,
       price: 0,
       extraCost: 0,
-      priceOrigin: 'manual',
+      priceOrigin: 'calculated' as PriceOrigin,
       calculatedPrice: null,
       baseCost,
       costTotal,
@@ -737,8 +844,28 @@ export async function adminListProductsWithoutPriceOnList(
       updatedAt: undefined,
     }
   })
+}
 
-  return [...zeroItems, ...virtual]
+/**
+ * Visão operacional: itens da lista + published ausentes (virtuais, preço 0).
+ */
+export async function adminListPriceListOperationalItems(
+  priceListId: string,
+): Promise<PriceListItem[]> {
+  const onList = await adminListPriceListItems(priceListId)
+  const inList = new Set(onList.map((i) => i.productId))
+  const virtual = await buildVirtualMissingItems(priceListId, inList)
+  return [...onList, ...virtual]
+}
+
+/**
+ * Produtos sem preço nesta lista: itens com price<=0 + published ausentes.
+ */
+export async function adminListProductsWithoutPriceOnList(
+  priceListId: string,
+): Promise<PriceListItem[]> {
+  const all = await adminListPriceListOperationalItems(priceListId)
+  return all.filter((i) => !(i.price > 0))
 }
 
 export function filterPriceListItems(

@@ -12,6 +12,7 @@ import {
   adminCreatePriceImport,
   adminGetPriceListsOverview,
   adminPreviewPriceImport,
+  adminSyncProductsOntoPriceList,
   type ImportPreviewRow,
   type PriceListOverviewRow,
 } from '@/services/admin/adminPriceListService'
@@ -183,6 +184,10 @@ export function PriceImportWizard({
       setError('Selecione o fornecedor')
       return
     }
+    if (!priceListId) {
+      setError('Selecione a lista de preços de destino')
+      return
+    }
     setBusy(true)
     setError(null)
     setFileErrors([])
@@ -263,6 +268,10 @@ export function PriceImportWizard({
 
   async function onConfirmCostApply() {
     if (!costImportId || !costRows) return
+    if (!priceListId) {
+      setError('Selecione a lista de preços de destino')
+      return
+    }
     if (costValid === 0) {
       setError('Nenhuma linha válida para aplicar')
       return
@@ -273,11 +282,23 @@ export function PriceImportWizard({
     setProgress({ done: 0, total: costValid })
     try {
       const result = await adminApplyCostImport(costImportId)
+      setProgress({ done: Math.floor(costValid / 2), total: costValid })
+      const productIds = costRows
+        .filter((r) => r.ok && r.productId)
+        .map((r) => r.productId as string)
+      const sync = await adminSyncProductsOntoPriceList({
+        priceListId,
+        productIds,
+      })
       setProgress({ done: costValid, total: costValid })
       setResultMsg(
-        `Custos do fornecedor "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}. ` +
-          `Falhas: ${result.failed}. Ignorados: ${result.skipped}. ` +
-          `Preços de venda das listas NÃO foram alterados.`,
+        `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
+          (result.created ? ` · criados ${result.created}` : '') +
+          `. Falhas: ${result.failed}. ` +
+          `Lista "${selectedList?.name ?? ''}": incluídos ${sync.created} (venda 0 / calculated); ` +
+          `já na lista ${sync.alreadyOnList}; ` +
+          `manual preservado ${sync.skippedManual}; importado preservado ${sync.skippedImported}. ` +
+          `Use Formação → Aplicar margem para calcular a venda.`,
       )
       setStep(9)
       onApplied?.()
@@ -363,8 +384,8 @@ export function PriceImportWizard({
               <span>
                 <strong className="text-fal-navy">Custo do fornecedor</strong>
                 <span className="mt-1 block text-sm text-fal-muted">
-                  Atualiza o custo de compra do fornecedor (supplier_products.cost). Não altera preço
-                  de venda das listas.
+                  Atualiza o custo e inclui os produtos na lista escolhida (venda 0 até aplicar
+                  margem). Não sobrescreve preços imported/manual.
                 </span>
               </span>
             </label>
@@ -603,6 +624,25 @@ export function PriceImportWizard({
                 ))}
               </select>
             </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-semibold text-fal-navy">Lista de preços destino *</span>
+              <select
+                className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+                value={priceListId}
+                onChange={(e) => {
+                  setPriceListId(e.target.value)
+                  setCostRows(null)
+                  setCostImportId(null)
+                }}
+              >
+                <option value="">Selecione…</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name} ({l.status})
+                  </option>
+                ))}
+              </select>
+            </label>
             <p className="text-xs text-fal-muted">
               Formato: codigo_fornecedor;custo. Demais fornecedores exigem conversão prévia.
               {isFalPrincipalSupplier(selectedSupplier?.code) ? (
@@ -614,14 +654,14 @@ export function PriceImportWizard({
                   — sem conversão.
                 </>
               ) : null}{' '}
-              Não grava em listas de preços.
+              Inclui produtos na lista com venda 0 (calculated) até aplicar margem.
             </p>
             <div>
               <p className="mb-2 text-sm font-semibold text-fal-navy">Arquivo (CSV / XLSX)</p>
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls,text/csv"
-                disabled={busy || !allowed || !supplierId}
+                disabled={busy || !allowed || !supplierId || !priceListId}
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   e.target.value = ''
@@ -691,8 +731,9 @@ export function PriceImportWizard({
             <p className="text-sm font-semibold text-fal-navy">Confirmação — custo do fornecedor</p>
             <ul className="list-inside list-disc text-sm">
               <li>Fornecedor: {selectedSupplier?.name}</li>
+              <li>Lista: {selectedList?.name ?? '—'}</li>
               <li>Linhas válidas: {costValid}</li>
-              <li>Destino: supplier_products.cost (não altera listas de preços)</li>
+              <li>Custo em supplier_products + inclusão na lista (venda 0 / calculated)</li>
             </ul>
             <div className="flex gap-2">
               <Button type="button" variant="light" onClick={() => setStep(6)} disabled={busy}>

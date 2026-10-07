@@ -14,13 +14,14 @@ import {
   adminGetPriceList,
   adminGetPriceListStats,
   adminListPriceListImports,
-  adminListPriceListItems,
+  adminListPriceListOperationalItems,
   adminListPriceLists,
-  adminListProductsWithoutPriceOnList,
+  adminMaterializePublishedOntoPriceList,
   adminRecalculatePriceListItems,
   adminSetPriceListItemPricing,
   adminSetPriceListPricingRule,
   adminSaveListExtraCostPercent,
+  adminSyncProductsOntoPriceList,
   adminUpsertPriceList,
   adminUpsertPriceListItem,
   buildPriceListItemsCsv,
@@ -105,7 +106,6 @@ export function AdminPriceListDetailPage() {
   const [list, setList] = useState<PriceList | null>(null)
   const [allLists, setAllLists] = useState<PriceList[]>([])
   const [items, setItems] = useState<PriceListItem[]>([])
-  const [withoutPriceItems, setWithoutPriceItems] = useState<PriceListItem[] | null>(null)
   const [stats, setStats] = useState<PriceListStats | null>(null)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [imports, setImports] = useState<PriceListImportSummary[]>([])
@@ -172,7 +172,6 @@ export function AdminPriceListDetailPage() {
   function resetUiForListChange() {
     setList(null)
     setItems([])
-    setWithoutPriceItems(null)
     setStats(null)
     setFilterQ('')
     setFilterQDebounced('')
@@ -203,7 +202,7 @@ export function AdminPriceListDetailPage() {
     try {
       const [l, its, st, sups, imps, lists] = await Promise.all([
         adminGetPriceList(id),
-        adminListPriceListItems(id),
+        adminListPriceListOperationalItems(id),
         adminGetPriceListStats(id),
         adminListSuppliers(),
         adminListPriceListImports(id),
@@ -254,32 +253,12 @@ export function AdminPriceListDetailPage() {
     return () => window.clearTimeout(t)
   }, [filterQ])
 
-  useEffect(() => {
-    if (!id || !filterWithoutPrice) {
-      setWithoutPriceItems(null)
-      return
-    }
-    let cancelled = false
-    void adminListProductsWithoutPriceOnList(id)
-      .then((rows) => {
-        if (!cancelled) setWithoutPriceItems(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setWithoutPriceItems([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [id, filterWithoutPrice, items])
-
   const visibleItems = useMemo(() => {
-    const source =
-      filterWithoutPrice && withoutPriceItems != null ? withoutPriceItems : items
-    const filtered = filterPriceListItems(source, {
+    const filtered = filterPriceListItems(items, {
       q: filterQDebounced,
       origin: filterOrigin,
       withoutCost: filterWithoutCost,
-      withoutPrice: filterWithoutPrice && withoutPriceItems == null,
+      withoutPrice: filterWithoutPrice,
       onlyCalculated: filterOnlyCalculated,
       withOverride: filterWithOverride,
       supplierId: filterSupplierId,
@@ -287,7 +266,6 @@ export function AdminPriceListDetailPage() {
     return sortPriceListItems(filtered, sort.key, sort.asc)
   }, [
     items,
-    withoutPriceItems,
     filterQDebounced,
     filterOrigin,
     filterWithoutCost,
@@ -422,6 +400,10 @@ export function AdminPriceListDetailPage() {
   }
 
   async function removeItem(itemId: string) {
+    if (isVirtualPriceListItemId(itemId)) {
+      setError('Item ainda não está na lista — nada a remover')
+      return
+    }
     if (!window.confirm('Remover este item da lista?')) return
     setRowBusy(itemId)
     try {
@@ -435,11 +417,15 @@ export function AdminPriceListDetailPage() {
   }
 
   async function onBulkRemove() {
-    if (!selectedItems.length) return
-    if (!window.confirm(`Remover ${selectedItems.length} item(ns) da lista?`)) return
+    const real = selectedItems.filter((i) => !isVirtualPriceListItemId(i.id))
+    if (!real.length) {
+      setError('Seleção só tem itens ainda fora da lista — nada a remover')
+      return
+    }
+    if (!window.confirm(`Remover ${real.length} item(ns) da lista?`)) return
     setBusy(true)
     try {
-      for (const item of selectedItems) {
+      for (const item of real) {
         await adminDeletePriceListItem(item.id)
       }
       await reload()
@@ -453,13 +439,24 @@ export function AdminPriceListDetailPage() {
   async function onBulkApplyRule() {
     if (!selectedItems.length) return
     const ok = window.confirm(
-      `Aplicar regra (apply_rule) em ${selectedItems.length} item(ns) selecionado(s)?\n` +
-        `Origem passará a CALCULATED. Usa RPC por item (não recalc global).`,
+      `Incluir (se necessário) e calcular venda pela regra em ${selectedItems.length} item(ns)?\n` +
+        `Origem CALCULATED. Importado/manual na seleção serão convertidos para calculado.`,
     )
     if (!ok) return
     setBusy(true)
     try {
-      for (const item of selectedItems) {
+      const virtualIds = selectedItems
+        .filter((i) => isVirtualPriceListItemId(i.id))
+        .map((i) => i.productId)
+      if (virtualIds.length) {
+        await adminSyncProductsOntoPriceList({ priceListId: id, productIds: virtualIds })
+      }
+      // Recarrega IDs reais após sync
+      const fresh = await adminListPriceListOperationalItems(id)
+      const byProduct = new Map(fresh.map((i) => [i.productId, i]))
+      for (const sel of selectedItems) {
+        const item = byProduct.get(sel.productId)
+        if (!item || isVirtualPriceListItemId(item.id)) continue
         await adminSetPriceListItemPricing({
           itemId: item.id,
           mode: 'apply_rule',
@@ -486,7 +483,26 @@ export function AdminPriceListDetailPage() {
     }
     setBusy(true)
     try {
-      for (const item of selectedItems) {
+      const virtualIds = selectedItems
+        .filter((i) => isVirtualPriceListItemId(i.id))
+        .map((i) => i.productId)
+      if (virtualIds.length) {
+        await adminSyncProductsOntoPriceList({ priceListId: id, productIds: virtualIds })
+      }
+      const fresh = await adminListPriceListOperationalItems(id)
+      const byProduct = new Map(fresh.map((i) => [i.productId, i]))
+      for (const sel of selectedItems) {
+        const item = byProduct.get(sel.productId)
+        if (!item || isVirtualPriceListItemId(item.id)) {
+          await adminUpsertPriceListItem({
+            priceListId: id,
+            productId: sel.productId,
+            price: priceNum,
+            source: 'manual',
+            changedBy: user?.id ?? null,
+          })
+          continue
+        }
         await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
       }
       setBulkPrice('')
@@ -509,47 +525,41 @@ export function AdminPriceListDetailPage() {
     URL.revokeObjectURL(url)
   }
 
-  async function onSaveRule() {
-    if (!allowed) return
+  async function persistRuleOnly(): Promise<string> {
     const pct = Number(String(rulePercent).replace(',', '.'))
-    if (!Number.isFinite(pct) || pct < 0) {
-      setError('Percentual inválido')
-      return
-    }
+    if (!Number.isFinite(pct) || pct < 0) throw new Error('Percentual inválido')
     if (ruleMethod === 'margin_on_sell' && pct >= 100) {
-      setError('Margem sobre venda deve ser menor que 100%')
-      return
+      throw new Error('Margem sobre venda deve ser menor que 100%')
     }
-    const willRecalc = ruleMethod !== 'fixed'
-    if (willRecalc) {
-      const ok = window.confirm(
-        `Salvar regra e aplicar aos CALCULATED?\n${pricingMethodLabel(ruleMethod)} ${pct}%`,
-      )
-      if (!ok) return
-    }
-    setBusy(true)
-    try {
-      // P1-2: persistir % antes da regra/recalc para o SQL ler o valor salvo (pós-apply).
-      const extraPct = Number(String(ruleExtraCostPercent).replace(',', '.'))
-      let extraMsg = ''
-      if (Number.isFinite(extraPct) && extraPct >= 0) {
-        const extra = await adminSaveListExtraCostPercent(id, extraPct)
-        if (extra.pendingMigration) {
-          extraMsg =
-            ' Adicional de custo (%) aguarda migration prepared (list_extra_cost R$ inalterado).'
-        } else if (extra.saved) {
-          extraMsg = ` Adicional de custo: ${extraPct}%.`
-        }
+    const extraPct = Number(String(ruleExtraCostPercent).replace(',', '.'))
+    let extraMsg = ''
+    if (Number.isFinite(extraPct) && extraPct >= 0) {
+      const extra = await adminSaveListExtraCostPercent(id, extraPct)
+      if (extra.pendingMigration) {
+        extraMsg =
+          ' Adicional de custo (%) aguarda migration prepared (list_extra_cost R$ inalterado).'
+      } else if (extra.saved) {
+        extraMsg = ` Adicional de custo: ${extraPct}%.`
       }
-      const result = await adminSetPriceListPricingRule({
-        priceListId: id,
-        pricingMethod: ruleMethod,
-        pricingPercent: pct,
-        recalculate: willRecalc,
-      })
-      const recalc = (result.recalculate ?? {}) as Record<string, unknown>
+    }
+    await adminSetPriceListPricingRule({
+      priceListId: id,
+      pricingMethod: ruleMethod,
+      pricingPercent: pct,
+      recalculate: false,
+    })
+    return extraMsg
+  }
+
+  /** Salva margem/adicional sem alterar preços de venda. */
+  async function onSaveRuleKeepPrices() {
+    if (!allowed) return
+    setBusy(true)
+    setError(null)
+    try {
+      const extraMsg = await persistRuleOnly()
       setRuleReport(
-        `Regra salva. Recalc: ${Number(recalc.updated ?? 0)}; manual: ${Number(recalc.skipped_manual ?? 0)}; importado: ${Number(recalc.skipped_imported ?? 0)}.${extraMsg}`,
+        `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda NÃO foram alterados.${extraMsg}`,
       )
       await reload()
     } catch (err) {
@@ -559,24 +569,52 @@ export function AdminPriceListDetailPage() {
     }
   }
 
-  async function onRecalculate() {
+  /**
+   * Salva regra, materializa published com custo na lista (calculated/0),
+   * e recalcula venda dos CALCULATED.
+   */
+  async function onApplyMarginToSell() {
     if (!allowed) return
+    if (ruleMethod === 'fixed') {
+      setError('Lista em modo fixo — não há formação por margem/markup')
+      return
+    }
     setBusy(true)
+    setError(null)
     try {
+      const extraMsg = await persistRuleOnly()
+      const sync = await adminMaterializePublishedOntoPriceList({
+        priceListId: id,
+        onlyWithPrincipalCost: true,
+      })
       const dry = await adminRecalculatePriceListItems({ priceListId: id, dryRun: true })
       if (dry.message) {
-        setRuleReport(dry.message)
+        setRuleReport(dry.message + extraMsg)
+        await reload()
         return
       }
       const ok = window.confirm(
-        `Recalcular CALCULATED (lista inteira)?\nAtualizar: ${dry.wouldUpdate}\nManual: ${dry.skippedManual}\nImportado: ${dry.skippedImported}`,
+        `Aplicar margem → atualizar preço de venda?\n` +
+          `Novos na lista (com custo): ${sync.created}\n` +
+          `Atualizar CALCULATED: ${dry.wouldUpdate}\n` +
+          `Manual: ${dry.skippedManual} · Importado: ${dry.skippedImported} · Sem custo: ${dry.skippedNoCost}\n` +
+          `Imported/manual NÃO mudam.`,
       )
-      if (!ok) return
+      if (!ok) {
+        setRuleReport(
+          `Regra salva; aplicação de venda cancelada. Incluídos na lista: ${sync.created}.${extraMsg}`,
+        )
+        await reload()
+        return
+      }
       const applied = await adminRecalculatePriceListItems({ priceListId: id, dryRun: false })
-      setRuleReport(`Recálculo: ${applied.updated} atualizado(s).`)
+      setRuleReport(
+        `Margem aplicada. Venda atualizada: ${applied.updated}. ` +
+          `Incluídos na lista: ${sync.created}. Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}.${extraMsg}`,
+      )
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao recalcular')
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar margem')
     } finally {
       setBusy(false)
     }
@@ -860,7 +898,8 @@ export function AdminPriceListDetailPage() {
               </label>
             </div>
             <p className="mt-2 text-xs text-fal-muted">
-              Até 500 itens carregados · visão filtrada: {visibleItems.length}
+              Itens na visão (lista + cadastro sem preço): {items.length} · filtrados:{' '}
+              {visibleItems.length}
             </p>
             {singleMatch ? (
               <div className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/20 px-3 py-2 text-sm">
@@ -1117,16 +1156,20 @@ export function AdminPriceListDetailPage() {
                 hint="Não entra no cálculo. Não remover / não reinterpretar como %."
               />
               <div className="flex flex-wrap items-end gap-2 md:col-span-2">
-                <Button type="button" disabled={busy || !allowed} onClick={() => void onSaveRule()}>
-                  Salvar regra
-                </Button>
                 <Button
                   type="button"
                   variant="light"
-                  disabled={busy || !allowed || list.pricingMethod === 'fixed'}
-                  onClick={() => void onRecalculate()}
+                  disabled={busy || !allowed}
+                  onClick={() => void onSaveRuleKeepPrices()}
                 >
-                  Recalcular CALCULATED
+                  Salvar margem (manter venda)
+                </Button>
+                <Button
+                  type="button"
+                  disabled={busy || !allowed || ruleMethod === 'fixed'}
+                  onClick={() => void onApplyMarginToSell()}
+                >
+                  Aplicar margem → atualizar venda
                 </Button>
                 <Link
                   className="pb-3 text-sm font-semibold text-fal-navy underline"
@@ -1135,6 +1178,10 @@ export function AdminPriceListDetailPage() {
                   Voltar à consulta
                 </Link>
               </div>
+              <p className="md:col-span-2 text-xs text-fal-muted">
+                Salvar margem: só persiste regra/adicional. Aplicar margem: inclui produtos com custo
+                ainda fora da lista e recalcula só itens CALCULATED (imported/manual ficam iguais).
+              </p>
             </div>
             {ruleReport ? <p className="mt-2 text-sm text-green-700">{ruleReport}</p> : null}
           </div>
@@ -1364,7 +1411,6 @@ export function AdminPriceListDetailPage() {
           setFilterOnlyCalculated(false)
           setFilterWithOverride(false)
           setFilterSupplierId('')
-          setWithoutPriceItems(null)
           selectTab('produtos')
           void reload()
         }}
