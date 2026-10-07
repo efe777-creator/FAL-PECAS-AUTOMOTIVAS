@@ -17,6 +17,8 @@ export interface UserProfile {
   customerId?: string | null
   cpf?: string | null
   cnpj?: string | null
+  /** Conta ativa com e-mail ainda não confirmado (navegação liberada). */
+  emailConfirmed?: boolean
 }
 
 export interface CustomerAddress {
@@ -302,6 +304,10 @@ export interface Product {
   status?: 'draft' | 'published' | 'archived'
   imageUrl?: string | null
   manufacturerCode?: string
+  /** Posição da peça (atributo do produto). */
+  posicao?: 'DIANTEIRA' | 'TRASEIRA' | null
+  /** Lado da peça (atributo do produto). */
+  lado?: 'ESQUERDO' | 'DIREITO' | 'AMBOS' | null
   compatibilitySummary?: string
   references?: ProductReference[]
   attrs?: Record<string, unknown>

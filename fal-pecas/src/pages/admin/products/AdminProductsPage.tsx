@@ -157,7 +157,13 @@ export function AdminProductsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/admin/produtos/importar">
-            <Button variant="light">Importar</Button>
+            <Button variant="light">Importar produtos</Button>
+          </Link>
+          <Link to="/admin/produtos/importar-aplicacoes">
+            <Button variant="light">Importar aplicações</Button>
+          </Link>
+          <Link to="/admin/produtos/importar-hf">
+            <Button variant="light">Importar HF</Button>
           </Link>
           <Link to="/admin/produtos/novo">
             <Button variant="primary">Novo produto</Button>

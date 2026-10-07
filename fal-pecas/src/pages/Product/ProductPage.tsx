@@ -10,6 +10,11 @@ import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
+import {
+  buildProductWhatsAppMessage,
+  storeWhatsAppPhone,
+  whatsAppHref,
+} from '@/lib/whatsapp'
 
 export function ProductPage() {
   const { id } = useParams()
@@ -140,26 +145,59 @@ export function ProductPage() {
           >
             {liked ? '♥' : '♡'}
           </button>
-          <p className="text-sm text-fal-muted">{current.brand}</p>
-          <h1 className="mt-1 pr-12 text-[28px] font-extrabold sm:text-[34px]">{current.name}</h1>
-          <p className="text-sm text-fal-muted">Código {current.sku}</p>
+          <h1 className="mt-0 pr-12 text-[26px] font-extrabold leading-tight sm:text-[32px]">
+            {current.name}
+          </h1>
+          <p className="mt-1 text-sm text-fal-muted">Código FAL: {current.sku}</p>
+          {current.posicao || current.lado ? (
+            <p className="mt-2 text-sm text-fal-ink">
+              {current.posicao ? (
+                <span>
+                  <span className="font-semibold text-fal-navy">Posição:</span>{' '}
+                  {current.posicao === 'DIANTEIRA'
+                    ? 'Dianteira'
+                    : current.posicao === 'TRASEIRA'
+                      ? 'Traseira'
+                      : current.posicao}
+                </span>
+              ) : null}
+              {current.posicao && current.lado ? ' · ' : null}
+              {current.lado ? (
+                <span>
+                  <span className="font-semibold text-fal-navy">Lado:</span>{' '}
+                  {current.lado === 'ESQUERDO'
+                    ? 'Esquerdo'
+                    : current.lado === 'DIREITO'
+                      ? 'Direito'
+                      : current.lado === 'AMBOS'
+                        ? 'Ambos'
+                        : current.lado}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <p className="mt-4 text-3xl font-black">
-            {price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {current.available === false
+              ? '—'
+              : price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </p>
-          {showStrike ? (
+          {current.available !== false && showStrike ? (
             <p className="mt-1 text-sm text-fal-muted line-through">
               {listPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </p>
           ) : null}
           <p className="mt-2 text-sm">
             {current.available === false ? (
-              <span className="text-fal-danger">Indisponível</span>
+              <span className="font-semibold text-fal-danger">Indisponível</span>
             ) : (
-              <span className="text-fal-success">Disponível</span>
+              <span className="font-semibold text-fal-success">Disponível</span>
             )}
           </p>
           {current.compatibilitySummary ? (
-            <p className="mt-3 text-fal-success">Aplicação: {current.compatibilitySummary}</p>
+            <div className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-3 text-sm">
+              <p className="m-0 font-semibold text-fal-navy">Aplicações</p>
+              <p className="mb-0 mt-1 whitespace-pre-line text-fal-ink">{current.compatibilitySummary}</p>
+            </div>
           ) : null}
           {current.references?.length ? (
             <div className="mt-3 text-sm text-fal-muted">
@@ -174,7 +212,7 @@ export function ProductPage() {
               </ul>
             </div>
           ) : null}
-          <div className="mt-5">
+          <div className="mt-5 space-y-2">
             {current.available === false ? (
               <Button variant="primary" fullWidth disabled>
                 Indisponível
@@ -217,6 +255,29 @@ export function ProductPage() {
                 Adicionar ao carrinho
               </Button>
             )}
+            {(() => {
+              const phone = storeWhatsAppPhone()
+              if (!phone || current.available === false) return null
+              const href = whatsAppHref(
+                phone,
+                buildProductWhatsAppMessage({
+                  name: current.name,
+                  sku: current.sku,
+                  quantity: 1,
+                  productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+                }),
+              )
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center rounded-[10px] border border-[#25D366] bg-[#25D366]/10 px-4 py-3 text-sm font-extrabold text-[#128C7E] hover:bg-[#25D366]/20"
+                >
+                  Comprar pelo WhatsApp
+                </a>
+              )
+            })()}
           </div>
           <p className="mt-4 text-xs text-fal-muted">
             Imagens e fichas técnicas detalhadas serão ampliadas em atualizações futuras.

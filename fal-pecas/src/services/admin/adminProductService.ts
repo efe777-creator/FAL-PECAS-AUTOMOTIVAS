@@ -19,6 +19,8 @@ type ProductRow = {
   manufacturer_code: string | null
   is_incomplete: boolean
   is_available: boolean
+  posicao?: string | null
+  lado?: string | null
   attrs: Record<string, unknown> | null
   weight_kg?: number | null
   height_cm?: number | null
@@ -54,6 +56,8 @@ function mapProduct(row: ProductRow): Product {
     manufacturerCode: row.manufacturer_code ?? undefined,
     available: row.is_available,
     isIncomplete: row.is_incomplete,
+    posicao: (row.posicao as Product['posicao']) ?? null,
+    lado: (row.lado as Product['lado']) ?? null,
     attrs: row.attrs ?? {},
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     heightCm: row.height_cm == null ? null : Number(row.height_cm),
@@ -65,7 +69,7 @@ function mapProduct(row: ProductRow): Product {
 const SELECT = `
   id, sku, name, slug, description, short_description, brand_id, supplier_id,
   category_id, price, promo_price, status, manufacturer_code, is_incomplete,
-  is_available, attrs, weight_kg, height_cm, width_cm, length_cm,
+  is_available, posicao, lado, attrs, weight_kg, height_cm, width_cm, length_cm,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -138,6 +142,8 @@ export async function adminUpsertProduct(input: {
   status?: Product['status']
   shortDescription?: string
   description?: string
+  posicao?: Product['posicao']
+  lado?: Product['lado']
   attrs?: Record<string, unknown>
   isAvailable?: boolean
   weightKg?: number | null
@@ -159,13 +165,22 @@ export async function adminUpsertProduct(input: {
     status: input.status ?? 'draft',
     short_description: input.shortDescription?.trim() || null,
     description: input.description?.trim() || null,
+    posicao: input.posicao || null,
+    lado: input.lado || null,
     attrs: input.attrs ?? {},
     is_available: input.isAvailable ?? false,
     weight_kg: input.weightKg ?? null,
     height_cm: input.heightCm ?? null,
     width_cm: input.widthCm ?? null,
     length_cm: input.lengthCm ?? null,
-    search_document: [input.name, input.sku, input.shortDescription, input.description]
+    search_document: [
+      input.name,
+      input.sku,
+      input.shortDescription,
+      input.description,
+      input.posicao,
+      input.lado,
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase(),

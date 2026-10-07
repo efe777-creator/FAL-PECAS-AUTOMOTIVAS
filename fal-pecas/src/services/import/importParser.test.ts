@@ -40,23 +40,34 @@ describe('splitCsvLine', () => {
 
 describe('catalog contract', () => {
   const contract = getImportContract('catalog')
+  const header =
+    'codigo_fal;nome;categoria;grupo;subgrupo;posicao;lado;descricao_curta;descricao'
 
-  it('aceita codigo;descricao com cabeçalho', () => {
-    const grid = parseCsvToGrid('codigo;descricao\nTDI1083;Pivo Suspensao\nTDI1084;Terminal', {
-      contract,
-    })
+  it('aceita cadastro completo com cabeçalho', () => {
+    const grid = parseCsvToGrid(
+      `${header}\nTDI1083;Pivo Suspensao;Suspensao;Pivos;;DIANT;LE;Resumo;Longa\nTDI1084;Terminal;Suspensao;Terminais;;;;;`,
+      { contract },
+    )
     const result = validateImportGrid(grid, contract)
     expect(result.validCount).toBe(2)
     expect(result.invalidCount).toBe(0)
     expect(result.mapped[0]?.values.sku).toBe('TDI1083')
     expect(result.mapped[0]?.values.name).toBe('Pivo Suspensao')
+    expect(result.mapped[0]?.values.categoria).toBe('Suspensao')
+    expect(result.mapped[0]?.values.grupo).toBe('Pivos')
+    expect(result.mapped[0]?.values.posicao).toBe('DIANT')
+    expect(result.mapped[0]?.values.lado).toBe('LE')
   })
 
   it('aceita sem cabeçalho (ordem do contrato)', () => {
-    const grid = parseCsvToGrid('TDI1083;Pivo\nTDI1084;Terminal', { contract })
+    const grid = parseCsvToGrid(
+      'TDI1083;Pivo;Suspensao;Pivos;;DIANT;LE\nTDI1084;Terminal;Suspensao;Terminais',
+      { contract },
+    )
     const result = validateImportGrid(grid, contract)
     expect(result.ok).toBe(true)
     expect(result.mapped[0]?.values.sku).toBe('TDI1083')
+    expect(result.mapped[0]?.values.categoria).toBe('Suspensao')
   })
 
   it('bloqueia arquivo vazio', () => {
@@ -67,14 +78,20 @@ describe('catalog contract', () => {
   })
 
   it('bloqueia SKU duplicado no arquivo', () => {
-    const grid = parseCsvToGrid('codigo;descricao\nTDI1083;A\nTDI1083;B', { contract })
-    const result = validateImportGrid(grid, contract)
+    const grid = parseCsvToGrid(
+      `${header}\nTDI1083;A;Cat;Grp;;;;\nTDI1083;B;Cat;Grp;;;;`,
+      { contract },
+    )
+    const result = validateImportGrid(grid, contract, { duplicateKeyField: 'sku' })
     expect(result.invalidCount).toBe(2)
     expect(result.errors.some((e) => e.code === 'duplicate_in_file')).toBe(true)
   })
 
   it('erro em campo obrigatório vazio', () => {
-    const grid = parseCsvToGrid('codigo;descricao\n;SemCodigo\nTDI; ', { contract })
+    const grid = parseCsvToGrid(
+      `${header}\n;SemCodigo;Cat;Grp;;;;\nTDI1084;;Cat;Grp;;;;`,
+      { contract },
+    )
     const result = validateImportGrid(grid, contract)
     expect(result.invalidCount).toBeGreaterThan(0)
     expect(result.errors.some((e) => e.code === 'required_empty')).toBe(true)
