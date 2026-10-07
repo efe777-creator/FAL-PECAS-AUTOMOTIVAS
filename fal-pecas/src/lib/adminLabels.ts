@@ -29,3 +29,21 @@ export function entityStatusLabel(status: string | null | undefined): string {
       return status ?? '—'
   }
 }
+
+/** Tipos de referência / código cruzado do produto. */
+export function productReferenceTypeLabel(type: string | null | undefined): string {
+  switch (type) {
+    case 'manufacturer':
+      return 'Código do fabricante'
+    case 'oem':
+      return 'Código OEM (montadora)'
+    case 'internal':
+      return 'Código interno'
+    case 'competitor':
+      return 'Código concorrente'
+    case 'other':
+      return 'Outro'
+    default:
+      return type ?? '—'
+  }
+}

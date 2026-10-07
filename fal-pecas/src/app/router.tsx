@@ -136,6 +136,16 @@ const AdminProductImportPage = lazy(() =>
     default: m.AdminProductImportPage,
   })),
 )
+const AdminApplicationsImportPage = lazy(() =>
+  import('@/pages/admin/products/AdminApplicationsImportPage').then((m) => ({
+    default: m.AdminApplicationsImportPage,
+  })),
+)
+const AdminHfBundleImportPage = lazy(() =>
+  import('@/pages/admin/products/AdminHfBundleImportPage').then((m) => ({
+    default: m.AdminHfBundleImportPage,
+  })),
+)
 const AdminPriceListsPage = lazy(() =>
   import('@/pages/admin/prices/AdminPriceListsPage').then((m) => ({
     default: m.AdminPriceListsPage,
@@ -181,6 +191,14 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'produtos', element: <AdminProductsPage /> },
       { path: 'produtos/importar', element: <AdminProductImportPage /> },
+      {
+        path: 'produtos/importar-aplicacoes',
+        element: <AdminApplicationsImportPage />,
+      },
+      {
+        path: 'produtos/importar-hf',
+        element: <AdminHfBundleImportPage />,
+      },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
       { path: 'precos', element: <AdminPriceListsPage /> },

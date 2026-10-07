@@ -1,5 +1,10 @@
-/** Kinds de importação F8.1 — alinhados a `imports.kind`. */
-export type ImportKind = 'catalog' | 'supplier_conversion' | 'supplier_cost' | 'price_list'
+/** Kinds de importação F8.1 + aplicações (Importação Inteligente). */
+export type ImportKind =
+  | 'catalog'
+  | 'catalog_applications'
+  | 'supplier_conversion'
+  | 'supplier_cost'
+  | 'price_list'
 
 export type CsvDelimiter = ';' | ',' | '\t'
 

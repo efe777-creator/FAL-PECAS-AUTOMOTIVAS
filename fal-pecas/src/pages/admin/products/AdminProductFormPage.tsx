@@ -36,6 +36,7 @@ import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
+import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import type {
   Category,
@@ -87,6 +88,8 @@ export function AdminProductFormPage() {
   const [lengthCm, setLengthCm] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
+  const [posicao, setPosicao] = useState<Product['posicao']>(null)
+  const [lado, setLado] = useState<Product['lado']>(null)
 
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
@@ -158,6 +161,8 @@ export function AdminProductFormPage() {
         setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
+        setPosicao(p.posicao ?? null)
+        setLado(p.lado ?? null)
 
         const [rows, ov] = await Promise.all([
           adminListProductListPrices(p.id),
@@ -251,6 +256,8 @@ export function AdminProductFormPage() {
         lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
         shortDescription,
         description,
+        posicao: posicao || null,
+        lado: lado || null,
         // Novo: semente Base via ensure. Edição: não mexer nas listas aqui.
         syncBasePromoLists: isNew,
       })
@@ -341,6 +348,33 @@ export function AdminProductFormPage() {
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-semibold">Posição</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={posicao ?? ''}
+              onChange={(e) =>
+                setPosicao((e.target.value || null) as Product['posicao'])
+              }
+            >
+              <option value="">—</option>
+              <option value="DIANTEIRA">Dianteira</option>
+              <option value="TRASEIRA">Traseira</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-semibold">Lado</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={lado ?? ''}
+              onChange={(e) => setLado((e.target.value || null) as Product['lado'])}
+            >
+              <option value="">—</option>
+              <option value="ESQUERDO">Esquerdo</option>
+              <option value="DIREITO">Direito</option>
+              <option value="AMBOS">Ambos</option>
             </select>
           </label>
           <label className="text-sm">
@@ -490,11 +524,11 @@ export function AdminProductFormPage() {
               <label className="text-sm">
                 <span className="mb-1 block font-semibold">Tipo</span>
                 <select className="rounded-[10px] border border-fal-line px-3 py-2" value={refType} onChange={(e) => setRefType(e.target.value)}>
-                  <option value="manufacturer">manufacturer</option>
-                  <option value="oem">oem</option>
-                  <option value="internal">internal</option>
-                  <option value="competitor">competitor</option>
-                  <option value="other">other</option>
+                  <option value="manufacturer">Código do fabricante</option>
+                  <option value="oem">Código OEM (montadora)</option>
+                  <option value="internal">Código interno</option>
+                  <option value="competitor">Código concorrente</option>
+                  <option value="other">Outro</option>
                 </select>
               </label>
               <div className="flex items-end">
@@ -517,7 +551,8 @@ export function AdminProductFormPage() {
               {refs.map((r) => (
                 <li key={r.id ?? r.code} className="flex justify-between border-b border-fal-line py-1">
                   <span>
-                    <strong>{r.code}</strong> · {r.type} · {r.status}
+                    <strong>{r.code}</strong> · {productReferenceTypeLabel(r.type)} ·{' '}
+                    {entityStatusLabel(r.status)}
                   </span>
                   {r.id ? (
                     <button type="button" className="text-fal-danger font-semibold" onClick={() => void adminDeleteReference(r.id!).then(async () => setRefs(await adminListReferences(productId)))}>

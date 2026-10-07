@@ -38,6 +38,8 @@ function mapProduct(row: Record<string, unknown>): Product {
     manufacturerCode: (row.manufacturer_code as string | null) ?? undefined,
     available: Boolean(row.is_available),
     isIncomplete: Boolean(row.is_incomplete),
+    posicao: (row.posicao as Product['posicao']) ?? null,
+    lado: (row.lado as Product['lado']) ?? null,
     attrs: (row.attrs as Record<string, unknown> | null) ?? {},
     stock: undefined,
   }
@@ -45,7 +47,8 @@ function mapProduct(row: Record<string, unknown>): Product {
 
 const PRODUCT_SELECT = `
   id, sku, name, slug, description, short_description, price, promo_price, status,
-  manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id, attrs,
+  manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id,
+  posicao, lado, attrs,
   product_brands ( name ),
   product_categories ( id, name, slug )
 `
