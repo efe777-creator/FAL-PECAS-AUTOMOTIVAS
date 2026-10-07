@@ -1,16 +1,32 @@
 import { getSupabase } from '@/lib/supabase'
 import { getImportContract } from '@/services/import/contracts'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { normalizeImportText } from '@/services/import/normalizeText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { parseXlsxToGrid } from '@/services/import/parseXlsx'
+import { adminListCategories } from '@/services/admin/adminCategoryService'
 import {
   consolidateProductRows,
+  enforceExistingCategories,
   productFrozenPayload,
+  type ImportCategoryNode,
   type ProductPreviewRow,
 } from '@/services/import/productImportCore'
 import { validateImportGrid } from '@/services/import/validate'
 import type { ImportGrid } from '@/services/import/types'
 import { adminFindProductIdBySku } from '@/services/admin/adminPriceListService'
+
+async function loadPublishedCategoryNodes(): Promise<ImportCategoryNode[]> {
+  const all = await adminListCategories()
+  return all
+    .filter((c) => c.status === 'published')
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      parentId: c.parentId ?? null,
+    }))
+}
 
 export type CatalogImportPreviewRow = ProductPreviewRow & {
   /** compat UI antiga */
@@ -33,7 +49,7 @@ async function parseCatalogFile(file: File): Promise<ImportGrid> {
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
     return parseXlsxToGrid(await file.arrayBuffer(), { contract })
   }
-  return parseCsvToGrid(await file.text(), { contract })
+  return parseCsvToGrid(decodeImportCsvText(await file.arrayBuffer()), { contract })
 }
 
 async function loadExistingSkus(
@@ -78,8 +94,14 @@ export async function adminPreviewCatalogImport(file: File): Promise<{
   }
 
   const skus = validation.mapped.map((r) => r.values.sku ?? '')
-  const existing = await loadExistingSkus(skus)
-  const consolidated = consolidateProductRows(validation.mapped, existing)
+  const [existing, cats] = await Promise.all([
+    loadExistingSkus(skus),
+    loadPublishedCategoryNodes(),
+  ])
+  const consolidated = enforceExistingCategories(
+    consolidateProductRows(validation.mapped, existing),
+    cats,
+  )
   return {
     rows: consolidated.map(toUiRow),
     delimiter: grid.delimiter,

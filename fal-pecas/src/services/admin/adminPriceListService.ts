@@ -2,6 +2,7 @@ import { parseMoneyBr } from '@/lib/money'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { getImportContract } from '@/services/import/contracts'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { parseXlsxToGrid } from '@/services/import/parseXlsx'
 import { validateImportGrid } from '@/services/import/validate'
@@ -1198,7 +1199,7 @@ export async function adminPreviewPriceImport(input: {
   const grid =
     lower.endsWith('.xlsx') || lower.endsWith('.xls')
       ? await parseXlsxToGrid(await input.file.arrayBuffer(), { contract })
-      : parseCsvToGrid(await input.file.text(), { contract })
+      : parseCsvToGrid(decodeImportCsvText(await input.file.arrayBuffer()), { contract })
 
   const validation = validateImportGrid(grid, contract, {
     duplicateKeyField: 'sku',

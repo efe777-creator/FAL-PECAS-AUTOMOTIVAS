@@ -15,6 +15,7 @@ import {
   storeWhatsAppPhone,
   whatsAppHref,
 } from '@/lib/whatsapp'
+import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
 
 export function ProductPage() {
   const { id } = useParams()
@@ -154,24 +155,14 @@ export function ProductPage() {
               {current.posicao ? (
                 <span>
                   <span className="font-semibold text-fal-navy">Posição:</span>{' '}
-                  {current.posicao === 'DIANTEIRA'
-                    ? 'Dianteira'
-                    : current.posicao === 'TRASEIRA'
-                      ? 'Traseira'
-                      : current.posicao}
+                  {formatPosicaoLabel(current.posicao)}
                 </span>
               ) : null}
               {current.posicao && current.lado ? ' · ' : null}
               {current.lado ? (
                 <span>
                   <span className="font-semibold text-fal-navy">Lado:</span>{' '}
-                  {current.lado === 'ESQUERDO'
-                    ? 'Esquerdo'
-                    : current.lado === 'DIREITO'
-                      ? 'Direito'
-                      : current.lado === 'AMBOS'
-                        ? 'Ambos'
-                        : current.lado}
+                  {formatLadoLabel(current.lado)}
                 </span>
               ) : null}
             </p>

@@ -11,10 +11,13 @@ import {
   type ApplicationsImportApplyResult,
 } from '@/services/admin/adminApplicationsImportService'
 import { getHfBundleContract } from '@/services/import/contracts'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { parseXlsxToGrid } from '@/services/import/parseXlsx'
+import { adminListCategories } from '@/services/admin/adminCategoryService'
 import {
   consolidateProductRows,
+  enforceExistingCategories,
   splitHfMappedRows,
 } from '@/services/import/productImportCore'
 import { analyzeApplicationMappedRows } from '@/services/import/applicationImportCore'
@@ -95,7 +98,7 @@ export async function adminPreviewHfBundleImport(file: File): Promise<HfBundlePr
   const lower = file.name.toLowerCase()
   const grid = lower.endsWith('.xlsx') || lower.endsWith('.xls')
     ? await parseXlsxToGrid(await file.arrayBuffer(), { contract })
-    : parseCsvToGrid(await file.text(), { contract })
+    : parseCsvToGrid(decodeImportCsvText(await file.arrayBuffer()), { contract })
 
   const validation = validateImportGrid(grid, contract, {
     duplicateKeyField: '__none__',
@@ -117,7 +120,18 @@ export async function adminPreviewHfBundleImport(file: File): Promise<HfBundlePr
     if (id) existing.set(sku.toLowerCase(), id)
   }
 
-  const products = consolidateProductRows(productMapped, existing).map((r) => ({
+  const publishedCats = (await adminListCategories())
+    .filter((c) => c.status === 'published')
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      parentId: c.parentId ?? null,
+    }))
+  const products = enforceExistingCategories(
+    consolidateProductRows(productMapped, existing),
+    publishedCats,
+  ).map((r) => ({
     ...r,
     line: r.lineNumber,
     ok: r.applyable,

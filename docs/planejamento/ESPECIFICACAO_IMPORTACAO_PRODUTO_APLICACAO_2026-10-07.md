@@ -29,10 +29,12 @@ RPC: `apply_catalog_products_import`.
 
 ### Posição / lado (canônicos)
 
-- **posicao:** `DIANTEIRA` | `TRASEIRA` | null  
+- **posicao (átomos):** `DIANTEIRA` | `TRASEIRA` | `SUPERIOR` | `INFERIOR` | null  
+  Combinações com `_` (ex. `DIANTEIRA_INFERIOR`). Entrada HF: `DIANT INFERIOR`, `DIANT/SUP`, `TRAS;INFERIOR`.  
 - **lado:** `ESQUERDO` | `DIREITO` | `AMBOS` | null  
 
-Normalização: DIANT/DIANTEIRO→DIANTEIRA; TRAS/TRASEIRO→TRASEIRA; LE→ESQUERDO; LD→DIREITO; LD/LE→AMBOS.  
+Normalização posição: DIANT→DIANTEIRA; TRAS→TRASEIRA; SUP→SUPERIOR; INF→INFERIOR.  
+Lado: LE→ESQUERDO; LD→DIREITO; LD/LE→AMBOS.  
 Valor preenchido inválido → erro de linha.
 
 ## Frente B — Aplicações (`kind=catalog_applications`)

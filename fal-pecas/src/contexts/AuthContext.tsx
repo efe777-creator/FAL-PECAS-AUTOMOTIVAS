@@ -105,12 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(next)
       setLoading(false)
       setProfileLoading(true)
-      void enrichUser(next?.user ?? null).then((profile) => {
-        if (active) {
-          setUser(profile)
-          setProfileLoading(false)
-        }
-      })
+      void enrichUser(next?.user ?? null)
+        .then((profile) => {
+          if (active) setUser(profile)
+        })
+        .catch((err) => {
+          console.error('[FAL] Erro ao enriquecer perfil', err)
+          if (active) setUser(mapUser(next?.user ?? null))
+        })
+        .finally(() => {
+          if (active) setProfileLoading(false)
+        })
     })
 
     return () => {

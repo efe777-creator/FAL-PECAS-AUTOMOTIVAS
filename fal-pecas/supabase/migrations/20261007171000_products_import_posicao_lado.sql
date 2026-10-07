@@ -100,7 +100,9 @@ begin
         using errcode = 'P0001';
     end if;
 
-    if v_posicao is not null and v_posicao not in ('DIANTEIRA', 'TRASEIRA') then
+    if v_posicao is not null
+       and v_posicao !~ '^(DIANTEIRA|TRASEIRA|SUPERIOR|INFERIOR)(_(DIANTEIRA|TRASEIRA|SUPERIOR|INFERIOR)){0,3}$'
+    then
       raise exception 'Linha %: posicao invalida (%)', r.line_number, v_posicao
         using errcode = 'P0001';
     end if;

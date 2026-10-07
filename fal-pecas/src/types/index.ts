@@ -304,8 +304,12 @@ export interface Product {
   status?: 'draft' | 'published' | 'archived'
   imageUrl?: string | null
   manufacturerCode?: string
-  /** Posição da peça (atributo do produto). */
-  posicao?: 'DIANTEIRA' | 'TRASEIRA' | null
+  /**
+   * Posição da peça (atributo do produto).
+   * Átomos: DIANTEIRA, TRASEIRA, SUPERIOR, INFERIOR — combinações com `_`
+   * (ex. DIANTEIRA_INFERIOR).
+   */
+  posicao?: string | null
   /** Lado da peça (atributo do produto). */
   lado?: 'ESQUERDO' | 'DIREITO' | 'AMBOS' | null
   compatibilitySummary?: string

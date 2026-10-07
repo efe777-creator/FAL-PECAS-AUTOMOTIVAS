@@ -2,12 +2,19 @@
  * Motor puro — Frente A cadastro de produto + split HF (Frente C).
  */
 
+import { toSlug } from '@/lib/slug'
 import { normalizeImportText } from '@/services/import/normalizeText'
+import {
+  normalizeLado,
+  normalizePosicao,
+  type CanonicalLado,
+} from '@/lib/productPosicaoLado'
 
 export type ProductImportAction = 'create' | 'update' | 'error'
 
-export type CanonicalPosicao = 'DIANTEIRA' | 'TRASEIRA'
-export type CanonicalLado = 'ESQUERDO' | 'DIREITO' | 'AMBOS'
+export type { CanonicalLado }
+export type CanonicalPosicao = string
+export { normalizeLado, normalizePosicao }
 
 export type ProductPreviewRow = {
   lineNumber: number
@@ -16,7 +23,8 @@ export type ProductPreviewRow = {
   categoria: string
   grupo: string
   subgrupo: string
-  posicao: CanonicalPosicao | null
+  /** Canônico: átomos unidos por `_` (ex. DIANTEIRA_INFERIOR). */
+  posicao: string | null
   lado: CanonicalLado | null
   /** Raw inválido (quando erro). */
   posicaoRaw: string
@@ -30,46 +38,6 @@ export type ProductPreviewRow = {
   warnings: string[]
   /** Linhas do arquivo consolidadas neste SKU (HF). */
   sourceLines: number[]
-}
-
-function foldKey(input: string): string {
-  return normalizeImportText(input)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/\./g, '')
-    .replace(/\s+/g, '')
-}
-
-/** Normaliza posição HF → canônico. Vazio → null. Inválido → { ok:false }. */
-export function normalizePosicao(
-  raw: string | null | undefined,
-): { ok: true; value: CanonicalPosicao | null } | { ok: false; raw: string } {
-  const t = normalizeImportText(raw)
-  if (!t) return { ok: true, value: null }
-  const k = foldKey(t)
-  if (['DIANT', 'DIANTEIRA', 'DIANTEIRO'].includes(k)) {
-    return { ok: true, value: 'DIANTEIRA' }
-  }
-  if (['TRAS', 'TRASEIRA', 'TRASEIRO'].includes(k)) {
-    return { ok: true, value: 'TRASEIRA' }
-  }
-  return { ok: false, raw: t }
-}
-
-/** Normaliza lado HF → canônico. Vazio → null. Inválido → { ok:false }. */
-export function normalizeLado(
-  raw: string | null | undefined,
-): { ok: true; value: CanonicalLado | null } | { ok: false; raw: string } {
-  const t = normalizeImportText(raw)
-  if (!t) return { ok: true, value: null }
-  const k = foldKey(t)
-  if (['LE', 'ESQUERDO', 'ESQ'].includes(k)) return { ok: true, value: 'ESQUERDO' }
-  if (['LD', 'DIREITO', 'DIR'].includes(k)) return { ok: true, value: 'DIREITO' }
-  if (['LD/LE', 'LE/LD', 'AMBOS', 'LDLE', 'LELD'].includes(k)) {
-    return { ok: true, value: 'AMBOS' }
-  }
-  return { ok: false, raw: t }
 }
 
 export function productFrozenPayload(row: ProductPreviewRow): Record<string, unknown> {
@@ -106,7 +74,7 @@ export function consolidateProductRows(
     categoria: string
     grupo: string
     subgrupo: string
-    posicao: CanonicalPosicao | null
+    posicao: string | null
     lado: CanonicalLado | null
     posicaoInvalid: string | null
     ladoInvalid: string | null
@@ -242,6 +210,85 @@ export function consolidateProductRows(
           ? 'Novo cadastro (rascunho, indisponível)'
           : 'Será atualizado o cadastro',
     }
+  })
+}
+
+/** Nó published de product_categories para validação de preview. */
+export type ImportCategoryNode = {
+  id: string
+  name: string
+  slug: string
+  parentId: string | null
+}
+
+function foldCatKey(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .trim()
+}
+
+function matchCategoryChild(
+  cats: ImportCategoryNode[],
+  parentId: string | null,
+  rawName: string,
+): ImportCategoryNode | null {
+  const folded = foldCatKey(rawName)
+  const slug = toSlug(rawName)
+  return (
+    cats.find(
+      (c) =>
+        c.parentId === parentId &&
+        (foldCatKey(c.name) === folded || c.slug === slug),
+    ) ?? null
+  )
+}
+
+/**
+ * Exige categoria/grupo/(subgrupo) já published.
+ * Não cria — cadastro sob demanda no admin.
+ */
+export function enforceExistingCategories(
+  rows: ProductPreviewRow[],
+  cats: ImportCategoryNode[],
+): ProductPreviewRow[] {
+  return rows.map((row) => {
+    if (!row.applyable) return row
+
+    const root = matchCategoryChild(cats, null, row.categoria)
+    if (!root) {
+      return {
+        ...row,
+        action: 'error',
+        applyable: false,
+        message: `Categoria “${row.categoria}” não cadastrada. Cadastre em Admin > Categorias.`,
+      }
+    }
+
+    const grupo = matchCategoryChild(cats, root.id, row.grupo)
+    if (!grupo) {
+      return {
+        ...row,
+        action: 'error',
+        applyable: false,
+        message: `Grupo “${row.grupo}” não encontrado sob “${row.categoria}”. Cadastre em Admin > Categorias.`,
+      }
+    }
+
+    if (row.subgrupo) {
+      const sub = matchCategoryChild(cats, grupo.id, row.subgrupo)
+      if (!sub) {
+        return {
+          ...row,
+          action: 'error',
+          applyable: false,
+          message: `Subgrupo “${row.subgrupo}” não encontrado sob “${row.grupo}”. Cadastre em Admin > Categorias.`,
+        }
+      }
+    }
+
+    return row
   })
 }
 

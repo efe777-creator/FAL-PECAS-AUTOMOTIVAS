@@ -2,7 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { adminListBrands } from '@/services/admin/adminBrandService'
-import { adminListCategories, categoryPath } from '@/services/admin/adminCategoryService'
+import { adminListCategories } from '@/services/admin/adminCategoryService'
 import {
   adminDeleteImage,
   adminListImages,
@@ -38,6 +38,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import {
+  POSICAO_ATOMS,
+  composePosicao,
+  parsePosicaoAtoms,
+  type PosicaoAtom,
+} from '@/lib/productPosicaoLado'
 import type {
   Category,
   Manufacturer,
@@ -66,9 +72,14 @@ export function AdminProductFormPage() {
   const [name, setName] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
-  const [categoryId, setCategoryId] = useState('')
+  /** Hierarquia admin: Grupo → Categoria → Subcategoria (folha salva em products.category_id). */
+  const [catGrupoId, setCatGrupoId] = useState('')
+  const [catCategoriaId, setCatCategoriaId] = useState('')
+  const [catSubId, setCatSubId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [supplierId, setSupplierId] = useState('')
+
+  const categoryId = catSubId || catCategoriaId || catGrupoId || ''
   /** Preços nas listas — somente leitura (exceto preço inicial Base no novo produto). */
   const [listRows, setListRows] = useState<ProductListPriceRow[]>([])
   /** Espelho products.price / promo_price (não editáveis na UI após criação). */
@@ -88,7 +99,7 @@ export function AdminProductFormPage() {
   const [lengthCm, setLengthCm] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
-  const [posicao, setPosicao] = useState<Product['posicao']>(null)
+  const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
   const [lado, setLado] = useState<Product['lado']>(null)
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -117,7 +128,14 @@ export function AdminProductFormPage() {
         adminListManufacturers(),
         adminListPriceLists(),
       ])
-      setCategories(cats)
+      // Só published na lista; preserva nós extras (ex. arquivados do produto em edição).
+      setCategories((prev) => {
+        const published = cats.filter((c) => c.status === 'published')
+        const extras = prev.filter(
+          (c) => c.status !== 'published' && !published.some((p) => p.id === c.id),
+        )
+        return [...published, ...extras]
+      })
       setBrands(brs.filter((b) => b.status === 'active'))
       setSuppliers(sups.filter((s) => s.status === 'active'))
       setMakers(mfrs.filter((m) => m.status === 'active'))
@@ -149,7 +167,27 @@ export function AdminProductFormPage() {
         setName(p.name)
         setSku(p.sku)
         setStatus(p.status ?? 'draft')
-        setCategoryId(p.categoryId ?? '')
+        {
+          const leaf = p.categoryId ?? ''
+          const path: string[] = []
+          let cur: string | null = leaf || null
+          const byId = new Map((await adminListCategories()).map((c) => [c.id, c]))
+          while (cur) {
+            path.unshift(cur)
+            cur = byId.get(cur)?.parentId ?? null
+          }
+          setCatGrupoId(path[0] ?? '')
+          setCatCategoriaId(path[1] ?? '')
+          setCatSubId(path[2] ?? '')
+          // Garante nós do produto (mesmo arquivados) para edição não “perder” a seleção.
+          setCategories((prev) => {
+            const ids = new Set(prev.map((c) => c.id))
+            const extra = path
+              .map((id) => byId.get(id))
+              .filter((c): c is Category => Boolean(c) && !ids.has(c!.id))
+            return extra.length ? [...prev, ...extra] : prev
+          })
+        }
         setBrandId(p.brandId ?? '')
         setSupplierId(p.supplierId ?? '')
         setAvailable(Boolean(p.available))
@@ -161,7 +199,7 @@ export function AdminProductFormPage() {
         setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
-        setPosicao(p.posicao ?? null)
+        setPosicaoAtoms(parsePosicaoAtoms(p.posicao))
         setLado(p.lado ?? null)
 
         const [rows, ov] = await Promise.all([
@@ -256,7 +294,7 @@ export function AdminProductFormPage() {
         lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
         shortDescription,
         description,
-        posicao: posicao || null,
+        posicao: composePosicao(posicaoAtoms),
         lado: lado || null,
         // Novo: semente Base via ensure. Edição: não mexer nas listas aqui.
         syncBasePromoLists: isNew,
@@ -311,27 +349,78 @@ export function AdminProductFormPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
           <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} required />
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold">
-              Classificação (Grupo / Categoria / Subcategoria)
-            </span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">—</option>
-              {[...categories]
-                .sort((a, b) =>
-                  categoryPath(categories, a.id).localeCompare(categoryPath(categories, b.id)),
-                )
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {categoryPath(categories, c.id)}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <fieldset className="text-sm md:col-span-2">
+            <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
+            <p className="mb-2 text-xs text-fal-muted">
+              Só categorias publicadas. Cadastre novas em Admin → Categorias (ou via importação
+              depois de cadastrar a hierarquia).
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Grupo</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catGrupoId}
+                  onChange={(e) => {
+                    setCatGrupoId(e.target.value)
+                    setCatCategoriaId('')
+                    setCatSubId('')
+                  }}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => !c.parentId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Categoria</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catCategoriaId}
+                  disabled={!catGrupoId}
+                  onChange={(e) => {
+                    setCatCategoriaId(e.target.value)
+                    setCatSubId('')
+                  }}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => c.parentId === catGrupoId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Subcategoria</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catSubId}
+                  disabled={!catCategoriaId}
+                  onChange={(e) => setCatSubId(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => c.parentId === catCategoriaId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>
             <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
@@ -350,20 +439,42 @@ export function AdminProductFormPage() {
               ))}
             </select>
           </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold">Posição</span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={posicao ?? ''}
-              onChange={(e) =>
-                setPosicao((e.target.value || null) as Product['posicao'])
-              }
-            >
-              <option value="">—</option>
-              <option value="DIANTEIRA">Dianteira</option>
-              <option value="TRASEIRA">Traseira</option>
-            </select>
-          </label>
+          <fieldset className="text-sm md:col-span-2">
+            <legend className="mb-1 block font-semibold text-fal-navy">Posição</legend>
+            <p className="mb-2 text-xs text-fal-muted">
+              Pode combinar (ex.: Dianteira + Inferior). Na planilha: DIANT, TRAS, SUPERIOR,
+              INFERIOR ou “DIANT INFERIOR”.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {(
+                [
+                  ['DIANTEIRA', 'Dianteira (DIANT)'],
+                  ['TRASEIRA', 'Traseira (TRAS)'],
+                  ['SUPERIOR', 'Superior'],
+                  ['INFERIOR', 'Inferior'],
+                ] as const
+              ).map(([atom, label]) => {
+                const checked = posicaoAtoms.includes(atom)
+                return (
+                  <label key={atom} className="inline-flex items-center gap-2 font-normal">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setPosicaoAtoms((prev) => {
+                          const next = checked
+                            ? prev.filter((a) => a !== atom)
+                            : [...prev, atom]
+                          return POSICAO_ATOMS.filter((a) => next.includes(a))
+                        })
+                      }}
+                    />
+                    {label}
+                  </label>
+                )
+              })}
+            </div>
+          </fieldset>
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Lado</span>
             <select

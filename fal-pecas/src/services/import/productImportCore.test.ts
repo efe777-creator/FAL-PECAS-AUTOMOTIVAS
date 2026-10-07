@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   consolidateProductRows,
+  enforceExistingCategories,
   normalizeLado,
   normalizePosicao,
   productFrozenPayload,
@@ -8,10 +9,24 @@ import {
 } from '@/services/import/productImportCore'
 
 describe('normalizePosicao / normalizeLado', () => {
-  it('normaliza abreviações HF', () => {
+  it('normaliza abreviações HF e combinações', () => {
     expect(normalizePosicao('DIANT')).toEqual({ ok: true, value: 'DIANTEIRA' })
     expect(normalizePosicao('DIANTEIRO')).toEqual({ ok: true, value: 'DIANTEIRA' })
     expect(normalizePosicao('TRAS')).toEqual({ ok: true, value: 'TRASEIRA' })
+    expect(normalizePosicao('SUPERIOR')).toEqual({ ok: true, value: 'SUPERIOR' })
+    expect(normalizePosicao('INFERIOR')).toEqual({ ok: true, value: 'INFERIOR' })
+    expect(normalizePosicao('DIANT INFERIOR')).toEqual({
+      ok: true,
+      value: 'DIANTEIRA_INFERIOR',
+    })
+    expect(normalizePosicao('DIANT/SUP')).toEqual({
+      ok: true,
+      value: 'DIANTEIRA_SUPERIOR',
+    })
+    expect(normalizePosicao('TRAS;INFERIOR')).toEqual({
+      ok: true,
+      value: 'TRASEIRA_INFERIOR',
+    })
     expect(normalizeLado('LE')).toEqual({ ok: true, value: 'ESQUERDO' })
     expect(normalizeLado('LD')).toEqual({ ok: true, value: 'DIREITO' })
     expect(normalizeLado('LD/LE')).toEqual({ ok: true, value: 'AMBOS' })
@@ -141,5 +156,45 @@ describe('productImportCore', () => {
     )
     expect(rows[0].action).toBe('update')
     expect(rows[0].productId).toBe('uuid-1')
+  })
+
+  it('enforceExistingCategories bloqueia hierarquia inexistente', () => {
+    const cats = [
+      { id: 'r1', name: 'Suspensão', slug: 'suspensao', parentId: null },
+      { id: 'g1', name: 'Pivô', slug: 'pivo', parentId: 'r1' },
+    ]
+    const rows = consolidateProductRows(
+      [
+        {
+          lineNumber: 2,
+          values: {
+            sku: 'A1',
+            name: 'Peca',
+            categoria: 'Suspensao',
+            grupo: 'Pivo',
+            subgrupo: '',
+            posicao: '',
+            lado: '',
+          },
+        },
+        {
+          lineNumber: 3,
+          values: {
+            sku: 'A2',
+            name: 'Outra',
+            categoria: 'Filtros',
+            grupo: 'Oleo',
+            subgrupo: '',
+            posicao: '',
+            lado: '',
+          },
+        },
+      ],
+      new Map(),
+    )
+    const checked = enforceExistingCategories(rows, cats)
+    expect(checked[0].applyable).toBe(true)
+    expect(checked[1].applyable).toBe(false)
+    expect(checked[1].message).toMatch(/Categoria/)
   })
 })

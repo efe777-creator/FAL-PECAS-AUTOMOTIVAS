@@ -158,9 +158,10 @@ export async function adminUpsertCategory(input: {
     }
   }
 
+  const name = input.name.trim().toLocaleUpperCase('pt-BR')
   const payload = {
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(`cat-${Date.now()}`),
+    name,
+    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`cat-${Date.now()}`),
     description: input.description?.trim() || null,
     parent_id: parentId,
     sort_order: input.sortOrder ?? 0,

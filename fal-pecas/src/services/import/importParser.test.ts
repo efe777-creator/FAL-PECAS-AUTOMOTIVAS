@@ -3,7 +3,7 @@ import { detectCsvDelimiter } from '@/services/import/delimiter'
 import { getImportContract } from '@/services/import/contracts'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { validateImportGrid } from '@/services/import/validate'
-import { splitCsvLine } from '@/services/import/csvSplit'
+import { splitCsvLine, splitCsvRecords } from '@/services/import/csvSplit'
 import { parsePriceCsv } from '@/services/admin/priceImportParser'
 import {
   calculateSellPrice,
@@ -35,6 +35,47 @@ describe('detectCsvDelimiter', () => {
 describe('splitCsvLine', () => {
   it('respeita aspas com delimitador interno', () => {
     expect(splitCsvLine('"a;b";c', ';')).toEqual(['a;b', 'c'])
+  })
+})
+
+describe('splitCsvRecords + descrição multilinha', () => {
+  it('não quebra registro quando newline está dentro de aspas', () => {
+    const text =
+      'sku;nome;descricao\n' +
+      'TDI0800;TERMINAL LD;"TERMINAL DE DIREÇÃO LD\nAUDI:\nA3 06/15\nVOLKSWAGEN:\nGOLF 14/20"\n' +
+      'TDI0801;TERMINAL LE;curta'
+
+    const records = splitCsvRecords(text)
+    expect(records).toHaveLength(3)
+    expect(records[1]?.text.startsWith('TDI0800;')).toBe(true)
+    expect(records[1]?.text.includes('\nAUDI:')).toBe(true)
+    expect(records[2]?.text).toBe('TDI0801;TERMINAL LE;curta')
+  })
+
+  it('parseCsvToGrid mantém um produto com descrição multilinha', () => {
+    const contract = getImportContract('catalog')
+    const header =
+      'codigo_fal;nome;categoria;grupo;subgrupo;posicao;lado;descricao_curta;descricao'
+    const grid = parseCsvToGrid(
+      `${header}\n` +
+        `TDI0800;TERMINAL DE DIREÇÃO;DIREÇÃO;TERMINAL;;;LD;TERMINAL LD;"TERMINAL DE DIREÇÃO LD\n` +
+        `AUDI:\n` +
+        `A3 06/15\n` +
+        `Q3 13/19\n` +
+        `VOLKSWAGEN:\n` +
+        `GOLF 14/20"\n` +
+        `TDI0801;TERMINAL LE;DIREÇÃO;TERMINAL;;;LE;TERMINAL LE;curta`,
+      { contract },
+    )
+    expect(grid.rows).toHaveLength(2)
+    expect(grid.rows[0]?.cells[0]).toBe('TDI0800')
+    expect(grid.rows[0]?.cells[8]).toContain('AUDI:')
+    expect(grid.rows[0]?.cells[8]).toContain('GOLF 14/20')
+    expect(grid.rows[1]?.cells[0]).toBe('TDI0801')
+
+    const result = validateImportGrid(grid, contract)
+    expect(result.validCount).toBe(2)
+    expect(result.mapped[0]?.values.descricao).toContain('AUDI:')
   })
 })
 
