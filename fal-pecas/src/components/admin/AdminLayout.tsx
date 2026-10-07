@@ -1,4 +1,5 @@
 import { Loading } from '@/components/common/Loading'
+import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
 import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -138,6 +139,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-fal-bg lg:flex">
+      <ScrollToTop />
       {navOpen ? (
         <button
           type="button"

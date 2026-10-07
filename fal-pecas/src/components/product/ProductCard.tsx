@@ -78,25 +78,29 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="grid h-[100px] place-items-center rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
           🧩
         </div>
-        {product.brand ? (
-          <p className="mt-3 mb-0 truncate text-xs text-fal-muted">{product.brand}</p>
-        ) : (
-          <p className="mt-3 mb-0 text-xs text-fal-muted">&nbsp;</p>
-        )}
         <h3
-          className="my-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
+          className="mt-3 mb-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
           title={product.name}
         >
           {product.name}
         </h3>
-        <p className="m-0 truncate text-[11px] text-fal-muted">Código {product.sku}</p>
+        <p className="m-0 truncate text-[11px] text-fal-muted">Código FAL: {product.sku}</p>
         {product.compatibilitySummary ? (
-          <p className="my-2 line-clamp-2 break-words text-xs text-fal-success" title={product.compatibilitySummary}>
+          <p
+            className="my-2 line-clamp-3 break-words text-xs text-fal-success"
+            title={product.compatibilitySummary}
+          >
             {product.compatibilitySummary}
           </p>
-        ) : null}
-        <p className="m-0 truncate text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
-        {showStrike ? (
+        ) : (
+          <p className="my-2 text-xs text-fal-muted">Aplicações sob consulta</p>
+        )}
+        {product.available === false ? (
+          <p className="m-0 text-sm font-bold text-fal-danger">Indisponível</p>
+        ) : (
+          <p className="m-0 truncate text-lg font-black sm:text-[22px]">{formatPrice(price)}</p>
+        )}
+        {product.available !== false && showStrike ? (
           <p className="m-0 truncate text-xs text-fal-muted line-through">{formatPrice(listPrice)}</p>
         ) : null}
       </Link>
@@ -133,6 +137,12 @@ export function ProductCard({ product }: { product: Product }) {
             >
               +
             </button>
+          </div>
+        ) : product.available === false ? (
+          <div className="flex-1">
+            <Button variant="light" size="sm" fullWidth disabled>
+              Indisponível
+            </Button>
           </div>
         ) : (
           <div className="flex-1">
