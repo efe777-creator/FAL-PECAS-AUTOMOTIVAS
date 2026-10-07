@@ -37,6 +37,7 @@ interface AuthContextValue {
     lastName: string
     username?: string
     phone?: string
+    cpf?: string
   }) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>

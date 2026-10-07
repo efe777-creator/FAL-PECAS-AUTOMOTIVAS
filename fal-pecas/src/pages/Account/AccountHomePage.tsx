@@ -18,16 +18,23 @@ export function AccountHomePage() {
     <div className="rounded-fal border border-fal-line bg-white p-5">
       <h2 className="mt-0 text-xl font-extrabold">Resumo</h2>
       <p className="text-sm text-fal-muted">
-        Gerencie seus dados, veículos e favoritos. O catálogo continua usando o motor de busca da
-        loja.
+        Gerencie seus dados, veículos e favoritos. Use a busca do catálogo para encontrar peças.
       </p>
+      {user && user.emailConfirmed === false ? (
+        <p className="mt-3 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+          <strong>Confirme seu e-mail</strong> — sua conta já está ativa e você pode navegar na
+          loja. Verifique a caixa de entrada (e o spam) e clique no link de confirmação.
+        </p>
+      ) : user?.emailConfirmed ? (
+        <p className="mt-3 text-sm text-fal-success">✓ E-mail confirmado</p>
+      ) : null}
       {isStaff ? (
         <p className="mt-3">
           <Link
             to="/admin"
             className="inline-flex rounded-[10px] bg-fal-navy px-4 py-2.5 text-sm font-extrabold text-white"
           >
-            Abrir Painel Administrativo
+            Abrir painel da loja
           </Link>
         </p>
       ) : null}

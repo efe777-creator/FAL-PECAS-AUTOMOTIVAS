@@ -22,6 +22,7 @@ export function mapUser(user: User | null): UserProfile | null {
       null,
     phone: (user.user_metadata?.phone as string | undefined) ?? null,
     role: 'customer',
+    emailConfirmed: Boolean(user.email_confirmed_at),
   }
 }
 
@@ -63,11 +64,13 @@ export async function signUp(params: {
   lastName: string
   username?: string
   phone?: string
+  cpf?: string
 }): Promise<{ session: Session | null; user: UserProfile | null }> {
   if (!isSupabaseConfigured) throw new AuthNotConfiguredError()
 
   const fullName = `${params.firstName} ${params.lastName}`.trim()
   const phone = params.phone?.trim() ? normalizePhone(params.phone) : null
+  const cpf = params.cpf?.replace(/\D/g, '') || null
   const { data, error } = await getSupabase().auth.signUp({
     email: params.email.trim(),
     password: params.password,
@@ -78,10 +81,20 @@ export async function signUp(params: {
         last_name: params.lastName,
         username: params.username ?? null,
         phone,
+        cpf,
       },
     },
   })
   if (error) throw error
+
+  // Persiste CPF no customer quando sessão já existe (confirmação de e-mail desligada)
+  if (data.session?.user && cpf) {
+    await getSupabase()
+      .from('customers')
+      .update({ cpf })
+      .eq('profile_id', data.session.user.id)
+  }
+
   return { session: data.session, user: mapUser(data.user) }
 }
 

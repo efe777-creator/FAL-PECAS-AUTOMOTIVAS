@@ -6,6 +6,11 @@ import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
+  buildOrderWhatsAppMessage,
+  storeWhatsAppPhone,
+  whatsAppHref,
+} from '@/lib/whatsapp'
+import {
   orderEventLabel,
   orderStatusLabel,
   projectCustomerTimeline,
@@ -122,9 +127,32 @@ export function AccountOrderDetailPage() {
               <strong>{orderStatusLabel[order.status] ?? order.status}</strong>
             </p>
           </div>
-          <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>
-            {rebuyBusy ? 'Preparando…' : 'Comprar novamente'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>
+              {rebuyBusy ? 'Preparando…' : 'Comprar novamente'}
+            </Button>
+            {(() => {
+              const phone = storeWhatsAppPhone()
+              if (!phone) return null
+              const href = whatsAppHref(
+                phone,
+                buildOrderWhatsAppMessage({
+                  orderNumber: order.id.slice(0, 8),
+                  statusLabel: orderStatusLabel[order.status] ?? order.status,
+                }),
+              )
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center rounded-[10px] border border-[#25D366] bg-[#25D366]/10 px-3 py-2 text-sm font-bold text-[#128C7E]"
+                >
+                  Falar sobre este pedido
+                </a>
+              )
+            })()}
+          </div>
         </div>
         {rebuyMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{rebuyMsg}</p> : null}
       </div>
