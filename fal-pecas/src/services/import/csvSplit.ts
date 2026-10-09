@@ -1,5 +1,78 @@
 import type { CsvDelimiter } from './types'
 
+/**
+ * Quebra o texto CSV em registros (linhas lógicas), respeitando aspas.
+ * Newlines dentro de campo entre aspas (descrição multilinha) NÃO abrem registro novo.
+ */
+export function splitCsvRecords(text: string): { text: string; lineNumber: number }[] {
+  const src = text.replace(/^\uFEFF/, '')
+  const records: { text: string; lineNumber: number }[] = []
+  let current = ''
+  let inQuotes = false
+  let quoteChar = ''
+  let lineNumber = 1
+  let recordStartLine = 1
+
+  const pushRecord = () => {
+    const trimmed = current.replace(/\r$/, '')
+    if (trimmed.trim().length > 0) {
+      records.push({ text: trimmed, lineNumber: recordStartLine })
+    }
+    current = ''
+  }
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i]!
+
+    if (inQuotes) {
+      current += ch
+      if (ch === '\n') lineNumber++
+      if (ch === quoteChar) {
+        if (src[i + 1] === quoteChar) {
+          current += src[i + 1]!
+          i++
+        } else {
+          inQuotes = false
+          quoteChar = ''
+        }
+      }
+      continue
+    }
+
+    if (ch === '"' || ch === "'") {
+      inQuotes = true
+      quoteChar = ch
+      if (!current) recordStartLine = lineNumber
+      current += ch
+      continue
+    }
+
+    if (ch === '\n') {
+      pushRecord()
+      lineNumber++
+      recordStartLine = lineNumber
+      continue
+    }
+
+    if (ch === '\r') {
+      if (src[i + 1] === '\n') continue
+      pushRecord()
+      lineNumber++
+      recordStartLine = lineNumber
+      continue
+    }
+
+    if (!current) recordStartLine = lineNumber
+    current += ch
+  }
+
+  if (current.trim().length > 0 || current.includes('"') || current.includes("'")) {
+    pushRecord()
+  }
+
+  return records
+}
+
 /** Remove aspas externas e unescapa aspas duplicadas. */
 export function stripCellQuotes(raw: string): string {
   const s = raw.trim()

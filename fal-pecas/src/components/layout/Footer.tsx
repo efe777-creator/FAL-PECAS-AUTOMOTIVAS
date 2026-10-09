@@ -65,8 +65,7 @@ export function Footer() {
           <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/">
             Início
           </Link>
-          <span className="mb-2 block text-[13px] text-[#8a9299]">Privacidade (em breve)</span>
-          <span className="mb-2 block text-[13px] text-[#8a9299]">Termos (em breve)</span>
+          {/* FIND-021 / IMP-19 U5: links legais ocultos até conteúdo oficial */}
         </div>
       </Container>
     </footer>

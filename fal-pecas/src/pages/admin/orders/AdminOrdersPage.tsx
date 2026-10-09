@@ -1,3 +1,5 @@
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { formatMoney } from '@/lib/money'
 import { formatDateTime } from '@/lib/datetime'
@@ -98,10 +100,17 @@ export function AdminOrdersPage() {
         </select>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {loading ? <Loading label="Carregando pedidos…" /> : null}
+      {!loading && error ? <ErrorState message={error} /> : null}
 
-      {!loading && !error ? (
+      {!loading && !error && rows.length === 0 ? (
+        <EmptyState
+          title="Nenhum pedido neste filtro"
+          description="Altere o filtro de status ou aguarde novos pedidos da loja."
+        />
+      ) : null}
+
+      {!loading && !error && rows.length > 0 ? (
         <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
@@ -115,31 +124,23 @@ export function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
-                    Nenhum pedido neste filtro.
+              {rows.map((o) => (
+                <tr key={o.id} className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60">
+                  <td className="px-3 py-2">
+                    <Link
+                      to={`/admin/pedidos/${o.id}`}
+                      className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+                    >
+                      {o.id.slice(0, 8)}…
+                    </Link>
                   </td>
+                  <td className="px-3 py-2">{o.customerName ?? '—'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
+                  <td className="px-3 py-2">{orderStatusAdminLabel[o.status] ?? o.status}</td>
+                  <td className="px-3 py-2">{o.itemCount}</td>
+                  <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
                 </tr>
-              ) : (
-                rows.map((o) => (
-                  <tr key={o.id} className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60">
-                    <td className="px-3 py-2">
-                      <Link
-                        to={`/admin/pedidos/${o.id}`}
-                        className="font-semibold text-fal-navy underline-offset-2 hover:underline"
-                      >
-                        {o.id.slice(0, 8)}…
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2">{o.customerName ?? '—'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
-                    <td className="px-3 py-2">{orderStatusAdminLabel[o.status] ?? o.status}</td>
-                    <td className="px-3 py-2">{o.itemCount}</td>
-                    <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>

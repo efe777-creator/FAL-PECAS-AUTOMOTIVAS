@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { entityStatusLabel } from '@/lib/adminLabels'
@@ -115,8 +116,11 @@ export function AdminBrandsPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-fal-muted">
-                  Nenhum fabricante encontrado.
+                <td colSpan={4} className="px-3 py-4">
+                  <EmptyState
+                    title="Nenhum fabricante encontrado"
+                    description="Cadastre um fabricante de peça ou ajuste a busca."
+                  />
                 </td>
               </tr>
             ) : (

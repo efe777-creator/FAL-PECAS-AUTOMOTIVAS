@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   adminApplyCatalogImport,
@@ -6,8 +7,8 @@ import {
   adminPreviewCatalogImport,
   type CatalogImportPreviewRow,
 } from '@/services/admin/adminCatalogImportService'
-import { delimiterLabel, type CsvDelimiter } from '@/services/import'
-import { useState } from 'react'
+import { delimiterLabel } from '@/services/import'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 function canImportCatalog(role: string | undefined): boolean {
@@ -26,6 +27,8 @@ export function AdminProductImportPage() {
   const [importId, setImportId] = useState<string | null>(null)
   const [report, setReport] = useState<string | null>(null)
   const [showOnlyErrors, setShowOnlyErrors] = useState(false)
+  const [phase, setPhase] = useState<'idle' | 'preview' | 'confirm' | 'done'>('idle')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function onFile(file: File) {
     setBusy(true)
@@ -33,6 +36,7 @@ export function AdminProductImportPage() {
     setReport(null)
     setImportId(null)
     setPreview(null)
+    setPhase('idle')
     try {
       setFileName(file.name)
       const { rows, delimiter: d, fileErrors } = await adminPreviewCatalogImport(file)
@@ -45,13 +49,14 @@ export function AdminProductImportPage() {
         setError('Arquivo sem linhas de dados')
         return
       }
-      setPreview(rows)
       const id = await adminCreateCatalogImport({
         filename: file.name,
         createdBy: user?.id ?? null,
         rows,
       })
       setImportId(id)
+      setPreview(rows)
+      setPhase('preview')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no preview')
     } finally {
@@ -61,35 +66,24 @@ export function AdminProductImportPage() {
 
   async function onConfirm() {
     if (!importId) return
-    const valid = preview?.filter((r) => r.ok).length ?? 0
-    if (valid === 0) return
-    const ok = window.confirm(
-      `Confirmar importação de ${valid} linha(s) válida(s)?\n\n` +
-        `Novos produtos entram como rascunho e indisponíveis.\n` +
-        `Linhas com erro serão ignoradas.`,
-    )
-    if (!ok) return
-
     setBusy(true)
     setError(null)
     try {
       const result = await adminApplyCatalogImport(importId)
       setReport(
         `Criados: ${result.created}. Atualizados: ${result.updated}. ` +
-          `Falhas: ${result.failed}. Ignorados: ${result.skipped}. ` +
-          `Enriquecidos (grupo/montadora): ${result.enriched}.`,
+          `Ignorados: ${result.skipped}. Categorias novas: ${result.categories_created}.`,
       )
-      setPreview(null)
-      setImportId(null)
+      setPhase('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      setPhase('preview')
     } finally {
       setBusy(false)
     }
   }
 
   const validCount = preview?.filter((r) => r.ok).length ?? 0
-  const invalidCount = preview?.filter((r) => !r.ok).length ?? 0
   const visible = preview
     ? showOnlyErrors
       ? preview.filter((r) => !r.ok)
@@ -97,129 +91,182 @@ export function AdminProductImportPage() {
     : []
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Link to="/admin/produtos" className="text-sm font-semibold text-fal-navy underline">
-          ← Voltar aos produtos
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Importar produtos</h1>
-        <p className="mt-1 text-sm text-fal-muted">
-          Layout canônico FAL:{' '}
-          <code className="rounded bg-fal-bg px-1">CODIGO;GRUPO;MONTADORA;DESCRICAO</code> (CSV
-          UTF-8 com <strong>;</strong> ou XLSX). Mínimo: código + descrição. Preview obrigatório.
-          Novos = <strong>draft</strong> + indisponível. Montadora = sugestão (sem compatibilidade).
-          Não publica automaticamente.
-        </p>
-      </div>
-
+    <PageShell
+      title="Importar produtos (cadastro)"
+      description="Código referência, nome, categoria, grupo, subgrupo, posição, lado e descrições. Sem montadora — aplicações são outra importação. Novos entram como rascunho e indisponíveis."
+      actions={
+        <div className="flex flex-wrap gap-3 text-sm font-semibold">
+          <Link to="/admin/produtos/importar-aplicacoes" className="text-fal-navy">
+            Aplicações →
+          </Link>
+          <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
+            Arquivo HF completo →
+          </Link>
+          <Link to="/admin/importacoes" className="text-fal-navy">
+            Histórico →
+          </Link>
+        </div>
+      }
+    >
       {!allowed ? (
-        <p className="rounded-[14px] border border-fal-danger/40 bg-red-50 p-4 text-sm text-fal-danger">
+        <p className="text-sm text-red-600">
           Somente administrador ou gerente podem importar o catálogo.
         </p>
       ) : (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo</h2>
-          <p className="mt-1 text-sm text-fal-muted">
-            Upsert por SKU. SKU duplicado no arquivo = erro. Reimportação atualiza a descrição.
-          </p>
-          <input
-            className="mt-3 block w-full text-sm"
-            type="file"
-            accept=".csv,.xlsx,.xls,text/csv"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void onFile(f)
-              e.target.value = ''
-            }}
-          />
-        </div>
-      )}
-
-      {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {report ? <p className="text-sm text-green-700">{report}</p> : null}
-
-      {preview ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="m-0 text-sm">
-              Arquivo <strong>{fileName}</strong>
-              {delimiter
-                ? ` · delimitador ${delimiterLabel(delimiter as CsvDelimiter)}`
-                : null}{' '}
-              — válidos: {validCount}, inválidos: {invalidCount}
-            </p>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+        <div className="space-y-4">
+          {phase !== 'done' ? (
+            <div className="rounded-[14px] border border-fal-line bg-white p-4">
+              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo de cadastro</h2>
+              <p className="mt-1 text-sm text-fal-muted">
+                Envie CSV ou Excel com código referência, nome, categoria, grupo (e opcionalmente
+                subgrupo, posição, lado e descrições). SKUs repetidos no arquivo são consolidados
+                em um produto. Produtos novos entram como rascunho e indisponíveis; a reimportação
+                atualiza o cadastro sem alterar preço nem estoque.
+              </p>
               <input
-                type="checkbox"
-                checked={showOnlyErrors}
-                onChange={(e) => setShowOnlyErrors(e.target.checked)}
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls,text/csv"
+                className="sr-only"
+                disabled={busy || phase === 'confirm'}
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) void onFile(f)
+                  e.target.value = ''
+                }}
               />
-              Somente erros
-            </label>
-          </div>
-
-          <div className="max-h-80 overflow-auto rounded border border-fal-line text-xs">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-fal-bg text-left">
-                  <th className="px-2 py-1">Linha</th>
-                  <th className="px-2 py-1">Código</th>
-                  <th className="px-2 py-1">Grupo</th>
-                  <th className="px-2 py-1">Montadora</th>
-                  <th className="px-2 py-1">Descrição</th>
-                  <th className="px-2 py-1">Ação</th>
-                  <th className="px-2 py-1">Erros</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.slice(0, 100).map((r) => (
-                  <tr key={r.line} className={r.ok ? '' : 'bg-red-50'}>
-                    <td className="px-2 py-1">{r.line}</td>
-                    <td className="px-2 py-1 font-mono">{r.sku || '—'}</td>
-                    <td className="px-2 py-1">{r.grupo || '—'}</td>
-                    <td className="px-2 py-1">{r.montadora || '—'}</td>
-                    <td className="px-2 py-1">{r.name || '—'}</td>
-                    <td className="px-2 py-1">
-                      {r.action === 'create'
-                        ? 'Criar (draft)'
-                        : r.action === 'update'
-                          ? 'Atualizar'
-                          : '—'}
-                    </td>
-                    <td className="px-2 py-1 text-fal-danger">{r.errors.join('; ')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {visible.length > 100 ? (
-            <p className="text-xs text-fal-muted">Exibindo as primeiras 100 linhas do filtro.</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={busy || phase === 'confirm'}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {busy ? 'Lendo arquivo…' : 'Escolher arquivo e importar'}
+                </Button>
+                {fileName ? (
+                  <p className="m-0 text-sm text-fal-muted">
+                    {fileName}
+                    {delimiter
+                      ? ` · separador ${delimiterLabel(delimiter as ';' | ',' | '\t')}`
+                      : null}
+                  </p>
+                ) : (
+                  <p className="m-0 text-sm text-fal-muted">Nenhum arquivo selecionado</p>
+                )}
+              </div>
+            </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          {phase === 'done' && report ? (
+            <div className="rounded-[14px] border border-fal-line bg-white p-4">
+              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Importação concluída</h2>
+              <p className="mt-2 text-sm">{report}</p>
+              <Button
+                className="mt-3"
+                variant="light"
+                onClick={() => {
+                  setPhase('idle')
+                  setPreview(null)
+                  setImportId(null)
+                  setReport(null)
+                  setFileName(null)
+                }}
+              >
+                Nova importação
+              </Button>
+            </div>
+          ) : null}
+
+          {preview && phase !== 'done' ? (
+            <>
+              <p className="rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+                Nenhuma alteração foi feita até a confirmação. Válidos: {validCount}.
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showOnlyErrors}
+                  onChange={(e) => setShowOnlyErrors(e.target.checked)}
+                />
+                Mostrar só erros
+              </label>
+              <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
+                    <tr>
+                      <th className="px-2 py-2">Linha</th>
+                      <th className="px-2 py-2">Código referência</th>
+                      <th className="px-2 py-2">Nome</th>
+                      <th className="px-2 py-2">Categoria</th>
+                      <th className="px-2 py-2">Grupo</th>
+                      <th className="px-2 py-2">Posição</th>
+                      <th className="px-2 py-2">Lado</th>
+                      <th className="px-2 py-2">Situação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((r) => (
+                      <tr key={r.sku} className="border-b border-fal-line last:border-0">
+                        <td className="px-2 py-1.5">{r.lineNumber}</td>
+                        <td className="px-2 py-1.5 font-medium">{r.sku}</td>
+                        <td className="px-2 py-1.5">{r.name}</td>
+                        <td className="px-2 py-1.5">{r.categoria}</td>
+                        <td className="px-2 py-1.5">{r.grupo}</td>
+                        <td className="px-2 py-1.5">{r.posicao ?? '—'}</td>
+                        <td className="px-2 py-1.5">{r.lado ?? '—'}</td>
+                        <td className="px-2 py-1.5">
+                          {r.ok
+                            ? r.action === 'create'
+                              ? 'Novo cadastro'
+                              : 'Será atualizado'
+                            : r.message}
+                          {r.warnings?.length ? (
+                            <span className="mt-0.5 block text-xs text-amber-700">
+                              {r.warnings.join(' ')}
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : null}
+
+          {busy ? <p className="text-sm text-fal-muted">Processando…</p> : null}
+
+          {phase === 'preview' ? (
             <Button
-              type="button"
-              disabled={busy || validCount === 0 || !importId}
-              onClick={() => void onConfirm()}
+              variant="primary"
+              disabled={busy || validCount === 0}
+              onClick={() => setPhase('confirm')}
             >
-              {busy ? 'Processando…' : `Confirmar importação (${validCount})`}
+              Revisar e confirmar
             </Button>
-            <Button
-              type="button"
-              variant="light"
-              disabled={busy}
-              onClick={() => {
-                setPreview(null)
-                setImportId(null)
-                setFileName(null)
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
+          ) : null}
+
+          {phase === 'confirm' ? (
+            <div className="rounded-[14px] border border-fal-navy/20 bg-white p-4">
+              <h2 className="m-0 text-lg font-extrabold">Confirmar importação?</h2>
+              <p className="mt-2 text-sm text-fal-muted">
+                Esta ação grava {validCount} produto(s) no catálogo (rascunho se novos).
+              </p>
+              <div className="mt-4 flex gap-2">
+                <Button variant="light" disabled={busy} onClick={() => setPhase('preview')}>
+                  Voltar para revisão
+                </Button>
+                <Button variant="primary" disabled={busy} onClick={() => void onConfirm()}>
+                  Confirmar importação
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-    </div>
+      )}
+    </PageShell>
   )
 }

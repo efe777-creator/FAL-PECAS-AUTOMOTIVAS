@@ -1,3 +1,4 @@
+import { formatCatalogDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { ProductBrand } from '@/types'
@@ -28,9 +29,22 @@ export async function adminUpsertBrand(input: {
   slug?: string
   status?: ProductBrand['status']
 }): Promise<ProductBrand> {
+  const name = formatCatalogDisplayName(input.name)
+  if (!name) throw new Error('Informe o nome do fabricante.')
+
+  if (!input.id) {
+    const existing = await adminListBrands()
+    const dup = existing.find(
+      (b) =>
+        b.status === 'active' &&
+        normalizeEntityMatchKey(b.name) === normalizeEntityMatchKey(name),
+    )
+    if (dup) throw new Error(`Já existe fabricante "${dup.name}".`)
+  }
+
   const payload = {
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(`brand-${Date.now()}`),
+    name,
+    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`brand-${Date.now()}`),
     status: input.status ?? 'active',
   }
   const q = getSupabase().from('product_brands')

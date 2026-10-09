@@ -1,17 +1,25 @@
 import { mockProducts } from '@/data/mocks/products'
+import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import {
   attachResolvedPrices,
   displayPrice,
 } from '@/services/pricing/priceResolutionService'
+import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
 
 function mapRpcRow(row: Record<string, unknown>): Product {
+  const sku = String(row.sku)
+  const resolved =
+    row.resolved_amount == null || row.resolved_amount === ''
+      ? undefined
+      : Number(row.resolved_amount)
   return {
     id: String(row.id),
-    sku: String(row.sku),
+    sku,
+    commercialRef: (row.commercial_ref as string | null) ?? sku,
     name: String(row.name),
     slug: String(row.slug),
     description: (row.description as string | null) ?? undefined,
@@ -23,13 +31,53 @@ function mapRpcRow(row: Record<string, unknown>): Product {
     categoryName: (row.category_name as string | null) ?? undefined,
     price: Number(row.price),
     promoPrice: row.promo_price == null ? null : Number(row.promo_price),
+    ...(resolved != null && Number.isFinite(resolved)
+      ? { resolvedPrice: resolved, listPrice: Number(row.price) }
+      : {}),
     status: row.status as Product['status'],
     manufacturerCode: (row.manufacturer_code as string | null) ?? undefined,
     available: Boolean(row.is_available),
     isIncomplete: Boolean(row.is_incomplete),
+    posicao: (row.posicao as Product['posicao']) ?? null,
+    lado: (row.lado as Product['lado']) ?? null,
     attrs: (row.attrs as Record<string, unknown> | null) ?? {},
     stock: undefined,
   }
+}
+
+/** Completa posicao/lado da página atual (RPC search ainda não devolve esses campos). */
+async function enrichPageProductMeta(products: Product[]): Promise<Product[]> {
+  if (!products.length || !isSupabaseConfigured || !supabase) return products
+  const ids = products.map((p) => p.id)
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, posicao, lado, manufacturer_code, commercial_ref, sku')
+    .in('id', ids)
+  if (error) throw error
+  const meta = new Map(
+    (data ?? []).map((r) => [
+      String(r.id),
+      {
+        posicao: (r.posicao as Product['posicao']) ?? null,
+        lado: (r.lado as Product['lado']) ?? null,
+        manufacturerCode: (r.manufacturer_code as string | null) ?? undefined,
+        commercialRef: String(r.commercial_ref ?? r.sku ?? ''),
+        sku: String(r.sku ?? ''),
+      },
+    ]),
+  )
+  return products.map((p) => {
+    const m = meta.get(p.id)
+    if (!m) return p
+    return {
+      ...p,
+      posicao: p.posicao ?? m.posicao,
+      lado: p.lado ?? m.lado,
+      manufacturerCode: p.manufacturerCode ?? m.manufacturerCode,
+      commercialRef: p.commercialRef ?? m.commercialRef,
+      sku: p.sku || m.sku,
+    }
+  })
 }
 
 function normalizeSort(sort?: ProductSearchSort | null): ProductSearchSort {
@@ -106,13 +154,20 @@ function mockSearch(params: ProductSearchParams): ProductSearchResult {
 /**
  * Contrato único do motor de busca (Fase 4).
  * Catálogo público deve chamar somente este service — ranking/filtros/total via RPC.
+ *
+ * Elegibilidade (IMP-11 / PRD):
+ * - Listagem: `status = published` (RPC). Produto indisponível pode aparecer com badge.
+ * - Compra: `is_available` + preço resolvido (card/PDP / Liberar) — regras independentes.
  */
 export async function searchCatalog(params: ProductSearchParams = {}): Promise<ProductSearchResult> {
   const pageSize = Math.min(Math.max(params.pageSize ?? DEFAULT_PAGE_SIZE, 1), 100)
   const page = Math.max(params.page ?? 1, 1)
   const sort = normalizeSort(params.sort)
 
+  assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
+    // Só alcançável com VITE_ALLOW_CATALOG_MOCKS=true em DEV
+    if (!allowCatalogMocks()) throw new Error('Catálogo indisponível')
     return mockSearch({ ...params, page, pageSize, sort })
   }
 
@@ -134,9 +189,17 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
 
   const rows = (data ?? []) as Record<string, unknown>[]
   const total = rows.length ? Number(rows[0].total_count ?? 0) : 0
-  let items = await attachResolvedPrices(rows.map(mapRpcRow))
+  const mapped = rows.map(mapRpcRow)
+  const withMeta = await enrichPageProductMeta(mapped)
+  const withApps = await attachCompatibilitySummaries(withMeta, {
+    compact: true,
+    maxEntries: 4,
+    maxMakers: null,
+    maxLinesPerMaker: null,
+  })
+  let items = await attachResolvedPrices(withApps)
 
-  // Reordena a página pelo preço resolvido (RPC ainda usa preço legado)
+  // FIND-012: RPC já ordena por resolve; reordenação da página = rede de segurança
   if (sort === 'price_asc' || sort === 'price_desc') {
     items = [...items].sort((a, b) =>
       sort === 'price_asc'

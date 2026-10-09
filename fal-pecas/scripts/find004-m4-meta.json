@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-10-09T19:23:43.395Z",
+  "admin": "ddb45683-34bf-4596-93c4-4676f423e5d4",
+  "report": {
+    "total": 743,
+    "applyable": 697,
+    "review": 21,
+    "error": 1,
+    "already_covered": 24,
+    "new": 688,
+    "update": 9,
+    "createVersion": 622
+  },
+  "sqlOut": "D:\\Programas WEB\\PROGRAMAS WEB PENDRIVE\\FAL PECAS AUTOMOTIVAS\\fal-pecas\\scripts\\find004-m4-stage-apply.sql",
+  "policy": "stage all; RPC skips review/error; applyable writes PVC/VV"
+}

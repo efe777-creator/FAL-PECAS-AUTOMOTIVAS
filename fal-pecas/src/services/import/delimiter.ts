@@ -1,3 +1,4 @@
+import { splitCsvRecords } from './csvSplit'
 import type { CsvDelimiter } from './types'
 
 const DELIMITERS: CsvDelimiter[] = [';', ',', '\t']
@@ -36,10 +37,9 @@ function countDelimiter(line: string, delimiter: CsvDelimiter): number {
  * Amostra: primeiras linhas não vazias do arquivo.
  */
 export function detectCsvDelimiter(text: string): CsvDelimiter {
-  const sample = text
-    .replace(/^\uFEFF/, '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
+  // Usa registros lógicos (aspas) para não amostrar meio de descrição multilinha.
+  const sample = splitCsvRecords(text)
+    .map((r) => r.text.trim())
     .filter(Boolean)
     .slice(0, 10)
 

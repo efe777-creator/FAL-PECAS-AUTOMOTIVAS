@@ -2,12 +2,14 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
+import { PRICE_LIST_LAYERS_HINT, priceOriginLabel } from '@/lib/priceLabels'
 import {
   adminFindProductIdBySku,
-  adminListPriceListItems,
+  adminListPriceListOperationalItems,
   adminSetPriceListItemPricing,
   adminUpsertPriceListItem,
   filterPriceListItems,
+  isVirtualPriceListItemId,
   priceListStatusLabel,
   type PriceListItem,
   type PriceListOverviewRow,
@@ -18,12 +20,6 @@ import { Link } from 'react-router-dom'
 
 const QUICK_RESULT_LIMIT = 50
 const STORAGE_KEY = 'fal.priceListQuickAdjust.listId'
-
-function originLabelPt(o: PriceOrigin): string {
-  if (o === 'calculated') return 'Calculado'
-  if (o === 'imported') return 'Importado'
-  return 'Manual'
-}
 
 type Props = {
   lists: PriceListOverviewRow[]
@@ -122,10 +118,10 @@ export function PriceListQuickAdjustPanel({
     let cancelled = false
     void (async () => {
       try {
-        const rows = await adminListPriceListItems(listId)
+        const rows = await adminListPriceListOperationalItems(listId)
         if (cancelled || gen !== loadGenRef.current) return
         setItems(rows)
-        setAddOpen(rows.length === 0)
+        setAddOpen(rows.filter((r) => !isVirtualPriceListItemId(r.id)).length === 0)
       } catch (e) {
         if (cancelled || gen !== loadGenRef.current) return
         setItems([])
@@ -186,7 +182,7 @@ export function PriceListQuickAdjustPanel({
     setError(null)
     setItems([])
     try {
-      const rows = await adminListPriceListItems(listId)
+      const rows = await adminListPriceListOperationalItems(listId)
       if (gen !== loadGenRef.current) return
       setItems(rows)
       if (opts?.keepAddOpen) {
@@ -233,7 +229,17 @@ export function PriceListQuickAdjustPanel({
     setRowBusy(item.id)
     setError(null)
     try {
-      await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      if (isVirtualPriceListItemId(item.id)) {
+        await adminUpsertPriceListItem({
+          priceListId: listId,
+          productId: item.productId,
+          price: priceNum,
+          source: 'manual',
+          changedBy: changedBy ?? null,
+        })
+      } else {
+        await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+      }
       setEditingId(null)
       setInfo(
         `Preço atualizado na lista ${selectedList?.name ?? ''}. Origem: Manual.`,
@@ -266,7 +272,7 @@ export function PriceListQuickAdjustPanel({
 
     const existing = items.find((i) => (i.sku ?? '').toLowerCase() === sku.toLowerCase())
     if (existing) {
-      setError('Este código já está na lista. Use Alterar preço na linha destacada.')
+      setError('Este código já está na lista. Use Editar precificação na linha destacada.')
       startEdit(existing)
       setFilterQ(sku)
       setFilterQDebounced(sku)
@@ -321,7 +327,7 @@ export function PriceListQuickAdjustPanel({
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">Consulta e ajuste de preços</h2>
         <p className="mt-1 text-sm text-fal-muted">
           Escolha a lista, deixe a busca vazia para percorrer os itens ou pesquise um código. O preço
-          exibido é só desta lista.
+          exibido é só desta lista. {PRICE_LIST_LAYERS_HINT}
         </p>
       </div>
 
@@ -402,7 +408,7 @@ export function PriceListQuickAdjustPanel({
           Match único · Preço na lista <strong>{selectedList.name}</strong>:{' '}
           <strong>{formatMoney(singleMatch.price)}</strong>
           {singleMatch.sku ? <span className="text-fal-muted"> · {singleMatch.sku}</span> : null}
-          <span className="text-fal-muted"> · {originLabelPt(singleMatch.priceOrigin)}</span>
+          <span className="text-fal-muted"> · {priceOriginLabel(singleMatch.priceOrigin)}</span>
         </div>
       ) : null}
 
@@ -495,7 +501,7 @@ export function PriceListQuickAdjustPanel({
                         )}
                       </td>
                       <td className="hidden px-3 py-2 text-xs sm:table-cell">
-                        {originLabelPt(item.priceOrigin)}
+                        {priceOriginLabel(item.priceOrigin)}
                       </td>
                       <td className="px-3 py-2">
                         {isEditing ? (
@@ -524,7 +530,7 @@ export function PriceListQuickAdjustPanel({
                             disabled={!allowed}
                             onClick={() => startEdit(item)}
                           >
-                            Alterar preço
+                            Editar precificação
                           </button>
                         )}
                       </td>

@@ -1,4 +1,5 @@
 import { Loading } from '@/components/common/Loading'
+import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
 import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -6,6 +7,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 const catalogLinks = [
   { to: '/admin/produtos', label: 'Produtos' },
   { to: '/admin/precos', label: 'Preços' },
+  { to: '/admin/importacoes', label: 'Importações' },
   { to: '/admin/categorias', label: 'Categorias' },
   { to: '/admin/montadoras', label: 'Montadoras' },
   { to: '/admin/veiculos', label: 'Veículos' },
@@ -138,6 +140,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-fal-bg lg:flex">
+      <ScrollToTop />
       {navOpen ? (
         <button
           type="button"

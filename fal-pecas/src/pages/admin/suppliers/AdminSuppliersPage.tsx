@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { entityStatusLabel } from '@/lib/adminLabels'
@@ -86,19 +87,30 @@ export function AdminSuppliersPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((s) => (
-              <tr key={s.id} className="border-t border-fal-line">
-                <td className="px-3 py-2 font-semibold">{s.name}</td>
-                <td className="px-3 py-2 text-fal-muted">{s.code ?? '—'}</td>
-                <td className="px-3 py-2">{entityStatusLabel(s.status)}</td>
-                <td className="px-3 py-2 space-x-2">
-                  <button type="button" className="font-semibold text-fal-auth-link" onClick={() => { setEditing(s); setName(s.name); setCode(s.code ?? '') }}>Editar</button>
-                  <button type="button" className="font-semibold text-fal-muted" onClick={() => void adminSetSupplierStatus(s.id, s.status === 'active' ? 'inactive' : 'active').then(reload)}>
-                    {s.status === 'active' ? 'Inativar' : 'Ativar'}
-                  </button>
+            {!loading && items.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-4">
+                  <EmptyState
+                    title="Nenhum fornecedor cadastrado"
+                    description="Crie o primeiro fornecedor para importar custos e conversões."
+                  />
                 </td>
               </tr>
-            ))}
+            ) : (
+              items.map((s) => (
+                <tr key={s.id} className="border-t border-fal-line">
+                  <td className="px-3 py-2 font-semibold">{s.name}</td>
+                  <td className="px-3 py-2 text-fal-muted">{s.code ?? '—'}</td>
+                  <td className="px-3 py-2">{entityStatusLabel(s.status)}</td>
+                  <td className="px-3 py-2 space-x-2">
+                    <button type="button" className="font-semibold text-fal-auth-link" onClick={() => { setEditing(s); setName(s.name); setCode(s.code ?? '') }}>Editar</button>
+                    <button type="button" className="font-semibold text-fal-muted" onClick={() => void adminSetSupplierStatus(s.id, s.status === 'active' ? 'inactive' : 'active').then(reload)}>
+                      {s.status === 'active' ? 'Inativar' : 'Ativar'}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -1,11 +1,18 @@
+import { resolveProductIdentity } from '@/lib/productIdentity'
+import {
+  evaluateReleaseChecklist,
+  type ReleaseChecklistResult,
+} from '@/lib/releaseChecklist'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { adminEnsureBaseAndPromoPrices } from '@/services/admin/adminPriceListService'
+import { resolveProductPrice } from '@/services/pricing/priceResolutionService'
 import type { Product, ProductReference } from '@/types'
 
 type ProductRow = {
   id: string
   sku: string
+  commercial_ref?: string | null
   name: string
   slug: string
   description: string | null
@@ -19,6 +26,8 @@ type ProductRow = {
   manufacturer_code: string | null
   is_incomplete: boolean
   is_available: boolean
+  posicao?: string | null
+  lado?: string | null
   attrs: Record<string, unknown> | null
   weight_kg?: number | null
   height_cm?: number | null
@@ -39,6 +48,7 @@ function mapProduct(row: ProductRow): Product {
   return {
     id: row.id,
     sku: row.sku,
+    commercialRef: row.commercial_ref ?? row.sku,
     name: row.name,
     slug: row.slug,
     description: row.description ?? undefined,
@@ -54,6 +64,8 @@ function mapProduct(row: ProductRow): Product {
     manufacturerCode: row.manufacturer_code ?? undefined,
     available: row.is_available,
     isIncomplete: row.is_incomplete,
+    posicao: (row.posicao as Product['posicao']) ?? null,
+    lado: (row.lado as Product['lado']) ?? null,
     attrs: row.attrs ?? {},
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     heightCm: row.height_cm == null ? null : Number(row.height_cm),
@@ -63,9 +75,9 @@ function mapProduct(row: ProductRow): Product {
 }
 
 const SELECT = `
-  id, sku, name, slug, description, short_description, brand_id, supplier_id,
+  id, sku, commercial_ref, name, slug, description, short_description, brand_id, supplier_id,
   category_id, price, promo_price, status, manufacturer_code, is_incomplete,
-  is_available, attrs, weight_kg, height_cm, width_cm, length_cm,
+  is_available, posicao, lado, attrs, weight_kg, height_cm, width_cm, length_cm,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -100,7 +112,7 @@ export async function adminListProducts(params?: {
   if (productIdsByMaker) q = q.in('id', productIdsByMaker)
   if (params?.q?.trim()) {
     const term = params.q.trim()
-    q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
+    q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%,commercial_ref.ilike.%${term}%`)
   }
   const { data, error } = await q.limit(200)
   if (error) throw error
@@ -128,7 +140,9 @@ export async function adminGetProduct(id: string): Promise<Product | null> {
 export async function adminUpsertProduct(input: {
   id?: string
   name: string
-  sku: string
+  sku?: string
+  /** Código referência comercial. Se vazio, espelha o sku. */
+  commercialRef?: string
   slug?: string
   categoryId?: string | null
   brandId?: string | null
@@ -138,6 +152,8 @@ export async function adminUpsertProduct(input: {
   status?: Product['status']
   shortDescription?: string
   description?: string
+  posicao?: Product['posicao']
+  lado?: Product['lado']
   attrs?: Record<string, unknown>
   isAvailable?: boolean
   weightKg?: number | null
@@ -147,10 +163,15 @@ export async function adminUpsertProduct(input: {
   /** Quando false, o caller sincroniza as listas (modo listas no formulário). */
   syncBasePromoLists?: boolean
 }): Promise<Product> {
+  const identity = resolveProductIdentity({
+    commercialRef: input.commercialRef,
+    sku: input.sku,
+  })
   const payload = {
     name: input.name.trim(),
-    sku: input.sku.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(input.sku),
+    sku: identity.sku,
+    commercial_ref: identity.commercialRef,
+    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(identity.sku),
     category_id: input.categoryId || null,
     brand_id: input.brandId || null,
     supplier_id: input.supplierId || null,
@@ -159,13 +180,23 @@ export async function adminUpsertProduct(input: {
     status: input.status ?? 'draft',
     short_description: input.shortDescription?.trim() || null,
     description: input.description?.trim() || null,
+    posicao: input.posicao || null,
+    lado: input.lado || null,
     attrs: input.attrs ?? {},
     is_available: input.isAvailable ?? false,
     weight_kg: input.weightKg ?? null,
     height_cm: input.heightCm ?? null,
     width_cm: input.widthCm ?? null,
     length_cm: input.lengthCm ?? null,
-    search_document: [input.name, input.sku, input.shortDescription, input.description]
+    search_document: [
+      input.name,
+      identity.sku,
+      identity.commercialRef,
+      input.shortDescription,
+      input.description,
+      input.posicao,
+      input.lado,
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase(),
@@ -188,6 +219,142 @@ export async function adminUpsertProduct(input: {
 export async function adminSetProductStatus(id: string, status: NonNullable<Product['status']>) {
   const { error } = await getSupabase().from('products').update({ status }).eq('id', id)
   if (error) throw error
+}
+
+export type ReleaseToStoreResult =
+  | { ok: true; productId: string; publishedNow: boolean; checklist: ReleaseChecklistResult }
+  | { ok: false; productId: string; reason: string; checklist?: ReleaseChecklistResult }
+
+export type ReleasePreflightRow = ReleaseChecklistResult & {
+  sku: string
+  name: string
+  commercialRef?: string | null
+  status: string
+}
+
+/**
+ * Pré-flight D-LIBERAR: avalia checklist sem gravar.
+ */
+export async function adminEvaluateReleaseChecklist(
+  productId: string,
+  opts?: { publishIfNeeded?: boolean },
+): Promise<ReleasePreflightRow | null> {
+  const product = await adminGetProduct(productId)
+  if (!product) return null
+
+  let resolvedPrice: number | null = null
+  try {
+    const resolved = await resolveProductPrice(product.id)
+    resolvedPrice = resolved.amount
+  } catch {
+    resolvedPrice = null
+  }
+
+  const sb = getSupabase()
+  const [{ count: appCount }, { count: imgCount }] = await Promise.all([
+    sb
+      .from('product_vehicle_compatibility')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', productId),
+    sb
+      .from('product_images')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', productId),
+  ])
+
+  const checklist = evaluateReleaseChecklist({
+    productId: product.id,
+    name: product.name,
+    commercialRef: product.commercialRef,
+    sku: product.sku,
+    categoryId: product.categoryId ?? null,
+    status: product.status,
+    resolvedPrice,
+    hasApplication: (appCount ?? 0) > 0,
+    hasImage: (imgCount ?? 0) > 0,
+    publishIfNeeded: opts?.publishIfNeeded ?? false,
+  })
+
+  return {
+    ...checklist,
+    sku: product.sku,
+    name: product.name,
+    commercialRef: product.commercialRef,
+    status: product.status,
+  }
+}
+
+export async function adminEvaluateReleaseChecklistBatch(
+  productIds: string[],
+  opts?: { publishIfNeeded?: boolean },
+): Promise<ReleasePreflightRow[]> {
+  const rows: ReleasePreflightRow[] = []
+  for (const id of productIds) {
+    const row = await adminEvaluateReleaseChecklist(id, opts)
+    if (row) rows.push(row)
+  }
+  return rows
+}
+
+/**
+ * Liberar na loja: checklist D-LIBERAR (hard) + is_available.
+ * Preço via `resolve_product_price`. Soft (app/imagem) = aviso só.
+ * Não publica automaticamente em imports — só via esta ação explícita.
+ */
+export async function adminReleaseProductToStore(input: {
+  productId: string
+  /** Se true e status ≠ published, publica neste passo. */
+  publishIfNeeded?: boolean
+}): Promise<ReleaseToStoreResult> {
+  const preflight = await adminEvaluateReleaseChecklist(input.productId, {
+    publishIfNeeded: input.publishIfNeeded,
+  })
+  if (!preflight) {
+    return { ok: false, productId: input.productId, reason: 'Produto não encontrado' }
+  }
+  if (!preflight.canRelease) {
+    return {
+      ok: false,
+      productId: input.productId,
+      reason: preflight.summary,
+      checklist: preflight,
+    }
+  }
+
+  let publishedNow = false
+  if (preflight.status !== 'published') {
+    await adminSetProductStatus(input.productId, 'published')
+    publishedNow = true
+  }
+
+  const { error } = await getSupabase()
+    .from('products')
+    .update({ is_available: true, status: 'published' })
+    .eq('id', input.productId)
+  if (error) throw error
+
+  return { ok: true, productId: input.productId, publishedNow, checklist: preflight }
+}
+
+export async function adminReleaseProductsToStore(input: {
+  productIds: string[]
+  publishIfNeeded?: boolean
+}): Promise<{ released: number; failed: ReleaseToStoreResult[]; skipped: number }> {
+  const failed: ReleaseToStoreResult[] = []
+  let released = 0
+  let skipped = 0
+  for (const productId of input.productIds) {
+    const r = await adminReleaseProductToStore({
+      productId,
+      publishIfNeeded: input.publishIfNeeded,
+    })
+    if (r.ok) released += 1
+    else {
+      failed.push(r)
+      skipped += 1
+    }
+  }
+  return { released, failed, skipped }
 }
 
 export async function adminDeleteProduct(id: string) {
@@ -246,7 +413,7 @@ export async function adminListApplications(productId: string) {
     .from('product_vehicle_compatibility')
     .select(
       `
-      id, notes, vehicle_version_id,
+      id, notes, vehicle_version_id, year_start, year_end,
       vehicle_versions (
         id, year, engine, version_name,
         manufacturers ( name ),
@@ -259,11 +426,18 @@ export async function adminListApplications(productId: string) {
   return data ?? []
 }
 
-export async function adminAddApplication(productId: string, vehicleVersionId: string, notes?: string) {
+export async function adminAddApplication(
+  productId: string,
+  vehicleVersionId: string,
+  notes?: string,
+  years?: { yearStart?: number | null; yearEnd?: number | null },
+) {
   const { error } = await getSupabase().from('product_vehicle_compatibility').insert({
     product_id: productId,
     vehicle_version_id: vehicleVersionId,
     notes: notes?.trim() || null,
+    year_start: years?.yearStart ?? null,
+    year_end: years?.yearEnd ?? null,
   })
   if (error) throw error
 }

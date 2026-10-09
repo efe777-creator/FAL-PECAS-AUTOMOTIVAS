@@ -1,8 +1,10 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatDateTime } from '@/lib/datetime'
+import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
 import { PriceListQuickAdjustPanel } from '@/pages/admin/prices/PriceListQuickAdjustPanel'
 import {
@@ -255,8 +257,8 @@ export function AdminPriceListsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Listas de preços</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Consulte e ajuste preços da lista selecionada. Para classificar um produto (Grupo /
-            Categoria / Subcategoria), abra o cadastro em{' '}
+            Consulte e ajuste preços da lista selecionada. {PRICE_LIST_LAYERS_HINT} Para
+            classificar um produto (Grupo / Categoria / Subcategoria), abra o cadastro em{' '}
             <Link className="font-semibold text-fal-navy underline" to="/admin/produtos">
               Produtos
             </Link>{' '}
@@ -448,11 +450,17 @@ export function AdminPriceListsPage() {
             <tbody>
               {!loading && overview.lists.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-fal-muted">
-                    <p>Nenhuma lista cadastrada.</p>
-                    <Button type="button" className="mt-3" onClick={openCreate}>
-                      Criar primeira lista
-                    </Button>
+                  <td colSpan={8} className="px-3 py-4">
+                    <EmptyState
+                      title="Nenhuma lista cadastrada"
+                      description="Crie a primeira lista de preços para formar e publicar valores."
+                    >
+                      <div className="mt-5 flex justify-center">
+                        <Button type="button" onClick={openCreate}>
+                          Criar primeira lista
+                        </Button>
+                      </div>
+                    </EmptyState>
                   </td>
                 </tr>
               ) : null}
