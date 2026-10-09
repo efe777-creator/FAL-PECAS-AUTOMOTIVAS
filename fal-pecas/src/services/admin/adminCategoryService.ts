@@ -1,3 +1,4 @@
+import { formatCategoryName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { Category } from '@/types'
@@ -158,9 +159,24 @@ export async function adminUpsertCategory(input: {
     }
   }
 
+  const name = formatCategoryName(input.name)
+  if (!name) throw new Error('Informe o nome da categoria.')
+
+  if (!input.id) {
+    const siblings = all.filter((c) => (c.parentId ?? null) === parentId)
+    const dup = siblings.find(
+      (c) =>
+        c.status !== 'archived' &&
+        normalizeEntityMatchKey(c.name) === normalizeEntityMatchKey(name),
+    )
+    if (dup) {
+      throw new Error(`Já existe categoria "${dup.name}" neste nível.`)
+    }
+  }
+
   const payload = {
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(`cat-${Date.now()}`),
+    name,
+    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`cat-${Date.now()}`),
     description: input.description?.trim() || null,
     parent_id: parentId,
     sort_order: input.sortOrder ?? 0,

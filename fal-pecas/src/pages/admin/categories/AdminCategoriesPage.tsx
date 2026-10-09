@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import {
@@ -52,9 +53,15 @@ export function AdminCategoriesPage() {
     void reload()
   }, [])
 
-  const roots = useMemo(() => items.filter((c) => !c.parentId), [items])
+  /** Arquivadas ficam fora da árvore operacional (prune); só published na gestão do dia a dia. */
+  const activeItems = useMemo(
+    () => items.filter((c) => c.status !== 'archived'),
+    [items],
+  )
+
+  const roots = useMemo(() => activeItems.filter((c) => !c.parentId), [activeItems])
   const childrenOf = (id: string) =>
-    items
+    activeItems
       .filter((c) => c.parentId === id)
       .slice()
       .sort(
@@ -64,13 +71,13 @@ export function AdminCategoriesPage() {
 
   const parentOptions = useMemo(
     () =>
-      allowedCategoryParents(items, editing?.id).sort((a, b) =>
-        categoryPath(items, a.id).localeCompare(categoryPath(items, b.id)),
+      allowedCategoryParents(activeItems, editing?.id).sort((a, b) =>
+        categoryPath(activeItems, a.id).localeCompare(categoryPath(activeItems, b.id)),
       ),
-    [items, editing?.id],
+    [activeItems, editing?.id],
   )
 
-  const resultingDepth = parentId ? categoryDepth(items, parentId) + 1 : 1
+  const resultingDepth = parentId ? categoryDepth(activeItems, parentId) + 1 : 1
 
   const searchQ = search.trim().toLowerCase()
   const matchesSearch = (c: Category) =>
@@ -78,7 +85,7 @@ export function AdminCategoriesPage() {
     c.name.toLowerCase().includes(searchQ) ||
     c.slug.toLowerCase().includes(searchQ) ||
     (c.description ?? '').toLowerCase().includes(searchQ) ||
-    categoryPath(items, c.id).toLowerCase().includes(searchQ)
+    categoryPath(activeItems, c.id).toLowerCase().includes(searchQ)
 
   const visibleRoots = useMemo(() => {
     const sorted = roots
@@ -99,7 +106,7 @@ export function AdminCategoriesPage() {
       return hasMatch
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roots, items, searchQ])
+  }, [roots, activeItems, searchQ])
 
   function resetForm() {
     setEditing(null)
@@ -176,7 +183,7 @@ export function AdminCategoriesPage() {
   }
 
   function renderRow(cat: Category, indentClass: string) {
-    const depth = categoryDepth(items, cat.id)
+    const depth = categoryDepth(activeItems, cat.id)
     const level = categoryLevelLabel(depth)
     return (
       <tr
@@ -193,7 +200,7 @@ export function AdminCategoriesPage() {
             {cat.description ? ` · ${cat.description}` : ''}
           </div>
         </td>
-        <td className="px-3 py-2 text-xs text-fal-muted">{categoryPath(items, cat.id)}</td>
+        <td className="px-3 py-2 text-xs text-fal-muted">{categoryPath(activeItems, cat.id)}</td>
         <td className="px-3 py-2">{cat.sortOrder}</td>
         <td className="px-3 py-2 text-fal-muted">{cat.slug}</td>
         <td className="px-3 py-2">{statusLabel(cat.status)}</td>
@@ -223,6 +230,7 @@ export function AdminCategoriesPage() {
       <p className="text-sm text-fal-muted">
         Hierarquia de {CATEGORY_MAX_DEPTH} níveis: <strong>Grupo</strong> →{' '}
         <strong>Categoria</strong> → <strong>Subcategoria</strong>. Quarto nível bloqueado.
+        Categorias arquivadas não aparecem aqui nem no cadastro de produto.
       </p>
       <form
         ref={formRef}
@@ -235,7 +243,7 @@ export function AdminCategoriesPage() {
           ref={nameInputRef}
           label={
             editing
-              ? `Editar ${categoryLevelLabel(categoryDepth(items, editing.id)).toLowerCase()}`
+              ? `Editar ${categoryLevelLabel(categoryDepth(activeItems, editing.id)).toLowerCase()}`
               : `Novo ${categoryLevelLabel(resultingDepth).toLowerCase()}`
           }
           value={name}
@@ -256,10 +264,10 @@ export function AdminCategoriesPage() {
           >
             <option value="">(nenhum — cria Grupo)</option>
             {parentOptions.map((p) => {
-              const d = categoryDepth(items, p.id)
+              const d = categoryDepth(activeItems, p.id)
               return (
                 <option key={p.id} value={p.id}>
-                  {categoryPath(items, p.id)} ({categoryLevelLabel(d)})
+                  {categoryPath(activeItems, p.id)} ({categoryLevelLabel(d)})
                 </option>
               )
             })}
@@ -318,8 +326,11 @@ export function AdminCategoriesPage() {
           <tbody>
             {visibleRoots.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
-                  Nenhuma classificação encontrada.
+                <td colSpan={6} className="px-3 py-4">
+                  <EmptyState
+                    title="Nenhuma classificação encontrada"
+                    description="Cadastre um grupo/categoria ou limpe a busca."
+                  />
                 </td>
               </tr>
             ) : (

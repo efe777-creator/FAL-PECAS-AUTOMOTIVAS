@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { getImportContract } from '@/services/import/contracts'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { parseXlsxToGrid } from '@/services/import/parseXlsx'
 import { validateImportGrid } from '@/services/import/validate'
@@ -29,7 +30,7 @@ async function parseConversionFile(file: File): Promise<ImportGrid> {
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
     return parseXlsxToGrid(await file.arrayBuffer(), { contract })
   }
-  return parseCsvToGrid(await file.text(), { contract })
+  return parseCsvToGrid(decodeImportCsvText(await file.arrayBuffer()), { contract })
 }
 
 async function loadSkuMap(skus: string[]): Promise<Map<string, string>> {

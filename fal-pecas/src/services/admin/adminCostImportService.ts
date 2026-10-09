@@ -1,10 +1,14 @@
 import { parseMoneyBr } from '@/lib/money'
 import { getSupabase } from '@/lib/supabase'
 import { getImportContract } from '@/services/import/contracts'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
 import { parseXlsxToGrid } from '@/services/import/parseXlsx'
 import { validateImportGrid } from '@/services/import/validate'
 import type { ImportGrid } from '@/services/import/types'
+
+/** Código do fornecedor próprio FAL — codigo_fornecedor = products.sku. */
+export const FAL_PRINCIPAL_SUPPLIER_CODE = 'FAL-SUP-01'
 
 export type CostImportPreviewRow = {
   line: number
@@ -14,7 +18,7 @@ export type CostImportPreviewRow = {
   oldCost: number | null
   productId: string | null
   productSku: string | null
-  action: 'update' | null
+  action: 'update' | 'create' | null
   errors: string[]
   warnings: string[]
   ok: boolean
@@ -41,7 +45,7 @@ async function parseCostFile(file: File): Promise<ImportGrid> {
   if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
     return parseXlsxToGrid(await file.arrayBuffer(), { contract })
   }
-  return parseCsvToGrid(await file.text(), { contract })
+  return parseCsvToGrid(decodeImportCsvText(await file.arrayBuffer()), { contract })
 }
 
 function productSkuFromJoin(
@@ -50,6 +54,20 @@ function productSkuFromJoin(
   if (!products) return null
   const row = Array.isArray(products) ? products[0] : products
   return row?.sku ? String(row.sku) : null
+}
+
+export function isFalPrincipalSupplier(code: string | null | undefined): boolean {
+  return (code ?? '').trim().toUpperCase() === FAL_PRINCIPAL_SUPPLIER_CODE
+}
+
+async function loadSupplierCode(supplierId: string): Promise<string | null> {
+  const { data, error } = await getSupabase()
+    .from('suppliers')
+    .select('code')
+    .eq('id', supplierId)
+    .maybeSingle()
+  if (error) throw error
+  return (data?.code as string | null) ?? null
 }
 
 async function loadConversionsBySupplierSku(
@@ -85,9 +103,60 @@ async function loadConversionsBySupplierSku(
   return map
 }
 
+/** Match products.sku = codigo (FAL Principal). Inclui custo atual se já houver vínculo. */
+async function loadProductsBySkuForFal(
+  supplierId: string,
+  skus: string[],
+): Promise<
+  Map<string, { productId: string; productSku: string; cost: number | null; hasLink: boolean }>
+> {
+  const map = new Map<
+    string,
+    { productId: string; productSku: string; cost: number | null; hasLink: boolean }
+  >()
+  const unique = [...new Set(skus.map((s) => s.trim()).filter(Boolean))]
+  if (!unique.length) return map
+
+  const sb = getSupabase()
+  const chunkSize = 200
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize)
+    const { data, error } = await sb.from('products').select('id, sku').in('sku', chunk)
+    if (error) throw error
+    const productIds = (data ?? []).map((p) => String(p.id))
+    const costByProduct = new Map<string, number | null>()
+    if (productIds.length) {
+      const { data: links, error: linkErr } = await sb
+        .from('supplier_products')
+        .select('product_id, cost')
+        .eq('supplier_id', supplierId)
+        .in('product_id', productIds)
+      if (linkErr) throw linkErr
+      for (const row of links ?? []) {
+        costByProduct.set(
+          String(row.product_id),
+          row.cost == null ? null : Number(row.cost),
+        )
+      }
+    }
+    for (const row of data ?? []) {
+      const productId = String(row.id)
+      const sku = String(row.sku)
+      map.set(sku, {
+        productId,
+        productSku: sku,
+        cost: costByProduct.get(productId) ?? null,
+        hasLink: costByProduct.has(productId),
+      })
+    }
+  }
+  return map
+}
+
 /**
  * Preview: resolve conversão por código do fornecedor.
- * Sem conversão = erro (pendência). Não cria vínculo nem produto.
+ * FAL-SUP-01: codigo = products.sku (sem exigir conversão prévia).
+ * Demais: sem conversão = erro.
  */
 export async function adminPreviewCostImport(input: {
   file: File
@@ -123,10 +192,14 @@ export async function adminPreviewCostImport(input: {
     errorsByLine.set(e.lineNumber, list)
   }
 
-  const conversions = await loadConversionsBySupplierSku(
-    input.supplierId,
-    validation.mapped.map((m) => m.values.supplier_sku ?? ''),
-  )
+  const supplierCode = await loadSupplierCode(input.supplierId)
+  const falPrincipal = isFalPrincipalSupplier(supplierCode)
+  const skus = validation.mapped.map((m) => m.values.supplier_sku ?? '')
+
+  const conversions = await loadConversionsBySupplierSku(input.supplierId, skus)
+  const falBySku = falPrincipal
+    ? await loadProductsBySkuForFal(input.supplierId, skus)
+    : null
 
   const rows: CostImportPreviewRow[] = []
   for (const mapped of validation.mapped) {
@@ -134,36 +207,52 @@ export async function adminPreviewCostImport(input: {
     const costRaw = (mapped.values.cost ?? '').trim()
     const cost = parseMoneyBr(costRaw)
     const lineErrors = [...(errorsByLine.get(mapped.lineNumber) ?? [])]
+    const warnings: string[] = []
     let productId: string | null = null
     let productSku: string | null = null
     let oldCost: number | null = null
-    let action: 'update' | null = null
+    let action: 'update' | 'create' | null = null
 
     if (lineErrors.length === 0) {
-      const conv = conversions.get(supplierSku)
-      if (!conv) {
-        lineErrors.push('Sem conversão: código fornecedor não vinculado a produto FAL')
-      } else if (cost == null || cost < 0) {
+      if (cost == null || cost < 0) {
         lineErrors.push('Custo inválido')
       } else {
-        productId = conv.productId
-        productSku = conv.productSku
-        oldCost = conv.cost
-        action = 'update'
+        const conv = conversions.get(supplierSku)
+        if (conv) {
+          productId = conv.productId
+          productSku = conv.productSku
+          oldCost = conv.cost
+          action = 'update'
+        } else if (falPrincipal && falBySku) {
+          const hit = falBySku.get(supplierSku)
+          if (!hit) {
+            lineErrors.push('SKU FAL não encontrado (FAL Principal)')
+          } else {
+            productId = hit.productId
+            productSku = hit.productSku
+            oldCost = hit.cost
+            action = hit.hasLink ? 'update' : 'create'
+            if (!hit.hasLink) {
+              warnings.push('Vínculo FAL será criado (código = SKU)')
+            }
+          }
+        } else {
+          lineErrors.push('Sem conversão: código fornecedor não vinculado a produto FAL')
+        }
       }
     }
 
     rows.push({
       line: mapped.lineNumber,
       supplierSku,
-      cost: lineErrors.length === 0 ? cost : cost,
+      cost,
       costRaw,
       oldCost,
       productId,
       productSku,
       action,
       errors: lineErrors,
-      warnings: [],
+      warnings,
       ok: lineErrors.length === 0,
     })
   }
@@ -233,4 +322,31 @@ export async function adminApplyCostImport(importId: string): Promise<CostImport
     failed: Number(report.failed ?? 0),
     skipped: Number(report.skipped ?? 0),
   }
+}
+
+/**
+ * Garante products.supplier_id = FAL Principal quando ainda NULL
+ * (elo formação / UI de custo). Idempotente.
+ */
+export async function adminEnsurePrincipalSupplier(productIds: string[]): Promise<number> {
+  const unique = [...new Set(productIds.filter(Boolean))]
+  if (!unique.length) return 0
+  const sb = getSupabase()
+  const { data: fal, error: falErr } = await sb
+    .from('suppliers')
+    .select('id')
+    .eq('code', FAL_PRINCIPAL_SUPPLIER_CODE)
+    .eq('status', 'active')
+    .maybeSingle()
+  if (falErr) throw falErr
+  if (!fal?.id) return 0
+
+  const { data, error } = await sb
+    .from('products')
+    .update({ supplier_id: fal.id })
+    .in('id', unique)
+    .is('supplier_id', null)
+    .select('id')
+  if (error) throw error
+  return (data ?? []).length
 }

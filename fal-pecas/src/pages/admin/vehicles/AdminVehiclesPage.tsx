@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { entityStatusLabel } from '@/lib/adminLabels'
@@ -13,6 +14,7 @@ import {
 } from '@/services/admin/adminVehicleService'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 export function AdminVehiclesPage() {
   const [makers, setMakers] = useState<Manufacturer[]>([])
@@ -125,10 +127,30 @@ export function AdminVehiclesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">Veículos</h1>
-      <p className="text-sm text-fal-muted">
-        Hierarquia: Montadora → Modelo → Ano / Motor / Versão. Campos vazios ficam NULL (não inventar).
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-fal-navy">Veículos</h1>
+          <p className="mt-1 text-sm text-fal-muted">
+            Hierarquia: Montadora → Modelo → Configuração. Período da aplicação (ano) fica em{' '}
+            <code className="text-xs">product_vehicle_compatibility.year_start/year_end</code> — não
+            só em <code className="text-xs">vehicle_versions.year</code>.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            to="/admin/produtos/importar-aplicacoes"
+          >
+            Importar aplicações
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            to="/admin/importacoes?kind=catalog_applications"
+          >
+            Histórico apps
+          </Link>
+        </div>
+      </div>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {loading ? <Loading /> : null}
@@ -193,8 +215,15 @@ export function AdminVehiclesPage() {
           <tbody>
             {models.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-3 py-4 text-fal-muted">
-                  {makerId ? 'Nenhum modelo nesta montadora.' : 'Selecione uma montadora.'}
+                <td colSpan={3} className="px-3 py-4">
+                  <EmptyState
+                    title={makerId ? 'Nenhum modelo nesta montadora' : 'Selecione uma montadora'}
+                    description={
+                      makerId
+                        ? 'Cadastre o primeiro modelo para esta montadora.'
+                        : 'Escolha a montadora acima para listar modelos.'
+                    }
+                  />
                 </td>
               </tr>
             ) : (
@@ -301,8 +330,17 @@ export function AdminVehiclesPage() {
           <tbody>
             {versions.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-4 text-fal-muted">
-                  {modelId ? 'Nenhuma configuração neste modelo.' : 'Selecione um modelo.'}
+                <td colSpan={5} className="px-3 py-4">
+                  <EmptyState
+                    title={
+                      modelId ? 'Nenhuma configuração neste modelo' : 'Selecione um modelo'
+                    }
+                    description={
+                      modelId
+                        ? 'Crie ano/motor/versão para vincular aplicações.'
+                        : 'Escolha o modelo para listar configurações.'
+                    }
+                  />
                 </td>
               </tr>
             ) : (

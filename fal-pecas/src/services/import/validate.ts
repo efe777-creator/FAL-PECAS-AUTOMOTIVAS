@@ -116,7 +116,8 @@ export function validateImportGrid(
   const dupField =
     options?.duplicateKeyField ??
     (mapping.sku != null ? 'sku' : mapping.supplier_sku != null ? 'supplier_sku' : 'sku')
-  const dupes = findDuplicateKeys(mapped, dupField)
+  const skipDupes = dupField === '__none__' || dupField === ''
+  const dupes = skipDupes ? new Map<string, number[]>() : findDuplicateKeys(mapped, dupField)
   const dupeLines = new Set<number>()
   for (const [key, lines] of dupes) {
     for (const ln of lines) {

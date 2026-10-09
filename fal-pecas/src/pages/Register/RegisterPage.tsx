@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
@@ -12,6 +13,7 @@ export function RegisterPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [cpf, setCpf] = useState('')
   const [username, setUsername] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -33,6 +35,11 @@ export function RegisterPage() {
       setError('Aceite os termos para continuar.')
       return
     }
+    const cpfDigits = onlyDigits(cpf)
+    if (!isValidCpf(cpfDigits)) {
+      setError('CPF inválido. Confira os 11 dígitos.')
+      return
+    }
     const phoneDigits = phone.trim() ? normalizePhone(phone) : ''
     if (phoneDigits && !isValidPhone(phoneDigits)) {
       setError('Telefone inválido. Use DDD + número (10 ou 11 dígitos).')
@@ -47,6 +54,7 @@ export function RegisterPage() {
         lastName,
         username: username || undefined,
         phone: phoneDigits || undefined,
+        cpf: cpfDigits,
       })
       navigate('/conta', { replace: true })
     } catch (err) {
@@ -66,11 +74,12 @@ export function RegisterPage() {
             Crie sua conta FAL
           </h1>
           <p className="text-[17px] text-fal-muted">
-            Cadastro com e-mail e senha via Supabase Auth. Username fica preparado no perfil.
+            Crie sua conta com nome, e-mail, CPF e senha. Você já pode navegar na loja; confirme o
+            e-mail quando receber a mensagem.
           </p>
           {!isConfigured ? (
             <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
-              Configure o Supabase no arquivo <code>.env</code> para ativar o cadastro real.
+              Cadastro indisponível no momento. Tente novamente mais tarde.
             </p>
           ) : null}
         </div>
@@ -112,20 +121,30 @@ export function RegisterPage() {
                 />
               </div>
               <Input
-                label="Usuário (opcional)"
-                name="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                hint="Armazenado no perfil. Login por usuário virá depois (backend seguro)."
+                label="CPF"
+                name="cpf"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={(e) => setCpf(formatCpfMask(e.target.value))}
+                required
               />
               <Input
-                label="Telefone"
+                label="Telefone / WhatsApp"
                 name="phone"
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="(11) 99999-9999"
                 value={phone}
                 onChange={(e) => setPhone(formatPhoneMask(e.target.value))}
+              />
+              <Input
+                label="Usuário (opcional)"
+                name="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                hint="Opcional. Você também pode entrar com o e-mail."
               />
               <Input
                 label="Senha"

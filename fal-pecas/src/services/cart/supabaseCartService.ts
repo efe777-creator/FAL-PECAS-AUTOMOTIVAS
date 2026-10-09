@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
+import { applyResolvedPricesToCartItems } from '@/services/cart/cartPricing'
 import type { CartItem } from '@/types'
 
 async function ensureCartId(customerId: string): Promise<string> {
@@ -35,15 +36,16 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
     .eq('cart_id', cartId)
   if (error) throw error
 
-  return (data ?? []).map((row) => {
+  const mapped: CartItem[] = (data ?? []).map((row) => {
     const product = Array.isArray(row.products) ? row.products[0] : row.products
     const p = product as
       | { sku?: string; name?: string; price?: number; promo_price?: number | null }
       | null
+    // Snapshot só como placeholder até applyResolvedPricesToCartItems (FIND-006).
     const price =
       row.unit_price_snapshot != null
         ? Number(row.unit_price_snapshot)
-        : Number(p?.promo_price ?? p?.price ?? 0) // snapshot UX; verdade no place_order (resolve)
+        : Number(p?.price ?? 0)
     return {
       productId: String(row.product_id),
       sku: String(p?.sku ?? ''),
@@ -52,6 +54,8 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
       quantity: Number(row.quantity),
     }
   })
+
+  return applyResolvedPricesToCartItems(mapped, customerId)
 }
 
 export async function saveRemoteCart(items: CartItem[]): Promise<void> {

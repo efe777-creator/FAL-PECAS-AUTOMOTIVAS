@@ -1,5 +1,5 @@
 import { detectCsvDelimiter } from './delimiter'
-import { splitCsvLine } from './csvSplit'
+import { splitCsvLine, splitCsvRecords } from './csvSplit'
 import type { CsvDelimiter, ImportContract, ImportGrid, ImportGridRow } from './types'
 import { normalizeHeader } from './headers'
 
@@ -18,6 +18,7 @@ function looksLikeHeader(cells: string[], contract: ImportContract): boolean {
 
 /**
  * Parse CSV → grade. Delimitador opcional; se omitido, detecta (preferência `;`).
+ * Registros respeitam aspas: descrição com quebras de linha permanece um único produto.
  */
 export function parseCsvToGrid(
   text: string,
@@ -27,13 +28,9 @@ export function parseCsvToGrid(
   },
 ): ImportGrid {
   const delimiter = options.delimiter ?? detectCsvDelimiter(text)
-  const lines = text
-    .replace(/^\uFEFF/, '')
-    .split(/\r?\n/)
-    .map((l) => l.trimEnd())
-    .filter((l) => l.trim().length > 0)
+  const records = splitCsvRecords(text)
 
-  if (lines.length === 0) {
+  if (records.length === 0) {
     return {
       source: 'csv',
       delimiter,
@@ -43,17 +40,18 @@ export function parseCsvToGrid(
     }
   }
 
-  const firstCells = splitCsvLine(lines[0]!, delimiter)
+  const firstCells = splitCsvLine(records[0]!.text, delimiter)
   const hasHeader = looksLikeHeader(firstCells, options.contract)
   const headers = hasHeader ? firstCells.map(normalizeHeader) : []
   const dataStart = hasHeader ? 1 : 0
 
   const rows: ImportGridRow[] = []
-  for (let i = dataStart; i < lines.length; i++) {
-    const cells = splitCsvLine(lines[i]!, delimiter)
+  for (let i = dataStart; i < records.length; i++) {
+    const rec = records[i]!
+    const cells = splitCsvLine(rec.text, delimiter)
     if (cells.every((c) => !c.trim())) continue
     rows.push({
-      lineNumber: i + 1,
+      lineNumber: rec.lineNumber,
       cells,
     })
   }

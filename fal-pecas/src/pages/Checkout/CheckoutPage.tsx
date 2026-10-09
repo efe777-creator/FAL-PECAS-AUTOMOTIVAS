@@ -493,8 +493,8 @@ export function CheckoutPage() {
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Pagamento — Mercado Pago</h2>
                   <p className="text-sm text-fal-muted">
-                    Pix ou cartão. Confirmação só via webhook — esta tela não marca o pedido como
-                    pago.
+                    Pix ou cartão. A confirmação do pagamento é feita automaticamente pelo Mercado
+                    Pago — esta tela pode levar alguns instantes para atualizar.
                   </p>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                     <input
@@ -519,9 +519,8 @@ export function CheckoutPage() {
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Pagamento (simulado)</h2>
                   <p className="text-sm text-fal-muted">
-                    Ambiente de teste — nenhum gateway real. Use{' '}
-                    <code className="text-xs">VITE_PAYMENT_PROVIDER=mercadopago</code> para Pix
-                    sandbox.
+                    Pagamento em modo demonstração (sem cobrança real). Para Pix e cartão reais,
+                    configure o provedor Mercado Pago no ambiente da loja.
                   </p>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                     <input

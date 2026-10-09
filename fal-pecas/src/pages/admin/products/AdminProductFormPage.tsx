@@ -2,7 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { adminListBrands } from '@/services/admin/adminBrandService'
-import { adminListCategories, categoryPath } from '@/services/admin/adminCategoryService'
+import { adminListCategories } from '@/services/admin/adminCategoryService'
 import {
   adminDeleteImage,
   adminListImages,
@@ -13,9 +13,11 @@ import { adminListManufacturers } from '@/services/admin/adminManufacturerServic
 import {
   adminAddApplication,
   adminDeleteReference,
+  adminEvaluateReleaseChecklist,
   adminGetProduct,
   adminListApplications,
   adminListReferences,
+  adminReleaseProductToStore,
   adminRemoveApplication,
   adminUpsertProduct,
   adminUpsertReference,
@@ -36,7 +38,15 @@ import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
+import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
+import {
+  POSICAO_ATOMS,
+  composePosicao,
+  parsePosicaoAtoms,
+  type PosicaoAtom,
+} from '@/lib/productPosicaoLado'
 import type {
   Category,
   Manufacturer,
@@ -59,15 +69,23 @@ export function AdminProductFormPage() {
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
+  const [releasing, setReleasing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const [productId, setProductId] = useState<string | null>(isNew ? null : id)
 
   const [name, setName] = useState('')
+  const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
-  const [categoryId, setCategoryId] = useState('')
+  /** Hierarquia admin: Grupo → Categoria → Subcategoria (folha salva em products.category_id). */
+  const [catGrupoId, setCatGrupoId] = useState('')
+  const [catCategoriaId, setCatCategoriaId] = useState('')
+  const [catSubId, setCatSubId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [supplierId, setSupplierId] = useState('')
+
+  const categoryId = catSubId || catCategoriaId || catGrupoId || ''
   /** Preços nas listas — somente leitura (exceto preço inicial Base no novo produto). */
   const [listRows, setListRows] = useState<ProductListPriceRow[]>([])
   /** Espelho products.price / promo_price (não editáveis na UI após criação). */
@@ -87,6 +105,8 @@ export function AdminProductFormPage() {
   const [lengthCm, setLengthCm] = useState('')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
+  const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
+  const [lado, setLado] = useState<Product['lado']>(null)
 
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
@@ -114,7 +134,14 @@ export function AdminProductFormPage() {
         adminListManufacturers(),
         adminListPriceLists(),
       ])
-      setCategories(cats)
+      // Só published na lista; preserva nós extras (ex. arquivados do produto em edição).
+      setCategories((prev) => {
+        const published = cats.filter((c) => c.status === 'published')
+        const extras = prev.filter(
+          (c) => c.status !== 'published' && !published.some((p) => p.id === c.id),
+        )
+        return [...published, ...extras]
+      })
       setBrands(brs.filter((b) => b.status === 'active'))
       setSuppliers(sups.filter((s) => s.status === 'active'))
       setMakers(mfrs.filter((m) => m.status === 'active'))
@@ -144,9 +171,30 @@ export function AdminProductFormPage() {
         if (!p) throw new Error('Produto não encontrado')
         setProductId(p.id)
         setName(p.name)
+        setCommercialRef(p.commercialRef ?? p.sku)
         setSku(p.sku)
         setStatus(p.status ?? 'draft')
-        setCategoryId(p.categoryId ?? '')
+        {
+          const leaf = p.categoryId ?? ''
+          const path: string[] = []
+          let cur: string | null = leaf || null
+          const byId = new Map((await adminListCategories()).map((c) => [c.id, c]))
+          while (cur) {
+            path.unshift(cur)
+            cur = byId.get(cur)?.parentId ?? null
+          }
+          setCatGrupoId(path[0] ?? '')
+          setCatCategoriaId(path[1] ?? '')
+          setCatSubId(path[2] ?? '')
+          // Garante nós do produto (mesmo arquivados) para edição não “perder” a seleção.
+          setCategories((prev) => {
+            const ids = new Set(prev.map((c) => c.id))
+            const extra = path
+              .map((id) => byId.get(id))
+              .filter((c): c is Category => Boolean(c) && !ids.has(c!.id))
+            return extra.length ? [...prev, ...extra] : prev
+          })
+        }
         setBrandId(p.brandId ?? '')
         setSupplierId(p.supplierId ?? '')
         setAvailable(Boolean(p.available))
@@ -158,6 +206,8 @@ export function AdminProductFormPage() {
         setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
+        setPosicaoAtoms(parsePosicaoAtoms(p.posicao))
+        setLado(p.lado ?? null)
 
         const [rows, ov] = await Promise.all([
           adminListProductListPrices(p.id),
@@ -205,10 +255,64 @@ export function AdminProductFormPage() {
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
 
+  async function onLiberarNaLoja() {
+    if (!productId) return
+    const publishIfNeeded = status !== 'published'
+    setReleasing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const pre = await adminEvaluateReleaseChecklist(productId, { publishIfNeeded })
+      if (!pre) {
+        setError('Produto não encontrado')
+        return
+      }
+      const soft =
+        pre.softWarnings.length > 0
+          ? `\nAvisos: ${pre.softWarnings.map((w) => w.label).join(', ')}`
+          : ''
+      if (!pre.canRelease) {
+        setError(`Checklist D-LIBERAR: ${pre.summary}`)
+        return
+      }
+      const ok = window.confirm(
+        `Liberar na loja (D-LIBERAR)?\n\n` +
+          `• Hard: nome, código ref., categoria, preço resolvido > 0\n` +
+          `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já published'}\n` +
+          `• Marcar is_available${soft}\n\nConfirmar?`,
+      )
+      if (!ok) return
+      const result = await adminReleaseProductToStore({
+        productId,
+        publishIfNeeded,
+      })
+      if (!result.ok) {
+        setError(result.reason)
+        return
+      }
+      setAvailable(true)
+      setStatus('published')
+      const warnMsg =
+        result.checklist.softWarnings.length > 0
+          ? ` Avisos: ${result.checklist.softWarnings.map((w) => w.label).join(', ')}.`
+          : ''
+      setMessage(
+        (result.publishedNow
+          ? 'Produto publicado e liberado na loja.'
+          : 'Produto liberado na loja.') + warnMsg,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao liberar na loja')
+    } finally {
+      setReleasing(false)
+    }
+  }
+
   async function saveGeneral(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
+    setMessage(null)
     try {
       let priceNum: number
       let promoNum: number | null = null
@@ -237,7 +341,8 @@ export function AdminProductFormPage() {
       const saved = await adminUpsertProduct({
         id: productId ?? undefined,
         name,
-        sku: sku.trim(),
+        commercialRef: commercialRef.trim(),
+        sku: sku.trim() || undefined,
         status,
         categoryId: categoryId || null,
         brandId: brandId || null,
@@ -251,6 +356,8 @@ export function AdminProductFormPage() {
         lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
         shortDescription,
         description,
+        posicao: composePosicao(posicaoAtoms),
+        lado: lado || null,
         // Novo: semente Base via ensure. Edição: não mexer nas listas aqui.
         syncBasePromoLists: isNew,
       })
@@ -303,28 +410,94 @@ export function AdminProductFormPage() {
         <h2 className="font-extrabold text-fal-navy">Geral</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} required />
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold">
-              Classificação (Grupo / Categoria / Subcategoria)
-            </span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">—</option>
-              {[...categories]
-                .sort((a, b) =>
-                  categoryPath(categories, a.id).localeCompare(categoryPath(categories, b.id)),
-                )
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {categoryPath(categories, c.id)}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <Input
+            label="Código referência"
+            value={commercialRef}
+            onChange={(e) => {
+              setCommercialRef(e.target.value)
+              if (isNew && !sku.trim()) setSku(e.target.value)
+            }}
+            required
+            hint="Código comercial exibido na loja e no admin."
+          />
+          <Input
+            label="SKU FAL"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            hint="Identificador técnico (import/matching). Se vazio, usa o Código referência."
+          />
+          <fieldset className="text-sm md:col-span-2">
+            <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
+            <p className="mb-2 text-xs text-fal-muted">
+              Só categorias publicadas. Cadastre novas em Admin → Categorias (ou via importação
+              depois de cadastrar a hierarquia).
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Grupo</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catGrupoId}
+                  onChange={(e) => {
+                    setCatGrupoId(e.target.value)
+                    setCatCategoriaId('')
+                    setCatSubId('')
+                  }}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => !c.parentId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Categoria</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catCategoriaId}
+                  disabled={!catGrupoId}
+                  onChange={(e) => {
+                    setCatCategoriaId(e.target.value)
+                    setCatSubId('')
+                  }}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => c.parentId === catGrupoId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Subcategoria</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={catSubId}
+                  disabled={!catCategoriaId}
+                  onChange={(e) => setCatSubId(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {categories
+                    .filter((c) => c.parentId === catCategoriaId)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>
             <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
@@ -341,6 +514,55 @@ export function AdminProductFormPage() {
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
+            </select>
+          </label>
+          <fieldset className="text-sm md:col-span-2">
+            <legend className="mb-1 block font-semibold text-fal-navy">Posição</legend>
+            <p className="mb-2 text-xs text-fal-muted">
+              Pode combinar (ex.: Dianteira + Inferior). Na planilha: DIANT, TRAS, SUPERIOR,
+              INFERIOR ou “DIANT INFERIOR”.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {(
+                [
+                  ['DIANTEIRA', 'Dianteira (DIANT)'],
+                  ['TRASEIRA', 'Traseira (TRAS)'],
+                  ['SUPERIOR', 'Superior'],
+                  ['INFERIOR', 'Inferior'],
+                ] as const
+              ).map(([atom, label]) => {
+                const checked = posicaoAtoms.includes(atom)
+                return (
+                  <label key={atom} className="inline-flex items-center gap-2 font-normal">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setPosicaoAtoms((prev) => {
+                          const next = checked
+                            ? prev.filter((a) => a !== atom)
+                            : [...prev, atom]
+                          return POSICAO_ATOMS.filter((a) => next.includes(a))
+                        })
+                      }}
+                    />
+                    {label}
+                  </label>
+                )
+              })}
+            </div>
+          </fieldset>
+          <label className="text-sm">
+            <span className="mb-1 block font-semibold">Lado</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={lado ?? ''}
+              onChange={(e) => setLado((e.target.value || null) as Product['lado'])}
+            >
+              <option value="">—</option>
+              <option value="ESQUERDO">Esquerdo</option>
+              <option value="DIREITO">Direito</option>
+              <option value="AMBOS">Ambos</option>
             </select>
           </label>
           <label className="text-sm">
@@ -361,10 +583,53 @@ export function AdminProductFormPage() {
           </Link>
           . Neste formulário você pode apenas <strong>ativar ou editar o preço avulso</strong> (exceção).
         </p>
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />
-          Disponível na loja
-        </label>
+        <div className="rounded-[12px] border border-fal-line bg-white p-3">
+          <p className="m-0 text-sm font-extrabold text-fal-navy">Disponibilidade na loja</p>
+          <p className="mt-1 text-xs text-fal-muted">
+            Importação de custo/preço não libera o produto. Use{' '}
+            <strong>Liberar na loja</strong> quando status, preço e confirmação estiverem ok.
+          </p>
+          <p className="mt-2 text-sm">
+            Situação:{' '}
+            <strong className={available ? 'text-green-700' : 'text-fal-muted'}>
+              {available ? 'Disponível' : 'Indisponível'}
+            </strong>
+            {status !== 'published' ? (
+              <span className="ml-2 text-xs text-fal-yellow-dark">(status ≠ publicado)</span>
+            ) : null}
+          </p>
+          {!isNew && productId ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={releasing || available}
+                onClick={() => void onLiberarNaLoja()}
+              >
+                {releasing ? 'Liberando…' : 'Liberar na loja'}
+              </Button>
+              {available ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  disabled={saving}
+                  onClick={() => setAvailable(false)}
+                >
+                  Marcar indisponível (salvar depois)
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={available}
+                onChange={(e) => setAvailable(e.target.checked)}
+              />
+              Disponível na loja (após criar, use Liberar com checklist)
+            </label>
+          )}
+        </div>
+        {message ? <p className="m-0 text-sm font-semibold text-fal-navy">{message}</p> : null}
 
         {isNew ? (
           <Input
@@ -490,11 +755,11 @@ export function AdminProductFormPage() {
               <label className="text-sm">
                 <span className="mb-1 block font-semibold">Tipo</span>
                 <select className="rounded-[10px] border border-fal-line px-3 py-2" value={refType} onChange={(e) => setRefType(e.target.value)}>
-                  <option value="manufacturer">manufacturer</option>
-                  <option value="oem">oem</option>
-                  <option value="internal">internal</option>
-                  <option value="competitor">competitor</option>
-                  <option value="other">other</option>
+                  <option value="manufacturer">Código do fabricante</option>
+                  <option value="oem">Código OEM (montadora)</option>
+                  <option value="internal">Código interno</option>
+                  <option value="competitor">Código concorrente</option>
+                  <option value="other">Outro</option>
                 </select>
               </label>
               <div className="flex items-end">
@@ -517,7 +782,8 @@ export function AdminProductFormPage() {
               {refs.map((r) => (
                 <li key={r.id ?? r.code} className="flex justify-between border-b border-fal-line py-1">
                   <span>
-                    <strong>{r.code}</strong> · {r.type} · {r.status}
+                    <strong>{r.code}</strong> · {productReferenceTypeLabel(r.type)} ·{' '}
+                    {entityStatusLabel(r.status)}
                   </span>
                   {r.id ? (
                     <button type="button" className="text-fal-danger font-semibold" onClick={() => void adminDeleteReference(r.id!).then(async () => setRefs(await adminListReferences(productId)))}>
@@ -551,14 +817,18 @@ export function AdminProductFormPage() {
               <Button
                 type="button"
                 disabled={!versionId}
-                onClick={() =>
-                  void adminAddApplication(productId, versionId)
+                onClick={() => {
+                  const v = versions.find((x) => x.id === versionId)
+                  void adminAddApplication(productId, versionId, undefined, {
+                    yearStart: v?.year ?? null,
+                    yearEnd: v?.year ?? null,
+                  })
                     .then(async () => {
                       setVersionId('')
                       setApps(await adminListApplications(productId))
                     })
                     .catch((e) => setError(String(e.message ?? e)))
-                }
+                }}
               >
                 Vincular
               </Button>
@@ -567,6 +837,8 @@ export function AdminProductFormPage() {
               {apps.map((a) => {
                 const row = a as {
                   id: string
+                  year_start?: number | null
+                  year_end?: number | null
                   vehicle_versions?: {
                     year: number | null
                     engine: string | null
@@ -578,9 +850,14 @@ export function AdminProductFormPage() {
                 const vv = row.vehicle_versions
                 const maker = Array.isArray(vv?.manufacturers) ? vv?.manufacturers[0]?.name : vv?.manufacturers?.name
                 const model = Array.isArray(vv?.models) ? vv?.models[0]?.name : vv?.models?.name
+                const yearLabel = formatVehicleAppYear({
+                  yearStart: row.year_start,
+                  yearEnd: row.year_end,
+                  versionYear: vv?.year,
+                })
                 return (
                   <li key={row.id} className="flex justify-between border-b border-fal-line py-1">
-                    <span>{[maker, model, vv?.year, vv?.engine, vv?.version_name].filter(Boolean).join(' ')}</span>
+                    <span>{[maker, model, yearLabel, vv?.engine, vv?.version_name].filter(Boolean).join(' ')}</span>
                     <button type="button" className="font-semibold text-fal-danger" onClick={() => void adminRemoveApplication(row.id).then(async () => setApps(await adminListApplications(productId)))}>
                       Remover
                     </button>

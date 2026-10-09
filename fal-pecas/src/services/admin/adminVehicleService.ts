@@ -1,3 +1,4 @@
+import { formatCatalogDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { VehicleModel, VehicleVersion } from '@/types'
@@ -60,10 +61,23 @@ export async function adminUpsertModel(input: {
   slug?: string
   status?: VehicleModel['status']
 }): Promise<VehicleModel> {
+  const name = formatCatalogDisplayName(input.name)
+  if (!name) throw new Error('Informe o nome do modelo.')
+
+  if (!input.id) {
+    const siblings = await adminListModels(input.manufacturerId)
+    const dup = siblings.find(
+      (m) =>
+        m.status === 'active' &&
+        normalizeEntityMatchKey(m.name) === normalizeEntityMatchKey(name),
+    )
+    if (dup) throw new Error(`Já existe modelo "${dup.name}" nesta montadora.`)
+  }
+
   const payload = {
     manufacturer_id: input.manufacturerId,
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(`model-${Date.now()}`),
+    name,
+    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`model-${Date.now()}`),
     status: input.status ?? 'active',
   }
   const q = getSupabase().from('models')

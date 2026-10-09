@@ -10,17 +10,21 @@ import {
   onlyDigits,
 } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
+import { requestAccountDeletion } from '@/services/customers/accountDeletionService'
 import { getCustomerProfile, updateCustomerProfile } from '@/services/customers/customerService'
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export function AccountProfilePage() {
-  const { user, session } = useAuth()
+  const { user, session, signOut } = useAuth()
+  const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [cpf, setCpf] = useState('')
   const [cnpj, setCnpj] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -119,10 +123,44 @@ export function AccountProfilePage() {
           value={cnpj}
           onChange={(e) => setCnpj(formatCnpjMask(e.target.value))}
         />
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || deleting}>
           {saving ? 'Salvando…' : 'Salvar'}
         </Button>
       </form>
+
+      <div className="mt-8 border-t border-fal-line pt-5">
+        <h3 className="m-0 text-base font-extrabold text-fal-navy">Encerrar conta</h3>
+        <p className="mt-1 text-sm text-fal-muted">
+          Seus pedidos e histórico comercial são preservados. Dados pessoais de cadastro são
+          removidos. Esta ação não pode ser desfeita por você.
+        </p>
+        <button
+          type="button"
+          disabled={deleting || saving}
+          className="mt-3 rounded-[10px] border border-fal-danger px-4 py-2 text-sm font-bold text-fal-danger hover:bg-red-50 disabled:opacity-50"
+          onClick={() => {
+            void (async () => {
+              const ok = window.confirm(
+                'Encerrar sua conta?\n\nPedidos antigos continuam no sistema da loja, mas seus dados de cadastro serão anonimizados.',
+              )
+              if (!ok) return
+              setDeleting(true)
+              setError(null)
+              try {
+                await requestAccountDeletion()
+                await signOut()
+                navigate('/', { replace: true })
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Não foi possível encerrar a conta')
+              } finally {
+                setDeleting(false)
+              }
+            })()
+          }}
+        >
+          {deleting ? 'Encerrando…' : 'Encerrar minha conta'}
+        </button>
+      </div>
     </div>
   )
 }
