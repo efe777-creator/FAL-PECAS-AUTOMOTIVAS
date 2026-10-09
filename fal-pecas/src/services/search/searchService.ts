@@ -6,6 +6,7 @@ import {
   displayPrice,
 } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
+import { attachPrimaryProductImages } from '@/services/products/productImages'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
@@ -197,7 +198,8 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
     maxMakers: null,
     maxLinesPerMaker: null,
   })
-  let items = await attachResolvedPrices(withApps)
+  const withImages = await attachPrimaryProductImages(withApps)
+  let items = await attachResolvedPrices(withImages)
 
   // FIND-012: RPC já ordena por resolve; reordenação da página = rede de segurança
   if (sort === 'price_asc' || sort === 'price_desc') {
