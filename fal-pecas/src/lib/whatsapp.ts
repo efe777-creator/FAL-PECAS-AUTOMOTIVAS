@@ -2,6 +2,7 @@
 
 export function buildProductWhatsAppMessage(input: {
   name: string
+  /** Código referência comercial (preferir commercial_ref). */
   sku: string
   quantity?: number
   productUrl?: string
@@ -10,7 +11,7 @@ export function buildProductWhatsAppMessage(input: {
     'Olá! Gostaria de comprar pela FAL:',
     '',
     `Peça: ${input.name}`,
-    `Código FAL: ${input.sku}`,
+    `Código referência: ${input.sku}`,
   ]
   if (input.quantity && input.quantity > 0) {
     lines.push(`Quantidade: ${input.quantity}`)

@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { localCartStorage } from '@/services/cart/cartStorage'
+import { applyResolvedPricesToCartItems } from '@/services/cart/cartPricing'
 import {
   clearRemoteCart,
   loadRemoteCart,
@@ -7,6 +8,7 @@ import {
   saveRemoteCart,
 } from '@/services/cart/supabaseCartService'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { CartItem, Product } from '@/types'
 import {
   createContext,
@@ -52,7 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localCartStorage.save(items)
   }, [items, ready])
 
-  // Login: merge local → remoto
+  // Login: merge local → remoto + preços canônicos (FIND-006)
   useEffect(() => {
     if (!ready || !user || !isSupabaseConfigured) return
     let cancelled = false
@@ -62,10 +64,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const local = localCartStorage.load()
         const remote = await loadRemoteCart()
         const merged = mergeCartItems(local, remote)
+        const priced = await applyResolvedPricesToCartItems(merged)
         if (cancelled) return
         skipNextRemoteSave.current = true
-        setItems(merged)
-        await saveRemoteCart(merged)
+        setItems(priced)
+        await saveRemoteCart(priced)
         localCartStorage.clear()
       } catch (err) {
         console.error('[FAL] Falha ao sincronizar carrinho', err)
@@ -77,6 +80,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [ready, user?.id])
+
+  // Visitante / local: revalida preços canônicos após hydrate
+  useEffect(() => {
+    if (!ready || user || !isSupabaseConfigured) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const local = localCartStorage.load()
+        if (!local.length) return
+        const priced = await applyResolvedPricesToCartItems(local, null)
+        if (cancelled) return
+        setItems(priced)
+      } catch (err) {
+        console.error('[FAL] Falha ao resolver preços do carrinho local', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [ready, user])
 
   // Auth: debounce save remoto
   useEffect(() => {
@@ -97,16 +120,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, ready, user?.id])
 
   const addItem = useCallback((product: Product, quantity = 1) => {
+    const price = displayPrice(product)
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product.id)
       if (existing) {
         return prev.map((i) =>
           i.productId === product.id
-            ? { ...i, quantity: i.quantity + quantity }
+            ? { ...i, quantity: i.quantity + quantity, price }
             : i,
         )
       }
-      const price = product.resolvedPrice ?? product.promoPrice ?? product.price
       return [
         ...prev,
         {
@@ -119,6 +142,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
       ]
     })
+    // Reafirma RPC após add (cobre Product sem resolvedPrice pré-anexado)
+    if (isSupabaseConfigured) {
+      void applyResolvedPricesToCartItems(
+        [
+          {
+            productId: product.id,
+            sku: product.sku,
+            name: product.name,
+            price,
+            quantity,
+          },
+        ],
+      ).then((priced) => {
+        const next = priced[0]
+        if (!next) return
+        setItems((prev) =>
+          prev.map((i) => (i.productId === product.id ? { ...i, price: next.price } : i)),
+        )
+      })
+    }
   }, [])
 
   const removeItem = useCallback((productId: string) => {

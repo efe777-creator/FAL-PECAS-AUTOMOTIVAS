@@ -1,5 +1,9 @@
 import { listCategories } from '@/services/categories/categoryService'
-import { listFeaturedProducts } from '@/services/products/productService'
+import {
+  listFeaturedProducts,
+  listProductsByCategorySlug,
+  listPromoHighlightProducts,
+} from '@/services/products/productService'
 import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import type { Category, Product, VehicleOptionTree } from '@/types'
@@ -67,6 +71,86 @@ export function useFeaturedProducts(limit = 8) {
       active = false
     }
   }, [limit])
+
+  return state
+}
+
+export function usePromoHighlightProducts(limit = 8) {
+  const [state, setState] = useState<AsyncState<Product[]>>({
+    data: [],
+    loading: true,
+    error: null,
+  })
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      try {
+        const data = await listPromoHighlightProducts(limit)
+        if (active) setState({ data, loading: false, error: null })
+      } catch (e) {
+        if (active)
+          setState({
+            data: [],
+            loading: false,
+            error: e instanceof Error ? e.message : 'Erro ao carregar ofertas',
+          })
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [limit])
+
+  return state
+}
+
+/** Produtos de uma ou mais categorias raiz (RPC inclui subcategorias). */
+export function useCategoryProducts(slugs: string[], limit = 8) {
+  const key = slugs.map((s) => s.trim()).filter(Boolean).join('|')
+  const [state, setState] = useState<AsyncState<Product[]>>({
+    data: [],
+    loading: true,
+    error: null,
+  })
+
+  useEffect(() => {
+    let active = true
+    const list = key ? key.split('|') : []
+    if (!list.length) {
+      setState({ data: [], loading: false, error: null })
+      return
+    }
+    void (async () => {
+      try {
+        const chunks = await Promise.all(
+          list.map((slug) => listProductsByCategorySlug(slug, limit)),
+        )
+        const seen = new Set<string>()
+        const merged: Product[] = []
+        for (const chunk of chunks) {
+          for (const p of chunk) {
+            if (seen.has(p.id)) continue
+            seen.add(p.id)
+            merged.push(p)
+            if (merged.length >= limit) break
+          }
+          if (merged.length >= limit) break
+        }
+        if (active) setState({ data: merged, loading: false, error: null })
+      } catch (e) {
+        if (active)
+          setState({
+            data: [],
+            loading: false,
+            error: e instanceof Error ? e.message : 'Erro ao carregar linha',
+          })
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [key, limit])
 
   return state
 }

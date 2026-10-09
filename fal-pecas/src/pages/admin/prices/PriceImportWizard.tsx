@@ -4,14 +4,19 @@ import { formatMoney } from '@/lib/money'
 import {
   adminApplyCostImport,
   adminCreateCostImport,
+  adminEnsurePrincipalSupplier,
   adminPreviewCostImport,
+  FAL_PRINCIPAL_SUPPLIER_CODE,
+  isFalPrincipalSupplier,
   type CostImportPreviewRow,
 } from '@/services/admin/adminCostImportService'
 import {
   adminApplyPriceImport,
   adminCreatePriceImport,
   adminGetPriceListsOverview,
+  adminMaterializePublishedOntoPriceList,
   adminPreviewPriceImport,
+  adminRecalculatePriceListItems,
   adminSyncProductsOntoPriceList,
   type ImportPreviewRow,
   type PriceListOverviewRow,
@@ -23,10 +28,6 @@ import {
   summarizePriceImportActions,
   type PriceImportMode,
 } from '@/services/admin/priceImportActions'
-import {
-  FAL_PRINCIPAL_SUPPLIER_CODE,
-  isFalPrincipalSupplier,
-} from '@/services/admin/adminCostImportService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import {
   detectImportProfile,
@@ -39,6 +40,7 @@ import type { Supplier } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+type CostSellAction = 'cost_only' | 'recalc_sell' | 'keep_sell'
 type SheetKind = 'sell_price' | 'supplier_cost'
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
@@ -83,6 +85,7 @@ export function PriceImportWizard({
   const [supplierId, setSupplierId] = useState('')
   const [costRows, setCostRows] = useState<CostImportPreviewRow[] | null>(null)
   const [costImportId, setCostImportId] = useState<string | null>(null)
+  const [costSellAction, setCostSellAction] = useState<CostSellAction>('cost_only')
 
   useEffect(() => {
     if (!open) return
@@ -96,6 +99,7 @@ export function PriceImportWizard({
     setError(null)
     setImportId(null)
     setCostImportId(null)
+    setCostSellAction('cost_only')
     setProgress(null)
     setResultMsg(null)
     setSupplierId('')
@@ -282,23 +286,53 @@ export function PriceImportWizard({
     setProgress({ done: 0, total: costValid })
     try {
       const result = await adminApplyCostImport(costImportId)
-      setProgress({ done: Math.floor(costValid / 2), total: costValid })
+      setProgress({ done: Math.floor(costValid / 4), total: costValid })
       const productIds = costRows
         .filter((r) => r.ok && r.productId)
         .map((r) => r.productId as string)
+      if (isFalPrincipalSupplier(selectedSupplier?.code)) {
+        await adminEnsurePrincipalSupplier(productIds)
+      }
+      setProgress({ done: Math.floor(costValid / 2), total: costValid })
       const sync = await adminSyncProductsOntoPriceList({
         priceListId,
         productIds,
       })
+      setProgress({ done: Math.floor((costValid * 3) / 4), total: costValid })
+
+      let sellMsg = 'Preços de venda mantidos (somente custo atualizado).'
+      if (costSellAction === 'recalc_sell') {
+        await adminMaterializePublishedOntoPriceList({
+          priceListId,
+          onlyWithPrincipalCost: true,
+        })
+        const applied = await adminRecalculatePriceListItems({
+          priceListId,
+          dryRun: false,
+        })
+        sellMsg =
+          `Preços CALCULATED atualizados pela regra da lista: ${applied.updated}. ` +
+          `Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}` +
+          (applied.skippedNoCost > 0 ? `; sem custo: ${applied.skippedNoCost}` : '') +
+          '.'
+        if (applied.skippedNoCost > 0 && applied.updated === 0) {
+          sellMsg +=
+            ' Aviso: nenhum preço recalculado — confira vínculo do fornecedor principal e custo.'
+        }
+      } else if (costSellAction === 'keep_sell') {
+        sellMsg =
+          'Preços de venda mantidos; indicadores (markup/margem) atualizam na tela ao recarregar.'
+      }
+
       setProgress({ done: costValid, total: costValid })
       setResultMsg(
         `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
           (result.created ? ` · criados ${result.created}` : '') +
           `. Falhas: ${result.failed}. ` +
-          `Lista "${selectedList?.name ?? ''}": incluídos ${sync.created} (venda 0 / calculated); ` +
+          `Lista "${selectedList?.name ?? ''}": incluídos ${sync.created}; ` +
           `já na lista ${sync.alreadyOnList}; ` +
           `manual preservado ${sync.skippedManual}; importado preservado ${sync.skippedImported}. ` +
-          `Use Formação → Aplicar margem para calcular a venda.`,
+          sellMsg,
       )
       setStep(9)
       onApplied?.()
@@ -690,7 +724,7 @@ export function PriceImportWizard({
                 <thead>
                   <tr className="bg-fal-bg text-left">
                     <th className="px-2 py-1">Cód. forn.</th>
-                    <th className="px-2 py-1">Código FAL</th>
+                    <th className="px-2 py-1">Código referência</th>
                     <th className="px-2 py-1">Custo atual</th>
                     <th className="px-2 py-1">Novo</th>
                     <th className="px-2 py-1">Status</th>
@@ -733,14 +767,61 @@ export function PriceImportWizard({
               <li>Fornecedor: {selectedSupplier?.name}</li>
               <li>Lista: {selectedList?.name ?? '—'}</li>
               <li>Linhas válidas: {costValid}</li>
-              <li>Custo em supplier_products + inclusão na lista (venda 0 / calculated)</li>
+              <li>Custo no fornecedor + inclusão na lista</li>
             </ul>
+            <div className="rounded-[10px] border border-fal-line p-3">
+              <p className="m-0 text-sm font-extrabold text-fal-navy">
+                O que fazer com os preços de venda?
+              </p>
+              <div className="mt-2 space-y-2 text-sm">
+                <label className="flex cursor-pointer gap-2">
+                  <input
+                    type="radio"
+                    name="costSellAction"
+                    checked={costSellAction === 'cost_only'}
+                    onChange={() => setCostSellAction('cost_only')}
+                  />
+                  <span>
+                    <strong>Atualizar somente o custo</strong>
+                    <span className="block text-xs text-fal-muted">Mantém o preço atual (recomendado)</span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer gap-2">
+                  <input
+                    type="radio"
+                    name="costSellAction"
+                    checked={costSellAction === 'recalc_sell'}
+                    onChange={() => setCostSellAction('recalc_sell')}
+                  />
+                  <span>
+                    <strong>Atualizar preço pela regra da lista</strong>
+                    <span className="block text-xs text-fal-muted">
+                      Novo custo + markup/margem da lista → novo preço (só CALCULATED)
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer gap-2">
+                  <input
+                    type="radio"
+                    name="costSellAction"
+                    checked={costSellAction === 'keep_sell'}
+                    onChange={() => setCostSellAction('keep_sell')}
+                  />
+                  <span>
+                    <strong>Manter preço e recalcular indicadores</strong>
+                    <span className="block text-xs text-fal-muted">
+                      Preço igual; markup/margem efetivos mudam na tela
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button type="button" variant="light" onClick={() => setStep(6)} disabled={busy}>
                 Voltar
               </Button>
               <Button type="button" disabled={busy || !allowed} onClick={() => void onConfirmCostApply()}>
-                Confirmar custos
+                Confirmar atualização
               </Button>
             </div>
           </div>

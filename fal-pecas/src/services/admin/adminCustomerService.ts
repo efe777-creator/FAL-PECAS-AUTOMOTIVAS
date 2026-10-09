@@ -4,12 +4,13 @@ export interface AdminCustomerListRow {
   id: string
   name: string | null
   username: string | null
+  phone: string | null
   document: string | null
   createdAt: string
 }
 
 export interface AdminCustomerDetail extends AdminCustomerListRow {
-  phone: string | null
+  addressCount: number
   recentOrders: { id: string; status: string; total: number; createdAt: string }[]
 }
 
@@ -22,7 +23,7 @@ export async function staffCanViewCustomersF8(): Promise<boolean> {
 export async function adminListCustomers(): Promise<AdminCustomerListRow[]> {
   const { data, error } = await getSupabase()
     .from('customers')
-    .select('id, cpf, cnpj, created_at, profiles(full_name, username)')
+    .select('id, cpf, cnpj, created_at, profiles(full_name, username, phone)')
     .order('created_at', { ascending: false })
     .limit(200)
   if (error) throw error
@@ -34,6 +35,7 @@ export async function adminListCustomers(): Promise<AdminCustomerListRow[]> {
       id: c.id as string,
       name: (profile?.full_name as string | null) ?? null,
       username: (profile?.username as string | null) ?? null,
+      phone: (profile?.phone as string | null) ?? null,
       document: doc,
       createdAt: String(c.created_at),
     }
@@ -41,7 +43,8 @@ export async function adminListCustomers(): Promise<AdminCustomerListRow[]> {
 }
 
 export async function adminGetCustomer(id: string): Promise<AdminCustomerDetail | null> {
-  const { data, error } = await getSupabase()
+  const sb = getSupabase()
+  const { data, error } = await sb
     .from('customers')
     .select('id, cpf, cnpj, created_at, profiles(full_name, username, phone)')
     .eq('id', id)
@@ -52,13 +55,20 @@ export async function adminGetCustomer(id: string): Promise<AdminCustomerDetail 
   const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
   const doc = (data.cpf as string | null) || (data.cnpj as string | null)
 
-  const { data: orders, error: oErr } = await getSupabase()
-    .from('orders')
-    .select('id, status, total, created_at')
-    .eq('customer_id', id)
-    .order('created_at', { ascending: false })
-    .limit(10)
+  const [{ data: orders, error: oErr }, { count: addressCount, error: aErr }] = await Promise.all([
+    sb
+      .from('orders')
+      .select('id, status, total, created_at')
+      .eq('customer_id', id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    sb
+      .from('customer_addresses')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_id', id),
+  ])
   if (oErr) throw oErr
+  if (aErr) throw aErr
 
   return {
     id: data.id as string,
@@ -67,6 +77,7 @@ export async function adminGetCustomer(id: string): Promise<AdminCustomerDetail 
     phone: (profile?.phone as string | null) ?? null,
     document: doc,
     createdAt: String(data.created_at),
+    addressCount: addressCount ?? 0,
     recentOrders: (orders ?? []).map((o) => ({
       id: o.id as string,
       status: String(o.status),

@@ -4,6 +4,7 @@
  * Decisões de prévia são congeladas no payload (apply não recalcula).
  */
 
+import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { normalizeImportText } from '@/services/import/normalizeText'
 
 export type MatchConfidence = 'exact' | 'probable' | 'unidentified'
@@ -129,10 +130,13 @@ export function classifyMatch(
   candidates: string[],
   query: string,
 ): { confidence: MatchConfidence; best: string | null } {
-  const q = normalizeImportText(query).toLowerCase()
+  const q = normalizeEntityMatchKey(normalizeImportText(query))
   if (!q) return { confidence: 'unidentified', best: null }
 
-  const norm = candidates.map((c) => ({ raw: c, n: normalizeImportText(c).toLowerCase() }))
+  const norm = candidates.map((c) => ({
+    raw: c,
+    n: normalizeEntityMatchKey(normalizeImportText(c)),
+  }))
   const exact = norm.find((c) => c.n === q)
   if (exact) return { confidence: 'exact', best: exact.raw }
 
@@ -175,17 +179,17 @@ export function applicationLogicKey(input: {
   yearEnd: number | null
 }): string {
   return [
-    normalizeImportText(input.sku).toLowerCase(),
-    normalizeImportText(input.montadora).toLowerCase(),
-    normalizeImportText(input.modelo).toLowerCase(),
-    normalizeImportText(input.versao).toLowerCase(),
+    normalizeEntityMatchKey(normalizeImportText(input.sku)),
+    normalizeEntityMatchKey(normalizeImportText(input.montadora)),
+    normalizeEntityMatchKey(normalizeImportText(input.modelo)),
+    normalizeEntityMatchKey(normalizeImportText(input.versao)),
     input.yearStart ?? '',
     input.yearEnd ?? '',
   ].join('|')
 }
 
 export function normKey(s: string): string {
-  return normalizeImportText(s).toLowerCase()
+  return normalizeEntityMatchKey(normalizeImportText(s))
 }
 
 export type CatalogMaker = { id: string; name: string }
@@ -218,6 +222,9 @@ export type ApplicationCatalogs = {
  * 3) se PVC do produto aponta para uma das correspondências → usar
  * 4) se múltiplas → ambíguo (revisão)
  * 5) se zero → criar (quando aprovado)
+ *
+ * Nota: `versao` vazia na planilha NÃO usa este matcher para escolher 1 VV —
+ * ver expansão blank→todas as VVs do modelo em `analyzeApplicationMappedRows`.
  */
 export function resolveVehicleVersionMatch(input: {
   manufacturerId: string | null
@@ -251,6 +258,17 @@ export function resolveVehicleVersionMatch(input: {
   }
 
   return { status: 'ambiguous', versionId: null }
+}
+
+/** VVs do modelo (catálogo já filtrado active no loader). Não cruza outros model_id. */
+export function listVersionsForModel(
+  versions: CatalogVersion[],
+  manufacturerId: string,
+  modelId: string,
+): CatalogVersion[] {
+  return versions.filter(
+    (v) => v.manufacturerId === manufacturerId && v.modelId === modelId,
+  )
 }
 
 export type ApplicationPreviewRow = {
@@ -382,7 +400,7 @@ export function analyzeApplicationMappedRows(
           versionParts: versao ? [versao] : [],
           versionSplit: row.versionSplit,
           action: 'error',
-          message: 'Informe código FAL, montadora e modelo.',
+          message: 'Informe código referência, montadora e modelo.',
         }),
       )
       continue
@@ -508,7 +526,85 @@ export function analyzeApplicationMappedRows(
       createModel = true
     }
 
+    // FIND-004: versao vazia + modelo resolvido → 1 PVC por VV do modelo (não 1 envelope).
+    const blankVersion = !versao
+    if (blankVersion && manufacturerId && modelId) {
+      const modelVersions = listVersionsForModel(versions, manufacturerId, modelId)
+      if (modelVersions.length > 0) {
+        for (const vv of modelVersions) {
+          let periodAction: PeriodAction | null = 'create'
+          if (productId) {
+            const existing = pvc.find(
+              (p) => p.productId === productId && p.vehicleVersionId === vv.id,
+            )
+            if (existing) {
+              periodAction = comparePeriods(
+                { start: existing.yearStart, end: existing.yearEnd },
+                periodParse.period,
+              )
+            }
+          }
+
+          const vehicleConfidence: MatchConfidence =
+            makerMatch.confidence === 'probable' || modelMatch.confidence === 'probable'
+              ? 'probable'
+              : 'exact'
+
+          const action = applicationActionFromParts({
+            productResolved: true,
+            vehicleConfidence,
+            periodAction,
+            versionAmbiguous: false,
+            hasError: false,
+          })
+
+          let message = 'Nova aplicação'
+          if (action === 'new') {
+            message = 'Novo cadastro de aplicação (versão do modelo)'
+          } else if (action === 'update') message = 'Será atualizado o período'
+          else if (action === 'already_covered') message = 'Já contemplado'
+          else if (action === 'found') message = 'Já cadastrado'
+          else if (action === 'review' && periodAction === 'review_gap') {
+            message = 'Precisa de revisão — lacuna no período'
+          } else if (action === 'review') {
+            message = 'Precisa de revisão — correspondência de veículo'
+          }
+
+          const applyable = action === 'new' || action === 'update' || action === 'found'
+
+          out.push({
+            lineNumber: row.lineNumber,
+            sku,
+            name: name || product?.name || '',
+            montadora,
+            modelo,
+            versao: '',
+            yearStart: periodParse.period.start,
+            yearEnd: periodParse.period.end,
+            versionParts: vv.versionName ? [vv.versionName] : [],
+            versionSplit: row.versionSplit,
+            action,
+            periodAction,
+            message,
+            applyable,
+            productExists: true,
+            productId,
+            manufacturerId,
+            modelId,
+            vehicleVersionId: vv.id,
+            createProduct: false,
+            createManufacturer: false,
+            createModel: false,
+            createVersion: false,
+          })
+        }
+        continue
+      }
+      // 0 VV do modelo → cai no fluxo envelope (createVersion) abaixo
+    }
+
     const versionAmbiguousPrep =
+      !blankVersion &&
       manufacturerId &&
       modelId &&
       resolveVehicleVersionMatch({
@@ -534,10 +630,12 @@ export function analyzeApplicationMappedRows(
         vehicleVersionId = versionAmbiguousPrep.versionId
       } else {
         createVersion = Boolean(manufacturerId && modelId) || createManufacturer || createModel
-        // se maker/model ainda serão criados, versão também
         if (createManufacturer || createModel) createVersion = true
         if (!manufacturerId && !createManufacturer) createVersion = false
       }
+    } else if (blankVersion && manufacturerId && modelId) {
+      // blank + 0 VV ativas do modelo → 1 envelope (version_name null)
+      createVersion = true
     } else if (createManufacturer || createModel) {
       createVersion = true
     }

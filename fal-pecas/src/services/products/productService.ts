@@ -1,4 +1,6 @@
 import { mockProducts } from '@/data/mocks/products'
+import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
+import { yearMatchesVehicleApp } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { attachResolvedPrices } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
@@ -23,6 +25,7 @@ function mapProduct(row: Record<string, unknown>): Product {
   return {
     id: String(row.id),
     sku: String(row.sku),
+    commercialRef: String(row.commercial_ref ?? row.sku),
     name: String(row.name),
     slug: String(row.slug),
     description: (row.description as string | null) ?? undefined,
@@ -47,7 +50,7 @@ function mapProduct(row: Record<string, unknown>): Product {
 }
 
 const PRODUCT_SELECT = `
-  id, sku, name, slug, description, short_description, price, promo_price, status,
+  id, sku, commercial_ref, name, slug, description, short_description, price, promo_price, status,
   manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id,
   posicao, lado, attrs,
   product_brands ( name ),
@@ -55,15 +58,50 @@ const PRODUCT_SELECT = `
 `
 
 /**
- * Produtos published via Supabase + RLS.
+ * Destaques da home (IMP-12): published, preferindo disponíveis; sem flag `is_featured`.
  * Fallback mock só sem configuração Supabase.
  */
 export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
-  return listPublishedProducts(limit)
+  const pool = await listPublishedProducts(Math.max(limit * 2, limit))
+  const available = pool.filter((p) => p.available !== false)
+  const rest = pool.filter((p) => p.available === false)
+  return [...available, ...rest].slice(0, limit)
+}
+
+/**
+ * Ofertas da home: published com preço resolvido abaixo do preço de lista (promo/lista).
+ */
+export async function listPromoHighlightProducts(limit = 8): Promise<Product[]> {
+  const pool = await listPublishedProducts(Math.max(limit * 4, 24))
+  const offers = pool.filter((p) => {
+    const list = p.listPrice ?? p.price
+    const pay = p.resolvedPrice ?? p.promoPrice ?? p.price
+    return list > pay + 0.001 && p.available !== false
+  })
+  return offers.slice(0, limit)
+}
+
+/** Grade por categoria raiz (RPC search_products — inclui filhos). */
+export async function listProductsByCategorySlug(
+  categorySlug: string,
+  limit = 8,
+): Promise<Product[]> {
+  const slug = categorySlug.trim()
+  if (!slug) return []
+  const { searchCatalog } = await import('@/services/search/searchService')
+  const result = await searchCatalog({
+    category: slug,
+    page: 1,
+    pageSize: Math.min(Math.max(limit, 1), 40),
+    sort: 'relevance',
+  })
+  return result.items
 }
 
 export async function listPublishedProducts(limit = 40): Promise<Product[]> {
+  assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
     return mockProducts.filter((p) => p.status === 'published').slice(0, limit)
   }
 
@@ -79,6 +117,8 @@ export async function listPublishedProducts(limit = 40): Promise<Product[]> {
   const withApps = await attachCompatibilitySummaries(products, {
     compact: true,
     maxEntries: 4,
+    maxMakers: null,
+    maxLinesPerMaker: null,
   })
   return attachResolvedPrices(withApps)
 }
@@ -98,7 +138,9 @@ export async function filterProductIdsByVehicle(filter: {
   const version = filter.version?.trim()
   if (!maker && !model && !year && !engine && !version) return null
 
+  assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
     return mockProducts
       .filter((p) => {
         const hay = (p.compatibilitySummary ?? '').toLowerCase()
@@ -113,42 +155,67 @@ export async function filterProductIdsByVehicle(filter: {
       .map((p) => p.id)
   }
 
-  // NULL estrito: eq('year', 2012) NÃO inclui year NULL (evita falso positivo).
-  let versionQuery = supabase
-    .from('vehicle_versions')
-    .select('id, year, engine, version_name, manufacturers!inner(name), models!inner(name)')
-    .eq('status', 'active')
-
-  if (year) versionQuery = versionQuery.eq('year', Number(year))
-  if (engine) versionQuery = versionQuery.eq('engine', engine)
-  if (version) versionQuery = versionQuery.eq('version_name', version)
-
-  const { data: versions, error: vErr } = await versionQuery
-  if (vErr) throw vErr
-
-  const versionIds = (versions ?? [])
-    .filter((v) => {
-      const makerName = asNamed(v.manufacturers)?.name
-      const modelName = asNamed(v.models)?.name
-      if (maker && makerName?.toLowerCase() !== maker.toLowerCase()) return false
-      if (model && modelName?.toLowerCase() !== model.toLowerCase()) return false
-      return true
-    })
-    .map((v) => String(v.id))
-
-  if (!versionIds.length) return []
-
-  const { data: apps, error: aErr } = await supabase
+  // Espelha search_products: período PVC (year_start/year_end) é a fonte de verdade.
+  let appsQuery = supabase
     .from('product_vehicle_compatibility')
-    .select('product_id')
-    .in('vehicle_version_id', versionIds)
+    .select(
+      `
+      product_id,
+      year_start,
+      year_end,
+      vehicle_versions!inner (
+        year, engine, version_name, status,
+        manufacturers!inner ( name ),
+        models!inner ( name )
+      )
+    `,
+    )
 
+  if (engine) appsQuery = appsQuery.eq('vehicle_versions.engine', engine)
+  if (version) appsQuery = appsQuery.eq('vehicle_versions.version_name', version)
+
+  const { data: apps, error: aErr } = await appsQuery
   if (aErr) throw aErr
-  return [...new Set((apps ?? []).map((a) => String(a.product_id)))]
+
+  const yearNum = year ? Number(year) : null
+  const ids = new Set<string>()
+  for (const row of apps ?? []) {
+    const raw = row.vehicle_versions as unknown
+    const v = (Array.isArray(raw) ? raw[0] : raw) as
+      | {
+          year: number | null
+          engine: string | null
+          version_name: string | null
+          status: string | null
+          manufacturers: unknown
+          models: unknown
+        }
+      | null
+    if (!v || v.status !== 'active') continue
+    const makerName = asNamed(v.manufacturers)?.name
+    const modelName = asNamed(v.models)?.name
+    if (maker && makerName?.toLowerCase() !== maker.toLowerCase()) continue
+    if (model && modelName?.toLowerCase() !== model.toLowerCase()) continue
+    if (
+      yearNum != null &&
+      !yearMatchesVehicleApp(
+        yearNum,
+        row.year_start == null ? null : Number(row.year_start),
+        row.year_end == null ? null : Number(row.year_end),
+        v.year,
+      )
+    ) {
+      continue
+    }
+    ids.add(String(row.product_id))
+  }
+  return [...ids]
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
+  assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return null
     return mockProducts.find((p) => p.id === id) ?? null
   }
 
@@ -183,6 +250,8 @@ export async function getProductById(id: string): Promise<Product | null> {
   const [withApps] = await attachCompatibilitySummaries([product], {
     compact: false,
     maxEntries: 40,
+    maxMakers: null,
+    maxLinesPerMaker: null,
   })
   const [resolved] = await attachResolvedPrices([withApps ?? product])
   return resolved ?? withApps ?? product

@@ -93,7 +93,7 @@ export function AdminProductImportPage() {
   return (
     <PageShell
       title="Importar produtos (cadastro)"
-      description="Código FAL, nome, categoria, grupo, subgrupo, posição, lado e descrições. Sem montadora — aplicações são outra importação. Novos entram como rascunho e indisponíveis."
+      description="Código referência, nome, categoria, grupo, subgrupo, posição, lado e descrições. Sem montadora — aplicações são outra importação. Novos entram como rascunho e indisponíveis."
       actions={
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
           <Link to="/admin/produtos/importar-aplicacoes" className="text-fal-navy">
@@ -101,6 +101,9 @@ export function AdminProductImportPage() {
           </Link>
           <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
             Arquivo HF completo →
+          </Link>
+          <Link to="/admin/importacoes" className="text-fal-navy">
+            Histórico →
           </Link>
         </div>
       }
@@ -115,7 +118,7 @@ export function AdminProductImportPage() {
             <div className="rounded-[14px] border border-fal-line bg-white p-4">
               <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo de cadastro</h2>
               <p className="mt-1 text-sm text-fal-muted">
-                Envie CSV ou Excel com código FAL, nome, categoria, grupo (e opcionalmente
+                Envie CSV ou Excel com código referência, nome, categoria, grupo (e opcionalmente
                 subgrupo, posição, lado e descrições). SKUs repetidos no arquivo são consolidados
                 em um produto. Produtos novos entram como rascunho e indisponíveis; a reimportação
                 atualiza o cadastro sem alterar preço nem estoque.
@@ -195,7 +198,7 @@ export function AdminProductImportPage() {
                   <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                     <tr>
                       <th className="px-2 py-2">Linha</th>
-                      <th className="px-2 py-2">Código FAL</th>
+                      <th className="px-2 py-2">Código referência</th>
                       <th className="px-2 py-2">Nome</th>
                       <th className="px-2 py-2">Categoria</th>
                       <th className="px-2 py-2">Grupo</th>

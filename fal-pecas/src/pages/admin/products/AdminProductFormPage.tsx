@@ -13,9 +13,11 @@ import { adminListManufacturers } from '@/services/admin/adminManufacturerServic
 import {
   adminAddApplication,
   adminDeleteReference,
+  adminEvaluateReleaseChecklist,
   adminGetProduct,
   adminListApplications,
   adminListReferences,
+  adminReleaseProductToStore,
   adminRemoveApplication,
   adminUpsertProduct,
   adminUpsertReference,
@@ -38,6 +40,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import {
   POSICAO_ATOMS,
   composePosicao,
@@ -66,10 +69,13 @@ export function AdminProductFormPage() {
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
+  const [releasing, setReleasing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const [productId, setProductId] = useState<string | null>(isNew ? null : id)
 
   const [name, setName] = useState('')
+  const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
   /** Hierarquia admin: Grupo → Categoria → Subcategoria (folha salva em products.category_id). */
@@ -165,6 +171,7 @@ export function AdminProductFormPage() {
         if (!p) throw new Error('Produto não encontrado')
         setProductId(p.id)
         setName(p.name)
+        setCommercialRef(p.commercialRef ?? p.sku)
         setSku(p.sku)
         setStatus(p.status ?? 'draft')
         {
@@ -248,10 +255,64 @@ export function AdminProductFormPage() {
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
 
+  async function onLiberarNaLoja() {
+    if (!productId) return
+    const publishIfNeeded = status !== 'published'
+    setReleasing(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const pre = await adminEvaluateReleaseChecklist(productId, { publishIfNeeded })
+      if (!pre) {
+        setError('Produto não encontrado')
+        return
+      }
+      const soft =
+        pre.softWarnings.length > 0
+          ? `\nAvisos: ${pre.softWarnings.map((w) => w.label).join(', ')}`
+          : ''
+      if (!pre.canRelease) {
+        setError(`Checklist D-LIBERAR: ${pre.summary}`)
+        return
+      }
+      const ok = window.confirm(
+        `Liberar na loja (D-LIBERAR)?\n\n` +
+          `• Hard: nome, código ref., categoria, preço resolvido > 0\n` +
+          `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já published'}\n` +
+          `• Marcar is_available${soft}\n\nConfirmar?`,
+      )
+      if (!ok) return
+      const result = await adminReleaseProductToStore({
+        productId,
+        publishIfNeeded,
+      })
+      if (!result.ok) {
+        setError(result.reason)
+        return
+      }
+      setAvailable(true)
+      setStatus('published')
+      const warnMsg =
+        result.checklist.softWarnings.length > 0
+          ? ` Avisos: ${result.checklist.softWarnings.map((w) => w.label).join(', ')}.`
+          : ''
+      setMessage(
+        (result.publishedNow
+          ? 'Produto publicado e liberado na loja.'
+          : 'Produto liberado na loja.') + warnMsg,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao liberar na loja')
+    } finally {
+      setReleasing(false)
+    }
+  }
+
   async function saveGeneral(e: FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
+    setMessage(null)
     try {
       let priceNum: number
       let promoNum: number | null = null
@@ -280,7 +341,8 @@ export function AdminProductFormPage() {
       const saved = await adminUpsertProduct({
         id: productId ?? undefined,
         name,
-        sku: sku.trim(),
+        commercialRef: commercialRef.trim(),
+        sku: sku.trim() || undefined,
         status,
         categoryId: categoryId || null,
         brandId: brandId || null,
@@ -348,7 +410,22 @@ export function AdminProductFormPage() {
         <h2 className="font-extrabold text-fal-navy">Geral</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} required />
+          <Input
+            label="Código referência"
+            value={commercialRef}
+            onChange={(e) => {
+              setCommercialRef(e.target.value)
+              if (isNew && !sku.trim()) setSku(e.target.value)
+            }}
+            required
+            hint="Código comercial exibido na loja e no admin."
+          />
+          <Input
+            label="SKU FAL"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            hint="Identificador técnico (import/matching). Se vazio, usa o Código referência."
+          />
           <fieldset className="text-sm md:col-span-2">
             <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
             <p className="mb-2 text-xs text-fal-muted">
@@ -506,10 +583,53 @@ export function AdminProductFormPage() {
           </Link>
           . Neste formulário você pode apenas <strong>ativar ou editar o preço avulso</strong> (exceção).
         </p>
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          <input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />
-          Disponível na loja
-        </label>
+        <div className="rounded-[12px] border border-fal-line bg-white p-3">
+          <p className="m-0 text-sm font-extrabold text-fal-navy">Disponibilidade na loja</p>
+          <p className="mt-1 text-xs text-fal-muted">
+            Importação de custo/preço não libera o produto. Use{' '}
+            <strong>Liberar na loja</strong> quando status, preço e confirmação estiverem ok.
+          </p>
+          <p className="mt-2 text-sm">
+            Situação:{' '}
+            <strong className={available ? 'text-green-700' : 'text-fal-muted'}>
+              {available ? 'Disponível' : 'Indisponível'}
+            </strong>
+            {status !== 'published' ? (
+              <span className="ml-2 text-xs text-fal-yellow-dark">(status ≠ publicado)</span>
+            ) : null}
+          </p>
+          {!isNew && productId ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={releasing || available}
+                onClick={() => void onLiberarNaLoja()}
+              >
+                {releasing ? 'Liberando…' : 'Liberar na loja'}
+              </Button>
+              {available ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  disabled={saving}
+                  onClick={() => setAvailable(false)}
+                >
+                  Marcar indisponível (salvar depois)
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={available}
+                onChange={(e) => setAvailable(e.target.checked)}
+              />
+              Disponível na loja (após criar, use Liberar com checklist)
+            </label>
+          )}
+        </div>
+        {message ? <p className="m-0 text-sm font-semibold text-fal-navy">{message}</p> : null}
 
         {isNew ? (
           <Input
@@ -697,14 +817,18 @@ export function AdminProductFormPage() {
               <Button
                 type="button"
                 disabled={!versionId}
-                onClick={() =>
-                  void adminAddApplication(productId, versionId)
+                onClick={() => {
+                  const v = versions.find((x) => x.id === versionId)
+                  void adminAddApplication(productId, versionId, undefined, {
+                    yearStart: v?.year ?? null,
+                    yearEnd: v?.year ?? null,
+                  })
                     .then(async () => {
                       setVersionId('')
                       setApps(await adminListApplications(productId))
                     })
                     .catch((e) => setError(String(e.message ?? e)))
-                }
+                }}
               >
                 Vincular
               </Button>
@@ -713,6 +837,8 @@ export function AdminProductFormPage() {
               {apps.map((a) => {
                 const row = a as {
                   id: string
+                  year_start?: number | null
+                  year_end?: number | null
                   vehicle_versions?: {
                     year: number | null
                     engine: string | null
@@ -724,9 +850,14 @@ export function AdminProductFormPage() {
                 const vv = row.vehicle_versions
                 const maker = Array.isArray(vv?.manufacturers) ? vv?.manufacturers[0]?.name : vv?.manufacturers?.name
                 const model = Array.isArray(vv?.models) ? vv?.models[0]?.name : vv?.models?.name
+                const yearLabel = formatVehicleAppYear({
+                  yearStart: row.year_start,
+                  yearEnd: row.year_end,
+                  versionYear: vv?.year,
+                })
                 return (
                   <li key={row.id} className="flex justify-between border-b border-fal-line py-1">
-                    <span>{[maker, model, vv?.year, vv?.engine, vv?.version_name].filter(Boolean).join(' ')}</span>
+                    <span>{[maker, model, yearLabel, vv?.engine, vv?.version_name].filter(Boolean).join(' ')}</span>
                     <button type="button" className="font-semibold text-fal-danger" onClick={() => void adminRemoveApplication(row.id).then(async () => setApps(await adminListApplications(productId)))}>
                       Remover
                     </button>

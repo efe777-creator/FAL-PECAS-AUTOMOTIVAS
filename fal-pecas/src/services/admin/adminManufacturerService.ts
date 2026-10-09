@@ -1,3 +1,4 @@
+import { formatCatalogDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { Manufacturer } from '@/types'
@@ -28,9 +29,22 @@ export async function adminUpsertManufacturer(input: {
   slug?: string
   status?: Manufacturer['status']
 }): Promise<Manufacturer> {
+  const name = formatCatalogDisplayName(input.name)
+  if (!name) throw new Error('Informe o nome da montadora.')
+
+  if (!input.id) {
+    const existing = await adminListManufacturers()
+    const dup = existing.find(
+      (m) =>
+        m.status === 'active' &&
+        normalizeEntityMatchKey(m.name) === normalizeEntityMatchKey(name),
+    )
+    if (dup) throw new Error(`Já existe montadora "${dup.name}".`)
+  }
+
   const payload = {
-    name: input.name.trim(),
-    slug: (input.slug?.trim() || toSlug(input.name)) || toSlug(`mfr-${Date.now()}`),
+    name,
+    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`mfr-${Date.now()}`),
     status: input.status ?? 'active',
   }
   const q = getSupabase().from('manufacturers')

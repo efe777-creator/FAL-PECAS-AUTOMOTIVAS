@@ -116,7 +116,7 @@ export function AdminApplicationsImportPage() {
   return (
     <PageShell
       title="Importar aplicações"
-      description="Código FAL, montadora, modelo, versão e anos. O produto precisa existir — esta importação não cria cadastro de produto."
+      description="Código referência, montadora, modelo, versão e anos. O produto precisa existir — esta importação não cria cadastro de produto."
       actions={
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
           <Link to="/admin/produtos/importar" className="text-fal-navy">
@@ -273,7 +273,7 @@ export function AdminApplicationsImportPage() {
                 <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                   <tr>
                     <th className="px-2 py-2">Linha</th>
-                    <th className="px-2 py-2">Código FAL</th>
+                    <th className="px-2 py-2">Código referência</th>
                     <th className="px-2 py-2">Montadora</th>
                     <th className="px-2 py-2">Modelo</th>
                     <th className="px-2 py-2">Versão</th>

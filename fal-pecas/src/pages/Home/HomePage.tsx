@@ -6,13 +6,74 @@ import { Container } from '@/components/layout/Container'
 import { Loading } from '@/components/common/Loading'
 import { ErrorState } from '@/components/common/ErrorState'
 import { EmptyState } from '@/components/common/EmptyState'
-import { useCategories, useFeaturedProducts } from '@/hooks/useCatalog'
+import {
+  useCategories,
+  useCategoryProducts,
+  useFeaturedProducts,
+  usePromoHighlightProducts,
+} from '@/hooks/useCatalog'
 import { Link } from 'react-router-dom'
+
+function ProductGridSection({
+  title,
+  subtitle,
+  linkLabel,
+  linkTo,
+  loading,
+  error,
+  products,
+  emptyTitle,
+  emptyDescription,
+}: {
+  title: string
+  subtitle: string
+  linkLabel: string
+  linkTo: string
+  loading: boolean
+  error: string | null
+  products: ReturnType<typeof useFeaturedProducts>['data']
+  emptyTitle: string
+  emptyDescription: string
+}) {
+  return (
+    <section className="bg-white py-8 sm:py-10">
+      <Container>
+        <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">{title}</h2>
+            <p className="mt-1 text-sm text-fal-muted">{subtitle}</p>
+          </div>
+          <Link to={linkTo} className="text-sm font-semibold text-fal-navy">
+            {linkLabel}
+          </Link>
+        </div>
+        {loading ? <Loading /> : null}
+        {error ? <ErrorState message={error} /> : null}
+        {!loading && !error && products.length === 0 ? (
+          <EmptyState
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel="Ver catálogo"
+            actionTo="/catalogo"
+          />
+        ) : null}
+        {!loading && !error && products.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        ) : null}
+      </Container>
+    </section>
+  )
+}
 
 export function HomePage() {
   const categories = useCategories()
   const featured = useFeaturedProducts(12)
-  const suspensao = useFeaturedProducts(8)
+  const offers = usePromoHighlightProducts(8)
+  const line = useCategoryProducts(['suspensao', 'direcao'], 8)
 
   return (
     <>
@@ -43,36 +104,40 @@ export function HomePage() {
         </Container>
       </section>
 
-      <section className="bg-white py-8 sm:py-10">
-        <Container>
-          <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Destaques</h2>
-              <p className="mt-1 text-sm text-fal-muted">Produtos publicados no catálogo</p>
+      <ProductGridSection
+        title="Destaques"
+        subtitle="Publicados no catálogo — preferência aos disponíveis na loja"
+        linkLabel="Ver catálogo →"
+        linkTo="/catalogo"
+        loading={featured.loading}
+        error={featured.error}
+        products={featured.data}
+        emptyTitle="Ainda não há produtos em destaque"
+        emptyDescription="Explore o catálogo completo."
+      />
+
+      {!offers.loading && !offers.error && offers.data.length > 0 ? (
+        <section className="border-y border-fal-line bg-[#fffdf5] py-8 sm:py-10">
+          <Container>
+            <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Ofertas</h2>
+                <p className="mt-1 text-sm text-fal-muted">
+                  Preço resolvido abaixo do preço de lista
+                </p>
+              </div>
+              <Link to="/catalogo?sort=price_asc" className="text-sm font-semibold text-fal-navy">
+                Ver catálogo →
+              </Link>
             </div>
-            <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
-              Ver catálogo →
-            </Link>
-          </div>
-          {featured.loading ? <Loading /> : null}
-          {featured.error ? <ErrorState message={featured.error} /> : null}
-          {!featured.loading && !featured.error && featured.data.length === 0 ? (
-            <EmptyState
-              title="Ainda não há produtos em destaque"
-              description="Explore o catálogo completo."
-              actionLabel="Ver catálogo"
-              actionTo="/catalogo"
-            />
-          ) : null}
-          {!featured.loading && featured.data.length > 0 ? (
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-              {featured.data.map((p) => (
+              {offers.data.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
-          ) : null}
-        </Container>
-      </section>
+          </Container>
+        </section>
+      ) : null}
 
       <section id="categorias" className="scroll-mt-20 py-8 sm:py-10">
         <Container>
@@ -100,41 +165,17 @@ export function HomePage() {
         </Container>
       </section>
 
-      <section className="bg-white py-8 sm:py-10">
-        <Container>
-          <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">
-                Suspensão e direção
-              </h2>
-              <p className="mt-1 text-sm text-fal-muted">
-                Posicionamento FAL — peça certa para o conjunto
-              </p>
-            </div>
-            <Link
-              to="/catalogo?q=suspensao"
-              className="text-sm font-semibold text-fal-navy"
-            >
-              Ver mais →
-            </Link>
-          </div>
-          {suspensao.loading ? <Loading label="Carregando…" /> : null}
-          {!suspensao.loading && suspensao.data.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-              {suspensao.data.slice(0, 8).map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          ) : !suspensao.loading ? (
-            <EmptyState
-              title="Em preparação"
-              description="Em breve produtos desta linha em destaque."
-              actionLabel="Ver catálogo"
-              actionTo="/catalogo"
-            />
-          ) : null}
-        </Container>
-      </section>
+      <ProductGridSection
+        title="Suspensão e direção"
+        subtitle="Linha prioritária FAL — categorias raiz e subgrupos"
+        linkLabel="Ver suspensão →"
+        linkTo="/catalogo?cat=suspensao"
+        loading={line.loading}
+        error={line.error}
+        products={line.data}
+        emptyTitle="Em preparação"
+        emptyDescription="Em breve produtos desta linha em destaque."
+      />
 
       <section id="veiculo" className="scroll-mt-20 border-t border-fal-line bg-fal-bg py-6 sm:py-8">
         <Container>

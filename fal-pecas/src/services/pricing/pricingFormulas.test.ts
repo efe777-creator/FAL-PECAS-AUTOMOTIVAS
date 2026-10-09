@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { previewCalculatedPrice } from '@/services/admin/adminPriceListService'
+import {
+  calculateSellPrice,
+  effectiveMarginFraction,
+  effectiveMarkupFraction,
+  shouldRecalculatePriceOnCostChange,
+  toPercent,
+} from '@/services/pricing/pricingFormulas'
 
 describe('previewCalculatedPrice (F8.1-E)', () => {
   it('markup e margem com extra_cost', () => {
@@ -53,5 +60,30 @@ describe('previewCalculatedPrice (F8.1-E)', () => {
     })
     expect(r.price).toBeNull()
     expect(r.error).toMatch(/fixo/)
+  })
+})
+
+describe('pricingFormulas — markup ≠ margem + D16', () => {
+  it('mesmo preço: markup % ≠ margem %', () => {
+    const cost = 100
+    const price = calculateSellPrice(cost, 'markup_on_cost', 25)!
+    expect(price).toBe(125)
+    expect(toPercent(effectiveMarkupFraction(price, cost))).toBe(25)
+    expect(toPercent(effectiveMarginFraction(price, cost))).toBe(20)
+  })
+
+  it('D16: só calculated recalcula com mudança de custo', () => {
+    expect(shouldRecalculatePriceOnCostChange('calculated')).toBe(true)
+    expect(shouldRecalculatePriceOnCostChange('imported')).toBe(false)
+    expect(shouldRecalculatePriceOnCostChange('manual')).toBe(false)
+  })
+
+  it('manter preço: indicadores mudam com novo custo', () => {
+    const price = 130
+    const oldCost = 100
+    const newCost = 110
+    expect(toPercent(effectiveMarkupFraction(price, oldCost))).toBe(30)
+    expect(toPercent(effectiveMarkupFraction(price, newCost))).toBeCloseTo(18.18, 1)
+    expect(toPercent(effectiveMarginFraction(price, newCost))).toBeCloseTo(15.38, 1)
   })
 })

@@ -61,6 +61,9 @@ export function CatalogPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestId = useRef(0)
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  const vehicleFiltersActive = Boolean(maker || model || year || engine || version)
 
   useEffect(() => {
     setSearchDraft(q)
@@ -242,23 +245,42 @@ export function CatalogPage() {
     },
   ].filter(Boolean) as Array<{ key: string; label: string }>
 
+  const emptyDescription =
+    activeChips.length > 0
+      ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros ou limpe a busca.`
+      : 'Ajuste a busca ou os filtros para ver outros resultados.'
+
+  function removeChip(key: string) {
+    if (key === 'maker') {
+      patchParams({ maker: null, model: null, year: null, engine: null, version: null })
+    } else if (key === 'model') {
+      patchParams({ model: null, year: null, engine: null, version: null })
+    } else if (key === 'year') {
+      patchParams({ year: null })
+    } else if (key === 'sort') {
+      patchParams({ sort: null })
+    } else {
+      patchParams({ [key]: null })
+    }
+    if (key === 'q') setSearchDraft('')
+  }
+
   return (
-    <Container className="py-8">
+    <Container className="py-6 sm:py-8">
       <p className="mb-2 text-[13px] text-fal-muted">
         <Link to="/" className="hover:underline">
           Início
         </Link>{' '}
         / Catálogo
       </p>
-      <h1 className="mt-0 mb-2 text-[28px] font-extrabold sm:text-[34px]">Catálogo</h1>
-      <p className="text-fal-muted">
-        Busque por texto ou refine por categoria e veículo. Filtros podem ser usados sozinhos ou
-        combinados.
+      <h1 className="mt-0 mb-1 text-[28px] font-extrabold sm:text-[34px]">Catálogo</h1>
+      <p className="mb-0 text-sm text-fal-muted sm:text-base">
+        Listagem: produtos publicados. Compra: somente disponíveis na loja.
       </p>
 
       <form
         onSubmit={applySearch}
-        className="mt-5 grid grid-cols-1 gap-3 rounded-fal border border-fal-line bg-white p-3.5 sm:p-4 lg:grid-cols-[1fr_auto]"
+        className="mt-4 grid grid-cols-1 gap-3 rounded-fal border border-fal-line bg-white p-3 sm:p-3.5 lg:grid-cols-[1fr_auto]"
       >
         <Input
           label="Busca"
@@ -279,7 +301,8 @@ export function CatalogPage() {
         </div>
       </form>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* Filtros primários — compactos para manter resultados no 1º viewport */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Select
           label="Categoria"
           name="cat"
@@ -307,106 +330,112 @@ export function CatalogPage() {
             })
           }
         />
-        <Select
-          label="Montadora"
-          name="maker"
-          placeholder="Todas / opcional"
-          value={maker}
-          options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
-          onChange={(e) =>
-            patchParams({
-              maker: e.target.value || null,
-              model: null,
-              year: null,
-              engine: null,
-              version: null,
-            })
-          }
-        />
-        <Select
-          label="Modelo"
-          name="model"
-          placeholder="Todos / opcional"
-          value={model}
-          options={modelOptions}
-          disabled={!maker}
-          onChange={(e) =>
-            patchParams({
-              model: e.target.value || null,
-              year: null,
-              engine: null,
-              version: null,
-            })
-          }
-        />
-        <Select
-          label="Ano"
-          name="year"
-          placeholder="Todos / opcional"
-          value={year}
-          options={yearOptions}
-          disabled={!model}
-          onChange={(e) =>
-            patchParams({
-              year: e.target.value || null,
-            })
-          }
-        />
-        <Select
-          label="Motor"
-          name="engine"
-          placeholder="Todos / opcional"
-          value={engine}
-          options={engineOptions}
-          disabled={!model}
-          onChange={(e) => patchParams({ engine: e.target.value || null })}
-        />
-        <Select
-          label="Versão"
-          name="version"
-          placeholder="Todas / opcional"
-          value={version}
-          options={versionOptions}
-          disabled={!model}
-          onChange={(e) => patchParams({ version: e.target.value || null })}
-        />
       </div>
 
-      <div className="mt-3 rounded-fal border border-dashed border-[#d8dee3] bg-[#fafbfc] px-3 py-2.5">
-        <SavedVehiclesQuickPick
-          onPick={(v) =>
-            patchParams({
-              maker: v.makerName || null,
-              model: v.modelName || null,
-              year: v.year != null ? String(v.year) : null,
-              engine: v.engine || null,
-              version: v.versionName || null,
-            })
-          }
-        />
-      </div>
+      <details
+        className="mt-3 rounded-fal border border-fal-line bg-white open:pb-3"
+        open={vehicleFiltersActive || undefined}
+      >
+        <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            Filtros por veículo
+            {vehicleFiltersActive ? (
+              <span className="rounded-full bg-[#fff8db] px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark">
+                ativos
+              </span>
+            ) : (
+              <span className="font-normal text-fal-muted">opcional</span>
+            )}
+          </span>
+        </summary>
+        <div className="grid grid-cols-1 gap-3 border-t border-fal-line px-3.5 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <Select
+            label="Montadora"
+            name="maker"
+            placeholder="Todas / opcional"
+            value={maker}
+            options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+            onChange={(e) =>
+              patchParams({
+                maker: e.target.value || null,
+                model: null,
+                year: null,
+                engine: null,
+                version: null,
+              })
+            }
+          />
+          <Select
+            label="Modelo"
+            name="model"
+            placeholder="Todos / opcional"
+            value={model}
+            options={modelOptions}
+            disabled={!maker}
+            onChange={(e) =>
+              patchParams({
+                model: e.target.value || null,
+                year: null,
+                engine: null,
+                version: null,
+              })
+            }
+          />
+          <Select
+            label="Ano"
+            name="year"
+            placeholder="Todos / opcional"
+            value={year}
+            options={yearOptions}
+            disabled={!model}
+            onChange={(e) =>
+              patchParams({
+                year: e.target.value || null,
+              })
+            }
+          />
+          <Select
+            label="Motor"
+            name="engine"
+            placeholder="Todos / opcional"
+            value={engine}
+            options={engineOptions}
+            disabled={!model}
+            onChange={(e) => patchParams({ engine: e.target.value || null })}
+          />
+          <Select
+            label="Versão"
+            name="version"
+            placeholder="Todas / opcional"
+            value={version}
+            options={versionOptions}
+            disabled={!model}
+            onChange={(e) => patchParams({ version: e.target.value || null })}
+          />
+        </div>
+        <div className="mt-3 border-t border-dashed border-[#d8dee3] px-3.5 pt-2.5">
+          <SavedVehiclesQuickPick
+            onPick={(v) =>
+              patchParams({
+                maker: v.makerName || null,
+                model: v.modelName || null,
+                year: v.year != null ? String(v.year) : null,
+                engine: v.engine || null,
+                version: v.versionName || null,
+              })
+            }
+          />
+        </div>
+      </details>
 
       {activeChips.length ? (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {activeChips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               className="rounded-full border border-[#d8dee3] bg-[#f7f9fa] px-2.5 py-1.5 text-xs hover:border-fal-navy"
-              onClick={() => {
-                if (chip.key === 'maker') {
-                  patchParams({ maker: null, model: null, year: null, engine: null, version: null })
-                } else if (chip.key === 'model') {
-                  patchParams({ model: null, year: null, engine: null, version: null })
-                } else if (chip.key === 'year') {
-                  patchParams({ year: null })
-                } else if (chip.key === 'sort') {
-                  patchParams({ sort: null })
-                } else {
-                  patchParams({ [chip.key]: null })
-                }
-                if (chip.key === 'q') setSearchDraft('')
-              }}
+              onClick={() => removeChip(chip.key)}
             >
               {chip.label} ×
             </button>
@@ -414,23 +443,48 @@ export function CatalogPage() {
         </div>
       ) : null}
 
-      <div className="mt-6">
+      <div id="catalog-results" ref={resultsRef} className="mt-4 scroll-mt-20">
+        <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8]/px-1 py-2 sm:bg-fal-bg">
+          {!loading && !error ? (
+            <p className="m-0 text-sm font-semibold text-fal-navy-dark">
+              {products.length === 0
+                ? 'Nenhum produto neste filtro'
+                : `${total} produto${total === 1 ? '' : 's'}${
+                    products.length < total ? ` · mostrando ${products.length}` : ''
+                  }`}
+            </p>
+          ) : (
+            <p className="m-0 text-sm text-fal-muted">{loading ? 'Carregando resultados…' : ' '}</p>
+          )}
+        </div>
+
         {loading ? <Loading /> : null}
         {error ? <ErrorState message={error} /> : null}
         {!loading && !error && products.length === 0 ? (
           <EmptyState
             title="Nenhum produto encontrado"
-            description="Ajuste a busca ou os filtros para ver outros resultados."
-            actionLabel="Limpar filtros"
-            actionTo="/catalogo"
-          />
+            description={emptyDescription}
+            actionLabel={activeChips.length ? 'Limpar filtros' : undefined}
+            actionTo={activeChips.length ? '/catalogo' : undefined}
+          >
+            {activeChips.length ? (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {activeChips.map((chip) => (
+                  <button
+                    key={`empty-${chip.key}`}
+                    type="button"
+                    className="rounded-full border border-[#d8dee3] bg-[#f7f9fa] px-2.5 py-1.5 text-xs hover:border-fal-navy"
+                    onClick={() => removeChip(chip.key)}
+                  >
+                    Remover: {chip.label} ×
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </EmptyState>
         ) : null}
         {!loading && !error && products.length > 0 ? (
           <>
-            <p className="mb-3 text-sm text-fal-muted">
-              {total} produto{total === 1 ? '' : 's'}
-              {products.length < total ? ` · mostrando ${products.length}` : ''}
-            </p>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-[18px] lg:grid-cols-4">
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} />

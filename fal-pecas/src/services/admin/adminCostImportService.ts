@@ -323,3 +323,30 @@ export async function adminApplyCostImport(importId: string): Promise<CostImport
     skipped: Number(report.skipped ?? 0),
   }
 }
+
+/**
+ * Garante products.supplier_id = FAL Principal quando ainda NULL
+ * (elo formação / UI de custo). Idempotente.
+ */
+export async function adminEnsurePrincipalSupplier(productIds: string[]): Promise<number> {
+  const unique = [...new Set(productIds.filter(Boolean))]
+  if (!unique.length) return 0
+  const sb = getSupabase()
+  const { data: fal, error: falErr } = await sb
+    .from('suppliers')
+    .select('id')
+    .eq('code', FAL_PRINCIPAL_SUPPLIER_CODE)
+    .eq('status', 'active')
+    .maybeSingle()
+  if (falErr) throw falErr
+  if (!fal?.id) return 0
+
+  const { data, error } = await sb
+    .from('products')
+    .update({ supplier_id: fal.id })
+    .in('id', unique)
+    .is('supplier_id', null)
+    .select('id')
+  if (error) throw error
+  return (data ?? []).length
+}

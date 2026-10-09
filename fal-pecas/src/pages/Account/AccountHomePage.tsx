@@ -1,5 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { isStaffRole } from '@/services/admin/staffService'
+import { listAddresses } from '@/services/customers/addressService'
+import { listMyOrders } from '@/services/customers/orderQueryService'
+import { listSavedVehicles } from '@/services/customers/customerVehicleService'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const cards = [
@@ -13,6 +17,34 @@ const cards = [
 export function AccountHomePage() {
   const { user } = useAuth()
   const isStaff = isStaffRole(user?.role)
+  const [stats, setStats] = useState<{ addresses: number; vehicles: number; orders: number } | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    void (async () => {
+      try {
+        const [addresses, vehicles, orders] = await Promise.all([
+          listAddresses(),
+          listSavedVehicles(),
+          listMyOrders(),
+        ])
+        if (active)
+          setStats({
+            addresses: addresses.length,
+            vehicles: vehicles.length,
+            orders: orders.length,
+          })
+      } catch {
+        if (active) setStats(null)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [user])
 
   return (
     <div className="rounded-fal border border-fal-line bg-white p-5">
@@ -20,6 +52,13 @@ export function AccountHomePage() {
       <p className="text-sm text-fal-muted">
         Gerencie seus dados, veículos e favoritos. Use a busca do catálogo para encontrar peças.
       </p>
+      {stats ? (
+        <p className="mt-3 text-sm text-fal-navy">
+          <strong>{stats.orders}</strong> pedido{stats.orders === 1 ? '' : 's'} ·{' '}
+          <strong>{stats.addresses}</strong> endereço{stats.addresses === 1 ? '' : 's'} ·{' '}
+          <strong>{stats.vehicles}</strong> veículo{stats.vehicles === 1 ? '' : 's'}
+        </p>
+      ) : null}
       {user && user.emailConfirmed === false ? (
         <p className="mt-3 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
           <strong>Confirme seu e-mail</strong> — sua conta já está ativa e você pode navegar na

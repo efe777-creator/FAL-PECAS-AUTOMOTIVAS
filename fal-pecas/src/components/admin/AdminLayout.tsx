@@ -7,6 +7,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 const catalogLinks = [
   { to: '/admin/produtos', label: 'Produtos' },
   { to: '/admin/precos', label: 'Preços' },
+  { to: '/admin/importacoes', label: 'Importações' },
   { to: '/admin/categorias', label: 'Categorias' },
   { to: '/admin/montadoras', label: 'Montadoras' },
   { to: '/admin/veiculos', label: 'Veículos' },

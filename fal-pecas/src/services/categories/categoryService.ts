@@ -1,4 +1,5 @@
 import { mockCategories } from '@/data/mocks/categories'
+import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { Category } from '@/types'
 
@@ -24,10 +25,12 @@ function mapCategory(row: CategoryRow): Category {
 /**
  * Categorias publicadas.
  * Fonte de verdade: Supabase (product_categories).
- * Fallback mock apenas se Supabase não estiver configurado.
+ * Mock só com VITE_ALLOW_CATALOG_MOCKS=true em DEV (IMP-19 U1).
  */
 export async function listCategories(): Promise<Category[]> {
+  assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
     return mockCategories.map((c) => ({
       id: c.id,
       name: c.name,

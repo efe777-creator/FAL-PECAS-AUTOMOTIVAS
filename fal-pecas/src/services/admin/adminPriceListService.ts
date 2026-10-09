@@ -1,6 +1,11 @@
 import { parseMoneyBr } from '@/lib/money'
+import { isPriceListItemPriced } from '@/lib/priceLabels'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
+import {
+  adminGetImportRunDetail,
+  adminListImports,
+} from '@/services/admin/adminImportHistoryService'
 import { getImportContract } from '@/services/import/contracts'
 import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { parseCsvToGrid } from '@/services/import/parseCsv'
@@ -14,6 +19,32 @@ import {
   toPercent,
   type PricingMethod,
 } from '@/services/pricing/pricingFormulas'
+
+/**
+ * Espelho puro da regra SQL `product_base_cost` (principal → FAL-SUP-01).
+ * Produção: usar `loadProductBaseCosts` (RPC). Mantido para testes unitários.
+ */
+export function resolveBaseCost(
+  productId: string,
+  supplierId: string | null | undefined,
+  costMap: Map<string, number>,
+  falSupplierId: string | null,
+): number | null {
+  if (supplierId) {
+    const direct = costMap.get(`${supplierId}:${productId}`)
+    if (direct != null) return direct
+  }
+  if (falSupplierId) {
+    const fal = costMap.get(`${falSupplierId}:${productId}`)
+    if (fal != null) return fal
+  }
+  return null
+}
+
+export type ProductBaseCostInfo = {
+  baseCost: number
+  costSupplierId: string | null
+}
 
 export type PriceListStatus = 'draft' | 'active' | 'inactive'
 export type PriceListScope = 'public' | 'assigned'
@@ -53,7 +84,7 @@ export interface PriceListItem {
   extraCost: number
   priceOrigin: PriceOrigin
   calculatedPrice: number | null
-  /** Custo base: supplier_products.cost do products.supplier_id */
+  /** Custo base oficial (RPC product_base_cost: principal → FAL-SUP-01) */
   baseCost: number | null
   /** base + extra_cost (list_extra_cost NÃO entra) */
   costTotal: number | null
@@ -123,7 +154,7 @@ export function aggregatePriceListItemCounts(
   for (const row of rows) {
     const cur = map.get(row.priceListId) ?? { total: 0, withPrice: 0, withoutPrice: 0 }
     cur.total += 1
-    if (row.price > 0) cur.withPrice += 1
+    if (isPriceListItemPriced(row.price)) cur.withPrice += 1
     else cur.withoutPrice += 1
     map.set(row.priceListId, cur)
   }
@@ -504,7 +535,7 @@ export async function adminListPriceListItems(
 
   const raw = data ?? []
   const productIds = raw.map((row) => String((row as Record<string, unknown>).product_id))
-  const costMap = await loadPrincipalCosts(productIds)
+  const costByProduct = await loadProductBaseCosts(productIds)
 
   const { data: listRow } = await getSupabase()
     .from('price_lists')
@@ -519,16 +550,8 @@ export async function adminListPriceListItems(
 
   const supplierIds = [
     ...new Set(
-      raw
-        .map((row) => {
-          const r = row as Record<string, unknown>
-          const prod = r.products as
-            | { supplier_id?: string | null }
-            | { supplier_id?: string | null }[]
-            | null
-          const p = Array.isArray(prod) ? prod[0] : prod
-          return p?.supplier_id ?? null
-        })
+      [...costByProduct.values()]
+        .map((c) => c.costSupplierId)
         .filter((id): id is string => Boolean(id)),
     ),
   ]
@@ -552,9 +575,9 @@ export async function adminListPriceListItems(
       | null
     const p = Array.isArray(prod) ? prod[0] : prod
     const productId = String(r.product_id)
-    const supplierId = p?.supplier_id ?? null
-    const baseCost =
-      supplierId != null ? (costMap.get(`${supplierId}:${productId}`) ?? null) : null
+    const costInfo = costByProduct.get(productId)
+    const baseCost = costInfo?.baseCost ?? null
+    const effectiveSupplierId = costInfo?.costSupplierId ?? null
     const extraCost = Number(r.extra_cost ?? 0)
     const costTotal =
       baseCost == null
@@ -579,8 +602,10 @@ export async function adminListPriceListItems(
       sku: p?.sku,
       productName: p?.name,
       manufacturerCode: p?.manufacturer_code ?? null,
-      supplierId,
-      supplierName: supplierId ? (supplierNames.get(supplierId) ?? null) : null,
+      supplierId: effectiveSupplierId,
+      supplierName: effectiveSupplierId
+        ? (supplierNames.get(effectiveSupplierId) ?? null)
+        : null,
       updatedAt: r.updated_at as string | undefined,
     } satisfies PriceListItem
   })
@@ -608,7 +633,7 @@ export async function adminGetPriceListStats(priceListId: string): Promise<Price
   const raw = data ?? []
   const productIds = raw.map((row) => String((row as Record<string, unknown>).product_id))
   const inList = new Set(productIds)
-  const costMap = await loadPrincipalCosts(productIds)
+  const costByProduct = await loadProductBaseCosts(productIds)
 
   let calculated = 0
   let imported = 0
@@ -624,18 +649,10 @@ export async function adminGetPriceListStats(priceListId: string): Promise<Price
     else manual += 1
 
     const price = Number(r.price)
-    if (!(price > 0)) withoutPrice += 1
+    if (!isPriceListItemPriced(price)) withoutPrice += 1
 
-    const prod = r.products as
-      | { supplier_id?: string | null }
-      | { supplier_id?: string | null }[]
-      | null
-    const p = Array.isArray(prod) ? prod[0] : prod
-    const supplierId = p?.supplier_id ?? null
     const productId = String(r.product_id)
-    const hasCost =
-      supplierId != null && costMap.has(`${supplierId}:${productId}`)
-    if (!hasCost) withoutCost += 1
+    if (!costByProduct.has(productId)) withoutCost += 1
   }
 
   // Published fora da lista = sem preço nesta lista
@@ -769,10 +786,8 @@ export async function adminMaterializePublishedOntoPriceList(input: {
     .filter((p) => !inList.has(p.id))
 
   if (onlyCost && candidates.length) {
-    const costMap = await loadPrincipalCosts(candidates.map((c) => c.id))
-    candidates = candidates.filter(
-      (c) => c.supplierId != null && costMap.has(`${c.supplierId}:${c.id}`),
-    )
+    const costByProduct = await loadProductBaseCosts(candidates.map((c) => c.id))
+    candidates = candidates.filter((c) => costByProduct.has(c.id))
   }
 
   return adminSyncProductsOntoPriceList({
@@ -798,11 +813,11 @@ async function buildVirtualMissingItems(
   if (!missing.length) return []
 
   const missingIds = missing.map((p) => String(p.id))
-  const costMap = await loadPrincipalCosts(missingIds)
+  const costByProduct = await loadProductBaseCosts(missingIds)
   const supplierIds = [
     ...new Set(
-      missing
-        .map((p) => (p.supplier_id as string | null) ?? null)
+      [...costByProduct.values()]
+        .map((c) => c.costSupplierId)
         .filter((id): id is string => Boolean(id)),
     ),
   ]
@@ -819,9 +834,9 @@ async function buildVirtualMissingItems(
 
   return missing.map((p) => {
     const productId = String(p.id)
-    const supplierId = (p.supplier_id as string | null) ?? null
-    const baseCost =
-      supplierId != null ? (costMap.get(`${supplierId}:${productId}`) ?? null) : null
+    const costInfo = costByProduct.get(productId)
+    const baseCost = costInfo?.baseCost ?? null
+    const effectiveSupplierId = costInfo?.costSupplierId ?? null
     const costTotal =
       baseCost == null ? null : computeCostTotal(baseCost, 0, 0, listPct)
     return {
@@ -839,8 +854,10 @@ async function buildVirtualMissingItems(
       sku: String(p.sku),
       productName: String(p.name),
       manufacturerCode: (p.manufacturer_code as string | null) ?? null,
-      supplierId,
-      supplierName: supplierId ? (supplierNames.get(supplierId) ?? null) : null,
+      supplierId: effectiveSupplierId,
+      supplierName: effectiveSupplierId
+        ? (supplierNames.get(effectiveSupplierId) ?? null)
+        : null,
       updatedAt: undefined,
     }
   })
@@ -865,7 +882,7 @@ export async function adminListProductsWithoutPriceOnList(
   priceListId: string,
 ): Promise<PriceListItem[]> {
   const all = await adminListPriceListOperationalItems(priceListId)
-  return all.filter((i) => !(i.price > 0))
+  return all.filter((i) => !isPriceListItemPriced(i.price))
 }
 
 export function filterPriceListItems(
@@ -892,7 +909,7 @@ export function filterPriceListItems(
     if (filters.origin && item.priceOrigin !== filters.origin) return false
     if (filters.onlyCalculated && item.priceOrigin !== 'calculated') return false
     if (filters.withoutCost && item.baseCost != null) return false
-    if (filters.withoutPrice && item.price > 0) return false
+    if (filters.withoutPrice && isPriceListItemPriced(item.price)) return false
     if (filters.withOverride && !item.hasOverride) return false
     if (filters.supplierId && item.supplierId !== filters.supplierId) return false
     return true
@@ -1013,32 +1030,37 @@ async function loadSupplierNames(ids: string[]): Promise<Map<string, string>> {
   return map
 }
 
-async function loadPrincipalCosts(
+/** Custo base oficial via SQL `product_base_costs` (DIV-002). */
+export async function loadProductBaseCosts(
   productIds: string[],
-): Promise<Map<string, number>> {
-  const map = new Map<string, number>()
+): Promise<Map<string, ProductBaseCostInfo>> {
+  const map = new Map<string, ProductBaseCostInfo>()
   const unique = [...new Set(productIds.filter(Boolean))]
   if (!unique.length) return map
 
   const sb = getSupabase()
-  const chunkSize = 200
+  const chunkSize = 500
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize)
-    const { data, error } = await sb
-      .from('supplier_products')
-      .select('supplier_id, product_id, cost')
-      .in('product_id', chunk)
-      .not('cost', 'is', null)
+    const { data, error } = await sb.rpc('product_base_costs', {
+      p_product_ids: chunk,
+    })
     if (error) throw error
-    for (const row of data ?? []) {
-      if (row.cost == null) continue
-      map.set(`${row.supplier_id}:${row.product_id}`, Number(row.cost))
+    for (const row of (data ?? []) as Array<{
+      product_id: string
+      base_cost: number | string
+      cost_supplier_id: string | null
+    }>) {
+      map.set(String(row.product_id), {
+        baseCost: Number(row.base_cost),
+        costSupplierId: row.cost_supplier_id != null ? String(row.cost_supplier_id) : null,
+      })
     }
   }
   return map
 }
 
-/** Preview do preço pela regra da lista (client-side, espelha SQL). */
+/** Preview do preço pela regra da lista (fórmulas TS; custo vem da SQL). */
 export function previewCalculatedPrice(input: {
   baseCost: number | null
   extraCost: number
@@ -1054,7 +1076,7 @@ export function previewCalculatedPrice(input: {
     return {
       costTotal: null,
       price: null,
-      error: 'Custo ausente (products.supplier_id + supplier_products.cost)',
+      error: 'Custo ausente (product_base_cost: principal ou FAL-SUP-01)',
     }
   }
   if (input.baseCost < 0 || input.extraCost < 0) {
@@ -1143,6 +1165,30 @@ export async function adminSetPriceListItemPricing(input: {
   })
   if (error) throw error
   return (data ?? {}) as Record<string, unknown>
+}
+
+/** Define preço formado (origem calculated) sem passar pela regra % da lista. */
+export async function adminSetCalculatedListPrice(input: {
+  priceListId: string
+  productId: string
+  price: number
+}): Promise<void> {
+  if (!(input.price >= 0) || Number.isNaN(input.price)) {
+    throw new Error('Preço inválido')
+  }
+  const { error } = await getSupabase()
+    .from('price_list_items')
+    .upsert(
+      {
+        price_list_id: input.priceListId,
+        product_id: input.productId,
+        price: input.price,
+        price_origin: 'calculated',
+        calculated_price: input.price,
+      },
+      { onConflict: 'price_list_id,product_id' },
+    )
+  if (error) throw error
 }
 
 export async function adminUpsertPriceListItem(input: {
@@ -1611,48 +1657,21 @@ export type PriceListImportSummary = {
 export async function adminListPriceListImports(
   priceListId: string,
 ): Promise<PriceListImportSummary[]> {
-  const sb = getSupabase()
-  const { data, error } = await sb
-    .from('imports')
-    .select('id, filename, status, created_at, created_by, report')
-    .eq('kind', 'price_list')
-    .eq('price_list_id', priceListId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  if (error) throw error
-
-  const imports = data ?? []
-  if (!imports.length) return []
-
-  const ids = imports.map((r) => String(r.id))
-  const { data: items, error: itemsError } = await sb
-    .from('import_items')
-    .select('import_id, result')
-    .in('import_id', ids)
-  if (itemsError) throw itemsError
-
-  const totals = new Map<string, { total: number; errors: number }>()
-  for (const it of items ?? []) {
-    const iid = String(it.import_id)
-    const cur = totals.get(iid) ?? { total: 0, errors: 0 }
-    cur.total += 1
-    if (it.result === 'error' || it.result === 'failed') cur.errors += 1
-    totals.set(iid, cur)
-  }
-
-  return imports.map((r) => {
-    const t = totals.get(String(r.id)) ?? { total: 0, errors: 0 }
-    return {
-      id: String(r.id),
-      filename: String(r.filename),
-      status: String(r.status),
-      createdAt: String(r.created_at),
-      createdBy: r.created_by ? String(r.created_by) : null,
-      report: (r.report as Record<string, unknown> | null) ?? null,
-      totalItems: t.total,
-      errorItems: t.errors,
-    }
+  const rows = await adminListImports({
+    kind: 'price_list',
+    priceListId,
+    limit: 100,
   })
+  return rows.map((r) => ({
+    id: r.id,
+    filename: r.filename,
+    status: r.status,
+    createdAt: r.createdAt,
+    createdBy: r.createdBy,
+    report: r.report,
+    totalItems: r.totalItems,
+    errorItems: r.errorItems,
+  }))
 }
 
 export type PriceListImportDetail = PriceListImportSummary & {
@@ -1667,38 +1686,17 @@ export type PriceListImportDetail = PriceListImportSummary & {
 }
 
 export async function adminGetImportDetail(importId: string): Promise<PriceListImportDetail | null> {
-  const sb = getSupabase()
-  const { data, error } = await sb
-    .from('imports')
-    .select('id, filename, status, created_at, created_by, report, kind, price_list_id')
-    .eq('id', importId)
-    .maybeSingle()
-  if (error) throw error
-  if (!data) return null
-
-  const { data: items, error: itemsError } = await sb
-    .from('import_items')
-    .select('id, line_number, result, errors, warnings, payload')
-    .eq('import_id', importId)
-    .order('line_number', { ascending: true })
-  if (itemsError) throw itemsError
-
+  const detail = await adminGetImportRunDetail(importId)
+  if (!detail) return null
   return {
-    id: String(data.id),
-    filename: String(data.filename),
-    status: String(data.status),
-    createdAt: String(data.created_at),
-    createdBy: data.created_by ? String(data.created_by) : null,
-    report: (data.report as Record<string, unknown> | null) ?? null,
-    totalItems: (items ?? []).length,
-    errorItems: (items ?? []).filter((i) => i.result === 'error' || i.result === 'failed').length,
-    items: (items ?? []).map((i) => ({
-      id: String(i.id),
-      lineNumber: i.line_number == null ? null : Number(i.line_number),
-      result: i.result == null ? null : String(i.result),
-      errors: Array.isArray(i.errors) ? (i.errors as string[]) : [],
-      warnings: Array.isArray(i.warnings) ? (i.warnings as string[]) : [],
-      payload: (i.payload as Record<string, unknown>) ?? {},
-    })),
+    id: detail.id,
+    filename: detail.filename,
+    status: detail.status,
+    createdAt: detail.createdAt,
+    createdBy: detail.createdBy,
+    report: detail.report,
+    totalItems: detail.totalItems,
+    errorItems: detail.errorItems,
+    items: detail.items,
   }
 }

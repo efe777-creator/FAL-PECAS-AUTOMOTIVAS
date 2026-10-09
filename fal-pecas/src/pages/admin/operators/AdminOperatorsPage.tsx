@@ -1,3 +1,5 @@
+import { EmptyState } from '@/components/common/EmptyState'
+import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
@@ -142,18 +144,19 @@ export function AdminOperatorsPage() {
           </button>
         </form>
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
         {okMsg ? <p className="text-sm text-emerald-700">{okMsg}</p> : null}
 
         {loading ? <Loading label="Carregando…" /> : null}
+        {!loading && error ? <ErrorState message={error} /> : null}
 
-        {!loading && rows.length === 0 ? (
-          <p className="text-sm text-fal-muted">
-            Nenhum operador listado. Busque pelo e-mail de quem já se cadastrou na loja.
-          </p>
+        {!loading && !error && rows.length === 0 ? (
+          <EmptyState
+            title="Nenhum operador listado"
+            description="Busque pelo e-mail de quem já se cadastrou na loja."
+          />
         ) : null}
 
-        {!loading && rows.length > 0 ? (
+        {!loading && !error && rows.length > 0 ? (
           <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">

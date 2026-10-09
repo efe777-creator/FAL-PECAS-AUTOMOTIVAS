@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
 import { productStatusLabel } from '@/lib/adminLabels'
 import {
@@ -8,7 +9,14 @@ import {
   collectCategorySubtreeIds,
 } from '@/services/admin/adminCategoryService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
-import { adminListProducts, adminSetProductStatus } from '@/services/admin/adminProductService'
+import {
+  adminEvaluateReleaseChecklistBatch,
+  adminListProducts,
+  adminReleaseProductsToStore,
+  adminSetProductStatus,
+  type ReleasePreflightRow,
+} from '@/services/admin/adminProductService'
+import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import type { Category, Manufacturer, Product } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -27,6 +35,7 @@ export function AdminProductsPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [releasePreflight, setReleasePreflight] = useState<ReleasePreflightRow[] | null>(null)
 
   const categoryOptions = useMemo(
     () =>
@@ -146,6 +155,65 @@ export function AdminProductsPage() {
     }
   }
 
+  async function bulkLiberarNaLoja() {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    setBusyBulk(true)
+    setMessage(null)
+    setError(null)
+    setReleasePreflight(null)
+    try {
+      const rows = await adminEvaluateReleaseChecklistBatch(ids, {
+        publishIfNeeded: true,
+      })
+      setReleasePreflight(rows)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha no pré-flight D-LIBERAR')
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  async function confirmBulkLiberarEligible() {
+    if (!releasePreflight?.length) return
+    const eligible = releasePreflight.filter((r) => r.canRelease).map((r) => r.productId)
+    if (!eligible.length) {
+      setError('Nenhum produto passou no checklist hard (D-LIBERAR).')
+      return
+    }
+    const blocked = releasePreflight.length - eligible.length
+    const ok = window.confirm(
+      `Liberar ${eligible.length} produto(s) que passaram no checklist?\n` +
+        (blocked > 0 ? `${blocked} bloqueado(s) serão ignorados.\n` : '') +
+        '\nHard: nome, código ref., categoria, preço resolvido > 0, publicação.\n' +
+        'Avisos (app/imagem) não bloqueiam.',
+    )
+    if (!ok) return
+    setBusyBulk(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const { released, failed } = await adminReleaseProductsToStore({
+        productIds: eligible,
+        publishIfNeeded: true,
+      })
+      const failHint =
+        failed.length > 0
+          ? ` · ${failed.length} falha(s): ${failed
+              .slice(0, 3)
+              .map((f) => f.reason)
+              .join('; ')}${failed.length > 3 ? '…' : ''}`
+          : ''
+      setMessage(`${released} liberado(s) na loja${failHint}`)
+      setReleasePreflight(null)
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -165,6 +233,9 @@ export function AdminProductsPage() {
           <Link to="/admin/produtos/importar-hf">
             <Button variant="light">Importar HF</Button>
           </Link>
+          <Link to="/admin/importacoes">
+            <Button variant="light">Histórico importações</Button>
+          </Link>
           <Link to="/admin/produtos/novo">
             <Button variant="primary">Novo produto</Button>
           </Link>
@@ -173,7 +244,11 @@ export function AdminProductsPage() {
 
       <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4">
         <div className="min-w-[180px] flex-1">
-          <Input label="Buscar (nome/SKU)" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input
+            label="Buscar (nome / código / SKU)"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
         </div>
         <label className="block min-w-[140px] text-sm">
           <span className="mb-1 block font-semibold text-fal-navy">Status</span>
@@ -227,6 +302,73 @@ export function AdminProductsPage() {
         </Button>
       </div>
 
+      {releasePreflight ? (
+        <div className="space-y-3 rounded-[14px] border border-fal-navy/20 bg-white p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Pré-flight Liberar (D-LIBERAR)</h2>
+              <p className="mt-1 text-sm text-fal-muted">
+                Hard bloqueia; aplicação/imagem são avisos. Só quem passa hard será liberado.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                disabled={busyBulk || !releasePreflight.some((r) => r.canRelease)}
+                onClick={() => void confirmBulkLiberarEligible()}
+              >
+                Confirmar elegíveis (
+                {releasePreflight.filter((r) => r.canRelease).length})
+              </Button>
+              <Button
+                type="button"
+                variant="light"
+                disabled={busyBulk}
+                onClick={() => setReleasePreflight(null)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+          <div className="max-h-72 overflow-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-fal-bg text-fal-muted">
+                <tr>
+                  <th className="px-2 py-1">Código</th>
+                  <th className="px-2 py-1">Nome</th>
+                  <th className="px-2 py-1">Resultado</th>
+                  <th className="px-2 py-1">Detalhe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releasePreflight.map((row) => (
+                  <tr key={row.productId} className="border-b border-fal-line/60">
+                    <td className="px-2 py-1 font-mono text-xs">
+                      {row.commercialRef || row.sku}
+                    </td>
+                    <td className="px-2 py-1">{row.name}</td>
+                    <td className="px-2 py-1">
+                      {row.canRelease ? (
+                        <span className="font-semibold text-emerald-800">
+                          Passa
+                          {row.softWarnings.length
+                            ? ` (${row.softWarnings.length} aviso)`
+                            : ''}
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-red-700">Bloqueado</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-xs text-fal-muted">{row.summary}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
           <span className="text-sm font-semibold text-fal-navy">{selected.size} selecionado(s)</span>
@@ -234,9 +376,17 @@ export function AdminProductsPage() {
             type="button"
             variant="primary"
             disabled={busyBulk}
+            onClick={() => void bulkLiberarNaLoja()}
+          >
+            Liberar na loja (checklist)
+          </Button>
+          <Button
+            type="button"
+            variant="light"
+            disabled={busyBulk}
             onClick={() => void bulkSetStatus('published')}
           >
-            Ativar
+            Publicar
           </Button>
           <Button
             type="button"
@@ -276,7 +426,7 @@ export function AdminProductsPage() {
                   disabled={items.length === 0 || loading}
                 />
               </th>
-              <th className="px-3 py-2">SKU</th>
+              <th className="px-3 py-2">{CODIGO_REFERENCIA_LABEL}</th>
               <th className="px-3 py-2">Nome</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Preço</th>
@@ -286,8 +436,13 @@ export function AdminProductsPage() {
           <tbody>
             {items.length === 0 && !loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-fal-muted">
-                  Nenhum produto encontrado.
+                <td colSpan={6} className="px-3 py-4">
+                  <EmptyState
+                    title="Nenhum produto encontrado"
+                    description="Ajuste os filtros ou cadastre um novo produto."
+                    actionLabel="Novo produto"
+                    actionTo="/admin/produtos/novo"
+                  />
                 </td>
               </tr>
             ) : null}
@@ -298,10 +453,10 @@ export function AdminProductsPage() {
                     type="checkbox"
                     checked={selected.has(p.id)}
                     onChange={() => toggleRow(p.id)}
-                    aria-label={`Selecionar ${p.sku}`}
+                    aria-label={`Selecionar ${p.commercialRef ?? p.sku}`}
                   />
                 </td>
-                <td className="px-3 py-2 font-mono text-xs">{p.sku}</td>
+                <td className="px-3 py-2 font-mono text-xs">{p.commercialRef ?? p.sku}</td>
                 <td className="px-3 py-2 font-semibold">
                   {p.name}
                   {p.isIncomplete ? (

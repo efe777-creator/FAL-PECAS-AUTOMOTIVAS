@@ -274,9 +274,25 @@ export interface ProductReference {
   status?: 'active' | 'inactive'
 }
 
+/** Linha de aplicação na vitrine (agrupada por montadora). */
+export interface CompatibilityAppLine {
+  model: string
+  engine?: string | null
+  version?: string | null
+  yearLabel?: string | null
+}
+
+export interface CompatibilityAppGroup {
+  maker: string
+  lines: CompatibilityAppLine[]
+}
+
 export interface Product {
   id: string
+  /** SKU FAL técnico (import / matching). */
   sku: string
+  /** Código referência comercial (UI/loja). Distinto do sku quando informado. */
+  commercialRef?: string
   name: string
   slug: string
   description?: string
@@ -313,6 +329,8 @@ export interface Product {
   /** Lado da peça (atributo do produto). */
   lado?: 'ESQUERDO' | 'DIREITO' | 'AMBOS' | null
   compatibilitySummary?: string
+  /** Apps agrupadas por montadora (card IMP-11 M3). */
+  compatibilityGroups?: CompatibilityAppGroup[]
   references?: ProductReference[]
   attrs?: Record<string, unknown>
   /** Logística opcional (F6C) — não inventar no seed. */

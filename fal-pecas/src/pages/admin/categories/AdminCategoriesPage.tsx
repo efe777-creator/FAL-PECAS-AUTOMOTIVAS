@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import {
@@ -325,8 +326,11 @@ export function AdminCategoriesPage() {
           <tbody>
             {visibleRoots.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
-                  Nenhuma classificação encontrada.
+                <td colSpan={6} className="px-3 py-4">
+                  <EmptyState
+                    title="Nenhuma classificação encontrada"
+                    description="Cadastre um grupo/categoria ou limpe a busca."
+                  />
                 </td>
               </tr>
             ) : (

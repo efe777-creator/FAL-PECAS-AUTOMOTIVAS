@@ -90,7 +90,7 @@ export function AdminHfBundleImportPage() {
   return (
     <PageShell
       title="Importar arquivo HF (produto + aplicações)"
-      description="Uma planilha completa: o sistema separa 1 cadastro por código FAL e uma aplicação por linha. Produtos são gravados antes das aplicações."
+      description="Uma planilha completa: o sistema separa 1 cadastro por código referência e uma aplicação por linha. Produtos são gravados antes das aplicações."
       actions={
         <Link to="/admin/produtos/importar" className="text-sm font-semibold text-fal-navy">
           Só produtos →
