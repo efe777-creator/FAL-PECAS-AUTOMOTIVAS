@@ -135,6 +135,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         {
           productId: product.id,
           sku: product.sku,
+          commercialRef: product.commercialRef ?? product.sku,
           name: product.name,
           price,
           quantity,

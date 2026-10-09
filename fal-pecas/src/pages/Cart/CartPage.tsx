@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { formatMoney } from '@/lib/money'
+import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
@@ -36,12 +37,26 @@ export function CartPage() {
               key={item.productId}
               className="grid grid-cols-[86px_1fr_auto] gap-4 border-b border-fal-line py-4 last:border-0"
             >
-              <div className="grid h-[75px] place-items-center rounded-[9px] bg-[#e9edef] text-3xl">
-                🧩
+              <div className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-full w-full object-contain"
+                    loading="lazy"
+                  />
+                ) : (
+                  '🧩'
+                )}
               </div>
               <div>
                 <h3 className="m-0 text-base font-bold">{item.name}</h3>
-                <p className="m-0 text-xs text-fal-muted">Código {item.sku}</p>
+                <p className="m-0 text-xs text-fal-muted">
+                  {formatReferenciaFromProduct({
+                    commercialRef: item.commercialRef,
+                    sku: item.sku,
+                  })}
+                </p>
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"

@@ -4,6 +4,14 @@ import { yearMatchesVehicleApp } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { attachResolvedPrices } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
+import {
+  attachPrimaryProductImages,
+  attachProductImageGallery,
+} from '@/services/products/productImages'
+import {
+  RELATED_PRODUCTS_LIMIT,
+  pickRelatedProducts,
+} from '@/services/products/relatedProducts'
 import type { Product } from '@/types'
 
 type Named = { name: string; id?: string; slug?: string }
@@ -98,6 +106,21 @@ export async function listProductsByCategorySlug(
   return result.items
 }
 
+/**
+ * Relacionados na PDP: mesma categoria (slug), excluindo o atual.
+ * Sem categoria → []. Sem aleatório / sem “quem viu”.
+ */
+export async function listRelatedProductsForPdp(
+  product: Pick<Product, 'id' | 'categorySlug'>,
+  limit = RELATED_PRODUCTS_LIMIT,
+): Promise<Product[]> {
+  const slug = product.categorySlug?.trim()
+  if (!slug || !product.id) return []
+  const poolSize = Math.min(Math.max(limit + 8, limit), 40)
+  const pool = await listProductsByCategorySlug(slug, poolSize)
+  return pickRelatedProducts(pool, { excludeId: product.id, limit })
+}
+
 export async function listPublishedProducts(limit = 40): Promise<Product[]> {
   assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
@@ -120,7 +143,8 @@ export async function listPublishedProducts(limit = 40): Promise<Product[]> {
     maxMakers: null,
     maxLinesPerMaker: null,
   })
-  return attachResolvedPrices(withApps)
+  const withImages = await attachPrimaryProductImages(withApps)
+  return attachResolvedPrices(withImages)
 }
 
 /** IDs de produtos compatíveis com filtros parciais de veículo. */
@@ -253,8 +277,9 @@ export async function getProductById(id: string): Promise<Product | null> {
     maxMakers: null,
     maxLinesPerMaker: null,
   })
-  const [resolved] = await attachResolvedPrices([withApps ?? product])
-  return resolved ?? withApps ?? product
+  const withGallery = await attachProductImageGallery(withApps ?? product)
+  const [resolved] = await attachResolvedPrices([withGallery])
+  return resolved ?? withGallery
 }
 
 /** @deprecated Preferir `searchCatalog` (Fase 4). Mantido como fachada. */
