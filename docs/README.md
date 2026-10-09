@@ -1,57 +1,58 @@
 # Documentação FAL Peças Automotivas 3.0
 
-Pasta central de documentos. **Fonte de verdade** dos specs: `docs/entrada/`.  
-**Roadmap oficial de execução:** `docs/planejamento/ROADMAP_FASES_3.0.md`.
+Pasta central de documentos.
+
+| Tipo | Fonte canônica |
+|------|----------------|
+| **PRD de produto** | [`entrada/FAL_PRD_3.0.md`](entrada/FAL_PRD_3.0.md) — **PRD Mestre 2.0 (2026-10-08)** |
+| **Roadmap de execução** | [`planejamento/ROADMAP_FASES_3.0.md`](planejamento/ROADMAP_FASES_3.0.md) |
+| **Diagnóstico de consolidação** | [`planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md`](planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md) |
+| **Backlog consolidação** | [`planejamento/BACKLOG_CONSOLIDACAO_FAL_3.0_2026-10-08.md`](planejamento/BACKLOG_CONSOLIDACAO_FAL_3.0_2026-10-08.md) |
+| **Protocolo de auditoria (Cursor)** | [`planejamento/PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md`](planejamento/PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md) |
+| **Gate Fase 0 / plano** | [`planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md`](planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md) — Onda 0 |
+| **Schema Onda 0** | [adendo runtime](planejamento/FAL_IMP_01_ADDENDUM_RUNTIME_CANONICO_2026-10-08.md) + [VAL-01](planejamento/FAL_VAL_01_RUNTIME_SCHEMA_2026-10-08.md) — **runtime `wtbp…` PASS; gate Onda 1** |
+| Specs técnicas de entrada | `entrada/ARCHITECTURE.md`, `DATABASE.md`, `API.md`, `IMPORT.md`, `UX.md`, `IDENTIDADE_VISUAL.md` |
+
+---
 
 ## Estrutura
 
 ```text
 docs/
 ├── README.md
-├── entrada/                 # FONTE DE VERDADE (produto/specs)
-│   ├── FAL_PRD_3.0.md
-│   ├── ARCHITECTURE.md
-│   ├── DATABASE.md
-│   ├── API.md
-│   ├── UX.md
-│   ├── IMPORT.md
-│   └── IDENTIDADE_VISUAL.md
-└── planejamento/
-    ├── ROADMAP_FASES_3.0.md
-    ├── ESPECIFICACAO_FASE2… → FASE6 / 6B / 6C / 6D / FASE7
-    ├── EXECUCAO_FASE3… → FASE7 / FASE7A
-    ├── AUDITORIA_FASE2… → FASE7_2026-10-04
-    └── …
+├── FAL_PRD_3.0.md           # stub → aponta para entrada/
+├── entrada/                 # PRD + specs de produto/arquitetura
+└── planejamento/            # roadmap, specs de fase, auditorias, STOPs
 ```
 
-## Fases (resumo)
+---
 
-| Fase | Spec / status |
-|------|----------------|
-| 1 | Fundação UI — concluída |
-| 2 | [ESPECIFICACAO_FASE2…](planejamento/ESPECIFICACAO_FASE2_ARQUITETURA_DADOS.md) — concluída |
-| 3 | [ESPECIFICACAO_FASE3…](planejamento/ESPECIFICACAO_FASE3_CATALOGO_COMERCIAL.md) — concluída |
-| 4 | [ESPECIFICACAO_FASE4…](planejamento/ESPECIFICACAO_FASE4_MOTOR_BUSCA.md) — concluída |
-| 4B | [ESPECIFICACAO_FASE4B…](planejamento/ESPECIFICACAO_FASE4B_ADMIN.md) — concluída |
-| 5 | [ESPECIFICACAO_FASE5…](planejamento/ESPECIFICACAO_FASE5_CLIENTE.md) — concluída |
-| 6 | [ESPECIFICACAO_FASE6…](planejamento/ESPECIFICACAO_FASE6_ECOMMERCE.md) — concluída |
-| 6B | [ESPECIFICACAO_FASE6B…](planejamento/ESPECIFICACAO_FASE6B_LISTAS_PRECOS.md) — concluída |
-| 6C | Endereços / CEP / frete — concluída |
-| 6D | [ESPECIFICACAO_FASE6D…](planejamento/ESPECIFICACAO_FASE6D_CICLO_PEDIDO.md) — docs concluídos |
-| 7A | [EXECUCAO_FASE7A…](planejamento/EXECUCAO_FASE7A.md) — fundação concluída |
-| **7** | [ESPECIFICACAO_FASE7…](planejamento/ESPECIFICACAO_FASE7_OPERACAO_PEDIDOS.md) · [EXECUCAO](planejamento/EXECUCAO_FASE7.md) · [auditoria final](planejamento/AUDITORIA_FASE7_FINAL_2026-10-04.md) — **concluída** |
-| 7B–7F | Recepção → separação → expedição → entrega → estoque — concluídas |
-| Pré-F7 | [Ajuste global preços](planejamento/AUDITORIA_AJUSTE_GLOBAL_PRECOS_2026-10-04.md) — gate aprovado |
-| **8** | [ESPECIFICACAO_FASE8…](planejamento/ESPECIFICACAO_FASE8_BACKOFFICE.md) · [EXECUCAO](planejamento/EXECUCAO_FASE8.md) · [auditoria](planejamento/AUDITORIA_FASE8_2026-10-04.md) — **Fatia A implementada** |
-| 8.1 | Import catálogo — futura |
-| 9–10 | Integrações / go-live — pendentes |
+## Fases (resumo 2026-10-08)
+
+| Bloco | Fases | Status |
+|-------|-------|--------|
+| A Fundação e operação | F1–F7 | **Concluído** |
+| B Operação comercial | F8 / F8.1 | **Base construída** |
+| C Integrações comerciais | F9 | F9-E local OK → **STOP smoke** → F9-F |
+| **D Consolidação** | **F10** | **Onda 1** — IMP-02+03 feitos; próximo IMP-08 preços ([IMP-03](planejamento/FAL_IMP_03_IDENTIDADE_VAL_2026-10-09.md)) |
+| E Catálogo mestre | F11 | Planejado |
+| F Enriquecimento | F12 | Futuro |
+| G Escala | F13 | Futuro |
+
+Detalhe e gates: [planejamento/ROADMAP_FASES_3.0.md](planejamento/ROADMAP_FASES_3.0.md).
+
+---
 
 ## Como contribuir
 
-1. Novos briefs/PRDs → `docs/entrada/`
-2. Decisões de fase → `docs/planejamento/`
+1. Visão/regras de produto → `docs/entrada/FAL_PRD_3.0.md` (após auditoria/consolidação)
+2. Decisões e execução de fase → `docs/planejamento/`
 3. Não duplicar specs dentro de `fal-pecas/docs/` (lá há apenas ponteiros)
 4. Branch `plan` para planejamento/implementação de fase; `dev` para integração antes de `main`
+5. **Não avançar fase sem gate**; PRD não autoriza implementar tudo de uma vez
+6. **F10:** Fase 0 feita; gate **só Onda 0** — próximo `FAL-IMP-01` (schema). Sem `FAL-IMP-02+` até `FAL-VAL-01` + aprovação Onda 1
+
+---
 
 ## Código da aplicação
 
