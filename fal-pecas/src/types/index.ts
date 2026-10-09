@@ -319,6 +319,8 @@ export interface Product {
   isIncomplete?: boolean
   status?: 'draft' | 'published' | 'archived'
   imageUrl?: string | null
+  /** URLs públicas ordenadas (PDP galeria). Sem linhas em Storage → ausente. */
+  images?: string[]
   manufacturerCode?: string
   /**
    * Posição da peça (atributo do produto).
@@ -448,6 +450,8 @@ export interface VehicleOptionTree {
 export interface CartItem {
   productId: string
   sku: string
+  /** Código referência comercial (UI); fallback sku na exibição. */
+  commercialRef?: string
   name: string
   price: number
   quantity: number

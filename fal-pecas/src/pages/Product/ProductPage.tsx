@@ -3,7 +3,12 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
-import { getProductById } from '@/services/products/productService'
+import { ProductCard } from '@/components/product/ProductCard'
+import { ProductGallery } from '@/components/product/ProductGallery'
+import {
+  getProductById,
+  listRelatedProductsForPdp,
+} from '@/services/products/productService'
 import {
   STORE_BACKEND_UNAVAILABLE_MESSAGE,
   STORE_BACKEND_UNAVAILABLE_TITLE,
@@ -24,11 +29,25 @@ import {
 } from '@/lib/whatsapp'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
 import {
+  AJUDA_APLICACAO_TEXT,
+  DESCRICAO_SECTION_LABEL,
+  ESPECIFICACOES_SECTION_LABEL,
   FABRICANTE_LABEL,
+  FILTRAR_NO_CATALOGO_LABEL,
+  RELACIONADOS_SECTION_LABEL,
+  VER_DESCRICAO_COMPLETA_LABEL,
+  VER_MAIS_CATALOGO_LABEL,
+  VER_MENOS_DESCRICAO_LABEL,
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
-import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
+import {
+  buildCatalogMakerFilterHref,
+  joinProductDescription,
+  needsDescriptionCollapse,
+  truncateDescription,
+} from '@/lib/productDescription'
+import { buildProductSpecRows } from '@/lib/productSpecs'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { formatMoney } from '@/lib/money'
 
@@ -40,6 +59,8 @@ export function ProductPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [backendDown, setBackendDown] = useState(false)
   const [liked, setLiked] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [related, setRelated] = useState<Product[]>([])
   const { addItem, items, updateQty } = useCart()
   const { user } = useAuth()
   const { push } = useToast()
@@ -53,6 +74,7 @@ export function ProductPage() {
       setLoadError(null)
       setBackendDown(false)
       setProduct(null)
+      setDescExpanded(false)
       try {
         const data = id ? await getProductById(id) : null
         if (active) setProduct(data)
@@ -82,6 +104,25 @@ export function ProductPage() {
       .then(setLiked)
       .catch(() => setLiked(false))
   }, [user, product?.id])
+
+  useEffect(() => {
+    const currentProduct = product
+    if (!currentProduct?.id || !currentProduct.categorySlug?.trim()) {
+      setRelated([])
+      return
+    }
+    let active = true
+    void listRelatedProductsForPdp(currentProduct)
+      .then((items) => {
+        if (active) setRelated(items)
+      })
+      .catch(() => {
+        if (active) setRelated([])
+      })
+    return () => {
+      active = false
+    }
+  }, [product?.id, product?.categorySlug])
 
   if (loading) {
     return (
@@ -155,6 +196,25 @@ export function ProductPage() {
   const categoryHref = current.categorySlug
     ? `/catalogo?cat=${encodeURIComponent(current.categorySlug)}`
     : null
+  const shortDesc = current.shortDescription?.trim() || ''
+  const longDesc = current.description?.trim() || ''
+  const fullDescription = joinProductDescription(shortDesc, longDesc)
+  const descriptionCollapses = needsDescriptionCollapse(fullDescription)
+  const descriptionShown =
+    descriptionCollapses && !descExpanded
+      ? truncateDescription(fullDescription)
+      : fullDescription
+  const specRows = buildProductSpecRows(current)
+  const waPhone = storeWhatsAppPhone()
+  const catalogFilterHref = buildCatalogMakerFilterHref(
+    current.compatibilityGroups?.[0]?.maker ?? null,
+  )
+  const galleryImages =
+    current.images?.length
+      ? current.images
+      : current.imageUrl
+        ? [current.imageUrl]
+        : []
 
   async function onFavoriteClick() {
     if (!user) {
@@ -176,7 +236,7 @@ export function ProductPage() {
   }
 
   return (
-    <Container className="py-8">
+    <Container className="overflow-x-hidden py-8">
       <button
         type="button"
         onClick={goBack}
@@ -206,20 +266,12 @@ export function ProductPage() {
         {' / '}
         <span className="text-fal-ink">{displayName}</span>
       </p>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="grid h-[280px] place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#e8ecef] to-[#d7dde1] text-7xl lg:h-[420px]">
-          {current.imageUrl ? (
-            <img
-              src={current.imageUrl}
-              alt={displayName}
-              className="h-full w-full object-contain"
-              loading="lazy"
-            />
-          ) : (
-            '🧩'
-          )}
-        </div>
-        <div className="relative rounded-fal border border-fal-line bg-white p-5">
+
+      {/* Desktop: galeria | buy-box · Mobile: galeria → compra (CTA alto) */}
+      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
+        <ProductGallery images={galleryImages} alt={displayName} />
+
+        <div className="relative min-w-0 rounded-fal border border-fal-line bg-white p-5">
           <button
             type="button"
             className="absolute top-4 right-4 grid h-10 w-10 place-items-center rounded-full border border-fal-line bg-white text-base shadow-sm hover:border-fal-navy"
@@ -232,41 +284,11 @@ export function ProductPage() {
             {displayName}
           </h1>
           <p className="mt-1 text-sm text-fal-muted">{formatReferenciaFromProduct(current)}</p>
-          <div className="mt-2 space-y-1 text-sm text-fal-ink">
-            {brandName ? (
-              <p className="m-0">
-                <span className="font-semibold text-fal-navy">{FABRICANTE_LABEL}:</span> {brandName}
-              </p>
-            ) : null}
-            {current.manufacturerCode ? (
-              <p className="m-0">
-                <span className="font-semibold text-fal-navy">Cód. fabricante:</span>{' '}
-                <span className="font-mono">{current.manufacturerCode}</span>
-              </p>
-            ) : null}
-            {current.categoryName ? (
-              <p className="m-0">
-                <span className="font-semibold text-fal-navy">Categoria:</span> {current.categoryName}
-              </p>
-            ) : null}
-            {current.posicao || current.lado ? (
-              <p className="m-0">
-                {current.posicao ? (
-                  <span>
-                    <span className="font-semibold text-fal-navy">Posição:</span>{' '}
-                    {formatPosicaoLabel(current.posicao)}
-                  </span>
-                ) : null}
-                {current.posicao && current.lado ? ' · ' : null}
-                {current.lado ? (
-                  <span>
-                    <span className="font-semibold text-fal-navy">Lado:</span>{' '}
-                    {formatLadoLabel(current.lado)}
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
-          </div>
+          {brandName ? (
+            <p className="mt-1 text-sm text-fal-ink">
+              <span className="font-semibold text-fal-navy">{FABRICANTE_LABEL}:</span> {brandName}
+            </p>
+          ) : null}
           <p className="mt-4 text-3xl font-black">
             {current.available === false ? '—' : formatStorePriceLabel(price, listPrice)}
           </p>
@@ -280,33 +302,14 @@ export function ProductPage() {
               <span className="font-semibold text-fal-success">Disponível</span>
             )}
           </p>
-          <div className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-3">
-            <CompatibilityAppsBlock
-              variant="pdp"
-              groups={current.compatibilityGroups}
-              summary={current.compatibilitySummary}
-            />
-          </div>
-          {current.references?.length ? (
-            <div className="mt-3 text-sm text-fal-muted">
-              <p className="m-0 font-semibold text-fal-ink">Códigos / referências</p>
-              <ul className="mt-1 list-disc pl-5">
-                {current.references.map((ref) => (
-                  <li key={`${ref.type}-${ref.code}`}>
-                    {ref.code}
-                    {ref.brandLabel ? ` (${ref.brandLabel})` : ''}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+
           <div className="mt-5 space-y-2">
             {current.available === false ? (
               <Button variant="primary" fullWidth disabled>
                 Indisponível
               </Button>
             ) : inCart ? (
-              <div className="flex w-full items-center gap-2">
+              <div className="flex w-full min-w-0 items-center gap-2">
                 <button
                   type="button"
                   className="grid h-[51px] w-12 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg"
@@ -344,10 +347,9 @@ export function ProductPage() {
               </Button>
             )}
             {(() => {
-              const phone = storeWhatsAppPhone()
-              if (!phone || current.available === false) return null
+              if (!waPhone || current.available === false) return null
               const href = whatsAppHref(
-                phone,
+                waPhone,
                 buildProductWhatsAppMessage({
                   name: displayName,
                   sku: current.commercialRef ?? current.sku,
@@ -367,11 +369,93 @@ export function ProductPage() {
               )
             })()}
           </div>
-          <p className="mt-4 text-xs text-fal-muted">
-            Imagens e fichas técnicas detalhadas serão ampliadas em atualizações futuras.
-          </p>
         </div>
       </div>
+
+      {/* Abaixo do buy-box: apps → desc → specs → ajuda */}
+      <div className="mt-8 min-w-0 space-y-4">
+        <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
+          <CompatibilityAppsBlock
+            variant="pdp"
+            groups={current.compatibilityGroups}
+            summary={current.compatibilitySummary}
+          />
+          {current.compatibilityGroups?.length || current.compatibilitySummary ? (
+            <p className="mb-0 mt-3 text-sm">
+              <Link to={catalogFilterHref} className="font-semibold text-fal-navy hover:underline">
+                {FILTRAR_NO_CATALOGO_LABEL}
+              </Link>
+              <span className="text-fal-muted"> — outras peças pelo veículo no catálogo</span>
+            </p>
+          ) : null}
+        </div>
+        {fullDescription ? (
+          <div className="rounded-[10px] border border-fal-line bg-white p-4 text-sm text-fal-ink">
+            <p className="m-0 font-semibold text-fal-navy">{DESCRICAO_SECTION_LABEL}</p>
+            <p className="mb-0 mt-1 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
+            {descriptionCollapses ? (
+              <button
+                type="button"
+                className="mt-2 text-sm font-semibold text-fal-navy hover:underline"
+                aria-expanded={descExpanded}
+                onClick={() => setDescExpanded((v) => !v)}
+              >
+                {descExpanded ? VER_MENOS_DESCRICAO_LABEL : VER_DESCRICAO_COMPLETA_LABEL}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {specRows.length ? (
+          <div className="overflow-x-auto rounded-[10px] border border-fal-line bg-white p-4 text-sm text-fal-ink">
+            <p className="m-0 font-semibold text-fal-navy">{ESPECIFICACOES_SECTION_LABEL}</p>
+            <table className="mt-2 w-full min-w-0 border-collapse">
+              <tbody>
+                {specRows.map((row, i) => (
+                  <tr
+                    key={`${row.label}-${row.value}`}
+                    className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-white'}
+                  >
+                    <th
+                      scope="row"
+                      className="w-[38%] px-3 py-2.5 text-left align-top font-semibold text-fal-navy"
+                    >
+                      {row.label}
+                    </th>
+                    <td className="min-w-0 break-words px-3 py-2.5 text-fal-muted">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+        <p className="text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
+      </div>
+
+      {related.length ? (
+        <section className="mt-10 min-w-0" aria-labelledby="pdp-related-heading">
+          <div className="mb-3 flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+            <h2
+              id="pdp-related-heading"
+              className="m-0 text-lg font-extrabold text-fal-navy sm:text-xl"
+            >
+              {RELACIONADOS_SECTION_LABEL}
+            </h2>
+            {categoryHref ? (
+              <Link
+                to={categoryHref}
+                className="text-sm font-semibold text-fal-navy hover:underline"
+              >
+                {VER_MAIS_CATALOGO_LABEL}
+              </Link>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {related.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </Container>
   )
 }
