@@ -9,7 +9,9 @@ Critérios do plano α. Itens com **OK agente** já têm evidência documental; 
 | Critério | Estado | Evidência / ação |
 |----------|--------|------------------|
 | H1–H6 + Pix + cartão (+ webhook se H3/H4) | **PENDENTE humano** | [MP smoke](./FAL_MP_SMOKE_STATUS_2026-10-10.md) + [prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) |
-| D-FRETE assinado (A/B/C) | **PENDENTE eFe** | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) |
+| D-FRETE assinado (A/B/C) | **PENDENTE eFe** | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) — PDP cotação real ⇒ C |
+| Frete estrutura/MCP (não = live) | **OK agente** | [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) |
+| VAL frete integrado (PDP→pedido) | **PENDENTE** | Separado do smoke MP |
 | E2E pré-pagamento (catálogo→carrinho→checkout) | **OK agente** | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) — para em login |
 | 1 pedido E2E sandbox pago | **PENDENTE** (após MP+frete+login) | [E2E status](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) |
 | Netlify / wtbp / catálogo público | **OK agente** | E2E/produção status 10/10 |

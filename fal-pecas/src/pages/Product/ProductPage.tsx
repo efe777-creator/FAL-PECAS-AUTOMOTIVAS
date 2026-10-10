@@ -5,6 +5,7 @@ import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
+import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
 import {
   getProductById,
   listRelatedProductsForPdp,
@@ -369,6 +370,8 @@ export function ProductPage() {
               )
             })()}
           </div>
+
+          <ProductShippingQuoteBlock product={current} />
         </div>
       </div>
 
