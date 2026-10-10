@@ -10,7 +10,7 @@ Critérios do plano α. Itens com **OK agente** já têm evidência documental; 
 
 | Critério | Estado | Evidência / ação |
 |----------|--------|------------------|
-| H1–H6 + Pix + cartão (+ webhook se H3/H4) | **PENDENTE humano** | [MP smoke](./FAL_MP_SMOKE_STATUS_2026-10-10.md) + [prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) |
+| H1–H6 + Pix + cartão (+ webhook se H3/H4) | **PENDENTE humano** — H5 **FAIL** (UI simulado) | [MP smoke](./FAL_MP_SMOKE_STATUS_2026-10-10.md) + [prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) |
 | D-FRETE assinado (A/B/C) | **PENDENTE eFe** | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) — PDP cotação real ⇒ C |
 | Frete estrutura/UI sandbox/MCP (não = live) | **OK agente** | [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) |
 | VAL frete integrado (PDP→pedido live) | **PENDENTE** | Separado do smoke MP; pós D-FRETE C |
