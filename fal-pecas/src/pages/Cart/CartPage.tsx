@@ -7,11 +7,10 @@ import { useCart } from '@/contexts/CartContext'
 import { formatMoney } from '@/lib/money'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export function CartPage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const { items, itemCount, subtotal, updateQty, removeItem } = useCart()
   const [shippingAmount, setShippingAmount] = useState<number | null>(null)
   const onShippingAmountChange = useCallback((amount: number | null) => {
@@ -41,23 +40,16 @@ export function CartPage() {
         <div className="rounded-fal border border-fal-line bg-white p-5">
           {items.map((item) => {
             const productHref = `/produto/${item.productId}`
-            const openProduct = () => navigate(productHref)
             return (
               <div
                 key={item.productId}
-                role="link"
-                tabIndex={0}
-                className="grid cursor-pointer grid-cols-[86px_1fr_auto] gap-4 border-b border-fal-line py-4 last:border-0 hover:bg-fal-bg/60"
-                onClick={openProduct}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    openProduct()
-                  }
-                }}
-                aria-label={`Ver produto ${item.name}`}
+                className="grid grid-cols-[86px_1fr_auto] gap-4 border-b border-fal-line py-4 last:border-0"
               >
-                <div className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl">
+                <Link
+                  to={productHref}
+                  className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl no-underline"
+                  aria-label={`Abrir produto ${item.name}`}
+                >
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
@@ -68,22 +60,33 @@ export function CartPage() {
                   ) : (
                     '🧩'
                   )}
-                </div>
-                <div>
-                  <h3 className="m-0 text-base font-bold text-fal-navy underline-offset-2 group-hover:underline">
-                    {item.name}
+                </Link>
+                <div className="min-w-0">
+                  <h3 className="m-0 text-base font-bold">
+                    <Link
+                      to={productHref}
+                      className="text-fal-navy no-underline hover:underline"
+                    >
+                      {item.name}
+                    </Link>
                   </h3>
                   <p className="m-0 text-xs text-fal-muted">
-                    {formatReferenciaFromProduct({
-                      commercialRef: item.commercialRef,
-                      sku: item.sku,
-                    })}
+                    <Link to={productHref} className="text-inherit no-underline hover:underline">
+                      {formatReferenciaFromProduct({
+                        commercialRef: item.commercialRef,
+                        sku: item.sku,
+                      })}
+                    </Link>
                   </p>
-                  <div
-                    className="mt-2 flex items-center gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
+                  <p className="mb-0 mt-1">
+                    <Link
+                      to={productHref}
+                      className="text-xs font-extrabold text-fal-navy underline"
+                    >
+                      Ver produto
+                    </Link>
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
                     <button
                       type="button"
                       className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
@@ -108,9 +111,13 @@ export function CartPage() {
                     </button>
                   </div>
                 </div>
-                <div className="text-right font-black">
+                <Link
+                  to={productHref}
+                  className="text-right font-black text-fal-ink no-underline hover:text-fal-navy"
+                  aria-label={`Abrir produto ${item.name} — total`}
+                >
                   {formatMoney(item.price * item.quantity)}
-                </div>
+                </Link>
               </div>
             )
           })}
