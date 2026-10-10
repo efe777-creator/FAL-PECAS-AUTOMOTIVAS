@@ -8,10 +8,11 @@ import {
   buildOkEnvelope,
   logisticsGaps,
   type ShippingQuoteEnvelope,
+  type ShippingQuoteStatus,
 } from '@/services/shipping/shippingQuoteContract'
 import type { ShippingQuoteRequest } from '@/types'
 
-function classifyError(message: string): ShippingQuoteEnvelope['status'] {
+function classifyError(message: string): Exclude<ShippingQuoteStatus, 'ok'> {
   const m = message.toLowerCase()
   if (m.includes('cep')) return 'invalid_cep'
   if (m.includes('não implementado') || m.includes('nao implementado')) return 'not_configured'

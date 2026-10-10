@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
-      .select('id')
+      .select('id, cpf, cnpj')
       .eq('profile_id', user.id)
       .maybeSingle()
     if (custErr || !customer) return json(404, { error: 'customer_not_found' })
@@ -86,10 +86,21 @@ Deno.serve(async (req) => {
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
+    const payerDoc = customer.cpf
+      ? ({ type: 'CPF' as const, number: String(customer.cpf).replace(/\D/g, '') })
+      : customer.cnpj
+        ? ({ type: 'CNPJ' as const, number: String(customer.cnpj).replace(/\D/g, '') })
+        : null
+    // Pix BR: MP exige identification; sem doc → 500 cryptic "not_found"
+    if (!card && !payerDoc) {
+      return json(422, { error: 'payer_document_required' })
+    }
+
     let paymentId: string
+    let mpAttempt = 1
     const { data: existing } = await admin
       .from('payments')
-      .select('id, provider_payment_id, status, amount')
+      .select('id, provider_payment_id, status, amount, metadata')
       .eq('order_id', orderId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
@@ -97,13 +108,53 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (existing?.provider_payment_id) {
-      const { data: full } = await admin
+      let { data: full } = await admin
         .from('payments')
         .select(
           'id, provider_payment_id, status, amount, method, pix_qr_code, pix_qr_code_base64, payment_url, expires_at, provider_status',
         )
         .eq('id', existing.id)
         .maybeSingle()
+
+      // Reuso sem QR: tenta reidratar a partir da API MP (sandbox às vezes atrasa o POI)
+      const needsPixHydrate =
+        !card &&
+        (!full?.pix_qr_code || !full?.pix_qr_code_base64) &&
+        existing.provider_payment_id
+      if (needsPixHydrate) {
+        const hydrateRes = await fetch(`${MP_API}/${existing.provider_payment_id}`, {
+          headers: { Authorization: `Bearer ${mpToken}` },
+        })
+        if (hydrateRes.ok) {
+          const mpHydrate = (await hydrateRes.json().catch(() => ({}))) as Record<string, unknown>
+          try {
+            const fields = mapMpResponseToPaymentFields(mpHydrate)
+            await admin
+              .from('payments')
+              .update({
+                pix_qr_code: fields.pix_qr_code,
+                pix_qr_code_base64: fields.pix_qr_code_base64,
+                payment_url: fields.payment_url,
+                expires_at: fields.expires_at,
+                provider_status: fields.provider_status,
+              })
+              .eq('id', existing.id)
+            if (full) {
+              full = {
+                ...full,
+                pix_qr_code: fields.pix_qr_code,
+                pix_qr_code_base64: fields.pix_qr_code_base64,
+                payment_url: fields.payment_url,
+                expires_at: fields.expires_at,
+                provider_status: fields.provider_status,
+              }
+            }
+          } catch {
+            // mantém full como veio do banco
+          }
+        }
+      }
+
       return json(200, {
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
@@ -123,6 +174,14 @@ Deno.serve(async (req) => {
 
     if (existing?.id) {
       paymentId = existing.id
+      const meta = (existing.metadata ?? {}) as Record<string, unknown>
+      const prevAttempt = Number(meta.mp_attempt)
+      // Se já falhou no MP sem provider id, sobe attempt (nova idempotency key)
+      if (!existing.provider_payment_id && meta.mp_error) {
+        mpAttempt = (Number.isFinite(prevAttempt) && prevAttempt >= 1 ? prevAttempt : 1) + 1
+      } else if (Number.isFinite(prevAttempt) && prevAttempt >= 1) {
+        mpAttempt = prevAttempt
+      }
       await admin
         .from('payments')
         .update({
@@ -131,6 +190,7 @@ Deno.serve(async (req) => {
           method: internalMethod,
           currency: 'BRL',
           installments: card?.installments ?? null,
+          metadata: { ...meta, mp_attempt: mpAttempt },
         })
         .eq('id', paymentId)
     } else {
@@ -172,13 +232,15 @@ Deno.serve(async (req) => {
         email,
         firstName: profile?.full_name?.split(/\s+/)[0],
         lastName: profile?.full_name?.split(/\s+/).slice(1).join(' ') || undefined,
+        identificationType: payerDoc?.type,
+        identificationNumber: payerDoc?.number,
       },
       token: card?.token,
       installments: card?.installments,
       issuerId: card?.issuerId,
     })
 
-    const idempotencyKey = buildIdempotencyKey(paymentId)
+    const idempotencyKey = buildIdempotencyKey(paymentId, mpAttempt)
     const mpRes = await fetch(MP_API, {
       method: 'POST',
       headers: {
@@ -191,15 +253,37 @@ Deno.serve(async (req) => {
 
     const mpJson = (await mpRes.json().catch(() => ({}))) as Record<string, unknown>
     if (!mpRes.ok) {
+      const mpMessage =
+        typeof mpJson.message === 'string'
+          ? mpJson.message
+          : typeof mpJson.error === 'string'
+            ? mpJson.error
+            : null
+      const mpCause = Array.isArray(mpJson.cause)
+        ? mpJson.cause
+            .map((c) =>
+              c && typeof c === 'object' && 'description' in c
+                ? String((c as { description?: unknown }).description ?? '')
+                : '',
+            )
+            .filter(Boolean)
+            .join('; ')
+        : null
+      const detail = [mpMessage, mpCause].filter(Boolean).join(' — ') || undefined
       await admin
         .from('payments')
         .update({
-          metadata: { mp_error: mpJson, http_status: mpRes.status },
+          metadata: {
+            mp_error: mpJson,
+            http_status: mpRes.status,
+            mp_attempt: mpAttempt,
+          },
           provider_status: typeof mpJson.status === 'string' ? mpJson.status : 'error',
         })
         .eq('id', paymentId)
       return json(502, {
         error: 'mercadopago_create_failed',
+        detail,
         httpStatus: mpRes.status,
         orderApproved: false,
       })
@@ -222,6 +306,7 @@ Deno.serve(async (req) => {
         external_ref: orderId,
         metadata: {
           mp_create: { id: fields.provider_payment_id, status: fields.provider_status },
+          mp_attempt: mpAttempt,
         },
       })
       .eq('id', paymentId)

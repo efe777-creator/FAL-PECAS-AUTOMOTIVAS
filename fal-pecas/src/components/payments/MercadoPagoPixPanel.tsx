@@ -8,10 +8,37 @@ interface Props {
   paymentId: string
   orderId: string
   onApproved: (orderId: string) => void
+  /** Seed da resposta create-mp-payment (evita depender só do poll RLS). */
+  initialPixQrCode?: string | null
+  initialPixQrCodeBase64?: string | null
+  initialAmount?: number
 }
 
-export function MercadoPagoPixPanel({ paymentId, orderId, onApproved }: Props) {
-  const [row, setRow] = useState<OwnPaymentRow | null>(null)
+export function MercadoPagoPixPanel({
+  paymentId,
+  orderId,
+  onApproved,
+  initialPixQrCode,
+  initialPixQrCodeBase64,
+  initialAmount,
+}: Props) {
+  const [row, setRow] = useState<OwnPaymentRow | null>(() =>
+    initialPixQrCode || initialPixQrCodeBase64
+      ? {
+          id: paymentId,
+          orderId,
+          status: 'pending',
+          provider: 'mercadopago',
+          providerStatus: null,
+          amount: initialAmount ?? 0,
+          method: 'pix',
+          pixQrCode: initialPixQrCode ?? null,
+          pixQrCodeBase64: initialPixQrCodeBase64 ?? null,
+          paymentUrl: null,
+          expiresAt: null,
+        }
+      : null,
+  )
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -23,7 +50,14 @@ export function MercadoPagoPixPanel({ paymentId, orderId, onApproved }: Props) {
       try {
         const p = await getOwnPayment(paymentId)
         if (cancelled) return
-        setRow(p)
+        if (p) {
+          setRow((prev) => ({
+            ...p,
+            // Mantém QR do create se o poll vier sem código
+            pixQrCode: p.pixQrCode ?? prev?.pixQrCode ?? null,
+            pixQrCodeBase64: p.pixQrCodeBase64 ?? prev?.pixQrCodeBase64 ?? null,
+          }))
+        }
         setError(null)
         if (p?.status === 'approved') {
           onApproved(p.orderId || orderId)

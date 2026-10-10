@@ -28,6 +28,20 @@ export interface CreateMercadoPagoCardInput {
  * F9-B/D — invoca Edge create-mp-payment.
  * Pix: só orderId. Cartão: + token Brick (nunca amount).
  */
+function edgeErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object') {
+    const row = data as { error?: string; detail?: string; message?: string }
+    const code = row.error ?? row.message
+    if (code === 'MP_ACCESS_TOKEN missing') {
+      return 'MP_ACCESS_TOKEN ausente no Edge Supabase. Configure o secret TEST e faça redeploy de create-mp-payment.'
+    }
+    if (code) {
+      return row.detail ? `${code}: ${row.detail}` : code
+    }
+  }
+  return fallback
+}
+
 export async function createMercadoPagoPayment(
   orderId: string,
   card?: CreateMercadoPagoCardInput,
@@ -43,9 +57,27 @@ export async function createMercadoPagoPayment(
   const { data, error } = await getSupabase().functions.invoke('create-mp-payment', {
     body,
   })
-  if (error) throw error
-  const row = data as CreateMercadoPagoPaymentResult & { error?: string }
-  if (row?.error) throw new Error(row.error)
-  if (!row?.paymentId) throw new Error('Resposta create-mp-payment inválida')
-  return row
+  // Non-2xx: data costuma trazer { error, detail }; message do client é genérica
+  let bodyRow = data as (CreateMercadoPagoPaymentResult & { error?: string; detail?: string }) | null
+  if (error && !bodyRow) {
+    try {
+      const ctx = (error as { context?: Response }).context
+      if (ctx && typeof ctx.json === 'function') {
+        bodyRow = (await ctx.json()) as CreateMercadoPagoPaymentResult & {
+          error?: string
+          detail?: string
+        }
+      }
+    } catch {
+      // ignore parse
+    }
+  }
+  if (error) {
+    throw new Error(
+      edgeErrorMessage(bodyRow, error.message || 'Falha ao chamar create-mp-payment'),
+    )
+  }
+  if (bodyRow?.error) throw new Error(edgeErrorMessage(bodyRow, bodyRow.error))
+  if (!bodyRow?.paymentId) throw new Error('Resposta create-mp-payment inválida')
+  return bodyRow
 }
