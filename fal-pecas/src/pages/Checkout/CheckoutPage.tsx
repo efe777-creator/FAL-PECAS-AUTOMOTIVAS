@@ -25,7 +25,13 @@ import {
   isMercadoPagoCheckoutEnabled,
 } from '@/services/payments/paymentService'
 import { placeOrder } from '@/services/orders/placeOrderService'
-import { quoteFreight } from '@/services/shipping/freightService'
+import { getActiveCarrierDescriptor } from '@/services/shipping/shippingService'
+import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
+import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
+import {
+  loadShippingQuoteHandoff,
+  clearShippingQuoteHandoff,
+} from '@/services/shipping/shippingQuoteSession'
 import type {
   CustomerAddress,
   ShippingQuoteOption,
@@ -55,6 +61,7 @@ export function CheckoutPage() {
   const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
   const [shippingOptions, setShippingOptions] = useState<ShippingQuoteOption[]>([])
   const [shippingOptionId, setShippingOptionId] = useState('')
+  const [shippingDisclaimer, setShippingDisclaimer] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<SimulatedPaymentMethod>('pix_simulated')
   const [loadingAddrs, setLoadingAddrs] = useState(true)
   const [quoting, setQuoting] = useState(false)
@@ -62,6 +69,8 @@ export function CheckoutPage() {
   const [idempotencyKey] = useState(() => crypto.randomUUID())
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
+  const preferredShipOptRef = useRef<string | undefined>(undefined)
+  const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
@@ -150,21 +159,42 @@ export function CheckoutPage() {
     setQuoting(true)
     setError(null)
     try {
-      const opts = await quoteFreight({
+      if (!preferredShipOptRef.current) {
+        preferredShipOptRef.current = loadShippingQuoteHandoff()?.preferredOptionId
+      }
+      const logistics = await loadCartLogistics(
+        items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      )
+      const env = await quoteShippingEnvelope({
         postalCode: selectedAddress.postalCode,
         state: selectedAddress.state,
         city: selectedAddress.city,
         subtotal,
         itemCount,
         originPostalCode,
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        items: logistics,
       })
+      setShippingDisclaimer(env.disclaimer ?? null)
+      if (env.status !== 'ok') {
+        quoteKeyRef.current = key
+        setShippingOptions([])
+        setShippingOptionId('')
+        setError(env.message ?? 'Erro ao cotar frete')
+        return
+      }
+      const opts = env.options
       quoteKeyRef.current = key
       setShippingOptions(opts)
-      setShippingOptionId((prev) => (opts.some((o) => o.id === prev) ? prev : opts[0]?.id ?? ''))
+      const preferred = preferredShipOptRef.current
+      setShippingOptionId((prev) => {
+        if (prev && opts.some((o) => o.id === prev)) return prev
+        if (preferred && opts.some((o) => o.id === preferred)) return preferred
+        return opts[0]?.id ?? ''
+      })
     } catch (e) {
       setShippingOptions([])
       setShippingOptionId('')
+      setShippingDisclaimer(null)
       setError(e instanceof Error ? e.message : 'Erro ao cotar frete')
     } finally {
       setQuoting(false)
@@ -210,6 +240,12 @@ export function CheckoutPage() {
         setError('Selecione uma opção de entrega')
         return
       }
+      if (!carrierDesc.placeOrderReady) {
+        setError(
+          `Provedor ${carrierDesc.label} ainda não fecha pedido (place_order). Use mock ou aguarde D-FRETE C + integração.`,
+        )
+        return
+      }
     }
     if (step === 3 && !paymentMethod) {
       setError('Selecione um método de pagamento')
@@ -220,6 +256,12 @@ export function CheckoutPage() {
 
   async function finalize(outcome: 'approve' | 'fail') {
     if (!validateDoc() || !addressId || !shippingOptionId) return
+    if (!carrierDesc.placeOrderReady) {
+      setError(
+        `Provedor ${carrierDesc.label} ainda não fecha pedido. Mantendo produção em mock até D-FRETE C.`,
+      )
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -242,6 +284,7 @@ export function CheckoutPage() {
       if (!paymentId) {
         push('Pedido já registrado', 'success')
         clear()
+        clearShippingQuoteHandoff()
         navigate(`/conta/pedidos/${placed.orderId}`)
         return
       }
@@ -252,6 +295,7 @@ export function CheckoutPage() {
             throw new Error('VITE_MP_PUBLIC_KEY não configurada')
           }
           clear()
+          clearShippingQuoteHandoff()
           setMpAwaiting({
             channel: 'card',
             orderId: placed.orderId,
@@ -262,6 +306,7 @@ export function CheckoutPage() {
         }
         const mp = await createMercadoPagoPayment(placed.orderId)
         clear()
+        clearShippingQuoteHandoff()
         setMpAwaiting({
           channel: 'pix',
           orderId: placed.orderId,
@@ -274,6 +319,7 @@ export function CheckoutPage() {
 
       const pay = await confirmSimulatedPayment(paymentId, outcome)
       clear()
+      clearShippingQuoteHandoff()
       if (outcome === 'approve') {
         push('Pagamento simulado aprovado — pedido confirmado', 'success')
       } else {
@@ -450,10 +496,16 @@ export function CheckoutPage() {
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Entrega</h2>
               <p className="m-0 text-sm text-fal-muted">
-                Cotação do ambiente atual (mock/sandbox conforme configuração). Valores e prazos
-                comerciais definitivos dependem da política D-FRETE aprovada — não trate esta
-                cotação como frete de produção até essa decisão.
+                {shippingDisclaimer ??
+                  'Cotação do ambiente atual. Valores comerciais definitivos dependem da política D-FRETE.'}
               </p>
+              {!carrierDesc.placeOrderReady ? (
+                <p className="m-0 text-sm font-semibold text-fal-danger" role="status">
+                  Provedor ativo ({carrierDesc.label}) não fecha pedido ainda — use{' '}
+                  <code className="text-xs">VITE_SHIPPING_PROVIDER=mock</code> até D-FRETE C +
+                  integração.
+                </p>
+              ) : null}
               {quoting ? (
                 <Loading label="Cotando frete…" />
               ) : shippingOptions.length === 0 ? (
