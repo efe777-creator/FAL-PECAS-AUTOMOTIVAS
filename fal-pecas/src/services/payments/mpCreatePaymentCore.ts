@@ -111,9 +111,11 @@ export function serverPaymentMethod(): MpCreateMethod {
   return 'pix'
 }
 
-export function buildIdempotencyKey(paymentId: string): string {
+/** attempt > 1 após falha MP — evita cache de X-Idempotency-Key com erro antigo. */
+export function buildIdempotencyKey(paymentId: string, attempt = 1): string {
   if (!paymentId) throw new Error('paymentId obrigatório para idempotency key')
-  return `fal-pay-${paymentId}`
+  const n = Number.isFinite(attempt) && attempt >= 1 ? Math.floor(attempt) : 1
+  return n <= 1 ? `fal-pay-${paymentId}` : `fal-pay-${paymentId}-a${n}`
 }
 
 /** Payload POST /v1/payments — sem Access Token. */

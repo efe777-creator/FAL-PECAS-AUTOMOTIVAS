@@ -34,13 +34,14 @@ describe('parseCreateMpPaymentClientBody (F9-B conform)', () => {
 describe('buildIdempotencyKey / buildMpPaymentBody / mapMpResponse', () => {
   it('monta X-Idempotency-Key estável', () => {
     expect(buildIdempotencyKey('pay-uuid')).toBe('fal-pay-pay-uuid')
+    expect(buildIdempotencyKey('pay-uuid', 2)).toBe('fal-pay-pay-uuid-a2')
   })
 
   it('method server = pix', () => {
     expect(serverPaymentMethod()).toBe('pix')
   })
 
-  it('monta body MP com external_reference = order', () => {
+  it('monta body MP com external_reference = order e CPF', () => {
     const body = buildMpPaymentBody({
       transactionAmount: 99.9,
       description: 'Pedido FAL',
@@ -51,6 +52,10 @@ describe('buildIdempotencyKey / buildMpPaymentBody / mapMpResponse', () => {
     expect(body.transaction_amount).toBe(99.9)
     expect(body.payment_method_id).toBe('pix')
     expect(body.external_reference).toBe('order-1')
+    expect(body.payer).toMatchObject({
+      email: 'a@b.com',
+      identification: { type: 'CPF', number: '123' },
+    })
   })
 
   it('MP approved → status interno pending + orderApproved false', () => {

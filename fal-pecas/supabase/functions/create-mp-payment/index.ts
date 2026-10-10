@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
-      .select('id')
+      .select('id, cpf, cnpj')
       .eq('profile_id', user.id)
       .maybeSingle()
     if (custErr || !customer) return json(404, { error: 'customer_not_found' })
@@ -86,10 +86,21 @@ Deno.serve(async (req) => {
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
+    const payerDoc = customer.cpf
+      ? ({ type: 'CPF' as const, number: String(customer.cpf).replace(/\D/g, '') })
+      : customer.cnpj
+        ? ({ type: 'CNPJ' as const, number: String(customer.cnpj).replace(/\D/g, '') })
+        : null
+    // Pix BR: MP exige identification; sem doc → 500 cryptic "not_found"
+    if (!card && !payerDoc) {
+      return json(422, { error: 'payer_document_required' })
+    }
+
     let paymentId: string
+    let mpAttempt = 1
     const { data: existing } = await admin
       .from('payments')
-      .select('id, provider_payment_id, status, amount')
+      .select('id, provider_payment_id, status, amount, metadata')
       .eq('order_id', orderId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
@@ -163,6 +174,14 @@ Deno.serve(async (req) => {
 
     if (existing?.id) {
       paymentId = existing.id
+      const meta = (existing.metadata ?? {}) as Record<string, unknown>
+      const prevAttempt = Number(meta.mp_attempt)
+      // Se já falhou no MP sem provider id, sobe attempt (nova idempotency key)
+      if (!existing.provider_payment_id && meta.mp_error) {
+        mpAttempt = (Number.isFinite(prevAttempt) && prevAttempt >= 1 ? prevAttempt : 1) + 1
+      } else if (Number.isFinite(prevAttempt) && prevAttempt >= 1) {
+        mpAttempt = prevAttempt
+      }
       await admin
         .from('payments')
         .update({
@@ -171,6 +190,7 @@ Deno.serve(async (req) => {
           method: internalMethod,
           currency: 'BRL',
           installments: card?.installments ?? null,
+          metadata: { ...meta, mp_attempt: mpAttempt },
         })
         .eq('id', paymentId)
     } else {
@@ -212,13 +232,15 @@ Deno.serve(async (req) => {
         email,
         firstName: profile?.full_name?.split(/\s+/)[0],
         lastName: profile?.full_name?.split(/\s+/).slice(1).join(' ') || undefined,
+        identificationType: payerDoc?.type,
+        identificationNumber: payerDoc?.number,
       },
       token: card?.token,
       installments: card?.installments,
       issuerId: card?.issuerId,
     })
 
-    const idempotencyKey = buildIdempotencyKey(paymentId)
+    const idempotencyKey = buildIdempotencyKey(paymentId, mpAttempt)
     const mpRes = await fetch(MP_API, {
       method: 'POST',
       headers: {
@@ -251,7 +273,11 @@ Deno.serve(async (req) => {
       await admin
         .from('payments')
         .update({
-          metadata: { mp_error: mpJson, http_status: mpRes.status },
+          metadata: {
+            mp_error: mpJson,
+            http_status: mpRes.status,
+            mp_attempt: mpAttempt,
+          },
           provider_status: typeof mpJson.status === 'string' ? mpJson.status : 'error',
         })
         .eq('id', paymentId)
@@ -280,6 +306,7 @@ Deno.serve(async (req) => {
         external_ref: orderId,
         metadata: {
           mp_create: { id: fields.provider_payment_id, status: fields.provider_status },
+          mp_attempt: mpAttempt,
         },
       })
       .eq('id', paymentId)
