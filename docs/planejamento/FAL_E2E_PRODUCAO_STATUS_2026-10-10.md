@@ -14,7 +14,7 @@
 | Catálogo → PDP → carrinho (produção) | **OK** — [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) |
 | Checkout anônimo | **OK** — redireciona login |
 | Bundle MP + aviso D-FRETE no checkout | **OK** (asset público) |
-| Pagamento sandbox Pix/cartão | **BLOQUEADO** (smoke MP humano H1–H6 + login) |
+| Pagamento sandbox Pix/cartão | **BLOQUEADO** — UI produção = **simulado** (H5 FAIL; ver MP status) |
 | Frete política produção | **BLOQUEADO** (D-FRETE assinatura) |
 | Pedido teste ponta a ponta com evidências | **NÃO EXECUTADO** |
 

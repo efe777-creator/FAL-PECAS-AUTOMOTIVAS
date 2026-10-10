@@ -89,8 +89,9 @@ Marcar **PASS** só com evidência. Gate α só fecha com todos os **obrigatóri
 |----|----------|-------------|-----------|--------|
 | α-OPS-1 | Netlify publicando `main` atual (bundle ≠ stale) | eFe / Netlify | Deploy log + hash asset / “Ver produto” no carrinho | **FAIL ops** (2026-10-10: bundle antigo) |
 | α-MP-1 | H1–H6 preenchidos | eFe | [MP prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) | PENDENTE |
-| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | PENDENTE |
-| α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE |
+| α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) — **FAIL 10/10** print | **FAIL** |
+| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
+| α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
 | α-MP-4 | Webhook: PASS ou NÃO TESTÁVEL (secret) explícito | eFe | MP status | PENDENTE |
 | α-FR-1 | D-FRETE assinado A **ou** B **ou** C | eFe | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | PENDENTE |
 | α-FR-2 | Mensagem ao cliente + expedição preenchidas | eFe | ficha D-FRETE | PENDENTE |
@@ -162,11 +163,15 @@ flowchart TD
 Executar [FAL_MP_SMOKE_PREP](./FAL_MP_SMOKE_PREP_2026-10-09.md) na ordem H1→H6, depois Pix e cartão.  
 Registrar template no [FAL_MP_SMOKE_STATUS](./FAL_MP_SMOKE_STATUS_2026-10-10.md).
 
+**Bloqueio atual (FATO 10/10):** produção mostra **Pagamento (simulado)** → H5 incompleto.  
+Antes do smoke Pix/cartão: Netlify `VITE_PAYMENT_PROVIDER=mercadopago` + `VITE_MP_PUBLIC_KEY` (TEST) + **Trigger deploy**.  
+Critério visual: título vira **«Pagamento — Mercado Pago»**.
+
 | Paralelo | Permitido? |
 |----------|------------|
 | S1 ∥ S2 | **Sim** |
 | S3a (Correios) antes de S1=C | **Não** |
-| Agente secrets MP | **Não** |
+| Agente secrets MP / vars Netlify | **Não** |
 
 ### S3 — Bifurcação frete
 
