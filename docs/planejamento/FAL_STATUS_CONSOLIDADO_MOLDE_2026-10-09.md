@@ -3,7 +3,7 @@
 **Data:** 2026-10-10 (sync α — Netlify + Card smoke; MP/D-FRETE humanos)  
 **Runtime:** `wtbpwuiayednvlhvuhbh` · HF ≠ verdade comercial  
 **Loja:** https://fal-pecas-automotivas.netlify.app  
-**Fontes:** PRD · ROADMAP · BACKLOG · STATUS_ONDA1 · VALs · plano consolidado 10/10 · [gate α](./FAL_ALPHA_GATE_2026-10-10.md)
+**Fontes:** PRD · ROADMAP · BACKLOG · STATUS_ONDA1 · VALs · [plano soberano α](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) · [gate α](./FAL_ALPHA_GATE_2026-10-10.md)
 
 ---
 
@@ -77,21 +77,24 @@ MARCHA Frete estrutura/UI sandbox + MCP Correios **VALIDADA** 10/10 ([plano](./F
 | Produção Netlify | OK (catálogo/wtbp) | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | H5 vars MP no smoke | Parcial |
 | E2E pré-pagamento | VALIDADO | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) | Login + MP smoke | Feita |
 | E2E pedido pago | NÃO EXECUTADO | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | Pós MP+frete | Humano |
-| Gate α eFe | PENDENTE | [gate](./FAL_ALPHA_GATE_2026-10-10.md) | Assinatura | eFe |
+| Plano soberano α | FECHADO (doc) | [plano](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) | Execução S0–S5 | Feita |
+| Gate α eFe | PENDENTE | [gate](./FAL_ALPHA_GATE_2026-10-10.md) | Assinatura pós S0–S4 | eFe |
 | B3 | HOLD | [HOLD](./FAL_B3_MIGRATION_REPAIR_HOLD_2026-10-09.md) | Auth explícita | Explícita |
 
 ---
 
 ## 3. Próximas MARCHAS
 
-**Agente — série residual 10/10 ENCERRADA**; frente **FRETE** aberta com estrutura (sem live).
+**Plano soberano α:** [FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) (S0–S6).  
+**Agente — código α:** STOP sem auth; residual técnico encerrado; frete live só se D-FRETE **C**.
 
-1. Humano: smoke MP H1–H6 (prep + status)  
-2. eFe: assinar D-FRETE (C se PDP com cotação real; A/B = mensagem honesta) + preencher MCP Correios local  
-3. Auth: MARCHA HTTP Correios (edge) + place_order além de mock  
-4. UI PDP/carrinho/checkout frete (sandbox/mock) — **feita** nesta frente  
-5. Humano: E2E pago (MP + frete) · gate α  
-6. Hold: B3, Bloco F, PDP-ML · carriers extras só pós contrato  
+1. **S0** eFe: Trigger deploy Netlify (`main` atual — bundle stale bloqueia smoke UI)  
+2. **S1** eFe: assinar D-FRETE A/B/C  
+3. **S2** eFe: smoke MP H1–H6 (∥ S1)  
+4. **S3** se C: auth MARCHA Correios HTTP + place_order  
+5. **S4** eFe: 1 pedido E2E pago  
+6. **S5** eFe: assinar gate α → **S6** STOP α  
+7. Hold pós-α: B3, Bloco F, PDP-ML, IMP-14/15 (ver §6 do plano soberano)  
 
 ---
 

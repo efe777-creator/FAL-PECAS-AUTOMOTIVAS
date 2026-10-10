@@ -31,10 +31,12 @@ Pré-requisitos para marcar E2E PASS completo: smoke MP + D-FRETE (A/B/C) + pedi
 | `VITE_SUPABASE_*` → wtbp | **OK** | Network `wtbpwuiayednvlhvuhbh.supabase.co` |
 | Checkout embute MercadoPago | **OK** | `CheckoutPage-*.js` · `create-mp-payment` |
 | `VITE_PAYMENT_PROVIDER` / `VITE_MP_PUBLIC_KEY` valores | **NÃO VERIFICADO** (painel Netlify no H5) | — |
+| Deploy sync `main` → CDN | **ATRASADO** 10/10 noite | Bundle `index-oy7VRadL.js` sem “Ver produto” (PRs #33–#35 no git) — **S0** do [plano soberano](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) |
 
 ---
 
 ## Encerramento
 
 **Entrega agente:** E2E-pré VALIDADO até login.  
-**Aceite E2E comercial:** evidências humanas Pix/cartão + pedido.
+**Aceite E2E comercial:** evidências humanas Pix/cartão + pedido (S4).  
+**Ops:** Trigger deploy Netlify antes de smokes UI (S0).

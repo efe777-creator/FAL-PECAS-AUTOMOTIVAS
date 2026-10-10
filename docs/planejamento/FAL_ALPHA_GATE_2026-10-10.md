@@ -4,6 +4,8 @@
 **Loja:** https://fal-pecas-automotivas.netlify.app  
 **Runtime:** `wtbpwuiayednvlhvuhbh`
 
+**Plano mestre:** [FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) (sequência S0–S6 + checklist α).
+
 Critérios do plano α. Itens com **OK agente** já têm evidência documental; itens humanos bloqueiam o aceite final.
 
 | Critério | Estado | Evidência / ação |
