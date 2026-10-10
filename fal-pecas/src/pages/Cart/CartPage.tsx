@@ -1,15 +1,21 @@
 import { Button } from '@/components/common/Button'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
+import { CartShippingQuoteBlock } from '@/components/cart/CartShippingQuoteBlock'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { formatMoney } from '@/lib/money'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
   const { user } = useAuth()
   const { items, itemCount, subtotal, updateQty, removeItem } = useCart()
+  const [shippingAmount, setShippingAmount] = useState<number | null>(null)
+  const onShippingAmountChange = useCallback((amount: number | null) => {
+    setShippingAmount(amount)
+  }, [])
 
   if (!items.length) {
     return (
@@ -95,13 +101,18 @@ export function CartPage() {
               {formatMoney(subtotal)}
             </strong>
           </div>
+          <CartShippingQuoteBlock
+            items={items}
+            subtotal={subtotal}
+            onShippingAmountChange={onShippingAmountChange}
+          />
           <div className="mb-3 flex justify-between text-fal-muted">
             <span>Frete</span>
-            <span>A calcular</span>
+            <span>{shippingAmount != null ? formatMoney(shippingAmount) : 'A calcular'}</span>
           </div>
           <div className="flex justify-between border-t border-fal-line pt-3 text-2xl font-black">
             <span>Total</span>
-            <span>{formatMoney(subtotal)}</span>
+            <span>{formatMoney(subtotal + (shippingAmount ?? 0))}</span>
           </div>
           <Link
             to={user ? '/checkout' : '/login'}
@@ -113,7 +124,7 @@ export function CartPage() {
             </Button>
           </Link>
           <p className="mt-3 text-xs text-fal-muted">
-            Frete e pagamento são definidos ao finalizar a compra.
+            Cotação do conjunto no carrinho; o checkout revalida frete e pagamento.
           </p>
         </aside>
       </div>
