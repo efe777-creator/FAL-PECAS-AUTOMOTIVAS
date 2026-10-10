@@ -21,6 +21,10 @@ Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção 
 
 **Recomendação α (não assina):** **A** ou **B** para primeira operação controlada. **C** só com MARCHA + secrets.
 
+**Experiência alvo (planejada):** seção **Entrega e frete** na PDP (CEP → opções reais). Isso **não** cabe em A/B como cotação real — A/B exigem mensagem honesta de indisponibilidade/homologação. Direção desejada para PDP com preço/prazo sustentados: **C** (pendente assinatura).
+
+**Estrutura técnica 10/10:** registry + envelope + edge `quote-shipping` + MCP Correios — ver [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md). Live HTTP ainda **não** autorizada por esta ficha.
+
 ---
 
 ## Opções para decisão (escolher uma)
@@ -29,7 +33,7 @@ Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção 
 |----|----------|-------------|
 | A | **Retirada / combinado** — sem cotação online como “frete real” | Operação inicial controlada |
 | B | **Mock/sandbox explícito** — manter cotação com aviso na UI (estado atual endurecido) | Homologação |
-| C | **Integração produção** (Correios/Frenet live) — credenciais + VAL frete | Após decisão + secrets |
+| C | **Integração produção** (Correios live 1º; Frenet/carriers depois) — credenciais + VAL frete + PDP | Após decisão + secrets + MARCHA HTTP |
 
 ---
 

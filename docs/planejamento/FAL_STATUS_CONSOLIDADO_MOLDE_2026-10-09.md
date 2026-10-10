@@ -38,7 +38,7 @@ auditar → evidências → propor → gate eFe → MARCHA nomeada → implement
 | UI CATÁLOGO | Mais apps + anos YY — [VAL UI](./FAL_MARCHA_UI_APPS_ANOS_VAL_2026-10-09.md) |
 | COMERCIAL | MP smoke humano → F9-F código |
 | HIGIENE | B3 HOLD |
-| FRETE/PEDIDOS | D-FRETE / IMP-14–15 |
+| FRETE/PEDIDOS | Auditoria frete + estrutura carriers · D-FRETE · IMP-15 pós C |
 
 ---
 
@@ -51,7 +51,8 @@ Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FA
 MARCHA Classificação admin (Cat→Grupo→Sub) **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md)).  
 MARCHA Admin Aplicações PVC **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md)) — 730 apps no wtbp.  
 MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md)) — `%` live no wtbp.  
-MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)) — para em login/MP.
+MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)) — para em login/MP.  
+MARCHA Frete estrutura/carriers + MCP Correios **IMPLEMENTADA** 10/10 ([VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md)) — live HTTP/UI PDP pendentes.
 
 ---
 
@@ -69,7 +70,9 @@ MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMEN
 | Admin preços UX | VALIDADO (unit+DB %) | [VAL preços](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md) | Smoke staff residual | Feita |
 | F9-F checkout/RPC | IMPLEMENTADO | [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md) | Smoke MP | Plano 10/10 |
 | MP smoke | BLOQUEADO | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | H1–H6 humano | Humano |
-| D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe | Decisão |
+| D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe (C se PDP cotação real) | Decisão |
+| Auditoria frete | VALIDADO | [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) | — | Feita |
+| Frete registry/edge/MCP | IMPLEMENTADO | [VAL estrutura](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) | HTTP Correios + UI PDP | Parcial |
 | Produção Netlify | OK (catálogo/wtbp) | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | H5 vars MP no smoke | Parcial |
 | E2E pré-pagamento | VALIDADO | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) | Login + MP smoke | Feita |
 | E2E pedido pago | NÃO EXECUTADO | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | Pós MP+frete | Humano |
@@ -80,13 +83,14 @@ MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMEN
 
 ## 3. Próximas MARCHAS
 
-**Agente — série residual 10/10 ENCERRADA** (Classificação · Apps · Preços · E2E-pré). Sem próxima MARCHA técnica sem gate humano.
+**Agente — série residual 10/10 ENCERRADA**; frente **FRETE** aberta com estrutura (sem live).
 
 1. Humano: smoke MP H1–H6 (prep + status)  
-2. eFe: assinar D-FRETE (A/B recomendado)  
-3. Humano: 1 pedido E2E sandbox pago  
-4. eFe: assinar [gate α](./FAL_ALPHA_GATE_2026-10-10.md)  
-5. Hold: B3, Bloco F, evolução PDP grande · IMP-15 só pós D-FRETE  
+2. eFe: assinar D-FRETE (C se PDP com cotação real; A/B = mensagem honesta) + preencher MCP Correios local  
+3. Auth: MARCHA HTTP Correios (edge) + place_order  
+4. Auth: MARCHA UI PDP/carrinho frete  
+5. Humano: E2E pago (MP + frete) · gate α  
+6. Hold: B3, Bloco F, PDP-ML · carriers extras só pós contrato  
 
 ---
 
