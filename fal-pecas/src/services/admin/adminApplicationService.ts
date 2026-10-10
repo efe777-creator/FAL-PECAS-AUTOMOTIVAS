@@ -129,8 +129,9 @@ export async function adminListApplicationsGlobal(
   if (filter.productId) {
     productIds = [filter.productId]
   } else if (filter.q?.trim()) {
-    productIds = await resolveProductIdsFromQ(filter.q)
-    if (productIds.length === 0) return { rows: [], total: 0 }
+    const ids = (await resolveProductIdsFromQ(filter.q)) ?? []
+    if (ids.length === 0) return { rows: [], total: 0 }
+    productIds = ids
   }
 
   const versionIds = await resolveVersionIds({
