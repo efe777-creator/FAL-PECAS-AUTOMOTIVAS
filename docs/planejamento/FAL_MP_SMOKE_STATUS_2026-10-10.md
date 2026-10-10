@@ -13,7 +13,8 @@
 | Item | Estado |
 |------|--------|
 | Checklist H1–H6 | **BLOQUEADO — gate humano** |
-| **H5 (Netlify MP)** | **FAIL evidenciado** — ver § Evidência UI |
+| **H5 local (Vite)** | **PASS 18:07** — `resolvePaymentProviderKey()=mercadopago` após vars em `fal-pecas/.env.local` + restart |
+| **H5 Netlify (prod)** | **PENDENTE deploy** — bundle ainda `index-oy7VRadL.js` (stale); Trigger deploy obrigatório |
 | Pix sandbox | **NÃO EXECUTADO** (UI em modo simulado) |
 | Cartão sandbox | **NÃO EXECUTADO** (UI em modo simulado) |
 | Webhook approve | **NÃO EXECUTADO** |
