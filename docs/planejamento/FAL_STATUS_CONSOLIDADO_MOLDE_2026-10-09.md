@@ -80,14 +80,17 @@ MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMEN
 
 ## 3. Próximas MARCHAS
 
+**Agente — série residual 10/10 ENCERRADA** (Classificação · Apps · Preços · E2E-pré). Sem próxima MARCHA técnica sem gate humano.
+
 1. Humano: smoke MP H1–H6 (prep + status)  
 2. eFe: assinar D-FRETE (A/B recomendado)  
-3. Humano: 1 pedido E2E sandbox  
+3. Humano: 1 pedido E2E sandbox pago  
 4. eFe: assinar [gate α](./FAL_ALPHA_GATE_2026-10-10.md)  
-5. Hold: B3, Bloco F, evolução PDP grande  
+5. Hold: B3, Bloco F, evolução PDP grande · IMP-15 só pós D-FRETE  
 
 ---
 
 ## 5. STOP
 
-Sem repair B3. Sem secrets MP pelo agente. Sem tratar cotação mock como frete de produção.
+Sem repair B3. Sem secrets MP pelo agente. Sem tratar cotação mock como frete de produção.  
+Sem abrir IMP-14/15 / PDP-ML / Bloco F sem finding + auth.
