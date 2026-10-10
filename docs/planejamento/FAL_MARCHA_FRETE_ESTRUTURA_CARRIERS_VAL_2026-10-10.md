@@ -17,6 +17,7 @@
 | MCP Correios | `.cursor/mcp.json` + [setup](./FAL_CORREIOS_MCP_SETUP_2026-10-10.md) |
 | Unit | `carrierRegistry.test.ts` (15 tests shipping suite) |
 | PDP Entrega e frete | `ProductShippingQuoteBlock` + disclaimer envelope |
+| Carrinho conjunto | `CartShippingQuoteBlock` — invalida se itens/qty mudam |
 
 ## Fora / próxima auth
 
