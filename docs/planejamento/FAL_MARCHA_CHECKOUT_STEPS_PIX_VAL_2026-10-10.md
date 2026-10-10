@@ -12,6 +12,7 @@
 2. **Pix seed:** `createMercadoPagoPayment` → `mpAwaiting.pixQr*` → `MercadoPagoPixPanel` (`initialPixQrCode` / Base64) — não depende só do poll RLS.
 3. **Erros Edge legíveis:** `edgeErrorMessage` + parse do body em non-2xx; mensagem se cobrança sem QR.
 4. **Edge `create-mp-payment`:** `detail` do MP em falha; reidrata QR em pagamento pending reutilizado.
+5. **Pix CPF + retry (v6):** envia `payer.identification` (customers.cpf/cnpj); nova `X-Idempotency-Key` após falha MP (`mp_attempt`).
 
 ---
 
