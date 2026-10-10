@@ -2,7 +2,8 @@
 
 **Data:** 2026-10-10  
 **Pacote:** `@codespar/mcp-correios@0.2.0-alpha.3`  
-**Config:** [`.cursor/mcp.json`](../../.cursor/mcp.json) → servidor `correios`
+**Config:** [`.cursor/mcp.json`](../../.cursor/mcp.json) → servidor `correios`  
+**Plano frete:** [FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md)
 
 ---
 
