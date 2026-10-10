@@ -139,6 +139,12 @@ export function AdminVehiclesPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            to="/admin/aplicacoes"
+          >
+            Aplicações
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
             to="/admin/produtos/importar-aplicacoes"
           >
             Importar aplicações

@@ -1,7 +1,7 @@
 # HOLD — Repair B3 (histórico de migrations)
 
-**Data:** 2026-10-09  
-**Status:** **em espera** — sem alteração  
+**Data:** 2026-10-09 · **Reconfirmado:** 2026-10-10 (plano consolidado — sem repair)  
+**Status:** **HOLD** — sem alteração  
 **Decisão operacional:** exigir aprovação explícita + doc de divergência/rollback antes de qualquer `migration repair`
 
 ---

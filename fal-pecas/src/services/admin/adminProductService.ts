@@ -432,13 +432,52 @@ export async function adminAddApplication(
   notes?: string,
   years?: { yearStart?: number | null; yearEnd?: number | null },
 ) {
-  const { error } = await getSupabase().from('product_vehicle_compatibility').insert({
+  const { error } = await getSupabase().from('product_vehicle_compatibility').upsert(
+    {
+      product_id: productId,
+      vehicle_version_id: vehicleVersionId,
+      notes: notes?.trim() || null,
+      year_start: years?.yearStart ?? null,
+      year_end: years?.yearEnd ?? null,
+    },
+    { onConflict: 'product_id,vehicle_version_id' },
+  )
+  if (error) throw error
+}
+
+/** Vincula várias configs (ex.: motorização “Todas”). */
+export async function adminAddApplicationsBulk(
+  productId: string,
+  vehicleVersionIds: string[],
+  years?: { yearStart?: number | null; yearEnd?: number | null },
+): Promise<number> {
+  const unique = [...new Set(vehicleVersionIds.filter(Boolean))]
+  if (!unique.length) return 0
+  const rows = unique.map((vehicleVersionId) => ({
     product_id: productId,
     vehicle_version_id: vehicleVersionId,
-    notes: notes?.trim() || null,
+    notes: null as string | null,
     year_start: years?.yearStart ?? null,
     year_end: years?.yearEnd ?? null,
-  })
+  }))
+  const { error } = await getSupabase()
+    .from('product_vehicle_compatibility')
+    .upsert(rows, { onConflict: 'product_id,vehicle_version_id' })
+  if (error) throw error
+  return unique.length
+}
+
+export async function adminUpdateApplicationYears(
+  id: string,
+  years: { yearStart?: number | null; yearEnd?: number | null },
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from('product_vehicle_compatibility')
+    .update({
+      year_start: years.yearStart ?? null,
+      year_end: years.yearEnd ?? null,
+    })
+    .eq('id', id)
   if (error) throw error
 }
 

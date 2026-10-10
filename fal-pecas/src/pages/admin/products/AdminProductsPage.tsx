@@ -227,6 +227,9 @@ export function AdminProductsPage() {
           <Link to="/admin/produtos/importar">
             <Button variant="light">Importar produtos</Button>
           </Link>
+          <Link to="/admin/aplicacoes">
+            <Button variant="light">Aplicações</Button>
+          </Link>
           <Link to="/admin/produtos/importar-aplicacoes">
             <Button variant="light">Importar aplicações</Button>
           </Link>

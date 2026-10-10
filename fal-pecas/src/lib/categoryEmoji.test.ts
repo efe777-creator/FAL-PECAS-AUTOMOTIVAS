@@ -38,4 +38,18 @@ describe('resolveCategoryIcon', () => {
   it('compat resolveCategoryEmoji', () => {
     expect(resolveCategoryEmoji({ slug: 'direcao', name: 'Direção' })).toBe('⚙️')
   })
+
+  it('emoji/admin explícito prevalece sobre slug', () => {
+    expect(resolveCategoryIcon({ slug: 'direcao', name: 'Direção', emoji: '🛞' })).toEqual({
+      type: 'emoji',
+      value: '🛞',
+    })
+    const img = resolveCategoryIcon({
+      slug: 'outro',
+      name: 'Outro',
+      emoji: 'img:freios',
+    })
+    expect(img.type).toBe('image')
+    if (img.type === 'image') expect(img.src).toContain('freios.png')
+  })
 })

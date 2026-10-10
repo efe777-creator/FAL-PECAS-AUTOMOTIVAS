@@ -16,6 +16,7 @@ import {
   priceListStatusLabel,
   pricingMethodLabel,
   pricingRuleLabel,
+  withWindowScrollPreserved,
   type PriceListOverviewRow,
   type PriceListStatus,
   type PriceListsOverview,
@@ -258,7 +259,7 @@ export function AdminPriceListsPage() {
           <h1 className="text-2xl font-extrabold text-fal-navy">Listas de preços</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Consulte e ajuste preços da lista selecionada. {PRICE_LIST_LAYERS_HINT} Para
-            classificar um produto (Grupo / Categoria / Subcategoria), abra o cadastro em{' '}
+            classificar um produto (Categoria / Grupo / Subgrupo), abra o cadastro em{' '}
             <Link className="font-semibold text-fal-navy underline" to="/admin/produtos">
               Produtos
             </Link>{' '}
@@ -306,6 +307,139 @@ export function AdminPriceListsPage() {
           Sem preço {overview.withoutPrice}
           {forceWithoutPrice ? ' (filtro on)' : ''}
         </button>
+      </div>
+
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {formNotice ? <p className="text-sm text-amber-800">{formNotice}</p> : null}
+      {loading ? <Loading label="Carregando listas…" /> : null}
+
+      <div>
+        <h2 className="mb-2 text-lg font-extrabold text-fal-navy">Gerenciar listas</h2>
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
+              <tr>
+                <th className="px-3 py-2">Lista</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="hidden px-3 py-2 md:table-cell">Método</th>
+                <th className="hidden px-3 py-2 md:table-cell">Regra</th>
+                <th className="px-3 py-2 text-right">Itens</th>
+                <th className="hidden px-3 py-2 text-right lg:table-cell">Com preço</th>
+                <th className="hidden px-3 py-2 lg:table-cell">Atualizada</th>
+                <th className="px-3 py-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!loading && overview.lists.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-4">
+                    <EmptyState
+                      title="Nenhuma lista cadastrada"
+                      description="Crie a primeira lista de preços para formar e publicar valores."
+                    >
+                      <div className="mt-5 flex justify-center">
+                        <Button type="button" onClick={openCreate}>
+                          Criar primeira lista
+                        </Button>
+                      </div>
+                    </EmptyState>
+                  </td>
+                </tr>
+              ) : null}
+              {overview.lists.map((list) => (
+                <tr
+                  key={list.id}
+                  className={`border-b border-fal-line/70 ${
+                    panelListId === list.id ? 'bg-fal-yellow/15' : ''
+                  }`}
+                >
+                  <td className="px-3 py-2">
+                    <div className="font-semibold text-fal-navy">{list.name}</div>
+                    <div className="text-xs text-fal-muted">
+                      {list.slug}
+                      {list.isDefault ? ' · padrão' : ''}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">{priceListStatusLabel(list.status)}</td>
+                  <td className="hidden px-3 py-2 md:table-cell">
+                    {pricingMethodLabel(list.pricingMethod)}
+                  </td>
+                  <td className="hidden px-3 py-2 md:table-cell">
+                    {pricingRuleLabel(list.pricingMethod, list.pricingPercent)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{list.itemCount ?? 0}</td>
+                  <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
+                    {list.withPriceCount}
+                  </td>
+                  <td className="hidden px-3 py-2 text-xs text-fal-muted lg:table-cell">
+                    {list.updatedAt ? formatDateTime(list.updatedAt) : '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="relative flex flex-wrap items-center gap-2">
+                      <Link
+                        className="text-sm font-extrabold text-fal-navy underline"
+                        to={`/admin/precos/${list.id}?tab=produtos`}
+                      >
+                        Abrir
+                      </Link>
+                      <button
+                        type="button"
+                        className="text-sm font-semibold text-fal-navy underline"
+                        disabled={busy}
+                        onClick={() => openConfigure(list)}
+                      >
+                        Configurar
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-navy"
+                        disabled={busy}
+                        aria-label="Mais ações"
+                        onClick={() =>
+                          setMenuOpenId((menuId) => (menuId === list.id ? null : list.id))
+                        }
+                      >
+                        ⋯
+                      </button>
+                      {menuOpenId === list.id ? (
+                        <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-white p-2 shadow-md">
+                          <button
+                            type="button"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            onClick={() => openWizard(list.id)}
+                          >
+                            Importar
+                          </button>
+                          <button
+                            type="button"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            onClick={() => void onDuplicate(list)}
+                          >
+                            Duplicar
+                          </button>
+                          <button
+                            type="button"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            onClick={() => void onToggleStatus(list)}
+                          >
+                            {list.status === 'active' ? 'Inativar' : 'Ativar'}
+                          </button>
+                          <button
+                            type="button"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-red-700 hover:bg-fal-bg"
+                            onClick={() => void onDelete(list)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {formMode !== 'closed' ? (
@@ -415,150 +549,17 @@ export function AdminPriceListsPage() {
         </form>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {formNotice ? <p className="text-sm text-amber-800">{formNotice}</p> : null}
-      {loading ? <Loading label="Carregando listas…" /> : null}
-
       {!loading || overview.lists.length > 0 ? (
         <PriceListQuickAdjustPanel
           lists={overview.lists}
           allowed={allowed}
           changedBy={user?.id ?? null}
-          onItemsChanged={() => void reloadOverviewQuiet()}
+          onItemsChanged={() => void withWindowScrollPreserved(() => reloadOverviewQuiet())}
           onListIdChange={setPanelListId}
           forceWithoutPrice={forceWithoutPrice}
           onRequestImport={() => openWizard(panelListId || undefined)}
         />
       ) : null}
-
-      <div>
-        <h2 className="mb-2 text-lg font-extrabold text-fal-navy">Gerenciar listas</h2>
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
-              <tr>
-                <th className="px-3 py-2">Lista</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="hidden px-3 py-2 md:table-cell">Método</th>
-                <th className="hidden px-3 py-2 md:table-cell">Regra</th>
-                <th className="px-3 py-2 text-right">Itens</th>
-                <th className="hidden px-3 py-2 text-right lg:table-cell">Com preço</th>
-                <th className="hidden px-3 py-2 lg:table-cell">Atualizada</th>
-                <th className="px-3 py-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!loading && overview.lists.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-4">
-                    <EmptyState
-                      title="Nenhuma lista cadastrada"
-                      description="Crie a primeira lista de preços para formar e publicar valores."
-                    >
-                      <div className="mt-5 flex justify-center">
-                        <Button type="button" onClick={openCreate}>
-                          Criar primeira lista
-                        </Button>
-                      </div>
-                    </EmptyState>
-                  </td>
-                </tr>
-              ) : null}
-              {overview.lists.map((list) => (
-                <tr
-                  key={list.id}
-                  className={`border-b border-fal-line/70 ${
-                    panelListId === list.id ? 'bg-fal-yellow/15' : ''
-                  }`}
-                >
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-fal-navy">{list.name}</div>
-                    <div className="text-xs text-fal-muted">
-                      {list.slug}
-                      {list.isDefault ? ' · padrão' : ''}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">{priceListStatusLabel(list.status)}</td>
-                  <td className="hidden px-3 py-2 md:table-cell">
-                    {pricingMethodLabel(list.pricingMethod)}
-                  </td>
-                  <td className="hidden px-3 py-2 md:table-cell">
-                    {pricingRuleLabel(list.pricingMethod, list.pricingPercent)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{list.itemCount ?? 0}</td>
-                  <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
-                    {list.withPriceCount}
-                  </td>
-                  <td className="hidden px-3 py-2 text-xs text-fal-muted lg:table-cell">
-                    {list.updatedAt ? formatDateTime(list.updatedAt) : '—'}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="relative flex flex-wrap items-center gap-2">
-                      <Link
-                        className="text-sm font-extrabold text-fal-navy underline"
-                        to={`/admin/precos/${list.id}?tab=produtos`}
-                      >
-                        Abrir
-                      </Link>
-                      <button
-                        type="button"
-                        className="text-sm font-semibold text-fal-navy underline"
-                        disabled={busy}
-                        onClick={() => openConfigure(list)}
-                      >
-                        Configurar
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-navy"
-                        disabled={busy}
-                        aria-label="Mais ações"
-                        onClick={() =>
-                          setMenuOpenId((id) => (id === list.id ? null : list.id))
-                        }
-                      >
-                        ⋯
-                      </button>
-                      {menuOpenId === list.id ? (
-                        <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-white p-2 shadow-md">
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
-                            onClick={() => openWizard(list.id)}
-                          >
-                            Importar
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
-                            onClick={() => void onDuplicate(list)}
-                          >
-                            Duplicar
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
-                            onClick={() => void onToggleStatus(list)}
-                          >
-                            {list.status === 'active' ? 'Inativar' : 'Ativar'}
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-red-700 hover:bg-fal-bg"
-                            onClick={() => void onDelete(list)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       <PriceImportWizard
         open={wizardOpen}

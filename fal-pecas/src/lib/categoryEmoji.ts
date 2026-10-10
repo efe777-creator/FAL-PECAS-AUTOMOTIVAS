@@ -1,6 +1,6 @@
 /**
  * Ícones de categoria na vitrine.
- * Resolve por slug/nome (Grupos L1). Emoji do banco só entra se não for placeholder
+ * Resolve por slug/nome (Categoria raiz / L1). Emoji do banco só entra se não for placeholder
  * e se não houver mapeamento conhecido (assets/contrato visual).
  *
  * Contratos visuais (eFe):
@@ -20,6 +20,34 @@ const PLACEHOLDER_EMOJI = new Set(['📦'])
 const SUSPENSAO_IMG = '/icons/categories/suspensao.png'
 const FREIOS_IMG = '/icons/categories/freios.png'
 const FILTROS_IMG = '/icons/categories/filtros.png'
+
+/** Chaves persistidas em `product_categories.emoji` para assets oficiais. */
+export const CATEGORY_IMG_KEYS = {
+  suspensao: 'img:suspensao',
+  freios: 'img:freios',
+  filtros: 'img:filtros',
+} as const
+
+const IMG_BY_KEY: Record<string, CategoryIcon> = {
+  [CATEGORY_IMG_KEYS.suspensao]: { type: 'image', src: SUSPENSAO_IMG, alt: 'Suspensão' },
+  [CATEGORY_IMG_KEYS.freios]: { type: 'image', src: FREIOS_IMG, alt: 'Freios' },
+  [CATEGORY_IMG_KEYS.filtros]: { type: 'image', src: FILTROS_IMG, alt: 'Filtros' },
+}
+
+/** Paleta sugerida no admin (além dos assets). */
+export const CATEGORY_EMOJI_PALETTE = [
+  '🔧',
+  '⚙️',
+  '🛢️',
+  '🛠️',
+  '🚘',
+  '🛞',
+  '🔋',
+  '💡',
+  '🔌',
+  '🧱',
+  '📦',
+] as const
 
 const BY_SLUG: Record<string, CategoryIcon> = {
   suspensao: { type: 'image', src: SUSPENSAO_IMG, alt: 'Suspensão' },
@@ -56,13 +84,16 @@ export function resolveCategoryIcon(input: {
 }): CategoryIcon {
   const slug = (input.slug ?? '').trim().toLowerCase()
   const name = (input.name ?? '').trim()
-  const mapped = resolveBySlugOrName(slug, name)
-  if (mapped) return mapped
+  const emoji = input.emoji?.trim() ?? ''
 
-  const emoji = input.emoji?.trim()
-  if (emoji && !PLACEHOLDER_EMOJI.has(emoji)) {
+  // Preferência: ícone escolhido no admin (inclui assets img:*).
+  if (emoji && IMG_BY_KEY[emoji]) return IMG_BY_KEY[emoji]
+  if (emoji && !PLACEHOLDER_EMOJI.has(emoji) && !emoji.startsWith('img:')) {
     return { type: 'emoji', value: emoji }
   }
+
+  const mapped = resolveBySlugOrName(slug, name)
+  if (mapped) return mapped
 
   return { type: 'emoji', value: '📦' }
 }

@@ -1,4 +1,4 @@
-import { formatCatalogDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
+import { formatModelDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { VehicleModel, VehicleVersion } from '@/types'
@@ -61,7 +61,7 @@ export async function adminUpsertModel(input: {
   slug?: string
   status?: VehicleModel['status']
 }): Promise<VehicleModel> {
-  const name = formatCatalogDisplayName(input.name)
+  const name = formatModelDisplayName(input.name)
   if (!name) throw new Error('Informe o nome do modelo.')
 
   if (!input.id) {

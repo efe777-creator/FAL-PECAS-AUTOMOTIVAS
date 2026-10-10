@@ -227,7 +227,12 @@ export function CheckoutPage() {
         idempotencyKey,
         addressId,
         shippingOptionId,
-        paymentMethod: mpEnabled ? 'pix_simulated' : paymentMethod,
+        // F9-F / FIND-015: com MP ativo, gravar meio real (não *_simulated)
+        paymentMethod: mpEnabled
+          ? mpChannel === 'card'
+            ? 'credit_card'
+            : 'pix'
+          : paymentMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -444,6 +449,11 @@ export function CheckoutPage() {
           {step === 2 ? (
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Entrega</h2>
+              <p className="m-0 text-sm text-fal-muted">
+                Cotação do ambiente atual (mock/sandbox conforme configuração). Valores e prazos
+                comerciais definitivos dependem da política D-FRETE aprovada — não trate esta
+                cotação como frete de produção até essa decisão.
+              </p>
               {quoting ? (
                 <Loading label="Cotando frete…" />
               ) : shippingOptions.length === 0 ? (

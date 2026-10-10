@@ -4,6 +4,8 @@ import {
   findByEntityName,
   formatCatalogDisplayName,
   formatCategoryName,
+  formatManufacturerDisplayName,
+  formatModelDisplayName,
   normalizeEntityMatchKey,
   toCommercialTitleCase,
 } from '@/lib/entityNormalize'
@@ -26,6 +28,13 @@ describe('entityNormalize', () => {
     expect(formatCatalogDisplayName('  CAOA   Chery ')).toBe('CAOA Chery')
   })
 
+  it('remove U+FFFD (encoding quebrado) do display e da match key', () => {
+    expect(formatCatalogDisplayName('DOBL\uFFFD')).toBe('DOBL')
+    expect(normalizeEntityMatchKey('DOBL\uFFFD')).toBe('DOBL')
+    expect(normalizeEntityMatchKey('PR\uFFFDMIO')).toBe('PRMIO')
+    expect(entityNamesMatch('DOBLÒ', 'Doblo')).toBe(true)
+  })
+
   it('findByEntityName usa chave canônica', () => {
     const items = [{ id: '1', name: 'Chevrolet' }]
     expect(findByEntityName(items, 'CHEVROLET')?.id).toBe('1')
@@ -37,8 +46,32 @@ describe('entityNormalize', () => {
     expect(toCommercialTitleCase('AMORTECEDOR DIANTEIRO')).toBe('Amortecedor Dianteiro')
     expect(toCommercialTitleCase('BMW série 3')).toBe('BMW Série 3')
     expect(toCommercialTitleCase('TRW')).toBe('TRW')
+    expect(toCommercialTitleCase('Mercedes-Benz')).toBe('Mercedes-Benz')
     expect(normalizeEntityMatchKey('Amortecedor Dianteiro')).toBe(
       normalizeEntityMatchKey('AMORTECEDOR DIANTEIRO'),
     )
+  })
+
+  it('montadora: Ford (não FORD); preserva BMW/BYD/SEAT/CAOA', () => {
+    expect(formatManufacturerDisplayName('FORD')).toBe('Ford')
+    expect(formatManufacturerDisplayName('ford')).toBe('Ford')
+    expect(formatManufacturerDisplayName('BMW')).toBe('BMW')
+    expect(formatManufacturerDisplayName('BYD')).toBe('BYD')
+    expect(formatManufacturerDisplayName('SEAT')).toBe('SEAT')
+    expect(formatManufacturerDisplayName('CAOA CHERY')).toBe('CAOA Chery')
+    expect(formatManufacturerDisplayName('Mercedes-Benz')).toBe('Mercedes-Benz')
+  })
+
+  it('modelo: title case com códigos preservados', () => {
+    expect(formatModelDisplayName('ECOSPORT')).toBe('Ecosport')
+    expect(formatModelDisplayName('NEW KA')).toBe('New Ka')
+    expect(formatModelDisplayName('PREMIO')).toBe('Premio')
+    expect(formatModelDisplayName('T-CROSS')).toBe('T-Cross')
+    expect(formatModelDisplayName('CR-V')).toBe('CR-V')
+    expect(formatModelDisplayName('HB20')).toBe('HB20')
+    expect(formatModelDisplayName('C4 PALLAS')).toBe('C4 Pallas')
+    expect(formatModelDisplayName('QQ')).toBe('QQ')
+    expect(formatModelDisplayName('A3')).toBe('A3')
+    expect(formatModelDisplayName('CROSS UP!')).toBe('Cross Up!')
   })
 })

@@ -116,9 +116,12 @@ export function AdminApplicationsImportPage() {
   return (
     <PageShell
       title="Importar aplicações"
-      description="Código referência, montadora, modelo, versão e anos. O produto precisa existir — esta importação não cria cadastro de produto."
+      description="Colunas: código, montadora, modelo, versão, motorização (opcional), ano início/fim. Motorização em branco = todas as do modelo (com filtro de versão). Produto precisa existir."
       actions={
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
+          <Link to="/admin/aplicacoes" className="text-fal-navy">
+            Gerenciar aplicações →
+          </Link>
           <Link to="/admin/produtos/importar" className="text-fal-navy">
             Cadastro de produtos →
           </Link>
@@ -277,6 +280,7 @@ export function AdminApplicationsImportPage() {
                     <th className="px-2 py-2">Montadora</th>
                     <th className="px-2 py-2">Modelo</th>
                     <th className="px-2 py-2">Versão</th>
+                    <th className="px-2 py-2">Motorização</th>
                     <th className="px-2 py-2">Anos</th>
                     <th className="px-2 py-2">Situação</th>
                     <th className="px-2 py-2">Detalhe</th>
@@ -285,7 +289,7 @@ export function AdminApplicationsImportPage() {
                 <tbody>
                   {visible.map((r, idx) => (
                     <tr
-                      key={`${r.lineNumber}-${r.versao}-${idx}`}
+                      key={`${r.lineNumber}-${r.versao}-${r.motorizacao}-${idx}`}
                       className="border-b border-fal-line last:border-0"
                     >
                       <td className="px-2 py-1.5">{r.lineNumber}</td>
@@ -293,6 +297,7 @@ export function AdminApplicationsImportPage() {
                       <td className="px-2 py-1.5">{r.montadora}</td>
                       <td className="px-2 py-1.5">{r.modelo}</td>
                       <td className="px-2 py-1.5">{r.versao || '—'}</td>
+                      <td className="px-2 py-1.5">{r.motorizacao || 'Todas'}</td>
                       <td className="whitespace-nowrap px-2 py-1.5">
                         {r.yearStart ?? '—'}
                         {' → '}

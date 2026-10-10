@@ -16,9 +16,9 @@ import { useEffect, useMemo, useState } from 'react'
 export type PricingEditMode = 'apply_list_rule' | 'edit_rule_percent' | 'manual_price'
 
 export type PricingEditResult =
-  | { mode: 'apply_list_rule' }
-  | { mode: 'edit_rule_percent'; percent: number; price: number }
-  | { mode: 'manual_price'; price: number }
+  | { mode: 'apply_list_rule'; extraCost: number }
+  | { mode: 'edit_rule_percent'; percent: number; price: number; extraCost: number }
+  | { mode: 'manual_price'; price: number; extraCost: number }
 
 type Props = {
   open: boolean
@@ -34,10 +34,17 @@ function fmtPct(n: number | null | undefined): string {
   return `${n.toFixed(2)}%`
 }
 
+function parseNonNeg(raw: string): number | null {
+  const n = Number(String(raw).replace(',', '.'))
+  if (!Number.isFinite(n) || n < 0) return null
+  return n
+}
+
 export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave }: Props) {
   const [editMode, setEditMode] = useState<PricingEditMode>('apply_list_rule')
   const [rulePct, setRulePct] = useState('')
   const [priceStr, setPriceStr] = useState('')
+  const [extraCostStr, setExtraCostStr] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -45,11 +52,15 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
     setEditMode('apply_list_rule')
     setRulePct(String(list.pricingPercent))
     setPriceStr(formatMoneyInput(item.price))
+    setExtraCostStr(formatMoneyInput(item.extraCost ?? 0))
     setError(null)
   }, [open, item, list])
 
-  const costTotal = item?.costTotal ?? item?.baseCost ?? null
   const method: PricingMethod = list?.pricingMethod ?? 'fixed'
+  const baseCost = item?.baseCost ?? null
+  const extraParsed = parseNonNeg(extraCostStr)
+  const costTotal =
+    baseCost != null && extraParsed != null ? baseCost + extraParsed : item?.costTotal ?? null
 
   const preview = useMemo(() => {
     if (!item || costTotal == null) {
@@ -73,6 +84,11 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
 
   async function handleSave() {
     setError(null)
+    const extraCost = parseNonNeg(extraCostStr)
+    if (extraCost == null) {
+      setError('Custo adicional inválido')
+      return
+    }
     if (editMode === 'apply_list_rule') {
       if (method === 'fixed') {
         setError('Lista em modo fixo — use preço manual')
@@ -82,7 +98,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
         setError('Sem custo — não é possível aplicar a regra')
         return
       }
-      await onSave({ mode: 'apply_list_rule' })
+      await onSave({ mode: 'apply_list_rule', extraCost })
       return
     }
     if (editMode === 'edit_rule_percent') {
@@ -99,7 +115,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
         setError('Não foi possível calcular o preço')
         return
       }
-      await onSave({ mode: 'edit_rule_percent', percent: pct, price: preview.price })
+      await onSave({ mode: 'edit_rule_percent', percent: pct, price: preview.price, extraCost })
       return
     }
     const price = parseMoneyBr(priceStr)
@@ -107,7 +123,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
       setError('Preço inválido')
       return
     }
-    await onSave({ mode: 'manual_price', price })
+    await onSave({ mode: 'manual_price', price, extraCost })
   }
 
   const ruleFieldLabel =
@@ -131,15 +147,26 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
 
         <div className="mt-4 grid gap-2 rounded-[10px] border border-fal-line bg-fal-bg p-3 text-sm">
           <p className="m-0">
-            <span className="font-semibold text-fal-navy">Custo:</span>{' '}
+            <span className="font-semibold text-fal-navy">Custo base:</span>{' '}
+            {baseCost != null ? formatMoney(baseCost) : '—'}
+          </p>
+          <p className="m-0">
+            <span className="font-semibold text-fal-navy">Custo total (base + adicional):</span>{' '}
             {costTotal != null ? formatMoney(costTotal) : '—'}
-            {item.extraCost > 0 ? (
-              <span className="text-fal-muted"> (extra item {formatMoney(item.extraCost)})</span>
-            ) : null}
           </p>
           <p className="m-0 text-xs text-fal-muted">
             Markup é sobre o custo; margem é sobre o preço de venda — não são a mesma coisa.
           </p>
+        </div>
+
+        <div className="mt-3">
+          <Input
+            label="Custo adicional (R$)"
+            value={extraCostStr}
+            onChange={(e) => setExtraCostStr(e.target.value)}
+            disabled={busy}
+            hint="Soma ao custo base do fornecedor neste item da lista."
+          />
         </div>
 
         <fieldset className="mt-4 space-y-2 border-0 p-0">

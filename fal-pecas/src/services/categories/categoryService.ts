@@ -10,6 +10,7 @@ type CategoryRow = {
   description: string | null
   parent_id: string | null
   sort_order: number
+  emoji?: string | null
 }
 
 function mapCategory(row: CategoryRow): Category {
@@ -19,6 +20,7 @@ function mapCategory(row: CategoryRow): Category {
     slug: row.slug,
     description: row.description ?? undefined,
     parentId: row.parent_id,
+    emoji: row.emoji ?? undefined,
   }
 }
 
@@ -43,7 +45,7 @@ export async function listCategories(): Promise<Category[]> {
 
   const { data, error } = await supabase
     .from('product_categories')
-    .select('id, name, slug, description, parent_id, sort_order')
+    .select('id, name, slug, description, parent_id, sort_order, emoji')
     .eq('status', 'published')
     .is('parent_id', null)
     .order('sort_order', { ascending: true })
@@ -59,7 +61,7 @@ export async function listAllCategories(): Promise<Category[]> {
 
   const { data, error } = await supabase
     .from('product_categories')
-    .select('id, name, slug, description, parent_id, sort_order')
+    .select('id, name, slug, description, parent_id, sort_order, emoji')
     .eq('status', 'published')
     .order('sort_order', { ascending: true })
 

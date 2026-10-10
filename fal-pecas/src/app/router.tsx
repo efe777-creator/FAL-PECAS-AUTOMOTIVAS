@@ -141,6 +141,11 @@ const AdminApplicationsImportPage = lazy(() =>
     default: m.AdminApplicationsImportPage,
   })),
 )
+const AdminApplicationsPage = lazy(() =>
+  import('@/pages/admin/products/AdminApplicationsPage').then((m) => ({
+    default: m.AdminApplicationsPage,
+  })),
+)
 const AdminHfBundleImportPage = lazy(() =>
   import('@/pages/admin/products/AdminHfBundleImportPage').then((m) => ({
     default: m.AdminHfBundleImportPage,
@@ -195,6 +200,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'produtos', element: <AdminProductsPage /> },
+      { path: 'aplicacoes', element: <AdminApplicationsPage /> },
       { path: 'produtos/importar', element: <AdminProductImportPage /> },
       {
         path: 'produtos/importar-aplicacoes',

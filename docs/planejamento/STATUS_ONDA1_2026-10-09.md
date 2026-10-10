@@ -48,25 +48,27 @@
 | MP smoke | Prep checklist | [prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) |
 | B3 repair | HOLD | [hold](./FAL_B3_MIGRATION_REPAIR_HOLD_2026-10-09.md) |
 
-## Próximo (atualizado 2026-10-09 pós FIND-004 M3)
+## Próximo (atualizado 2026-10-10 — plano consolidado)
 
 **Molde:** [FAL_STATUS_CONSOLIDADO_MOLDE_2026-10-09.md](./FAL_STATUS_CONSOLIDADO_MOLDE_2026-10-09.md)
 
 | Frente | Estado | Condição |
 |--------|--------|----------|
-| `FIND-004` | M1–M5 **ENCERRADO** (100/100 PVC; smoke OK) | [M5 VAL](./FAL_FIND004_MARCHA5_SMOKE_VAL_2026-10-09.md); residual 21 reviews + TDI0150; UI Mais apps/anos = MARCHA UI |
-| `UI apps` | Spec (Mais apps + `YY/YY`) | MARCHA UI explícita — não inventar PVC |
-| `MP` | BLOQUEADO humano | [prep smoke](./FAL_MP_SMOKE_PREP_2026-10-09.md) |
+| `FIND-004` | M1–M5 **ENCERRADO** | [M5 VAL](./FAL_FIND004_MARCHA5_SMOKE_VAL_2026-10-09.md); residual reviews |
+| `UI apps` | **VALIDADA** | [VAL UI](./FAL_MARCHA_UI_APPS_ANOS_VAL_2026-10-09.md) |
+| `F9-F` | **IMPLEMENTADO** (código+RPC) | [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md) |
+| `Card UX` | **IMPLEMENTADO** | [VAL card](./FAL_CARD_UX_CARRINHO_VAL_2026-10-10.md) |
+| `MP` | BLOQUEADO humano | [status smoke](./FAL_MP_SMOKE_STATUS_2026-10-10.md) |
+| `D-FRETE` | PENDENTE assinatura | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) |
 | `B3` | HOLD | [HOLD repair](./FAL_B3_MIGRATION_REPAIR_HOLD_2026-10-09.md) |
 
 IMP-14/15 permanecem bloqueados (schema / D-FRETE).
 
 ## Paralelo
 
-- Smoke MP (FIND-005)  
-- MARCHA UI apps/anos (trilho separado do apply)  
-- D-FRETE (decisão)  
-- Higiene migrations (só c/ auth B3)  
+- Smoke MP (H1–H6 humano)  
+- Assinatura D-FRETE  
+- E2E + deploy ([status](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md))  
 
-**Não** aprofundar IMP-14 pedidos/estoque sem necessidade schema.  
-**Não** apply FIND-004 sem MARCHA 4 nomeada.
+**Não** aprofundar IMP-14 sem necessidade schema.  
+**Não** repair B3 sem auth.
