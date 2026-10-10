@@ -87,8 +87,8 @@ MARCHA Frete estrutura/carriers + MCP Correios **IMPLEMENTADA** 10/10 ([VAL](./F
 
 1. Humano: smoke MP H1–H6 (prep + status)  
 2. eFe: assinar D-FRETE (C se PDP com cotação real; A/B = mensagem honesta) + preencher MCP Correios local  
-3. Auth: MARCHA HTTP Correios (edge) + place_order  
-4. Auth: MARCHA UI PDP/carrinho frete  
+3. Auth: MARCHA HTTP Correios (edge) + place_order além de mock  
+4. UI PDP/carrinho/checkout frete (sandbox/mock) — **feita** nesta frente  
 5. Humano: E2E pago (MP + frete) · gate α  
 6. Hold: B3, Bloco F, PDP-ML · carriers extras só pós contrato  
 

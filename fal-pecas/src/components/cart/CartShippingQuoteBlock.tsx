@@ -5,6 +5,7 @@ import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
+import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
 import type { CartItem } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -68,8 +69,12 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     const opt = envelope.options.find((o) => o.id === selectedId) ?? envelope.options[0]
     if (opt) {
       onShippingAmountChange?.(opt.amount, opt.label)
+      const digits = cep.replace(/\D/g, '')
+      if (digits.length === 8) {
+        saveShippingQuoteHandoff({ postalCode: digits, preferredOptionId: opt.id })
+      }
     }
-  }, [envelope, selectedId, onShippingAmountChange])
+  }, [envelope, selectedId, onShippingAmountChange, cep])
 
   async function onConsultar() {
     setLoading(true)

@@ -18,12 +18,14 @@
 | Unit | `carrierRegistry.test.ts` (15 tests shipping suite) |
 | PDP Entrega e frete | `ProductShippingQuoteBlock` + disclaimer envelope |
 | Carrinho conjunto | `CartShippingQuoteBlock` — invalida se itens/qty mudam |
+| Checkout envelope | `quoteShippingEnvelope` + guard `placeOrderReady` |
+| Handoff CEP | `shippingQuoteSession` carrinho→checkout |
+| Logística storefront | `weight_*` no `productService` + `loadCartLogistics` |
 
 ## Fora / próxima auth
 
 - HTTP real Correios na edge  
 - `place_order` além de `mock:*`  
-- Cotação consolidada no carrinho  
 - Deploy secrets produção / MCP credentials eFe  
 
 ## Critérios de pronto (desta marcha)

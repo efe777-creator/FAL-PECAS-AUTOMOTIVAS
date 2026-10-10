@@ -54,6 +54,10 @@ function mapProduct(row: Record<string, unknown>): Product {
     lado: (row.lado as Product['lado']) ?? null,
     attrs: (row.attrs as Record<string, unknown> | null) ?? {},
     stock: undefined,
+    weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
+    heightCm: row.height_cm == null ? null : Number(row.height_cm),
+    widthCm: row.width_cm == null ? null : Number(row.width_cm),
+    lengthCm: row.length_cm == null ? null : Number(row.length_cm),
   }
 }
 
@@ -61,6 +65,7 @@ const PRODUCT_SELECT = `
   id, sku, commercial_ref, name, slug, description, short_description, price, promo_price, status,
   manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id,
   posicao, lado, attrs,
+  weight_kg, height_cm, width_cm, length_cm,
   product_brands ( name ),
   product_categories ( id, name, slug )
 `
