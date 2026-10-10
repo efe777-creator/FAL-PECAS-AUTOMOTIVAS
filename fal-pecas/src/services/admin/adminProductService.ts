@@ -262,13 +262,16 @@ export async function adminEvaluateReleaseChecklist(
       .eq('product_id', productId),
   ])
 
+  const sku = product.sku ?? ''
+  const name = product.name ?? ''
+  const status = product.status ?? 'draft'
   const checklist = evaluateReleaseChecklist({
     productId: product.id,
-    name: product.name,
+    name,
     commercialRef: product.commercialRef,
-    sku: product.sku,
+    sku,
     categoryId: product.categoryId ?? null,
-    status: product.status,
+    status,
     resolvedPrice,
     hasApplication: (appCount ?? 0) > 0,
     hasImage: (imgCount ?? 0) > 0,
@@ -277,10 +280,10 @@ export async function adminEvaluateReleaseChecklist(
 
   return {
     ...checklist,
-    sku: product.sku,
-    name: product.name,
-    commercialRef: product.commercialRef,
-    status: product.status,
+    sku,
+    name,
+    commercialRef: product.commercialRef ?? sku,
+    status,
   }
 }
 

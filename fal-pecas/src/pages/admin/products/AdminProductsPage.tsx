@@ -200,6 +200,7 @@ export function AdminProductsPage() {
       const failHint =
         failed.length > 0
           ? ` · ${failed.length} falha(s): ${failed
+              .filter((f): f is Extract<(typeof failed)[number], { ok: false }> => !f.ok)
               .slice(0, 3)
               .map((f) => f.reason)
               .join('; ')}${failed.length > 3 ? '…' : ''}`
