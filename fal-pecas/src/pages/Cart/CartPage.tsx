@@ -38,61 +38,77 @@ export function CartPage() {
       </h1>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
         <div className="rounded-fal border border-fal-line bg-white p-5">
-          {items.map((item) => (
-            <div
-              key={item.productId}
-              className="grid grid-cols-[86px_1fr_auto] gap-4 border-b border-fal-line py-4 last:border-0"
-            >
-              <div className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl">
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt=""
-                    className="h-full w-full object-contain"
-                    loading="lazy"
-                  />
-                ) : (
-                  '🧩'
-                )}
-              </div>
-              <div>
-                <h3 className="m-0 text-base font-bold">{item.name}</h3>
-                <p className="m-0 text-xs text-fal-muted">
-                  {formatReferenciaFromProduct({
-                    commercialRef: item.commercialRef,
-                    sku: item.sku,
-                  })}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
-                    onClick={() => updateQty(item.productId, item.quantity - 1)}
-                  >
-                    −
-                  </button>
-                  <span className="min-w-[30px] text-center font-extrabold">{item.quantity}</span>
-                  <button
-                    type="button"
-                    className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
-                    onClick={() => updateQty(item.productId, item.quantity + 1)}
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="ml-2 text-sm font-bold text-fal-danger"
-                    onClick={() => removeItem(item.productId)}
-                  >
-                    Remover
-                  </button>
+          {items.map((item) => {
+            const productHref = `/produto/${item.productId}`
+            return (
+              <div
+                key={item.productId}
+                className="grid grid-cols-[86px_1fr_auto] gap-4 border-b border-fal-line py-4 last:border-0"
+              >
+                <Link
+                  to={productHref}
+                  className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl no-underline"
+                  aria-label={`Ver produto ${item.name}`}
+                >
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    '🧩'
+                  )}
+                </Link>
+                <div>
+                  <h3 className="m-0 text-base font-bold">
+                    <Link
+                      to={productHref}
+                      className="text-fal-ink no-underline hover:text-fal-navy hover:underline"
+                    >
+                      {item.name}
+                    </Link>
+                  </h3>
+                  <p className="m-0 text-xs text-fal-muted">
+                    <Link to={productHref} className="text-inherit no-underline hover:underline">
+                      {formatReferenciaFromProduct({
+                        commercialRef: item.commercialRef,
+                        sku: item.sku,
+                      })}
+                    </Link>
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      onClick={() => updateQty(item.productId, item.quantity - 1)}
+                    >
+                      −
+                    </button>
+                    <span className="min-w-[30px] text-center font-extrabold">{item.quantity}</span>
+                    <button
+                      type="button"
+                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      onClick={() => updateQty(item.productId, item.quantity + 1)}
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-2 text-sm font-bold text-fal-danger"
+                      onClick={() => removeItem(item.productId)}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+                <div className="text-right font-black">
+                  {formatMoney(item.price * item.quantity)}
                 </div>
               </div>
-              <div className="text-right font-black">
-                {formatMoney(item.price * item.quantity)}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <aside className="h-max rounded-fal border border-fal-line bg-white p-5">
           <div className="mb-3 flex justify-between">
