@@ -17,7 +17,9 @@ Provedores no código (`VITE_SHIPPING_PROVIDER`):
 | `frenet` | sandbox Frenet |
 | `carrier` | stub |
 
-Checkout passa a avisar que a cotação **não** é frete de produção até D-FRETE.
+Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção até D-FRETE.
+
+**Recomendação α (não assina):** **A** ou **B** para primeira operação controlada. **C** só com MARCHA + secrets.
 
 ---
 
@@ -46,5 +48,5 @@ Próxima MARCHA técnica (se C):
 
 ## Encerramento deste todo (plano)
 
-**Entrega do agente:** ficha + aviso honesto no checkout.  
+**Entrega do agente:** ficha + aviso honesto no checkout (código).  
 **Aceite comercial:** só com opção assinada acima.
