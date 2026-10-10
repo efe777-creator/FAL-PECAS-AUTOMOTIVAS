@@ -53,6 +53,7 @@ export function CheckoutPage() {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
+  const [maxReachedStep, setMaxReachedStep] = useState(0)
   const [docKind, setDocKind] = useState<'cpf' | 'cnpj'>('cpf')
   const [docValue, setDocValue] = useState('')
   const [addresses, setAddresses] = useState<CustomerAddress[]>([])
@@ -79,7 +80,52 @@ export function CheckoutPage() {
     orderId: string
     paymentId?: string
     amount: number
+    pixQrCode?: string | null
+    pixQrCodeBase64?: string | null
   } | null>(null)
+
+  function goToStepIndex(next: number) {
+    setStep(next)
+    setMaxReachedStep((m) => Math.max(m, next))
+  }
+
+  function stepPrereqError(target: number): string | null {
+    // validateDoc já seta a mensagem específica
+    if (target >= 1 && !validateDoc()) return '__doc__'
+    if (target >= 2 && !addressId) return 'Selecione um endereço de entrega'
+    if (target >= 3) {
+      if (!shippingOptionId) return 'Selecione uma opção de entrega'
+      if (!carrierDesc.placeOrderReady) {
+        return `Provedor ${carrierDesc.label} ainda não fecha pedido. Use mock até D-FRETE C.`
+      }
+    }
+    if (target >= 4 && mpEnabled && mpChannel === 'card' && !mpPublicKey) {
+      return 'VITE_MP_PUBLIC_KEY não configurada'
+    }
+    return null
+  }
+
+  async function goToStep(target: number) {
+    if (target === step || mpAwaiting) return
+    setError(null)
+    // Voltar: sempre permitido até maxReached
+    if (target < step) {
+      goToStepIndex(target)
+      return
+    }
+    // Avançar: só até maxReached+1 e com pré-requisitos
+    if (target > maxReachedStep + 1) {
+      setError('Conclua as etapas anteriores antes de avançar')
+      return
+    }
+    const err = stepPrereqError(target)
+    if (err) {
+      if (err !== '__doc__') setError(err)
+      return
+    }
+    if (target === 2) await loadQuotes(true)
+    goToStepIndex(target)
+  }
 
   const onMpApproved = useCallback(
     (oid: string) => {
@@ -224,34 +270,7 @@ export function CheckoutPage() {
   }
 
   async function goNext() {
-    setError(null)
-    if (step === 0 && !validateDoc()) return
-    if (step === 1) {
-      if (!addressId) {
-        setError('Selecione um endereço de entrega')
-        return
-      }
-      setStep(2)
-      await loadQuotes(true)
-      return
-    }
-    if (step === 2) {
-      if (!shippingOptionId) {
-        setError('Selecione uma opção de entrega')
-        return
-      }
-      if (!carrierDesc.placeOrderReady) {
-        setError(
-          `Provedor ${carrierDesc.label} ainda não fecha pedido (place_order). Use mock ou aguarde D-FRETE C + integração.`,
-        )
-        return
-      }
-    }
-    if (step === 3 && !paymentMethod) {
-      setError('Selecione um método de pagamento')
-      return
-    }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+    await goToStep(Math.min(step + 1, STEPS.length - 1))
   }
 
   async function finalize(outcome: 'approve' | 'fail') {
@@ -305,6 +324,11 @@ export function CheckoutPage() {
           return
         }
         const mp = await createMercadoPagoPayment(placed.orderId)
+        if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
+          throw new Error(
+            'Cobrança criada sem QR Pix. Confira MP_ACCESS_TOKEN (TEST) no Edge e se a conta sandbox gera Pix.',
+          )
+        }
         clear()
         clearShippingQuoteHandoff()
         setMpAwaiting({
@@ -312,6 +336,8 @@ export function CheckoutPage() {
           orderId: placed.orderId,
           paymentId: mp.paymentId,
           amount: placed.total,
+          pixQrCode: mp.pixQrCode,
+          pixQrCodeBase64: mp.pixQrCodeBase64,
         })
         push('Cobrança Pix criada — aguardando pagamento', 'success')
         return
@@ -350,22 +376,33 @@ export function CheckoutPage() {
   return (
     <Container className="py-8">
       <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {STEPS.map((label, i) => (
-          <span
-            key={label}
-            className={[
-              'rounded-full px-3 py-2 text-xs font-extrabold',
-              i === step
-                ? 'bg-fal-yellow text-fal-navy-dark'
-                : i < step
-                  ? 'bg-fal-navy text-white'
-                  : 'bg-[#e9edef] text-fal-navy',
-            ].join(' ')}
-          >
-            {i + 1}. {label}
-          </span>
-        ))}
+      <div className="mt-4 flex flex-wrap gap-2" role="navigation" aria-label="Etapas do checkout">
+        {STEPS.map((label, i) => {
+          const reachable = !mpAwaiting && (i <= maxReachedStep || i === step || i === step + 1)
+          const active = i === step
+          const done = i < step
+          return (
+            <button
+              key={label}
+              type="button"
+              disabled={!reachable}
+              onClick={() => void goToStep(i)}
+              aria-current={active ? 'step' : undefined}
+              className={[
+                'rounded-full px-3 py-2 text-xs font-extrabold transition',
+                active
+                  ? 'bg-fal-yellow text-fal-navy-dark'
+                  : done
+                    ? 'bg-fal-navy text-white hover:bg-fal-navy-dark'
+                    : reachable
+                      ? 'bg-[#e9edef] text-fal-navy hover:bg-fal-line'
+                      : 'cursor-not-allowed bg-[#e9edef] text-fal-muted opacity-60',
+              ].join(' ')}
+            >
+              {i + 1}. {label}
+            </button>
+          )
+        })}
       </div>
 
       {error ? (
@@ -623,6 +660,9 @@ export function CheckoutPage() {
                     paymentId={mpAwaiting.paymentId}
                     orderId={mpAwaiting.orderId}
                     onApproved={onMpApproved}
+                    initialPixQrCode={mpAwaiting.pixQrCode}
+                    initialPixQrCodeBase64={mpAwaiting.pixQrCodeBase64}
+                    initialAmount={mpAwaiting.amount}
                   />
                 ) : (
                   <Loading label="Preparando Pix…" />
@@ -704,7 +744,7 @@ export function CheckoutPage() {
           {step < 4 ? (
             <div className="mt-6 flex flex-wrap gap-2">
               {step > 0 ? (
-                <Button type="button" variant="light" onClick={() => setStep((s) => s - 1)}>
+                <Button type="button" variant="light" onClick={() => void goToStep(step - 1)}>
                   Voltar
                 </Button>
               ) : (

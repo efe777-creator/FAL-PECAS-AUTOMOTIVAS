@@ -15,7 +15,7 @@
 | Checklist H1–H6 | **BLOQUEADO — gate humano** |
 | **H5 local (Vite)** | **PASS 18:07** — `resolvePaymentProviderKey()=mercadopago` após vars em `fal-pecas/.env.local` + restart |
 | **H5 Netlify (prod)** | **PENDENTE deploy** — bundle ainda `index-oy7VRadL.js` (stale); Trigger deploy obrigatório |
-| Pix sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
+| Pix sandbox | **FAIL UI 18:10** — usuário finalizou sem código Pix; seed QR no client + detalhe Edge (redeploy `create-mp-payment` + secret `MP_ACCESS_TOKEN` TEST) |
 | Cartão sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
 | Webhook approve | **NÃO EXECUTADO** |
 | Prep documental | Pronto |

@@ -97,13 +97,53 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (existing?.provider_payment_id) {
-      const { data: full } = await admin
+      let { data: full } = await admin
         .from('payments')
         .select(
           'id, provider_payment_id, status, amount, method, pix_qr_code, pix_qr_code_base64, payment_url, expires_at, provider_status',
         )
         .eq('id', existing.id)
         .maybeSingle()
+
+      // Reuso sem QR: tenta reidratar a partir da API MP (sandbox às vezes atrasa o POI)
+      const needsPixHydrate =
+        !card &&
+        (!full?.pix_qr_code || !full?.pix_qr_code_base64) &&
+        existing.provider_payment_id
+      if (needsPixHydrate) {
+        const hydrateRes = await fetch(`${MP_API}/${existing.provider_payment_id}`, {
+          headers: { Authorization: `Bearer ${mpToken}` },
+        })
+        if (hydrateRes.ok) {
+          const mpHydrate = (await hydrateRes.json().catch(() => ({}))) as Record<string, unknown>
+          try {
+            const fields = mapMpResponseToPaymentFields(mpHydrate)
+            await admin
+              .from('payments')
+              .update({
+                pix_qr_code: fields.pix_qr_code,
+                pix_qr_code_base64: fields.pix_qr_code_base64,
+                payment_url: fields.payment_url,
+                expires_at: fields.expires_at,
+                provider_status: fields.provider_status,
+              })
+              .eq('id', existing.id)
+            if (full) {
+              full = {
+                ...full,
+                pix_qr_code: fields.pix_qr_code,
+                pix_qr_code_base64: fields.pix_qr_code_base64,
+                payment_url: fields.payment_url,
+                expires_at: fields.expires_at,
+                provider_status: fields.provider_status,
+              }
+            }
+          } catch {
+            // mantém full como veio do banco
+          }
+        }
+      }
+
       return json(200, {
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
@@ -191,6 +231,23 @@ Deno.serve(async (req) => {
 
     const mpJson = (await mpRes.json().catch(() => ({}))) as Record<string, unknown>
     if (!mpRes.ok) {
+      const mpMessage =
+        typeof mpJson.message === 'string'
+          ? mpJson.message
+          : typeof mpJson.error === 'string'
+            ? mpJson.error
+            : null
+      const mpCause = Array.isArray(mpJson.cause)
+        ? mpJson.cause
+            .map((c) =>
+              c && typeof c === 'object' && 'description' in c
+                ? String((c as { description?: unknown }).description ?? '')
+                : '',
+            )
+            .filter(Boolean)
+            .join('; ')
+        : null
+      const detail = [mpMessage, mpCause].filter(Boolean).join(' — ') || undefined
       await admin
         .from('payments')
         .update({
@@ -200,6 +257,7 @@ Deno.serve(async (req) => {
         .eq('id', paymentId)
       return json(502, {
         error: 'mercadopago_create_failed',
+        detail,
         httpStatus: mpRes.status,
         orderApproved: false,
       })

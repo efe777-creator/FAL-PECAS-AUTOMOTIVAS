@@ -74,6 +74,7 @@ Não autoriza secrets, repair B3, Bloco F, PDP-ML nem IMP-14/15 profundos.
 | F11 | Frete registry/envelope/edge esqueleto/MCP | VAL estrutura | VALIDADO |
 | F12 | Frete UI PDP/carrinho/checkout sandbox | VAL + PRs #29–#31 | VALIDADO |
 | F13 | Carrinho → PDP (links) | PRs #33–#35 | IMPLEMENTADO (git) |
+| F14 | Checkout steps clicáveis + seed Pix QR / erros Edge | [VAL](./FAL_MARCHA_CHECKOUT_STEPS_PIX_VAL_2026-10-10.md) | IMPLEMENTADO (git) — smoke Pix humano |
 
 **Regra:** regressão só com finding novo + MARCHA nomeada.
 
@@ -90,7 +91,7 @@ Marcar **PASS** só com evidência. Gate α só fecha com todos os **obrigatóri
 | α-OPS-1 | Netlify publicando `main` atual (bundle ≠ stale) | eFe / Netlify | Deploy log + hash asset / “Ver produto” no carrinho | **FAIL ops** (2026-10-10: bundle antigo) |
 | α-MP-1 | H1–H6 preenchidos | eFe | [MP prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) | PENDENTE |
 | α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | Local **PASS**; Netlify **PENDENTE deploy** — [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | Parcial |
-| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
+| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | **FAIL UI** 18:10; fix client/Edge em F14 — reteste após secret + redeploy |
 | α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
 | α-MP-4 | Webhook: PASS ou NÃO TESTÁVEL (secret) explícito | eFe | MP status | PENDENTE |
 | α-FR-1 | D-FRETE assinado A **ou** B **ou** C | eFe | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | PENDENTE |
