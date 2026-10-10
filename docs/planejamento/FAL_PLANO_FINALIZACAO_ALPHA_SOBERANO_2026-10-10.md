@@ -89,7 +89,7 @@ Marcar **PASS** só com evidência. Gate α só fecha com todos os **obrigatóri
 |----|----------|-------------|-----------|--------|
 | α-OPS-1 | Netlify publicando `main` atual (bundle ≠ stale) | eFe / Netlify | Deploy log + hash asset / “Ver produto” no carrinho | **FAIL ops** (2026-10-10: bundle antigo) |
 | α-MP-1 | H1–H6 preenchidos | eFe | [MP prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) | PENDENTE |
-| α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) — **FAIL 10/10** print | **FAIL** |
+| α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | Local **PASS**; Netlify **PENDENTE deploy** — [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | Parcial |
 | α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
 | α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
 | α-MP-4 | Webhook: PASS ou NÃO TESTÁVEL (secret) explícito | eFe | MP status | PENDENTE |

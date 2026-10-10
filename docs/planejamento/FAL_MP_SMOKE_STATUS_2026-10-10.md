@@ -13,9 +13,10 @@
 | Item | Estado |
 |------|--------|
 | Checklist H1–H6 | **BLOQUEADO — gate humano** |
-| **H5 (Netlify MP)** | **FAIL evidenciado** — ver § Evidência UI |
-| Pix sandbox | **NÃO EXECUTADO** (UI em modo simulado) |
-| Cartão sandbox | **NÃO EXECUTADO** (UI em modo simulado) |
+| **H5 local (Vite)** | **PASS 18:07** — `resolvePaymentProviderKey()=mercadopago` após vars em `fal-pecas/.env.local` + restart |
+| **H5 Netlify (prod)** | **PENDENTE deploy** — bundle ainda `index-oy7VRadL.js` (stale); Trigger deploy obrigatório |
+| Pix sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
+| Cartão sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
 | Webhook approve | **NÃO EXECUTADO** |
 | Prep documental | Pronto |
 | Netlify → wtbp (catálogo) | **OK** |
@@ -24,43 +25,29 @@ Agente **não** lê nem altera `MP_ACCESS_TOKEN` / `MP_WEBHOOK_SECRET` / vars Ne
 
 ---
 
-## Evidência UI (FATO) — 2026-10-10
+## Evidência UI
 
-Checkout produção no passo **Pagamento** exibe:
+### Produção (print ~17:49) — FATO
 
-- Título: **«Pagamento (simulado)»**
-- Opções: **Pix simulado** / **Cartão simulado**
-- Texto: *«Pagamento em modo demonstração (sem cobrança real). Para Pix e cartão reais, configure o provedor Mercado Pago no ambiente da loja.»*
+**«Pagamento (simulado)»** no Netlify → build publicado sem MP (ou stale).
 
-**Interpretação (código):** `isMercadoPagoCheckoutEnabled()` = false  
-→ `VITE_PAYMENT_PROVIDER` **não** está `mercadopago` / `mp` no build Netlify atual  
-(arquivo: `fal-pecas/src/services/payments/paymentService.ts` · UI: `CheckoutPage` quando `!mpEnabled`).
+### Localhost (~18:07) — FATO
 
-Isso **confirma H5 pendente/falho** antes de qualquer smoke Pix/cartão real.
+- Vars na raiz não bastam; Vite lê `fal-pecas/.env.local` (corrigido).
+- Restart Vite → `isMercadoPagoCheckoutEnabled() === true`.
+- UI logada deve mostrar **«Pagamento — Mercado Pago»**.
 
----
+### Ação restante (prod)
 
-## Ação humana imediata (H5 + S0)
+**Netlify → Trigger deploy** (vars Vite só entram no build).  
+Depois: Edge secrets H1–H4 + smoke Pix/cartão.
 
-No painel **Netlify → Site settings → Environment variables** (e **Trigger deploy** depois):
-
-| Variável | Valor esperado (smoke sandbox) |
-|----------|--------------------------------|
-| `VITE_PAYMENT_PROVIDER` | `mercadopago` |
-| `VITE_MP_PUBLIC_KEY` | Public Key **TEST** da conta MP |
-| `VITE_SUPABASE_URL` | URL wtbp (já OK no catálogo) |
-| `VITE_SUPABASE_ANON_KEY` | anon wtbp |
-
-No **Supabase wtbp → Edge secrets** (H1–H4):
-
-| Secret | Nota |
-|--------|------|
-| `MP_ACCESS_TOKEN` | Access Token **TEST** |
+| Secret Edge | Nota |
+|-------------|------|
+| `MP_ACCESS_TOKEN` | TEST |
 | `MP_ENV` | `test` |
-| `MP_WEBHOOK_SECRET` | obrigatório para webhook |
-| Redeploy | `create-mp-payment` + `mercado-pago-webhook` após secrets |
-
-**Done when:** checkout mostra **«Pagamento — Mercado Pago»** (não «simulado») + hard refresh.
+| `MP_WEBHOOK_SECRET` | webhook |
+| Redeploy functions | após secrets |
 
 ---
 
