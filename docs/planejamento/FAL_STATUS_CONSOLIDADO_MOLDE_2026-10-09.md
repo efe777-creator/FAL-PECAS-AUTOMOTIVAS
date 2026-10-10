@@ -50,7 +50,8 @@ D-FRETE **PENDENTE** assinatura. B3 **HOLD**. Card UX **VALIDADO** smoke produç
 Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FAL_ALPHA_GATE](./FAL_ALPHA_GATE_2026-10-10.md).  
 MARCHA Classificação admin (Cat→Grupo→Sub) **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md)).  
 MARCHA Admin Aplicações PVC **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md)) — 730 apps no wtbp.  
-MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md)) — `%` live no wtbp.
+MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md)) — `%` live no wtbp.  
+MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)) — para em login/MP.
 
 ---
 
@@ -70,7 +71,8 @@ MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_V
 | MP smoke | BLOQUEADO | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | H1–H6 humano | Humano |
 | D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe | Decisão |
 | Produção Netlify | OK (catálogo/wtbp) | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | H5 vars MP no smoke | Parcial |
-| E2E pedido pago | NÃO EXECUTADO | idem | Pós MP+frete | Humano |
+| E2E pré-pagamento | VALIDADO | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) | Login + MP smoke | Feita |
+| E2E pedido pago | NÃO EXECUTADO | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | Pós MP+frete | Humano |
 | Gate α eFe | PENDENTE | [gate](./FAL_ALPHA_GATE_2026-10-10.md) | Assinatura | eFe |
 | B3 | HOLD | [HOLD](./FAL_B3_MIGRATION_REPAIR_HOLD_2026-10-09.md) | Auth explícita | Explícita |
 
