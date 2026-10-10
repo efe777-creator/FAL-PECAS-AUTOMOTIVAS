@@ -175,6 +175,7 @@ export function applicationLogicKey(input: {
   montadora: string
   modelo: string
   versao: string
+  motorizacao?: string
   yearStart: number | null
   yearEnd: number | null
 }): string {
@@ -183,6 +184,7 @@ export function applicationLogicKey(input: {
     normalizeEntityMatchKey(normalizeImportText(input.montadora)),
     normalizeEntityMatchKey(normalizeImportText(input.modelo)),
     normalizeEntityMatchKey(normalizeImportText(input.versao)),
+    normalizeEntityMatchKey(normalizeImportText(input.motorizacao ?? '')),
     input.yearStart ?? '',
     input.yearEnd ?? '',
   ].join('|')
@@ -199,6 +201,7 @@ export type CatalogVersion = {
   manufacturerId: string
   modelId: string
   versionName: string | null
+  engine?: string | null
 }
 export type CatalogPvc = {
   productId: string
@@ -230,6 +233,8 @@ export function resolveVehicleVersionMatch(input: {
   manufacturerId: string | null
   modelId: string | null
   versionName: string
+  /** Se informado, restringe por `vehicle_versions.engine`. */
+  engine?: string | null
   productId: string | null
   versions: CatalogVersion[]
   pvc: CatalogPvc[]
@@ -241,12 +246,17 @@ export function resolveVehicleVersionMatch(input: {
     return { status: 'none', versionId: null }
   }
   const want = normKey(input.versionName || '')
-  const matches = input.versions.filter(
-    (v) =>
-      v.manufacturerId === input.manufacturerId &&
-      v.modelId === input.modelId &&
-      normKey(v.versionName ?? '') === want,
-  )
+  const wantEngine = input.engine != null && String(input.engine).trim()
+    ? normKey(String(input.engine))
+    : null
+  const matches = input.versions.filter((v) => {
+    if (v.manufacturerId !== input.manufacturerId || v.modelId !== input.modelId) {
+      return false
+    }
+    if (normKey(v.versionName ?? '') !== want) return false
+    if (wantEngine != null && normKey(v.engine ?? '') !== wantEngine) return false
+    return true
+  })
 
   if (matches.length === 0) return { status: 'none', versionId: null }
   if (matches.length === 1) return { status: 'one', versionId: matches[0].id }
@@ -271,6 +281,27 @@ export function listVersionsForModel(
   )
 }
 
+/** Filtra VVs do modelo por versão e/ou motorização (campos vazios = sem filtro). */
+export function filterVersionsForApp(input: {
+  versions: CatalogVersion[]
+  manufacturerId: string
+  modelId: string
+  versao: string
+  motorizacao: string
+}): CatalogVersion[] {
+  return listVersionsForModel(input.versions, input.manufacturerId, input.modelId).filter(
+    (v) => {
+      if (input.motorizacao && normKey(v.engine ?? '') !== normKey(input.motorizacao)) {
+        return false
+      }
+      if (input.versao && normKey(v.versionName ?? '') !== normKey(input.versao)) {
+        return false
+      }
+      return true
+    },
+  )
+}
+
 export type ApplicationPreviewRow = {
   lineNumber: number
   sku: string
@@ -278,6 +309,8 @@ export type ApplicationPreviewRow = {
   montadora: string
   modelo: string
   versao: string
+  /** Motorização (engine). Vazio = todas as do modelo (com filtro de versão). */
+  motorizacao: string
   yearStart: number | null
   yearEnd: number | null
   versionParts: string[]
@@ -313,11 +346,13 @@ function emptyRow(
     | 'createModel'
     | 'createVersion'
     | 'periodAction'
-  > & { periodAction?: PeriodAction | null },
+    | 'motorizacao'
+  > & { periodAction?: PeriodAction | null; motorizacao?: string },
 ): ApplicationPreviewRow {
   const action = partial.action
   return {
     ...partial,
+    motorizacao: partial.motorizacao ?? '',
     periodAction: partial.periodAction ?? null,
     applyable: action === 'new' || action === 'update' || action === 'found',
     productExists: false,
@@ -332,28 +367,32 @@ function emptyRow(
   }
 }
 
-/** Expande linhas com split seguro em uma linha lógica por parte. */
+/** Expande linhas com split seguro de versão e/ou motorização (ex.: 1.0/1.6). */
 export function expandMappedRowsForVersions(
   rows: Array<{ lineNumber: number; values: Record<string, string> }>,
 ): Array<{ lineNumber: number; values: Record<string, string>; versionSplit: boolean }> {
   const out: Array<{ lineNumber: number; values: Record<string, string>; versionSplit: boolean }> =
     []
   for (const row of rows) {
-    const info = splitVersionSafe(row.values.versao)
-    if (info.split && info.parts.length > 1) {
-      for (const part of info.parts) {
+    const verInfo = splitVersionSafe(row.values.versao)
+    const motInfo = splitVersionSafe(row.values.motorizacao)
+    const verParts =
+      verInfo.split && verInfo.parts.length > 1 ? verInfo.parts : [verInfo.original]
+    const motParts =
+      motInfo.split && motInfo.parts.length > 1 ? motInfo.parts : [motInfo.original]
+    const split = verParts.length > 1 || motParts.length > 1
+    for (const versao of verParts) {
+      for (const motorizacao of motParts) {
         out.push({
           lineNumber: row.lineNumber,
-          values: { ...row.values, versao: part },
-          versionSplit: true,
+          values: {
+            ...row.values,
+            versao,
+            motorizacao,
+          },
+          versionSplit: split,
         })
       }
-    } else {
-      out.push({
-        lineNumber: row.lineNumber,
-        values: { ...row.values, versao: info.original },
-        versionSplit: false,
-      })
     }
   }
   return out
@@ -384,6 +423,7 @@ export function analyzeApplicationMappedRows(
     const montadora = normalizeImportText(row.values.montadora)
     const modelo = normalizeImportText(row.values.modelo)
     const versao = normalizeImportText(row.values.versao)
+    const motorizacao = normalizeImportText(row.values.motorizacao)
     const periodParse = parseYearPeriod(row.values.ano_inicio, row.values.ano_fim)
 
     if (!sku || !montadora || !modelo) {
@@ -395,6 +435,7 @@ export function analyzeApplicationMappedRows(
           montadora,
           modelo,
           versao,
+          motorizacao,
           yearStart: null,
           yearEnd: null,
           versionParts: versao ? [versao] : [],
@@ -415,6 +456,7 @@ export function analyzeApplicationMappedRows(
           montadora,
           modelo,
           versao,
+          motorizacao,
           yearStart: null,
           yearEnd: null,
           versionParts: versao ? [versao] : [],
@@ -431,6 +473,7 @@ export function analyzeApplicationMappedRows(
       montadora,
       modelo,
       versao,
+      motorizacao,
       yearStart: periodParse.period.start,
       yearEnd: periodParse.period.end,
     })
@@ -444,6 +487,7 @@ export function analyzeApplicationMappedRows(
           montadora,
           modelo,
           versao,
+          motorizacao,
           yearStart: periodParse.period.start,
           yearEnd: periodParse.period.end,
           versionParts: versao ? [versao] : [],
@@ -476,6 +520,7 @@ export function analyzeApplicationMappedRows(
           montadora,
           modelo,
           versao,
+          motorizacao,
           yearStart: periodParse.period.start,
           yearEnd: periodParse.period.end,
           versionParts: versao ? [versao] : [],
@@ -526,10 +571,19 @@ export function analyzeApplicationMappedRows(
       createModel = true
     }
 
-    // FIND-004: versao vazia + modelo resolvido → 1 PVC por VV do modelo (não 1 envelope).
+    // Motorização ou versão em branco → expandir para todas as VVs que casarem.
     const blankVersion = !versao
-    if (blankVersion && manufacturerId && modelId) {
-      const modelVersions = listVersionsForModel(versions, manufacturerId, modelId)
+    const blankMotor = !motorizacao
+    const expandAll = blankVersion || blankMotor
+
+    if (expandAll && manufacturerId && modelId) {
+      const modelVersions = filterVersionsForApp({
+        versions,
+        manufacturerId,
+        modelId,
+        versao,
+        motorizacao,
+      })
       if (modelVersions.length > 0) {
         for (const vv of modelVersions) {
           let periodAction: PeriodAction | null = 'create'
@@ -560,7 +614,9 @@ export function analyzeApplicationMappedRows(
 
           let message = 'Nova aplicação'
           if (action === 'new') {
-            message = 'Novo cadastro de aplicação (versão do modelo)'
+            message = blankMotor
+              ? 'Novo cadastro (motorização: todas as do filtro)'
+              : 'Novo cadastro de aplicação (versão do modelo)'
           } else if (action === 'update') message = 'Será atualizado o período'
           else if (action === 'already_covered') message = 'Já contemplado'
           else if (action === 'found') message = 'Já cadastrado'
@@ -578,10 +634,11 @@ export function analyzeApplicationMappedRows(
             name: name || product?.name || '',
             montadora,
             modelo,
-            versao: '',
+            versao: vv.versionName ?? versao,
+            motorizacao: vv.engine ?? motorizacao,
             yearStart: periodParse.period.start,
             yearEnd: periodParse.period.end,
-            versionParts: vv.versionName ? [vv.versionName] : [],
+            versionParts: vv.versionName ? [vv.versionName] : versao ? [versao] : [],
             versionSplit: row.versionSplit,
             action,
             periodAction,
@@ -600,17 +657,18 @@ export function analyzeApplicationMappedRows(
         }
         continue
       }
-      // 0 VV do modelo → cai no fluxo envelope (createVersion) abaixo
+      // 0 VV → envelope createVersion abaixo
     }
 
     const versionAmbiguousPrep =
-      !blankVersion &&
+      !expandAll &&
       manufacturerId &&
       modelId &&
       resolveVehicleVersionMatch({
         manufacturerId,
         modelId,
         versionName: versao,
+        engine: motorizacao,
         productId,
         versions,
         pvc,
@@ -633,8 +691,8 @@ export function analyzeApplicationMappedRows(
         if (createManufacturer || createModel) createVersion = true
         if (!manufacturerId && !createManufacturer) createVersion = false
       }
-    } else if (blankVersion && manufacturerId && modelId) {
-      // blank + 0 VV ativas do modelo → 1 envelope (version_name null)
+    } else if (expandAll && manufacturerId && modelId) {
+      // expand sem VV → 1 envelope (engine/version_name conforme planilha)
       createVersion = true
     } else if (createManufacturer || createModel) {
       createVersion = true
@@ -693,6 +751,7 @@ export function analyzeApplicationMappedRows(
       montadora,
       modelo,
       versao,
+      motorizacao,
       yearStart: periodParse.period.start,
       yearEnd: periodParse.period.end,
       versionParts: versao ? [versao] : [],
@@ -727,6 +786,7 @@ export function previewRowToFrozenPayload(row: ApplicationPreviewRow): Record<st
     montadora: row.montadora,
     modelo: row.modelo,
     versao: row.versao,
+    motorizacao: row.motorizacao,
     year_start: row.yearStart,
     year_end: row.yearEnd,
     product_id:

@@ -3,7 +3,8 @@ import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { Category } from '@/types'
 
-export const CATEGORY_MAX_DEPTH = 3 // Grupo(1) → Categoria(2) → Subcategoria(3)
+/** Alinhado à planilha de import: categoria(1) → grupo(2) → subgrupo(3). */
+export const CATEGORY_MAX_DEPTH = 3
 
 type Row = {
   id: string
@@ -13,6 +14,7 @@ type Row = {
   description: string | null
   sort_order: number
   status: string
+  emoji?: string | null
 }
 
 function map(row: Row): Category {
@@ -24,20 +26,21 @@ function map(row: Row): Category {
     description: row.description ?? undefined,
     sortOrder: row.sort_order,
     status: row.status as Category['status'],
+    emoji: row.emoji ?? undefined,
   }
 }
 
 export async function adminListCategories(): Promise<Category[]> {
   const { data, error } = await getSupabase()
     .from('product_categories')
-    .select('id, parent_id, name, slug, description, sort_order, status')
+    .select('id, parent_id, name, slug, description, sort_order, status, emoji')
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true })
   if (error) throw error
   return (data as Row[]).map(map)
 }
 
-/** Depth 1 = Grupo (sem pai), 2 = Categoria, 3 = Subcategoria. */
+/** Depth 1 = Categoria (raiz), 2 = Grupo, 3 = Subgrupo. */
 export function categoryDepth(items: Category[], id: string | null | undefined): number {
   if (!id) return 0
   let depth = 0
@@ -53,13 +56,13 @@ export function categoryDepth(items: Category[], id: string | null | undefined):
 }
 
 export function categoryLevelLabel(depth: number): string {
-  if (depth <= 1) return 'Grupo'
-  if (depth === 2) return 'Categoria'
-  if (depth === 3) return 'Subcategoria'
+  if (depth <= 1) return 'Categoria'
+  if (depth === 2) return 'Grupo'
+  if (depth === 3) return 'Subgrupo'
   return `Nível ${depth}`
 }
 
-/** Path "Grupo / Categoria / Subcategoria". */
+/** Path "Categoria / Grupo / Subgrupo" (mesmo vocabulário da planilha). */
 export function categoryPath(items: Category[], id: string): string {
   const parts: string[] = []
   let cur: string | null | undefined = id
@@ -92,7 +95,7 @@ export function collectCategorySubtreeIds(items: Category[], rootId: string): st
   return ids
 }
 
-/** Pais permitidos: Grupo ou Categoria (depth 1–2). Subcategoria não pode ser pai. */
+/** Pais permitidos: Categoria ou Grupo (depth 1–2). Subgrupo não pode ser pai. */
 export function allowedCategoryParents(
   items: Category[],
   editingId?: string | null,
@@ -113,6 +116,60 @@ export async function adminCountProductsInCategory(categoryId: string): Promise<
   return count ?? 0
 }
 
+/** Contagem direta por `category_id` (não inclui descendentes). */
+export async function adminCountProductsPerCategory(): Promise<Record<string, number>> {
+  const { data, error } = await getSupabase()
+    .from('products')
+    .select('category_id')
+    .not('category_id', 'is', null)
+  if (error) throw error
+  const out: Record<string, number> = {}
+  for (const row of data ?? []) {
+    const id = (row as { category_id: string | null }).category_id
+    if (!id) continue
+    out[id] = (out[id] ?? 0) + 1
+  }
+  return out
+}
+
+function sortedSiblings(items: Category[], parentId: string | null): Category[] {
+  return items
+    .filter((c) => (c.parentId ?? null) === parentId && c.status !== 'archived')
+    .slice()
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
+    )
+}
+
+/** Troca ordem com o irmão imediatamente acima/abaixo. */
+export async function adminReorderSiblingCategories(
+  items: Category[],
+  categoryId: string,
+  direction: 'up' | 'down',
+): Promise<void> {
+  const node = items.find((c) => c.id === categoryId)
+  if (!node) throw new Error('Classificação não encontrada')
+  const siblings = sortedSiblings(items, node.parentId ?? null)
+  const idx = siblings.findIndex((s) => s.id === categoryId)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (idx < 0 || swapIdx < 0 || swapIdx >= siblings.length) return
+
+  const reordered = siblings.slice()
+  const tmp = reordered[idx]!
+  reordered[idx] = reordered[swapIdx]!
+  reordered[swapIdx] = tmp
+
+  const client = getSupabase()
+  for (let i = 0; i < reordered.length; i++) {
+    const { error } = await client
+      .from('product_categories')
+      .update({ sort_order: i })
+      .eq('id', reordered[i]!.id)
+    if (error) throw error
+  }
+}
+
 export async function adminUpsertCategory(input: {
   id?: string
   name: string
@@ -121,6 +178,8 @@ export async function adminUpsertCategory(input: {
   parentId?: string | null
   sortOrder?: number
   status?: Category['status']
+  /** Emoji unicode ou chave img:suspensao|freios|filtros. */
+  emoji?: string | null
   /** Lista atual para validar profundidade (obrigatória para hard-limit). */
   allCategories?: Category[]
 }): Promise<Category> {
@@ -131,7 +190,7 @@ export async function adminUpsertCategory(input: {
     const parentDepth = categoryDepth(all, parentId)
     if (parentDepth >= CATEGORY_MAX_DEPTH) {
       throw new Error(
-        'Não é permitido 4º nível. Hierarquia máxima: Grupo → Categoria → Subcategoria.',
+        'Não é permitido 4º nível. Hierarquia máxima: Categoria → Grupo → Subgrupo.',
       )
     }
     if (parentDepth < 1) {
@@ -140,7 +199,7 @@ export async function adminUpsertCategory(input: {
     // Filho terá parentDepth + 1
     if (parentDepth + 1 > CATEGORY_MAX_DEPTH) {
       throw new Error(
-        'Não é permitido 4º nível. Hierarquia máxima: Grupo → Categoria → Subcategoria.',
+        'Não é permitido 4º nível. Hierarquia máxima: Categoria → Grupo → Subgrupo.',
       )
     }
   }
@@ -174,6 +233,13 @@ export async function adminUpsertCategory(input: {
     }
   }
 
+  const emoji =
+    input.emoji === undefined
+      ? undefined
+      : input.emoji?.trim()
+        ? input.emoji.trim()
+        : null
+
   const payload = {
     name,
     slug: (input.slug?.trim() || toSlug(name)) || toSlug(`cat-${Date.now()}`),
@@ -181,6 +247,7 @@ export async function adminUpsertCategory(input: {
     parent_id: parentId,
     sort_order: input.sortOrder ?? 0,
     status: input.status ?? 'published',
+    ...(emoji !== undefined ? { emoji } : {}),
   }
   const q = getSupabase().from('product_categories')
   const { data, error } = input.id
@@ -198,5 +265,40 @@ export async function adminSetCategoryStatus(
     .from('product_categories')
     .update({ status })
     .eq('id', id)
+  if (error) throw error
+}
+
+/** Republica todos os nós arquivados (ex.: hierarquia de import sem produto ainda). */
+export async function adminPublishAllArchivedCategories(): Promise<number> {
+  const { data, error } = await getSupabase()
+    .from('product_categories')
+    .update({ status: 'published' })
+    .eq('status', 'archived')
+    .select('id')
+  if (error) throw error
+  return data?.length ?? 0
+}
+
+/**
+ * Exclusão permanente. Bloqueia se houver filhos ou produtos ligados (direto).
+ * Prefira Arquivar para remoção comercial.
+ */
+export async function adminDeleteCategory(id: string, all?: Category[]): Promise<void> {
+  const items = all ?? (await adminListCategories())
+  const node = items.find((c) => c.id === id)
+  if (!node) throw new Error('Classificação não encontrada')
+  const kids = items.filter((c) => c.parentId === id && c.status !== 'archived')
+  if (kids.length > 0) {
+    throw new Error(
+      `Não é possível excluir "${node.name}" com ${kids.length} filho(s). Remova ou mova os filhos antes.`,
+    )
+  }
+  const productCount = await adminCountProductsInCategory(id)
+  if (productCount > 0) {
+    throw new Error(
+      `Há ${productCount} produto(s) em "${node.name}". Reclassifique-os antes de excluir.`,
+    )
+  }
+  const { error } = await getSupabase().from('product_categories').delete().eq('id', id)
   if (error) throw error
 }

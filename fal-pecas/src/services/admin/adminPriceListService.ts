@@ -1172,9 +1172,13 @@ export async function adminSetCalculatedListPrice(input: {
   priceListId: string
   productId: string
   price: number
+  extraCost?: number | null
 }): Promise<void> {
   if (!(input.price >= 0) || Number.isNaN(input.price)) {
     throw new Error('Preço inválido')
+  }
+  if (input.extraCost != null && (input.extraCost < 0 || Number.isNaN(input.extraCost))) {
+    throw new Error('Custo adicional inválido')
   }
   const { error } = await getSupabase()
     .from('price_list_items')
@@ -1185,10 +1189,25 @@ export async function adminSetCalculatedListPrice(input: {
         price: input.price,
         price_origin: 'calculated',
         calculated_price: input.price,
+        ...(input.extraCost != null ? { extra_cost: input.extraCost } : {}),
       },
       { onConflict: 'price_list_id,product_id' },
     )
   if (error) throw error
+}
+
+/** Helper: preserva scroll da janela durante reload de listas longas. */
+export async function withWindowScrollPreserved<T>(fn: () => Promise<T>): Promise<T> {
+  const y = typeof window !== 'undefined' ? window.scrollY : 0
+  try {
+    return await fn()
+  } finally {
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: y, left: 0, behavior: 'instant' as ScrollBehavior })
+      })
+    }
+  }
 }
 
 export async function adminUpsertPriceListItem(input: {

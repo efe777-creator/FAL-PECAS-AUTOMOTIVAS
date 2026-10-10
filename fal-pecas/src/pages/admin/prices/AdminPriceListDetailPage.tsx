@@ -33,6 +33,7 @@ import {
   adminRecalculatePriceListItems,
   adminSetCalculatedListPrice,
   adminSetPriceListItemPricing,
+  withWindowScrollPreserved,
   adminSetPriceListPricingRule,
   adminSaveListExtraCostPercent,
   adminSyncProductsOntoPriceList,
@@ -66,12 +67,39 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 type Tab = 'produtos' | 'formacao' | 'importacoes' | 'config'
 
 const TAB_VALUES: Tab[] = ['produtos', 'formacao', 'importacoes', 'config']
+const DETAIL_FILTERS_KEY = 'fal.priceListDetail.filters'
+
+type StoredDetailFilters = {
+  q?: string
+  origin?: PriceOrigin | ''
+  withoutCost?: boolean
+  withoutPrice?: boolean
+  onlyCalculated?: boolean
+  withOverride?: boolean
+  supplierId?: string
+  sortKey?: PriceListItemSortKey
+  sortAsc?: boolean
+}
 
 function parseTab(raw: string | null): Tab {
   if (raw && (TAB_VALUES as string[]).includes(raw)) return raw as Tab
   return 'produtos'
 }
 type SortState = { key: PriceListItemSortKey; asc: boolean }
+
+function detailFiltersKey(listId: string) {
+  return `${DETAIL_FILTERS_KEY}.${listId}`
+}
+
+function readDetailFilters(listId: string): StoredDetailFilters {
+  try {
+    const raw = sessionStorage.getItem(detailFiltersKey(listId))
+    if (!raw) return {}
+    return JSON.parse(raw) as StoredDetailFilters
+  } catch {
+    return {}
+  }
+}
 
 function canManagePricing(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
@@ -148,15 +176,21 @@ export function AdminPriceListDetailPage() {
   const [cfgValidUntil, setCfgValidUntil] = useState('')
   const [cfgReport, setCfgReport] = useState<string | null>(null)
 
-  const [filterQ, setFilterQ] = useState('')
-  const [filterQDebounced, setFilterQDebounced] = useState('')
-  const [filterOrigin, setFilterOrigin] = useState<PriceOrigin | ''>('')
-  const [filterWithoutCost, setFilterWithoutCost] = useState(false)
-  const [filterWithoutPrice, setFilterWithoutPrice] = useState(false)
-  const [filterOnlyCalculated, setFilterOnlyCalculated] = useState(false)
-  const [filterWithOverride, setFilterWithOverride] = useState(false)
-  const [filterSupplierId, setFilterSupplierId] = useState('')
-  const [sort, setSort] = useState<SortState>({ key: 'updatedAt', asc: false })
+  const initialFilters = id ? readDetailFilters(id) : {}
+  const [filterQ, setFilterQ] = useState(initialFilters.q ?? '')
+  const [filterQDebounced, setFilterQDebounced] = useState(initialFilters.q ?? '')
+  const [filterOrigin, setFilterOrigin] = useState<PriceOrigin | ''>(initialFilters.origin ?? '')
+  const [filterWithoutCost, setFilterWithoutCost] = useState(Boolean(initialFilters.withoutCost))
+  const [filterWithoutPrice, setFilterWithoutPrice] = useState(Boolean(initialFilters.withoutPrice))
+  const [filterOnlyCalculated, setFilterOnlyCalculated] = useState(
+    Boolean(initialFilters.onlyCalculated),
+  )
+  const [filterWithOverride, setFilterWithOverride] = useState(Boolean(initialFilters.withOverride))
+  const [filterSupplierId, setFilterSupplierId] = useState(initialFilters.supplierId ?? '')
+  const [sort, setSort] = useState<SortState>({
+    key: initialFilters.sortKey ?? 'updatedAt',
+    asc: initialFilters.sortAsc ?? false,
+  })
 
   function selectTab(next: Tab) {
     setTab(next)
@@ -177,10 +211,23 @@ export function AdminPriceListDetailPage() {
     navigate(`/admin/precos/${nextId}${tabQs}`)
   }
 
-  function resetUiForListChange() {
-    setList(null)
-    setItems([])
-    setStats(null)
+  function applyStoredFilters(listId: string) {
+    const stored = readDetailFilters(listId)
+    setFilterQ(stored.q ?? '')
+    setFilterQDebounced(stored.q ?? '')
+    setFilterOrigin(stored.origin ?? '')
+    setFilterWithoutCost(Boolean(stored.withoutCost))
+    setFilterWithoutPrice(Boolean(stored.withoutPrice))
+    setFilterOnlyCalculated(Boolean(stored.onlyCalculated))
+    setFilterWithOverride(Boolean(stored.withOverride))
+    setFilterSupplierId(stored.supplierId ?? '')
+    setSort({
+      key: stored.sortKey ?? 'updatedAt',
+      asc: stored.sortAsc ?? false,
+    })
+  }
+
+  function clearFilters() {
     setFilterQ('')
     setFilterQDebounced('')
     setFilterOrigin('')
@@ -189,6 +236,14 @@ export function AdminPriceListDetailPage() {
     setFilterOnlyCalculated(false)
     setFilterWithOverride(false)
     setFilterSupplierId('')
+  }
+
+  function resetUiForListChange() {
+    setList(null)
+    setItems([])
+    setStats(null)
+    if (id) applyStoredFilters(id)
+    else clearFilters()
     setSelectedIds(new Set())
     setPricingItem(null)
     setBulkPrice('')
@@ -200,7 +255,6 @@ export function AdminPriceListDetailPage() {
     setRuleExtraCostPercent('0')
     setCfgReport(null)
     setImportDetail(null)
-    setSort({ key: 'updatedAt', asc: false })
   }
 
   async function reload() {
@@ -259,6 +313,35 @@ export function AdminPriceListDetailPage() {
     const t = window.setTimeout(() => setFilterQDebounced(filterQ), 200)
     return () => window.clearTimeout(t)
   }, [filterQ])
+
+  useEffect(() => {
+    if (!id) return
+    sessionStorage.setItem(
+      detailFiltersKey(id),
+      JSON.stringify({
+        q: filterQDebounced,
+        origin: filterOrigin,
+        withoutCost: filterWithoutCost,
+        withoutPrice: filterWithoutPrice,
+        onlyCalculated: filterOnlyCalculated,
+        withOverride: filterWithOverride,
+        supplierId: filterSupplierId,
+        sortKey: sort.key,
+        sortAsc: sort.asc,
+      } satisfies StoredDetailFilters),
+    )
+  }, [
+    id,
+    filterQDebounced,
+    filterOrigin,
+    filterWithoutCost,
+    filterWithoutPrice,
+    filterOnlyCalculated,
+    filterWithOverride,
+    filterSupplierId,
+    sort.key,
+    sort.asc,
+  ])
 
   const visibleItems = useMemo(() => {
     const filtered = filterPriceListItems(items, {
@@ -362,6 +445,34 @@ export function AdminPriceListDetailPage() {
     return row.id
   }
 
+  async function reloadQuiet() {
+    setError(null)
+    try {
+      const [l, its, st, sups, imps, lists] = await Promise.all([
+        adminGetPriceList(id),
+        adminListPriceListOperationalItems(id),
+        adminGetPriceListStats(id),
+        adminListSuppliers(),
+        adminListPriceListImports(id),
+        adminListPriceLists(),
+      ])
+      const overrideIds = await adminListActiveOverrideProductIds(its.map((i) => i.productId))
+      setList(l)
+      setAllLists(lists)
+      setItems(its.map((i) => ({ ...i, hasOverride: overrideIds.has(i.productId) })))
+      setStats(st)
+      setSuppliers(sups.filter((s) => s.status === 'active'))
+      setImports(imps)
+      if (l) {
+        setRuleMethod(l.pricingMethod)
+        setRulePercent(String(l.pricingPercent))
+        setRuleExtraCostPercent(String(l.listExtraCostPercent ?? 0))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao recarregar')
+    }
+  }
+
   async function onSavePricingEdit(result: PricingEditResult) {
     if (!pricingItem) return
     setRowBusy(pricingItem.id)
@@ -372,7 +483,7 @@ export function AdminPriceListDetailPage() {
         await adminSetPriceListItemPricing({
           itemId,
           mode: 'apply_rule',
-          extraCost: pricingItem.extraCost,
+          extraCost: result.extraCost,
         })
       } else if (result.mode === 'edit_rule_percent') {
         void itemId
@@ -380,16 +491,18 @@ export function AdminPriceListDetailPage() {
           priceListId: id,
           productId: pricingItem.productId,
           price: result.price,
+          extraCost: result.extraCost,
         })
       } else {
         await adminSetPriceListItemPricing({
           itemId,
           mode: 'manual',
           price: result.price,
+          extraCost: result.extraCost,
         })
       }
       setPricingItem(null)
-      await reload()
+      await withWindowScrollPreserved(() => reloadQuiet())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
     } finally {
@@ -406,7 +519,7 @@ export function AdminPriceListDetailPage() {
     setRowBusy(itemId)
     try {
       await adminDeletePriceListItem(itemId)
-      await reload()
+      await withWindowScrollPreserved(() => reloadQuiet())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao remover')
     } finally {
@@ -905,10 +1018,25 @@ export function AdminPriceListDetailPage() {
                 />
                 Com override
               </label>
+              {(filterQDebounced.trim() ||
+                filterOrigin ||
+                filterWithoutCost ||
+                filterWithoutPrice ||
+                filterOnlyCalculated ||
+                filterWithOverride ||
+                filterSupplierId) && (
+                <button
+                  type="button"
+                  className="font-semibold text-fal-navy underline"
+                  onClick={clearFilters}
+                >
+                  Limpar filtros
+                </button>
+              )}
             </div>
             <p className="mt-2 text-xs text-fal-muted">
               Itens na visão (lista + cadastro sem preço): {items.length} · filtrados:{' '}
-              {visibleItems.length}
+              {visibleItems.length}. Filtros e ordenação são lembrados nesta sessão.
             </p>
             {singleMatch ? (
               <div className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/20 px-3 py-2 text-sm">

@@ -15,4 +15,9 @@ describe('normalizeImportText', () => {
   it('remove BOM e espaços extras', () => {
     expect(normalizeImportText('\uFEFF  ABC  DEF  ')).toBe('ABC DEF')
   })
+
+  it('remove U+FFFD de encoding quebrado', () => {
+    expect(normalizeImportText('DOBL\uFFFD')).toBe('DOBL')
+    expect(normalizeImportText('PR\uFFFDMIO')).toBe('PRMIO')
+  })
 })

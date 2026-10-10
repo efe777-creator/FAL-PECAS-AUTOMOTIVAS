@@ -97,5 +97,5 @@ Próximo: MARCHA F9-F / corrigir gap / retestar
 | | |
 |--|--|
 | Prep smoke | **Pronto para execução humana** |
-| Smoke executado | **Pendente** |
-| F9-F | **STOP** até smoke + MARCHA |
+| Smoke executado | **Pendente** — ver [status 10/10](./FAL_MP_SMOKE_STATUS_2026-10-10.md) |
+| F9-F código/RPC | **IMPLEMENTADO** 10/10 — [VAL](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md); smoke comercial ainda pendente |

@@ -22,6 +22,23 @@ async function ensureCartId(customerId: string): Promise<string> {
   return String(created.id)
 }
 
+function dedupeCartItems(items: CartItem[]): CartItem[] {
+  const map = new Map<string, CartItem>()
+  for (const item of items) {
+    const prev = map.get(item.productId)
+    if (prev) {
+      map.set(item.productId, {
+        ...prev,
+        ...item,
+        quantity: Math.max(prev.quantity, item.quantity),
+      })
+    } else {
+      map.set(item.productId, item)
+    }
+  }
+  return Array.from(map.values())
+}
+
 export async function loadRemoteCart(): Promise<CartItem[]> {
   const customerId = await getCurrentCustomerId()
   if (!customerId) return []
@@ -58,29 +75,44 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
   return applyResolvedPricesToCartItems(mapped, customerId)
 }
 
+/**
+ * Persiste o carrinho remoto.
+ * Usa upsert + limpeza de órfãos (evita 23505 em saves concorrentes delete+insert).
+ */
 export async function saveRemoteCart(items: CartItem[]): Promise<void> {
   const customerId = await getCurrentCustomerId()
   if (!customerId) return
 
   const sb = getSupabase()
   const cartId = await ensureCartId(customerId)
-  const { error: delErr } = await sb.from('cart_items').delete().eq('cart_id', cartId)
-  if (delErr) throw delErr
+  const unique = dedupeCartItems(items)
 
-  if (!items.length) {
+  if (!unique.length) {
+    const { error: delAllErr } = await sb.from('cart_items').delete().eq('cart_id', cartId)
+    if (delAllErr) throw delAllErr
     await sb.from('carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId)
     return
   }
 
-  const { error: insErr } = await sb.from('cart_items').insert(
-    items.map((i) => ({
+  const { error: upsErr } = await sb.from('cart_items').upsert(
+    unique.map((i) => ({
       cart_id: cartId,
       product_id: i.productId,
       quantity: i.quantity,
       unit_price_snapshot: i.price,
     })),
+    { onConflict: 'cart_id,product_id' },
   )
-  if (insErr) throw insErr
+  if (upsErr) throw upsErr
+
+  const keepIds = unique.map((i) => i.productId)
+  const { error: delErr } = await sb
+    .from('cart_items')
+    .delete()
+    .eq('cart_id', cartId)
+    .not('product_id', 'in', `(${keepIds.join(',')})`)
+  if (delErr) throw delErr
+
   await sb.from('carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId)
 }
 

@@ -32,9 +32,9 @@
 | 3 | DIV-001 / DIV-002 / D-REF | P1 | **Feitos** |
 | 4 | Ampliar aplicações via import (dados) | P1 | Residual FIND-004 |
 | 5 | Onda 2 (`IMP-11`…) | P2 | Após fechamento Onda 1 |
-| 6 | MARCHA F9-F (pós-smoke): checkout alinhado ao MP | P1 | Sem simulação enganosa |
+| 6 | MARCHA F9-F checkout/RPC meios MP | P1 | **Código 10/10** — [VAL](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md); smoke ainda humano |
 | 7 | Permissões granulares (Bloco F) | P2 | STOP_BLOCO_F |
-| 8 | Frete: decisão provedor + plano | P2 | D-FRETE pendente |
+| 8 | Frete: decisão provedor + plano | P2 | [Ficha D-FRETE](./FAL_D_FRETE_DECISAO_2026-10-10.md) — assinatura eFe |
 | 9 | Empty/loading/erros; dashboard/relatórios | P2–P3 | Onda 2 |
 | 10 | Regressão vitest + E2E críticos | P2 | Após regras estáveis |
 

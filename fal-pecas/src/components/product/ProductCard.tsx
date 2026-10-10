@@ -2,10 +2,12 @@ import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/components/common/Toast'
 import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
 import {
+  ADICIONAR_AO_CARRINHO_LABEL,
   FABRICANTE_LABEL,
   VER_PRODUTO_LABEL,
   formatReferenciaFromProduct,
@@ -19,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth()
+  const { items, addItem, updateQty } = useCart()
   const { push } = useToast()
   const navigate = useNavigate()
   const [liked, setLiked] = useState(false)
@@ -28,6 +31,9 @@ export function ProductCard({ product }: { product: Product }) {
   const displayName = toCommercialTitleCase(product.name)
   const brandName = product.brand ? toCommercialTitleCase(product.brand) : null
   const productHref = `/produto/${product.id}`
+  const available = product.available !== false
+  const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
+  const inCart = cartQty > 0
 
   useEffect(() => {
     if (!user) {
@@ -55,8 +61,37 @@ export function ProductCard({ product }: { product: Product }) {
     }
   }
 
+  function onAddToCart(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!available) return
+    addItem(product, 1)
+    const next = cartQty + 1
+    push(
+      next === 1
+        ? 'Produto adicionado ao carrinho'
+        : `${next} unidades no carrinho`,
+      'success',
+    )
+  }
+
+  function onDecreaseQty(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!inCart) return
+    updateQty(product.id, cartQty - 1)
+  }
+
+  function onIncreaseQty(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!available) return
+    addItem(product, 1)
+    push(`${cartQty + 1} unidades no carrinho`, 'success')
+  }
+
   return (
-    <article className="relative min-w-0 overflow-hidden rounded-fal border border-fal-line bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5">
+    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5">
       {showStrike ? (
         <div className="absolute top-3.5 left-3.5 z-[1]">
           <Badge>Oferta</Badge>
@@ -72,8 +107,8 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <Link to={productHref} className="block min-w-0">
-        <div className="grid h-[100px] place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
+      <Link to={productHref} className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="grid h-[100px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -123,23 +158,63 @@ export function ProductCard({ product }: { product: Product }) {
           groups={product.compatibilityGroups}
           summary={product.compatibilitySummary}
         />
-        {product.available === false ? (
-          <p className="m-0 text-sm font-bold text-fal-danger">Indisponível</p>
-        ) : (
-          <p className="m-0 truncate text-lg font-black sm:text-[22px]">
-            {formatStorePriceLabel(price, listPrice)}
-          </p>
-        )}
-        {product.available !== false && showStrike ? (
-          <p className="m-0 truncate text-xs text-fal-muted line-through">
-            {formatMoneyStrike(listPrice)}
-          </p>
-        ) : null}
       </Link>
 
-      <div className="mt-3">
+      <div className="mt-auto flex shrink-0 flex-col gap-2 pt-2">
+        {!available ? (
+          <p className="m-0 text-sm font-bold text-fal-danger">Indisponível</p>
+        ) : (
+          <>
+            <p className="m-0 truncate text-lg font-black sm:text-[22px]">
+              {formatStorePriceLabel(price, listPrice)}
+            </p>
+            {showStrike ? (
+              <p className="m-0 -mt-1 truncate text-xs text-fal-muted line-through">
+                {formatMoneyStrike(listPrice)}
+              </p>
+            ) : null}
+          </>
+        )}
+
+        {!available ? null : inCart ? (
+          <div className="flex w-full min-w-0 items-center gap-1.5">
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-base font-bold text-fal-navy hover:bg-fal-bg"
+              aria-label="Diminuir quantidade"
+              onClick={onDecreaseQty}
+            >
+              −
+            </button>
+            <div
+              className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-[#fff8db] px-1.5 py-1 text-center"
+              aria-live="polite"
+            >
+              <span className="text-[10px] leading-none text-fal-muted">No carrinho</span>
+              <span className="text-sm font-black text-fal-navy">{cartQty}</span>
+            </div>
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-base font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
+              aria-label="Aumentar quantidade"
+              onClick={onIncreaseQty}
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            fullWidth
+            onClick={onAddToCart}
+          >
+            {ADICIONAR_AO_CARRINHO_LABEL}
+          </Button>
+        )}
+
         <Link to={productHref} className="block">
-          <Button variant="primary" size="sm" fullWidth>
+          <Button variant="light" size="sm" fullWidth>
             {VER_PRODUTO_LABEL}
           </Button>
         </Link>

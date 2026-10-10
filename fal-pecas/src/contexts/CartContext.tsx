@@ -42,6 +42,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [syncPending, setSyncPending] = useState(false)
   const skipNextRemoteSave = useRef(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Serializa saves remotos (evita corrida delete/insert → 23505). */
+  const saveChain = useRef(Promise.resolve())
 
   useEffect(() => {
     setItems(localCartStorage.load())
@@ -110,9 +112,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      void saveRemoteCart(items).catch((err) =>
-        console.error('[FAL] Falha ao salvar carrinho remoto', err),
-      )
+      const snapshot = items
+      saveChain.current = saveChain.current
+        .then(() => saveRemoteCart(snapshot))
+        .catch((err) => console.error('[FAL] Falha ao salvar carrinho remoto', err))
     }, 400)
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)

@@ -55,7 +55,7 @@ async function loadCatalogsForSkus(skus: string[]): Promise<ApplicationCatalogs>
     sb.from('models').select('id, manufacturer_id, name').eq('status', 'active'),
     sb
       .from('vehicle_versions')
-      .select('id, manufacturer_id, model_id, version_name')
+      .select('id, manufacturer_id, model_id, version_name, engine')
       .eq('status', 'active'),
   ])
 
@@ -87,6 +87,7 @@ async function loadCatalogsForSkus(skus: string[]): Promise<ApplicationCatalogs>
       manufacturerId: String(v.manufacturer_id),
       modelId: String(v.model_id),
       versionName: v.version_name == null ? null : String(v.version_name),
+      engine: v.engine == null ? null : String(v.engine),
     })),
     pvc,
   }

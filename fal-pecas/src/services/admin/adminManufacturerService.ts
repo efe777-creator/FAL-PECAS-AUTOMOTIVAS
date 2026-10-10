@@ -1,4 +1,4 @@
-import { formatCatalogDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
+import { formatManufacturerDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import type { Manufacturer } from '@/types'
@@ -29,7 +29,7 @@ export async function adminUpsertManufacturer(input: {
   slug?: string
   status?: Manufacturer['status']
 }): Promise<Manufacturer> {
-  const name = formatCatalogDisplayName(input.name)
+  const name = formatManufacturerDisplayName(input.name)
   if (!name) throw new Error('Informe o nome da montadora.')
 
   if (!input.id) {

@@ -4,13 +4,20 @@ import { Loading } from '@/components/common/Loading'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
 import { PRICE_LIST_LAYERS_HINT, priceOriginLabel } from '@/lib/priceLabels'
 import {
+  PriceItemPricingModal,
+  type PricingEditResult,
+} from '@/pages/admin/prices/PriceItemPricingModal'
+import {
   adminFindProductIdBySku,
   adminListPriceListOperationalItems,
+  adminSetCalculatedListPrice,
   adminSetPriceListItemPricing,
+  adminSyncProductsOntoPriceList,
   adminUpsertPriceListItem,
   filterPriceListItems,
   isVirtualPriceListItemId,
   priceListStatusLabel,
+  withWindowScrollPreserved,
   type PriceListItem,
   type PriceListOverviewRow,
   type PriceOrigin,
@@ -20,6 +27,13 @@ import { Link } from 'react-router-dom'
 
 const QUICK_RESULT_LIMIT = 50
 const STORAGE_KEY = 'fal.priceListQuickAdjust.listId'
+const FILTERS_KEY = 'fal.priceListQuickAdjust.filters'
+
+type StoredFilters = {
+  q?: string
+  origin?: PriceOrigin | ''
+  withoutPrice?: boolean
+}
 
 type Props = {
   lists: PriceListOverviewRow[]
@@ -32,6 +46,16 @@ type Props = {
   onRequestImport?: () => void
 }
 
+function readStoredFilters(): StoredFilters {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as StoredFilters
+  } catch {
+    return {}
+  }
+}
+
 export function PriceListQuickAdjustPanel({
   lists,
   allowed,
@@ -41,24 +65,24 @@ export function PriceListQuickAdjustPanel({
   forceWithoutPrice,
   onRequestImport,
 }: Props) {
+  const stored = readStoredFilters()
   const [listId, setListId] = useState('')
   const [items, setItems] = useState<PriceListItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
 
-  const [filterQ, setFilterQ] = useState('')
-  const [filterQDebounced, setFilterQDebounced] = useState('')
-  const [filterOrigin, setFilterOrigin] = useState<PriceOrigin | ''>('')
-  const [filterWithoutPrice, setFilterWithoutPrice] = useState(false)
+  const [filterQ, setFilterQ] = useState(stored.q ?? '')
+  const [filterQDebounced, setFilterQDebounced] = useState(stored.q ?? '')
+  const [filterOrigin, setFilterOrigin] = useState<PriceOrigin | ''>(stored.origin ?? '')
+  const [filterWithoutPrice, setFilterWithoutPrice] = useState(Boolean(stored.withoutPrice))
   const [addOpen, setAddOpen] = useState(false)
 
   const [addSku, setAddSku] = useState('')
   const [addPrice, setAddPrice] = useState('')
   const [addBusy, setAddBusy] = useState(false)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editPrice, setEditPrice] = useState('')
+  const [pricingItem, setPricingItem] = useState<PriceListItem | null>(null)
   const [rowBusy, setRowBusy] = useState<string | null>(null)
 
   const addFormRef = useRef<HTMLFormElement>(null)
@@ -68,16 +92,27 @@ export function PriceListQuickAdjustPanel({
   const selectedList = lists.find((l) => l.id === listId) ?? null
 
   useEffect(() => {
-    setFilterWithoutPrice(Boolean(forceWithoutPrice))
+    if (forceWithoutPrice != null) setFilterWithoutPrice(Boolean(forceWithoutPrice))
   }, [forceWithoutPrice])
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      FILTERS_KEY,
+      JSON.stringify({
+        q: filterQDebounced,
+        origin: filterOrigin,
+        withoutPrice: filterWithoutPrice,
+      } satisfies StoredFilters),
+    )
+  }, [filterQDebounced, filterOrigin, filterWithoutPrice])
 
   useEffect(() => {
     if (!lists.length) {
       setListId('')
       return
     }
-    const stored = sessionStorage.getItem(STORAGE_KEY)
-    const fromStored = stored && lists.some((l) => l.id === stored) ? stored : null
+    const storedList = sessionStorage.getItem(STORAGE_KEY)
+    const fromStored = storedList && lists.some((l) => l.id === storedList) ? storedList : null
     const active = lists.find((l) => l.status === 'active')
     setListId((prev) => {
       if (prev && lists.some((l) => l.id === prev)) return prev
@@ -102,16 +137,10 @@ export function PriceListQuickAdjustPanel({
     }
 
     const gen = ++loadGenRef.current
-
-    // Anti-vazamento A→B: limpa imediatamente
     setItems([])
-    setEditingId(null)
-    setEditPrice('')
+    setPricingItem(null)
     setError(null)
     setInfo(null)
-    setFilterQ('')
-    setFilterQDebounced('')
-    setFilterOrigin('')
     setLoadingItems(true)
     sessionStorage.setItem(STORAGE_KEY, listId)
 
@@ -171,16 +200,13 @@ export function PriceListQuickAdjustPanel({
     setAddOpen(true)
     setError(null)
     setInfo(null)
-    // Aguarda o form montar se estava fechado
     window.setTimeout(focusAddSku, addOpen ? 0 : 50)
   }
 
   async function reloadItems(opts?: { keepAddOpen?: boolean }) {
     if (!listId) return
     const gen = ++loadGenRef.current
-    setLoadingItems(true)
     setError(null)
-    setItems([])
     try {
       const rows = await adminListPriceListOperationalItems(listId)
       if (gen !== loadGenRef.current) return
@@ -193,10 +219,7 @@ export function PriceListQuickAdjustPanel({
       onItemsChanged?.()
     } catch (e) {
       if (gen !== loadGenRef.current) return
-      setItems([])
       setError(e instanceof Error ? e.message : 'Falha ao recarregar itens')
-    } finally {
-      if (gen === loadGenRef.current) setLoadingItems(false)
     }
   }
 
@@ -207,46 +230,51 @@ export function PriceListQuickAdjustPanel({
     setFilterWithoutPrice(false)
   }
 
-  function startEdit(item: PriceListItem) {
-    setEditingId(item.id)
-    setEditPrice(String(item.price).replace('.', ','))
-    setInfo(null)
-    setError(null)
+  async function ensureItemOnList(item: PriceListItem): Promise<string> {
+    if (!isVirtualPriceListItemId(item.id)) return item.id
+    await adminSyncProductsOntoPriceList({
+      priceListId: listId,
+      productIds: [item.productId],
+    })
+    const rows = await adminListPriceListOperationalItems(listId)
+    const row = rows.find((i) => i.productId === item.productId && !isVirtualPriceListItemId(i.id))
+    if (!row) throw new Error('Falha ao incluir item na lista')
+    return row.id
   }
 
-  async function saveEdit(item: PriceListItem) {
-    const priceNum = parseMoneyBr(editPrice)
-    if (priceNum == null || priceNum < 0) {
-      setError('Preço inválido ou negativo')
-      return
-    }
-    if (item.priceOrigin === 'calculated') {
-      const ok = window.confirm(
-        'Origem Calculado → Manual. A regra deixará de recalcular este item automaticamente. Continuar?',
-      )
-      if (!ok) return
-    }
-    setRowBusy(item.id)
+  async function onSavePricingEdit(result: PricingEditResult) {
+    if (!pricingItem || !selectedList) return
+    setRowBusy(pricingItem.id)
     setError(null)
+    setInfo(null)
     try {
-      if (isVirtualPriceListItemId(item.id)) {
-        await adminUpsertPriceListItem({
+      const itemId = await ensureItemOnList(pricingItem)
+      if (result.mode === 'apply_list_rule') {
+        await adminSetPriceListItemPricing({
+          itemId,
+          mode: 'apply_rule',
+          extraCost: result.extraCost,
+        })
+      } else if (result.mode === 'edit_rule_percent') {
+        await adminSetCalculatedListPrice({
           priceListId: listId,
-          productId: item.productId,
-          price: priceNum,
-          source: 'manual',
-          changedBy: changedBy ?? null,
+          productId: pricingItem.productId,
+          price: result.price,
+          extraCost: result.extraCost,
         })
       } else {
-        await adminSetPriceListItemPricing({ itemId: item.id, mode: 'manual', price: priceNum })
+        await adminSetPriceListItemPricing({
+          itemId,
+          mode: 'manual',
+          price: result.price,
+          extraCost: result.extraCost,
+        })
       }
-      setEditingId(null)
-      setInfo(
-        `Preço atualizado na lista ${selectedList?.name ?? ''}. Origem: Manual.`,
-      )
-      await reloadItems({ keepAddOpen: addOpen })
+      setPricingItem(null)
+      setInfo(`Precificação atualizada na lista ${selectedList.name}.`)
+      await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: addOpen }))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao alterar preço')
+      setError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
     } finally {
       setRowBusy(null)
     }
@@ -272,8 +300,8 @@ export function PriceListQuickAdjustPanel({
 
     const existing = items.find((i) => (i.sku ?? '').toLowerCase() === sku.toLowerCase())
     if (existing) {
-      setError('Este código já está na lista. Use Editar precificação na linha destacada.')
-      startEdit(existing)
+      setError('Este código já está na lista. Use Editar na linha.')
+      setPricingItem(existing)
       setFilterQ(sku)
       setFilterQDebounced(sku)
       setAddOpen(false)
@@ -298,7 +326,7 @@ export function PriceListQuickAdjustPanel({
       setAddSku('')
       setAddPrice('')
       setInfo(`Item ${sku} adicionado à lista ${selectedList?.name ?? ''} com origem Manual.`)
-      await reloadItems({ keepAddOpen: true })
+      await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: true }))
       focusAddSku()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao adicionar item')
@@ -326,8 +354,8 @@ export function PriceListQuickAdjustPanel({
       <div>
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">Consulta e ajuste de preços</h2>
         <p className="mt-1 text-sm text-fal-muted">
-          Escolha a lista, deixe a busca vazia para percorrer os itens ou pesquise um código. O preço
-          exibido é só desta lista. {PRICE_LIST_LAYERS_HINT}
+          Escolha a lista, filtre e edite custo adicional, margem/markup ou preço direto na linha.{' '}
+          {PRICE_LIST_LAYERS_HINT}
         </p>
       </div>
 
@@ -359,7 +387,7 @@ export function PriceListQuickAdjustPanel({
             value={filterQ}
             onChange={(e) => setFilterQ(e.target.value)}
             placeholder="Código, descrição ou código do fabricante…"
-            hint="Vazio = todos os itens da lista (até o limite carregado)."
+            hint="Vazio = todos os itens da lista (até o limite carregado). Filtros são lembrados nesta sessão."
           />
         </div>
         <Button type="submit" className="mt-[22px] shrink-0">
@@ -421,6 +449,7 @@ export function PriceListQuickAdjustPanel({
               <tr>
                 <th className="px-3 py-2">Produto</th>
                 <th className="px-3 py-2">Código</th>
+                <th className="hidden px-3 py-2 md:table-cell">Custo + adic.</th>
                 <th className="px-3 py-2">Preço</th>
                 <th className="hidden px-3 py-2 sm:table-cell">Origem</th>
                 <th className="px-3 py-2">Ação</th>
@@ -429,7 +458,7 @@ export function PriceListQuickAdjustPanel({
             <tbody>
               {visibleItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-fal-muted">
+                  <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
                     {items.length === 0 ? (
                       <div className="space-y-2">
                         <p>Nenhum item nesta lista.</p>
@@ -476,63 +505,38 @@ export function PriceListQuickAdjustPanel({
                 </tr>
               ) : (
                 visibleItems.map((item) => {
-                  const isEditing = editingId === item.id
                   const busyRow = rowBusy === item.id
+                  const costLabel =
+                    item.costTotal != null
+                      ? `${formatMoney(item.costTotal)}${
+                          item.extraCost > 0 ? ` (+${formatMoney(item.extraCost)})` : ''
+                        }`
+                      : '—'
                   return (
                     <tr
                       key={item.id}
                       className={`border-t border-fal-line ${
-                        isEditing || singleMatch?.id === item.id ? 'bg-fal-yellow/20' : ''
+                        pricingItem?.id === item.id || singleMatch?.id === item.id
+                          ? 'bg-fal-yellow/20'
+                          : ''
                       }`}
                     >
                       <td className="px-3 py-2">{item.productName ?? '—'}</td>
                       <td className="px-3 py-2 font-mono text-xs">{item.sku ?? '—'}</td>
-                      <td className="px-3 py-2">
-                        {isEditing ? (
-                          <input
-                            className="w-28 rounded-[8px] border border-fal-line px-2 py-1"
-                            value={editPrice}
-                            onChange={(e) => setEditPrice(e.target.value)}
-                            disabled={busyRow}
-                            aria-label="Novo preço"
-                          />
-                        ) : (
-                          formatMoney(item.price)
-                        )}
-                      </td>
+                      <td className="hidden px-3 py-2 text-xs md:table-cell">{costLabel}</td>
+                      <td className="px-3 py-2 font-semibold">{formatMoney(item.price)}</td>
                       <td className="hidden px-3 py-2 text-xs sm:table-cell">
                         {priceOriginLabel(item.priceOrigin)}
                       </td>
                       <td className="px-3 py-2">
-                        {isEditing ? (
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className="font-semibold text-fal-navy underline"
-                              disabled={busyRow || !allowed}
-                              onClick={() => void saveEdit(item)}
-                            >
-                              Salvar
-                            </button>
-                            <button
-                              type="button"
-                              className="font-semibold text-fal-muted underline"
-                              disabled={busyRow}
-                              onClick={() => setEditingId(null)}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="font-semibold text-fal-navy underline"
-                            disabled={!allowed}
-                            onClick={() => startEdit(item)}
-                          >
-                            Editar precificação
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="font-semibold text-fal-navy underline disabled:opacity-50"
+                          disabled={!allowed || busyRow}
+                          onClick={() => setPricingItem(item)}
+                        >
+                          Editar
+                        </button>
                       </td>
                     </tr>
                   )
@@ -608,6 +612,15 @@ export function PriceListQuickAdjustPanel({
           </div>
         </form>
       )}
+
+      <PriceItemPricingModal
+        open={pricingItem != null}
+        item={pricingItem}
+        list={selectedList}
+        busy={rowBusy != null}
+        onClose={() => setPricingItem(null)}
+        onSave={onSavePricingEdit}
+      />
     </div>
   )
 }

@@ -231,7 +231,11 @@ export interface PlaceOrderInput {
   idempotencyKey: string
   addressId: string
   shippingOptionId: string
-  paymentMethod: SimulatedPaymentMethod
+  /** F9-F: pix|credit_card|debit_card (MP) ou *_simulated (demo). */
+  paymentMethod: Extract<
+    FalPaymentMethod,
+    'pix' | 'credit_card' | 'debit_card' | 'pix_simulated' | 'card_simulated'
+  >
   documentKind: 'cpf' | 'cnpj'
   documentValue: string
   items?: PlaceOrderItemInput[]

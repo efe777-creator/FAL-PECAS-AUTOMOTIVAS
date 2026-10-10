@@ -322,6 +322,7 @@ export function splitHfMappedRows(
       montadora: r.values.montadora ?? '',
       modelo: r.values.modelo ?? '',
       versao: r.values.versao ?? '',
+      motorizacao: r.values.motorizacao ?? '',
       ano_inicio: r.values.ano_inicio ?? '',
       ano_fim: r.values.ano_fim ?? '',
     },

@@ -11,7 +11,7 @@ import {
 } from '@/services/admin/adminImageService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
-  adminAddApplication,
+  adminAddApplicationsBulk,
   adminDeleteReference,
   adminEvaluateReleaseChecklist,
   adminGetProduct,
@@ -19,6 +19,7 @@ import {
   adminListReferences,
   adminReleaseProductToStore,
   adminRemoveApplication,
+  adminUpdateApplicationYears,
   adminUpsertProduct,
   adminUpsertReference,
 } from '@/services/admin/adminProductService'
@@ -58,7 +59,7 @@ import type {
   VehicleModel,
   VehicleVersion,
 } from '@/types'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 export function AdminProductFormPage() {
@@ -78,14 +79,14 @@ export function AdminProductFormPage() {
   const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
-  /** Hierarquia admin: Grupo → Categoria → Subcategoria (folha salva em products.category_id). */
-  const [catGrupoId, setCatGrupoId] = useState('')
+  /** Hierarquia = planilha: Categoria → Grupo → Subgrupo (folha em products.category_id). */
   const [catCategoriaId, setCatCategoriaId] = useState('')
-  const [catSubId, setCatSubId] = useState('')
+  const [catGrupoId, setCatGrupoId] = useState('')
+  const [catSubgrupoId, setCatSubgrupoId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [supplierId, setSupplierId] = useState('')
 
-  const categoryId = catSubId || catCategoriaId || catGrupoId || ''
+  const categoryId = catSubgrupoId || catGrupoId || catCategoriaId || ''
   /** Preços nas listas — somente leitura (exceto preço inicial Base no novo produto). */
   const [listRows, setListRows] = useState<ProductListPriceRow[]>([])
   /** Espelho products.price / promo_price (não editáveis na UI após criação). */
@@ -123,7 +124,16 @@ export function AdminProductFormPage() {
   const [versions, setVersions] = useState<VehicleVersion[]>([])
   const [makerId, setMakerId] = useState('')
   const [modelId, setModelId] = useState('')
-  const [versionId, setVersionId] = useState('')
+  /** Vazio = todas as motorizações */
+  const [engineFilter, setEngineFilter] = useState('')
+  /** Vazio = todas as versões (com o filtro de motor) */
+  const [versionNameFilter, setVersionNameFilter] = useState('')
+  const [appYearStart, setAppYearStart] = useState('')
+  const [appYearEnd, setAppYearEnd] = useState('')
+  const [appBusy, setAppBusy] = useState(false)
+  const [editingAppId, setEditingAppId] = useState<string | null>(null)
+  const [editYearStart, setEditYearStart] = useState('')
+  const [editYearEnd, setEditYearEnd] = useState('')
 
   useEffect(() => {
     void (async () => {
@@ -183,9 +193,9 @@ export function AdminProductFormPage() {
             path.unshift(cur)
             cur = byId.get(cur)?.parentId ?? null
           }
-          setCatGrupoId(path[0] ?? '')
-          setCatCategoriaId(path[1] ?? '')
-          setCatSubId(path[2] ?? '')
+          setCatCategoriaId(path[0] ?? '')
+          setCatGrupoId(path[1] ?? '')
+          setCatSubgrupoId(path[2] ?? '')
           // Garante nós do produto (mesmo arquivados) para edição não “perder” a seleção.
           setCategories((prev) => {
             const ids = new Set(prev.map((c) => c.id))
@@ -242,6 +252,7 @@ export function AdminProductFormPage() {
   useEffect(() => {
     if (!makerId) {
       setModels([])
+      setModelId('')
       return
     }
     void adminListModels(makerId).then(setModels)
@@ -250,10 +261,91 @@ export function AdminProductFormPage() {
   useEffect(() => {
     if (!modelId) {
       setVersions([])
+      setEngineFilter('')
+      setVersionNameFilter('')
       return
     }
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
+
+  const engineOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const v of versions) {
+      const e = (v.engine ?? '').trim()
+      if (e) set.add(e)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [versions])
+
+  const versionNameOptions = useMemo(() => {
+    const filtered = engineFilter
+      ? versions.filter((v) => (v.engine ?? '').trim() === engineFilter)
+      : versions
+    const set = new Set<string>()
+    for (const v of filtered) {
+      const name = (v.versionName ?? '').trim()
+      if (name) set.add(name)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [versions, engineFilter])
+
+  const matchingVersions = useMemo(() => {
+    return versions.filter((v) => {
+      if (engineFilter && (v.engine ?? '').trim() !== engineFilter) return false
+      if (versionNameFilter && (v.versionName ?? '').trim() !== versionNameFilter) return false
+      return true
+    })
+  }, [versions, engineFilter, versionNameFilter])
+
+  function parseAppYear(raw: string): number | null {
+    const t = raw.trim()
+    if (!t) return null
+    const n = Number(t)
+    if (!Number.isInteger(n) || n < 1950 || n > 2100) return null
+    return n
+  }
+
+  async function onLinkApplications() {
+    if (!productId || !modelId) return
+    setError(null)
+    setMessage(null)
+    if (matchingVersions.length === 0) {
+      setError('Nenhuma configuração de veículo bate com os filtros. Ajuste motorização/versão.')
+      return
+    }
+    const ys = parseAppYear(appYearStart)
+    const ye = parseAppYear(appYearEnd)
+    if (appYearStart.trim() && ys == null) {
+      setError('Ano início inválido')
+      return
+    }
+    if (appYearEnd.trim() && ye == null) {
+      setError('Ano fim inválido')
+      return
+    }
+    if (ys != null && ye != null && ye < ys) {
+      setError('Ano fim menor que ano início')
+      return
+    }
+    setAppBusy(true)
+    try {
+      const n = await adminAddApplicationsBulk(
+        productId,
+        matchingVersions.map((v) => v.id),
+        { yearStart: ys, yearEnd: ye },
+      )
+      setApps(await adminListApplications(productId))
+      setMessage(
+        n === 1
+          ? '1 aplicação vinculada.'
+          : `${n} aplicações vinculadas (motorização/versão conforme filtros).`,
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao vincular aplicações')
+    } finally {
+      setAppBusy(false)
+    }
+  }
 
   async function onLiberarNaLoja() {
     if (!productId) return
@@ -429,19 +521,19 @@ export function AdminProductFormPage() {
           <fieldset className="text-sm md:col-span-2">
             <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
             <p className="mb-2 text-xs text-fal-muted">
-              Só categorias publicadas. Cadastre novas em Admin → Categorias (ou via importação
-              depois de cadastrar a hierarquia).
+              Mesma hierarquia da planilha: Categoria → Grupo → Subgrupo. Cadastre em Admin →
+              Categorias antes de importar ou vincular aqui.
             </p>
             <div className="grid gap-3 md:grid-cols-3">
               <label className="text-sm">
-                <span className="mb-1 block font-semibold">Grupo</span>
+                <span className="mb-1 block font-semibold">Categoria</span>
                 <select
                   className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catGrupoId}
+                  value={catCategoriaId}
                   onChange={(e) => {
-                    setCatGrupoId(e.target.value)
-                    setCatCategoriaId('')
-                    setCatSubId('')
+                    setCatCategoriaId(e.target.value)
+                    setCatGrupoId('')
+                    setCatSubgrupoId('')
                   }}
                 >
                   <option value="">—</option>
@@ -456,19 +548,19 @@ export function AdminProductFormPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block font-semibold">Categoria</span>
+                <span className="mb-1 block font-semibold">Grupo</span>
                 <select
                   className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catCategoriaId}
-                  disabled={!catGrupoId}
+                  value={catGrupoId}
+                  disabled={!catCategoriaId}
                   onChange={(e) => {
-                    setCatCategoriaId(e.target.value)
-                    setCatSubId('')
+                    setCatGrupoId(e.target.value)
+                    setCatSubgrupoId('')
                   }}
                 >
                   <option value="">—</option>
                   {categories
-                    .filter((c) => c.parentId === catGrupoId)
+                    .filter((c) => c.parentId === catCategoriaId)
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((c) => (
                       <option key={c.id} value={c.id}>
@@ -478,16 +570,16 @@ export function AdminProductFormPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block font-semibold">Subcategoria</span>
+                <span className="mb-1 block font-semibold">Subgrupo</span>
                 <select
                   className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catSubId}
-                  disabled={!catCategoriaId}
-                  onChange={(e) => setCatSubId(e.target.value)}
+                  value={catSubgrupoId}
+                  disabled={!catGrupoId}
+                  onChange={(e) => setCatSubgrupoId(e.target.value)}
                 >
                   <option value="">—</option>
                   {categories
-                    .filter((c) => c.parentId === catCategoriaId)
+                    .filter((c) => c.parentId === catGrupoId)
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((c) => (
                       <option key={c.id} value={c.id}>
@@ -796,43 +888,103 @@ export function AdminProductFormPage() {
           </section>
 
           <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-            <h2 className="font-extrabold text-fal-navy">Aplicações</h2>
-            <div className="grid gap-2 md:grid-cols-4">
-              <select className="rounded-[10px] border border-fal-line px-3 py-2" value={makerId} onChange={(e) => setMakerId(e.target.value)}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="m-0 font-extrabold text-fal-navy">Aplicações</h2>
+              {productId ? (
+                <Link
+                  className="text-sm font-semibold text-fal-navy underline"
+                  to={`/admin/aplicacoes?productId=${productId}`}
+                >
+                  Abrir gestão de aplicações
+                </Link>
+              ) : null}
+            </div>
+            <p className="text-xs text-fal-muted">
+              Cascata: montadora → modelo → motorização → versão → período. Motorização ou versão
+              vazia = todas as configs que casarem ({matchingVersions.length} elegível
+              {matchingVersions.length === 1 ? '' : 'is'}).
+            </p>
+            <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
+              <select
+                className="rounded-[10px] border border-fal-line px-3 py-2"
+                value={makerId}
+                onChange={(e) => {
+                  setMakerId(e.target.value)
+                  setModelId('')
+                }}
+              >
                 <option value="">Montadora</option>
-                {makers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              <select className="rounded-[10px] border border-fal-line px-3 py-2" value={modelId} onChange={(e) => setModelId(e.target.value)}>
-                <option value="">Modelo</option>
-                {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              <select className="rounded-[10px] border border-fal-line px-3 py-2" value={versionId} onChange={(e) => setVersionId(e.target.value)}>
-                <option value="">Configuração</option>
-                {versions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {[v.year ?? 'ano?', v.engine ?? 'motor?', v.versionName ?? 'versão?'].join(' / ')}
+                {makers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
                   </option>
                 ))}
               </select>
-              <Button
-                type="button"
-                disabled={!versionId}
-                onClick={() => {
-                  const v = versions.find((x) => x.id === versionId)
-                  void adminAddApplication(productId, versionId, undefined, {
-                    yearStart: v?.year ?? null,
-                    yearEnd: v?.year ?? null,
-                  })
-                    .then(async () => {
-                      setVersionId('')
-                      setApps(await adminListApplications(productId))
-                    })
-                    .catch((e) => setError(String(e.message ?? e)))
-                }}
+              <select
+                className="rounded-[10px] border border-fal-line px-3 py-2"
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
+                disabled={!makerId}
               >
-                Vincular
-              </Button>
+                <option value="">Modelo</option>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="rounded-[10px] border border-fal-line px-3 py-2"
+                value={engineFilter}
+                onChange={(e) => {
+                  setEngineFilter(e.target.value)
+                  setVersionNameFilter('')
+                }}
+                disabled={!modelId}
+              >
+                <option value="">Motorização (Todas)</option>
+                {engineOptions.map((e) => (
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="rounded-[10px] border border-fal-line px-3 py-2"
+                value={versionNameFilter}
+                onChange={(e) => setVersionNameFilter(e.target.value)}
+                disabled={!modelId}
+              >
+                <option value="">Versão (Todas)</option>
+                {versionNameOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+              <Input
+                label="Ano início"
+                inputMode="numeric"
+                value={appYearStart}
+                onChange={(e) => setAppYearStart(e.target.value)}
+                disabled={!modelId}
+              />
+              <Input
+                label="Ano fim"
+                inputMode="numeric"
+                value={appYearEnd}
+                onChange={(e) => setAppYearEnd(e.target.value)}
+                disabled={!modelId}
+                hint="Vazio = vigente"
+              />
             </div>
+            <Button
+              type="button"
+              disabled={!productId || !modelId || appBusy || matchingVersions.length === 0}
+              onClick={() => void onLinkApplications()}
+            >
+              Vincular {matchingVersions.length > 1 ? `(${matchingVersions.length})` : ''}
+            </Button>
             <ul className="space-y-1 text-sm">
               {apps.map((a) => {
                 const row = a as {
@@ -848,19 +1000,105 @@ export function AdminProductFormPage() {
                   }
                 }
                 const vv = row.vehicle_versions
-                const maker = Array.isArray(vv?.manufacturers) ? vv?.manufacturers[0]?.name : vv?.manufacturers?.name
+                const maker = Array.isArray(vv?.manufacturers)
+                  ? vv?.manufacturers[0]?.name
+                  : vv?.manufacturers?.name
                 const model = Array.isArray(vv?.models) ? vv?.models[0]?.name : vv?.models?.name
                 const yearLabel = formatVehicleAppYear({
                   yearStart: row.year_start,
                   yearEnd: row.year_end,
                   versionYear: vv?.year,
                 })
+                const isEditing = editingAppId === row.id
                 return (
-                  <li key={row.id} className="flex justify-between border-b border-fal-line py-1">
-                    <span>{[maker, model, yearLabel, vv?.engine, vv?.version_name].filter(Boolean).join(' ')}</span>
-                    <button type="button" className="font-semibold text-fal-danger" onClick={() => void adminRemoveApplication(row.id).then(async () => setApps(await adminListApplications(productId)))}>
-                      Remover
-                    </button>
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-fal-line py-1"
+                  >
+                    <span>
+                      {[maker, model, vv?.engine || '—', vv?.version_name || '—', yearLabel]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <input
+                            className="w-20 rounded border border-fal-line px-2 py-1 text-xs"
+                            inputMode="numeric"
+                            placeholder="Início"
+                            value={editYearStart}
+                            onChange={(e) => setEditYearStart(e.target.value)}
+                          />
+                          <input
+                            className="w-20 rounded border border-fal-line px-2 py-1 text-xs"
+                            inputMode="numeric"
+                            placeholder="Fim"
+                            value={editYearEnd}
+                            onChange={(e) => setEditYearEnd(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="font-semibold text-fal-navy underline"
+                            onClick={() => {
+                              const ys = parseAppYear(editYearStart)
+                              const ye = parseAppYear(editYearEnd)
+                              if (editYearStart.trim() && ys == null) {
+                                setError('Ano início inválido')
+                                return
+                              }
+                              if (editYearEnd.trim() && ye == null) {
+                                setError('Ano fim inválido')
+                                return
+                              }
+                              void adminUpdateApplicationYears(row.id, {
+                                yearStart: ys,
+                                yearEnd: ye,
+                              })
+                                .then(async () => {
+                                  setEditingAppId(null)
+                                  if (productId) setApps(await adminListApplications(productId))
+                                })
+                                .catch((err) => setError(String(err.message ?? err)))
+                            }}
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            type="button"
+                            className="font-semibold text-fal-muted underline"
+                            onClick={() => setEditingAppId(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="font-semibold text-fal-navy underline"
+                          onClick={() => {
+                            setEditingAppId(row.id)
+                            setEditYearStart(
+                              row.year_start != null ? String(row.year_start) : '',
+                            )
+                            setEditYearEnd(row.year_end != null ? String(row.year_end) : '')
+                          }}
+                        >
+                          Período
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="font-semibold text-fal-danger"
+                        onClick={() =>
+                          void adminRemoveApplication(row.id).then(async () => {
+                            if (productId) setApps(await adminListApplications(productId))
+                          })
+                        }
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </li>
                 )
               })}

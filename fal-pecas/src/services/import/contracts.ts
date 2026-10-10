@@ -136,7 +136,12 @@ const catalogApplicationsContract: ImportContract = {
     },
     {
       key: 'versao',
-      aliases: ['versao', 'versão', 'version', 'motor', 'engine'],
+      aliases: ['versao', 'versão', 'version', 'trim'],
+      required: false,
+    },
+    {
+      key: 'motorizacao',
+      aliases: ['motorizacao', 'motorização', 'motor', 'engine', 'cilindrada'],
       required: false,
     },
     {
@@ -170,7 +175,12 @@ const catalogHfBundleContract: ImportContract = {
     },
     {
       key: 'versao',
-      aliases: ['versao', 'versão', 'version', 'motor', 'engine'],
+      aliases: ['versao', 'versão', 'version', 'trim'],
+      required: false,
+    },
+    {
+      key: 'motorizacao',
+      aliases: ['motorizacao', 'motorização', 'motor', 'engine', 'cilindrada'],
       required: false,
     },
     {

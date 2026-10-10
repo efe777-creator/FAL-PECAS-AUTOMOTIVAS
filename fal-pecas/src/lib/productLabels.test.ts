@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ADICIONAR_AO_CARRINHO_LABEL,
   AJUDA_APLICACAO_TEXT,
   DESCRICAO_SECTION_LABEL,
   ESPECIFICACOES_SECTION_LABEL,
@@ -25,8 +26,9 @@ describe('productLabels (IMP-11 card)', () => {
     expect(REFERENCIA_LABEL).toBe('Referência')
   })
 
-  it('D3: CTA Ver produto', () => {
+  it('D3: CTA Ver produto + Adicionar ao carrinho', () => {
     expect(VER_PRODUTO_LABEL).toBe('Ver produto')
+    expect(ADICIONAR_AO_CARRINHO_LABEL).toBe('Adicionar ao carrinho')
   })
 
   it('MARCHA UI: Mais / Menos aplicações', () => {

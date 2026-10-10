@@ -23,6 +23,9 @@ export const MENOS_APLICACOES_LABEL = 'Menos aplicações'
 
 export const VER_PRODUTO_LABEL = 'Ver produto'
 
+/** CTA primário no card — mesmo verbo da PDP. */
+export const ADICIONAR_AO_CARRINHO_LABEL = 'Adicionar ao carrinho'
+
 /** Seção PDP — atributos existentes (MARCHA PDP-A). */
 export const ESPECIFICACOES_SECTION_LABEL = 'Especificações'
 

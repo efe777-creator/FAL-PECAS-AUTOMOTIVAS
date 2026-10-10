@@ -41,6 +41,8 @@ export function normalizeImportText(input: string | null | undefined): string {
   // BOM
   if (s.charCodeAt(0) === 0xfeff) s = s.slice(1)
   s = fixMojibake(s)
+  // U+FFFD = encoding quebrado (ex.: DOBLÒ lido errado → DOBL�)
+  s = s.replace(/\uFFFD/g, '')
   // controles (exceto tab/newline já tratados no parse)
   s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
   // NBSP → espaço
