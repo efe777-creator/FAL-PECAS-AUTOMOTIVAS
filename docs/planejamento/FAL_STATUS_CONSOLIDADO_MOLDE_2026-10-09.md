@@ -47,7 +47,8 @@ auditar → evidências → propor → gate eFe → MARCHA nomeada → implement
 Onda 0–1 **ENCERRADA**. FIND-004 M1–M5 **ENCERRADO**. MARCHA UI apps/anos **VALIDADA**. PDP A–D **VALIDADA** (escopo).  
 F9-F (meios MP no place_order + checkout) **IMPLEMENTADO** 10/10 — smoke MP ainda **BLOQUEADO** humano.  
 D-FRETE **PENDENTE** assinatura. B3 **HOLD**. Card UX **VALIDADO** smoke produção 10/10.  
-Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FAL_ALPHA_GATE](./FAL_ALPHA_GATE_2026-10-10.md).
+Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FAL_ALPHA_GATE](./FAL_ALPHA_GATE_2026-10-10.md).  
+MARCHA Classificação admin (Cat→Grupo→Sub) **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md)).
 
 ---
 
@@ -60,6 +61,8 @@ Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FA
 | MARCHA UI apps/anos | VALIDADO | [VAL UI](./FAL_MARCHA_UI_APPS_ANOS_VAL_2026-10-09.md) | — | Feita |
 | PDP A–D | VALIDADO | VALs PDP | Evolução visual = MARCHA nova | Feita |
 | Card UX + carrinho | VALIDADO (smoke prod) | [VAL card](./FAL_CARD_UX_CARRINHO_VAL_2026-10-10.md) | — | Feita |
+| Classificação admin L3 | VALIDADO (unit+DB) | [VAL classif.](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md) | Smoke staff residual | Feita |
+| Admin aplicações PVC | IMPLEMENTADO | [VAL apps](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md) | Smoke pós-import | Plano 10/10 |
 | F9-F checkout/RPC | IMPLEMENTADO | [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md) | Smoke MP | Plano 10/10 |
 | MP smoke | BLOQUEADO | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | H1–H6 humano | Humano |
 | D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe | Decisão |
