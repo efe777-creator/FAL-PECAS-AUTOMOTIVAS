@@ -164,8 +164,10 @@ export function AdminPriceListsPage() {
       await reloadOverviewQuiet()
       if (pendingExtra) {
         setFormNotice(
-          'Lista salva. Adicional de custo (%) aguarda migration prepared (não aplicada). list_extra_cost (R$) permanece inalterado.',
+          'Lista salva. Adicional de custo (%) não pôde ser gravado (coluna ausente neste ambiente). list_extra_cost (R$) permanece inalterado.',
         )
+      } else if (Number.isFinite(pctExtra) && pctExtra >= 0) {
+        setFormNotice(`Lista salva. Adicional de custo: ${pctExtra}%.`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar lista')
@@ -521,7 +523,7 @@ export function AdminPriceListsPage() {
                   min="0"
                   value={listExtraCostPercent}
                   onChange={(e) => setListExtraCostPercent(e.target.value)}
-                  hint="CUSTO → este % → base de formação → markup/margem. Paralelo a list_extra_cost (R$). Gravação efetiva após migration prepared."
+                  hint="CUSTO → este % → base de formação → markup/margem. Paralelo a list_extra_cost (R$). Persistido em list_extra_cost_percent."
                 />
                 {editing ? (
                   <p className="text-sm text-fal-muted md:col-span-2">

@@ -652,7 +652,7 @@ export function AdminPriceListDetailPage() {
       const extra = await adminSaveListExtraCostPercent(id, extraPct)
       if (extra.pendingMigration) {
         extraMsg =
-          ' Adicional de custo (%) aguarda migration prepared (list_extra_cost R$ inalterado).'
+          ' Adicional de custo (%) não gravado neste ambiente (coluna ausente). list_extra_cost (R$) inalterado.'
       } else if (extra.saved) {
         extraMsg = ` Adicional de custo: ${extraPct}%.`
       }
@@ -1248,7 +1248,7 @@ export function AdminPriceListDetailPage() {
                 value={ruleExtraCostPercent}
                 disabled={busy || !allowed}
                 onChange={(e) => setRuleExtraCostPercent(e.target.value)}
-                hint="Campo paralelo a list_extra_cost (R$). Persistência no banco após migration prepared."
+                hint="Campo paralelo a list_extra_cost (R$). Persistido em list_extra_cost_percent."
               />
               <Input
                 label="list_extra_cost R$ (informativo)"
