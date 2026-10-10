@@ -23,7 +23,7 @@ Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção 
 
 **Experiência alvo (planejada):** seção **Entrega e frete** na PDP (CEP → opções reais). Isso **não** cabe em A/B como cotação real — A/B exigem mensagem honesta de indisponibilidade/homologação. Direção desejada para PDP com preço/prazo sustentados: **C** (pendente assinatura).
 
-**Estrutura técnica 10/10:** registry + envelope + edge `quote-shipping` + MCP Correios — ver [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md). Live HTTP ainda **não** autorizada por esta ficha.
+**Estrutura técnica 10/10:** registry + envelope + UI PDP/carrinho/checkout sandbox + edge `quote-shipping` + MCP Correios — [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md). Live HTTP ainda **não** autorizada por esta ficha.
 
 ---
 

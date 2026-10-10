@@ -52,7 +52,7 @@ MARCHA Classificação admin (Cat→Grupo→Sub) **VALIDADA** 10/10 ([VAL](./FAL
 MARCHA Admin Aplicações PVC **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md)) — 730 apps no wtbp.  
 MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md)) — `%` live no wtbp.  
 MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)) — para em login/MP.  
-MARCHA Frete estrutura/carriers + MCP Correios **IMPLEMENTADA** 10/10 ([VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md)) — live HTTP/UI PDP pendentes.
+MARCHA Frete estrutura/UI sandbox + MCP Correios **VALIDADA** 10/10 ([plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md)) — live HTTP/RPC pendentes.
 
 ---
 
@@ -72,7 +72,8 @@ MARCHA Frete estrutura/carriers + MCP Correios **IMPLEMENTADA** 10/10 ([VAL](./F
 | MP smoke | BLOQUEADO | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | H1–H6 humano | Humano |
 | D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe (C se PDP cotação real) | Decisão |
 | Auditoria frete | VALIDADO | [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) | — | Feita |
-| Frete registry/edge/MCP | IMPLEMENTADO | [VAL estrutura](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) | HTTP Correios + UI PDP | Parcial |
+| Frete plano+auditoria | VALIDADO | [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [A–J](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) | — | Feita |
+| Frete registry/UI sandbox | VALIDADO (unit) | [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) | HTTP Correios + place_order | Parcial |
 | Produção Netlify | OK (catálogo/wtbp) | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | H5 vars MP no smoke | Parcial |
 | E2E pré-pagamento | VALIDADO | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) | Login + MP smoke | Feita |
 | E2E pedido pago | NÃO EXECUTADO | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | Pós MP+frete | Humano |

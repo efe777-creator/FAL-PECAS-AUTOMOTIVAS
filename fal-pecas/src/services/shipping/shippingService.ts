@@ -7,7 +7,7 @@ import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from
 /**
  * Adapter ativo via carrierRegistry.
  * Cotação com cache: preferir `quoteFreight` (FreightService).
- * Envelope (PDP/carrinho futuro): `quoteShippingEnvelope`.
+ * Envelope (PDP/carrinho/checkout): `quoteShippingEnvelope`.
  * Live Correios: Edge `quote-shipping` (não expor secrets no Vite).
  */
 function resolveDefaultProvider(): ShippingProvider {
