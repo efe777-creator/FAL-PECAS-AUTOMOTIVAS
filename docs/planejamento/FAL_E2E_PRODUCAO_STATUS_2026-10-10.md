@@ -39,4 +39,4 @@ Pré-requisitos para marcar E2E PASS completo: smoke MP + D-FRETE (A/B/C) + pedi
 
 **Entrega agente:** E2E-pré VALIDADO até login.  
 **Aceite E2E comercial:** evidências humanas Pix/cartão + pedido (S4).  
-**Ops:** PR #39 merged em `main` (21c37c4) 2026-10-10 ~18:40 — Netlify production deve publicar checkout/Pix + fix build frete.
+**Ops:** Netlify production **OK** 2026-10-11 — bundle `index-DYpbbWUS.js` (antes stale `oy7VRadL`); `main` em `e404560` (PR #39–#41).

@@ -14,7 +14,7 @@
 |------|--------|
 | Checklist H1–H6 | **BLOQUEADO — gate humano** |
 | **H5 local (Vite)** | **PASS 18:07** — `resolvePaymentProviderKey()=mercadopago` após vars em `fal-pecas/.env.local` + restart |
-| **H5 Netlify (prod)** | **Deploy disparado** via merge PR #39 → `main` (21c37c4); confirmar novo `index-*.js` após build |
+| **H5 Netlify (prod)** | **PASS deploy** 2026-10-11 — bundle `index-DYpbbWUS.js` (≠ stale); smoke UI MP em prod ainda a confirmar |
 | Pix sandbox | **FAIL** `not_found` 18:22 → fix CPF no payer + idempotency retry; Edge **v6** 18:32; **reteste Pix agora** |
 | Cartão sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
 | Webhook approve | **NÃO EXECUTADO** |
