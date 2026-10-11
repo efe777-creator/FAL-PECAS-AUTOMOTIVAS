@@ -42,3 +42,6 @@ fal-pecas/supabase/migrations/_query.json
 
 # OS
 desktop.ini
+
+# Local Netlify folder
+.netlify
