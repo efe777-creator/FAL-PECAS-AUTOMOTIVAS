@@ -244,19 +244,20 @@ export function AdminOrderDetailPage() {
     )
   }
 
-  const addr = order.addressSnapshot
+  const current = order
+  const addr = current.addressSnapshot
   const needsReception =
-    order.status === 'pagamento_aprovado' || order.status === 'recebido'
+    current.status === 'pagamento_aprovado' || current.status === 'recebido'
   const inAnalysis = ['em_analise', 'aguardando_disponibilidade', 'aguardando_decisao'].includes(
-    order.status,
+    current.status,
   )
-  const inSeparation = order.status === 'confirmado' || order.status === 'em_separacao'
-  const separatedCount = order.items.filter((it) => it.separated).length
-  const allSeparated = order.items.length > 0 && separatedCount === order.items.length
-  const nextStep = adminOrderNextStep(order.status)
+  const inSeparation = current.status === 'confirmado' || current.status === 'em_separacao'
+  const separatedCount = current.items.filter((it) => it.separated).length
+  const allSeparated = current.items.length > 0 && separatedCount === current.items.length
+  const nextStep = adminOrderNextStep(current.status)
 
   async function markAllSeparated() {
-    const pendingItems = order.items.filter((it) => !it.separated)
+    const pendingItems = current.items.filter((it) => !it.separated)
     if (pendingItems.length === 0) return
     setBusy(true)
     setError(null)
@@ -277,14 +278,14 @@ export function AdminOrderDetailPage() {
     setBusy(true)
     setError(null)
     try {
-      let st = order.status
+      let st = current.status
       if (st === 'pagamento_aprovado') {
-        await adminAdvanceOrder(order.id, 'recebido', 'Recepção operacional', 'order_received')
+        await adminAdvanceOrder(current.id, 'recebido', 'Recepção operacional', 'order_received')
         st = 'recebido'
       }
       if (st === 'recebido') {
         await adminAdvanceOrder(
-          order.id,
+          current.id,
           'em_analise',
           'Início da análise de disponibilidade',
           'confirmation_started',
