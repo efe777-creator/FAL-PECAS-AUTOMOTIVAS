@@ -49,12 +49,22 @@ Sem migration nova (só UPDATE em colunas existentes).
 
 ---
 
+## Deploy
+
+| Gate | Resultado |
+|------|-----------|
+| PR #46 → `main` | **PASS** · `290f752` |
+| Netlify | **PASS** · published `2026-11-04T15:46:22Z` · bundle `index-DBB7LuFQ.js` |
+| Smoke prod `/admin/produtos` | **PASS** · Alterações globais + cascata + Situação |
+
+---
+
 ## Follow-ups
 
 - `MARCHA_PEDIDO_EXPIRY_RESERVA`  
 - `MARCHA_LOGISTICA_FILTROS_HISTORICO_MEDIDAS`  
 - `MARCHA_PEDIDOS_OPS_CONFIRMACAO_SEPARACAO`  
 
-**Resultado:** **PASS** (código + smoke local). Deploy = gate PR/Netlify.
+**Resultado:** **PASS** (código + smoke local + deploy prod).
 
 **Assinatura agente:** VAL alterações globais produtos 2026-11-04.
