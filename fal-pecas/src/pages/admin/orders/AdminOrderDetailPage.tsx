@@ -3,8 +3,13 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
-import { orderEventLabel, orderStatusAdminLabel } from '@/lib/orderLifecycle'
 import {
+  adminOrderNextStep,
+  orderEventLabel,
+  orderStatusAdminLabel,
+} from '@/lib/orderLifecycle'
+import {
+  adminAdvanceOrder,
   adminCancelOrder,
   adminCompleteSeparation,
   adminDeliverOrder,
@@ -240,9 +245,59 @@ export function AdminOrderDetailPage() {
   }
 
   const addr = order.addressSnapshot
-  const inAnalysis = ['recebido', 'em_analise', 'aguardando_disponibilidade', 'aguardando_decisao'].includes(
+  const needsReception =
+    order.status === 'pagamento_aprovado' || order.status === 'recebido'
+  const inAnalysis = ['em_analise', 'aguardando_disponibilidade', 'aguardando_decisao'].includes(
     order.status,
   )
+  const inSeparation = order.status === 'confirmado' || order.status === 'em_separacao'
+  const separatedCount = order.items.filter((it) => it.separated).length
+  const allSeparated = order.items.length > 0 && separatedCount === order.items.length
+  const nextStep = adminOrderNextStep(order.status)
+
+  async function markAllSeparated() {
+    const pendingItems = order.items.filter((it) => !it.separated)
+    if (pendingItems.length === 0) return
+    setBusy(true)
+    setError(null)
+    try {
+      for (const it of pendingItems) {
+        await adminSetItemSeparated(it.id, true)
+      }
+      setMsg(`${pendingItems.length} item(ns) marcado(s) como separado(s).`)
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao marcar separação')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function startConfirmation() {
+    setBusy(true)
+    setError(null)
+    try {
+      let st = order.status
+      if (st === 'pagamento_aprovado') {
+        await adminAdvanceOrder(order.id, 'recebido', 'Recepção operacional', 'order_received')
+        st = 'recebido'
+      }
+      if (st === 'recebido') {
+        await adminAdvanceOrder(
+          order.id,
+          'em_analise',
+          'Início da análise de disponibilidade',
+          'confirmation_started',
+        )
+      }
+      setMsg('Análise iniciada')
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao iniciar análise')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -260,6 +315,18 @@ export function AdminOrderDetailPage() {
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
+
+      {nextStep ? (
+        <section className="rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
+          <h2 className="m-0 text-base font-extrabold text-fal-navy">Próximo passo: {nextStep.title}</h2>
+          <p className="mt-1 mb-0 text-sm text-fal-muted">{nextStep.body}</p>
+          {inSeparation ? (
+            <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
+              Separação: {separatedCount}/{order.items.length} item(ns)
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {pending ? (
         <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
@@ -422,7 +489,7 @@ export function AdminOrderDetailPage() {
                     {it.staffNote ? ` · ${it.staffNote}` : ''}
                   </p>
                 )}
-                {order.status === 'confirmado' || order.status === 'em_separacao' ? (
+                {inSeparation ? (
                   <label className="mt-2 flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -440,19 +507,39 @@ export function AdminOrderDetailPage() {
       </section>
 
       <div className="flex flex-wrap gap-2">
+        {needsReception ? (
+          <Button
+            type="button"
+            disabled={busy || pending != null}
+            onClick={() => void startConfirmation()}
+          >
+            Iniciar análise
+          </Button>
+        ) : null}
         {inAnalysis ? (
           <Button type="button" disabled={busy || pending != null} onClick={() => setPending({ kind: 'finalize' })}>
             Finalizar confirmação
           </Button>
         ) : null}
-        {order.status === 'confirmado' || order.status === 'em_separacao' ? (
-          <Button
-            type="button"
-            disabled={busy || pending != null}
-            onClick={() => setPending({ kind: 'separate' })}
-          >
-            Concluir separação
-          </Button>
+        {inSeparation ? (
+          <>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy || pending != null || allSeparated}
+              onClick={() => void markAllSeparated()}
+            >
+              Marcar todos separados
+            </Button>
+            <Button
+              type="button"
+              disabled={busy || pending != null || !allSeparated}
+              onClick={() => setPending({ kind: 'separate' })}
+              title={!allSeparated ? 'Separe todos os itens antes de concluir' : undefined}
+            >
+              Concluir separação
+            </Button>
+          </>
         ) : null}
         {canCancel &&
         (order.status === 'aguardando_decisao' || order.status === 'aguardando_pagamento') ? (
