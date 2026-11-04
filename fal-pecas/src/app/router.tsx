@@ -171,6 +171,21 @@ const AdminShippingOriginPage = lazy(() =>
     default: m.AdminShippingOriginPage,
   })),
 )
+const AdminLogisticsHubPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminLogisticsHubPage').then((m) => ({
+    default: m.AdminLogisticsHubPage,
+  })),
+)
+const AdminLogisticsPlaceholderPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminLogisticsPlaceholderPage').then((m) => ({
+    default: m.AdminLogisticsPlaceholderPage,
+  })),
+)
+const AdminOwnDeliveryPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminOwnDeliveryPage').then((m) => ({
+    default: m.AdminOwnDeliveryPage,
+  })),
+)
 const AdminOperatorsPage = lazy(() =>
   import('@/pages/admin/operators/AdminOperatorsPage').then((m) => ({
     default: m.AdminOperatorsPage,
@@ -232,7 +247,11 @@ export const router = createBrowserRouter([
       { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
       { path: 'clientes', element: <AdminCustomersPage /> },
       { path: 'estoque', element: <AdminInventoryPage /> },
-      { path: 'frete', element: <AdminShippingOriginPage /> },
+      { path: 'logistica', element: <AdminLogisticsHubPage /> },
+      { path: 'logistica/origem', element: <AdminShippingOriginPage /> },
+      { path: 'logistica/frete-proprio', element: <AdminOwnDeliveryPage /> },
+      { path: 'logistica/:slug', element: <AdminLogisticsPlaceholderPage /> },
+      { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
       { path: 'operadores', element: <AdminOperatorsPage /> },
     ],

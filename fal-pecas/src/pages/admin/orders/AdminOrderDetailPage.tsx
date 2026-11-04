@@ -325,7 +325,16 @@ export function AdminOrderDetailPage() {
           <p className="mt-2 mb-0 text-sm">
             Frete: {formatMoney(order.shippingAmount)} · Pagamento:{' '}
             {order.payment?.status ?? order.paymentRef ?? '—'} ({order.payment?.provider ?? '—'})
+            {order.payment?.method ? ` · ${order.payment.method}` : ''}
           </p>
+          {order.payment?.expiresAt ? (
+            <p className="mt-1 mb-0 text-xs text-fal-muted">
+              Expira: {new Date(order.payment.expiresAt).toLocaleString('pt-BR')}
+              {order.payment.externalRef ? ` · Ref MP: ${order.payment.externalRef}` : ''}
+            </p>
+          ) : order.payment?.externalRef ? (
+            <p className="mt-1 mb-0 text-xs text-fal-muted">Ref MP: {order.payment.externalRef}</p>
+          ) : null}
           <p className="mt-1 mb-0 text-sm font-semibold">
             Subtotal {formatMoney(order.subtotal)} · Total {formatMoney(order.total)}
           </p>
@@ -445,19 +454,28 @@ export function AdminOrderDetailPage() {
             Concluir separação
           </Button>
         ) : null}
-        {canCancel && order.status === 'aguardando_decisao' ? (
+        {canCancel &&
+        (order.status === 'aguardando_decisao' || order.status === 'aguardando_pagamento') ? (
           <Button
             type="button"
             variant="light"
             disabled={busy || pending != null}
             onClick={() => setPending({ kind: 'cancel' })}
           >
-            Cancelar pedido
+            {order.status === 'aguardando_pagamento'
+              ? 'Cancelar pedido não pago'
+              : 'Cancelar pedido'}
           </Button>
         ) : null}
-        {!canCancel && order.status === 'aguardando_decisao' ? (
+        {!canCancel &&
+        (order.status === 'aguardando_decisao' || order.status === 'aguardando_pagamento') ? (
           <span className="self-center text-xs text-fal-muted">
             Cancelamento apenas para gerente/administrador.
+          </span>
+        ) : null}
+        {order.status === 'aguardando_pagamento' ? (
+          <span className="self-center text-xs text-fal-muted">
+            Cliente ainda pode retomar Pix/cartão em Meus pedidos até cancelar ou aprovar.
           </span>
         ) : null}
       </div>

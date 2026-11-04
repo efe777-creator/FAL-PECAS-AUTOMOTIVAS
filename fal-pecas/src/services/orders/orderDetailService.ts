@@ -14,7 +14,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity ),
       order_status_history ( id, status, note, created_at ),
       order_events ( id, event_type, payload, visibility, created_at ),
-      payments ( id, provider, status, amount, external_ref ),
+      payments ( id, provider, status, amount, external_ref, method, expires_at, pix_qr_code, pix_qr_code_base64 ),
       shipments ( id, provider, status, amount, tracking_code, metadata )
     `,
     )
@@ -42,6 +42,10 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
         status: string
         amount?: number
         external_ref?: string
+        method?: string
+        expires_at?: string
+        pix_qr_code?: string
+        pix_qr_code_base64?: string
       }
     | undefined
   const shipment = shipments[0] as
@@ -99,6 +103,10 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
           status: String(payment.status),
           amount: payment.amount != null ? Number(payment.amount) : null,
           externalRef: payment.external_ref ?? null,
+          method: payment.method ?? null,
+          expiresAt: payment.expires_at ?? null,
+          pixQrCode: payment.pix_qr_code ?? null,
+          pixQrCodeBase64: payment.pix_qr_code_base64 ?? null,
         }
       : null,
     shipment: shipment

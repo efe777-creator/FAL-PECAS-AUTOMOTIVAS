@@ -52,6 +52,14 @@ export interface CepProvider {
 
 export interface StoreShippingOrigin {
   id: string
+  /** Nome interno operacional (admin). */
+  internalName?: string | null
+  /** Nome do remetente (ME / frete próprio). */
+  senderName?: string | null
+  /** CPF/CNPJ do remetente. */
+  document?: string | null
+  phone?: string | null
+  isActive?: boolean
   postalCode: string
   street: string
   number: string
@@ -128,6 +136,10 @@ export interface OrderDetail {
     status: string
     amount?: number | null
     externalRef?: string | null
+    method?: string | null
+    expiresAt?: string | null
+    pixQrCode?: string | null
+    pixQrCodeBase64?: string | null
   } | null
   shipment?: {
     id: string
@@ -291,6 +303,9 @@ export interface CompatibilityAppGroup {
   lines: CompatibilityAppLine[]
 }
 
+/** Origem de medida logística (analogia price_origin Manual × formação). */
+export type MeasureOrigin = 'manual' | 'global'
+
 export interface Product {
   id: string
   /** SKU FAL técnico (import / matching). */
@@ -344,6 +359,11 @@ export interface Product {
   heightCm?: number | null
   widthCm?: number | null
   lengthCm?: number | null
+  /** Origem da medida por campo: manual (protegido) | global (bulk). */
+  weightOrigin?: MeasureOrigin
+  heightOrigin?: MeasureOrigin
+  widthOrigin?: MeasureOrigin
+  lengthOrigin?: MeasureOrigin
 }
 
 export type EntityStatus = 'active' | 'inactive'
@@ -466,9 +486,8 @@ export type CartStorageKind = 'local' | 'supabase'
 
 /**
  * Contrato de persistência do carrinho.
- * Visitante → localStorage (temporário)
- * Autenticado → sync Supabase (futuro)
- * Pedido → persistência definitiva no banco (futuro)
+ * Visitante → localStorage
+ * Autenticado → Supabase (`carts` / `cart_items`) + merge no login
  */
 export interface CartStorage {
   kind: CartStorageKind

@@ -10,6 +10,8 @@ export type AdminOrderListRow = {
   createdAt: string
   customerName: string | null
   itemCount: number
+  paymentStatus: string | null
+  paymentExpiresAt: string | null
 }
 
 export type AdminOrderItem = {
@@ -51,6 +53,9 @@ export type AdminOrderDetail = {
     provider: string | null
     status: string
     amount: number | null
+    externalRef?: string | null
+    expiresAt?: string | null
+    method?: string | null
   } | null
   shipment: {
     id: string
@@ -74,7 +79,8 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
       `
       id, status, total, created_at, customer_id,
       customers ( cpf, cnpj, profiles ( full_name ) ),
-      order_items ( id )
+      order_items ( id ),
+      payments ( status, expires_at )
     `,
     )
     .order('created_at', { ascending: false })
@@ -92,6 +98,8 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
     const profiles = c?.profiles as { full_name?: string } | { full_name?: string }[] | null | undefined
     const prof = Array.isArray(profiles) ? profiles[0] : profiles
     const items = r.order_items as unknown[] | null
+    const pays = r.payments as { status?: string; expires_at?: string }[] | null
+    const pay = Array.isArray(pays) ? pays[0] : null
     return {
       id: String(r.id),
       status: String(r.status),
@@ -99,6 +107,8 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
       createdAt: String(r.created_at),
       customerName: prof?.full_name != null ? String(prof.full_name) : null,
       itemCount: Array.isArray(items) ? items.length : 0,
+      paymentStatus: pay?.status != null ? String(pay.status) : null,
+      paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
     }
   })
 }
@@ -112,7 +122,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated ),
       order_events ( id, event_type, payload, visibility, created_at ),
-      payments ( id, provider, status, amount ),
+      payments ( id, provider, status, amount, external_ref, expires_at, method ),
       shipments ( id, provider, status, amount, tracking_code, metadata, carrier, service, shipped_at, delivered_at, proof_ref )
     `,
     )
@@ -183,6 +193,9 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
           provider: payment.provider != null ? String(payment.provider) : null,
           status: String(payment.status),
           amount: payment.amount != null ? Number(payment.amount) : null,
+          externalRef: payment.external_ref != null ? String(payment.external_ref) : null,
+          expiresAt: payment.expires_at != null ? String(payment.expires_at) : null,
+          method: payment.method != null ? String(payment.method) : null,
         }
       : null,
     shipment: shipment

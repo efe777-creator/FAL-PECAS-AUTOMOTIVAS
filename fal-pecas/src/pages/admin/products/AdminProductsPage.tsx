@@ -10,10 +10,12 @@ import {
 } from '@/services/admin/adminCategoryService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
+  adminApplyGlobalProductMeasures,
   adminEvaluateReleaseChecklistBatch,
   adminListProducts,
   adminReleaseProductsToStore,
   adminSetProductStatus,
+  type ApplyGlobalMeasuresMode,
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
@@ -36,6 +38,12 @@ export function AdminProductsPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [releasePreflight, setReleasePreflight] = useState<ReleasePreflightRow[] | null>(null)
+  const [bulkWeight, setBulkWeight] = useState('')
+  const [bulkHeight, setBulkHeight] = useState('')
+  const [bulkWidth, setBulkWidth] = useState('')
+  const [bulkLength, setBulkLength] = useState('')
+  const [bulkMode, setBulkMode] = useState<ApplyGlobalMeasuresMode>('skip_manual')
+  const [busyMeasures, setBusyMeasures] = useState(false)
 
   const categoryOptions = useMemo(
     () =>
@@ -212,6 +220,52 @@ export function AdminProductsPage() {
       setError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
     } finally {
       setBusyBulk(false)
+    }
+  }
+
+  async function applyBulkMeasures() {
+    if (selected.size === 0) {
+      setError('Selecione ao menos um produto.')
+      return
+    }
+    const patch: {
+      weightKg?: number | null
+      heightCm?: number | null
+      widthCm?: number | null
+      lengthCm?: number | null
+    } = {}
+    if (bulkWeight.trim()) patch.weightKg = Number(bulkWeight)
+    if (bulkHeight.trim()) patch.heightCm = Number(bulkHeight)
+    if (bulkWidth.trim()) patch.widthCm = Number(bulkWidth)
+    if (bulkLength.trim()) patch.lengthCm = Number(bulkLength)
+    if (Object.keys(patch).length === 0) {
+      setError('Informe ao menos uma medida para aplicar.')
+      return
+    }
+    if (bulkMode === 'overwrite_manual') {
+      const ok = window.confirm(
+        `Sobrescrever também campos Manual em ${selected.size} produto(s)? Eles passam a Global.`,
+      )
+      if (!ok) return
+    }
+    setBusyMeasures(true)
+    setError(null)
+    try {
+      const r = await adminApplyGlobalProductMeasures({
+        productIds: [...selected],
+        patch,
+        mode: bulkMode,
+      })
+      setMessage(
+        `Medidas globais: ${r.updatedFieldRows} atualização(ões) de campo · modo ${
+          bulkMode === 'skip_manual' ? 'respeitar Manual' : 'sobrescrever Manual'
+        }.`,
+      )
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao aplicar medidas')
+    } finally {
+      setBusyMeasures(false)
     }
   }
 
@@ -407,6 +461,74 @@ export function AdminProductsPage() {
           >
             Limpar seleção
           </button>
+        </div>
+      ) : null}
+
+      {selected.size > 0 ? (
+        <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+          <div>
+            <h2 className="m-0 text-base font-extrabold text-fal-navy">
+              Medidas globais (selecionados)
+            </h2>
+            <p className="mt-1 text-xs text-fal-muted">
+              Campos vazios neste painel não são alterados. Padrão: não sobrescreve Manual.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              label="Peso (kg)"
+              type="number"
+              step="0.001"
+              min="0"
+              value={bulkWeight}
+              onChange={(e) => setBulkWeight(e.target.value)}
+            />
+            <Input
+              label="Altura (cm)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={bulkHeight}
+              onChange={(e) => setBulkHeight(e.target.value)}
+            />
+            <Input
+              label="Largura (cm)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={bulkWidth}
+              onChange={(e) => setBulkWidth(e.target.value)}
+            />
+            <Input
+              label="Comprimento (cm)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={bulkLength}
+              onChange={(e) => setBulkLength(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block min-w-[220px] text-sm">
+              <span className="mb-1 block font-semibold text-fal-navy">Tratar manuais</span>
+              <select
+                className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                value={bulkMode}
+                onChange={(e) => setBulkMode(e.target.value as ApplyGlobalMeasuresMode)}
+              >
+                <option value="skip_manual">Respeitar Manual (só Global)</option>
+                <option value="overwrite_manual">Sobrescrever Manual também</option>
+              </select>
+            </label>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={busyMeasures || busyBulk}
+              onClick={() => void applyBulkMeasures()}
+            >
+              {busyMeasures ? 'Aplicando…' : 'Aplicar medidas'}
+            </Button>
+          </div>
         </div>
       ) : null}
 

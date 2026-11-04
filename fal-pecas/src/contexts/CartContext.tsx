@@ -9,7 +9,7 @@ import {
 } from '@/services/cart/supabaseCartService'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
-import type { CartItem, Product } from '@/types'
+import type { CartItem, CartStorageKind, Product } from '@/types'
 import {
   createContext,
   useCallback,
@@ -31,6 +31,8 @@ interface CartContextValue {
   clear: () => void
   /** true enquanto merge/sync remoto em andamento */
   syncPending: boolean
+  /** Onde o carrinho está persistido agora. */
+  storageKind: CartStorageKind
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -44,17 +46,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Serializa saves remotos (evita corrida delete/insert → 23505). */
   const saveChain = useRef(Promise.resolve())
+  const prevUserId = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
     setItems(localCartStorage.load())
     setReady(true)
   }, [])
 
-  // Visitante: sempre localStorage
+  // Visitante: localStorage. Autenticado: não espelha (merge limpa local após sync).
   useEffect(() => {
-    if (!ready) return
+    if (!ready || user) return
     localCartStorage.save(items)
-  }, [items, ready])
+  }, [items, ready, user])
+
+  // Logout → grava snapshot atual no local para continuar como visitante
+  useEffect(() => {
+    const prev = prevUserId.current
+    const next = user?.id ?? null
+    if (prev !== undefined && prev && !next && ready) {
+      localCartStorage.save(items)
+    }
+    prevUserId.current = next
+  }, [user?.id, ready, items])
 
   // Login: merge local → remoto + preços canônicos (FIND-006)
   useEffect(() => {
@@ -146,7 +159,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
       ]
     })
-    // Reafirma RPC após add (cobre Product sem resolvedPrice pré-anexado)
     if (isSupabaseConfigured) {
       void applyResolvedPricesToCartItems(
         [
@@ -197,6 +209,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items],
   )
 
+  const storageKind: CartStorageKind =
+    user && isSupabaseConfigured ? 'supabase' : 'local'
+
   const value = useMemo(
     () => ({
       items,
@@ -207,8 +222,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       updateQty,
       clear,
       syncPending,
+      storageKind,
     }),
-    [items, itemCount, subtotal, addItem, removeItem, updateQty, clear, syncPending],
+    [items, itemCount, subtotal, addItem, removeItem, updateQty, clear, syncPending, storageKind],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

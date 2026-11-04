@@ -23,7 +23,7 @@ const salesLinks = [
 
 const opsLinks = [
   { to: '/admin/estoque', label: 'Estoque' },
-  { to: '/admin/frete', label: 'Frete / origem' },
+  { to: '/admin/logistica', label: 'Logística' },
   { to: '/admin/relatorios', label: 'Relatórios' },
   { to: '/admin/operadores', label: 'Operadores' },
 ]

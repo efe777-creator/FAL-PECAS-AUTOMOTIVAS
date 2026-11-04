@@ -116,7 +116,8 @@ export function MercadoPagoPixPanel({
           </p>
           {expired || row.status === 'expired' ? (
             <p className="text-sm text-fal-danger">
-              Cobrança expirada. Abra o pedido e gere um novo pagamento quando disponível.
+              Cobrança expirada. Em Meus pedidos → detalhe do pedido, use &quot;Gerar / reabrir
+              Pix&quot; para uma nova cobrança.
             </p>
           ) : null}
           {row.status === 'rejected' || row.status === 'cancelled' ? (

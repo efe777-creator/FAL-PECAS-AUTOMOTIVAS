@@ -51,6 +51,7 @@ import {
 import type {
   Category,
   Manufacturer,
+  MeasureOrigin,
   Product,
   ProductBrand,
   ProductImage,
@@ -104,6 +105,10 @@ export function AdminProductFormPage() {
   const [heightCm, setHeightCm] = useState('')
   const [widthCm, setWidthCm] = useState('')
   const [lengthCm, setLengthCm] = useState('')
+  const [weightOrigin, setWeightOrigin] = useState<MeasureOrigin>('global')
+  const [heightOrigin, setHeightOrigin] = useState<MeasureOrigin>('global')
+  const [widthOrigin, setWidthOrigin] = useState<MeasureOrigin>('global')
+  const [lengthOrigin, setLengthOrigin] = useState<MeasureOrigin>('global')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
   const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
@@ -214,6 +219,10 @@ export function AdminProductFormPage() {
         setHeightCm(p.heightCm != null ? String(p.heightCm) : '')
         setWidthCm(p.widthCm != null ? String(p.widthCm) : '')
         setLengthCm(p.lengthCm != null ? String(p.lengthCm) : '')
+        setWeightOrigin(p.weightOrigin ?? (p.weightKg != null ? 'manual' : 'global'))
+        setHeightOrigin(p.heightOrigin ?? (p.heightCm != null ? 'manual' : 'global'))
+        setWidthOrigin(p.widthOrigin ?? (p.widthCm != null ? 'manual' : 'global'))
+        setLengthOrigin(p.lengthOrigin ?? (p.lengthCm != null ? 'manual' : 'global'))
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
         setPosicaoAtoms(parsePosicaoAtoms(p.posicao))
@@ -446,6 +455,10 @@ export function AdminProductFormPage() {
         heightCm: heightCm.trim() ? Number(heightCm) : null,
         widthCm: widthCm.trim() ? Number(widthCm) : null,
         lengthCm: lengthCm.trim() ? Number(lengthCm) : null,
+        weightOrigin,
+        heightOrigin,
+        widthOrigin,
+        lengthOrigin,
         shortDescription,
         description,
         posicao: composePosicao(posicaoAtoms),
@@ -821,11 +834,73 @@ export function AdminProductFormPage() {
         </div>
 
         <h2 className="pt-2 font-extrabold text-fal-navy">Logística (opcional)</h2>
-        <div className="grid gap-3 md:grid-cols-4">
-          <Input label="Peso (kg)" type="number" step="0.001" min="0" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
-          <Input label="Altura (cm)" type="number" step="0.01" min="0" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
-          <Input label="Largura (cm)" type="number" step="0.01" min="0" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
-          <Input label="Comprimento (cm)" type="number" step="0.01" min="0" value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} />
+        <p className="m-0 text-xs text-fal-muted">
+          Novos produtos começam sem medidas (vazio). Categoria não preenche automaticamente.
+          Editar valor marca <strong>Manual</strong> (protegido do bulk). Global = elegível à
+          alteração em massa na lista de produtos.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          {(
+            [
+              {
+                label: 'Peso (kg)',
+                step: '0.001',
+                value: weightKg,
+                setValue: setWeightKg,
+                origin: weightOrigin,
+                setOrigin: setWeightOrigin,
+              },
+              {
+                label: 'Altura (cm)',
+                step: '0.01',
+                value: heightCm,
+                setValue: setHeightCm,
+                origin: heightOrigin,
+                setOrigin: setHeightOrigin,
+              },
+              {
+                label: 'Largura (cm)',
+                step: '0.01',
+                value: widthCm,
+                setValue: setWidthCm,
+                origin: widthOrigin,
+                setOrigin: setWidthOrigin,
+              },
+              {
+                label: 'Comprimento (cm)',
+                step: '0.01',
+                value: lengthCm,
+                setValue: setLengthCm,
+                origin: lengthOrigin,
+                setOrigin: setLengthOrigin,
+              },
+            ] as const
+          ).map((f) => (
+            <div key={f.label} className="space-y-1">
+              <Input
+                label={f.label}
+                type="number"
+                step={f.step}
+                min="0"
+                value={f.value}
+                onChange={(e) => {
+                  f.setValue(e.target.value)
+                  f.setOrigin('manual')
+                }}
+              />
+              <label className="flex items-center gap-2 text-xs text-fal-muted">
+                <span className="font-semibold">Origem</span>
+                <select
+                  className="rounded-md border border-fal-line px-2 py-1 text-fal-navy"
+                  value={f.origin}
+                  onChange={(e) => f.setOrigin(e.target.value as MeasureOrigin)}
+                >
+                  <option value="manual">Manual</option>
+                  <option value="global">Global</option>
+                </select>
+              </label>
+            </div>
+          ))}
         </div>
 
         <h2 className="pt-2 font-extrabold text-fal-navy">Descrição</h2>

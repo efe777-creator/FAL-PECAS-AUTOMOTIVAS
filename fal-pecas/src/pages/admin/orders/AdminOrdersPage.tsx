@@ -10,6 +10,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 
 const FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Todos' },
+  { value: 'aguardando_pagamento', label: 'Aguardando pagamento' },
+  { value: 'pagamento_aprovado', label: 'Pagamento aprovado' },
   { value: 'recebido', label: 'Recebidos' },
   { value: 'em_analise', label: 'Em análise' },
   { value: 'aguardando_disponibilidade', label: 'Aguardando disponibilidade' },
@@ -21,6 +23,14 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'entregue', label: 'Entregues' },
   { value: 'cancelado', label: 'Cancelados' },
 ]
+
+function paymentBadge(o: AdminOrderListRow) {
+  if (!o.paymentStatus) return '—'
+  const expired =
+    o.paymentExpiresAt != null && new Date(o.paymentExpiresAt).getTime() < Date.now()
+  const label = expired && o.paymentStatus === 'pending' ? 'pending (expirado)' : o.paymentStatus
+  return label
+}
 
 export function AdminOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -65,10 +75,12 @@ export function AdminOrdersPage() {
     <div className="space-y-4">
       <header>
         <h1 className="text-2xl font-extrabold text-fal-navy">Pedidos</h1>
-        <p className="mt-1 text-sm text-fal-muted">Fila operacional da FAL — recepção e confirmação.</p>
+        <p className="mt-1 text-sm text-fal-muted">
+          Fluxo: pagamento → recepção/análise → confirmação → separação → envio → entrega.
+        </p>
       </header>
 
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         {ADMIN_ORDER_COUNTER_KEYS.map((k) => (
           <button
             key={k}
@@ -119,6 +131,8 @@ export function AdminOrdersPage() {
                 <th className="px-3 py-2">Cliente</th>
                 <th className="px-3 py-2">Data</th>
                 <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Pagamento</th>
+                <th className="px-3 py-2">Expira</th>
                 <th className="px-3 py-2">Itens</th>
                 <th className="px-3 py-2">Total</th>
               </tr>
@@ -136,7 +150,23 @@ export function AdminOrdersPage() {
                   </td>
                   <td className="px-3 py-2">{o.customerName ?? '—'}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
-                  <td className="px-3 py-2">{orderStatusAdminLabel[o.status] ?? o.status}</td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={
+                        o.status === 'aguardando_pagamento'
+                          ? 'rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900'
+                          : undefined
+                      }
+                    >
+                      {orderStatusAdminLabel[o.status] ?? o.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-fal-muted">
+                    {o.paymentExpiresAt
+                      ? new Date(o.paymentExpiresAt).toLocaleString('pt-BR')
+                      : '—'}
+                  </td>
                   <td className="px-3 py-2">{o.itemCount}</td>
                   <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
                 </tr>
