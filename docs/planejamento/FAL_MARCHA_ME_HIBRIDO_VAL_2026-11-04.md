@@ -17,16 +17,23 @@
 | PR-4 Label HTTP + origem DB | **PASS** código | `melhorenvio-label` cart/checkout/generate/print + `store_shipping_origin` |
 | Testes unitários | A correr | carrierRegistry · meShippingOptionId · label state |
 
-## Ainda depende de eFe / ops
+## Ops pós-merge (MARCHA 04/11)
+
+| Item | Estado | Evidência |
+|------|--------|-----------|
+| PR #57 merge | **PASS** | `461487f` → `main` |
+| Migration wtbp | **PASS** | `shipping_quotes` + `melhorenvio_webhook_events` + `resolve_me_shipping_option` |
+| Deploy Edges | **PASS** | `quote-shipping`, `melhorenvio-label`, `mercado-pago-webhook` @ wtbp |
+
+## Ainda depende de eFe
 
 | Item | Nota |
 |------|------|
-| Apply migration no wtbp | Sem `db push` cego — OK explícito |
-| Secrets `MELHOR_ENVIO_TOKEN` / `USER_AGENT` | Edge |
-| Deploy functions `quote-shipping`, `melhorenvio-label`, `mercado-pago-webhook` | Supabase linked |
+| Secrets `MELHOR_ENVIO_TOKEN` / `USER_AGENT` | Colar no Edge (dashboard) |
 | `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | Netlify / local — **não** default produção sem decisão |
 | M6 medidas SKUs | Cotação ME bloqueia sem peso/dims |
 | Saldo carteira sandbox | Antes do 1º `purchase` real |
+| Smoke E2E | Após secrets + medidas |
 
 ## Aceite D12 (checklist)
 
