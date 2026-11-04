@@ -4,10 +4,13 @@ import { Loading } from '@/components/common/Loading'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
-  adminOrderNextStep,
-  orderEventLabel,
-  orderStatusAdminLabel,
-} from '@/lib/orderLifecycle'
+  adminActorBadgeLabel,
+  adminActorKind,
+  adminNextActionLabel,
+  orderStatusOperatorLabel,
+  projectAdminOrderTimeline,
+} from '@/lib/adminOrderOps'
+import { adminOrderNextStep, orderEventLabel } from '@/lib/orderLifecycle'
 import {
   adminAdvanceOrder,
   adminCancelOrder,
@@ -136,7 +139,7 @@ export function AdminOrderDetailPage() {
     setError(null)
     try {
       const r = await adminFinalizeConfirmation(id)
-      setMsg(`Resultado: ${r.result} → ${orderStatusAdminLabel[r.status] ?? r.status}`)
+      setMsg(`Resultado: ${r.result} → ${orderStatusOperatorLabel[r.status] ?? r.status}`)
       setPending(null)
       await reload()
     } catch (e) {
@@ -254,7 +257,33 @@ export function AdminOrderDetailPage() {
   const inSeparation = current.status === 'confirmado' || current.status === 'em_separacao'
   const separatedCount = current.items.filter((it) => it.separated).length
   const allSeparated = current.items.length > 0 && separatedCount === current.items.length
-  const nextStep = adminOrderNextStep(current.status)
+  const hadDecisionStep =
+    current.customerDecision != null ||
+    current.status === 'aguardando_decisao' ||
+    current.events.some(
+      (e) =>
+        e.eventType === 'order_awaiting_decision' ||
+        e.eventType === 'customer_authorized_changes' ||
+        e.eventType === 'customer_rejected_changes',
+    )
+  const timeline = projectAdminOrderTimeline(current.status, {
+    hadDecisionStep,
+    customerDecision: current.customerDecision,
+  })
+  const actor = adminActorKind(current.status, current.customerDecision)
+  const baseStep = adminOrderNextStep(current.status)
+  const nextStep =
+    current.status === 'aguardando_decisao'
+      ? {
+          title: adminNextActionLabel(current.status, current.customerDecision),
+          body:
+            current.customerDecision === 'authorized'
+              ? 'Use Finalizar confirmação para confirmar o pedido com a autorização registrada.'
+              : current.customerDecision === 'rejected'
+                ? 'Não confirme. Cancele (gerente) ou ajuste com o cliente.'
+                : 'Aguarde a resposta do cliente. Não confirme em silêncio.',
+        }
+      : baseStep
 
   async function markAllSeparated() {
     const pendingItems = current.items.filter((it) => !it.separated)
@@ -310,16 +339,52 @@ export function AdminOrderDetailPage() {
           Pedido {order.id.slice(0, 8)}…
         </h1>
         <p className="text-sm text-fal-muted">
-          {formatDateTime(order.createdAt)} · {orderStatusAdminLabel[order.status] ?? order.status}
+          {formatDateTime(order.createdAt)} ·{' '}
+          {orderStatusOperatorLabel[order.status] ?? order.status}
+        </p>
+        <p className="mt-1 mb-0">
+          <span className="rounded-md bg-fal-bg px-2 py-0.5 text-xs font-bold text-fal-navy">
+            {adminActorBadgeLabel(actor)}
+          </span>
         </p>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
 
+      <section className="rounded-[14px] border border-fal-line bg-white px-4 py-3">
+        <h2 className="m-0 text-base font-extrabold text-fal-navy">Andamento operacional</h2>
+        <ol className="mb-0 mt-3 list-none space-y-2 p-0">
+          {timeline.map((step) => (
+            <li key={step.id} className="flex items-center gap-2 text-sm">
+              <span
+                className={
+                  step.state === 'done'
+                    ? 'font-extrabold text-fal-success'
+                    : step.state === 'current'
+                      ? 'font-extrabold text-fal-navy'
+                      : 'text-fal-muted'
+                }
+              >
+                {step.state === 'done' ? '✓' : step.state === 'current' ? '●' : '○'}
+              </span>
+              <span
+                className={
+                  step.state === 'todo' ? 'text-fal-muted' : 'font-semibold text-fal-ink'
+                }
+              >
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {nextStep ? (
         <section className="rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
-          <h2 className="m-0 text-base font-extrabold text-fal-navy">Próximo passo: {nextStep.title}</h2>
+          <h2 className="m-0 text-base font-extrabold text-fal-navy">
+            Próximo passo: {nextStep.title}
+          </h2>
           <p className="mt-1 mb-0 text-sm text-fal-muted">{nextStep.body}</p>
           {inSeparation ? (
             <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
@@ -535,12 +600,30 @@ export function AdminOrderDetailPage() {
             disabled={busy || pending != null}
             onClick={() => void startConfirmation()}
           >
-            Iniciar análise
+            Iniciar análise do pedido
           </Button>
         ) : null}
         {inAnalysis ? (
-          <Button type="button" disabled={busy || pending != null} onClick={() => setPending({ kind: 'finalize' })}>
-            Finalizar confirmação
+          <Button
+            type="button"
+            disabled={
+              busy ||
+              pending != null ||
+              (current.status === 'aguardando_decisao' &&
+                current.customerDecision !== 'authorized')
+            }
+            title={
+              current.status === 'aguardando_decisao' &&
+              current.customerDecision !== 'authorized'
+                ? 'Só confirme após autorização do cliente'
+                : undefined
+            }
+            onClick={() => setPending({ kind: 'finalize' })}
+          >
+            {current.status === 'aguardando_decisao' &&
+            current.customerDecision === 'authorized'
+              ? 'Confirmar pedido (cliente autorizou)'
+              : 'Confirmar pedido (geral)'}
           </Button>
         ) : null}
         {inSeparation ? (
