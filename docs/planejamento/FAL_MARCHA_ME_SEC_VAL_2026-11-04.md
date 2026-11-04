@@ -1,6 +1,6 @@
 # VAL — M-ME-SEC secrets + migration
 
-**Data:** 2026-11-04 (rev. 16:40)  
+**Data:** 2026-11-04 (rev. 16:55)  
 **Runtime:** `wtbpwuiayednvlhvuhbh`  
 
 ## Migration
@@ -17,35 +17,27 @@
 |--------|--------|
 | `MELHOR_ENVIO_USER_AGENT` | **SET** |
 | `MELHOR_ENVIO_WEBHOOK_SECRET` | **SET** |
-| `MELHOR_ENVIO_TOKEN` | **FAIL / PLACEHOLDER** |
+| `MELHOR_ENVIO_API_BASE` | **SET** (`https://melhorenvio.com.br`) |
+| `MELHOR_ENVIO_TOKEN` | **SET** (token pessoal produção; hash ≠ `COLE_AQUI`) |
 
-### FIND-ME-TOKEN-001
+### FIND-ME-TOKEN-001 — FECHADO
 
-`supabase secrets set … MELHOR_ENVIO_TOKEN=COLE_AQUI` gravou o literal **COLE_AQUI** (sha256 confirma).  
-Não é Bearer sandbox válido → cotação/etiqueta ME falharão até substituir.
-
-```powershell
-cd fal-pecas
-npx supabase secrets set --yes "MELHOR_ENVIO_TOKEN=<Bearer_real_do_sandbox>" --project-ref wtbpwuiayednvlhvuhbh
-npx supabase functions deploy quote-shipping melhorenvio-label --project-ref wtbpwuiayednvlhvuhbh --yes
-```
-
-Obter Bearer: painel **sandbox.melhorenvio.com.br** → Integrações / app OAuth → `access_token`.  
-Conta sandbox ≠ produção (login sandbox ainda rejeita a senha usada em produção).
+Literal `COLE_AQUI` substituído por JWT gerado no painel produção (Integrações → Gerar token, app “FAL Pecas Edge”, escopos shipping-*).  
+Smoke calculate **PASS** — ver [ME SMOKE CALC VAL](./FAL_MARCHA_ME_SMOKE_CALC_VAL_2026-11-04.md).
 
 ## Deploy
 
-Edges redeployed 04/11 — mas TOKEN inválido anula smoke.
+Edges `quote-shipping` + `melhorenvio-label` redeployed 04/11 pós-TOKEN.
 
 ## Aceite
 
 - [x] Migration  
-- [x] UA + WH  
-- [ ] TOKEN Bearer real  
-- [ ] Smoke calculate ≠ 401 ME  
+- [x] UA + WH + API_BASE  
+- [x] TOKEN Bearer real  
+- [x] Smoke calculate ≠ 401 ME  
 
 ## STOP
 
-M-ME-SEC **reaberto** só no TOKEN. UA/WH/migration OK.
+M-ME-SEC **PASS**. Não habilitar ME como default Netlify sem D-FRETE C.
 
-**Assinatura agente:** VAL M-ME-SEC FIND-ME-TOKEN-001 2026-11-04.
+**Assinatura agente:** VAL M-ME-SEC PASS 2026-11-04.

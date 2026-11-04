@@ -46,15 +46,15 @@ Cotação ME real exige peso **e** dimensões → **0** SKUs quote-ready.
 
 | # | Nome | Gate |
 |---|------|------|
-| 1 | `M-ME-SEC` | eFe cola secrets sandbox |
-| 2 | `M6` | eFe envia peso+dims (mín. 1 SKU smoke; ideal por grupo) |
-| 3 | `M7` | Smoke Central → Expedição → label ME (pós 1+2) |
+| 1 | `M-ME-SEC` | **FEITO** TOKEN real + smoke calc PASS |
+| 2 | `M6` | **FEITO** provisório 100 quote-ready |
+| 3 | `M7` | **PRÓXIMO** Smoke Central → Expedição → label ME |
 | 4 | `M9` | Webhook MP diag (MCP vazio ≠ FAIL loja) |
 
 ---
 
 ## STOP
 
-Soberana pós-α **fechada em evidência**. Código ME + migration + Edges + M0 UX **ok**. Bola humana: **secrets ME** + **medidas**.
+Soberana pós-α: secrets ME + calc Edge **PASS**. Default loja = mock. Próximo: **M7** ops E2E etiqueta (sem ligar ME no Netlify sem D-FRETE C).
 
-**Assinatura agente:** MARCHA SOBERANA pós-α STOP 2026-11-04.
+**Assinatura agente:** MARCHA SOBERANA sync M-ME-SEC/calc PASS 2026-11-04.

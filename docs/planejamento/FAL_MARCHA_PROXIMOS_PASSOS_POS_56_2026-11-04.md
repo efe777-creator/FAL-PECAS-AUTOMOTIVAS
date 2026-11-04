@@ -33,9 +33,9 @@
 
 | # | MARCHA | Gate |
 |---|--------|------|
-| **M-ME-SEC** | Secrets sandbox `MELHOR_ENVIO_TOKEN` + `USER_AGENT` | CLI 04/11: **ausentes** |
-| **M6** | Peso+dims (≥1 SKU smoke) | 0 quote-ready / 100 published |
-| **M7** | Ops E2E Central → etiqueta | Após SEC + M6 |
+| **M-ME-SEC** | Secrets ME TOKEN/UA/WH/API_BASE | **FEITO** 04/11 |
+| **M6** | Peso+dims (≥1 SKU smoke) | **FEITO** provisório 100 quote-ready |
+| **M7** | Ops E2E Central → etiqueta | **PRÓXIMO** (calc Edge já PASS) |
 | M8 | Onda 2 estorno | Política comercial |
 | M9 | Webhook MP MCP | Ainda vazio (ressalva) |
 | M11+ | D-FRETE C / ME default loja | Nova assinatura |
