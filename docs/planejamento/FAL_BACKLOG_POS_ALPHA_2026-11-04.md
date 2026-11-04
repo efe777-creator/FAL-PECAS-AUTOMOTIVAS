@@ -25,8 +25,8 @@
 | P1-EXP | Expiry não pago + release reserva (TTL 48 h) | **FEITO** [VAL](./FAL_MARCHA_PEDIDO_EXPIRY_RESERVA_VAL_2026-11-04.md) |
 | P1-CRON | Agendar `expire_unpaid_orders` via **`pg_cron`** | M5 — decisão eFe 04/11 · 9 pedidos > 48 h |
 | P1-OPS | Fluxo operador confirmação → separação | **FEITO** [VAL](./FAL_MARCHA_PEDIDOS_OPS_CONFIRMACAO_SEPARACAO_VAL_2026-11-04.md) |
-| P1-DOC | Sync PRD/ROADMAP pós-STOP α + regras | **M3 em curso** [auditoria](./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md) |
-| P1-REG1 | Regras pedidos Onda 1 (cancel pré-pago, autorização, labels) | **M4** [regras](./FAL_REGRAS_FLUXO_PEDIDOS_2026-11-04.md) |
+| P1-DOC | Sync PRD/ROADMAP pós-STOP α + regras | **FEITO** [VAL M3](./FAL_MARCHA_DOCS_SYNC_POS_ALPHA_VAL_2026-11-04.md) |
+| P1-REG1 | Regras pedidos Onda 1 (cancel pré-pago, autorização, labels) | **FEITO** [VAL](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA1_VAL_2026-11-04.md) (wtbp + PR) |
 | P1-REG2 | Regras pedidos Onda 2 (cancel pós-pago + estorno) | M8 — política de estorno pendente |
 | P1-REG3 | Regras pedidos Onda 3 (cartão tokenizado) | M10 — seguir/adiar |
 | P1-WH | Diagnóstico webhook MCP `notifications_history` | Ressalva Gate — M9 |
@@ -55,8 +55,8 @@
 
 | # | MARCHA | Status |
 |---|--------|--------|
-| M3 | DOCS-SYNC-POS-ALPHA | **Em execução** |
-| M4 | REGRAS-PEDIDOS-ONDA1 | Próxima |
+| M3 | DOCS-SYNC-POS-ALPHA | **FEITO** (#51) |
+| M4 | REGRAS-PEDIDOS-ONDA1 | **FEITO** (SQL wtbp + PR) |
 | M5 | CRON-EXPIRY (`pg_cron`) | Decisão: pg_cron |
 | M6 | DADOS-MEDIDAS | Aguarda valores eFe |
 | M7 | OPS-E2E-ENTREGA | — |

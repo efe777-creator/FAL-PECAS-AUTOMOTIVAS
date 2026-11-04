@@ -10,8 +10,8 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     .from('orders')
     .select(
       `
-      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref,
-      order_items ( id, product_id, sku, name_snapshot, unit_price, quantity ),
+      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_decision,
+      order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note ),
       order_status_history ( id, status, note, created_at ),
       order_events ( id, event_type, payload, visibility, created_at ),
       payments ( id, provider, status, amount, external_ref, method, expires_at, pix_qr_code, pix_qr_code_base64 ),
@@ -70,6 +70,12 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     }))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
+  const decisionRaw = (data as { customer_decision?: string | null }).customer_decision
+  const customerDecision =
+    decisionRaw === 'pending' || decisionRaw === 'authorized' || decisionRaw === 'rejected'
+      ? decisionRaw
+      : null
+
   return {
     id: String(data.id),
     status: String(data.status),
@@ -79,6 +85,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     createdAt: String(data.created_at),
     addressSnapshot: (data.address_snapshot as Record<string, unknown> | null) ?? null,
     paymentRef: data.payment_ref != null ? String(data.payment_ref) : null,
+    customerDecision,
     items: items.map((i: Record<string, unknown>) => ({
       id: String(i.id),
       productId: i.product_id != null ? String(i.product_id) : null,
@@ -86,6 +93,14 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
       nameSnapshot: String(i.name_snapshot),
       unitPrice: Number(i.unit_price),
       quantity: Number(i.quantity),
+      availability:
+        i.availability === 'disponivel' ||
+        i.availability === 'disponivel_com_prazo' ||
+        i.availability === 'indisponivel'
+          ? i.availability
+          : null,
+      leadDays: i.lead_days != null ? Number(i.lead_days) : null,
+      staffNote: i.staff_note != null ? String(i.staff_note) : null,
     })),
     history: history
       .map((h: Record<string, unknown>) => ({
