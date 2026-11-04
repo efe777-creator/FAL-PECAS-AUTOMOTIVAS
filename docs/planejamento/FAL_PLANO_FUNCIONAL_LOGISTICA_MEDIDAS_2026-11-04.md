@@ -49,8 +49,9 @@ flowchart LR
 | Item | Estado |
 |------|--------|
 | `products.weight_kg` + dims | Existe; form em AdminProductForm |
-| Origem por campo / bulk global | **Código feito** (VAL 2026-11-04); DDL wtbp PENDENTE |
-| Padrões categoria / filtros logísticos / histórico medidas | **Gap** |
+| Origem por campo / bulk global | **Feito** (VAL medidas + DDL wtbp) |
+| Alterações globais + filtros Categoria/Grupo/Subgrupo/Situação | **Feito** [VAL](./FAL_MARCHA_PRODUTOS_ALTERACOES_GLOBAIS_VAL_2026-11-04.md) |
+| Padrões categoria / filtros logísticos peso-dims / histórico medidas | **Gap** |
 | `store_shipping_origin` + ViaCEP + remetente | **Feito** (`/admin/logistica/origem`; VAL 2026-11-04) |
 | Hub Logística 4 atalhos | **Feito** (`/admin/logistica`; VAL 2026-11-04) |
 | Frete próprio configurável | **Feito** (`/admin/logistica/frete-proprio` + rates; VAL 2026-11-04; ainda B) |

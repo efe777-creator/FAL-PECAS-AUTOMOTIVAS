@@ -98,6 +98,8 @@ const SELECT = `
 export async function adminListProducts(params?: {
   q?: string
   status?: string
+  /** Filtro Situação na listagem admin. */
+  available?: boolean
   withoutImage?: boolean
   /** category_id IN (nó + descendentes). */
   categoryIds?: string[]
@@ -119,6 +121,7 @@ export async function adminListProducts(params?: {
 
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
   if (params?.status) q = q.eq('status', params.status)
+  if (typeof params?.available === 'boolean') q = q.eq('is_available', params.available)
   if (params?.categoryIds && params.categoryIds.length > 0) {
     q = q.in('category_id', params.categoryIds)
   }
@@ -289,6 +292,40 @@ export async function adminApplyGlobalProductMeasures(opts: {
 export async function adminSetProductStatus(id: string, status: NonNullable<Product['status']>) {
   const { error } = await getSupabase().from('products').update({ status }).eq('id', id)
   if (error) throw error
+}
+
+/** Situação em massa: só `is_available` (não força publish). */
+export async function adminSetProductsAvailability(
+  ids: string[],
+  available: boolean,
+): Promise<{ updated: number }> {
+  const productIds = [...new Set(ids)].filter(Boolean)
+  if (!productIds.length) return { updated: 0 }
+  const { data, error } = await getSupabase()
+    .from('products')
+    .update({ is_available: available })
+    .in('id', productIds)
+    .select('id')
+  if (error) throw error
+  return { updated: data?.length ?? 0 }
+}
+
+/** Classificação em massa: grava `category_id` (folha efetiva). Não cria nós. */
+export async function adminBulkSetProductCategory(
+  ids: string[],
+  categoryId: string,
+): Promise<{ updated: number }> {
+  const productIds = [...new Set(ids)].filter(Boolean)
+  const cat = categoryId.trim()
+  if (!productIds.length) return { updated: 0 }
+  if (!cat) throw new Error('Informe a classificação (categoria/grupo/subgrupo).')
+  const { data, error } = await getSupabase()
+    .from('products')
+    .update({ category_id: cat })
+    .in('id', productIds)
+    .select('id')
+  if (error) throw error
+  return { updated: data?.length ?? 0 }
 }
 
 export type ReleaseToStoreResult =
