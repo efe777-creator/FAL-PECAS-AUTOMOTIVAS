@@ -35,7 +35,12 @@
 
 **Próxima MARCHA técnica sugerida (auth):** `MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI` — manter `mpAwaiting` / rota de pagamento mesmo com carrinho vazio após place_order.
 
-**Update 04/11:** fix **IMPLEMENTADO** em código — [VAL](./FAL_MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI_VAL_2026-11-04.md). Reteste S2 aguarda deploy Netlify.
+**Update 04/11:** fix **IMPLEMENTADO** — [VAL](./FAL_MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI_VAL_2026-11-04.md).  
+**Reteste prod pós-PR #43:** bundle `index-CV1mwNAe.js`  
+- Pix UI **PASS** — pedido `0df5901c…` · pending · QR/copia-cola permanece.  
+- Cartão Brick UI **PASS** — pedido `73530b8f…` · R$ 79,01 · iframe `secure-fields.mercadopago.com` (PAN/CVV no Brick; fill automático **bloqueado** por iframe).  
+- Webhook sandbox URL **registrada** 04/11 via MCP `save_webhook` app `8320396999442614` → edge wtbp `mercado-pago-webhook` (topic `payment`).  
+- Approve / `notifications_history`: ainda **NÃO OBSERVADO** (sem pagamento aprovado no Brick/Pix). Confirmar `MP_WEBHOOK_SECRET` = secret do painel MP (humano; não logar valor).
 
 ---
 

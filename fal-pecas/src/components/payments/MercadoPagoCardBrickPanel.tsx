@@ -2,7 +2,7 @@ import { Loading } from '@/components/common/Loading'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Props {
   orderId: string
@@ -32,6 +32,10 @@ function ensureMpInit(publicKey: string) {
 /**
  * F9-D — Card Payment Brick. PAN/CVV ficam no iframe MP.
  * Create payment no backend; approve só via webhook (poll status).
+ *
+ * IMPORTANTE: callbacks do CardPayment precisam ser estáveis. Re-render do
+ * checkout (clear carrinho / toast / setError) com onSubmit/onError inline
+ * re-inicializa o Brick e deixa o skeleton eterno (secure-fields h=0).
  */
 export function MercadoPagoCardBrickPanel({
   orderId,
@@ -41,19 +45,33 @@ export function MercadoPagoCardBrickPanel({
   onError,
 }: Props) {
   const [ready, setReady] = useState(false)
+  const [brickReady, setBrickReady] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('idle')
+  const [brickKey, setBrickKey] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const onApprovedRef = useRef(onApproved)
+  const onErrorRef = useRef(onError)
+
+  useEffect(() => {
+    onApprovedRef.current = onApproved
+  }, [onApproved])
+
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
+
+  const amountNum = Number(amount)
 
   useEffect(() => {
     try {
       ensureMpInit(publicKey)
       setReady(true)
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Falha ao iniciar Mercado Pago')
+      onErrorRef.current(e instanceof Error ? e.message : 'Falha ao iniciar Mercado Pago')
     }
-  }, [publicKey, onError])
+  }, [publicKey])
 
   useEffect(() => {
     if (!paymentId) return
@@ -64,11 +82,11 @@ export function MercadoPagoCardBrickPanel({
         setStatus(p.status)
         if (p.status === 'approved') {
           if (pollRef.current) clearInterval(pollRef.current)
-          onApproved(p.orderId || orderId)
+          onApprovedRef.current(p.orderId || orderId)
         }
         if (p.status === 'rejected' || p.status === 'cancelled') {
           if (pollRef.current) clearInterval(pollRef.current)
-          onError(`Pagamento ${p.status}`)
+          onErrorRef.current(`Pagamento ${p.status}`)
         }
       } catch {
         /* poll best-effort */
@@ -79,9 +97,66 @@ export function MercadoPagoCardBrickPanel({
     return () => {
       if (pollRef.current) clearInterval(pollRef.current)
     }
-  }, [paymentId, orderId, onApproved, onError])
+  }, [paymentId, orderId])
+
+  const remountBrick = useCallback(() => {
+    setBrickReady(false)
+    setBrickKey((k) => k + 1)
+  }, [])
+
+  const handleSubmit = useCallback(
+    async (formData: BrickFormData) => {
+      setSubmitting(true)
+      try {
+        const res = await createMercadoPagoPayment(orderId, {
+          token: formData.token,
+          paymentMethodId: formData.payment_method_id,
+          installments: Number(formData.installments) || 1,
+          issuerId: formData.issuer_id != null ? String(formData.issuer_id) : undefined,
+          paymentTypeId:
+            formData.payment_type_id ?? formData.payment_method_type ?? 'credit_card',
+        })
+        setPaymentId(res.paymentId)
+        setStatus(res.status)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Falha ao criar pagamento cartão'
+        onErrorRef.current(msg)
+        remountBrick()
+        throw e
+      } finally {
+        setSubmitting(false)
+      }
+    },
+    [orderId, remountBrick],
+  )
+
+  const handleBrickError = useCallback(
+    (err: unknown) => {
+      const msg =
+        typeof err === 'string'
+          ? err
+          : err && typeof err === 'object' && 'message' in err
+            ? String((err as { message: unknown }).message)
+            : 'Erro no Brick de cartão'
+      onErrorRef.current(msg)
+      remountBrick()
+    },
+    [remountBrick],
+  )
+
+  const handleBrickReady = useCallback(() => {
+    setBrickReady(true)
+  }, [])
 
   if (!ready) return <Loading label="Carregando formulário de cartão…" />
+
+  if (!Number.isFinite(amountNum) || amountNum <= 0) {
+    return (
+      <p className="text-sm text-fal-danger">
+        Valor inválido para o Brick ({String(amount)}). Recrie o pedido.
+      </p>
+    )
+  }
 
   if (paymentId) {
     return (
@@ -105,38 +180,30 @@ export function MercadoPagoCardBrickPanel({
         total do pedido no servidor.
       </p>
       {submitting ? <Loading label="Processando cartão…" /> : null}
+      {!brickReady ? (
+        <p className="text-xs text-fal-muted">Montando campos seguros do Mercado Pago…</p>
+      ) : null}
       <CardPayment
-        initialization={{ amount }}
+        key={`${orderId}-${brickKey}`}
+        initialization={{ amount: amountNum }}
         customization={{
           paymentMethods: {
             maxInstallments: 12,
           },
         }}
-        onSubmit={async (formData: BrickFormData) => {
-          setSubmitting(true)
-          try {
-            const res = await createMercadoPagoPayment(orderId, {
-              token: formData.token,
-              paymentMethodId: formData.payment_method_id,
-              installments: Number(formData.installments) || 1,
-              issuerId:
-                formData.issuer_id != null ? String(formData.issuer_id) : undefined,
-              paymentTypeId:
-                formData.payment_type_id ?? formData.payment_method_type ?? 'credit_card',
-            })
-            setPaymentId(res.paymentId)
-            setStatus(res.status)
-          } catch (e) {
-            onError(e instanceof Error ? e.message : 'Falha ao criar pagamento cartão')
-            throw e
-          } finally {
-            setSubmitting(false)
-          }
-        }}
-        onError={(err) => {
-          onError(typeof err === 'string' ? err : 'Erro no Brick de cartão')
-        }}
+        onSubmit={handleSubmit}
+        onReady={handleBrickReady}
+        onError={handleBrickError}
       />
+      {!brickReady ? (
+        <button
+          type="button"
+          className="text-sm font-semibold text-fal-ink underline"
+          onClick={remountBrick}
+        >
+          Formulário não carregou? Recarregar
+        </button>
+      ) : null}
     </div>
   )
 }
