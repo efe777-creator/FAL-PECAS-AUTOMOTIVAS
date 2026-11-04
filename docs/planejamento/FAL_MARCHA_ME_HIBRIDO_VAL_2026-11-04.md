@@ -27,13 +27,13 @@
 
 ## Ainda depende de eFe
 
-| Item | Nota |
-|------|------|
-| Secrets `MELHOR_ENVIO_TOKEN` / `USER_AGENT` | Colar no Edge (dashboard) |
-| `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | Netlify / local — **não** default produção sem decisão |
-| M6 medidas SKUs | Cotação ME bloqueia sem peso/dims |
-| Saldo carteira sandbox | Antes do 1º `purchase` real |
-| Smoke E2E | Após secrets + medidas |
+| Item | Estado 04/11 soberana | Nota |
+|------|----------------------|------|
+| Secrets `MELHOR_ENVIO_TOKEN` / `USER_AGENT` | **AUSENTE** wtbp | Colar no Edge (dashboard) |
+| `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem decisão |
+| M6 medidas SKUs | **0 quote-ready** / 100 published | 2 com peso sem dims (TDI1101, BRD6408); 98 sem peso |
+| Saldo carteira sandbox | — | Antes do 1º `purchase` real |
+| Smoke E2E | BLOQUEADO | Após secrets + medidas |
 
 ## Aceite D12 (checklist)
 
@@ -56,6 +56,6 @@
 
 ## STOP
 
-Código da MARCHA híbrida entregue no workspace. Apply/deploy/secrets = próximo passo humano.
+Código + migration + Edges **ok**. Secrets ME + M6 = humano ([soberana pós-α](./FAL_MARCHA_SOBERANA_POS_ALPHA_EXEC_2026-11-04.md)).
 
-**Assinatura agente:** VAL ME híbrido 2026-11-04.
+**Assinatura agente:** VAL ME híbrido 2026-11-04 · sync soberana 2026-11-04.
