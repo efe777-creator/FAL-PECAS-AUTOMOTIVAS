@@ -1,9 +1,10 @@
 # Roadmap de Fases — FAL Peças Automotivas 3.0
 
 **Status:** Fonte oficial de **execução** das fases  
-**Atualização:** 2026-10-08 (consolidação PRD Mestre 2.0)  
+**Atualização:** 2026-11-04 (sync Fase α — docs)  
 **PRD de produto:** [../entrada/FAL_PRD_3.0.md](../entrada/FAL_PRD_3.0.md)  
-**Diagnóstico:** [./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md](./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md)  
+**Planejamento α vigente:** [./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md)  
+**Diagnóstico (histórico):** [./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md](./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md)  
 **Stack:** Vite + React + TypeScript + Tailwind + Supabase
 
 ---
@@ -21,22 +22,19 @@ Não iniciar a implementação da fase **N+1** sem cumprir os critérios de saí
 |-------|-------|------|--------|
 | A | F1–F7 | Fundação + operação de pedidos | **CONCLUÍDO** |
 | B | F8 / F8.1 | Operação comercial | **Base construída** (gaps de dados/UX) |
-| C | F9 | Pagamento + frete + hardening | **F9-E local DONE → STOP → F9-F** |
-| **D** | **F10** | **Consolidação operacional** | **F10-O0 agora** (Fase 0 gate Onda 0; `FAL-IMP-01`) |
-| E | F11 | Catálogo mestre | PLANEJADO |
+| C | F9 | Pagamento + frete + hardening | **F9-E + F9-F IMPLEMENTADO**; smoke Pix/cartão **PENDENTE** |
+| D | F10 | Consolidação operacional | Onda 0–1 **ENCERRADA**; polimento residual pós-α |
+| **α** | **Fase α** | **Operação comercial controlada** | **FOCO ATUAL** |
+| E | F11 | Catálogo mestre | PLANEJADO (pós-α) |
 | F | F12 | Enriquecimento | FUTURO |
 | G | F13 | Escala comercial | FUTURO |
 
 ```text
-CONCLUÍDO (F1–F8.1)
+CONCLUÍDO (F1–F8.1 + F10 Onda 0–1 + FIND-004 + F9-F código)
         ↓
-Fase 0 auditoria (FEITO) → gate Onda 0
+FOCO ATUAL → Fase α (S1 D-FRETE B ∥ S2 smoke MP → S4 E2E → Gate)
         ↓
-F10-O0 SCHEMA (FAL-IMP-01 / VAL-01)  ← agora
-        ↓
-F10 Onda 1+ DADOS / REGRAS / LOJA
-        ↓
-F9 (smoke humano + F9-F) em paralelo controlado
+STOP α → docs / domínio / polimento F10 residual
         ↓
 F11 CATÁLOGO MESTRE
         ↓
@@ -87,36 +85,37 @@ Escopo entregue (não mais “futura”):
 
 Specs: [ESPECIFICACAO_FASE8_1_IMPORTACAO_CATALOGO.md](./ESPECIFICACAO_FASE8_1_IMPORTACAO_CATALOGO.md) · [ESPECIFICACAO_FASE8_1_LISTAS_PRECOS_UX.md](./ESPECIFICACAO_FASE8_1_LISTAS_PRECOS_UX.md)
 
-**Gaps remanescentes do bloco B (vão para F10/F11):** cobertura de aplicações; liberação comercial em escala; polimento UX; permissões granulares (Bloco F STOP).
+**Gaps remanescentes do bloco B:** liberação comercial em escala; polimento UX; permissões granulares (Bloco F STOP).  
+**FIND-004 M1–M5 (apps PVC published):** ENCERRADO 2026-10-09 — não reabrir sem finding.
 
 ---
 
-## Bloco C — Checkout e integrações (F9) — EM ANDAMENTO / BLOQUEADO
+## Bloco C — Checkout e integrações (F9) — CÓDIGO PRONTO / SMOKE PENDENTE
 
 **Pergunta:** Como conectamos pagamento/frete reais sem redesenhar o checkout?
 
 ### Escopo
 Gateway de pagamento (Mercado Pago), webhook, frete/transportadoras (evolutivo), qualidade e hardening.
 
-### Estado F9-E (obrigatório)
+### Estado F9-E / F9-F (obrigatório)
 
-> Webhook concurrency/hardening **concluído localmente** (núcleo + Edge, 13 testes Vitest + build).  
-> Smoke live/sandbox **pendente** (`MP_WEBHOOK_SECRET` + redeploy).  
-> **STOP** — ver [STOP_BLOCO_G_PAGAMENTOS_2026-10-07.md](./STOP_BLOCO_G_PAGAMENTOS_2026-10-07.md) · [RELATORIO_FINAL_F9E…](./RELATORIO_FINAL_F9E_WEBHOOK_HARDENING_2026-10-06.md)
+> Webhook concurrency/hardening **concluído** (núcleo + Edge).  
+> **H1–H5 PASS** 2026-10-14 (inclui `MP_WEBHOOK_SECRET` + webhook v4) — [H1H6 check](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md).  
+> **F9-F IMPLEMENTADO** (RPC + checkout) — [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md).  
+> **Smoke Pix/cartão/webhook approve:** ainda **PENDENTE** humano — não é PASS por config.  
+> Frete sandbox UI **VALIDADO**; live gated por D-FRETE (premissa α = B).
 
-### Critérios de entrada F9-F
-- Secret configurado + função redeployada **ou** decisão explícita de seguir só com sandbox documentado
-- Checklist Bloco G
-
-### Critérios de saída F9 (bloco C)
-- Smoke Pix + cartão sandbox (ou produção controlada) documentado
+### Critérios de saída F9 (bloco C) — comerciais
+- Smoke Pix + cartão sandbox documentado
+- Webhook approve no smoke (ou NÃO TESTÁVEL + aceite)
 - Checkout alinhado ao provider ativo (sem simulação enganosa)
-- Frete: caminho feliz com regra atual + plano do provedor real (DECISÃO PENDENTE)
+- Frete: política D-FRETE assinada (α: B) + caminho feliz coerente
 
 ---
 
-## Bloco D — Fase 10 — Consolidação operacional — PRÓXIMO FOCO
+## Bloco D — Fase 10 — Consolidação operacional — ONDA 0–1 ENCERRADA
 
+**Foco atual do projeto:** fechamento **Fase α** (não “F10-O0 agora”).  
 **Pergunta:** O que já construímos funciona como **uma única plataforma coerente**?
 
 **Protocolo operacional:** [./PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md](./PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md)  
@@ -135,7 +134,7 @@ Ainda **não** aprofundar pedidos/estoque (`FAL-IMP-14`+) sem schema alinhado; n
 
 Artefatos `AUDITORIA_FAL_FASE0_*_2026-10-08.md` produzidos. Gate eFe: **somente Onda 0**.
 
-### F10-O0 — Fundação schema (AGORA)
+### F10-O0 — Fundação schema (FEITO)
 
 | Cmd | Objetivo | Status |
 |-----|----------|--------|

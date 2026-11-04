@@ -112,38 +112,46 @@ Detalhe técnico: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 # 7. Estado atual do projeto
 
+**Sync docs:** 2026-11-04 ([auditoria status](../planejamento/FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md) · [planejamento α](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md)).
+
 ### CONCLUÍDO
 - F1–F7 (loja base, busca, conta, checkout base, operação de pedidos 7A–7F)
 - F8 Fatia A: estoque UI, modos de loja, clientes consulta, relatórios base
 - F8.1 base: import catálogo, conversão fornecedor, custo, preço; formação markup/margem/fixo; UX listas
 - Identidade UI “Código referência” (rótulo sobre SKU)
 - Liberar na loja (gate explícito) — fluxo admin
+- **F10 Onda 0–1** (schema-first / IMP principais) — ENCERRADA
+- **FIND-004 M1–M5** (apps PVC no catálogo published) — ENCERRADO
+- **F9-E** webhook concurrency/hardening (código + testes)
+- **F9-F** meios MP no `place_order` + checkout — IMPLEMENTADO (código)
+- PDP A–D, Card UX, frete sandbox UI/estrutura — VALIDADO (código/VALs)
 
-### EM VALIDAÇÃO
-- Catálogo público com preço formado (muitos itens ainda indisponíveis comercialmente)
-- Importação de aplicações (motor/RPC existem; cobertura de dados parcial)
-- Checkout pós-pago / retirada de simulação quando MP ativo
+### EM VALIDAÇÃO / PENDENTE HUMANO (Fase α)
+- Smoke comercial Mercado Pago: Pix + cartão + webhook approve (H1–H5 config **PASS** 14/10; H6 parcial; smokes **não executados**)
+- Assinatura D-FRETE (premissa de planejamento α = **B**; ficha ainda sem assinatura eFe)
+- 1 pedido E2E sandbox pago + Gate α (assinatura)
+- Catálogo: itens published vs liberados comercialmente em escala
 
-### BLOQUEADO
-- **F9-E smoke live/sandbox:** configuração `MP_WEBHOOK_SECRET` + redeploy da Edge Function (STOP Bloco G)
+### BLOQUEADO / HOLD
 - Permissões granulares (Bloco F — fundação adiada)
+- B3 migration repair (HOLD)
 
-### PLANEJADO
-- **F10** Consolidação operacional (polimento e coerência da plataforma)
-- **F9-F** após desbloqueio humano do smoke MP
+### PLANEJADO (pós fechamento α)
+- Polimento F10 residual (UX/coerência ampla)
 - **F11** Catálogo mestre (taxonomia, aplicações, referências, qualidade)
+- Domínio definitivo (Netlify = ponte até lá)
 
 ### FUTURO
 - F12 Enriquecimento / matching / APIs de catálogo
 - F13 Escala comercial (SEO, analytics, canais)
 
-### F9-E (registro obrigatório)
+### F9-E / F9-F (registro)
 
-> **F9-E — Webhook concurrency / hardening: concluído localmente.**  
-> Inclui `decideWebhookTransition`, `sanitizeWebhookPayload`, `isWebhookTsFresh`, claim idempotente por `(provider, provider_event_id)`, fallback por `external_reference`, releitura de status antes de aprovação e sincronização do core com a Edge Function.  
-> **13 testes Vitest + build aprovados.**  
-> Smoke live/sandbox permanece pendente devido à configuração do `MP_WEBHOOK_SECRET` e redeploy da função.  
-> **Status: STOP antes da MARCHA F9-F.**
+> **F9-E** — Webhook concurrency/hardening: concluído (núcleo + Edge, testes).  
+> **H3/H4** (`MP_WEBHOOK_SECRET` + redeploy webhook v4): **PASS** 2026-10-14 — [H1H6 check](../planejamento/FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md).  
+> **F9-F** — IMPLEMENTADO 2026-10-10 (RPC + checkout).  
+> **Smoke Pix/cartão/webhook approve:** ainda **PENDENTE** humano (não confundir com H1–H5).  
+> **Foco atual:** fechamento Fase α — ver [planejamento 04/11](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md).
 
 ---
 
@@ -266,7 +274,7 @@ Não misturar. Exibição de fabricante na vitrine (card e PDP) = **mostrar quan
 **Veículos (conceitual):** Montadora → Modelo → Versão → Motor → Ano/período.  
 **Aplicação:** produto compatível com configuração veicular (PVC), com `year_start` / `year_end` quando aplicável.
 
-Estado: estrutura **CONCLUÍDA**; cobertura de dados **PARCIAL**. Ampliação = F10/F11 + import de aplicações.  
+Estado: estrutura **CONCLUÍDA**; cobertura PVC do catálogo published **ENCERRADA** no trilho FIND-004 M1–M5 (2026-10-09). Ampliação residual / reviews / F11 = pós-α ou MARCHA nova.  
 Não inventar aplicações; imports externos passam por validação/matching.
 
 ---
@@ -507,8 +515,10 @@ Priorizar veículos/grupos de maior giro e potencial (ex.: suspensão com base e
 
 # 31. Lacunas atuais
 
-Ver detalhe e prioridades no [Diagnóstico](../planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md) (gaps P1–P4).  
-Resumo: smoke MP; liberação comercial em escala; cobertura de aplicações; permissões granulares; frete real; polimento F10.
+Ver detalhe e prioridades no [Diagnóstico](../planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md) (histórico) e no [planejamento α 04/11](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) (vigente).  
+
+**Resumo vigente (2026-11-04):** smoke comercial Pix/cartão/webhook; assinatura D-FRETE; pedido E2E pago; Gate α; liberação comercial em escala; permissões granulares (HOLD); frete live só se D-FRETE C (pós-α); polimento F10 residual.  
+**Não é mais lacuna de trilho:** FIND-004 apps PVC M1–M5; F9-F código; F10 Onda 0–1.
 
 ---
 
@@ -520,15 +530,17 @@ Detalhe e gates: [ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md).
 |-------|------|----------|--------|
 | A | F1–F7 | Fundação + operação de pedidos | CONCLUÍDO |
 | B | F8 / F8.1 | Operação comercial (produtos…importações) | Base construída |
-| C | F9 | Pagamento + frete + hardening | F9-E local DONE → STOP → F9-F |
-| **D** | **F10** | **Consolidação operacional / polimento** | **PRÓXIMO FOCO** |
-| E | F11 | Catálogo mestre | PLANEJADO |
+| C | F9 | Pagamento + frete + hardening | F9-E + **F9-F IMPLEMENTADO**; smoke comercial **PENDENTE** |
+| D | F10 | Consolidação operacional / polimento | Onda 0–1 **ENCERRADA**; polimento residual pós-α |
+| **α** | **Fase α** | **Operação comercial controlada** | **FOCO ATUAL** (S1∥S2 → S4 → Gate) |
+| E | F11 | Catálogo mestre | PLANEJADO (pós-α) |
 | F | F12 | Enriquecimento e inteligência | FUTURO |
 | G | F13 | Escala comercial | FUTURO |
 
 ### F10 — Consolidação operacional (não é só visual)
 
-Garantir que o construído funcione como **uma plataforma coerente**: UX admin/checkout, estados, mensagens, permissões, preços, disponibilidade, estoque, pedidos, clientes, importações, relatórios, erros, loading, empty states, responsividade, auditoria, regressão.
+Garantir que o construído funcione como **uma plataforma coerente**: UX admin/checkout, estados, mensagens, permissões, preços, disponibilidade, estoque, pedidos, clientes, importações, relatórios, erros, loading, empty states, responsividade, auditoria, regressão.  
+Onda 0–1 **fechada** (2026-10-09). O **foco imediato** não é “mais F10”, e sim o **fechamento da Fase α** (smoke MP + D-FRETE + E2E pago + gate).
 
 ---
 
@@ -575,7 +587,7 @@ Enriquecimento externo (ingestão → normalização → matching → confiança
 
 ### Ainda pendentes
 
-1. Provedor de frete em produção (D-FRETE).  
+1. Provedor de frete em produção (**D-FRETE** — ficha sem assinatura eFe; premissa de planejamento α = **B** mock/sandbox com aviso; **C**/Correios live = pós-α salvo decisão formal).  
 2. ~~Fabricante na vitrine (card vs PDP)~~ — **feito IMP-07** (exibir se cadastrado).  
 
 3. Taxonomia se divergir do banco.  

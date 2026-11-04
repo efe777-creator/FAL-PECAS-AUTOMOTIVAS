@@ -1,13 +1,15 @@
 # FAL 3.0 — Plano soberano de finalização (Fase α)
 
-**Data:** 2026-10-10  
+**Data:** 2026-10-10 · **sync execução:** 2026-11-04  
 **Tipo:** MARCHA SOBERANA DE PLANEJAMENTO (documento canônico)  
 **Runtime:** `wtbpwuiayednvlhvuhbh`  
 **Loja:** https://fal-pecas-automotivas.netlify.app  
-**Estado do plano:** ATIVO — execução humana + MARCHAs técnicas gated  
+**Estado do plano:** ATIVO — **S0 PASS**; próximo **S1 ∥ S2** (humano)  
+**Runbook vigente:** [FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) · [VAL docs sync](./FAL_MARCHA_DOCS_SYNC_ALPHA_STATUS_VAL_2026-11-04.md)
 
 Este documento **fecha o planejamento** da Fase α com ordem, critérios, evidências e STOP.  
-Não autoriza secrets, repair B3, Bloco F, PDP-ML nem IMP-14/15 profundos.
+Não autoriza secrets, repair B3, Bloco F, PDP-ML nem IMP-14/15 profundos.  
+**Premissa frete α (plano):** D-FRETE **B** — não substitui assinatura eFe na ficha.
 
 ---
 
@@ -47,13 +49,14 @@ Não autoriza secrets, repair B3, Bloco F, PDP-ML nem IMP-14/15 profundos.
 | Camada | Situação |
 |--------|----------|
 | Dados / catálogo / admin | **Pronta** para operação controlada |
-| Loja (browse → carrinho → checkout código) | **Pronta** (E2E-pré até login) |
-| Pagamento MP | Código **pronto**; smoke **pendente humano** |
-| Frete | UI sandbox **pronta**; live **gated** D-FRETE C |
-| Deploy Netlify ↔ `main` | **Risco ops** — bundle às vezes atrasado vs git |
+| Loja (browse → carrinho → checkout código) | **Pronta** (E2E-pré até login; catálogo OK 04/11) |
+| Pagamento MP | Código **pronto**; H1–H5 **PASS** 14/10; smoke Pix/cartão **pendente humano** |
+| Frete | UI sandbox **pronta**; α planejada com **B**; live só se **C** |
+| Deploy Netlify ↔ `main` | **S0 PASS** 04/11 — bundle `index-DYpbbWUS.js` |
+| Docs PRD/ROADMAP/gate | **Sync FATO** 04/11 (MARCHA_DOCS_SYNC) |
 | Aceite gate α | **Pendente** assinatura eFe |
 
-**Conclusão:** a α não falta “mais uma feature grande” do agente; falta **gate humano + evidência de compra + política frete (+ sync deploy)**.
+**Conclusão:** a α não falta feature grande do agente; falta **S1 (D-FRETE B assinado) + S2 (smoke MP) + S4 (pedido pago) + S5 (gate)**.
 
 ---
 
@@ -88,16 +91,16 @@ Marcar **PASS** só com evidência. Gate α só fecha com todos os **obrigatóri
 
 | ID | Critério | Responsável | Evidência | Status |
 |----|----------|-------------|-----------|--------|
-| α-OPS-1 | Netlify publicando `main` atual (bundle ≠ stale) | eFe / Netlify | Deploy log + hash asset / “Ver produto” no carrinho | **FAIL ops** (2026-10-10: bundle antigo) |
-| α-MP-1 | H1–H6 preenchidos | eFe | [MP prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) | PENDENTE |
-| α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | Local **PASS**; Netlify **PENDENTE deploy** — [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | Parcial |
-| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | **FAIL UI** 18:10; fix client/Edge em F14 — reteste após secret + redeploy |
-| α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | MP status | PENDENTE (bloqueado por H5) |
-| α-MP-4 | Webhook: PASS ou NÃO TESTÁVEL (secret) explícito | eFe | MP status | PENDENTE |
-| α-FR-1 | D-FRETE assinado A **ou** B **ou** C | eFe | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | PENDENTE |
-| α-FR-2 | Mensagem ao cliente + expedição preenchidas | eFe | ficha D-FRETE | PENDENTE |
-| α-E2E-1 | 1 pedido teste com pagamento sandbox + evidências | eFe | prints/Network/order id | PENDENTE |
-| α-E2E-2 | Frete no pedido coerente com política assinada | eFe | order.shipping_* / UI | PENDENTE |
+| α-OPS-1 | Netlify publicando `main` atual (bundle ≠ stale) | eFe / Netlify | `index-DYpbbWUS.js` + catálogo 04/11 | **PASS** (04/11) |
+| α-MP-1 | H1–H6 preenchidos | eFe | [H1H6](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md) · VAL S2 | H1–H6 **PASS** (H6 user existente 04/11) |
+| α-MP-H5 | Checkout **não** em «Pagamento (simulado)» | eFe | Recheck S2 04/11 — «Pagamento — Mercado Pago» | **PASS** |
+| α-MP-2 | Pix sandbox PASS (ou BLOQUEADO documentado) | eFe | [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) · order `4b3e2f33…` | **PARCIAL** (pending OK; QR UI **FAIL** FIND-SMOKE-UI-001) |
+| α-MP-3 | Cartão sandbox PASS (ou BLOQUEADO documentado) | eFe | order `b3312ed0…` | **PARCIAL** (pedido OK; Brick **FAIL** FIND-SMOKE-UI-001) |
+| α-MP-4 | Webhook: PASS ou NÃO TESTÁVEL (secret) explícito | eFe | notifications_history vazio; pedidos ainda aguardando | **NÃO OBSERVADO** |
+| α-FR-1 | D-FRETE assinado A **ou** B **ou** C | eFe | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | **PENDENTE** (plano = B) |
+| α-FR-2 | Mensagem ao cliente + expedição preenchidas | eFe | ficha D-FRETE | **PENDENTE** |
+| α-E2E-1 | 1 pedido teste com pagamento sandbox + evidências | eFe | prints/Network/order id | **PENDENTE** |
+| α-E2E-2 | Frete no pedido coerente com política assinada | eFe | order.shipping_* / UI | **PENDENTE** |
 | α-GATE-1 | Assinatura “Operação controlada OK” | eFe | [gate α](./FAL_ALPHA_GATE_2026-10-10.md) | PENDENTE |
 
 ### 3.2 Condicionais (só se D-FRETE = C)
@@ -137,36 +140,35 @@ flowchart TD
   S5 --> S6[S6 STOP α / abrir pós-α só com plano novo]
 ```
 
-### S0 — Sync deploy (ops, imediato)
+### S0 — Sync deploy (ops) — **PASS 2026-11-04**
 
 | Passo | Ação | Done when |
 |-------|------|-----------|
-| S0.1 | Netlify → Trigger deploy da `main` (ou religar Git) | Novo `index-*.js` |
+| S0.1 | Netlify → Trigger deploy da `main` (ou religar Git) | Novo `index-*.js` — **feito** `index-DYpbbWUS.js` |
 | S0.2 | Hard refresh `/carrinho` | Link **Ver produto** visível |
-| S0.3 | Confirmar catálogo + wtbp | Network `wtbpwuiayednvlhvuhbh` |
-| S0.4 | Registrar em E2E/prod status | Data + asset hash |
+| S0.3 | Confirmar catálogo + wtbp | Network `wtbpwuiayednvlhvuhbh` — **UP 04/11** |
+| S0.4 | Registrar em E2E/prod status | [E2E sync 04/11](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) |
 
-**Bloqueio relativo:** sem S0, smokes de UI em produção são inválidos (falso negativo).
+**Não reabrir S0** sem finding (NXDOMAIN / bundle stale).
 
-### S1 — D-FRETE (eFe)
+### S1 — D-FRETE (eFe) — **AGORA**
 
 | Passo | Ação |
 |-------|------|
-| S1.1 | Escolher A / B / C na ficha |
+| S1.1 | Escolher **B** na ficha (premissa α) |
 | S1.2 | Preencher mensagem ao cliente + expedição |
-| S1.3 | Se C: escrever “Próxima MARCHA: HTTP Correios + place_order” e autorizar |
+| S1.3 | Se C (não α padrão): escrever “Próxima MARCHA: HTTP Correios + place_order” e autorizar |
 | S1.4 | Assinar + data |
 
-**Recomendação α documentada (não assina pelo agente):** A ou B para 1ª operação; C se cotação real na PDP for requisito duro da α.
+**Recomendação α (não assina pelo agente):** **B** para fechamento; C = pós-α salvo decisão formal.
 
-### S2 — Mercado Pago smoke (eFe)
+### S2 — Mercado Pago smoke (eFe) — **AGORA (∥ S1)**
 
-Executar [FAL_MP_SMOKE_PREP](./FAL_MP_SMOKE_PREP_2026-10-09.md) na ordem H1→H6, depois Pix e cartão.  
-Registrar template no [FAL_MP_SMOKE_STATUS](./FAL_MP_SMOKE_STATUS_2026-10-10.md).
+H1–H5 já **PASS** — executar [prep](./FAL_MP_SMOKE_PREP_2026-10-09.md) §3: H6 → Pix → cartão → webhook.  
+Registrar em [MP status](./FAL_MP_SMOKE_STATUS_2026-10-10.md).
 
-**Bloqueio atual (FATO 10/10):** produção mostra **Pagamento (simulado)** → H5 incompleto.  
-Antes do smoke Pix/cartão: Netlify `VITE_PAYMENT_PROVIDER=mercadopago` + `VITE_MP_PUBLIC_KEY` (TEST) + **Trigger deploy**.  
-Critério visual: título vira **«Pagamento — Mercado Pago»**.
+**Recheck visual no início do S2:** título **«Pagamento — Mercado Pago»** (não “simulado”).  
+Apoio agente: só com auth explícita `SMOKE MP`.
 
 | Paralelo | Permitido? |
 |----------|------------|

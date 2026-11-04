@@ -1,85 +1,60 @@
 # Smoke Mercado Pago — status de execução
 
-**Data:** 2026-10-10 (rev. evidência UI checkout)  
+**Data:** 2026-10-10 · **sync smoke S2:** 2026-11-04  
 **Runtime:** `wtbpwuiayednvlhvuhbh`  
 **Prep:** [FAL_MP_SMOKE_PREP_2026-10-09.md](./FAL_MP_SMOKE_PREP_2026-10-09.md)  
+**Check H1–H6:** [FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md)  
+**VAL S2:** [FAL_MARCHA_SMOKE_MP_S2_VAL_2026-11-04.md](./FAL_MARCHA_SMOKE_MP_S2_VAL_2026-11-04.md)  
 **Loja:** https://fal-pecas-automotivas.netlify.app  
-**Plano α:** [FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) · passo **S2**
 
 ---
 
-## Resultado (agente)
+## Resultado S2 — 2026-11-04 (FATO)
 
-| Item | Estado |
-|------|--------|
-| Checklist H1–H6 | **BLOQUEADO — gate humano** |
-| **H5 local (Vite)** | **PASS 18:07** — `resolvePaymentProviderKey()=mercadopago` após vars em `fal-pecas/.env.local` + restart |
-| **H5 Netlify (prod)** | **PASS deploy** 2026-10-11 — bundle `index-DYpbbWUS.js` (≠ stale); smoke UI MP em prod ainda a confirmar |
-| Pix sandbox | **FAIL** `not_found` 18:22 → fix CPF no payer + idempotency retry; Edge **v6** 18:32; **reteste Pix agora** |
-| Cartão sandbox | **NÃO EXECUTADO** (local H5 OK; falta smoke + Edge secrets) |
-| Webhook approve | **NÃO EXECUTADO** |
-| Prep documental | Pronto |
-| Netlify → wtbp (catálogo) | **OK** |
+| Item | Estado | Evidência |
+|------|--------|-----------|
+| H1–H5 | **PASS** (14/10) | H1H6 check |
+| H6 | **PASS** | MCP `create_test_user` MLB buyer — user já existia (`TESTUSER4281159213436430510`, ativo desde 14/10). Senha **não** documentada |
+| UI checkout MP | **PASS** | Título **«Pagamento — Mercado Pago»** + Pix / Cartão (não “simulado”) |
+| Pix (create cobrança) | **PASS parcial** | Pedido `4b3e2f33-407f-4aa3-b1db-72608da6605b` · 04/11/2026 09:54 · total R$ 186,34 · **Pagamento: mercadopago · pending** · status pedido Aguardando pagamento |
+| Pix (QR / copia-cola UI) | **FAIL / BLOQUEADO UI** | Após «Gerar cobrança Pix» / Processando, checkout remonta **«Carrinho vazio»** — painel QR **não** permaneceu observável |
+| Cartão (place_order) | **PASS parcial** | Pedido `b3312ed0…` · 04/11/2026 · R$ 186,34 · Aguardando pagamento (criado após «Continuar para cartão») |
+| Cartão (Brick approve) | **FAIL / BLOQUEADO UI** | Mesmo sintoma: pós-`place_order` → Carrinho vazio; Brick **não** preenchido/aprovado nesta sessão |
+| Webhook approve | **NÃO OBSERVADO** | Pedidos seguem Aguardando pagamento; MCP `notifications_history` app `8320396999442614` → **No Notifications Found** |
+| FIND-015 | **OK neste smoke** | Fluxo usou MP (não `pix_simulated` como pago) |
 
-Agente **não** lê nem altera `MP_ACCESS_TOKEN` / `MP_WEBHOOK_SECRET` / vars Netlify.
-
----
-
-## Evidência UI
-
-### Produção (print ~17:49) — FATO
-
-**«Pagamento (simulado)»** no Netlify → build publicado sem MP (ou stale).
-
-### Localhost (~18:07) — FATO
-
-- Vars na raiz não bastam; Vite lê `fal-pecas/.env.local` (corrigido).
-- Restart Vite → `isMercadoPagoCheckoutEnabled() === true`.
-- UI logada deve mostrar **«Pagamento — Mercado Pago»**.
-
-### Ação restante (prod)
-
-**Netlify → Trigger deploy** (vars Vite só entram no build).  
-Depois: Edge secrets H1–H4 + smoke Pix/cartão.
-
-| Secret Edge | Nota |
-|-------------|------|
-| `MP_ACCESS_TOKEN` | TEST |
-| `MP_ENV` | `test` |
-| `MP_WEBHOOK_SECRET` | webhook |
-| Redeploy functions | após secrets |
+**Veredicto S2 comercial completo:** **NÃO PASS** (create/pedido OK; UX pós-pedido + approve webhook **não** fechados).
 
 ---
 
-## Ordem humana (resumo)
+## Finding (novo) — bloqueia smoke UX
 
-1. **S0** Trigger deploy se `main` atrasado  
-2. **H5** vars Netlify MP + redeploy site  
-3. **H1–H4** secrets Edge + redeploy functions  
-4. **H6** conta/usuário sandbox MP  
-5. Pix + cartão com evidências → preencher registro abaixo  
-6. Desbloqueia E2E α (S4)
+**FIND-SMOKE-UI-001:** Após `place_order` com canal MP (Pix ou cartão), a limpeza do carrinho faz o `CheckoutPage` cair no estado **Carrinho vazio**, interrompendo a exibição de `MercadoPagoPixPanel` / `MercadoPagoCardBrickPanel` na mesma navegação.
+
+**Impacto:** cobrança/pedido podem existir no backend (`mercadopago · pending`), mas o cliente perde a UI de pagamento no checkout.
+
+**Próxima MARCHA técnica sugerida (auth):** `MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI` — manter `mpAwaiting` / rota de pagamento mesmo com carrinho vazio após place_order.
+
+**Update 04/11:** fix **IMPLEMENTADO** em código — [VAL](./FAL_MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI_VAL_2026-11-04.md). Reteste S2 aguarda deploy Netlify.
 
 ---
 
-## Registro (preencher no smoke humano)
+## Registro
 
 ```text
-Data:
-Executor:
-Ambiente (URL / project-ref): https://fal-pecas-automotivas.netlify.app / wtbpwuiayednvlhvuhbh
-H1–H6: OK / FALHA (detalhe)
-  H5 UI: FAIL 2026-10-10 — Pagamento (simulado) em produção (evidência print)
-Pix: PASS / FAIL / BLOQUEADO — evidências:
-Cartão: PASS / FAIL / BLOQUEADO — evidências:
-Webhook: PASS / FAIL / NÃO TESTÁVEL —
-FIND-015: OK / FAIL — (hoje: simulado ativo = FIND-015 em risco se venda real)
-Próximo: setar VITE_PAYMENT_PROVIDER=mercadopago + deploy + retestar
+Data: 2026-11-04
+Executor: agente (SMOKE MP / MARCHA SOBERANA auth eFe)
+Ambiente: https://fal-pecas-automotivas.netlify.app / wtbpwuiayednvlhvuhbh
+H1–H6: H1–H5 PASS · H6 PASS (user teste existente)
+Pix: PASS parcial (pedido+pending) / FAIL UI QR — order 4b3e2f33-407f-4aa3-b1db-72608da6605b
+Cartão: PASS parcial (pedido) / FAIL UI Brick — order b3312ed0…
+Webhook: NÃO OBSERVADO (sem notify history; pedidos ainda aguardando)
+FIND-015: OK
+Próximo: MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI → reteste Pix/cartão/webhook
 ```
 
 ---
 
-## Encerramento
+## STOP
 
-**Entrega agente:** H5 **FAIL** documentado com UI; ponte de correção Netlify/Edge.  
-**Aceite smoke:** somente após UI MP real + evidências Pix/cartão.
+Sem inventar approve. Sem Gate α. Sem D-FRETE assinado pelo agente.
