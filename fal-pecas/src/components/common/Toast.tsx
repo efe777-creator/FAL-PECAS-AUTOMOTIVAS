@@ -7,14 +7,29 @@ import {
   type ReactNode,
 } from 'react'
 
+interface ToastAction {
+  label: string
+  to: string
+}
+
 interface ToastItem {
   id: number
   message: string
   tone: 'info' | 'success' | 'error'
+  action?: ToastAction
+}
+
+type ToastPushOptions = {
+  action?: ToastAction
+  durationMs?: number
 }
 
 interface ToastContextValue {
-  push: (message: string, tone?: ToastItem['tone']) => void
+  push: (
+    message: string,
+    tone?: ToastItem['tone'],
+    options?: ToastPushOptions,
+  ) => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -22,25 +37,33 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
 
-  const push = useCallback((message: string, tone: ToastItem['tone'] = 'info') => {
-    const id = Date.now() + Math.random()
-    setItems((prev) => [...prev, { id, message, tone }])
-    window.setTimeout(() => {
-      setItems((prev) => prev.filter((t) => t.id !== id))
-    }, 3200)
-  }, [])
+  const push = useCallback(
+    (message: string, tone: ToastItem['tone'] = 'info', options?: ToastPushOptions) => {
+      const id = Date.now() + Math.random()
+      const duration = options?.durationMs ?? (options?.action ? 6000 : 3200)
+      setItems((prev) => [
+        ...prev,
+        { id, message, tone, action: options?.action },
+      ])
+      window.setTimeout(() => {
+        setItems((prev) => prev.filter((t) => t.id !== id))
+      }, duration)
+    },
+    [],
+  )
 
   const value = useMemo(() => ({ push }), [push])
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-4 bottom-20 z-[300] flex w-[min(360px,calc(100%-2rem))] flex-col gap-2 lg:bottom-4">
+      {/* left + bottom alto: evita badge "Powered by Netlify" e deixa o CTA clicável */}
+      <div className="pointer-events-none fixed bottom-24 left-4 z-[300] flex w-[min(380px,calc(100%-2rem))] flex-col gap-2 sm:bottom-6">
         {items.map((t) => (
           <div
             key={t.id}
             className={[
-              'rounded-[10px] px-4 py-3 text-sm font-semibold shadow-fal',
+              'pointer-events-auto flex items-center justify-between gap-3 rounded-[10px] px-4 py-3 text-sm font-semibold shadow-fal',
               t.tone === 'success' && 'bg-fal-success text-white',
               t.tone === 'error' && 'bg-fal-danger text-white',
               t.tone === 'info' && 'bg-fal-navy text-white',
@@ -49,7 +72,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               .join(' ')}
             role="status"
           >
-            {t.message}
+            <span className="min-w-0 flex-1 leading-snug">{t.message}</span>
+            {t.action ? (
+              // <a> (não Link): ToastProvider fica fora do RouterProvider em App.tsx
+              <a
+                href={t.action.to}
+                className="shrink-0 rounded-md bg-white/20 px-2.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white no-underline hover:bg-white/30"
+              >
+                {t.action.label}
+              </a>
+            ) : null}
           </div>
         ))}
       </div>

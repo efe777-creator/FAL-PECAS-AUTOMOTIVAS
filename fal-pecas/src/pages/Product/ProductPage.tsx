@@ -329,7 +329,9 @@ export function ProductPage() {
                   aria-label="Aumentar quantidade"
                   onClick={() => {
                     addItem(current, 1)
-                    push('Quantidade atualizada', 'success')
+                    push('Quantidade atualizada', 'success', {
+                      action: { label: 'Ver carrinho', to: '/carrinho' },
+                    })
                   }}
                 >
                   +
@@ -341,7 +343,9 @@ export function ProductPage() {
                 fullWidth
                 onClick={() => {
                   addItem(current, 1)
-                  push('Produto adicionado ao carrinho', 'success')
+                  push('Produto adicionado ao carrinho', 'success', {
+                    action: { label: 'Ver carrinho', to: '/carrinho' },
+                  })
                 }}
               >
                 Adicionar ao carrinho

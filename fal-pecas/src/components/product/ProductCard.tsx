@@ -75,6 +75,7 @@ export function ProductCard({ product }: { product: Product }) {
         ? 'Produto adicionado ao carrinho'
         : `${next} unidades no carrinho`,
       'success',
+      { action: { label: 'Ver carrinho', to: '/carrinho' } },
     )
   }
 
@@ -90,7 +91,9 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation()
     if (!available) return
     addItem(product, 1)
-    push(`${cartQty + 1} unidades no carrinho`, 'success')
+    push(`${cartQty + 1} unidades no carrinho`, 'success', {
+      action: { label: 'Ver carrinho', to: '/carrinho' },
+    })
   }
 
   return (
