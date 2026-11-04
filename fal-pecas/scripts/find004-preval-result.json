@@ -1,0 +1,370 @@
+{
+  "generatedAt": "2026-10-09T19:19:04.894Z",
+  "file": "LISTA SUSP. aplicação FAL.csv",
+  "csv": {
+    "rows": 691,
+    "skusDistinct": 100,
+    "blankVersao": 311,
+    "blankAnoFim": 178,
+    "blankAnoIni": 1
+  },
+  "wtbpCatalog": {
+    "products": 100,
+    "makers": 22,
+    "models": 25,
+    "versions": 11,
+    "pvc": 45
+  },
+  "identity": {
+    "skusNotInDb": [],
+    "skusNotInDbCount": 0,
+    "commercialRefDiffersFromSkuCount": 0,
+    "commercialRefDiffersSample": []
+  },
+  "previewActions": {
+    "new": 688,
+    "update": 9,
+    "found": 0,
+    "already_covered": 24,
+    "review": 21,
+    "error": 1
+  },
+  "applyable": 697,
+  "classification": {
+    "APTA": 697,
+    "REVISAR": 21,
+    "BLOQUEADA": 1,
+    "note": "APTA = applyable (new/update/found); REVISAR = review; BLOQUEADA = error"
+  },
+  "blankVersaoBehavior": {
+    "csvLinesBlank": 311,
+    "previewRows": 363,
+    "expansionRatio": 1.167202572347267,
+    "createVersion": 253,
+    "matchedVehicleVersionId": 97,
+    "review": 12,
+    "openEndYearNullCount": 160,
+    "rule": "blank + modelo resolvido + ≥1 VV → N linhas (1 por VV); 0 VV → createVersion"
+  },
+  "marcha2Checks": {
+    "palioActiveVvs": 5,
+    "palioBlankSample": {
+      "line": 2,
+      "sku": "1307B",
+      "expandedTo": 5,
+      "expectedVvs": 5,
+      "vehicleVersionIds": [
+        "087f1752-1815-4a8d-80a7-61374cc529d7",
+        "55555555-5555-5555-5555-555555555001",
+        "55555555-5555-5555-5555-555555555010",
+        "55555555-5555-5555-5555-555555555011",
+        "bfd7e060-e033-4f0d-a5a2-0707e5e3d000"
+      ],
+      "yearEnds": [
+        2017
+      ],
+      "createVersionAny": false,
+      "coversAllModelVvs": true
+    },
+    "explicitVersionRows": 380,
+    "explicitSplitOrMultiLineRows": 0,
+    "note": "MARCHA 2: cobertura blank×Palio; ano_fim null preservado; explícitas sem expansão indevida. Apply ainda bloqueado."
+  },
+  "marcha3Reconciliation": {
+    "csvRows": 691,
+    "previewRows": 743,
+    "expansionDelta": 52,
+    "previewEquation": "688+9+0+24+21+1=743",
+    "csvLineClasses": {
+      "distinctLinesInPreview": 691,
+      "applyableOrMixed": 652,
+      "reviewOnly": 21,
+      "error": 1,
+      "coveredOnly": 17,
+      "note": "Uma linha CSV blank pode gerar N preview rows; classes são por lineNumber."
+    },
+    "reviewLineNumbers": [
+      49,
+      126,
+      150,
+      341,
+      346,
+      365,
+      366,
+      394,
+      508,
+      509,
+      529,
+      530,
+      551,
+      554,
+      624,
+      625,
+      626,
+      659,
+      660,
+      661,
+      666
+    ],
+    "errorLineNumbers": [
+      488
+    ],
+    "pendingSource": {
+      "TDI0150": "linha inválida/incompleta — não inventar",
+      "ano_inicio_vazio": "1 ocorrência (TDI0150); decisão de regra geral ainda aberta",
+      "reviews": 21
+    },
+    "applyBlocked": true,
+    "note": "MARCHA 3: reval completa pós blank→VVs. Apply em massa continua BLOQUEADO."
+  },
+  "samples": {
+    "sampleErrors": [
+      {
+        "line": 488,
+        "sku": "TDI0150",
+        "message": "Informe código referência, montadora e modelo."
+      }
+    ],
+    "sampleReview": [
+      {
+        "line": 49,
+        "sku": "4893S",
+        "modelo": "GOLF",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 126,
+        "sku": "BRD9329",
+        "modelo": "GRAND SIENA",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 150,
+        "sku": "PVI1032",
+        "modelo": "GRAND SIENA",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 341,
+        "sku": "SK1223",
+        "modelo": "GRAND SIENA",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 346,
+        "sku": "SK145S",
+        "modelo": "GRAND SIENA",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 365,
+        "sku": "SK2518",
+        "modelo": "CIELO",
+        "versao": "HATCH",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 366,
+        "sku": "SK2518",
+        "modelo": "CIELO",
+        "versao": "SEDAN",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 394,
+        "sku": "SK3248",
+        "modelo": "ONIX PLUS",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 508,
+        "sku": "TDI0800",
+        "modelo": "GOLF",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 509,
+        "sku": "TDI0800",
+        "modelo": "GOLF VARIANT",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 529,
+        "sku": "TDI0801",
+        "modelo": "GOLF",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 530,
+        "sku": "TDI0801",
+        "modelo": "GOLF VARIANT",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 551,
+        "sku": "TDI1003",
+        "modelo": "PALIO WEEKEND",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 554,
+        "sku": "TDI1004",
+        "modelo": "PALIO WEEKEND",
+        "versao": "",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 624,
+        "sku": "TDI1088",
+        "modelo": "GOLF",
+        "versao": "G4",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 625,
+        "sku": "TDI1088",
+        "modelo": "GOLF",
+        "versao": "G4.5",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 626,
+        "sku": "TDI1088",
+        "modelo": "GOLF",
+        "versao": "GTI",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 659,
+        "sku": "TDI1089",
+        "modelo": "GOLF",
+        "versao": "G4",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 660,
+        "sku": "TDI1089",
+        "modelo": "GOLF",
+        "versao": "G4.5",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 661,
+        "sku": "TDI1089",
+        "modelo": "GOLF",
+        "versao": "GTI",
+        "message": "Precisa de revisão — correspondência de veículo"
+      },
+      {
+        "line": 666,
+        "sku": "TDI1105",
+        "modelo": "PALIO WEEKEND",
+        "versao": "ADVENTURE",
+        "message": "Precisa de revisão — correspondência de veículo"
+      }
+    ],
+    "sampleBlank": [
+      {
+        "line": 2,
+        "sku": "1307B",
+        "modelo": "PALIO",
+        "action": "new",
+        "createVersion": false,
+        "vehicleVersionId": "bfd7e060-e033-4f0d-a5a2-0707e5e3d000",
+        "message": "Novo cadastro de aplicação (versão do modelo)"
+      },
+      {
+        "line": 2,
+        "sku": "1307B",
+        "modelo": "PALIO",
+        "action": "new",
+        "createVersion": false,
+        "vehicleVersionId": "55555555-5555-5555-5555-555555555010",
+        "message": "Novo cadastro de aplicação (versão do modelo)"
+      },
+      {
+        "line": 2,
+        "sku": "1307B",
+        "modelo": "PALIO",
+        "action": "new",
+        "createVersion": false,
+        "vehicleVersionId": "55555555-5555-5555-5555-555555555011",
+        "message": "Novo cadastro de aplicação (versão do modelo)"
+      },
+      {
+        "line": 2,
+        "sku": "1307B",
+        "modelo": "PALIO",
+        "action": "already_covered",
+        "createVersion": false,
+        "vehicleVersionId": "087f1752-1815-4a8d-80a7-61374cc529d7",
+        "message": "Já contemplado"
+      },
+      {
+        "line": 2,
+        "sku": "1307B",
+        "modelo": "PALIO",
+        "action": "new",
+        "createVersion": false,
+        "vehicleVersionId": "55555555-5555-5555-5555-555555555001",
+        "message": "Novo cadastro de aplicação (versão do modelo)"
+      },
+      {
+        "line": 3,
+        "sku": "1307B",
+        "modelo": "SIENA",
+        "action": "update",
+        "createVersion": false,
+        "vehicleVersionId": "2c4ce5ff-82a1-4e56-bae5-1937731e766f",
+        "message": "Será atualizado o período"
+      },
+      {
+        "line": 4,
+        "sku": "1307B",
+        "modelo": "IDEA",
+        "action": "already_covered",
+        "createVersion": false,
+        "vehicleVersionId": "9ba07526-de33-45fb-98d5-a6d33ba0bfb1",
+        "message": "Já contemplado"
+      },
+      {
+        "line": 5,
+        "sku": "1307B",
+        "modelo": "DOBLO",
+        "action": "already_covered",
+        "createVersion": false,
+        "vehicleVersionId": "9e3ce71f-5599-4173-a071-c7d324d32a2e",
+        "message": "Já contemplado"
+      },
+      {
+        "line": 6,
+        "sku": "1307B",
+        "modelo": "STRADA",
+        "action": "already_covered",
+        "createVersion": false,
+        "vehicleVersionId": "ad0aa7f6-5b2e-4665-b41b-7fa70299dc3c",
+        "message": "Já contemplado"
+      },
+      {
+        "line": 7,
+        "sku": "1308B",
+        "modelo": "PALIO",
+        "action": "new",
+        "createVersion": false,
+        "vehicleVersionId": "bfd7e060-e033-4f0d-a5a2-0707e5e3d000",
+        "message": "Novo cadastro de aplicação (versão do modelo)"
+      }
+    ]
+  }
+}
