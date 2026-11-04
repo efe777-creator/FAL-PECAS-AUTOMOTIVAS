@@ -9,29 +9,34 @@
 |------|--------|
 | `shipping_quotes` | **PASS** presente |
 | `resolve_me_shipping_option` | **PASS** presente |
-| `melhorenvio_webhook_events` | **PASS** (apply #57) |
+| `melhorenvio_webhook_events` | **PASS** |
 
 ## Secrets Edge
 
-| Secret | Estado 04/11 |
-|--------|----------------|
-| `MELHOR_ENVIO_USER_AGENT` | **SET** `FAL Pecas Automotivas (efe.comercioltda@gmail.com)` |
-| `MELHOR_ENVIO_WEBHOOK_SECRET` | **SET** (aleatório) |
-| `MELHOR_ENVIO_TOKEN` | **PENDENTE** — login sandbox rejeitou senha do e-mail local; eFe redefine senha / cola Bearer |
+| Secret | Estado |
+|--------|--------|
+| `MELHOR_ENVIO_TOKEN` | **SET** (updated 04/11 ~19:36Z) |
+| `MELHOR_ENVIO_USER_AGENT` | **SET** |
+| `MELHOR_ENVIO_WEBHOOK_SECRET` | **SET** |
 
-## Como colar o TOKEN (humano)
+Evidência: `supabase secrets list` — nomes presentes (valores mascarados).
 
-No painel Melhor Envio **sandbox** → Integrações / OAuth → copiar `access_token`, depois:
+## Deploy
 
-```powershell
-cd fal-pecas
-npx supabase secrets set --yes "MELHOR_ENVIO_TOKEN=COLE_AQUI" --project-ref wtbpwuiayednvlhvuhbh
-```
+| Edge | Estado |
+|------|--------|
+| `quote-shipping` | Redeploy 04/11 pós-TOKEN |
+| `melhorenvio-label` | Redeploy 04/11 pós-TOKEN |
 
-Nunca `VITE_*`. Base API já fixa no código: `https://sandbox.melhorenvio.com.br`.
+## Aceite M-ME-SEC
 
-## STOP parcial
+- [x] Migration híbrida no wtbp  
+- [x] Trio `MELHOR_ENVIO_*` no Edge  
+- [x] Edges redeployed  
+- [ ] Smoke loja calculate / Expedição purchase = humano (opt-in `VITE_SHIPPING_PROVIDER=melhorenvio` local; default prod = mock)
 
-Migration + UA + webhook OK. Smoke HTTP ME espera `MELHOR_ENVIO_TOKEN`.
+## STOP
 
-**Assinatura agente:** VAL M-ME-SEC parcial 2026-11-04.
+M-ME-SEC **fechado** (secrets + migration + deploy). Smoke E2E = próxima MARCHA humana/ops.
+
+**Assinatura agente:** VAL M-ME-SEC PASS 2026-11-04.

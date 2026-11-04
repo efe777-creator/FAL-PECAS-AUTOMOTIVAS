@@ -29,12 +29,11 @@
 
 | Item | Estado 04/11 soberana | Nota |
 |------|----------------------|------|
-| Secrets `USER_AGENT` / `WEBHOOK_SECRET` | **SET** | ver [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
-| Secret `MELHOR_ENVIO_TOKEN` | **PENDENTE** | Bearer sandbox — eFe após login |
+| Secrets `MELHOR_ENVIO_*` (TOKEN/UA/WH) | **SET** | [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
 | `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem decisão |
 | M6 medidas SKUs | **100 quote-ready** | [VAL M6](./FAL_MARCHA_M6_MEDIDAS_VAL_2026-11-04.md) provisório global |
 | Saldo carteira sandbox | — | Antes do 1º `purchase` real |
-| Smoke E2E | BLOQUEADO | Após `MELHOR_ENVIO_TOKEN` |
+| Smoke E2E | Pronto para humano | Secrets + M6 OK; default loja = mock |
 
 ## Aceite D12 (checklist)
 
@@ -42,8 +41,10 @@
 - [x] Path `meq:` no código + SQL  
 - [x] Approve MP não compra etiqueta; prepare `prepared`  
 - [x] Expedição pode cart→checkout→generate→print (HTTP sandbox)  
-- [ ] Smoke E2E com secrets + migration aplicada (humano)  
+- [x] Secrets + migration no wtbp  
+- [ ] Smoke E2E (humano; opt-in provider ME)  
 - [ ] Disclaimer B visível com provider ME  
+
 
 ## Arquivos-chave
 
@@ -57,6 +58,6 @@
 
 ## STOP
 
-Código + migration + Edges **ok**. Secrets ME + M6 = humano ([soberana pós-α](./FAL_MARCHA_SOBERANA_POS_ALPHA_EXEC_2026-11-04.md)).
+Código + migration + Edges + secrets ME + M6 **ok**. Smoke E2E = humano.
 
-**Assinatura agente:** VAL ME híbrido 2026-11-04 · sync soberana 2026-11-04.
+**Assinatura agente:** VAL ME híbrido 2026-11-04 · sync M-ME-SEC 2026-11-04.

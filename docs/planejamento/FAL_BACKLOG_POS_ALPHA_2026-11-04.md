@@ -38,7 +38,7 @@
 | ID | Item | Nota |
 |----|------|------|
 | P2-OWN | Frete próprio FAL (SP capital) | **FEITO config** [VAL](./FAL_MARCHA_LOGISTICA_FRETE_PROPRIO_VAL_2026-11-04.md) · preço avançado + `enabled` = PENDÊNCIA |
-| P2-ME | Melhor Envio (cotação ≠ contratação) | Código D12 **#57**; secrets **AUSENTES**; M6 bloqueia quote; **nova** decisão se sair de B |
+| P2-ME | Melhor Envio (cotação ≠ contratação) | Código D12 **#57**; secrets **SET**; M6 100 quote-ready; smoke E2E + **nova** decisão se sair de B |
 | P2-C | D-FRETE **C** (live) | Só com nova assinatura na ficha |
 
 ## P3 — Escala / lançamento
@@ -61,7 +61,7 @@
 | M0 | UX-ZOOM-TOAST | **FEITO** (#59) |
 | M-ME | HÍBRIDO D12 | **FEITO** código/migration/Edges (#57); secrets pendentes |
 | M6 | DADOS-MEDIDAS | **FEITO** provisório (100 quote-ready) |
-| M-ME-SEC | Secrets ME sandbox | UA+WH **SET**; **TOKEN** pendente |
+| M-ME-SEC | Secrets ME sandbox | **FEITO** TOKEN+UA+WH ([VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md)) |
 | M7 | OPS-E2E-ENTREGA | Após M-ME-SEC + M6 parcial |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Política estorno |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` ainda vazio 04/11 |
