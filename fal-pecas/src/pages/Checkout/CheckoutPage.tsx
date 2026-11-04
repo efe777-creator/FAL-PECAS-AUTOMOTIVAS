@@ -39,6 +39,7 @@ import type {
 } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { showCheckoutEmptyCart } from './checkoutEmptyGuard'
 
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
 
@@ -313,13 +314,15 @@ export function CheckoutPage() {
           if (!mpPublicKey) {
             throw new Error('VITE_MP_PUBLIC_KEY não configurada')
           }
-          clear()
-          clearShippingQuoteHandoff()
+          // FIND-SMOKE-UI-001: setar awaiting ANTES de clear — senão empty-cart early-return esconde o Brick
           setMpAwaiting({
             channel: 'card',
             orderId: placed.orderId,
             amount: placed.total,
           })
+          goToStepIndex(4)
+          clear()
+          clearShippingQuoteHandoff()
           push('Pedido criado — informe o cartão', 'success')
           return
         }
@@ -329,8 +332,7 @@ export function CheckoutPage() {
             'Cobrança criada sem QR Pix. Confira MP_ACCESS_TOKEN (TEST) no Edge e se a conta sandbox gera Pix.',
           )
         }
-        clear()
-        clearShippingQuoteHandoff()
+        // FIND-SMOKE-UI-001: awaiting antes do clear — senão empty-cart early-return esconde o Pix panel
         setMpAwaiting({
           channel: 'pix',
           orderId: placed.orderId,
@@ -339,6 +341,9 @@ export function CheckoutPage() {
           pixQrCode: mp.pixQrCode,
           pixQrCodeBase64: mp.pixQrCodeBase64,
         })
+        goToStepIndex(4)
+        clear()
+        clearShippingQuoteHandoff()
         push('Cobrança Pix criada — aguardando pagamento', 'success')
         return
       }
@@ -359,7 +364,8 @@ export function CheckoutPage() {
     }
   }
 
-  if (!items.length) {
+  // FIND-SMOKE-UI-001: com mpAwaiting, carrinho pode estar vazio após place_order — ainda assim mostrar Pix/Brick
+  if (showCheckoutEmptyCart(items.length, Boolean(mpAwaiting))) {
     return (
       <Container className="py-8">
         <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
@@ -767,21 +773,38 @@ export function CheckoutPage() {
         </div>
 
         <aside className="h-max rounded-fal border border-fal-line bg-white p-5">
-          <div className="mb-3 flex justify-between text-sm">
-            <span>Subtotal</span>
-            <strong>{money(subtotal)}</strong>
-          </div>
-          <div className="mb-3 flex justify-between text-sm text-fal-muted">
-            <span>Frete</span>
-            <span>{selectedShipping ? money(shippingAmount) : 'A calcular'}</span>
-          </div>
-          <div className="flex justify-between border-t border-fal-line pt-3 text-xl font-black">
-            <span>Total</span>
-            <span>{money(total)}</span>
-          </div>
-          <p className="mt-3 text-xs text-fal-muted">
-            Totais definitivos são recalculados no servidor ao finalizar.
-          </p>
+          {mpAwaiting ? (
+            <>
+              <div className="mb-3 text-sm text-fal-muted">
+                Pedido <span className="font-mono text-fal-ink">{mpAwaiting.orderId.slice(0, 8)}…</span>
+              </div>
+              <div className="flex justify-between border-t border-fal-line pt-3 text-xl font-black">
+                <span>Total</span>
+                <span>{money(mpAwaiting.amount)}</span>
+              </div>
+              <p className="mt-3 text-xs text-fal-muted">
+                Aguardando confirmação do Mercado Pago.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mb-3 flex justify-between text-sm">
+                <span>Subtotal</span>
+                <strong>{money(subtotal)}</strong>
+              </div>
+              <div className="mb-3 flex justify-between text-sm text-fal-muted">
+                <span>Frete</span>
+                <span>{selectedShipping ? money(shippingAmount) : 'A calcular'}</span>
+              </div>
+              <div className="flex justify-between border-t border-fal-line pt-3 text-xl font-black">
+                <span>Total</span>
+                <span>{money(total)}</span>
+              </div>
+              <p className="mt-3 text-xs text-fal-muted">
+                Totais definitivos são recalculados no servidor ao finalizar.
+              </p>
+            </>
+          )}
         </aside>
       </div>
     </Container>

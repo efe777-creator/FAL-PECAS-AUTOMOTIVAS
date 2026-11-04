@@ -1,9 +1,9 @@
 # FAL 3.0 — Status consolidado + molde operacional
 
-**Data:** 2026-10-10 (sync α — Netlify + Card smoke; MP/D-FRETE humanos)  
+**Data:** 2026-10-10 · **sync docs:** 2026-11-04  
 **Runtime:** `wtbpwuiayednvlhvuhbh` · HF ≠ verdade comercial  
 **Loja:** https://fal-pecas-automotivas.netlify.app  
-**Fontes:** PRD · ROADMAP · BACKLOG · STATUS_ONDA1 · VALs · [plano soberano α](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) · [gate α](./FAL_ALPHA_GATE_2026-10-10.md)
+**Fontes:** PRD · ROADMAP · STATUS_ONDA1 · VALs · [plano soberano α](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) · [planejamento α 04/11](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) · [gate α](./FAL_ALPHA_GATE_2026-10-10.md) · [auditoria 04/11](./FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md)
 
 ---
 
@@ -45,14 +45,11 @@ auditar → evidências → propor → gate eFe → MARCHA nomeada → implement
 ## 1. Resumo executivo
 
 Onda 0–1 **ENCERRADA**. FIND-004 M1–M5 **ENCERRADO**. MARCHA UI apps/anos **VALIDADA**. PDP A–D **VALIDADA** (escopo).  
-F9-F (meios MP no place_order + checkout) **IMPLEMENTADO** 10/10 — smoke MP ainda **BLOQUEADO** humano.  
-D-FRETE **PENDENTE** assinatura. B3 **HOLD**. Card UX **VALIDADO** smoke produção 10/10.  
-Netlify público → wtbp **OK**. E2E pagamento **não executado**. Gate α: [FAL_ALPHA_GATE](./FAL_ALPHA_GATE_2026-10-10.md).  
-MARCHA Classificação admin (Cat→Grupo→Sub) **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md)).  
-MARCHA Admin Aplicações PVC **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md)) — 730 apps no wtbp.  
-MARCHA Admin Preços UX **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md)) — `%` live no wtbp.  
-MARCHA E2E pré-pagamento **VALIDADA** 10/10 ([VAL](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)) — para em login/MP.  
-MARCHA Frete estrutura/UI sandbox + MCP Correios **VALIDADA** 10/10 ([plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md)) — live HTTP/RPC pendentes.
+F9-F (meios MP no place_order + checkout) **IMPLEMENTADO** 10/10.  
+H1–H5 MP **PASS** 14/10; H6 parcial; smoke Pix/cartão/webhook **NÃO EXECUTADO** (ainda bloqueio humano comercial).  
+D-FRETE **PENDENTE** assinatura (premissa plano α = **B**). B3 **HOLD**. Card UX **VALIDADO**.  
+S0 Netlify + wtbp **PASS** 04/11 (`index-DYpbbWUS.js`). E2E pagamento **não executado**. Gate α: [FAL_ALPHA_GATE](./FAL_ALPHA_GATE_2026-10-10.md) (sem assinatura).  
+Admin classif./apps/preços + E2E-pré + frete sandbox: **VALIDADOS** (VALs 10/10) — live frete só se D-FRETE C.
 
 ---
 
@@ -68,13 +65,14 @@ MARCHA Frete estrutura/UI sandbox + MCP Correios **VALIDADA** 10/10 ([plano](./F
 | Classificação admin L3 | VALIDADO (unit+DB) | [VAL classif.](./FAL_MARCHA_CLASSIFICACAO_ADMIN_VAL_2026-10-10.md) | Smoke staff residual | Feita |
 | Admin aplicações PVC | VALIDADO (unit+DB) | [VAL apps](./FAL_MARCHA_APLICACOES_ADMIN_VAL_2026-10-10.md) | Smoke staff residual | Feita |
 | Admin preços UX | VALIDADO (unit+DB %) | [VAL preços](./FAL_MARCHA_PRECOS_ADMIN_UX_VAL_2026-10-10.md) | Smoke staff residual | Feita |
-| F9-F checkout/RPC | IMPLEMENTADO | [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md) | Smoke MP | Plano 10/10 |
-| MP smoke | BLOQUEADO | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | H1–H6 humano | Humano |
-| D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe (C se PDP cotação real) | Decisão |
+| F9-F checkout/RPC | IMPLEMENTADO | [VAL F9-F](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md) | Smoke MP comercial | Feita |
+| H1–H5 MP config | PASS | [H1H6](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md) | — | Feita |
+| MP smoke Pix/cartão/WH | BLOQUEADO humano | [status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) | S2 humano | Humano |
+| D-FRETE | PENDENTE DECISÃO | [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md) | Assinatura eFe (**B** no plano α) | Decisão |
 | Auditoria frete | VALIDADO | [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) | — | Feita |
 | Frete plano+auditoria | VALIDADO | [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [A–J](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md) | — | Feita |
 | Frete registry/UI sandbox | VALIDADO (unit) | [VAL](./FAL_MARCHA_FRETE_ESTRUTURA_CARRIERS_VAL_2026-10-10.md) | HTTP Correios + place_order | Parcial |
-| Produção Netlify | OK (catálogo/wtbp) | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | H5 vars MP no smoke | Parcial |
+| Produção Netlify / S0 | PASS 04/11 | [auditoria](./FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md) · [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | — | Feita |
 | E2E pré-pagamento | VALIDADO | [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) | Login + MP smoke | Feita |
 | E2E pedido pago | NÃO EXECUTADO | [E2E/prod](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md) | Pós MP+frete | Humano |
 | Plano soberano α | FECHADO (doc) | [plano](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) | Execução S0–S5 | Feita |
@@ -85,16 +83,15 @@ MARCHA Frete estrutura/UI sandbox + MCP Correios **VALIDADA** 10/10 ([plano](./F
 
 ## 3. Próximas MARCHAS
 
-**Plano soberano α:** [FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md](./FAL_PLANO_FINALIZACAO_ALPHA_SOBERANO_2026-10-10.md) (S0–S6).  
-**Agente — código α:** STOP sem auth; residual técnico encerrado; frete live só se D-FRETE **C**.
+**Planejamento α 04/11:** [FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md).  
+**S0:** **PASS** 04/11 — não reabrir sem finding.  
+**Agente — código α:** STOP sem auth; frete live só se D-FRETE **C**.
 
-1. **S0** eFe: Trigger deploy Netlify (`main` atual — bundle stale bloqueia smoke UI)  
-2. **S1** eFe: assinar D-FRETE A/B/C  
-3. **S2** eFe: smoke MP H1–H6 (∥ S1)  
-4. **S3** se C: auth MARCHA Correios HTTP + place_order  
-5. **S4** eFe: 1 pedido E2E pago  
-6. **S5** eFe: assinar gate α → **S6** STOP α  
-7. Hold pós-α: B3, Bloco F, PDP-ML, IMP-14/15 (ver §6 do plano soberano)  
+1. **S1** eFe: assinar D-FRETE **B** (premissa plano; mensagem + expedição)  
+2. **S2** eFe: H6 → Pix → cartão → webhook (∥ S1); auth `SMOKE MP` se apoio agente  
+3. **S4** eFe: 1 pedido E2E pago (frete B + MP)  
+4. **S5** eFe: assinar gate α → **S6** STOP α  
+5. Hold pós-α: B3, Bloco F, domínio, F11+, Correios live se C  
 
 ---
 

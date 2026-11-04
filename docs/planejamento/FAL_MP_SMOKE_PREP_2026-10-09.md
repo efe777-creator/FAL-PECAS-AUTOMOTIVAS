@@ -19,12 +19,14 @@
 
 | # | Item | Status |
 |---|------|--------|
-| H1 | `MP_ACCESS_TOKEN` (test) no Supabase secrets do **wtbp** | ? |
-| H2 | `MP_ENV=test` (ou equivalente documentado) | ? |
-| H3 | `MP_WEBHOOK_SECRET` **completo** setado | ? |
-| H4 | Redeploy `mercado-pago-webhook` **após** H3 | ? |
-| H5 | Netlify: `VITE_SUPABASE_*`, `VITE_PAYMENT_PROVIDER=mercadopago`, `VITE_MP_PUBLIC_KEY` | ? |
-| H6 | Conta MP sandbox + usuário teste | ? |
+| H1 | `MP_ACCESS_TOKEN` (test) no Supabase secrets do **wtbp** | **PASS** 2026-10-14 |
+| H2 | `MP_ENV=test` (ou equivalente documentado) | **PASS** 2026-10-14 |
+| H3 | `MP_WEBHOOK_SECRET` **completo** setado | **PASS** 2026-10-14 (humano) |
+| H4 | Redeploy `mercado-pago-webhook` **após** H3 | **PASS** 2026-10-14 — Edge **v4** |
+| H5 | Netlify: `VITE_SUPABASE_*`, `VITE_PAYMENT_PROVIDER=mercadopago`, `VITE_MP_PUBLIC_KEY` | **PASS** local+prod 2026-10-14 |
+| H6 | Conta MP sandbox + usuário teste | **PARCIAL** — app sandbox OK; user teste N/V |
+
+Evidência completa: [FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md)
 
 Se H3/H4 falharem: registrar “webhook não validável” e ainda assim documentar create-payment + UI.
 
@@ -96,6 +98,7 @@ Próximo: MARCHA F9-F / corrigir gap / retestar
 
 | | |
 |--|--|
-| Prep smoke | **Pronto para execução humana** |
-| Smoke executado | **Pendente** — ver [status 10/10](./FAL_MP_SMOKE_STATUS_2026-10-10.md) |
+| Prep smoke | **Pronto** |
+| H1–H6 | **H1–H5 PASS** · H6 parcial — [check 14/10](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md) |
+| Smoke Pix/cartão | **Pendente** (H3+H4 OK — liberado) |
 | F9-F código/RPC | **IMPLEMENTADO** 10/10 — [VAL](./FAL_F9F_CHECKOUT_MP_METHODS_VAL_2026-10-10.md); smoke comercial ainda pendente |
