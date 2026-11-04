@@ -112,7 +112,7 @@ Detalhe técnico: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 # 7. Estado atual do projeto
 
-**Sync docs:** 2026-11-04 ([auditoria status](../planejamento/FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md) · [planejamento α](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md)).
+**Sync docs:** 2026-11-04 pós-STOP α ([auditoria completa](../planejamento/FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md) · [estado final α](../planejamento/FAL_ESTADO_FINAL_ALPHA_2026-11-04.md) · [backlog pós-α](../planejamento/FAL_BACKLOG_POS_ALPHA_2026-11-04.md)).
 
 ### CONCLUÍDO
 - F1–F7 (loja base, busca, conta, checkout base, operação de pedidos 7A–7F)
@@ -125,19 +125,22 @@ Detalhe técnico: [ARCHITECTURE.md](./ARCHITECTURE.md).
 - **F9-E** webhook concurrency/hardening (código + testes)
 - **F9-F** meios MP no `place_order` + checkout — IMPLEMENTADO (código)
 - PDP A–D, Card UX, frete sandbox UI/estrutura — VALIDADO (código/VALs)
+- **Fase α ENCERRADA** (2026-11-04): smoke MP Pix/cartão **PASS loja**, D-FRETE **B** assinado, E2E pago `08da5ada…`, Gate **SIM**, STOP formal
+- **Pós-α em produção:** logística (hub, origem/remetente, frete próprio config, medidas com origem por campo + bulk), alterações globais em produtos (filtros Categoria/Grupo/Subgrupo/Situação), expiry de não pagos 48 h (RPC + ação admin), UX operador confirmação → separação, retomar pagamento, carrinho sincronizado
 
-### EM VALIDAÇÃO / PENDENTE HUMANO (Fase α)
-- Smoke comercial Mercado Pago: Pix + cartão + webhook approve (H1–H5 config **PASS** 14/10; H6 parcial; smokes **não executados**)
-- Assinatura D-FRETE (premissa de planejamento α = **B**; ficha ainda sem assinatura eFe)
-- 1 pedido E2E sandbox pago + Gate α (assinatura)
-- Catálogo: itens published vs liberados comercialmente em escala
+### EM EXECUÇÃO (pós-α)
+- Regras de fluxo de pedidos — [FAL_REGRAS_FLUXO_PEDIDOS](../planejamento/FAL_REGRAS_FLUXO_PEDIDOS_2026-11-04.md): Onda 1 (cancelar não pago, autorização de indisponibilidade, labels), Onda 2 (cancelamento pós-pago), Onda 3 (cartão tokenizado)
+- Agendamento do expiry (`pg_cron`)
+- Dados de medidas/peso no catálogo (98/100 published sem peso em 04/11)
+- Ressalva α: webhook MCP `notifications_history` não observado
 
 ### BLOQUEADO / HOLD
 - Permissões granulares (Bloco F — fundação adiada)
 - B3 migration repair (HOLD)
 
-### PLANEJADO (pós fechamento α)
+### PLANEJADO
 - Polimento F10 residual (UX/coerência ampla)
+- Frete live: Melhor Envio / D-FRETE **C** (exige nova assinatura)
 - **F11** Catálogo mestre (taxonomia, aplicações, referências, qualidade)
 - Domínio definitivo (Netlify = ponte até lá)
 
@@ -150,8 +153,8 @@ Detalhe técnico: [ARCHITECTURE.md](./ARCHITECTURE.md).
 > **F9-E** — Webhook concurrency/hardening: concluído (núcleo + Edge, testes).  
 > **H3/H4** (`MP_WEBHOOK_SECRET` + redeploy webhook v4): **PASS** 2026-10-14 — [H1H6 check](../planejamento/FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md).  
 > **F9-F** — IMPLEMENTADO 2026-10-10 (RPC + checkout).  
-> **Smoke Pix/cartão/webhook approve:** ainda **PENDENTE** humano (não confundir com H1–H5).  
-> **Foco atual:** fechamento Fase α — ver [planejamento 04/11](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md).
+> **Smoke Pix/cartão/approve:** **PASS loja** 2026-11-04 (pedido `08da5ada…` approved).  
+> **Foco atual:** pós-α — ver [auditoria completa](../planejamento/FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md).
 
 ---
 
@@ -397,7 +400,9 @@ CPF/e-mail pendente/exclusão de conta: entregues no backlog D (validar regress�
 
 Preservam cliente, itens, quantidades, preços do momento, frete, totais, status e histórico de eventos.  
 **Não** recalcular pedido histórico com preços atuais.  
-Ciclo operacional F7: recepção → separação → expedição → entrega (CONCLUÍDO).
+Ciclo operacional F7: recepção → separação → expedição → entrega (CONCLUÍDO).  
+Não pagos expiram em 48 h com liberação de reserva (CONCLUÍDO RPC; agendamento EM EXECUÇÃO).  
+Regras de edição/cancelamento/autorização do cliente: [FAL_REGRAS_FLUXO_PEDIDOS](../planejamento/FAL_REGRAS_FLUXO_PEDIDOS_2026-11-04.md) (fonte de verdade de negócio).
 
 ---
 
@@ -413,14 +418,16 @@ Polish pós-pago e alinhamento com MP ativo = F9-F / F10.
 
 Adapter Mercado Pago (Pix / cartão) + webhook.  
 Estado detalhado: ver §7 (F9-E).  
-**Produção não está validada** enquanto o smoke FAIL/pendente por secret/redeploy.
+Smoke Pix/cartão **PASS loja** (α, 2026-11-04). Aprovação só é confiável via gateway (webhook / `confirm_mercadopago_payment`) — operador **não** aprova pagamento.  
+Cartão salvo (futuro): somente tokenização no provedor; a FAL guarda token + bandeira + últimos 4 dígitos, **nunca** PAN/CVV.
 
 ---
 
 # 23. Frete
 
 Módulo independente (CEP/endereços F6C).  
-Provedor real de transportadora = **EM ANDAMENTO / DECISÃO PENDENTE**.  
+Política vigente: **D-FRETE B** (mock/sandbox + aviso) — assinada 2026-11-04. Frete próprio FAL configurado (desligado). Provedor real (Melhor Envio / **C**) = pós-α com nova assinatura.  
+Medidas logísticas por produto com origem manual/global e alteração em massa (CONCLUÍDO).  
 Evolução: regras, regiões, faixas, integrações — sem travar o núcleo.
 
 ---
@@ -517,8 +524,8 @@ Priorizar veículos/grupos de maior giro e potencial (ex.: suspensão com base e
 
 Ver detalhe e prioridades no [Diagnóstico](../planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md) (histórico) e no [planejamento α 04/11](../planejamento/FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) (vigente).  
 
-**Resumo vigente (2026-11-04):** smoke comercial Pix/cartão/webhook; assinatura D-FRETE; pedido E2E pago; Gate α; liberação comercial em escala; permissões granulares (HOLD); frete live só se D-FRETE C (pós-α); polimento F10 residual.  
-**Não é mais lacuna de trilho:** FIND-004 apps PVC M1–M5; F9-F código; F10 Onda 0–1.
+**Resumo vigente (2026-11-04 pós-α):** regras de pedidos do cliente (cancelar não pago, autorização de indisponibilidade, cancelamento pós-pago, cartão tokenizado); agendamento do expiry; peso/medidas no catálogo; ciclo operador até entregue; diagnóstico webhook MCP; frete live (C); permissões granulares (HOLD); E2E contínuo.  
+**Não é mais lacuna de trilho:** FIND-004; F9-F; F10 Onda 0–1; smoke MP; D-FRETE; E2E pago; Gate α.
 
 ---
 
@@ -530,9 +537,10 @@ Detalhe e gates: [ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md).
 |-------|------|----------|--------|
 | A | F1–F7 | Fundação + operação de pedidos | CONCLUÍDO |
 | B | F8 / F8.1 | Operação comercial (produtos…importações) | Base construída |
-| C | F9 | Pagamento + frete + hardening | F9-E + **F9-F IMPLEMENTADO**; smoke comercial **PENDENTE** |
-| D | F10 | Consolidação operacional / polimento | Onda 0–1 **ENCERRADA**; polimento residual pós-α |
-| **α** | **Fase α** | **Operação comercial controlada** | **FOCO ATUAL** (S1∥S2 → S4 → Gate) |
+| C | F9 | Pagamento + frete + hardening | **CONCLUÍDO α** (frete live pós-α) |
+| D | F10 | Consolidação operacional / polimento | Onda 0–1 **ENCERRADA**; pós-α em execução |
+| α | Fase α | Operação comercial controlada | **ENCERRADA** 2026-11-04 |
+| **D+** | **Pós-α** | **Regras de pedidos + logística + dados** | **FOCO ATUAL** |
 | E | F11 | Catálogo mestre | PLANEJADO (pós-α) |
 | F | F12 | Enriquecimento e inteligência | FUTURO |
 | G | F13 | Escala comercial | FUTURO |
@@ -540,7 +548,7 @@ Detalhe e gates: [ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md).
 ### F10 — Consolidação operacional (não é só visual)
 
 Garantir que o construído funcione como **uma plataforma coerente**: UX admin/checkout, estados, mensagens, permissões, preços, disponibilidade, estoque, pedidos, clientes, importações, relatórios, erros, loading, empty states, responsividade, auditoria, regressão.  
-Onda 0–1 **fechada** (2026-10-09). O **foco imediato** não é “mais F10”, e sim o **fechamento da Fase α** (smoke MP + D-FRETE + E2E pago + gate).
+Onda 0–1 **fechada** (2026-10-09). Fase α **encerrada** (2026-11-04). Foco imediato: MARCHAs pós-α da [auditoria completa](../planejamento/FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md).
 
 ---
 
@@ -587,12 +595,14 @@ Enriquecimento externo (ingestão → normalização → matching → confiança
 
 ### Ainda pendentes
 
-1. Provedor de frete em produção (**D-FRETE** — ficha sem assinatura eFe; premissa de planejamento α = **B** mock/sandbox com aviso; **C**/Correios live = pós-α salvo decisão formal).  
+1. ~~Provedor de frete na α~~ — **D-FRETE B assinado** 2026-11-04. Pendente: migração para **C**/Melhor Envio (nova assinatura).  
 2. ~~Fabricante na vitrine (card vs PDP)~~ — **feito IMP-07** (exibir se cadastrado).  
 
 3. Taxonomia se divergir do banco.  
 4. Hierarquia de autoridade de campos no enriquecimento (antes de F12).  
-5. Confirmação final de apply D-SCHEMA após diff IMP-01 (se destrutivo).
+5. Confirmação final de apply D-SCHEMA após diff IMP-01 (se destrutivo).  
+6. Política de estorno no cancelamento pós-pago (Onda 2 regras de pedidos).  
+7. Cartão salvo tokenizado: seguir ou adiar (Onda 3).
 
 ---
 

@@ -68,7 +68,15 @@ Arquivo: `fal-pecas/supabase/migrations/20261104160000_store_logistics_anon_read
 
 ## 6. Deploy
 
-Ver seção final após PR/Netlify.
+| Gate | Resultado |
+|------|-----------|
+| PR #45 → `main` | **PASS** · merge `5aff186` (2026-11-04T15:12:24Z) |
+| Netlify production | **PASS** · deploy `6aeb4b5a4059acffb33bd088` · `commit_ref=5aff186` · `published_at=2026-11-04T15:14:17Z` · state `ready` · bundle `index-BHEZOob3.js` |
+| Smoke staff prod | **PASS** · hub `/admin/logistica`; origem remetente persistido; frete próprio UI (`enabled` off, faixa `01000000–05999999`, rate `own:fal` R$29,90) |
+| Smoke loja prod | **PASS** · lightbox zoom home; carrinho microcopy sync; cotação CEP `01310-100` = mock clássico (sem `own:*`); disclaimer B no carrinho |
+| `db push` | **não** executado (drift conhecido) |
+
+**DEPLOY: PASS**
 
 **Follow-ups:** `MARCHA_PEDIDO_EXPIRY_RESERVA`; Melhor Envio; UI staff smoke visual em prod (mutação mínima).
 
