@@ -29,11 +29,12 @@
 
 | Item | Estado 04/11 soberana | Nota |
 |------|----------------------|------|
-| Secrets `MELHOR_ENVIO_TOKEN` / `USER_AGENT` | **AUSENTE** wtbp | Colar no Edge (dashboard) |
+| Secrets `USER_AGENT` / `WEBHOOK_SECRET` | **SET** | ver [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
+| Secret `MELHOR_ENVIO_TOKEN` | **PENDENTE** | Bearer sandbox — eFe após login |
 | `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem decisão |
-| M6 medidas SKUs | **0 quote-ready** / 100 published | 2 com peso sem dims (TDI1101, BRD6408); 98 sem peso |
+| M6 medidas SKUs | **100 quote-ready** | [VAL M6](./FAL_MARCHA_M6_MEDIDAS_VAL_2026-11-04.md) provisório global |
 | Saldo carteira sandbox | — | Antes do 1º `purchase` real |
-| Smoke E2E | BLOQUEADO | Após secrets + medidas |
+| Smoke E2E | BLOQUEADO | Após `MELHOR_ENVIO_TOKEN` |
 
 ## Aceite D12 (checklist)
 
