@@ -22,13 +22,14 @@
 
 ## Pós-α
 
-Próxima frente sugerida: Logística e medidas — [plano funcional](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md)  
-Auth necessária: MARCHA nomeada (ex. `MARCHA_LOGISTICA_MEDIDAS_IMPL` ou doc-only já coberto).
+Runbook vigente: [FAL_MARCHA_SOBERANA_POS_ALPHA_EXEC_2026-11-04.md](./FAL_MARCHA_SOBERANA_POS_ALPHA_EXEC_2026-11-04.md)  
+Plano funcional: [logística/medidas](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md)
 
 ---
 
 ## STOP
 
-α fechada. Agente parado até auth pós-α.
+α fechada. Continuação = soberana pós-α (doc acima).
 
-**Assinatura agente:** soberano α ENCERRADO 2026-11-04.
+**Assinatura agente:** soberano α ENCERRADO 2026-11-04 · ponte pós-α 2026-11-04.
+
