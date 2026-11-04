@@ -11,7 +11,8 @@
 | ID | Item | Doc / nota |
 |----|------|------------|
 | P0-LOG | Plano funcional Logística + medidas (canônico) | [FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md) |
-| P0-MED | Gestão medidas em Produtos (origem campo, bulk) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_MEDIDAS_PRODUTOS_VAL_2026-11-04.md) (+ DDL wtbp) · filtros/histórico = depois |
+| P0-MED | Gestão medidas em Produtos (origem campo, bulk) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_MEDIDAS_PRODUTOS_VAL_2026-11-04.md) (+ DDL wtbp) · histórico = depois |
+| P0-GLOBAIS | Alterações globais + filtros Categoria/Grupo/Subgrupo/Situação | **FEITO** [VAL](./FAL_MARCHA_PRODUTOS_ALTERACOES_GLOBAIS_VAL_2026-11-04.md) |
 | P0-HUB | Hub admin Logística (4 atalhos) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_HUB_VAL_2026-11-04.md) |
 | P0-ORI | Origem e expedição (remetente + endereço) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_ORIGEM_REMETENTE_VAL_2026-11-04.md) |
 

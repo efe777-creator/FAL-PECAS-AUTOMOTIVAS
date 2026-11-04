@@ -2,26 +2,38 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
+import {
+  CategoryCascadeSelects,
+  effectiveCategoryId,
+  type CategoryCascadeValue,
+} from '@/components/admin/CategoryCascadeSelects'
 import { productStatusLabel } from '@/lib/adminLabels'
 import {
   adminListCategories,
-  categoryPath,
   collectCategorySubtreeIds,
 } from '@/services/admin/adminCategoryService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminApplyGlobalProductMeasures,
+  adminBulkSetProductCategory,
   adminEvaluateReleaseChecklistBatch,
   adminListProducts,
   adminReleaseProductsToStore,
   adminSetProductStatus,
+  adminSetProductsAvailability,
   type ApplyGlobalMeasuresMode,
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import type { Category, Manufacturer, Product } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+
+const EMPTY_CASCADE: CategoryCascadeValue = {
+  categoriaId: '',
+  grupoId: '',
+  subgrupoId: '',
+}
 
 export function AdminProductsPage() {
   const [items, setItems] = useState<Product[]>([])
@@ -29,8 +41,9 @@ export function AdminProductsPage() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
+  const [availableFilter, setAvailableFilter] = useState('')
   const [manufacturerId, setManufacturerId] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const [filterCascade, setFilterCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
   const [withoutImage, setWithoutImage] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busyBulk, setBusyBulk] = useState(false)
@@ -44,29 +57,28 @@ export function AdminProductsPage() {
   const [bulkLength, setBulkLength] = useState('')
   const [bulkMode, setBulkMode] = useState<ApplyGlobalMeasuresMode>('skip_manual')
   const [busyMeasures, setBusyMeasures] = useState(false)
-
-  const categoryOptions = useMemo(
-    () =>
-      [...categories].sort((a, b) =>
-        categoryPath(categories, a.id).localeCompare(categoryPath(categories, b.id)),
-      ),
-    [categories],
-  )
+  const [bulkCascade, setBulkCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
 
   const allPageSelected = items.length > 0 && items.every((p) => selected.has(p.id))
   const somePageSelected = items.some((p) => selected.has(p.id))
+  const hasSelection = selected.size > 0
+  const panelDisabled = !hasSelection || busyBulk || busyMeasures
 
   async function reload() {
     setLoading(true)
     setSelected(new Set())
     try {
-      const categoryIds = categoryId
-        ? collectCategorySubtreeIds(categories, categoryId)
+      const filterNode = effectiveCategoryId(filterCascade)
+      const categoryIds = filterNode
+        ? collectCategorySubtreeIds(categories, filterNode)
         : undefined
+      const available =
+        availableFilter === 'true' ? true : availableFilter === 'false' ? false : undefined
       setItems(
         await adminListProducts({
           q,
           status: status || undefined,
+          available,
           withoutImage,
           categoryIds,
           manufacturerId: manufacturerId || undefined,
@@ -163,6 +175,27 @@ export function AdminProductsPage() {
     }
   }
 
+  async function bulkSetAvailability(available: boolean) {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    setBusyBulk(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const r = await adminSetProductsAvailability(ids, available)
+      setMessage(
+        available
+          ? `${r.updated} produto(s) marcado(s) como disponível.`
+          : `${r.updated} produto(s) marcado(s) como indisponível.`,
+      )
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao alterar situação')
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
   async function bulkLiberarNaLoja() {
     const ids = [...selected]
     if (ids.length === 0) return
@@ -218,6 +251,36 @@ export function AdminProductsPage() {
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  async function applyBulkClassification() {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    const leaf = effectiveCategoryId(bulkCascade)
+    if (!leaf) {
+      setError('Escolha ao menos a Categoria na seção Classificação.')
+      return
+    }
+    if (!bulkCascade.subgrupoId) {
+      const level = bulkCascade.grupoId ? 'grupo' : 'categoria'
+      const ok = window.confirm(
+        `Aplicar classificação no nível ${level} (sem subgrupo) a ${ids.length} produto(s)?`,
+      )
+      if (!ok) return
+    }
+    setBusyBulk(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const r = await adminBulkSetProductCategory(ids, leaf)
+      setMessage(`Classificação aplicada a ${r.updated} produto(s).`)
+      setBulkCascade(EMPTY_CASCADE)
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao aplicar classificação')
     } finally {
       setBusyBulk(false)
     }
@@ -300,176 +363,250 @@ export function AdminProductsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4">
-        <div className="min-w-[180px] flex-1">
-          <Input
-            label="Buscar (nome / código / SKU)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+      <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[180px] flex-1">
+            <Input
+              label="Buscar (nome / código / SKU)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <label className="block min-w-[140px] text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Status</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">Todos</option>
+              <option value="draft">Rascunho</option>
+              <option value="published">Publicado</option>
+              <option value="archived">Arquivado</option>
+            </select>
+          </label>
+          <label className="block min-w-[140px] text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Situação</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={availableFilter}
+              onChange={(e) => setAvailableFilter(e.target.value)}
+            >
+              <option value="">Todas</option>
+              <option value="true">Disponível</option>
+              <option value="false">Indisponível</option>
+            </select>
+          </label>
+          <label className="block min-w-[160px] flex-1 text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Montadora</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={manufacturerId}
+              onChange={(e) => setManufacturerId(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {manufacturers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-fal-navy">
+            <input
+              type="checkbox"
+              checked={withoutImage}
+              onChange={(e) => setWithoutImage(e.target.checked)}
+            />
+            Sem imagem / incompletos
+          </label>
+          <Button type="button" variant="light" onClick={() => void reload()}>
+            Filtrar
+          </Button>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fal-muted">
+            Classificação
+          </p>
+          <CategoryCascadeSelects
+            categories={categories}
+            value={filterCascade}
+            onChange={setFilterCascade}
+            idPrefix="filter-cat"
+            emptyLabel="Todas"
           />
         </div>
-        <label className="block min-w-[140px] text-sm">
-          <span className="mb-1 block font-semibold text-fal-navy">Status</span>
-          <select
-            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">Todos</option>
-            <option value="draft">Rascunho</option>
-            <option value="published">Publicado</option>
-            <option value="archived">Arquivado</option>
-          </select>
-        </label>
-        <label className="block min-w-[160px] flex-1 text-sm">
-          <span className="mb-1 block font-semibold text-fal-navy">Montadora</span>
-          <select
-            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-            value={manufacturerId}
-            onChange={(e) => setManufacturerId(e.target.value)}
-          >
-            <option value="">Todas</option>
-            {manufacturers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block min-w-[200px] flex-[1.4] text-sm">
-          <span className="mb-1 block font-semibold text-fal-navy">Classificação</span>
-          <select
-            className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">Todas</option>
-            {categoryOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {categoryPath(categories, c.id)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-fal-navy">
-          <input type="checkbox" checked={withoutImage} onChange={(e) => setWithoutImage(e.target.checked)} />
-          Sem imagem / incompletos
-        </label>
-        <Button type="button" variant="light" onClick={() => void reload()}>
-          Filtrar
-        </Button>
       </div>
 
-      {releasePreflight ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-navy/20 bg-white p-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Pré-flight Liberar (D-LIBERAR)</h2>
-              <p className="mt-1 text-sm text-fal-muted">
-                Hard bloqueia; aplicação/imagem são avisos. Só quem passa hard será liberado.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="primary"
-                disabled={busyBulk || !releasePreflight.some((r) => r.canRelease)}
-                onClick={() => void confirmBulkLiberarEligible()}
-              >
-                Confirmar elegíveis (
-                {releasePreflight.filter((r) => r.canRelease).length})
-              </Button>
-              <Button
-                type="button"
-                variant="light"
-                disabled={busyBulk}
-                onClick={() => setReleasePreflight(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
+      <div className="space-y-4 rounded-[14px] border border-fal-navy/15 bg-white p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Alterações globais</h2>
+            <p className="mt-1 text-sm text-fal-muted">
+              {hasSelection
+                ? `${selected.size} produto(s) selecionado(s). Ações aplicam só à seleção.`
+                : 'Selecione produtos na tabela para habilitar as seções.'}
+            </p>
           </div>
-          <div className="max-h-72 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-fal-bg text-fal-muted">
-                <tr>
-                  <th className="px-2 py-1">Código</th>
-                  <th className="px-2 py-1">Nome</th>
-                  <th className="px-2 py-1">Resultado</th>
-                  <th className="px-2 py-1">Detalhe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {releasePreflight.map((row) => (
-                  <tr key={row.productId} className="border-b border-fal-line/60">
-                    <td className="px-2 py-1 font-mono text-xs">
-                      {row.commercialRef || row.sku}
-                    </td>
-                    <td className="px-2 py-1">{row.name}</td>
-                    <td className="px-2 py-1">
-                      {row.canRelease ? (
-                        <span className="font-semibold text-emerald-800">
-                          Passa
-                          {row.softWarnings.length
-                            ? ` (${row.softWarnings.length} aviso)`
-                            : ''}
-                        </span>
-                      ) : (
-                        <span className="font-semibold text-red-700">Bloqueado</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-1 text-xs text-fal-muted">{row.summary}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {hasSelection ? (
+            <button
+              type="button"
+              className="text-sm font-semibold text-fal-muted underline"
+              onClick={() => setSelected(new Set())}
+            >
+              Limpar seleção
+            </button>
+          ) : null}
         </div>
-      ) : null}
 
-      {selected.size > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
-          <span className="text-sm font-semibold text-fal-navy">{selected.size} selecionado(s)</span>
+        {releasePreflight ? (
+          <div className="space-y-3 rounded-[12px] border border-fal-navy/20 bg-fal-bg/40 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="m-0 text-base font-extrabold text-fal-navy">
+                  Pré-flight Liberar (D-LIBERAR)
+                </h3>
+                <p className="mt-1 text-sm text-fal-muted">
+                  Hard bloqueia; aplicação/imagem são avisos. Só quem passa hard será liberado.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={busyBulk || !releasePreflight.some((r) => r.canRelease)}
+                  onClick={() => void confirmBulkLiberarEligible()}
+                >
+                  Confirmar elegíveis (
+                  {releasePreflight.filter((r) => r.canRelease).length})
+                </Button>
+                <Button
+                  type="button"
+                  variant="light"
+                  disabled={busyBulk}
+                  onClick={() => setReleasePreflight(null)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-72 overflow-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-fal-bg text-fal-muted">
+                  <tr>
+                    <th className="px-2 py-1">Código</th>
+                    <th className="px-2 py-1">Nome</th>
+                    <th className="px-2 py-1">Resultado</th>
+                    <th className="px-2 py-1">Detalhe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {releasePreflight.map((row) => (
+                    <tr key={row.productId} className="border-b border-fal-line/60">
+                      <td className="px-2 py-1 font-mono text-xs">
+                        {row.commercialRef || row.sku}
+                      </td>
+                      <td className="px-2 py-1">{row.name}</td>
+                      <td className="px-2 py-1">
+                        {row.canRelease ? (
+                          <span className="font-semibold text-emerald-800">
+                            Passa
+                            {row.softWarnings.length
+                              ? ` (${row.softWarnings.length} aviso)`
+                              : ''}
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-red-700">Bloqueado</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1 text-xs text-fal-muted">{row.summary}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+
+        <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
+          <div>
+            <h3 className="m-0 text-base font-extrabold text-fal-navy">Situação</h3>
+            <p className="mt-1 text-xs text-fal-muted">
+              Status comercial e disponibilidade na loja. Liberar usa checklist D-LIBERAR.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              disabled={panelDisabled}
+              onClick={() => void bulkLiberarNaLoja()}
+            >
+              Liberar na loja (checklist)
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={panelDisabled}
+              onClick={() => void bulkSetStatus('published')}
+            >
+              Publicar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={panelDisabled}
+              onClick={() => void bulkSetStatus('archived')}
+            >
+              Arquivar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={panelDisabled}
+              onClick={() => void bulkSetAvailability(true)}
+            >
+              Marcar disponível
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={panelDisabled}
+              onClick={() => void bulkSetAvailability(false)}
+            >
+              Marcar indisponível
+            </Button>
+          </div>
+        </section>
+
+        <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
+          <div>
+            <h3 className="m-0 text-base font-extrabold text-fal-navy">Classificação</h3>
+            <p className="mt-1 text-xs text-fal-muted">
+              Atribui Categoria → Grupo → Subgrupo aos selecionados (não cria nós novos).
+            </p>
+          </div>
+          <CategoryCascadeSelects
+            categories={categories}
+            value={bulkCascade}
+            onChange={setBulkCascade}
+            idPrefix="bulk-cat"
+            disabled={panelDisabled}
+            emptyLabel="—"
+          />
           <Button
             type="button"
             variant="primary"
-            disabled={busyBulk}
-            onClick={() => void bulkLiberarNaLoja()}
+            disabled={panelDisabled || !effectiveCategoryId(bulkCascade)}
+            onClick={() => void applyBulkClassification()}
           >
-            Liberar na loja (checklist)
+            Aplicar classificação
           </Button>
-          <Button
-            type="button"
-            variant="light"
-            disabled={busyBulk}
-            onClick={() => void bulkSetStatus('published')}
-          >
-            Publicar
-          </Button>
-          <Button
-            type="button"
-            variant="light"
-            disabled={busyBulk}
-            onClick={() => void bulkSetStatus('archived')}
-          >
-            Arquivar
-          </Button>
-          <button
-            type="button"
-            className="text-sm font-semibold text-fal-muted underline"
-            onClick={() => setSelected(new Set())}
-          >
-            Limpar seleção
-          </button>
-        </div>
-      ) : null}
+        </section>
 
-      {selected.size > 0 ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+        <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
           <div>
-            <h2 className="m-0 text-base font-extrabold text-fal-navy">
-              Medidas globais (selecionados)
-            </h2>
+            <h3 className="m-0 text-base font-extrabold text-fal-navy">Medidas logísticas</h3>
             <p className="mt-1 text-xs text-fal-muted">
               Campos vazios neste painel não são alterados. Padrão: não sobrescreve Manual.
             </p>
@@ -481,6 +618,7 @@ export function AdminProductsPage() {
               step="0.001"
               min="0"
               value={bulkWeight}
+              disabled={panelDisabled}
               onChange={(e) => setBulkWeight(e.target.value)}
             />
             <Input
@@ -489,6 +627,7 @@ export function AdminProductsPage() {
               step="0.01"
               min="0"
               value={bulkHeight}
+              disabled={panelDisabled}
               onChange={(e) => setBulkHeight(e.target.value)}
             />
             <Input
@@ -497,6 +636,7 @@ export function AdminProductsPage() {
               step="0.01"
               min="0"
               value={bulkWidth}
+              disabled={panelDisabled}
               onChange={(e) => setBulkWidth(e.target.value)}
             />
             <Input
@@ -505,6 +645,7 @@ export function AdminProductsPage() {
               step="0.01"
               min="0"
               value={bulkLength}
+              disabled={panelDisabled}
               onChange={(e) => setBulkLength(e.target.value)}
             />
           </div>
@@ -512,8 +653,9 @@ export function AdminProductsPage() {
             <label className="block min-w-[220px] text-sm">
               <span className="mb-1 block font-semibold text-fal-navy">Tratar manuais</span>
               <select
-                className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
                 value={bulkMode}
+                disabled={panelDisabled}
                 onChange={(e) => setBulkMode(e.target.value as ApplyGlobalMeasuresMode)}
               >
                 <option value="skip_manual">Respeitar Manual (só Global)</option>
@@ -523,14 +665,14 @@ export function AdminProductsPage() {
             <Button
               type="button"
               variant="primary"
-              disabled={busyMeasures || busyBulk}
+              disabled={panelDisabled}
               onClick={() => void applyBulkMeasures()}
             >
               {busyMeasures ? 'Aplicando…' : 'Aplicar medidas'}
             </Button>
           </div>
-        </div>
-      ) : null}
+        </section>
+      </div>
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
@@ -555,6 +697,7 @@ export function AdminProductsPage() {
               <th className="px-3 py-2">{CODIGO_REFERENCIA_LABEL}</th>
               <th className="px-3 py-2">Nome</th>
               <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">Situação</th>
               <th className="px-3 py-2">Preço</th>
               <th className="px-3 py-2">Ações</th>
             </tr>
@@ -562,7 +705,7 @@ export function AdminProductsPage() {
           <tbody>
             {items.length === 0 && !loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4">
+                <td colSpan={7} className="px-3 py-4">
                   <EmptyState
                     title="Nenhum produto encontrado"
                     description="Ajuste os filtros ou cadastre um novo produto."
@@ -591,13 +734,24 @@ export function AdminProductsPage() {
                 </td>
                 <td className="px-3 py-2">{productStatusLabel(p.status)}</td>
                 <td className="px-3 py-2">
+                  {p.available ? (
+                    <span className="font-semibold text-emerald-800">Disponível</span>
+                  ) : (
+                    <span className="text-fal-muted">Indisponível</span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
                 <td className="px-3 py-2 space-x-2">
                   <Link className="font-semibold text-fal-auth-link" to={`/admin/produtos/${p.id}`}>
                     Editar
                   </Link>
-                  <button type="button" className="font-semibold text-fal-muted" onClick={() => void toggleArchive(p)}>
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-muted"
+                    onClick={() => void toggleArchive(p)}
+                  >
                     {p.status === 'archived' ? 'Publicar' : 'Arquivar (remover da loja)'}
                   </button>
                 </td>
