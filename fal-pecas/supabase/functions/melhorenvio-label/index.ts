@@ -13,7 +13,7 @@ import {
   evaluateFreightDivergence,
   labelStateOf,
   meAuthHeaders,
-  ME_SANDBOX_BASE,
+  meApiBase,
   mergeMeMeta,
   parseMeMeta,
   type MeLabelState,
@@ -42,8 +42,10 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const meToken = Deno.env.get('MELHOR_ENVIO_TOKEN')
-    const meUa = Deno.env.get('MELHOR_ENVIO_USER_AGENT') ?? 'FAL Pecas (sandbox)'
+    const meToken = (Deno.env.get('MELHOR_ENVIO_TOKEN') ?? '')
+      .trim()
+      .replace(/^Bearer\s+/i, '')
+    const meUa = (Deno.env.get('MELHOR_ENVIO_USER_AGENT') ?? 'FAL Pecas Automotivas (efe.comercioltda@gmail.com)').trim()
     if (!supabaseUrl || !anonKey || !serviceKey) return json(500, { error: 'supabase_env_missing' })
 
     const authHeader = req.headers.get('Authorization')
@@ -196,7 +198,7 @@ Deno.serve(async (req) => {
               sandbox,
             })
           }
-          const res = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/calculate`, {
+          const res = await fetch(`${meApiBase()}/api/v2/me/shipment/calculate`, {
             method: 'POST',
             headers: meAuthHeaders(meToken!, meUa),
             body: JSON.stringify({
@@ -371,7 +373,7 @@ Deno.serve(async (req) => {
               tags: [{ tag: orderId, url: null }],
             },
           }
-          const cartRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/cart`, {
+          const cartRes = await fetch(`${meApiBase()}/api/v2/me/cart`, {
             method: 'POST',
             headers: meAuthHeaders(meToken!, meUa),
             body: JSON.stringify(cartBody),
@@ -463,7 +465,7 @@ Deno.serve(async (req) => {
             labelState: state,
           })
         }
-        const coRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/checkout`, {
+        const coRes = await fetch(`${meApiBase()}/api/v2/me/shipment/checkout`, {
           method: 'POST',
           headers: meAuthHeaders(meToken!, meUa),
           body: JSON.stringify({ orders: [cartItemId] }),
@@ -535,7 +537,7 @@ Deno.serve(async (req) => {
       if (dryRun) {
         url = `https://sandbox.melhorenvio.com.br/dry-run/label/${orderId}.pdf`
       } else if (orderRef) {
-        const genRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/generate`, {
+        const genRes = await fetch(`${meApiBase()}/api/v2/me/shipment/generate`, {
           method: 'POST',
           headers: meAuthHeaders(meToken!, meUa),
           body: JSON.stringify({ orders: [orderRef] }),
@@ -552,7 +554,7 @@ Deno.serve(async (req) => {
             sandbox,
           })
         }
-        url = url ?? `${ME_SANDBOX_BASE}/print/${orderRef}`
+        url = url ?? `${meApiBase()}/print/${orderRef}`
       }
       await persist({
         label_state: 'generated',
@@ -585,7 +587,7 @@ Deno.serve(async (req) => {
       let url = parseMeMeta(meta).label_url
       const orderRef = parseMeMeta(meta).cart_item_id
       if (!dryRun && orderRef) {
-        const printRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/print`, {
+        const printRes = await fetch(`${meApiBase()}/api/v2/me/shipment/print`, {
           method: 'POST',
           headers: meAuthHeaders(meToken!, meUa),
           body: JSON.stringify({ mode: 'private', orders: [orderRef] }),
