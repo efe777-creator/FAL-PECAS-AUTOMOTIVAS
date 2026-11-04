@@ -1,10 +1,16 @@
+import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { formatMoney } from '@/lib/money'
 import { formatDateTime } from '@/lib/datetime'
 import { ADMIN_ORDER_COUNTER_KEYS, orderStatusAdminLabel } from '@/lib/orderLifecycle'
-import { adminListOrders, adminOrderStatusCounts, type AdminOrderListRow } from '@/services/admin/adminOrderService'
+import {
+  adminExpireUnpaidOrders,
+  adminListOrders,
+  adminOrderStatusCounts,
+  type AdminOrderListRow,
+} from '@/services/admin/adminOrderService'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -39,6 +45,8 @@ export function AdminOrdersPage() {
   const [filter, setFilter] = useState(searchParams.get('status') ?? '')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [busyExpire, setBusyExpire] = useState(false)
 
   function applyFilter(value: string) {
     setFilter(value)
@@ -46,39 +54,71 @@ export function AdminOrdersPage() {
     else setSearchParams({})
   }
 
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [list, c] = await Promise.all([
-          adminListOrders(filter || null),
-          adminOrderStatusCounts(),
-        ])
-        if (!alive) return
-        setRows(list)
-        setCounts(c)
-      } catch (e) {
-        if (!alive) return
-        setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
-    return () => {
-      alive = false
+  async function reload() {
+    setLoading(true)
+    setError(null)
+    try {
+      const [list, c] = await Promise.all([
+        adminListOrders(filter || null),
+        adminOrderStatusCounts(),
+      ])
+      setRows(list)
+      setCounts(c)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
+
+  async function runExpireUnpaid() {
+    const ok = window.confirm(
+      'Cancelar pedidos em “Aguardando pagamento” com mais de 48 h sem pagamento aprovado?\n\n' +
+        'A reserva de estoque será liberada. Expiração do QR Pix é independente (cliente pode gerar novo QR dentro das 48 h).',
+    )
+    if (!ok) return
+    setBusyExpire(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const r = await adminExpireUnpaidOrders({ limit: 50, maxAgeHours: 48 })
+      setMessage(
+        r.expired === 0
+          ? 'Nenhum pedido elegível a expirar (TTL 48 h).'
+          : `${r.expired} pedido(s) expirado(s) e reserva liberada.`,
+      )
+      await reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao expirar pedidos')
+    } finally {
+      setBusyExpire(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-2xl font-extrabold text-fal-navy">Pedidos</h1>
-        <p className="mt-1 text-sm text-fal-muted">
-          Fluxo: pagamento → recepção/análise → confirmação → separação → envio → entrega.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-fal-navy">Pedidos</h1>
+          <p className="mt-1 text-sm text-fal-muted">
+            Fluxo: pagamento → recepção/análise → confirmação → separação → envio → entrega.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="light"
+          disabled={busyExpire || loading}
+          onClick={() => void runExpireUnpaid()}
+        >
+          {busyExpire ? 'Expirando…' : 'Expirar não pagos (48 h)'}
+        </Button>
       </header>
+      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
 
       <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         {ADMIN_ORDER_COUNTER_KEYS.map((k) => (

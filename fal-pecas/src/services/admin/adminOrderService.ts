@@ -300,6 +300,37 @@ export async function adminCancelOrder(orderId: string, note?: string): Promise<
   })
 }
 
+export type ExpireUnpaidOrdersResult = {
+  expired: number
+  orderIds: string[]
+  maxAgeHours: number
+  limit: number
+}
+
+/** TTL padrão 48h (idade do pedido). Pix QR expiry é independente. */
+export async function adminExpireUnpaidOrders(opts?: {
+  limit?: number
+  maxAgeHours?: number
+}): Promise<ExpireUnpaidOrdersResult> {
+  const { data, error } = await getSupabase().rpc('expire_unpaid_orders', {
+    p_limit: opts?.limit ?? 50,
+    p_max_age_hours: opts?.maxAgeHours ?? 48,
+  })
+  if (error) throw error
+  const row = data as {
+    expired?: number
+    order_ids?: string[] | null
+    max_age_hours?: number
+    limit?: number
+  }
+  return {
+    expired: Number(row?.expired ?? 0),
+    orderIds: Array.isArray(row?.order_ids) ? row.order_ids.map(String) : [],
+    maxAgeHours: Number(row?.max_age_hours ?? 48),
+    limit: Number(row?.limit ?? 50),
+  }
+}
+
 export async function adminAdvanceOrder(
   orderId: string,
   toStatus: string,
