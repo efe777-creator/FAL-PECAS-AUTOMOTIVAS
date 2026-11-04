@@ -61,7 +61,7 @@
 | M0 | UX-ZOOM-TOAST | **FEITO** (#59) |
 | M-ME | HÍBRIDO D12 | **FEITO** código/migration/Edges (#57); secrets pendentes |
 | M6 | DADOS-MEDIDAS | **FEITO** provisório (100 quote-ready) |
-| M-ME-SEC | Secrets ME sandbox | **FEITO** TOKEN+UA+WH ([VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md)) |
+| M-ME-SEC | Secrets ME sandbox | UA+WH OK; **TOKEN = COLE_AQUI** (FIND-ME-TOKEN-001) — colar Bearer real |
 | M7 | OPS-E2E-ENTREGA | Após M-ME-SEC + M6 parcial |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Política estorno |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` ainda vazio 04/11 |

@@ -29,11 +29,11 @@
 
 | Item | Estado 04/11 soberana | Nota |
 |------|----------------------|------|
-| Secrets `MELHOR_ENVIO_*` (TOKEN/UA/WH) | **SET** | [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
+| Secrets UA / WH | **SET** | [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
+| Secret TOKEN | **FAIL** FIND-ME-TOKEN-001 | Literal `COLE_AQUI` no Edge — trocar por Bearer real |
 | `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem decisão |
 | M6 medidas SKUs | **100 quote-ready** | [VAL M6](./FAL_MARCHA_M6_MEDIDAS_VAL_2026-11-04.md) provisório global |
-| Saldo carteira sandbox | — | Antes do 1º `purchase` real |
-| Smoke E2E | Pronto para humano | Secrets + M6 OK; default loja = mock |
+| Smoke E2E | BLOQUEADO | Até Bearer sandbox válido |
 
 ## Aceite D12 (checklist)
 
