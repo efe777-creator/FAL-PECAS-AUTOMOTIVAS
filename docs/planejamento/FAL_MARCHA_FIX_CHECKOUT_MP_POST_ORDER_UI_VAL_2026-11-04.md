@@ -28,15 +28,16 @@ O early-return `if (!items.length)` renderizava **Carrinho vazio** e **nunca** m
 - Unit guard verde  
 - Código: Pix/Brick permanecem renderizáveis com carrinho limpo  
 
-**Reteste prod (04/11 pós PR #43 merge → `index-CV1mwNAe.js`):**  
-- Pix: **PASS UI** — «Pix — aguardando confirmação» + Copiar código Pix + status pending · pedido `0df5901c…` · total R$ 128,12 · **sem** Carrinho vazio.  
-- Cartão Brick / webhook approve: **ainda pendente** nesta reexecução.
+**Reteste prod (04/11 pós PR #43 → `index-CV1mwNAe.js`):**  
+- Pix: **PASS UI** — pedido `0df5901c…` · QR/copia-cola.  
+- Cartão: **PASS UI Brick** — pedido `73530b8f…` · formulário MP carregou (sem Carrinho vazio). Approve do cartão = **humano** (iframe).  
+- Webhook URL sandbox: **configurada** no app MP; approve ainda **NÃO OBSERVADO**.
 
 ---
 
 ## STOP
 
-FIND-SMOKE-UI-001 **corrigido em prod** (evidência Pix).  
-**Próximo:** reteste Brick cartão + approve webhook; S1 D-FRETE B; depois S4.
+FIND-SMOKE-UI-001 **corrigido em prod** (Pix + Brick).  
+**Próximo humano:** pagar Brick/Pix teste → ver approve; alinhar secret webhook se necessário; **S1 D-FRETE B**; S4.
 
 **Assinatura agente:** VAL FIX CHECKOUT MP POST ORDER UI 2026-11-04.
