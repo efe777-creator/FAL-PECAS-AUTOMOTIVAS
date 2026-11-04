@@ -3,26 +3,35 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
-import { formatMoney } from '@/lib/money'
+import {
+  ADMIN_ORDER_GROUPS,
+  adminActorBadgeLabel,
+  adminActorKind,
+  adminNextActionLabel,
+  orderMatchesGroup,
+  orderStatusOperatorLabel,
+  sumGroupCount,
+  type AdminOrderGroupId,
+} from '@/lib/adminOrderOps'
 import { formatDateTime } from '@/lib/datetime'
-import { ADMIN_ORDER_COUNTER_KEYS, orderStatusAdminLabel } from '@/lib/orderLifecycle'
+import { formatMoney } from '@/lib/money'
 import {
   adminExpireUnpaidOrders,
   adminListOrders,
   adminOrderStatusCounts,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
-const FILTERS: { value: string; label: string }[] = [
-  { value: '', label: 'Todos' },
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: '', label: 'Todos os status' },
   { value: 'aguardando_pagamento', label: 'Aguardando pagamento' },
   { value: 'pagamento_aprovado', label: 'Pagamento aprovado' },
-  { value: 'recebido', label: 'Recebidos' },
-  { value: 'em_analise', label: 'Em análise' },
-  { value: 'aguardando_disponibilidade', label: 'Aguardando disponibilidade' },
-  { value: 'aguardando_decisao', label: 'Aguardando decisão' },
+  { value: 'recebido', label: 'Aguardando início da análise' },
+  { value: 'em_analise', label: 'Em análise pela loja' },
+  { value: 'aguardando_disponibilidade', label: 'Disponibilidade (legado)' },
+  { value: 'aguardando_decisao', label: 'Aguardando resposta do cliente' },
   { value: 'confirmado', label: 'Confirmados' },
   { value: 'em_separacao', label: 'Em separação' },
   { value: 'pronto_para_envio', label: 'Pronto para envio' },
@@ -45,33 +54,62 @@ function paymentBadge(o: AdminOrderListRow) {
   if (!o.paymentStatus) return '—'
   const expired =
     o.paymentExpiresAt != null && new Date(o.paymentExpiresAt).getTime() < Date.now()
-  const label = expired && o.paymentStatus === 'pending' ? 'pending (expirado)' : o.paymentStatus
-  return label
+  return expired && o.paymentStatus === 'pending' ? 'pending (expirado)' : o.paymentStatus
+}
+
+function actorClass(kind: ReturnType<typeof adminActorKind>): string {
+  switch (kind) {
+    case 'team':
+      return 'bg-amber-100 text-amber-950'
+    case 'customer':
+      return 'bg-sky-100 text-sky-950'
+    case 'wait_payment':
+      return 'bg-fal-bg text-fal-muted'
+    case 'done':
+      return 'bg-green-100 text-green-900'
+  }
 }
 
 export function AdminOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
-  const [filter, setFilter] = useState(searchParams.get('status') ?? '')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '')
+  const [groupFilter, setGroupFilter] = useState<AdminOrderGroupId | ''>(
+    (searchParams.get('grupo') as AdminOrderGroupId | null) ?? '',
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
   const [search, setSearch] = useState('')
 
-  function applyFilter(value: string) {
-    setFilter(value)
-    if (value) setSearchParams({ status: value })
-    else setSearchParams({})
+  function syncParams(nextStatus: string, nextGroup: AdminOrderGroupId | '') {
+    const p = new URLSearchParams()
+    if (nextStatus) p.set('status', nextStatus)
+    else if (nextGroup) p.set('grupo', nextGroup)
+    setSearchParams(p)
+  }
+
+  function applyStatus(value: string) {
+    setStatusFilter(value)
+    setGroupFilter('')
+    syncParams(value, '')
+  }
+
+  function applyGroup(value: AdminOrderGroupId | '') {
+    setGroupFilter(value)
+    setStatusFilter('')
+    syncParams('', value)
   }
 
   async function reload() {
     setLoading(true)
     setError(null)
     try {
+      // Com grupo: carrega todos e filtra client-side; com status: filtra no servidor
       const [list, c] = await Promise.all([
-        adminListOrders(filter || null),
+        adminListOrders(statusFilter || null),
         adminOrderStatusCounts(),
       ])
       setRows(list)
@@ -86,12 +124,25 @@ export function AdminOrdersPage() {
   useEffect(() => {
     void reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter])
+  }, [statusFilter])
+
+  useEffect(() => {
+    const s = searchParams.get('status') ?? ''
+    const g = (searchParams.get('grupo') as AdminOrderGroupId | null) ?? ''
+    setStatusFilter(s)
+    setGroupFilter(s ? '' : g)
+  }, [searchParams])
+
+  const visible = useMemo(() => {
+    return rows
+      .filter((o) => orderMatchesGroup(o.status, groupFilter))
+      .filter((o) => matchesOrderSearch(o, search))
+  }, [rows, groupFilter, search])
 
   async function runExpireUnpaid() {
     const ok = window.confirm(
       'Cancelar pedidos em “Aguardando pagamento” com mais de 48 h sem pagamento aprovado?\n\n' +
-        'A reserva de estoque será liberada. Expiração do QR Pix é independente (cliente pode gerar novo QR dentro das 48 h).',
+        'A reserva de estoque será liberada. Expiração do QR Pix é independente.',
     )
     if (!ok) return
     setBusyExpire(true)
@@ -118,7 +169,8 @@ export function AdminOrdersPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Pedidos</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Fluxo: pagamento → recepção/análise → confirmação → separação → envio → entrega.
+            Pagamento → análise → (autorização do cliente se preciso) → confirmação → separação →
+            envio → entrega.
           </p>
         </div>
         <Button
@@ -132,32 +184,51 @@ export function AdminOrdersPage() {
       </header>
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
 
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-        {ADMIN_ORDER_COUNTER_KEYS.map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => applyFilter(k)}
-            className={[
-              'rounded-[12px] border px-3 py-2 text-left',
-              filter === k ? 'border-fal-navy bg-fal-navy text-white' : 'border-fal-line bg-white',
-            ].join(' ')}
-          >
-            <div className="text-xs opacity-80">{orderStatusAdminLabel[k] ?? k}</div>
-            <div className="text-xl font-extrabold">{counts[k] ?? 0}</div>
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => applyGroup('')}
+          className={[
+            'rounded-[10px] border px-3 py-2 text-sm font-semibold',
+            !groupFilter && !statusFilter
+              ? 'border-fal-navy bg-fal-navy text-white'
+              : 'border-fal-line bg-white text-fal-navy',
+          ].join(' ')}
+        >
+          Todos
+        </button>
+        {ADMIN_ORDER_GROUPS.map((g) => {
+          const n = sumGroupCount(counts, g)
+          const active = groupFilter === g.id && !statusFilter
+          return (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => applyGroup(g.id)}
+              title={g.description}
+              className={[
+                'rounded-[10px] border px-3 py-2 text-left text-sm',
+                active
+                  ? 'border-fal-navy bg-fal-navy text-white'
+                  : 'border-fal-line bg-white text-fal-navy',
+              ].join(' ')}
+            >
+              <span className="block text-[11px] opacity-80">{g.title}</span>
+              <span className="text-lg font-extrabold tabular-nums">{n}</span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-sm font-semibold text-fal-muted">
-          Filtro
+          Status
           <select
             className="mt-1 block rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
-            value={filter}
-            onChange={(e) => applyFilter(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => applyStatus(e.target.value)}
           >
-            {FILTERS.map((f) => (
+            {STATUS_FILTERS.map((f) => (
               <option key={f.value || 'all'} value={f.value}>
                 {f.label}
               </option>
@@ -177,14 +248,14 @@ export function AdminOrdersPage() {
       {loading ? <Loading label="Carregando pedidos…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
-      {!loading && !error && rows.filter((o) => matchesOrderSearch(o, search)).length === 0 ? (
+      {!loading && !error && visible.length === 0 ? (
         <EmptyState
           title="Nenhum pedido neste filtro"
-          description="Altere o filtro de status, a busca ou aguarde novos pedidos da loja."
+          description="Altere o grupo, o status ou a busca."
         />
       ) : null}
 
-      {!loading && !error && rows.filter((o) => matchesOrderSearch(o, search)).length > 0 ? (
+      {!loading && !error && visible.length > 0 ? (
         <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
@@ -192,47 +263,50 @@ export function AdminOrdersPage() {
                 <th className="px-3 py-2">Pedido</th>
                 <th className="px-3 py-2">Cliente</th>
                 <th className="px-3 py-2">Data</th>
-                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Situação</th>
+                <th className="px-3 py-2">Próxima ação</th>
                 <th className="px-3 py-2">Pagamento</th>
-                <th className="px-3 py-2">Expira</th>
                 <th className="px-3 py-2">Itens</th>
                 <th className="px-3 py-2">Total</th>
               </tr>
             </thead>
             <tbody>
-              {rows.filter((o) => matchesOrderSearch(o, search)).map((o) => (
-                <tr key={o.id} className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60">
-                  <td className="px-3 py-2">
-                    <Link
-                      to={`/admin/pedidos/${o.id}`}
-                      className="font-semibold text-fal-navy underline-offset-2 hover:underline"
-                    >
-                      {o.id.slice(0, 8)}…
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">{o.customerName ?? '—'}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={
-                        o.status === 'aguardando_pagamento'
-                          ? 'rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900'
-                          : undefined
-                      }
-                    >
-                      {orderStatusAdminLabel[o.status] ?? o.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
-                  <td className="px-3 py-2 whitespace-nowrap text-xs text-fal-muted">
-                    {o.paymentExpiresAt
-                      ? new Date(o.paymentExpiresAt).toLocaleString('pt-BR')
-                      : '—'}
-                  </td>
-                  <td className="px-3 py-2">{o.itemCount}</td>
-                  <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
-                </tr>
-              ))}
+              {visible.map((o) => {
+                const kind = adminActorKind(o.status, o.customerDecision)
+                return (
+                  <tr
+                    key={o.id}
+                    className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60"
+                  >
+                    <td className="px-3 py-2">
+                      <Link
+                        to={`/admin/pedidos/${o.id}`}
+                        className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+                      >
+                        {o.id.slice(0, 8)}…
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2">{o.customerName ?? '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
+                      >
+                        {adminActorBadgeLabel(kind)}
+                      </span>
+                      <span className="mt-1 block text-xs">
+                        {orderStatusOperatorLabel[o.status] ?? o.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-xs font-semibold text-fal-navy">
+                      {adminNextActionLabel(o.status, o.customerDecision)}
+                    </td>
+                    <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
+                    <td className="px-3 py-2">{o.itemCount}</td>
+                    <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

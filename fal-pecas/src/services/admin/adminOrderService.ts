@@ -12,6 +12,7 @@ export type AdminOrderListRow = {
   itemCount: number
   paymentStatus: string | null
   paymentExpiresAt: string | null
+  customerDecision: 'pending' | 'authorized' | 'rejected' | null
 }
 
 export type AdminOrderItem = {
@@ -78,7 +79,7 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
     .from('orders')
     .select(
       `
-      id, status, total, created_at, customer_id,
+      id, status, total, created_at, customer_id, customer_decision,
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
       payments ( status, expires_at )
@@ -101,6 +102,12 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
     const items = r.order_items as unknown[] | null
     const pays = r.payments as { status?: string; expires_at?: string }[] | null
     const pay = Array.isArray(pays) ? pays[0] : null
+    const decision =
+      r.customer_decision === 'pending' ||
+      r.customer_decision === 'authorized' ||
+      r.customer_decision === 'rejected'
+        ? r.customer_decision
+        : null
     return {
       id: String(r.id),
       status: String(r.status),
@@ -110,6 +117,7 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
       itemCount: Array.isArray(items) ? items.length : 0,
       paymentStatus: pay?.status != null ? String(pay.status) : null,
       paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
+      customerDecision: decision,
     }
   })
 }

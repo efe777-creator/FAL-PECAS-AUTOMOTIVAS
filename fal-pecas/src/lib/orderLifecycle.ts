@@ -142,12 +142,12 @@ export function customerOrderListCta(status: string): string | null {
 export const orderStatusAdminLabel: Record<string, string> = {
   pendente: 'Pendente',
   aguardando_pagamento: 'Aguardando pagamento',
-  pagamento_aprovado: 'Pagamento aprovado',
-  recebido: 'Recebido pela FAL',
-  em_analise: 'Em análise',
-  aguardando_disponibilidade: 'Aguardando disponibilidade',
-  aguardando_decisao: 'Aguardando decisão',
-  confirmado: 'Confirmado',
+  pagamento_aprovado: 'Pagamento aprovado (iniciar análise)',
+  recebido: 'Aguardando início da análise',
+  em_analise: 'Em análise pela loja',
+  aguardando_disponibilidade: 'Aguardando disponibilidade (legado)',
+  aguardando_decisao: 'Aguardando resposta do cliente',
+  confirmado: 'Pedido confirmado',
   em_separacao: 'Em separação',
   pronto_para_envio: 'Pronto para envio',
   preparando_envio: 'Preparando envio',
@@ -191,7 +191,7 @@ export function adminOrderNextStep(status: string): { title: string; body: strin
       }
     case 'aguardando_decisao':
       return {
-        title: 'Aguardando autorização do cliente',
+        title: 'Aguardando resposta do cliente',
         body: 'Sem resposta: aguarde. Autorizado: finalize de novo para confirmar. Recusado: cancele ou renegocie.',
       }
     case 'confirmado':
