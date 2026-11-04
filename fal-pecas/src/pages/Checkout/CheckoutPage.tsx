@@ -783,8 +783,15 @@ export function CheckoutPage() {
                 <span>{money(mpAwaiting.amount)}</span>
               </div>
               <p className="mt-3 text-xs text-fal-muted">
-                Aguardando confirmação do Mercado Pago.
+                Aguardando confirmação do Mercado Pago. Se sair desta tela, retome o pagamento
+                em Meus pedidos.
               </p>
+              <Link
+                to={`/conta/pedidos/${mpAwaiting.orderId}`}
+                className="mt-3 inline-block text-sm font-bold text-fal-auth-link underline-offset-2 hover:underline"
+              >
+                Ver em Meus pedidos →
+              </Link>
             </>
           ) : (
             <>

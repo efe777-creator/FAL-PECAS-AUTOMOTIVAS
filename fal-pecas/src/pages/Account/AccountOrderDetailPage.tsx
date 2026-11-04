@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymentPanel'
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
@@ -18,7 +19,7 @@ import {
 import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 function money(v: number) {
@@ -35,25 +36,29 @@ export function AccountOrderDetailPage() {
   const [rebuyBusy, setRebuyBusy] = useState(false)
   const [rebuyMsg, setRebuyMsg] = useState<string | null>(null)
 
-  useEffect(() => {
+  const reload = useCallback(async () => {
     if (!id) return
-    void (async () => {
-      setLoading(true)
-      try {
-        setOrder(await getMyOrderDetail(id))
-        setError(null)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar pedido')
-      } finally {
-        setLoading(false)
-      }
-    })()
+    setLoading(true)
+    try {
+      setOrder(await getMyOrderDetail(id))
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar pedido')
+    } finally {
+      setLoading(false)
+    }
   }, [id])
+
+  useEffect(() => {
+    void reload()
+  }, [reload])
 
   const timeline = useMemo(
     () => (order ? projectCustomerTimeline(order.status) : []),
     [order],
   )
+
+  const awaitingPayment = order?.status === 'aguardando_pagamento'
 
   async function onBuyAgain() {
     if (!order) return
@@ -126,6 +131,11 @@ export function AccountOrderDetailPage() {
               {formatDateTime(order.createdAt)} ·{' '}
               <strong>{orderStatusLabel[order.status] ?? order.status}</strong>
             </p>
+            {awaitingPayment ? (
+              <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
+                Pagamento pendente — conclua abaixo ou volte depois por Meus pedidos
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>
@@ -156,6 +166,19 @@ export function AccountOrderDetailPage() {
         </div>
         {rebuyMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{rebuyMsg}</p> : null}
       </div>
+
+      {awaitingPayment ? (
+        <div className="rounded-fal border border-amber-300 bg-amber-50/60 p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Retomar pagamento</h3>
+          <p className="mt-1 text-sm text-fal-muted">
+            Seu pedido está reservado aguardando confirmação do Mercado Pago. Se o Pix
+            expirou, gere um novo QR. Após a aprovação, esta tela atualiza sozinha.
+          </p>
+          <div className="mt-4">
+            <ResumeOrderPaymentPanel order={order} onPaid={() => void reload()} />
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-fal border border-fal-line bg-white p-5">
         <h3 className="mt-0 text-base font-extrabold">Andamento</h3>

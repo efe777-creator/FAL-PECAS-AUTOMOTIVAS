@@ -1,3 +1,7 @@
+import {
+  cepInOwnDeliveryRanges,
+  getOwnDeliverySettings,
+} from '@/services/admin/adminOwnDeliveryService'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 function regionSurcharge(postalCode: string): number {
@@ -8,11 +12,40 @@ function regionSurcharge(postalCode: string): number {
   return 10
 }
 
-/** Provider mock F6 — espelha `resolve_mock_shipping_option` no SQL. */
+/** Provider mock F6 — espelha `resolve_mock_shipping_option` no SQL (+ frete próprio config). */
 export const mockShippingProvider: ShippingProvider = {
   async quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
     const surcharge = regionSurcharge(req.postalCode)
-    return [
+    const options: ShippingQuoteOption[] = []
+
+    try {
+      const own = await getOwnDeliverySettings()
+      if (
+        own?.enabled &&
+        own.rates.length &&
+        cepInOwnDeliveryRanges(req.postalCode, own.cepRanges)
+      ) {
+        for (const rate of own.rates) {
+          options.push({
+            id: rate.id,
+            provider: 'own',
+            serviceCode: rate.serviceCode,
+            label: rate.label,
+            amount: Number(rate.amount),
+            etaDaysMin: rate.etaDaysMin,
+            etaDaysMax: rate.etaDaysMax,
+            metadata: {
+              kind: 'own_delivery_table',
+              coverage: own.coverageLabel,
+            },
+          })
+        }
+      }
+    } catch {
+      // Sem config / RLS: segue só mock clássico.
+    }
+
+    options.push(
       {
         id: 'mock:economic',
         provider: 'mock',
@@ -21,7 +54,7 @@ export const mockShippingProvider: ShippingProvider = {
         amount: 29.9 + surcharge,
         etaDaysMin: 5,
         etaDaysMax: 8,
-        metadata: { kind: 'own_delivery_table' },
+        metadata: { kind: 'mock_table' },
       },
       {
         id: 'mock:express',
@@ -43,6 +76,8 @@ export const mockShippingProvider: ShippingProvider = {
         etaDaysMax: 1,
         metadata: { kind: 'pickup' },
       },
-    ]
+    )
+
+    return options
   },
 }

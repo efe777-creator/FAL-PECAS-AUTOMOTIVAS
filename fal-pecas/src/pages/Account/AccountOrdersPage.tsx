@@ -35,7 +35,8 @@ export function AccountOrdersPage() {
       <div className="rounded-fal border border-fal-line bg-white p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus pedidos</h2>
         <p className="text-sm text-fal-muted">
-          Pedidos criados no checkout. Clique para ver detalhes e histórico.
+          Pedidos do checkout. Se o pagamento ficou pendente, abra o pedido para retomar Pix
+          ou cartão.
         </p>
       </div>
 
@@ -72,7 +73,22 @@ export function AccountOrdersPage() {
                   <td className="px-3 py-2">
                     {formatDate(o.createdAt)}
                   </td>
-                  <td className="px-3 py-2">{orderStatusLabel[o.status] ?? o.status}</td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={
+                        o.status === 'aguardando_pagamento'
+                          ? 'rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900'
+                          : undefined
+                      }
+                    >
+                      {orderStatusLabel[o.status] ?? o.status}
+                    </span>
+                    {o.status === 'aguardando_pagamento' ? (
+                      <span className="mt-1 block text-xs font-semibold text-fal-auth-link">
+                        Retomar pagamento →
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">{o.itemCount}</td>
                   <td className="px-3 py-2 font-semibold">
                     {o.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

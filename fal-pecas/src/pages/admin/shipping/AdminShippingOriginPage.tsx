@@ -9,9 +9,34 @@ import {
 } from '@/services/admin/adminShippingOriginService'
 import { lookupCep } from '@/services/address/addressLookupService'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+
+function formatPhoneMask(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2) return d
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+function formatDocumentMask(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 14)
+  if (d.length <= 11) {
+    if (d.length <= 3) return d
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+  }
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+}
 
 export function AdminShippingOriginPage() {
   const [id, setId] = useState<string | undefined>()
+  const [internalName, setInternalName] = useState('Origem principal')
+  const [senderName, setSenderName] = useState('')
+  const [document, setDocument] = useState('')
+  const [phone, setPhone] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [street, setStreet] = useState('')
   const [number, setNumber] = useState('')
@@ -35,6 +60,10 @@ export function AdminShippingOriginPage() {
         const o = await getStoreShippingOrigin()
         if (o) {
           setId(o.id)
+          setInternalName(o.internalName?.trim() || 'Origem principal')
+          setSenderName(o.senderName ?? '')
+          setDocument(o.document ? formatDocumentMask(o.document) : '')
+          setPhone(o.phone ? formatPhoneMask(o.phone) : '')
           setPostalCode(formatCepMask(o.postalCode))
           setStreet(o.street)
           setNumber(o.number)
@@ -114,6 +143,10 @@ export function AdminShippingOriginPage() {
       }
       const saved = await upsertStoreShippingOrigin({
         id,
+        internalName: internalName.trim(),
+        senderName: senderName.trim(),
+        document,
+        phone,
         postalCode: normalizeCep(postalCode),
         street: street.trim(),
         number: number.trim(),
@@ -123,7 +156,7 @@ export function AdminShippingOriginPage() {
         state,
       })
       setId(saved.id)
-      setOk('Origem de frete salva.')
+      setOk('Origem e remetente salvos.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar')
     } finally {
@@ -135,14 +168,55 @@ export function AdminShippingOriginPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">Origem de frete (FAL)</h1>
+      <Link to="/admin/logistica" className="text-sm font-semibold text-fal-navy no-underline">
+        ← Logística
+      </Link>
+      <h1 className="text-2xl font-extrabold text-fal-navy">Origem e expedição</h1>
       <p className="text-sm text-fal-muted">
-        CEP e endereço usados como origem nas cotações. Providers reais entram na F9.
+        Cadastro da origem da loja + remetente (compartilhado por frete próprio e Melhor Envio).
+        Cotação live exige D-FRETE C + secrets. Complemento é o único campo opcional.
       </p>
       <form
         onSubmit={(e) => void onSubmit(e)}
         className="grid max-w-2xl gap-3 rounded-[14px] border border-fal-line bg-white p-4 sm:grid-cols-2"
       >
+        <div className="sm:col-span-2">
+          <h2 className="m-0 text-sm font-extrabold text-fal-navy">Remetente</h2>
+        </div>
+        <div className="sm:col-span-2">
+          <Input
+            label="Nome interno"
+            value={internalName}
+            onChange={(e) => setInternalName(e.target.value)}
+            required
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Input
+            label="Nome do remetente"
+            value={senderName}
+            onChange={(e) => setSenderName(e.target.value)}
+            required
+          />
+        </div>
+        <Input
+          label="CPF / CNPJ"
+          inputMode="numeric"
+          value={document}
+          onChange={(e) => setDocument(formatDocumentMask(e.target.value))}
+          required
+        />
+        <Input
+          label="Telefone"
+          inputMode="tel"
+          value={phone}
+          onChange={(e) => setPhone(formatPhoneMask(e.target.value))}
+          required
+        />
+
+        <div className="sm:col-span-2 pt-2">
+          <h2 className="m-0 text-sm font-extrabold text-fal-navy">Endereço de origem</h2>
+        </div>
         <div className="sm:col-span-2">
           <Input
             label="CEP"
@@ -211,7 +285,7 @@ export function AdminShippingOriginPage() {
           required
         />
         <Input
-          label="Complemento"
+          label="Complemento (opcional)"
           value={complement}
           onChange={(e) => setComplement(e.target.value)}
         />

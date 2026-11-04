@@ -1,7 +1,32 @@
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase, isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
 import { applyResolvedPricesToCartItems } from '@/services/cart/cartPricing'
+import { pickPrimaryStoragePath } from '@/services/products/productImages'
 import type { CartItem } from '@/types'
+
+async function attachCartItemImages(items: CartItem[]): Promise<CartItem[]> {
+  if (!items.length || !isSupabaseConfigured || !supabase) return items
+  const ids = items.map((i) => i.productId)
+  const { data, error } = await supabase
+    .from('product_images')
+    .select('product_id, storage_path, sort_order, is_primary')
+    .in('product_id', ids)
+  if (error) throw error
+  const byProduct = new Map<string, { product_id: string; storage_path: string; sort_order: number; is_primary: boolean }[]>()
+  for (const row of data ?? []) {
+    const id = String(row.product_id)
+    const list = byProduct.get(id) ?? []
+    list.push(row as { product_id: string; storage_path: string; sort_order: number; is_primary: boolean })
+    byProduct.set(id, list)
+  }
+  return items.map((item) => {
+    if (item.imageUrl) return item
+    const path = pickPrimaryStoragePath(byProduct.get(item.productId) ?? [])
+    if (!path) return item
+    const { data: pub } = supabase!.storage.from('product-images').getPublicUrl(path)
+    return { ...item, imageUrl: pub.publicUrl || null }
+  })
+}
 
 async function ensureCartId(customerId: string): Promise<string> {
   const sb = getSupabase()
@@ -72,7 +97,8 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
     }
   })
 
-  return applyResolvedPricesToCartItems(mapped, customerId)
+  const priced = await applyResolvedPricesToCartItems(mapped, customerId)
+  return attachCartItemImages(priced)
 }
 
 /**
@@ -120,7 +146,10 @@ export async function clearRemoteCart(): Promise<void> {
   await saveRemoteCart([])
 }
 
-/** Merge: soma quantidades por productId; preço do item remoto se existir, senão local. */
+/**
+ * Merge login: max(qty) por productId (evita duplicar ao re-login com espelho local).
+ * Prefere metadados remotos; imageUrl/local preenche gaps.
+ */
 export function mergeCartItems(local: CartItem[], remote: CartItem[]): CartItem[] {
   const map = new Map<string, CartItem>()
   for (const item of remote) {
@@ -131,7 +160,9 @@ export function mergeCartItems(local: CartItem[], remote: CartItem[]): CartItem[
     if (prev) {
       map.set(item.productId, {
         ...prev,
-        quantity: prev.quantity + item.quantity,
+        quantity: Math.max(prev.quantity, item.quantity),
+        imageUrl: prev.imageUrl || item.imageUrl,
+        commercialRef: prev.commercialRef || item.commercialRef,
       })
     } else {
       map.set(item.productId, { ...item })

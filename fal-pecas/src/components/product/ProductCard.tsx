@@ -1,6 +1,8 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import { ProductImageLightbox } from '@/components/product/ProductImageLightbox'
+import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/components/common/Toast'
@@ -25,6 +27,7 @@ export function ProductCard({ product }: { product: Product }) {
   const { push } = useToast()
   const navigate = useNavigate()
   const [liked, setLiked] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const price = displayPrice(product)
   const listPrice = product.listPrice ?? product.price
   const showStrike = listPrice > price + 0.001
@@ -107,21 +110,36 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <Link to={productHref} className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="grid h-[100px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] text-4xl sm:h-[150px] sm:text-[62px]">
-          {product.imageUrl ? (
+      <div className="mb-1 grid h-[120px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] sm:h-[168px]">
+        {product.imageUrl ? (
+          <button
+            type="button"
+            className="group relative grid h-full w-full place-items-center"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setLightboxOpen(true)
+            }}
+            aria-label={`Ampliar imagem de ${displayName}`}
+          >
             <img
               src={product.imageUrl}
               alt={displayName}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain transition group-hover:scale-[1.03]"
               loading="lazy"
             />
-          ) : (
-            '🧩'
-          )}
-        </div>
+            <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded bg-fal-navy/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              Zoom
+            </span>
+          </button>
+        ) : (
+          <ProductImagePlaceholder className="scale-75" />
+        )}
+      </div>
+
+      <Link to={productHref} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <h3
-          className="mt-3 mb-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
+          className="mt-2 mb-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
           title={displayName}
         >
           {displayName}
@@ -219,6 +237,15 @@ export function ProductCard({ product }: { product: Product }) {
           </Button>
         </Link>
       </div>
+
+      {product.imageUrl ? (
+        <ProductImageLightbox
+          images={product.images?.length ? product.images : [product.imageUrl]}
+          alt={displayName}
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      ) : null}
     </article>
   )
 }

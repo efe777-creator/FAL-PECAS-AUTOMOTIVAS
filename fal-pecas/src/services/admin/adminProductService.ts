@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { adminEnsureBaseAndPromoPrices } from '@/services/admin/adminPriceListService'
 import { resolveProductPrice } from '@/services/pricing/priceResolutionService'
-import type { Product, ProductReference } from '@/types'
+import type { MeasureOrigin, Product, ProductReference } from '@/types'
 
 type ProductRow = {
   id: string
@@ -33,8 +33,16 @@ type ProductRow = {
   height_cm?: number | null
   width_cm?: number | null
   length_cm?: number | null
+  weight_origin?: string | null
+  height_origin?: string | null
+  width_origin?: string | null
+  length_origin?: string | null
   product_brands?: { name: string } | { name: string }[] | null
   product_categories?: { id: string; name: string } | { id: string; name: string }[] | null
+}
+
+function asMeasureOrigin(v: string | null | undefined): MeasureOrigin {
+  return v === 'manual' ? 'manual' : 'global'
 }
 
 function asNamed<T extends { name: string }>(value: T | T[] | null | undefined): T | null {
@@ -71,6 +79,10 @@ function mapProduct(row: ProductRow): Product {
     heightCm: row.height_cm == null ? null : Number(row.height_cm),
     widthCm: row.width_cm == null ? null : Number(row.width_cm),
     lengthCm: row.length_cm == null ? null : Number(row.length_cm),
+    weightOrigin: asMeasureOrigin(row.weight_origin),
+    heightOrigin: asMeasureOrigin(row.height_origin),
+    widthOrigin: asMeasureOrigin(row.width_origin),
+    lengthOrigin: asMeasureOrigin(row.length_origin),
   }
 }
 
@@ -78,6 +90,7 @@ const SELECT = `
   id, sku, commercial_ref, name, slug, description, short_description, brand_id, supplier_id,
   category_id, price, promo_price, status, manufacturer_code, is_incomplete,
   is_available, posicao, lado, attrs, weight_kg, height_cm, width_cm, length_cm,
+  weight_origin, height_origin, width_origin, length_origin,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -160,6 +173,10 @@ export async function adminUpsertProduct(input: {
   heightCm?: number | null
   widthCm?: number | null
   lengthCm?: number | null
+  weightOrigin?: MeasureOrigin
+  heightOrigin?: MeasureOrigin
+  widthOrigin?: MeasureOrigin
+  lengthOrigin?: MeasureOrigin
   /** Quando false, o caller sincroniza as listas (modo listas no formulário). */
   syncBasePromoLists?: boolean
 }): Promise<Product> {
@@ -188,6 +205,10 @@ export async function adminUpsertProduct(input: {
     height_cm: input.heightCm ?? null,
     width_cm: input.widthCm ?? null,
     length_cm: input.lengthCm ?? null,
+    weight_origin: input.weightOrigin ?? (input.weightKg != null ? 'manual' : 'global'),
+    height_origin: input.heightOrigin ?? (input.heightCm != null ? 'manual' : 'global'),
+    width_origin: input.widthOrigin ?? (input.widthCm != null ? 'manual' : 'global'),
+    length_origin: input.lengthOrigin ?? (input.lengthCm != null ? 'manual' : 'global'),
     search_document: [
       input.name,
       identity.sku,
@@ -214,6 +235,55 @@ export async function adminUpsertProduct(input: {
   }
   await refreshIncompleteFlag(product.id)
   return (await adminGetProduct(product.id)) ?? product
+}
+
+export type GlobalMeasurePatch = {
+  weightKg?: number | null
+  heightCm?: number | null
+  widthCm?: number | null
+  lengthCm?: number | null
+}
+
+/** skip_manual = só campos global; overwrite_manual = força inclusive manuais → viram global. */
+export type ApplyGlobalMeasuresMode = 'skip_manual' | 'overwrite_manual'
+
+/**
+ * Bulk de medidas nos produtos selecionados.
+ * Campos omitidos no patch não são tocados.
+ */
+export async function adminApplyGlobalProductMeasures(opts: {
+  productIds: string[]
+  patch: GlobalMeasurePatch
+  mode: ApplyGlobalMeasuresMode
+}): Promise<{ updatedFieldRows: number }> {
+  const ids = [...new Set(opts.productIds)].filter(Boolean)
+  if (!ids.length) return { updatedFieldRows: 0 }
+
+  const fields: Array<{
+    valueKey: keyof GlobalMeasurePatch
+    col: string
+    originCol: string
+  }> = [
+    { valueKey: 'weightKg', col: 'weight_kg', originCol: 'weight_origin' },
+    { valueKey: 'heightCm', col: 'height_cm', originCol: 'height_origin' },
+    { valueKey: 'widthCm', col: 'width_cm', originCol: 'width_origin' },
+    { valueKey: 'lengthCm', col: 'length_cm', originCol: 'length_origin' },
+  ]
+
+  let updatedFieldRows = 0
+  for (const f of fields) {
+    if (!(f.valueKey in opts.patch)) continue
+    const value = opts.patch[f.valueKey] ?? null
+    let q = getSupabase()
+      .from('products')
+      .update({ [f.col]: value, [f.originCol]: 'global' })
+      .in('id', ids)
+    if (opts.mode === 'skip_manual') q = q.eq(f.originCol, 'global')
+    const { data, error } = await q.select('id')
+    if (error) throw error
+    updatedFieldRows += data?.length ?? 0
+  }
+  return { updatedFieldRows }
 }
 
 export async function adminSetProductStatus(id: string, status: NonNullable<Product['status']>) {

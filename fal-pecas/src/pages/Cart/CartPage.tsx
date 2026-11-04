@@ -11,7 +11,8 @@ import { Link } from 'react-router-dom'
 
 export function CartPage() {
   const { user } = useAuth()
-  const { items, itemCount, subtotal, updateQty, removeItem } = useCart()
+  const { items, itemCount, subtotal, updateQty, removeItem, storageKind, syncPending } =
+    useCart()
   const [shippingAmount, setShippingAmount] = useState<number | null>(null)
   const onShippingAmountChange = useCallback((amount: number | null) => {
     setShippingAmount(amount)
@@ -33,9 +34,15 @@ export function CartPage() {
 
   return (
     <Container className="py-8">
-      <h1 className="mt-0 mb-6 text-[28px] font-extrabold sm:text-[34px]">
+      <h1 className="mt-0 mb-2 text-[28px] font-extrabold sm:text-[34px]">
         Carrinho ({itemCount})
       </h1>
+      <p className="mt-0 mb-6 text-sm text-fal-muted">
+        {storageKind === 'supabase'
+          ? 'Carrinho salvo nesta conta (sincronizado).'
+          : 'Carrinho salvo neste dispositivo.'}
+        {syncPending ? ' Sincronizando…' : ''}
+      </p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
         <div className="rounded-fal border border-fal-line bg-white p-5">
           {items.map((item) => {

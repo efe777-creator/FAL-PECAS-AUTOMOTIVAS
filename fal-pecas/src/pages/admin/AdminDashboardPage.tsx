@@ -29,7 +29,7 @@ const sections: { title: string; cards: DashCard[] }[] = [
     title: 'Operação',
     cards: [
       { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos, movimentos e modo da loja' },
-      { to: '/admin/frete', title: 'Frete / origem', desc: 'CEP e endereço de origem da loja' },
+      { to: '/admin/logistica', title: 'Logística', desc: 'Origem, frete próprio, Melhor Envio, configs' },
       { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais mínimos' },
       {
         to: '/admin/operadores',

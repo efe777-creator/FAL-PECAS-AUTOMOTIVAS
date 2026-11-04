@@ -18,6 +18,7 @@ export type OrderInternalStatus =
 
 export type OrderCustomerStep =
   | 'pedido_realizado'
+  | 'aguardando_pagamento'
   | 'pagamento_aprovado'
   | 'recebido_pela_fal'
   | 'em_confirmacao'
@@ -36,6 +37,7 @@ export interface CustomerTimelineStep {
 
 const HAPPY_PATH: { id: OrderCustomerStep; label: string }[] = [
   { id: 'pedido_realizado', label: 'Pedido realizado' },
+  { id: 'aguardando_pagamento', label: 'Aguardando pagamento' },
   { id: 'pagamento_aprovado', label: 'Pagamento aprovado' },
   { id: 'recebido_pela_fal', label: 'Pedido recebido pela FAL' },
   { id: 'em_confirmacao', label: 'Pedido em confirmação' },
@@ -49,7 +51,7 @@ export function mapStatusToCustomerStep(status: string): OrderCustomerStep {
   switch (status) {
     case 'pendente':
     case 'aguardando_pagamento':
-      return 'pagamento_aprovado'
+      return 'aguardando_pagamento'
     case 'pagamento_aprovado':
       return 'pagamento_aprovado'
     case 'recebido':
@@ -144,6 +146,7 @@ export const orderStatusAdminLabel: Record<string, string> = {
 
 /** Chaves canônicas dos chips de contagem (Dashboard + Pedidos). */
 export const ADMIN_ORDER_COUNTER_KEYS = [
+  'aguardando_pagamento',
   'recebido',
   'em_analise',
   'aguardando_decisao',
