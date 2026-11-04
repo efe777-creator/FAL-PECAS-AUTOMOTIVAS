@@ -28,13 +28,15 @@ O early-return `if (!items.length)` renderizava **Carrinho vazio** e **nunca** m
 - Unit guard verde  
 - Código: Pix/Brick permanecem renderizáveis com carrinho limpo  
 
-**Reteste smoke (humano/agente auth SMOKE MP):** Gerar Pix / Continuar cartão e confirmar QR ou Brick na mesma tela — ainda **pendente** (Netlify precisa do deploy desta fix).
+**Reteste prod (04/11 pós PR #43 merge → `index-CV1mwNAe.js`):**  
+- Pix: **PASS UI** — «Pix — aguardando confirmação» + Copiar código Pix + status pending · pedido `0df5901c…` · total R$ 128,12 · **sem** Carrinho vazio.  
+- Cartão Brick / webhook approve: **ainda pendente** nesta reexecução.
 
 ---
 
 ## STOP
 
-Sem deploy automático. Sem marcar α-MP-2/3 PASS até reteste em prod.  
-**Próximo:** commit/PR → deploy Netlify → reteste S2 Pix/cartão/webhook.
+FIND-SMOKE-UI-001 **corrigido em prod** (evidência Pix).  
+**Próximo:** reteste Brick cartão + approve webhook; S1 D-FRETE B; depois S4.
 
 **Assinatura agente:** VAL FIX CHECKOUT MP POST ORDER UI 2026-11-04.

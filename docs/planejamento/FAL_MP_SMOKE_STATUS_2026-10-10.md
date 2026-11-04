@@ -35,7 +35,8 @@
 
 **Próxima MARCHA técnica sugerida (auth):** `MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI` — manter `mpAwaiting` / rota de pagamento mesmo com carrinho vazio após place_order.
 
-**Update 04/11:** fix **IMPLEMENTADO** em código — [VAL](./FAL_MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI_VAL_2026-11-04.md). Reteste S2 aguarda deploy Netlify.
+**Update 04/11:** fix **IMPLEMENTADO** — [VAL](./FAL_MARCHA_FIX_CHECKOUT_MP_POST_ORDER_UI_VAL_2026-11-04.md).  
+**Reteste prod pós-PR #43:** bundle `index-CV1mwNAe.js` — Pix UI **PASS** (QR/copia-cola permanece; pedido `0df5901c…` · pending). Webhook approve ainda **NÃO OBSERVADO**.
 
 ---
 
