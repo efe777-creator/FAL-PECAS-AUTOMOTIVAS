@@ -279,9 +279,10 @@ export function AccountOrderDetailPage() {
         <div className="rounded-fal border border-amber-300 bg-amber-50/60 p-5">
           <h3 className="mt-0 text-base font-extrabold text-fal-navy">Continuar pagamento</h3>
           <p className="mt-1 text-sm text-fal-muted">
-            Seu pedido está reservado aguardando confirmação do Mercado Pago. Se o Pix
-            expirou, gere um novo QR. Após a aprovação, esta tela atualiza sozinha. Para
-            alterar itens, cancele o pedido (os itens voltam ao carrinho).
+            Pedido reservado. O Pix vale 5 minutos — se expirar, gere um novo QR ou pague no
+            cartão (o pedido permanece até 48 h). Sem pagamento aprovado em 48 h, o pedido é
+            cancelado e sai da fila. Após a aprovação, esta tela atualiza sozinha. Para alterar
+            itens, cancele o pedido (os itens voltam ao carrinho).
           </p>
           <div className="mt-4">
             <ResumeOrderPaymentPanel order={order} onPaid={() => void reload()} />

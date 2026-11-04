@@ -83,6 +83,7 @@ export function CheckoutPage() {
     amount: number
     pixQrCode?: string | null
     pixQrCodeBase64?: string | null
+    expiresAt?: string | null
   } | null>(null)
 
   function goToStepIndex(next: number) {
@@ -340,6 +341,7 @@ export function CheckoutPage() {
           amount: placed.total,
           pixQrCode: mp.pixQrCode,
           pixQrCodeBase64: mp.pixQrCodeBase64,
+          expiresAt: mp.expiresAt ?? null,
         })
         goToStepIndex(4)
         clear()
@@ -669,6 +671,7 @@ export function CheckoutPage() {
                     initialPixQrCode={mpAwaiting.pixQrCode}
                     initialPixQrCodeBase64={mpAwaiting.pixQrCodeBase64}
                     initialAmount={mpAwaiting.amount}
+                    initialExpiresAt={mpAwaiting.expiresAt}
                   />
                 ) : (
                   <Loading label="Preparando Pix…" />

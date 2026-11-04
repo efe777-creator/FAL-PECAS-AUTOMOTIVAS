@@ -1,9 +1,15 @@
 import {
   buildIdempotencyKey,
   buildMpPaymentBody,
+  formatCountdown,
+  isPaymentExpired,
   mapMpResponseToPaymentFields,
   parseCreateMpPaymentClientBody,
+  PIX_PAYMENT_TTL_MINUTES,
+  pixDateOfExpiration,
+  secondsUntilExpiry,
   serverPaymentMethod,
+  UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
 import { describe, expect, it } from 'vitest'
 
@@ -56,6 +62,22 @@ describe('buildIdempotencyKey / buildMpPaymentBody / mapMpResponse', () => {
       email: 'a@b.com',
       identification: { type: 'CPF', number: '123' },
     })
+    expect(typeof body.date_of_expiration).toBe('string')
+    const exp = new Date(String(body.date_of_expiration)).getTime()
+    const deltaMin = (exp - Date.now()) / 60_000
+    expect(deltaMin).toBeGreaterThan(4.5)
+    expect(deltaMin).toBeLessThan(5.5)
+  })
+
+  it('TTL Pix 5 min ≠ TTL pedido 48 h', () => {
+    expect(PIX_PAYMENT_TTL_MINUTES).toBe(5)
+    expect(UNPAID_ORDER_TTL_HOURS).toBe(48)
+    const from = new Date('2026-11-04T12:00:00.000Z')
+    expect(pixDateOfExpiration(from)).toBe('2026-11-04T12:05:00.000Z')
+    expect(isPaymentExpired('2026-11-04T12:00:00.000Z', from)).toBe(true)
+    expect(isPaymentExpired('2026-11-04T12:06:00.000Z', from)).toBe(false)
+    expect(secondsUntilExpiry('2026-11-04T12:02:30.000Z', from)).toBe(150)
+    expect(formatCountdown(125)).toBe('02:05')
   })
 
   it('MP approved → status interno pending + orderApproved false', () => {

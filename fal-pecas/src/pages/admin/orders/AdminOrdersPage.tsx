@@ -141,8 +141,8 @@ export function AdminOrdersPage() {
 
   async function runExpireUnpaid() {
     const ok = window.confirm(
-      'Cancelar pedidos em “Aguardando pagamento” com mais de 48 h sem pagamento aprovado?\n\n' +
-        'A reserva de estoque será liberada. Expiração do QR Pix é independente.',
+      'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?\n\n' +
+        'Histórico permanece. Reserva liberada. Pix (5 min) é independente — não cancela o pedido.',
     )
     if (!ok) return
     setBusyExpire(true)
@@ -167,10 +167,12 @@ export function AdminOrdersPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Pedidos</h1>
+          <Link to="/admin/pedidos" className="text-sm font-semibold text-fal-navy no-underline">
+            ← Central de Pedidos
+          </Link>
+          <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Lista avançada</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Pagamento → análise → (autorização do cliente se preciso) → confirmação → separação →
-            envio → entrega.
+            Filtro fino por grupo e status. Para filas de trabalho, use as áreas da central.
           </p>
         </div>
         <Button
@@ -179,7 +181,7 @@ export function AdminOrdersPage() {
           disabled={busyExpire || loading}
           onClick={() => void runExpireUnpaid()}
         >
-          {busyExpire ? 'Expirando…' : 'Expirar não pagos (48 h)'}
+          {busyExpire ? 'Expirando…' : 'Retirar não pagos (48 h)'}
         </Button>
       </header>
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}

@@ -65,8 +65,23 @@ const ForgotPasswordPage = lazy(() =>
 const AdminDashboardPage = lazy(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
+const AdminOrdersHubPage = lazy(() =>
+  import('@/pages/admin/orders/AdminOrdersHubPage').then((m) => ({
+    default: m.AdminOrdersHubPage,
+  })),
+)
 const AdminOrdersPage = lazy(() =>
   import('@/pages/admin/orders/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
+)
+const AdminOrdersAreaPage = lazy(() =>
+  import('@/pages/admin/orders/AdminOrdersAreaPage').then((m) => ({
+    default: m.AdminOrdersAreaPage,
+  })),
+)
+const AdminOrdersViewPage = lazy(() =>
+  import('@/pages/admin/orders/AdminOrdersViewPage').then((m) => ({
+    default: m.AdminOrdersViewPage,
+  })),
 )
 const AdminInventoryPage = lazy(() =>
   import('@/pages/admin/inventory/AdminInventoryPage').then((m) => ({
@@ -243,7 +258,13 @@ export const router = createBrowserRouter([
         path: 'fornecedores/importar-custos',
         element: <AdminSupplierCostImportPage />,
       },
-      { path: 'pedidos', element: <AdminOrdersPage /> },
+      { path: 'pedidos', element: <AdminOrdersHubPage /> },
+      { path: 'pedidos/lista', element: <AdminOrdersPage /> },
+      { path: 'pedidos/aguardando-pagamento', element: <AdminOrdersAreaPage /> },
+      { path: 'pedidos/analise', element: <AdminOrdersAreaPage /> },
+      { path: 'pedidos/separacao', element: <AdminOrdersAreaPage /> },
+      { path: 'pedidos/expedicao', element: <AdminOrdersAreaPage /> },
+      { path: 'pedidos/visao/:viewId', element: <AdminOrdersViewPage /> },
       { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
       { path: 'clientes', element: <AdminCustomersPage /> },
       { path: 'estoque', element: <AdminInventoryPage /> },

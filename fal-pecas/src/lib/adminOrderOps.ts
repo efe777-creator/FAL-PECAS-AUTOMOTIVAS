@@ -356,3 +356,188 @@ export function orderMatchesGroup(status: string, groupId: AdminOrderGroupId | '
   if (!groupId) return true
   return adminOrderGroupId(status) === groupId
 }
+
+/** Quatro áreas de trabalho da Central de Pedidos (visão operacional). */
+export type AdminOrderAreaId =
+  | 'aguardando-pagamento'
+  | 'analise'
+  | 'separacao'
+  | 'expedicao'
+
+export type AdminOrderArea = {
+  id: AdminOrderAreaId
+  title: string
+  description: string
+  path: string
+  statuses: readonly string[]
+  primaryCta: string
+}
+
+export const ADMIN_ORDER_AREAS: readonly AdminOrderArea[] = [
+  {
+    id: 'aguardando-pagamento',
+    title: 'Aguardando pagamento',
+    description: 'Pagamento ainda não aprovado pelo gateway. Equipe só acompanha a cobrança.',
+    path: '/admin/pedidos/aguardando-pagamento',
+    statuses: ['aguardando_pagamento'],
+    primaryCta: 'Abrir cobrança',
+  },
+  {
+    id: 'analise',
+    title: 'Análise da loja',
+    description: 'Pagamento ok. Conferir itens e confirmar o pedido para separação.',
+    path: '/admin/pedidos/analise',
+    statuses: [
+      'pagamento_aprovado',
+      'recebido',
+      'em_analise',
+      'aguardando_decisao',
+      'aguardando_disponibilidade',
+    ],
+    primaryCta: 'Confirmar pedido e enviar para separação',
+  },
+  {
+    id: 'separacao',
+    title: 'Em separação',
+    description: 'Separar produtos, conferir quantidades e preparar a embalagem.',
+    path: '/admin/pedidos/separacao',
+    statuses: ['confirmado', 'em_separacao'],
+    primaryCta: 'Concluir separação e enviar para expedição',
+  },
+  {
+    id: 'expedicao',
+    title: 'Expedição e entrega',
+    description:
+      'Etiqueta (Melhor Envio sandbox), postagem à transportadora e entrega ao cliente — etapas distintas.',
+    path: '/admin/pedidos/expedicao',
+    statuses: ['pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'],
+    primaryCta: 'Preparar envio / postagem',
+  },
+] as const
+
+const STATUS_TO_AREA: Record<string, AdminOrderAreaId> = (() => {
+  const m: Record<string, AdminOrderAreaId> = {}
+  for (const a of ADMIN_ORDER_AREAS) {
+    for (const s of a.statuses) m[s] = a.id
+  }
+  return m
+})()
+
+export function adminOrderAreaId(status: string): AdminOrderAreaId | null {
+  return STATUS_TO_AREA[status] ?? null
+}
+
+export function sumAreaCount(
+  counts: Record<string, number>,
+  area: AdminOrderArea,
+): number {
+  return area.statuses.reduce((acc, s) => acc + (counts[s] ?? 0), 0)
+}
+
+export function orderMatchesArea(status: string, areaId: AdminOrderAreaId | ''): boolean {
+  if (!areaId) return true
+  return adminOrderAreaId(status) === areaId
+}
+
+/** Atalhos = visões filtradas, não status artificiais. */
+export type AdminOrderViewId =
+  | 'todos'
+  | 'pendentes'
+  | 'decisao-cliente'
+  | 'solicitacoes-cancelamento'
+  | 'cancelados'
+  | 'problemas'
+  | 'historico'
+
+export type AdminOrderView = {
+  id: AdminOrderViewId
+  title: string
+  description: string
+  path: string
+  /** null = lista avançada sem filtro de status prévio */
+  statuses: readonly string[] | null
+  placeholder?: boolean
+}
+
+export const ADMIN_ORDER_VIEWS: readonly AdminOrderView[] = [
+  {
+    id: 'todos',
+    title: 'Todos os pedidos',
+    description: 'Lista avançada com filtro fino por status.',
+    path: '/admin/pedidos/lista',
+    statuses: null,
+  },
+  {
+    id: 'pendentes',
+    title: 'Pedidos pendentes',
+    description: 'Pós-pagamento ainda sem confirmação da loja (mesma fila da Análise).',
+    path: '/admin/pedidos/visao/pendentes',
+    statuses: [
+      'pagamento_aprovado',
+      'recebido',
+      'em_analise',
+      'aguardando_decisao',
+      'aguardando_disponibilidade',
+    ],
+  },
+  {
+    id: 'decisao-cliente',
+    title: 'Aguardando decisão do cliente',
+    description: 'Pedidos em aguardando_decisao.',
+    path: '/admin/pedidos/visao/decisao-cliente',
+    statuses: ['aguardando_decisao'],
+  },
+  {
+    id: 'solicitacoes-cancelamento',
+    title: 'Solicitações de cancelamento',
+    description: 'Onda 2 ainda não implementada — visão vazia até haver fluxo.',
+    path: '/admin/pedidos/visao/solicitacoes-cancelamento',
+    statuses: [],
+    placeholder: true,
+  },
+  {
+    id: 'cancelados',
+    title: 'Pedidos cancelados',
+    description: 'Consulta de cancelados/expirados.',
+    path: '/admin/pedidos/visao/cancelados',
+    statuses: ['cancelado'],
+  },
+  {
+    id: 'problemas',
+    title: 'Pedidos com problemas',
+    description: 'Decisão rejeitada pelo cliente ou cobrança falha/rejeitada.',
+    path: '/admin/pedidos/visao/problemas',
+    statuses: null,
+  },
+  {
+    id: 'historico',
+    title: 'Histórico de pedidos',
+    description: 'Entregues e cancelados (consulta).',
+    path: '/admin/pedidos/visao/historico',
+    statuses: ['entregue', 'cancelado'],
+  },
+] as const
+
+export function getAdminOrderView(id: string): AdminOrderView | undefined {
+  return ADMIN_ORDER_VIEWS.find((v) => v.id === id)
+}
+
+export function getAdminOrderArea(id: string): AdminOrderArea | undefined {
+  return ADMIN_ORDER_AREAS.find((a) => a.id === id)
+}
+
+/** Filtro client-side para visão "problemas". */
+export function orderMatchesProblemsView(input: {
+  status: string
+  customerDecision?: CustomerDecisionLite
+  paymentStatus?: string | null
+}): boolean {
+  if (input.status === 'aguardando_decisao' && input.customerDecision === 'rejected') return true
+  if (
+    input.status === 'aguardando_pagamento' &&
+    (input.paymentStatus === 'failed' || input.paymentStatus === 'rejected')
+  ) {
+    return true
+  }
+  return false
+}

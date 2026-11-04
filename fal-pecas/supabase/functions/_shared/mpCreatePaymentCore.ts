@@ -118,6 +118,23 @@ export function buildIdempotencyKey(paymentId: string, attempt = 1): string {
   return n <= 1 ? `fal-pay-${paymentId}` : `fal-pay-${paymentId}-a${n}`
 }
 
+/** TTL da cobrança Pix (QR). O pedido permanece até 48 h para nova tentativa. */
+export const PIX_PAYMENT_TTL_MINUTES = 5
+
+/** Pedido sem pagamento aprovado é cancelado/retirado da fila operacional após este prazo. */
+export const UNPAID_ORDER_TTL_HOURS = 48
+
+export function pixDateOfExpiration(from: Date = new Date()): string {
+  return new Date(from.getTime() + PIX_PAYMENT_TTL_MINUTES * 60_000).toISOString()
+}
+
+export function isPaymentExpired(expiresAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!expiresAt) return false
+  const t = new Date(expiresAt).getTime()
+  if (!Number.isFinite(t)) return false
+  return t <= now.getTime()
+}
+
 /** Payload POST /v1/payments — sem Access Token. */
 export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<string, unknown> {
   if (!(input.transactionAmount > 0)) {
@@ -147,6 +164,8 @@ export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<strin
     body.token = input.token
     body.installments = input.installments ?? 1
     if (input.issuerId) body.issuer_id = Number(input.issuerId) || input.issuerId
+  } else if (input.paymentMethodId === 'pix') {
+    body.date_of_expiration = pixDateOfExpiration()
   }
 
   return body
@@ -186,6 +205,7 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   const id = mp.id != null ? String(mp.id) : ''
   if (!id) throw new Error('Resposta MP sem id')
 
+  const isPix = (mp.payment_method_id ?? '').toLowerCase() === 'pix'
   return {
     provider_payment_id: id,
     provider_status: mp.status ?? null,
@@ -193,7 +213,7 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
     pix_qr_code: td?.qr_code ?? null,
     pix_qr_code_base64: td?.qr_code_base64 ?? null,
     payment_url: td?.ticket_url ?? null,
-    expires_at: mp.date_of_expiration ?? null,
+    expires_at: mp.date_of_expiration ?? (isPix ? pixDateOfExpiration() : null),
     status: 'pending',
     orderApproved: false,
   }

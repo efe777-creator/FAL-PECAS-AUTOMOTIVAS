@@ -118,6 +118,38 @@ export function buildIdempotencyKey(paymentId: string, attempt = 1): string {
   return n <= 1 ? `fal-pay-${paymentId}` : `fal-pay-${paymentId}-a${n}`
 }
 
+/** TTL da cobrança Pix (QR). O pedido permanece até 48 h para nova tentativa. */
+export const PIX_PAYMENT_TTL_MINUTES = 5
+
+/** Pedido sem pagamento aprovado é cancelado/retirado da fila operacional após este prazo. */
+export const UNPAID_ORDER_TTL_HOURS = 48
+
+export function pixDateOfExpiration(from: Date = new Date()): string {
+  return new Date(from.getTime() + PIX_PAYMENT_TTL_MINUTES * 60_000).toISOString()
+}
+
+export function isPaymentExpired(expiresAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!expiresAt) return false
+  const t = new Date(expiresAt).getTime()
+  if (!Number.isFinite(t)) return false
+  return t <= now.getTime()
+}
+
+/** Segundos restantes até expiresAt (0 se já expirou). */
+export function secondsUntilExpiry(expiresAt: string | null | undefined, now: Date = new Date()): number {
+  if (!expiresAt) return 0
+  const t = new Date(expiresAt).getTime()
+  if (!Number.isFinite(t)) return 0
+  return Math.max(0, Math.floor((t - now.getTime()) / 1000))
+}
+
+export function formatCountdown(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds))
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+}
+
 /** Payload POST /v1/payments — sem Access Token. */
 export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<string, unknown> {
   if (!(input.transactionAmount > 0)) {
@@ -147,6 +179,9 @@ export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<strin
     body.token = input.token
     body.installments = input.installments ?? 1
     if (input.issuerId) body.issuer_id = Number(input.issuerId) || input.issuerId
+  } else if (input.paymentMethodId === 'pix') {
+    // Cobrança Pix: 5 minutos. Pedido segue válido por UNPAID_ORDER_TTL_HOURS.
+    body.date_of_expiration = pixDateOfExpiration()
   }
 
   return body
@@ -186,6 +221,7 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   const id = mp.id != null ? String(mp.id) : ''
   if (!id) throw new Error('Resposta MP sem id')
 
+  const isPix = (mp.payment_method_id ?? '').toLowerCase() === 'pix'
   return {
     provider_payment_id: id,
     provider_status: mp.status ?? null,
@@ -193,7 +229,8 @@ export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
     pix_qr_code: td?.qr_code ?? null,
     pix_qr_code_base64: td?.qr_code_base64 ?? null,
     payment_url: td?.ticket_url ?? null,
-    expires_at: mp.date_of_expiration ?? null,
+    // Preferir expiração do MP; se ausente em Pix, aplicar TTL FAL (5 min).
+    expires_at: mp.date_of_expiration ?? (isPix ? pixDateOfExpiration() : null),
     status: 'pending',
     orderApproved: false,
   }

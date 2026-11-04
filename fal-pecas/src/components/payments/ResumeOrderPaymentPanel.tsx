@@ -2,6 +2,11 @@ import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
 import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
+import {
+  isPaymentExpired,
+  PIX_PAYMENT_TTL_MINUTES,
+  UNPAID_ORDER_TTL_HOURS,
+} from '@/services/payments/mpCreatePaymentCore'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import type { OrderDetail } from '@/types'
@@ -16,7 +21,7 @@ interface Props {
 
 /**
  * Retoma Pix/Brick para pedido em aguardando_pagamento (Meus Pedidos).
- * Regenera cobrança Pix se expirada / sem QR.
+ * Pix TTL 5 min ≠ cancelamento do pedido (48 h).
  */
 export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
@@ -36,17 +41,17 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     pixQrCode?: string | null
     pixQrCodeBase64?: string | null
     amount: number
+    expiresAt?: string | null
   } | null>(() => {
     if (initialChannel !== 'pix' || !payment?.id) return null
-    const expired =
-      payment.expiresAt != null && new Date(payment.expiresAt).getTime() < Date.now()
-    if (expired || payment.status === 'expired') return null
+    if (isPaymentExpired(payment.expiresAt) || payment.status === 'expired') return null
     if (payment.pixQrCode || payment.pixQrCodeBase64) {
       return {
         paymentId: payment.id,
         pixQrCode: payment.pixQrCode,
         pixQrCodeBase64: payment.pixQrCodeBase64,
         amount: payment.amount ?? order.total,
+        expiresAt: payment.expiresAt,
       }
     }
     return null
@@ -54,10 +59,10 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const [cardReady, setCardReady] = useState(initialChannel === 'card')
 
   const expired =
-    payment?.expiresAt != null && new Date(payment.expiresAt).getTime() < Date.now()
-  const needsNewPix =
-    channel === 'pix' &&
-    (!pixSession || expired || payment?.status === 'expired' || payment?.status === 'rejected')
+    isPaymentExpired(payment?.expiresAt) ||
+    payment?.status === 'expired' ||
+    payment?.status === 'rejected'
+  const needsNewPix = channel === 'pix' && (!pixSession || expired)
 
   const onApproved = useCallback(() => {
     onPaid()
@@ -76,6 +81,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         pixQrCode: mp.pixQrCode,
         pixQrCodeBase64: mp.pixQrCodeBase64,
         amount: mp.amount ?? order.total,
+        expiresAt: mp.expiresAt ?? null,
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao gerar Pix')
@@ -94,6 +100,13 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
 
   return (
     <div className="space-y-4">
+      <p className="m-0 text-xs text-fal-muted">
+        Pix válido por {PIX_PAYMENT_TTL_MINUTES} minutos. Após expirar o código, o pedido segue
+        reservado por até {UNPAID_ORDER_TTL_HOURS} h — você pode gerar novo Pix ou pagar no cartão.
+        Sem pagamento aprovado em {UNPAID_ORDER_TTL_HOURS} h, o pedido é cancelado e retirado da
+        fila.
+      </p>
+
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -124,25 +137,18 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         </button>
       </div>
 
-      {payment?.expiresAt ? (
-        <p className="m-0 text-xs text-fal-muted">
-          Expira em: {new Date(payment.expiresAt).toLocaleString('pt-BR')}
-          {expired ? ' (expirado — gere novo Pix)' : ''}
-        </p>
-      ) : null}
-
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}
 
       {channel === 'pix' ? (
         needsNewPix ? (
           <div className="space-y-2">
             <p className="m-0 text-sm text-fal-muted">
-              {expired || payment?.status === 'expired'
-                ? 'Cobrança Pix expirada. Gere um novo QR para continuar.'
-                : 'Gere ou reabra a cobrança Pix deste pedido.'}
+              {expired
+                ? 'Cobrança Pix expirada. Gere um novo QR ou pague com cartão — o pedido continua ativo.'
+                : 'Gere a cobrança Pix deste pedido (válida por 5 minutos).'}
             </p>
             <Button type="button" variant="primary" disabled={busy} onClick={() => void generatePix()}>
-              {busy ? 'Gerando…' : 'Gerar / reabrir Pix'}
+              {busy ? 'Gerando…' : 'Gerar novo Pix'}
             </Button>
           </div>
         ) : pixSession ? (
@@ -153,6 +159,8 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
             initialPixQrCode={pixSession.pixQrCode}
             initialPixQrCodeBase64={pixSession.pixQrCodeBase64}
             initialAmount={pixSession.amount}
+            initialExpiresAt={pixSession.expiresAt}
+            onExpired={() => setPixSession(null)}
           />
         ) : (
           <Loading label="Preparando Pix…" />

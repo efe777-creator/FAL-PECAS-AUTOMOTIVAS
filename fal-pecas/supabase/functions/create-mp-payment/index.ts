@@ -4,8 +4,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   buildIdempotencyKey,
   buildMpPaymentBody,
+  isPaymentExpired,
   mapMpResponseToPaymentFields,
   parseCreateMpPaymentClientBody,
+  pixDateOfExpiration,
   resolveInternalMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
 
@@ -98,23 +100,39 @@ Deno.serve(async (req) => {
 
     let paymentId: string
     let mpAttempt = 1
-    const { data: existing } = await admin
+    const { data: existingRaw } = await admin
       .from('payments')
-      .select('id, provider_payment_id, status, amount, metadata')
+      .select(
+        'id, provider_payment_id, status, amount, metadata, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
+      )
       .eq('order_id', orderId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    if (existing?.provider_payment_id) {
-      let { data: full } = await admin
+    let existing = existingRaw
+
+    // Pix/cobrança expirada: marca expired e cria nova — pedido permanece aguardando_pagamento (até 48h).
+    if (existing && isPaymentExpired(existing.expires_at as string | null)) {
+      await admin
         .from('payments')
-        .select(
-          'id, provider_payment_id, status, amount, method, pix_qr_code, pix_qr_code_base64, payment_url, expires_at, provider_status',
-        )
+        .update({
+          status: 'expired',
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...((existing.metadata ?? {}) as Record<string, unknown>),
+            expired_reason: 'pix_ttl',
+          },
+        })
         .eq('id', existing.id)
-        .maybeSingle()
+        .eq('status', 'pending')
+      existing = null
+    }
+
+    if (existing?.provider_payment_id) {
+      let full = existing
 
       // Reuso sem QR: tenta reidratar a partir da API MP (sandbox às vezes atrasa o POI)
       const needsPixHydrate =
@@ -135,19 +153,17 @@ Deno.serve(async (req) => {
                 pix_qr_code: fields.pix_qr_code,
                 pix_qr_code_base64: fields.pix_qr_code_base64,
                 payment_url: fields.payment_url,
-                expires_at: fields.expires_at,
+                expires_at: fields.expires_at ?? pixDateOfExpiration(),
                 provider_status: fields.provider_status,
               })
               .eq('id', existing.id)
-            if (full) {
-              full = {
-                ...full,
-                pix_qr_code: fields.pix_qr_code,
-                pix_qr_code_base64: fields.pix_qr_code_base64,
-                payment_url: fields.payment_url,
-                expires_at: fields.expires_at,
-                provider_status: fields.provider_status,
-              }
+            full = {
+              ...full,
+              pix_qr_code: fields.pix_qr_code,
+              pix_qr_code_base64: fields.pix_qr_code_base64,
+              payment_url: fields.payment_url,
+              expires_at: fields.expires_at ?? pixDateOfExpiration(),
+              provider_status: fields.provider_status,
             }
           } catch {
             // mantém full como veio do banco
@@ -290,6 +306,9 @@ Deno.serve(async (req) => {
     }
 
     const fields = mapMpResponseToPaymentFields(mpJson)
+    const expiresAt =
+      fields.expires_at ??
+      (internalMethod === 'pix' ? pixDateOfExpiration() : null)
     const { error: updErr } = await admin
       .from('payments')
       .update({
@@ -300,13 +319,14 @@ Deno.serve(async (req) => {
         pix_qr_code: fields.pix_qr_code,
         pix_qr_code_base64: fields.pix_qr_code_base64,
         payment_url: fields.payment_url,
-        expires_at: fields.expires_at,
+        expires_at: expiresAt,
         installments: card?.installments ?? null,
         status: 'pending',
         external_ref: orderId,
         metadata: {
           mp_create: { id: fields.provider_payment_id, status: fields.provider_status },
           mp_attempt: mpAttempt,
+          pix_ttl_minutes: internalMethod === 'pix' ? 5 : undefined,
         },
       })
       .eq('id', paymentId)
@@ -326,7 +346,7 @@ Deno.serve(async (req) => {
       pixQrCode: fields.pix_qr_code,
       pixQrCodeBase64: fields.pix_qr_code_base64,
       paymentUrl: fields.payment_url,
-      expiresAt: fields.expires_at,
+      expiresAt,
       reused: false,
       orderApproved: false,
     })
