@@ -65,9 +65,6 @@ export function ProductGallery({ images, alt }: Props) {
               className="max-h-[300px] w-full object-contain transition group-hover:scale-[1.02] lg:max-h-[480px]"
               loading="eager"
             />
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-md bg-fal-navy/80 px-2 py-1 text-xs font-bold text-white opacity-90">
-              Ampliar
-            </span>
           </button>
         ) : (
           <ProductImagePlaceholder />
