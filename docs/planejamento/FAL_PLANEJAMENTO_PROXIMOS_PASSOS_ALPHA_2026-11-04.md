@@ -1,14 +1,14 @@
 # Planejamento dos próximos passos — Fase α (FAL 3.0)
 
 **Data-base:** 2026-11-04  
-**Tipo:** consolidação executiva e técnica (somente planejamento)  
-**Etapa:** Fase α — operação comercial controlada  
+**Tipo:** consolidação executiva e técnica  
+**Etapa:** Fase α — **ENCERRADA** 04/11  
 **Runtime canônico:** `wtbpwuiayednvlhvuhbh`  
 **Produção:** https://fal-pecas-automotivas.netlify.app  
-**Git remoto (FATO):** `origin/main` @ `9513dad` · `origin/dev` @ `b5925d1`  
 
-**Premissa de planejamento:** D-FRETE = **B** (mock/sandbox com aviso honesto).  
-**ATENÇÃO:** premissa ≠ assinatura comercial de eFe na ficha D-FRETE.
+**D-FRETE:** **B ASSINADO** — [ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md)  
+**Gate α:** **SIM** (ressalvas) — [gate](./FAL_ALPHA_GATE_2026-10-10.md)  
+**STOP:** [formal](./FAL_STOP_ALPHA_FORMAL_2026-11-04.md) · [estado final](./FAL_ESTADO_FINAL_ALPHA_2026-11-04.md) · [backlog pós-α](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)
 
 **Estimativa 80% código/docs · 20% aceite comercial:** ESTIMATIVA documental da auditoria 04/11 — não é percentual matemático de testes.
 
@@ -67,23 +67,24 @@ Fonte: [FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md](./FAL_AUDITORIA_STATUS_PRD
 
 | Item | Estado | Nota |
 |------|--------|------|
-| H1–H5 | **PASS** (14/10) | Config/infra — **não** é smoke comercial |
-| H6 | **PARCIAL** | App sandbox OK; usuário teste N/V |
-| Smoke Pix | **Não executado** | PENDÊNCIA |
-| Smoke cartão | **Não executado** | PENDÊNCIA |
-| Webhook no smoke | **Não executado** | PENDÊNCIA |
+| H1–H5 | **PASS** (14/10) | Config/infra |
+| H6 | **PASS** (04/11) | User teste existente |
+| Smoke Pix | **PASS** (UI + create) | Pós FIND-SMOKE-UI-001 |
+| Smoke cartão | **PASS** (Brick + approve loja) | Pedido `08da5ada…` · approved · R$ 128,12 |
+| Webhook no smoke | **RESSALVA** | Approve na loja **PASS**; MCP `notifications_history` **NÃO OBSERVADO** |
 
-Fonte H1–H5: [FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md).  
-Procedimento: [FAL_MP_SMOKE_PREP_2026-10-09.md](./FAL_MP_SMOKE_PREP_2026-10-09.md) §3.
+Fonte: [FAL_MP_SMOKE_STATUS_2026-10-10.md](./FAL_MP_SMOKE_STATUS_2026-10-10.md) · [VAL approve](./FAL_MARCHA_SMOKE_MP_S2_APPROVE_WEBHOOK_VAL_2026-11-04.md).
 
 ### 1.5 Fase α — aceite
 
 | Item | Estado |
 |------|--------|
-| Gate α assinado | **PENDÊNCIA** |
-| D-FRETE assinado | **PENDÊNCIA** (plano assume B) |
-| Pedido E2E pago | **Não executado** |
-| Aceite comercial | **PENDÊNCIA** |
+| Gate α assinado | **SIM** 04/11 (ressalvas) |
+| D-FRETE assinado | **B** 04/11 |
+| Pedido E2E pago | **PASS** `08da5ada…` |
+| Aceite comercial | **OK** |
+| S2 smoke loja | **PASS** (ressalva webhook-MCP) |
+| STOP α | **FORMAL** |
 
 ### 1.6 Divergências documentais (preferir evidência recente)
 
@@ -188,56 +189,41 @@ Não há S3a–S3c (Correios live) neste fechamento — premissa **B**.
 | Campo | Conteúdo |
 |-------|----------|
 | **Objetivo** | Validar comercialmente Pix, cartão e webhook em sandbox na loja canônica |
-| **Estado atual** | H1–H5 PASS; H6 parcial; smokes **não executados** |
-| **Evidência** | H1H6 check 14/10; prep §3; F9-F código presente |
-| **Pendências** | S2.1–S2.4 abaixo |
-| **Responsável** | **eFe**; agente só com auth explícita `SMOKE MP` |
-| **Dependências** | S0; usuário sandbox (H6); loja Netlify + wtbp |
-| **Critério de aceite** | Pix + cartão + webhook com evidências reproduzíveis **ou** bloqueios explícitos aceitos por eFe. **Não** marcar PASS só por código, HTTP, H1–H5 ou evidência antiga |
-| **Próxima ação** | Fechar H6 → executar Pix → cartão → webhook; registrar em MP status |
+| **Estado atual** | **PASS (loja)** 04/11 — pedido `08da5ada…` approved; ressalva MCP notifications_history |
+| **Evidência** | [MP smoke status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) · [VAL approve](./FAL_MARCHA_SMOKE_MP_S2_APPROVE_WEBHOOK_VAL_2026-11-04.md) |
+| **Pendências** | Nenhuma para reabrir S2 loja; webhook-MCP = ressalva no Gate |
+| **Responsável** | — (fechado) |
+| **Dependências** | S0 |
+| **Critério de aceite** | Atingido na loja (approve + Em confirmação) |
+| **Próxima ação** | Nenhuma em S2. Seguir **S1** + S4 doc |
 
 #### S2.1 — H6 (usuário teste)
 
 | Campo | Conteúdo |
 |-------|----------|
-| **Objetivo** | Garantir conta/usuário sandbox MP utilizável |
-| **Estado** | PARCIAL (app FALPecasSandbox listado; user teste N/V) |
-| **Pendências** | Confirmar ou criar usuário teste por procedimento autorizado; **não** publicar credenciais em docs/chat |
-| **Responsável** | eFe |
-| **Critério** | Evidência de disponibilidade (sem secret) |
-| **Próxima ação** | Confirmar user teste no painel MP |
+| **Estado** | **PASS** |
+| **Próxima ação** | Nenhuma |
 
 #### S2.2 — Pix
 
 | Campo | Conteúdo |
 |-------|----------|
-| **Objetivo** | Cobrança Pix sandbox ponta a ponta |
-| **Procedimento** | Prep §3.2 — Netlify + wtbp; item available; total coerente |
-| **Esperado** | QR/copia-cola; `create-mp-payment` 2xx; pedido em status aguardando/canônico |
-| **Responsável** | eFe (+ agente se auth) |
-| **Critério** | Prints/Network/order id sem secrets; resultado PASS/FAIL/BLOQUEADO registrado |
-| **Próxima ação** | Executar checklist Pix na loja |
+| **Estado** | **PASS** (create + UI pós-fix) |
+| **Próxima ação** | Nenhuma |
 
 #### S2.3 — Cartão
 
 | Campo | Conteúdo |
 |-------|----------|
-| **Objetivo** | Brick sandbox — approve (+ reject se previsto) |
-| **Procedimento** | Prep §3.3 |
-| **Responsável** | eFe (+ agente se auth) |
-| **Critério** | Formulário carrega; approve/pending/reject documentados; UI honesta |
-| **Próxima ação** | Executar após Pix ou em seguida no mesmo turno de smoke |
+| **Estado** | **PASS** — Brick + approve humano `08da5ada…` |
+| **Próxima ação** | Nenhuma |
 
 #### S2.4 — Webhook de aprovação
 
 | Campo | Conteúdo |
 |-------|----------|
-| **Objetivo** | Confirmar evento → transição pagamento/pedido |
-| **Estado config** | Secret + Edge v4 PASS (14/10) — ainda **não** prova o smoke |
-| **Pendências** | URL wtbp no painel MP; evento Pagamentos; receive + transition |
-| **Responsável** | eFe |
-| **Critério** | Evidência de recebimento + estado do pedido atualizado (ou NÃO TESTÁVEL documentado + aceite) |
-| **Próxima ação** | Conferir URL `…/functions/v1/mercado-pago-webhook` e capturar approve no smoke |
+| **Estado** | **RESSALVA** — pedido approved na loja; MCP `notifications_history` **NÃO OBSERVADO** |
+| **Próxima ação** | Aceitar ressalva no Gate α **ou** nova MARCHA diagnóstica webhook (auth) |
 
 ---
 
@@ -246,15 +232,15 @@ Não há S3a–S3c (Correios live) neste fechamento — premissa **B**.
 | Campo | Conteúdo |
 |-------|----------|
 | **Objetivo** | Um pedido sandbox completo sob política frete **B** + MP |
-| **Estado atual** | Não executado; E2E-pré VALIDADO até login |
-| **Evidência prévia** | [FAL_E2E_PRODUCAO_STATUS_2026-10-10.md](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md); VAL E2E-pré |
-| **Pendências** | Fluxo completo com pagamento aprovado e frete mock coerente |
-| **Responsável** | **eFe** (+ apoio técnico autorizado) |
-| **Dependências** | **S1 assinado** + **S2 concluído** (ou bloqueio formalmente tratado no aceite) |
-| **Critério de aceite** | Pedido sandbox com pagamento aprovado; estados coerentes; frete compatível com B; order id + evidências. Bloqueios registrados sem mascarar |
-| **Próxima ação** | Após S1+S2: catálogo → checkout → `mock:*` → pagar → webhook → admin/conta |
+| **Estado atual** | Evidência loja `08da5ada…` — VAL documental na marcha E2E (sem transição admin) |
+| **Evidência** | [FAL_E2E_PRODUCAO_STATUS_2026-10-10.md](./FAL_E2E_PRODUCAO_STATUS_2026-10-10.md); VAL E2E pago |
+| **Pendências** | S1 assinado para fechar Gate; **não** exigir separação |
+| **Responsável** | Agente (doc) + eFe (S1/Gate) |
+| **Dependências** | S2 **PASS**; S1 para Gate (não para registrar VAL S4) |
+| **Critério de aceite** | Produto · frete mock · pagamento approved · estados até Em confirmação |
+| **Próxima ação** | Manter VAL; **não** avançar para separação sem auth operador |
 
-Validar explicitamente: produto · carrinho · checkout · frete mock · pagamento · webhook · pedido · coerência valores.
+Validar: produto · carrinho · checkout · frete mock · pagamento · pedido · coerência valores. Webhook-MCP = ressalva.
 
 ---
 

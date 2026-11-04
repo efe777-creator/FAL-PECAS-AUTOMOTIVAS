@@ -1,7 +1,8 @@
 # E2E compra + produção — status
 
-**Data:** 2026-10-10 (MARCHA E2E-pré) · **sync docs:** 2026-11-04  
+**Data:** 2026-10-10 (E2E-pré) · **sync S4:** 2026-11-04  
 **VAL pré-pagamento:** [FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md)  
+**VAL pedido pago:** [FAL_MARCHA_E2E_PEDIDO_PAGO_VAL_2026-11-04.md](./FAL_MARCHA_E2E_PEDIDO_PAGO_VAL_2026-11-04.md)  
 **Planejamento α:** [FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md)
 
 ---
@@ -10,16 +11,16 @@
 
 | Etapa | Estado |
 |-------|--------|
-| Catálogo / PDP / carrinho (código) | Presente |
-| Checkout + place_order F9-F | Código + RPC atualizados |
-| Catálogo → PDP → carrinho (produção) | **OK** — [VAL E2E-pré](./FAL_MARCHA_E2E_PRE_PAGAMENTO_VAL_2026-10-10.md) · reconfirmado browser 04/11 (100 produtos) |
-| Checkout anônimo | **OK** — redireciona login |
-| Bundle MP + aviso D-FRETE no checkout | **OK** (asset público; H5 config PASS 14/10) |
-| Pagamento sandbox Pix/cartão | **NÃO EXECUTADO** (smoke comercial pendente — H1–H5 ≠ smoke) |
-| Frete política produção | **PENDENTE** assinatura D-FRETE (premissa plano α = B) |
-| Pedido teste ponta a ponta com evidências | **NÃO EXECUTADO** |
+| Catálogo / PDP / carrinho | **OK** |
+| Checkout + place_order F9-F | **OK** |
+| Checkout anônimo → login | **OK** |
+| Bundle MP + aviso D-FRETE | **OK** |
+| Pagamento sandbox Pix/cartão | **OK** — S2 PASS loja · cartão approved |
+| Frete política produção | **PENDENTE** assinatura D-FRETE (S1); pedido usou mock B |
+| Pedido teste ponta a ponta | **PASS doc** — `08da5ada-3fc7-4cbd-a8a0-0663974b6ff3` · Em confirmação · R$ 128,12 |
+| Separação / envio | **NÃO** — sem auth operador |
 
-Pré-requisitos para marcar E2E PASS completo: smoke MP + D-FRETE assinado + pedido teste registrado (S4).
+Pré-requisito Gate α: S1 D-FRETE assinado + aceite S5.
 
 ---
 
@@ -27,19 +28,16 @@ Pré-requisitos para marcar E2E PASS completo: smoke MP + D-FRETE assinado + ped
 
 | Check | Estado | Evidência |
 |-------|--------|-----------|
-| Site público responde | **OK** | https://fal-pecas-automotivas.netlify.app |
-| Catálogo carrega produtos | **OK** | 04/11: 100 produtos · mostrando 24 |
-| `VITE_SUPABASE_*` → wtbp | **OK** | DNS/UP `wtbpwuiayednvlhvuhbh` 04/11 |
-| Checkout embute MercadoPago | **OK** (build) | H5 PASS — [H1H6](./FAL_MP_SMOKE_H1H6_CHECK_2026-10-14.md); bundle `index-DYpbbWUS.js` |
-| Smoke Pix/cartão em prod | **NÃO EXECUTADO** | — |
-| Deploy sync `main` → CDN (S0) | **PASS** 04/11 | [Auditoria status](./FAL_AUDITORIA_STATUS_PRD_CROSS_2026-11-04.md) |
-
-**Histórico:** em 10/10 noite o bundle esteve stale (`oy7VRadL`); corrigido 11/10+; reconfirmado 04/11.
+| Site público | **OK** | https://fal-pecas-automotivas.netlify.app |
+| Catálogo | **OK** | 04/11 |
+| Runtime wtbp | **OK** | `wtbpwuiayednvlhvuhbh` |
+| Deploy | **OK** | Published `main @ e6d9af5` |
+| Smoke MP approve | **OK** | [MP smoke status](./FAL_MP_SMOKE_STATUS_2026-10-10.md) |
 
 ---
 
 ## Encerramento
 
-**Entrega agente:** E2E-pré VALIDADO até login.  
-**Aceite E2E comercial:** evidências humanas Pix/cartão + pedido (S4) — ainda pendente.  
-**Ops:** S0 **PASS** 2026-11-04.
+**S4 documental:** PASS.  
+**Gate α / D-FRETE:** ainda eFe.  
+**Ops:** sem avançar pedido `08da5ada…` para separação neste status.

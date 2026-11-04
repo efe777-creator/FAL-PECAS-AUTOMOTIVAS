@@ -4,12 +4,10 @@
 **Tipo:** MARCHA SOBERANA DE PLANEJAMENTO (documento canônico)  
 **Runtime:** `wtbpwuiayednvlhvuhbh`  
 **Loja:** https://fal-pecas-automotivas.netlify.app  
-**Estado do plano:** ATIVO — **S0 PASS**; próximo **S1 ∥ S2** (humano)  
-**Runbook vigente:** [FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) · [VAL docs sync](./FAL_MARCHA_DOCS_SYNC_ALPHA_STATUS_VAL_2026-11-04.md)
+**Estado do plano:** **α ENCERRADA** 04/11 — [STOP formal](./FAL_STOP_ALPHA_FORMAL_2026-11-04.md) · [estado final](./FAL_ESTADO_FINAL_ALPHA_2026-11-04.md)  
+**Runbook:** [planejamento](./FAL_PLANEJAMENTO_PROXIMOS_PASSOS_ALPHA_2026-11-04.md) · [backlog pós-α](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)
 
-Este documento **fecha o planejamento** da Fase α com ordem, critérios, evidências e STOP.  
-Não autoriza secrets, repair B3, Bloco F, PDP-ML nem IMP-14/15 profundos.  
-**Premissa frete α (plano):** D-FRETE **B** — não substitui assinatura eFe na ficha.
+D-FRETE **B** e Gate **SIM** assinados 04/11. Pós-α: [logística/medidas](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md).
 
 ---
 

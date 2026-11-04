@@ -29,7 +29,8 @@ Expirar pedidos `aguardando_pagamento` além do **TTL de idade do pedido** (defa
 | Gate gerente/admin se `auth.uid()` presente | OK |
 | `adminExpireUnpaidOrders` + botão `/admin/pedidos` | OK |
 | `tsc --noEmit` | PASS |
-| Smoke SQL `expire_unpaid_orders(10, 8760)` | esperado `expired: 0` |
+| Smoke SQL `expire_unpaid_orders(10, 8760)` | **PASS** → `expired: 0` (idade clamp max 720 h) |
+| PR #48 → `main` | **PASS** · `ca4d58c` |
 
 ### Arquivos
 
