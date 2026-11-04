@@ -37,9 +37,18 @@ describe('carrierRegistry', () => {
     expect(carrier?.enabled).toBe(false)
   })
 
-  it('só mock está placeOrderReady', () => {
-    const ready = listCarriers({ includeDisabled: true }).filter((c) => c.placeOrderReady)
-    expect(ready.map((c) => c.id)).toEqual(['mock'])
+  it('placeOrderReady: mock + melhorenvio', () => {
+    const ready = listCarriers({ includeDisabled: true })
+      .filter((c) => c.placeOrderReady)
+      .map((c) => c.id)
+    expect(ready).toContain('mock')
+    expect(ready).toContain('melhorenvio')
+  })
+
+  it('resolve melhorenvio edge sandbox', () => {
+    expect(getCarrierByEnvKey('melhorenvio').quoteRuntime).toBe('edge')
+    expect(getCarrierByEnvKey('melhorenvio').mode).toBe('sandbox')
+    expect(commercialShippingDisclaimer(getCarrierByEnvKey('melhorenvio'))).toMatch(/sandbox/i)
   })
 
   it('resolve env desconhecido para mock', () => {
@@ -64,13 +73,15 @@ describe('shippingQuoteContract + envelope', () => {
     expect(fingerprintQuoteRequest(baseReq)).toBe(fingerprintQuoteRequest({ ...baseReq }))
   })
 
-  it('logisticsGaps detecta peso ausente', () => {
-    expect(
-      logisticsGaps({
-        ...baseReq,
-        items: [{ productId: 'p1', quantity: 1 }],
-      }),
-    ).toContain('peso_ausente:p1')
+  it('logisticsGaps detecta peso e dimensões ausentes', () => {
+    const gaps = logisticsGaps({
+      ...baseReq,
+      items: [{ productId: 'p1', quantity: 1 }],
+    })
+    expect(gaps).toContain('peso_ausente:p1')
+    expect(gaps).toContain('altura_ausente:p1')
+    expect(gaps).toContain('largura_ausente:p1')
+    expect(gaps).toContain('comprimento_ausente:p1')
   })
 
   it('buildOkEnvelope inclui expiresAt', () => {

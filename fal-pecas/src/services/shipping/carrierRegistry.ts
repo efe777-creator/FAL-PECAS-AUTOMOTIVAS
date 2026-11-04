@@ -2,6 +2,7 @@ import { mockShippingProvider } from '@/services/shipping/mockShippingProvider'
 import { carrierStubProvider } from '@/services/shipping/providers/carrierStubProvider'
 import { correiosSandboxProvider } from '@/services/shipping/providers/correiosStubProvider'
 import { frenetSandboxProvider } from '@/services/shipping/providers/frenetStubProvider'
+import { melhorEnvioEdgeProvider } from '@/services/shipping/providers/melhorEnvioEdgeProvider'
 import type { ShippingProvider } from '@/types'
 
 /** Ambiente operacional do adaptador (não confundir com D-FRETE comercial). */
@@ -47,8 +48,22 @@ export const CARRIER_REGISTRY: readonly CarrierDescriptor[] = [
     capabilities: ['quote', 'eta'],
     enabled: true,
     placeOrderReady: true,
-    notes: 'Único provedor aceito por resolve_mock_shipping_option no place_order atual.',
+    notes: 'place_order: mock:* (+ own:* via resolve). Default loja sob D-FRETE B.',
     createProvider: () => mockShippingProvider,
+  },
+  {
+    id: 'melhorenvio',
+    label: 'Melhor Envio (sandbox)',
+    envKey: 'melhorenvio',
+    /** sandbox = HTTP real sandbox ME; disclaimer B até D-FRETE C (não confundir com live produção). */
+    mode: 'sandbox',
+    quoteRuntime: 'edge',
+    capabilities: ['quote', 'eta', 'tracking', 'multi_carrier'],
+    enabled: true,
+    placeOrderReady: true,
+    notes:
+      'HTTP sandbox via quote-shipping + meq: no place_order. Opt-in VITE_SHIPPING_PROVIDER=melhorenvio. Etiqueta = Expedição manual.',
+    createProvider: () => melhorEnvioEdgeProvider,
   },
   {
     id: 'correios',

@@ -259,6 +259,47 @@ Deno.serve(async (req) => {
         .from('payments')
         .update({ provider_status: providerStatus })
         .eq('id', payment.id)
+
+      // D12: prepare logístico ME (snapshot only) — NÃO compra/gera/imprime etiqueta
+      try {
+        const orderId =
+          data && typeof data === 'object' && 'order_id' in (data as object)
+            ? String((data as { order_id?: string }).order_id ?? payment.order_id)
+            : String(payment.order_id)
+        const { data: shipRows } = await admin
+          .from('shipments')
+          .select('id, provider, amount, metadata')
+          .eq('order_id', orderId)
+          .limit(1)
+        const ship = Array.isArray(shipRows) ? shipRows[0] : null
+        if (ship && (ship.provider === 'melhorenvio' || String(ship.provider).includes('melhor'))) {
+          const meta = (ship.metadata ?? {}) as Record<string, unknown>
+          const prevMe =
+            meta.me && typeof meta.me === 'object' ? (meta.me as Record<string, unknown>) : {}
+          const labelState = String(prevMe.label_state ?? '')
+          if (!['purchased', 'generated', 'printed', 'cart'].includes(labelState)) {
+            const nextMe = {
+              ...prevMe,
+              label_state: 'prepared',
+              quoted_amount: prevMe.quoted_amount ?? ship.amount,
+              label_amount: prevMe.label_amount ?? ship.amount,
+              last_error: null,
+            }
+            await admin
+              .from('shipments')
+              .update({
+                metadata: { ...meta, me: nextMe },
+                provider: 'melhorenvio',
+              })
+              .eq('id', ship.id)
+          }
+        }
+      } catch (prepErr) {
+        console.error(
+          'me_prepare_on_approve_failed',
+          prepErr instanceof Error ? prepErr.message : 'unknown',
+        )
+      }
     }
 
     await admin

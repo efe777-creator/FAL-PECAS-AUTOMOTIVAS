@@ -111,6 +111,15 @@ export function logisticsGaps(req: ShippingQuoteRequest): string[] {
     if (it.weightKg == null || !(it.weightKg > 0)) {
       gaps.push(`peso_ausente:${it.productId}`)
     }
+    if (it.heightCm == null || !(it.heightCm > 0)) {
+      gaps.push(`altura_ausente:${it.productId}`)
+    }
+    if (it.widthCm == null || !(it.widthCm > 0)) {
+      gaps.push(`largura_ausente:${it.productId}`)
+    }
+    if (it.lengthCm == null || !(it.lengthCm > 0)) {
+      gaps.push(`comprimento_ausente:${it.productId}`)
+    }
   }
   return gaps
 }

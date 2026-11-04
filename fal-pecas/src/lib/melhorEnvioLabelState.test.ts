@@ -19,6 +19,7 @@ describe('melhorEnvioLabelState', () => {
   it('canPurchaseLabel só em pronto_para_envio e estados iniciais', () => {
     expect(canPurchaseLabel('pronto_para_envio', 'none')).toBe(true)
     expect(canPurchaseLabel('pronto_para_envio', 'quoted')).toBe(true)
+    expect(canPurchaseLabel('pronto_para_envio', 'prepared')).toBe(true)
     expect(canPurchaseLabel('pronto_para_envio', 'purchased')).toBe(false)
     expect(canPurchaseLabel('em_analise', 'none')).toBe(false)
     expect(canPurchaseLabel('enviado', 'printed')).toBe(false)

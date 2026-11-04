@@ -6,6 +6,7 @@
 export type MeLabelState =
   | 'none'
   | 'quoted'
+  | 'prepared'
   | 'cart'
   | 'purchased'
   | 'generated'
@@ -35,6 +36,7 @@ export type MeShipmentMeta = {
 export const ME_LABEL_STATE_ORDER: readonly MeLabelState[] = [
   'none',
   'quoted',
+  'prepared',
   'cart',
   'purchased',
   'generated',
@@ -53,6 +55,7 @@ export function meLabelState(metadata: Record<string, unknown> | null | undefine
   const s = me.label_state
   if (
     s === 'quoted' ||
+    s === 'prepared' ||
     s === 'cart' ||
     s === 'purchased' ||
     s === 'generated' ||
@@ -69,6 +72,8 @@ export function meLabelStateLabel(state: MeLabelState): string {
       return 'Etiqueta ainda não comprada'
     case 'quoted':
       return 'Cotação de etiqueta'
+    case 'prepared':
+      return 'Pronto para emitir (pagamento aprovado)'
     case 'cart':
       return 'No carrinho Melhor Envio'
     case 'purchased':
@@ -83,7 +88,12 @@ export function meLabelStateLabel(state: MeLabelState): string {
 /** Compra/geração de etiqueta NÃO implica ship_order. */
 export function canPurchaseLabel(orderStatus: string, labelState: MeLabelState): boolean {
   if (orderStatus !== 'pronto_para_envio' && orderStatus !== 'preparando_envio') return false
-  return labelState === 'none' || labelState === 'quoted' || labelState === 'cart'
+  return (
+    labelState === 'none' ||
+    labelState === 'quoted' ||
+    labelState === 'prepared' ||
+    labelState === 'cart'
+  )
 }
 
 export function canShipAfterLabel(orderStatus: string): boolean {
