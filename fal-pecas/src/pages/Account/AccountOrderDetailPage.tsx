@@ -17,10 +17,27 @@ import {
   projectCustomerTimeline,
 } from '@/lib/orderLifecycle'
 import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
+import {
+  customerCancelUnpaidOrder,
+  customerRespondOrderDecision,
+} from '@/services/orders/customerOrderActions'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+
+function availabilityLabel(a: string | null | undefined): string {
+  switch (a) {
+    case 'disponivel':
+      return 'Disponível'
+    case 'disponivel_com_prazo':
+      return 'Disponível com prazo'
+    case 'indisponivel':
+      return 'Indisponível'
+    default:
+      return '—'
+  }
+}
 
 function money(v: number) {
   return formatMoney(v)
@@ -35,6 +52,8 @@ export function AccountOrderDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [rebuyBusy, setRebuyBusy] = useState(false)
   const [rebuyMsg, setRebuyMsg] = useState<string | null>(null)
+  const [actionBusy, setActionBusy] = useState(false)
+  const [actionMsg, setActionMsg] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     if (!id) return
@@ -59,6 +78,79 @@ export function AccountOrderDetailPage() {
   )
 
   const awaitingPayment = order?.status === 'aguardando_pagamento'
+  const awaitingDecision = order?.status === 'aguardando_decisao'
+  const decisionPending =
+    awaitingDecision &&
+    (order?.customerDecision == null || order.customerDecision === 'pending')
+
+  async function restoreItemsToCart(detail: OrderDetail) {
+    const result = await buildBuyAgainCart(detail.items)
+    for (const row of result.products) {
+      addItem(row.product, row.quantity)
+    }
+    return result
+  }
+
+  async function onCancelUnpaid() {
+    if (!order) return
+    if (
+      !window.confirm(
+        'Cancelar este pedido? Os itens voltarão ao carrinho (preços atuais) e a reserva será liberada.',
+      )
+    ) {
+      return
+    }
+    setActionBusy(true)
+    setActionMsg(null)
+    try {
+      await customerCancelUnpaidOrder(order.id)
+      const result = await restoreItemsToCart(order)
+      const parts = ['Pedido cancelado.']
+      if (result.products.length) {
+        parts.push(`${result.products.length} item(ns) no carrinho.`)
+      }
+      if (result.skipped.length) {
+        parts.push(
+          `Não restaurados: ${result.skipped.map((s) => `${s.sku} (${s.reason})`).join('; ')}`,
+        )
+      }
+      setActionMsg(parts.join(' '))
+      await reload()
+      if (result.products.length) navigate('/carrinho')
+    } catch (e) {
+      setActionMsg(e instanceof Error ? e.message : 'Falha ao cancelar')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function onRespondDecision(decision: 'authorize' | 'reject') {
+    if (!order) return
+    const ok =
+      decision === 'authorize'
+        ? window.confirm(
+            'Autorizar as alterações da loja (itens indisponíveis ou com prazo)? Depois a loja poderá confirmar o pedido.',
+          )
+        : window.confirm(
+            'Recusar as alterações? A loja será avisada e precisará cancelar ou renegociar.',
+          )
+    if (!ok) return
+    setActionBusy(true)
+    setActionMsg(null)
+    try {
+      await customerRespondOrderDecision(order.id, decision)
+      setActionMsg(
+        decision === 'authorize'
+          ? 'Autorização registrada. A loja poderá confirmar o pedido.'
+          : 'Recusa registrada. A loja analisará o pedido.',
+      )
+      await reload()
+    } catch (e) {
+      setActionMsg(e instanceof Error ? e.message : 'Falha ao registrar decisão')
+    } finally {
+      setActionBusy(false)
+    }
+  }
 
   async function onBuyAgain() {
     if (!order) return
@@ -133,11 +225,26 @@ export function AccountOrderDetailPage() {
             </p>
             {awaitingPayment ? (
               <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
-                Pagamento pendente — conclua abaixo ou volte depois por Meus pedidos
+                Pendente de pagamento — continue abaixo ou cancele para editar no carrinho
+              </p>
+            ) : null}
+            {awaitingDecision ? (
+              <p className="mb-0 mt-2 inline-block rounded-md bg-sky-100 px-2 py-1 text-xs font-bold text-sky-900">
+                A loja pediu sua autorização — veja o painel abaixo
               </p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
+            {awaitingPayment ? (
+              <Button
+                type="button"
+                variant="light"
+                disabled={actionBusy}
+                onClick={() => void onCancelUnpaid()}
+              >
+                {actionBusy ? 'Cancelando…' : 'Cancelar pedido'}
+              </Button>
+            ) : null}
             <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>
               {rebuyBusy ? 'Preparando…' : 'Comprar novamente'}
             </Button>
@@ -165,18 +272,78 @@ export function AccountOrderDetailPage() {
           </div>
         </div>
         {rebuyMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{rebuyMsg}</p> : null}
+        {actionMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{actionMsg}</p> : null}
       </div>
 
       {awaitingPayment ? (
         <div className="rounded-fal border border-amber-300 bg-amber-50/60 p-5">
-          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Retomar pagamento</h3>
+          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Continuar pagamento</h3>
           <p className="mt-1 text-sm text-fal-muted">
             Seu pedido está reservado aguardando confirmação do Mercado Pago. Se o Pix
-            expirou, gere um novo QR. Após a aprovação, esta tela atualiza sozinha.
+            expirou, gere um novo QR. Após a aprovação, esta tela atualiza sozinha. Para
+            alterar itens, cancele o pedido (os itens voltam ao carrinho).
           </p>
           <div className="mt-4">
             <ResumeOrderPaymentPanel order={order} onPaid={() => void reload()} />
           </div>
+        </div>
+      ) : null}
+
+      {awaitingDecision ? (
+        <div className="rounded-fal border border-sky-300 bg-sky-50/70 p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-navy">
+            A loja pediu sua autorização
+          </h3>
+          <p className="mt-1 text-sm text-fal-muted">
+            Um ou mais itens ficaram indisponíveis ou com prazo diferente. Nada é aplicado
+            em silêncio — escolha autorizar ou recusar.
+          </p>
+          <ul className="mt-3 list-none space-y-2 p-0 text-sm">
+            {order.items
+              .filter(
+                (i) =>
+                  i.availability === 'indisponivel' || i.availability === 'disponivel_com_prazo',
+              )
+              .map((i) => (
+                <li key={i.id} className="rounded-md border border-sky-200 bg-white px-3 py-2">
+                  <strong>
+                    {i.quantity}× {i.nameSnapshot}
+                  </strong>
+                  <span className="block text-xs text-fal-muted">
+                    {availabilityLabel(i.availability)}
+                    {i.leadDays != null ? ` · ${i.leadDays} dia(s)` : ''}
+                    {i.staffNote ? ` — ${i.staffNote}` : ''}
+                  </span>
+                </li>
+              ))}
+          </ul>
+          {decisionPending ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={actionBusy}
+                onClick={() => void onRespondDecision('authorize')}
+              >
+                Autorizar
+              </Button>
+              <Button
+                type="button"
+                variant="light"
+                disabled={actionBusy}
+                onClick={() => void onRespondDecision('reject')}
+              >
+                Recusar
+              </Button>
+            </div>
+          ) : (
+            <p className="mb-0 mt-3 text-sm font-semibold text-fal-navy">
+              {order.customerDecision === 'authorized'
+                ? 'Você já autorizou. Aguardando a loja confirmar o pedido.'
+                : order.customerDecision === 'rejected'
+                  ? 'Você recusou. A loja analisará o pedido.'
+                  : null}
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -218,7 +385,14 @@ export function AccountOrderDetailPage() {
             >
               <span>
                 {i.quantity}× {i.nameSnapshot}
-                <span className="block text-xs text-fal-muted">SKU {i.sku}</span>
+                <span className="block text-xs text-fal-muted">
+                  SKU {i.sku}
+                  {i.availability
+                    ? ` · ${availabilityLabel(i.availability)}${
+                        i.leadDays != null ? ` (${i.leadDays}d)` : ''
+                      }`
+                    : ''}
+                </span>
               </span>
               <span className="font-semibold">{money(i.unitPrice * i.quantity)}</span>
             </li>

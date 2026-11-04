@@ -2,7 +2,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { formatDate } from '@/lib/datetime'
-import { orderStatusLabel } from '@/lib/orderLifecycle'
+import { customerOrderListCta, orderStatusLabel } from '@/lib/orderLifecycle'
 import { listMyOrders } from '@/services/customers/orderQueryService'
 import type { CustomerOrderSummary } from '@/types'
 import { useEffect, useState } from 'react'
@@ -35,8 +35,8 @@ export function AccountOrdersPage() {
       <div className="rounded-fal border border-fal-line bg-white p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus pedidos</h2>
         <p className="text-sm text-fal-muted">
-          Pedidos do checkout. Se o pagamento ficou pendente, abra o pedido para retomar Pix
-          ou cartão.
+          Acompanhe o status, continue o pagamento pendente ou responda quando a loja pedir
+          autorização.
         </p>
       </div>
 
@@ -78,14 +78,16 @@ export function AccountOrdersPage() {
                       className={
                         o.status === 'aguardando_pagamento'
                           ? 'rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900'
-                          : undefined
+                          : o.status === 'aguardando_decisao'
+                            ? 'rounded-md bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-900'
+                            : undefined
                       }
                     >
                       {orderStatusLabel[o.status] ?? o.status}
                     </span>
-                    {o.status === 'aguardando_pagamento' ? (
+                    {customerOrderListCta(o.status) ? (
                       <span className="mt-1 block text-xs font-semibold text-fal-auth-link">
-                        Retomar pagamento →
+                        {customerOrderListCta(o.status)}
                       </span>
                     ) : null}
                   </td>

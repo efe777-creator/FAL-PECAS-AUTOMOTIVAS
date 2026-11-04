@@ -37,11 +37,11 @@ export interface CustomerTimelineStep {
 
 const HAPPY_PATH: { id: OrderCustomerStep; label: string }[] = [
   { id: 'pedido_realizado', label: 'Pedido realizado' },
-  { id: 'aguardando_pagamento', label: 'Aguardando pagamento' },
+  { id: 'aguardando_pagamento', label: 'Pendente de pagamento' },
   { id: 'pagamento_aprovado', label: 'Pagamento aprovado' },
-  { id: 'recebido_pela_fal', label: 'Pedido recebido pela FAL' },
-  { id: 'em_confirmacao', label: 'Pedido em confirmação' },
-  { id: 'separacao', label: 'Separação' },
+  { id: 'recebido_pela_fal', label: 'Aguardando confirmação da loja' },
+  { id: 'em_confirmacao', label: 'Aguardando confirmação da loja' },
+  { id: 'separacao', label: 'Em separação / postagem' },
   { id: 'enviado', label: 'Enviado' },
   { id: 'entregue', label: 'Entregue' },
 ]
@@ -108,22 +108,34 @@ export function projectCustomerTimeline(status: string): CustomerTimelineStep[] 
   }))
 }
 
-/** Labels simplificados para a área do cliente (conta / timeline). */
+/** Labels comerciais para a área do cliente (conta / timeline). */
 export const orderStatusLabel: Record<string, string> = {
   pendente: 'Pendente',
-  aguardando_pagamento: 'Aguardando pagamento',
+  aguardando_pagamento: 'Pendente de pagamento',
   pagamento_aprovado: 'Pagamento aprovado',
-  recebido: 'Recebido pela FAL',
-  em_analise: 'Em confirmação',
-  aguardando_disponibilidade: 'Em confirmação',
-  aguardando_decisao: 'Em confirmação',
-  confirmado: 'Confirmado',
+  recebido: 'Aguardando confirmação da loja',
+  em_analise: 'Aguardando confirmação da loja',
+  aguardando_disponibilidade: 'Aguardando confirmação da loja',
+  aguardando_decisao: 'Aguardando sua autorização',
+  confirmado: 'Aprovado pela loja',
   em_separacao: 'Em separação',
-  pronto_para_envio: 'Separação',
-  preparando_envio: 'Separação',
+  pronto_para_envio: 'Aguardando postagem',
+  preparando_envio: 'Aguardando postagem',
   enviado: 'Enviado',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
+}
+
+/** CTA principal na lista Meus pedidos. */
+export function customerOrderListCta(status: string): string | null {
+  switch (status) {
+    case 'aguardando_pagamento':
+      return 'Continuar pagamento →'
+    case 'aguardando_decisao':
+      return 'Responder loja →'
+    default:
+      return null
+  }
 }
 
 /** Labels operacionais granulares para o painel admin (filas distintas). */
@@ -173,10 +185,14 @@ export function adminOrderNextStep(status: string): { title: string; body: strin
       }
     case 'em_analise':
     case 'aguardando_disponibilidade':
-    case 'aguardando_decisao':
       return {
         title: 'Concluir confirmação',
-        body: 'Salve a disponibilidade nos itens e use Finalizar confirmação.',
+        body: 'Salve a disponibilidade nos itens e use Finalizar confirmação. Indisponível/prazo pedem autorização do cliente.',
+      }
+    case 'aguardando_decisao':
+      return {
+        title: 'Aguardando autorização do cliente',
+        body: 'Sem resposta: aguarde. Autorizado: finalize de novo para confirmar. Recusado: cancele ou renegocie.',
       }
     case 'confirmado':
       return {
@@ -228,6 +244,9 @@ export const orderEventLabel: Record<string, string> = {
   order_delivered: 'Pedido entregue',
   order_cancelled: 'Pedido cancelado',
   order_expired_unpaid: 'Expirado sem pagamento',
+  order_awaiting_decision: 'Loja pediu sua autorização',
+  customer_authorized_changes: 'Você autorizou as alterações',
+  customer_rejected_changes: 'Você recusou as alterações',
   status_changed: 'Atualização do pedido',
   item_separated: 'Item marcado na separação',
 }

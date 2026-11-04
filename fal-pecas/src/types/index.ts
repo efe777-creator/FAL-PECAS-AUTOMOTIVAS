@@ -100,6 +100,9 @@ export interface OrderItemSnapshot {
   nameSnapshot: string
   unitPrice: number
   quantity: number
+  availability?: 'disponivel' | 'disponivel_com_prazo' | 'indisponivel' | null
+  leadDays?: number | null
+  staffNote?: string | null
 }
 
 export interface OrderStatusEvent {
@@ -117,6 +120,8 @@ export interface OrderLifecycleEvent {
   createdAt: string
 }
 
+export type OrderCustomerDecision = 'pending' | 'authorized' | 'rejected' | null
+
 export interface OrderDetail {
   id: string
   status: string
@@ -126,6 +131,8 @@ export interface OrderDetail {
   createdAt: string
   addressSnapshot?: Record<string, unknown> | null
   paymentRef?: string | null
+  /** Decisão do cliente em aguardando_decisao. */
+  customerDecision?: OrderCustomerDecision
   items: OrderItemSnapshot[]
   history: OrderStatusEvent[]
   /** Eventos customer-visible (F7A). */

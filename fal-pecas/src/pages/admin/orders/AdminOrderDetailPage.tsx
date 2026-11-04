@@ -329,6 +329,27 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
+      {current.status === 'aguardando_decisao' ? (
+        <section
+          className={
+            current.customerDecision === 'authorized'
+              ? 'rounded-[14px] border border-green-300 bg-green-50 px-4 py-3'
+              : current.customerDecision === 'rejected'
+                ? 'rounded-[14px] border border-red-300 bg-red-50 px-4 py-3'
+                : 'rounded-[14px] border border-sky-300 bg-sky-50 px-4 py-3'
+          }
+        >
+          <h2 className="m-0 text-base font-extrabold text-fal-navy">Autorização do cliente</h2>
+          <p className="mt-1 mb-0 text-sm text-fal-muted">
+            {current.customerDecision === 'authorized'
+              ? 'Cliente autorizou. Use Finalizar confirmação para avançar o pedido.'
+              : current.customerDecision === 'rejected'
+                ? 'Cliente recusou. Cancele o pedido ou renegocie; não confirme em silêncio.'
+                : 'Aguardando resposta do cliente (autorizar / recusar). Não confirme sem autorização.'}
+          </p>
+        </section>
+      ) : null}
+
       {pending ? (
         <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
           <h2 className="m-0 text-lg font-extrabold text-fal-navy">

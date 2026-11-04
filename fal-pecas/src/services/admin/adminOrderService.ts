@@ -40,6 +40,7 @@ export type AdminOrderDetail = {
   customerName: string | null
   customerEmail: string | null
   customerDoc: string | null
+  customerDecision: 'pending' | 'authorized' | 'rejected' | null
   items: AdminOrderItem[]
   events: {
     id: string
@@ -118,7 +119,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     .from('orders')
     .select(
       `
-      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id,
+      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id, customer_decision,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated ),
       order_events ( id, event_type, payload, visibility, created_at ),
@@ -166,6 +167,12 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     customerName: prof?.full_name != null ? String(prof.full_name) : null,
     customerEmail: prof?.username != null ? String(prof.username) : null,
     customerDoc: doc,
+    customerDecision:
+      r.customer_decision === 'pending' ||
+      r.customer_decision === 'authorized' ||
+      r.customer_decision === 'rejected'
+        ? r.customer_decision
+        : null,
     items: items.map((i: Record<string, unknown>) => ({
       id: String(i.id),
       productId: i.product_id != null ? String(i.product_id) : null,

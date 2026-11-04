@@ -105,8 +105,8 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 
 | Ordem | MARCHA | Conteúdo | Gate |
 |-------|--------|----------|------|
-| M3 | DOCS-SYNC-POS-ALPHA | PR com docs α locais + PRD §7/§22/§23/§31/§32/§36 + ROADMAP + `FAL_REGRAS_FLUXO_PEDIDOS` | Aprovação merge |
-| M4 | REGRAS-PEDIDOS-ONDA1 | Plano já aprovado: cancelar não pago, decisão cliente, labels/CTAs | Migration wtbp (aprovação) + VAL + PR |
+| M3 | DOCS-SYNC-POS-ALPHA | PR com docs α locais + PRD §7/§22/§23/§31/§32/§36 + ROADMAP + `FAL_REGRAS_FLUXO_PEDIDOS` | **FEITO** #51 |
+| M4 | REGRAS-PEDIDOS-ONDA1 | cancelar não pago, decisão cliente, labels/CTAs | **FEITO** SQL wtbp + VAL + PR |
 | M5 | CRON-EXPIRY | Agendar expiry (decidir mecanismo) + executar 1ª limpeza dos 9 | Decisão eFe + aprovação BD |
 | M6 | DADOS-MEDIDAS | Bulk peso/dimensões por Categoria/Grupo | Operação eFe (valores) |
 | M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | — |
