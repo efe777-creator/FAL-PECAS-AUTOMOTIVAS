@@ -1,6 +1,15 @@
-/** Melhor Envio Sandbox helpers — sem tokens no frontend. */
+/** Melhor Envio helpers — sem tokens no frontend. */
 
 export const ME_SANDBOX_BASE = 'https://sandbox.melhorenvio.com.br'
+export const ME_PROD_BASE = 'https://melhorenvio.com.br'
+
+/** Override via secret `MELHOR_ENVIO_API_BASE` (token deve casar com o ambiente). Default = sandbox. */
+export function meApiBase(): string {
+  const raw = (typeof Deno !== 'undefined' ? Deno.env.get('MELHOR_ENVIO_API_BASE') : null) ?? ''
+  const trimmed = raw.trim().replace(/\/$/, '')
+  if (trimmed) return trimmed
+  return ME_SANDBOX_BASE
+}
 
 export type MeLabelState =
   | 'none'

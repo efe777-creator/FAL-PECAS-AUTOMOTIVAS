@@ -8,13 +8,12 @@
  * Secrets ME: MELHOR_ENVIO_TOKEN, MELHOR_ENVIO_USER_AGENT (nunca VITE_).
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { meApiBase } from '../_shared/melhorEnvioCore.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-const ME_SANDBOX_BASE = 'https://sandbox.melhorenvio.com.br'
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -130,8 +129,10 @@ Deno.serve(async (req) => {
     }
 
     if (provider === 'melhorenvio') {
-      const meToken = Deno.env.get('MELHOR_ENVIO_TOKEN')
-      const meUa = Deno.env.get('MELHOR_ENVIO_USER_AGENT') ?? 'FAL Pecas (sandbox)'
+      const meToken = (Deno.env.get('MELHOR_ENVIO_TOKEN') ?? '')
+        .trim()
+        .replace(/^Bearer\s+/i, '')
+      const meUa = (Deno.env.get('MELHOR_ENVIO_USER_AGENT') ?? 'FAL Pecas Automotivas (efe.comercioltda@gmail.com)').trim()
       if (!meToken) {
         return json(501, {
           status: 'not_configured',
@@ -222,7 +223,7 @@ Deno.serve(async (req) => {
         }
       })
 
-      const meRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/calculate`, {
+      const meRes = await fetch(`${meApiBase()}/api/v2/me/shipment/calculate`, {
         method: 'POST',
         headers: meHeaders(meToken, meUa),
         body: JSON.stringify({
@@ -233,12 +234,16 @@ Deno.serve(async (req) => {
       })
       const meData = await meRes.json().catch(() => null)
       if (!meRes.ok) {
+        const detail =
+          meData && typeof meData === 'object'
+            ? String((meData as { message?: string }).message ?? JSON.stringify(meData)).slice(0, 240)
+            : ''
         return json(502, {
           status: 'provider_error',
           providerId: 'melhorenvio',
           mode: 'live',
           options: [],
-          message: `Melhor Envio calculate HTTP ${meRes.status}`,
+          message: `Melhor Envio calculate HTTP ${meRes.status}${detail ? `: ${detail}` : ''} [base=${meApiBase()}]`,
           quotedAt,
         })
       }
