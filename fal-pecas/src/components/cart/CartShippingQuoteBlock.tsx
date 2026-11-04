@@ -3,6 +3,7 @@ import { Input } from '@/components/common/Input'
 import { formatMoney } from '@/lib/money'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
+import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
 import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
@@ -94,6 +95,9 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         return
       }
       const addr = await viaCepProvider.lookupByCep(digits)
+      const logistics = await loadCartLogistics(
+        items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      )
       const env = await quoteShippingEnvelope({
         postalCode: addr.cep,
         state: addr.state,
@@ -101,10 +105,11 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         subtotal,
         itemCount: items.reduce((n, i) => n + i.quantity, 0),
         originPostalCode,
-        items: items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-        })),
+        items: logistics,
+        totalWeightKg: logistics.reduce(
+          (acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1),
+          0,
+        ) || undefined,
       })
       setEnvelope(env)
       if (env.status === 'ok' && env.options[0]) {

@@ -44,8 +44,8 @@ export async function quoteShippingEnvelope(
     })
   }
 
-  // Live futura: gaps logísticos bloqueiam (sandbox/mock ainda cotam com hints).
-  if (desc.mode === 'live') {
+  // Live ou ME edge: gaps logísticos bloqueiam (sem inventar defaults).
+  if (desc.mode === 'live' || desc.envKey === 'melhorenvio') {
     const gaps = logisticsGaps(req)
     if (gaps.length) {
       return buildErrorEnvelope({
@@ -54,7 +54,7 @@ export async function quoteShippingEnvelope(
         status: 'missing_logistics',
         req,
         message:
-          'Dados logísticos incompletos (peso/dimensões). Cotação live indisponível sem inventar valores.',
+          'Dados logísticos incompletos (peso/dimensões). Cotação Melhor Envio/live indisponível sem inventar valores.',
         disclaimer,
       })
     }

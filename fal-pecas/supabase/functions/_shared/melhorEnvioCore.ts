@@ -5,6 +5,7 @@ export const ME_SANDBOX_BASE = 'https://sandbox.melhorenvio.com.br'
 export type MeLabelState =
   | 'none'
   | 'quoted'
+  | 'prepared'
   | 'cart'
   | 'purchased'
   | 'generated'
@@ -51,7 +52,14 @@ export function mergeMeMeta(
 
 export function labelStateOf(metadata: Record<string, unknown> | null | undefined): MeLabelState {
   const s = parseMeMeta(metadata).label_state
-  if (s === 'quoted' || s === 'cart' || s === 'purchased' || s === 'generated' || s === 'printed') {
+  if (
+    s === 'quoted' ||
+    s === 'prepared' ||
+    s === 'cart' ||
+    s === 'purchased' ||
+    s === 'generated' ||
+    s === 'printed'
+  ) {
     return s
   }
   return 'none'

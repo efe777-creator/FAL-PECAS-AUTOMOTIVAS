@@ -132,6 +132,22 @@ Deno.serve(async (req) => {
     const charged = Number(order.shipping_amount ?? 0)
     const dryRun = !meToken
     const sandbox = true
+    const addrSnap = (order.address_snapshot ?? {}) as Record<string, unknown>
+    const destPostal = String(addrSnap.postal_code ?? addrSnap.cep ?? addrSnap.zip ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 8)
+
+    const { data: originRow } = await admin
+      .from('store_shipping_origin')
+      .select(
+        'postal_code, street, number, complement, district, city, state, sender_name, document, phone',
+      )
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
+    const originPostal = String(originRow?.postal_code ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 8)
 
     async function persist(patch: MeMeta, extraShipment?: Record<string, unknown>) {
       const nextMeta = mergeMeMeta(meta, patch)
@@ -140,7 +156,7 @@ Deno.serve(async (req) => {
         .from('shipments')
         .update({
           metadata: nextMeta,
-          provider: 'melhorenvio_sandbox',
+          provider: 'melhorenvio',
           ...extraShipment,
         })
         .eq('id', shipment!.id)
@@ -167,26 +183,33 @@ Deno.serve(async (req) => {
         // Cotação real sandbox: POST /api/v2/me/shipment/calculate (esqueleto — payload mínimo)
         try {
           const pkg = (body.packageOverride ?? {}) as Record<string, unknown>
+          const meMeta = parseMeMeta(meta)
+          const vol = (meMeta.volumes ?? {}) as Record<string, unknown>
+          if (originPostal.length !== 8 || destPostal.length !== 8) {
+            await persist({ last_error: 'origin_or_dest_postal_missing' })
+            return json(422, {
+              ok: false,
+              orderId,
+              labelState: state,
+              error: 'postal_missing',
+              message: 'CEP origem (store_shipping_origin) ou destino ausente.',
+              sandbox,
+            })
+          }
           const res = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/calculate`, {
             method: 'POST',
             headers: meAuthHeaders(meToken!, meUa),
             body: JSON.stringify({
-              from: { postal_code: '01310100' },
-              to: {
-                postal_code: String(
-                  (order.address_snapshot as Record<string, unknown> | null)?.cep ??
-                    (order.address_snapshot as Record<string, unknown> | null)?.zip ??
-                    '',
-                ).replace(/\D/g, ''),
-              },
+              from: { postal_code: originPostal },
+              to: { postal_code: destPostal },
               products: [
                 {
                   id: 'pkg',
-                  width: Number(pkg.widthCm ?? 11),
-                  height: Number(pkg.heightCm ?? 2),
-                  length: Number(pkg.lengthCm ?? 16),
-                  weight: Number(pkg.weightKg ?? 0.3),
-                  insurance_value: charged,
+                  width: Number(pkg.widthCm ?? vol.widthCm ?? 11),
+                  height: Number(pkg.heightCm ?? vol.heightCm ?? 2),
+                  length: Number(pkg.lengthCm ?? vol.lengthCm ?? 16),
+                  weight: Number(pkg.weightKg ?? vol.weightKg ?? 0.3),
+                  insurance_value: charged > 0 ? charged : 1,
                   quantity: 1,
                 },
               ],
@@ -264,23 +287,123 @@ Deno.serve(async (req) => {
         if (dryRun) {
           cartId = `dry-cart-${orderId.slice(0, 8)}`
         } else {
-          // POST /api/v2/me/cart — payload real depende do serviço cotado; stub seguro
-          cartId = `me-cart-pending-${orderId.slice(0, 8)}`
-          await persist({ last_error: 'cart_live_payload_requires_service_id' })
-          // Ainda marca cart para fluxo de UI; compra real exige serviço configurado
+          const serviceId = Number(me.service_id ?? body.serviceId ?? 0)
+          if (!serviceId) {
+            await persist({ last_error: 'service_id_required_for_cart' })
+            return json(422, {
+              ok: false,
+              orderId,
+              labelState: state,
+              error: 'service_id_required',
+              message: 'service_id ausente no snapshot ME — recote ou informe no body.',
+              sandbox,
+            })
+          }
+          if (!originRow || originPostal.length !== 8 || destPostal.length !== 8) {
+            await persist({ last_error: 'origin_or_dest_incomplete' })
+            return json(422, {
+              ok: false,
+              error: 'address_incomplete',
+              message: 'Origem/destino incompletos para cart ME.',
+              orderId,
+              labelState: state,
+              sandbox,
+            })
+          }
+          const vol = (me.volumes ?? {}) as Record<string, unknown>
+          const doc = String(originRow.document ?? '').replace(/\D/g, '')
+          const fromDoc =
+            doc.length === 14
+              ? { company_document: doc }
+              : { document: doc || '00000000000' }
+          const cartBody = {
+            service: serviceId,
+            from: {
+              name: String(originRow.sender_name ?? 'FAL'),
+              phone: String(originRow.phone ?? ''),
+              email: 'logistica@falpecas.local',
+              ...fromDoc,
+              address: String(originRow.street ?? ''),
+              number: String(originRow.number ?? ''),
+              complement: String(originRow.complement ?? ''),
+              district: String(originRow.district ?? ''),
+              city: String(originRow.city ?? ''),
+              country_id: 'BR',
+              postal_code: originPostal,
+              state_abbr: String(originRow.state ?? '').slice(0, 2),
+            },
+            to: {
+              name: String(addrSnap.recipient ?? 'Destinatario'),
+              phone: '11999999999',
+              email: 'cliente@falpecas.local',
+              document: '00000000000',
+              address: String(addrSnap.street ?? ''),
+              number: String(addrSnap.number ?? ''),
+              complement: String(addrSnap.complement ?? ''),
+              district: String(addrSnap.district ?? ''),
+              city: String(addrSnap.city ?? ''),
+              country_id: 'BR',
+              postal_code: destPostal,
+              state_abbr: String(addrSnap.state ?? '').slice(0, 2),
+            },
+            products: [
+              {
+                name: `Pedido ${orderId.slice(0, 8)}`,
+                quantity: 1,
+                unitary_value: charged > 0 ? charged : 1,
+              },
+            ],
+            volumes: [
+              {
+                height: Number(vol.heightCm ?? 2),
+                width: Number(vol.widthCm ?? 11),
+                length: Number(vol.lengthCm ?? 16),
+                weight: Number(vol.weightKg ?? 0.3),
+              },
+            ],
+            options: {
+              insurance_value: charged > 0 ? charged : 1,
+              receipt: false,
+              own_hand: false,
+              reverse: false,
+              non_commercial: true,
+              platform: 'FAL Pecas',
+              tags: [{ tag: orderId, url: null }],
+            },
+          }
+          const cartRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/cart`, {
+            method: 'POST',
+            headers: meAuthHeaders(meToken!, meUa),
+            body: JSON.stringify(cartBody),
+          })
+          const cartJson = (await cartRes.json().catch(() => null)) as Record<string, unknown> | null
+          if (!cartRes.ok || !cartJson?.id) {
+            await persist({
+              last_error: `cart_http_${cartRes.status}:${JSON.stringify(cartJson).slice(0, 180)}`,
+            })
+            return json(502, {
+              ok: false,
+              orderId,
+              labelState: state,
+              error: 'me_cart_failed',
+              message: 'Falha ao inserir frete no carrinho Melhor Envio sandbox.',
+              sandbox,
+            })
+          }
+          cartId = String(cartJson.id)
         }
       }
       await persist({
         label_state: 'cart',
         cart_item_id: cartId,
         dry_run: dryRun,
-        last_error: dryRun ? null : me.last_error ?? null,
+        last_error: null,
       })
       return json(200, {
         ok: true,
         orderId,
         labelState: 'cart' as MeLabelState,
-        message: dryRun ? 'Carrinho dry-run.' : 'Carrinho preparado (verifique service_id).',
+        message: dryRun ? 'Carrinho dry-run.' : 'Carrinho Melhor Envio preparado.',
         sandbox,
         dryRun,
       })
@@ -326,9 +449,43 @@ Deno.serve(async (req) => {
           dryRun,
         })
       }
-      const protocol = dryRun
-        ? `DRY-${orderId.slice(0, 8).toUpperCase()}`
-        : me.protocol ?? `ME-${Date.now()}`
+      let protocol = me.protocol ?? null
+      if (dryRun) {
+        protocol = `DRY-${orderId.slice(0, 8).toUpperCase()}`
+      } else {
+        const cartItemId = me.cart_item_id
+        if (!cartItemId) {
+          return json(409, {
+            ok: false,
+            error: 'not_in_cart',
+            message: 'Prepare (cart) antes de comprar.',
+            orderId,
+            labelState: state,
+          })
+        }
+        const coRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/checkout`, {
+          method: 'POST',
+          headers: meAuthHeaders(meToken!, meUa),
+          body: JSON.stringify({ orders: [cartItemId] }),
+        })
+        const coJson = (await coRes.json().catch(() => null)) as Record<string, unknown> | null
+        if (!coRes.ok) {
+          await persist({
+            last_error: `checkout_http_${coRes.status}:${JSON.stringify(coJson).slice(0, 180)}`,
+            divergence,
+          })
+          return json(502, {
+            ok: false,
+            orderId,
+            labelState: state,
+            error: 'me_checkout_failed',
+            message: 'Falha no checkout Melhor Envio (saldo sandbox?).',
+            sandbox,
+          })
+        }
+        const purchase = (coJson?.purchase ?? coJson) as Record<string, unknown> | undefined
+        protocol = String(purchase?.protocol ?? me.protocol ?? cartItemId)
+      }
       await persist({
         label_state: 'purchased',
         protocol,
@@ -372,9 +529,31 @@ Deno.serve(async (req) => {
           dryRun,
         })
       }
-      const url = dryRun
-        ? `https://sandbox.melhorenvio.com.br/dry-run/label/${orderId}.pdf`
-        : parseMeMeta(meta).label_url ?? `${ME_SANDBOX_BASE}/print/${orderId}`
+      let url = parseMeMeta(meta).label_url
+      const meNow = parseMeMeta(meta)
+      const orderRef = meNow.cart_item_id
+      if (dryRun) {
+        url = `https://sandbox.melhorenvio.com.br/dry-run/label/${orderId}.pdf`
+      } else if (orderRef) {
+        const genRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/generate`, {
+          method: 'POST',
+          headers: meAuthHeaders(meToken!, meUa),
+          body: JSON.stringify({ orders: [orderRef] }),
+        })
+        if (!genRes.ok) {
+          const errBody = await genRes.text().catch(() => '')
+          await persist({ last_error: `generate_http_${genRes.status}:${errBody.slice(0, 160)}` })
+          return json(502, {
+            ok: false,
+            orderId,
+            labelState: state,
+            error: 'me_generate_failed',
+            message: 'Falha ao gerar etiqueta no Melhor Envio.',
+            sandbox,
+          })
+        }
+        url = url ?? `${ME_SANDBOX_BASE}/print/${orderRef}`
+      }
       await persist({
         label_state: 'generated',
         label_url: url,
@@ -403,8 +582,18 @@ Deno.serve(async (req) => {
           labelState: state,
         })
       }
-      const url = parseMeMeta(meta).label_url
-      await persist({ label_state: 'printed', dry_run: dryRun, last_error: null })
+      let url = parseMeMeta(meta).label_url
+      const orderRef = parseMeMeta(meta).cart_item_id
+      if (!dryRun && orderRef) {
+        const printRes = await fetch(`${ME_SANDBOX_BASE}/api/v2/me/shipment/print`, {
+          method: 'POST',
+          headers: meAuthHeaders(meToken!, meUa),
+          body: JSON.stringify({ mode: 'private', orders: [orderRef] }),
+        })
+        const printJson = (await printRes.json().catch(() => null)) as { url?: string } | null
+        if (printRes.ok && printJson?.url) url = printJson.url
+      }
+      await persist({ label_state: 'printed', label_url: url, dry_run: dryRun, last_error: null })
       return json(200, {
         ok: true,
         orderId,

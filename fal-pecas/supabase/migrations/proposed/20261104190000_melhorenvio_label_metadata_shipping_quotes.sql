@@ -1,7 +1,6 @@
 -- ============================================================================
--- PROPOSTA — NÃO APLICAR sem OK explícito do eFe
--- Melhor Envio Sandbox: contrato metadata + ledger webhook + shipping_quotes (path ME checkout)
--- NÃO adiciona novos orders.status
+-- SUPERSEDIDO por migrations/20261104192000_me_hybrid_shipping_quotes_place_order.sql
+-- (RLS profile_id + place_order meq:). Manter só como histórico.
 -- ============================================================================
 
 -- 1) Comentário de contrato em shipments.metadata.me (documentação)

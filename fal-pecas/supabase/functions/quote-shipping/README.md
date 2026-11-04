@@ -1,25 +1,29 @@
 # Edge `quote-shipping`
 
-Esqueleto da cotação **server-side** (Correios live + futuros carriers).
+Cotação server-side. Secrets nunca no Vite.
 
-## Secrets (nunca `VITE_`)
+## Providers
 
-| Nome | Uso |
-|------|-----|
-| `CORREIOS_USER` | Usuário CWS / API Correios |
-| `CORREIOS_TOKEN` | Token/código de acesso API |
+| `provider` body | Comportamento |
+|-----------------|---------------|
+| `melhorenvio` | `POST …/shipment/calculate` sandbox + insert `shipping_quotes` → opções `meq:<uuid>:<serviceId>` |
+| `correios` | Esqueleto 501 até HTTP Correios |
+| `frenet` / `carrier` | Reservado 501 |
+
+## Secrets Melhor Envio
+
+```
+MELHOR_ENVIO_TOKEN=
+MELHOR_ENVIO_USER_AGENT=FAL Pecas (email@dominio)
+```
+
+Base: `https://sandbox.melhorenvio.com.br`  
+Origem: `store_shipping_origin.postal_code`
+
+## Deploy
 
 ```bash
-npx supabase secrets set CORREIOS_USER=... CORREIOS_TOKEN=... --linked
 npx supabase functions deploy quote-shipping --linked
 ```
 
-## Estado
-
-- Auth JWT obrigatória.
-- Valida CEP e recusa live sem peso dos itens.
-- Retorna `501 not_configured` até MARCHA de integração HTTP autorizada + D-FRETE C.
-
-## MCP (agente)
-
-Homologação/diagnóstico via Cursor: `@codespar/mcp-correios` em `.cursor/mcp.json` (credenciais só no ambiente local do operador).
+Requer migration `20261104192000_me_hybrid_shipping_quotes_place_order.sql` aplicada para persistir quotes.

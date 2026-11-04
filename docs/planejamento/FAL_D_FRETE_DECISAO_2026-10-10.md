@@ -8,20 +8,22 @@
 
 ## Contexto técnico (FATO)
 
-Provedores no código (`VITE_SHIPPING_PROVIDER`):
+Provedores no código (`VITE_SHIPPING_PROVIDER` + opções `place_order`):
 
-| Valor | Comportamento |
-|-------|----------------|
-| (default) | `mockShippingProvider` |
-| `correios` | sandbox Correios |
-| `frenet` | sandbox Frenet |
+| Valor / opção | Comportamento |
+|---------------|----------------|
+| (default) `mock` | `mockShippingProvider` · `mock:*` no pedido |
+| `own:*` | Frete próprio FAL (config admin; `enabled` controla) — pós-α |
+| `correios` | sandbox Correios (client) |
+| `frenet` | sandbox Frenet (client) |
 | `carrier` | stub |
+| Melhor Envio loja | **Ainda sem** carrier no registry; etiqueta sandbox = Expedição Pedidos |
 
-Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção até D-FRETE.
+Checkout (`CheckoutPage`) avisa que a cotação **não** é frete de produção sob política B.
 
-**Estrutura técnica:** registry + envelope + UI PDP/carrinho/checkout sandbox + edge `quote-shipping` — [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [auditoria](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md). Live HTTP **não** autorizada por esta ficha (B).
+**Estrutura técnica:** registry + envelope + UI PDP/carrinho/checkout sandbox + edge `quote-shipping` — [plano](./FAL_PLANO_FRETE_FINALIZACAO_2026-10-10.md) · [auditoria frete](./FAL_AUDITORIA_FRETE_COTACAO_ENTREGA_2026-10-10.md). Live HTTP loja **não** autorizada por esta ficha (B).
 
-Evolução estrutural pós-α (hub Logística, Melhor Envio, origem remetente): [FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md) — **não** muda a política B desta assinatura.
+Evolução estrutural pós-α (hub Logística, origem, frete próprio, ME Expedição sandbox): [plano funcional](./FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md) · [auditoria consolidação ME](./FAL_AUDITORIA_LOGISTICA_ME_CONSOLIDACAO_2026-11-04.md) — **não** muda a política B desta assinatura.
 
 ---
 
