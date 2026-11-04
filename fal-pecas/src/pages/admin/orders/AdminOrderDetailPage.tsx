@@ -1,3 +1,4 @@
+import { MeExpeditionPanel } from '@/components/admin/orders/MeExpeditionPanel'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -10,6 +11,7 @@ import {
   orderStatusOperatorLabel,
   projectAdminOrderTimeline,
 } from '@/lib/adminOrderOps'
+import { meLabelStateLabel, meLabelState } from '@/lib/melhorEnvioLabelState'
 import { adminOrderNextStep, orderEventLabel } from '@/lib/orderLifecycle'
 import {
   adminAdvanceOrder,
@@ -43,20 +45,20 @@ type PendingAction =
 
 const PENDING_COPY: Record<PendingAction['kind'], { title: string; body: string }> = {
   finalize: {
-    title: 'Finalizar confirmação?',
-    body: 'O pedido avançará com base nas disponibilidades salvas nos itens.',
+    title: 'Confirmar pedido e enviar para separação?',
+    body: 'Só confirme após conferir todos os itens e resolver decisões pendentes do cliente.',
   },
   separate: {
-    title: 'Concluir separação?',
-    body: 'Todos os itens devem estar marcados como separados.',
+    title: 'Concluir separação e enviar para expedição?',
+    body: 'Todos os itens devem estar marcados como separados. Em seguida o pedido fica pronto para etiqueta/postagem.',
   },
   ship: {
-    title: 'Registrar expedição?',
-    body: 'O pedido será marcado como enviado e o estoque será baixado (modo com_estoque).',
+    title: 'Registrar entrega à transportadora?',
+    body: 'Isto marca o pedido como enviado (ship_order). Não use só por ter gerado a etiqueta.',
   },
   deliver: {
-    title: 'Confirmar entrega?',
-    body: 'O pedido será encerrado como entregue.',
+    title: 'Confirmar entrega ao cliente?',
+    body: 'O pedido será encerrado como entregue. Diferente de postagem à transportadora.',
   },
   cancel: {
     title: 'Cancelar pedido?',
@@ -333,7 +335,7 @@ export function AdminOrderDetailPage() {
     <div className="space-y-4">
       <div>
         <Link to="/admin/pedidos" className="text-sm font-semibold text-fal-navy underline">
-          ← Pedidos
+          ← Central de Pedidos
         </Link>
         <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">
           Pedido {order.id.slice(0, 8)}…
@@ -353,7 +355,7 @@ export function AdminOrderDetailPage() {
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
 
       <section className="rounded-[14px] border border-fal-line bg-white px-4 py-3">
-        <h2 className="m-0 text-base font-extrabold text-fal-navy">Andamento operacional</h2>
+        <h2 className="m-0 text-base font-extrabold text-fal-navy">5. Histórico / linha do tempo</h2>
         <ol className="mb-0 mt-3 list-none space-y-2 p-0">
           {timeline.map((step) => (
             <li key={step.id} className="flex items-center gap-2 text-sm">
@@ -448,55 +450,65 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <section className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Cliente</h2>
-          <p className="mb-0 mt-2 text-sm">
-            <strong>{order.customerName ?? '—'}</strong>
-            <br />
-            Usuário: {order.customerEmail ?? '—'}
-            <br />
-            Documento: {order.customerDoc ?? '—'}
-          </p>
-        </section>
-        <section className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Endereço / frete / pagamento</h2>
-          <p className="mb-0 mt-2 text-sm whitespace-pre-wrap">
-            {addr
-              ? [
-                  addr.street,
-                  addr.number,
-                  addr.complement,
-                  addr.district,
-                  addr.city,
-                  addr.state,
-                  addr.cep ?? addr.zip,
-                ]
-                  .filter(Boolean)
-                  .join(', ')
-              : '—'}
-          </p>
-          <p className="mt-2 mb-0 text-sm">
-            Frete: {formatMoney(order.shippingAmount)} · Pagamento:{' '}
-            {order.payment?.status ?? order.paymentRef ?? '—'} ({order.payment?.provider ?? '—'})
-            {order.payment?.method ? ` · ${order.payment.method}` : ''}
-          </p>
-          {order.payment?.expiresAt ? (
-            <p className="mt-1 mb-0 text-xs text-fal-muted">
-              Expira: {new Date(order.payment.expiresAt).toLocaleString('pt-BR')}
-              {order.payment.externalRef ? ` · Ref MP: ${order.payment.externalRef}` : ''}
-            </p>
-          ) : order.payment?.externalRef ? (
-            <p className="mt-1 mb-0 text-xs text-fal-muted">Ref MP: {order.payment.externalRef}</p>
-          ) : null}
-          <p className="mt-1 mb-0 text-sm font-semibold">
-            Subtotal {formatMoney(order.subtotal)} · Total {formatMoney(order.total)}
-          </p>
-        </section>
-      </div>
+      <section className="rounded-[14px] border border-fal-line bg-white p-4">
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">1. Identificação do pedido e cliente</h2>
+        <p className="mb-0 mt-2 text-sm">
+          <strong>{order.customerName ?? '—'}</strong>
+          <br />
+          Usuário: {order.customerEmail ?? '—'}
+          <br />
+          Documento: {order.customerDoc ?? '—'}
+          <br />
+          Endereço:{' '}
+          {addr
+            ? [
+                addr.street,
+                addr.number,
+                addr.complement,
+                addr.district,
+                addr.city,
+                addr.state,
+                addr.cep ?? addr.zip,
+              ]
+                .filter(Boolean)
+                .join(', ')
+            : '—'}
+        </p>
+        <p className="mt-2 mb-0 text-sm font-semibold">
+          Subtotal {formatMoney(order.subtotal)} · Frete cobrado {formatMoney(order.shippingAmount)}{' '}
+          · Total {formatMoney(order.total)}
+        </p>
+      </section>
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Itens (snapshot do pedido)</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">2. Situação do pagamento</h2>
+        <p className="mt-2 mb-0 text-sm">
+          Status: {order.payment?.status ?? order.paymentRef ?? '—'} (
+          {order.payment?.provider ?? '—'})
+          {order.payment?.method ? ` · ${order.payment.method}` : ''}
+        </p>
+        {order.payment?.expiresAt ? (
+          <p className="mt-1 mb-0 text-xs text-fal-muted">
+            Expira: {new Date(order.payment.expiresAt).toLocaleString('pt-BR')}
+            {order.payment.externalRef ? ` · Ref MP: ${order.payment.externalRef}` : ''}
+          </p>
+        ) : order.payment?.externalRef ? (
+          <p className="mt-1 mb-0 text-xs text-fal-muted">Ref MP: {order.payment.externalRef}</p>
+        ) : null}
+        {order.status === 'aguardando_pagamento' ? (
+          <p className="mt-2 mb-0 text-xs text-fal-muted">
+            Aprovação somente pelo gateway. Admin não confirma pagamento manualmente. Cliente retoma
+            Pix vale 5 min (gera novo se expirar). Pedido sai da fila se não pago em 48 h.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="rounded-[14px] border border-fal-line bg-white p-4">
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+          3. Produtos e quantidades
+          {inAnalysis || inSeparation ? ' · 4. Conferência' : ''}
+          {inSeparation ? ' · 6. Separação' : ''}
+        </h2>
         <div className="mt-3 space-y-4">
           {order.items.map((it) => {
             const d = drafts[it.id] ?? { availability: '', leadDays: '', staffNote: '' }
@@ -622,8 +634,8 @@ export function AdminOrderDetailPage() {
           >
             {current.status === 'aguardando_decisao' &&
             current.customerDecision === 'authorized'
-              ? 'Confirmar pedido (cliente autorizou)'
-              : 'Confirmar pedido (geral)'}
+              ? 'Confirmar pedido e enviar para separação (cliente autorizou)'
+              : 'Confirmar pedido e enviar para separação'}
           </Button>
         ) : null}
         {inSeparation ? (
@@ -642,7 +654,7 @@ export function AdminOrderDetailPage() {
               onClick={() => setPending({ kind: 'separate' })}
               title={!allSeparated ? 'Separe todos os itens antes de concluir' : undefined}
             >
-              Concluir separação
+              Concluir separação e enviar para expedição
             </Button>
           </>
         ) : null}
@@ -673,55 +685,59 @@ export function AdminOrderDetailPage() {
       </div>
 
       {order.status === 'pronto_para_envio' || order.status === 'preparando_envio' ? (
-        <section className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Expedição</h2>
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
-            <Input label="Transportadora" value={carrier} onChange={(e) => setCarrier(e.target.value)} />
-            <Input label="Serviço" value={service} onChange={(e) => setService(e.target.value)} />
-            <Input label="Rastreio" value={tracking} onChange={(e) => setTracking(e.target.value)} />
-            <div className="flex items-end">
-              <Button
-                type="button"
-                disabled={busy || pending != null}
-                onClick={() => setPending({ kind: 'ship' })}
-              >
-                Registrar envio
-              </Button>
-            </div>
-          </div>
-        </section>
+        <MeExpeditionPanel
+          order={order}
+          busy={busy}
+          pendingShip={pending != null}
+          carrier={carrier}
+          service={service}
+          tracking={tracking}
+          onCarrier={setCarrier}
+          onService={setService}
+          onTracking={setTracking}
+          onRequestShip={() => setPending({ kind: 'ship' })}
+          onReload={reload}
+          onMessage={setMsg}
+          onError={setError}
+        />
       ) : null}
 
-      {order.status === 'enviado' ? (
+      {order.status === 'enviado' || order.status === 'entregue' ? (
         <section className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Entrega</h2>
-          <div className="mt-3 grid gap-2 md:grid-cols-3">
-            <Input
-              label="Comprovante (ref. opcional)"
-              value={proofRef}
-              onChange={(e) => setProofRef(e.target.value)}
-            />
-            <div className="flex items-end">
-              <Button
-                type="button"
-                disabled={busy || pending != null}
-                onClick={() => setPending({ kind: 'deliver' })}
-              >
-                Confirmar entrega
-              </Button>
+          <h2 className="m-0 text-lg font-extrabold text-fal-navy">7. Expedição e entrega</h2>
+          <p className="mt-1 text-sm text-fal-muted">
+            Etiqueta:{' '}
+            {meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))}
+            {order.shipment?.trackingCode
+              ? ` · Rastreio: ${order.shipment.trackingCode}`
+              : ''}
+            {order.shipment?.carrier ? ` · ${order.shipment.carrier}` : ''}
+          </p>
+          {order.status === 'enviado' ? (
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              <Input
+                label="Comprovante (ref. opcional)"
+                value={proofRef}
+                onChange={(e) => setProofRef(e.target.value)}
+              />
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  disabled={busy || pending != null}
+                  onClick={() => setPending({ kind: 'deliver' })}
+                >
+                  Confirmar entrega ao cliente
+                </Button>
+              </div>
             </div>
-          </div>
-          {order.shipment?.trackingCode ? (
-            <p className="mt-2 mb-0 text-sm text-fal-muted">
-              Rastreio: {order.shipment.trackingCode}
-              {order.shipment.carrier ? ` · ${order.shipment.carrier}` : ''}
-            </p>
-          ) : null}
+          ) : (
+            <p className="mt-2 mb-0 text-sm font-semibold text-green-800">Entregue ao cliente.</p>
+          )}
         </section>
       ) : null}
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Eventos</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">8. Observações e registros operacionais</h2>
         <ul className="mt-2 mb-0 list-none space-y-2 p-0">
           {order.events.length === 0 ? (
             <li className="text-sm text-fal-muted">Sem eventos.</li>

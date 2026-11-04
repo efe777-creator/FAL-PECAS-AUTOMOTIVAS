@@ -183,7 +183,7 @@ export function AdminDashboardPage() {
         )}
         <p className="m-0 text-xs text-fal-muted">
           <Link to="/admin/pedidos" className="font-semibold text-fal-navy underline">
-            Ver todos os pedidos →
+            Abrir Central de Pedidos →
           </Link>
         </p>
       </section>
@@ -207,7 +207,7 @@ export function AdminDashboardPage() {
                     <p className="mb-0 mt-1 text-xs text-fal-muted">{group.description}</p>
                   </div>
                   <Link
-                    to={`/admin/pedidos?grupo=${group.id}`}
+                    to={`/admin/pedidos/lista?grupo=${group.id}`}
                     className="shrink-0 text-2xl font-black text-fal-navy tabular-nums"
                     title="Abrir listagem do grupo"
                   >
@@ -218,7 +218,7 @@ export function AdminDashboardPage() {
                   {statuses.map((s) => (
                     <li key={s}>
                       <Link
-                        to={`/admin/pedidos?status=${s}`}
+                        to={`/admin/pedidos/lista?status=${s}`}
                         className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
                       >
                         <span className="text-fal-navy">
