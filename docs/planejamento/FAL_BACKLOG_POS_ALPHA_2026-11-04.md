@@ -59,10 +59,10 @@
 | M4 | REGRAS-PEDIDOS-ONDA1 | **FEITO** (SQL wtbp + PR) |
 | M5 | CRON-EXPIRY (`pg_cron`) | **FEITO** |
 | M0 | UX-ZOOM-TOAST | **FEITO** (#59) |
-| M-ME | HÍBRIDO D12 | **FEITO** código/migration/Edges (#57); secrets pendentes |
+| M-ME | HÍBRIDO D12 | **FEITO** código/migration/Edges (#57) + smoke calc PASS |
 | M6 | DADOS-MEDIDAS | **FEITO** provisório (100 quote-ready) |
-| M-ME-SEC | Secrets ME sandbox | UA+WH OK; **TOKEN = COLE_AQUI** (FIND-ME-TOKEN-001) — colar Bearer real |
-| M7 | OPS-E2E-ENTREGA | Após M-ME-SEC + M6 parcial |
+| M-ME-SEC | Secrets ME | **FEITO** (TOKEN real + API_BASE prod; FIND-ME-TOKEN/401 fechados) |
+| M7 | OPS-E2E-ENTREGA | Próximo — Central → Expedição → label ME |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Política estorno |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` ainda vazio 04/11 |
 | M10 | REGRAS-PEDIDOS-ONDA3 | Seguir/adiar |

@@ -29,11 +29,11 @@
 
 | Item | Estado 04/11 soberana | Nota |
 |------|----------------------|------|
-| Secrets UA / WH | **SET** | [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) |
-| Secret TOKEN | **FAIL** FIND-ME-TOKEN-001 | Literal `COLE_AQUI` no Edge — trocar por Bearer real |
-| `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem decisão |
+| Secrets UA / WH / API_BASE / TOKEN | **PASS** | [M-ME-SEC VAL](./FAL_MARCHA_ME_SEC_VAL_2026-11-04.md) · FIND-ME-TOKEN-001 **fechado** |
+| Smoke calculate | **PASS** | [ME SMOKE CALC](./FAL_MARCHA_ME_SMOKE_CALC_VAL_2026-11-04.md) · 12 opts · SEDEX 11.89 |
+| `VITE_SHIPPING_PROVIDER=melhorenvio` (opt-in) | HOLD | Netlify / local — **não** default produção sem D-FRETE C |
 | M6 medidas SKUs | **100 quote-ready** | [VAL M6](./FAL_MARCHA_M6_MEDIDAS_VAL_2026-11-04.md) provisório global |
-| Smoke E2E | BLOQUEADO | Até Bearer sandbox válido |
+| Smoke E2E etiqueta | PENDENTE | M7 ops (pedido âncora → Expedição) |
 
 ## Aceite D12 (checklist)
 
@@ -42,7 +42,8 @@
 - [x] Approve MP não compra etiqueta; prepare `prepared`  
 - [x] Expedição pode cart→checkout→generate→print (HTTP sandbox)  
 - [x] Secrets + migration no wtbp  
-- [ ] Smoke E2E (humano; opt-in provider ME)  
+- [x] Smoke calculate Edge (JWT usuário + TOKEN ME)  
+- [ ] Smoke E2E etiqueta (humano; opt-in provider ME)  
 - [ ] Disclaimer B visível com provider ME  
 
 
@@ -58,6 +59,6 @@
 
 ## STOP
 
-Código + migration + Edges + secrets ME + M6 **ok**. Smoke E2E = humano.
+Código + migration + Edges + secrets ME + M6 + smoke calculate **ok**. Default loja = mock. Smoke E2E etiqueta = M7.
 
-**Assinatura agente:** VAL ME híbrido 2026-11-04 · sync M-ME-SEC 2026-11-04.
+**Assinatura agente:** VAL ME híbrido PASS calc 2026-11-04.

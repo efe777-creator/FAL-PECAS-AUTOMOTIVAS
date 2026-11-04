@@ -1,42 +1,26 @@
 # VAL — Smoke calculate Melhor Envio (M7 prep)
 
-**Data:** 2026-11-04  
+**Data:** 2026-11-04 (rev. 16:55)  
 **Runtime:** `wtbpwuiayednvlhvuhbh`
 
 ## Evidência
 
 | Passo | Resultado |
 |-------|-----------|
-| TOKEN ≠ `COLE_AQUI` | **PASS** (hash mudou) |
-| Secret `MELHOR_ENVIO_API_BASE` | `https://melhorenvio.com.br` (token veio do painel **produção**) |
-| Edges redeploy | **PASS** (`quote-shipping`, `melhorenvio-label` + `meApiBase()`) |
-| Smoke `quote-shipping` (user JWT efêmero) | **FAIL** HTTP 502 · ME **401 Unauthenticated** |
+| TOKEN ≠ `COLE_AQUI` | **PASS** (hash Edge `585c9be7…`, token pessoal prod “FAL Pecas Edge”) |
+| Secret `MELHOR_ENVIO_API_BASE` | `https://melhorenvio.com.br` |
+| Edges redeploy | **PASS** (`quote-shipping`, `melhorenvio-label`) |
+| Smoke `quote-shipping` (user JWT efêmero) | **PASS** HTTP 200 · `status=ok` · **12** opções · 1ª SEDEX `amount=11.89` (`meq:…:2`) |
 
-## FIND-ME-401
+## FIND-ME-401 — FECHADO
 
-Bearer no Edge **não autentica** na API (`Unauthenticated`). Causas típicas:
+Bearer real + API base produção → calculate autenticado. Cotação apenas (sem purchase/generate).
 
-1. Token colado incompleto / com espaços / errado  
-2. Token já revogado / gerado só no painel e nunca copiado na hora  
-3. Token de app sem escopo de shipment  
+## Aceite
 
-**Ação eFe (painel aberto):** Integrações → Permissões → **Gerar novo token** → copiar **uma vez** →
+- [x] TOKEN real no Edge  
+- [x] Smoke calculate `options > 0`  
+- [ ] Default loja ME em Netlify (ainda **mock** / D-FRETE B)  
+- [ ] M7 ops E2E etiqueta (após pedido âncora + Expedição)
 
-```powershell
-cd fal-pecas
-npx supabase secrets set --yes "MELHOR_ENVIO_TOKEN=<cole_o_token_sem_Bearer>" --project-ref wtbpwuiayednvlhvuhbh
-npx supabase functions deploy quote-shipping melhorenvio-label --project-ref wtbpwuiayednvlhvuhbh --yes
-```
-
-Manter `MELHOR_ENVIO_API_BASE=https://melhorenvio.com.br` enquanto o token for de **produção**.  
-Sandbox: base default + token sandbox (conta sandbox ainda sem login).
-
-**Aviso:** purchase/generate em produção gasta saldo real — preferir dry-run / quote até smoke cotação PASS.
-
-## Código
-
-- `meApiBase()` em `_shared/melhorEnvioCore.ts`  
-- Override `MELHOR_ENVIO_API_BASE`  
-- Trim/`Bearer` strip no TOKEN  
-
-**Assinatura agente:** smoke calc ME 401 2026-11-04.
+**Assinatura agente:** smoke calc ME PASS 2026-11-04.
