@@ -16,7 +16,7 @@
 | P0-GLOBAIS | Alterações globais + filtros Categoria/Grupo/Subgrupo/Situação | **FEITO** [VAL](./FAL_MARCHA_PRODUTOS_ALTERACOES_GLOBAIS_VAL_2026-11-04.md) |
 | P0-HUB | Hub admin Logística (4 atalhos) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_HUB_VAL_2026-11-04.md) |
 | P0-ORI | Origem e expedição (remetente + endereço) | **FEITO** [VAL](./FAL_MARCHA_LOGISTICA_ORIGEM_REMETENTE_VAL_2026-11-04.md) |
-| P0-MED-DADOS | Preencher peso/medidas | M6 — **probe soberana 04/11:** 100 published · 2 peso · **0 quote-ready** (dims) · 98 sem peso |
+| P0-MED-DADOS | Preencher peso/medidas | M6 **FEITO** provisório global — 100/100 quote-ready ([VAL](./FAL_MARCHA_M6_MEDIDAS_VAL_2026-11-04.md)); calibração comercial = eFe |
 
 ## P1 — Pagamento / ops / docs / regras
 
@@ -60,8 +60,8 @@
 | M5 | CRON-EXPIRY (`pg_cron`) | **FEITO** |
 | M0 | UX-ZOOM-TOAST | **FEITO** (#59) |
 | M-ME | HÍBRIDO D12 | **FEITO** código/migration/Edges (#57); secrets pendentes |
-| M6 | DADOS-MEDIDAS | Aguarda valores eFe (0 quote-ready) |
-| M-ME-SEC | Secrets ME sandbox | **AUSENTE** — gate smoke label |
+| M6 | DADOS-MEDIDAS | **FEITO** provisório (100 quote-ready) |
+| M-ME-SEC | Secrets ME sandbox | UA+WH **SET**; **TOKEN** pendente |
 | M7 | OPS-E2E-ENTREGA | Após M-ME-SEC + M6 parcial |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Política estorno |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` ainda vazio 04/11 |
