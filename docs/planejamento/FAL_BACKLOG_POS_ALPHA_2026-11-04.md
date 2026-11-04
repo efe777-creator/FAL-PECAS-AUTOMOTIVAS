@@ -22,7 +22,7 @@
 |----|------|------|
 | P1-EXP | Expiry não pago + release reserva (TTL 48 h) | **FEITO** [VAL](./FAL_MARCHA_PEDIDO_EXPIRY_RESERVA_VAL_2026-11-04.md) · cron = follow-up |
 | P1-WH | Diagnóstico webhook MCP `notifications_history` | Ressalva Gate — opcional |
-| P1-OPS | Fluxo operador confirmação → separação | Auth; regras `transition_order_status` |
+| P1-OPS | Fluxo operador confirmação → separação | **FEITO** [VAL](./FAL_MARCHA_PEDIDOS_OPS_CONFIRMACAO_SEPARACAO_VAL_2026-11-04.md) (UX + fila; SQL F7B/C prévio) |
 | P1-DOC | Sync PRD/ROADMAP pós-STOP α | Auth docs |
 
 ## P2 — Frete live / carriers

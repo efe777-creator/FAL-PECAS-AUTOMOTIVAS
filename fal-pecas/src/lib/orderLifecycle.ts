@@ -153,7 +153,62 @@ export const ADMIN_ORDER_COUNTER_KEYS = [
   'aguardando_disponibilidade',
   'confirmado',
   'em_separacao',
+  'pronto_para_envio',
+  'enviado',
 ] as const
+
+/** Próximo passo operacional (admin detalhe). */
+export function adminOrderNextStep(status: string): { title: string; body: string } | null {
+  switch (status) {
+    case 'aguardando_pagamento':
+      return {
+        title: 'Aguardando pagamento do cliente',
+        body: 'Sem ação de confirmação. Cancele (gerente) ou espere aprovação / TTL 48 h.',
+      }
+    case 'pagamento_aprovado':
+    case 'recebido':
+      return {
+        title: 'Iniciar confirmação',
+        body: 'Marque a disponibilidade de cada item e finalize a confirmação.',
+      }
+    case 'em_analise':
+    case 'aguardando_disponibilidade':
+    case 'aguardando_decisao':
+      return {
+        title: 'Concluir confirmação',
+        body: 'Salve a disponibilidade nos itens e use Finalizar confirmação.',
+      }
+    case 'confirmado':
+      return {
+        title: 'Iniciar separação',
+        body: 'Marque os itens separados (o 1º check avança para Em separação).',
+      }
+    case 'em_separacao':
+      return {
+        title: 'Concluir separação',
+        body: 'Separe todos os itens e então conclua para liberar a expedição.',
+      }
+    case 'pronto_para_envio':
+    case 'preparando_envio':
+      return {
+        title: 'Expedir pedido',
+        body: 'Informe transportadora/rastreio (opcional) e registre o envio.',
+      }
+    case 'enviado':
+      return {
+        title: 'Confirmar entrega',
+        body: 'Quando o cliente receber, confirme a entrega.',
+      }
+    case 'entregue':
+    case 'cancelado':
+      return null
+    default:
+      return {
+        title: 'Status operacional',
+        body: 'Verifique o histórico de eventos abaixo.',
+      }
+  }
+}
 
 export const orderEventLabel: Record<string, string> = {
   order_created: 'Pedido realizado',
@@ -172,5 +227,7 @@ export const orderEventLabel: Record<string, string> = {
   order_shipped: 'Pedido enviado',
   order_delivered: 'Pedido entregue',
   order_cancelled: 'Pedido cancelado',
+  order_expired_unpaid: 'Expirado sem pagamento',
   status_changed: 'Atualização do pedido',
+  item_separated: 'Item marcado na separação',
 }

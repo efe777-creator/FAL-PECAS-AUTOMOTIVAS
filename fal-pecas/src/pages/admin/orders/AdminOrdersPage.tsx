@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
+import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { formatMoney } from '@/lib/money'
 import { formatDateTime } from '@/lib/datetime'
@@ -30,6 +31,16 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'cancelado', label: 'Cancelados' },
 ]
 
+function matchesOrderSearch(o: AdminOrderListRow, raw: string): boolean {
+  const q = raw.trim().toLowerCase()
+  if (!q) return true
+  return (
+    o.id.toLowerCase().includes(q) ||
+    (o.customerName?.toLowerCase().includes(q) ?? false) ||
+    (o.paymentStatus?.toLowerCase().includes(q) ?? false)
+  )
+}
+
 function paymentBadge(o: AdminOrderListRow) {
   if (!o.paymentStatus) return '—'
   const expired =
@@ -47,6 +58,7 @@ export function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
+  const [search, setSearch] = useState('')
 
   function applyFilter(value: string) {
     setFilter(value)
@@ -137,32 +149,42 @@ export function AdminOrdersPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-sm font-semibold text-fal-muted">Filtro</label>
-        <select
-          className="rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm"
-          value={filter}
-          onChange={(e) => applyFilter(e.target.value)}
-        >
-          {FILTERS.map((f) => (
-            <option key={f.value || 'all'} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-sm font-semibold text-fal-muted">
+          Filtro
+          <select
+            className="mt-1 block rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            value={filter}
+            onChange={(e) => applyFilter(e.target.value)}
+          >
+            {FILTERS.map((f) => (
+              <option key={f.value || 'all'} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="min-w-[200px] flex-1">
+          <Input
+            label="Busca (id / cliente / pagamento)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Ex.: a1b2c3d4 ou nome"
+          />
+        </div>
       </div>
 
       {loading ? <Loading label="Carregando pedidos…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
-      {!loading && !error && rows.length === 0 ? (
+      {!loading && !error && rows.filter((o) => matchesOrderSearch(o, search)).length === 0 ? (
         <EmptyState
           title="Nenhum pedido neste filtro"
-          description="Altere o filtro de status ou aguarde novos pedidos da loja."
+          description="Altere o filtro de status, a busca ou aguarde novos pedidos da loja."
         />
       ) : null}
 
-      {!loading && !error && rows.length > 0 ? (
+      {!loading && !error && rows.filter((o) => matchesOrderSearch(o, search)).length > 0 ? (
         <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
@@ -178,7 +200,7 @@ export function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((o) => (
+              {rows.filter((o) => matchesOrderSearch(o, search)).map((o) => (
                 <tr key={o.id} className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60">
                   <td className="px-3 py-2">
                     <Link
