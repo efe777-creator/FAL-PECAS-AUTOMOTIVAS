@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 
 type Props = {
@@ -9,9 +9,12 @@ type Props = {
   onClose: () => void
 }
 
+const MIN_ZOOM = 1
+const MAX_ZOOM = 6
+const ZOOM_STEP = 0.35
+
 /**
- * Lightbox com zoom (wheel / botões) e navegação entre imagens.
- * Sem dependência externa.
+ * Lightbox com zoom (wheel / botões / duplo clique) e pan ao arrastar quando ampliado.
  */
 export function ProductImageLightbox({
   images,
@@ -23,11 +26,25 @@ export function ProductImageLightbox({
   const urls = images.filter(Boolean)
   const [index, setIndex] = useState(startIndex)
   const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const dragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
+  const [dragging, setDragging] = useState(false)
+
+  function resetView() {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
 
   useEffect(() => {
     if (open) {
       setIndex(Math.min(Math.max(0, startIndex), Math.max(0, urls.length - 1)))
-      setZoom(1)
+      resetView()
     }
   }, [open, startIndex, urls.length])
 
@@ -39,14 +56,23 @@ export function ProductImageLightbox({
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowRight' && urls.length > 1) {
         setIndex((i) => (i + 1) % urls.length)
-        setZoom(1)
+        resetView()
       }
       if (e.key === 'ArrowLeft' && urls.length > 1) {
         setIndex((i) => (i - 1 + urls.length) % urls.length)
-        setZoom(1)
+        resetView()
       }
-      if (e.key === '+' || e.key === '=') setZoom((z) => Math.min(4, z + 0.25))
-      if (e.key === '-') setZoom((z) => Math.max(1, z - 0.25))
+      if (e.key === '+' || e.key === '=') {
+        setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP))
+      }
+      if (e.key === '-') {
+        setZoom((z) => {
+          const next = Math.max(MIN_ZOOM, z - ZOOM_STEP)
+          if (next <= MIN_ZOOM) setPan({ x: 0, y: 0 })
+          return next
+        })
+      }
+      if (e.key === '0') resetView()
     }
     window.addEventListener('keydown', onKey)
     return () => {
@@ -58,9 +84,59 @@ export function ProductImageLightbox({
   if (!open || !urls.length) return null
 
   const src = urls[Math.min(index, urls.length - 1)]!
+  const canPan = zoom > 1.01
 
   function onBackdrop(e: MouseEvent) {
     if (e.target === e.currentTarget) onClose()
+  }
+
+  function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!canPan) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pan.x,
+      originY: pan.y,
+    }
+    setDragging(true)
+  }
+
+  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const d = dragRef.current
+    if (!d || d.pointerId !== e.pointerId) return
+    setPan({
+      x: d.originX + (e.clientX - d.startX),
+      y: d.originY + (e.clientY - d.startY),
+    })
+  }
+
+  function endDrag(e: ReactPointerEvent<HTMLDivElement>) {
+    const d = dragRef.current
+    if (!d || d.pointerId !== e.pointerId) return
+    dragRef.current = null
+    setDragging(false)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      /* already released */
+    }
+  }
+
+  function onDoubleClick(e: ReactPointerEvent<HTMLImageElement>) {
+    e.stopPropagation()
+    if (zoom > 1.2) {
+      resetView()
+      return
+    }
+    // Amplia em direção ao clique
+    const rect = e.currentTarget.getBoundingClientRect()
+    const cx = e.clientX - (rect.left + rect.width / 2)
+    const cy = e.clientY - (rect.top + rect.height / 2)
+    const nextZoom = 2.5
+    setZoom(nextZoom)
+    setPan({ x: -cx * (nextZoom - 1), y: -cy * (nextZoom - 1) })
   }
 
   return createPortal(
@@ -68,7 +144,7 @@ export function ProductImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={`Ampliar imagem: ${alt}`}
-      className="fixed inset-0 z-[100] flex flex-col bg-black/85 p-3 sm:p-6"
+      className="fixed inset-0 z-[100] flex flex-col bg-black/90 p-3 sm:p-6"
       onClick={onBackdrop}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 text-white">
@@ -80,7 +156,13 @@ export function ProductImageLightbox({
           <button
             type="button"
             className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
-            onClick={() => setZoom((z) => Math.max(1, z - 0.25))}
+            onClick={() =>
+              setZoom((z) => {
+                const next = Math.max(MIN_ZOOM, z - ZOOM_STEP)
+                if (next <= MIN_ZOOM) setPan({ x: 0, y: 0 })
+                return next
+              })
+            }
             aria-label="Diminuir zoom"
           >
             −
@@ -89,10 +171,18 @@ export function ProductImageLightbox({
           <button
             type="button"
             className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
-            onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
+            onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP))}
             aria-label="Aumentar zoom"
           >
             +
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
+            onClick={resetView}
+            aria-label="Resetar zoom"
+          >
+            100%
           </button>
           <button
             type="button"
@@ -106,13 +196,24 @@ export function ProductImageLightbox({
       </div>
 
       <div
-        className="relative mt-3 flex min-h-0 flex-1 items-center justify-center overflow-auto"
+        className={[
+          'relative mt-3 flex min-h-0 flex-1 items-center justify-center overflow-hidden touch-none',
+          canPan ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in',
+        ].join(' ')}
         onClick={onBackdrop}
         onWheel={(e) => {
           e.preventDefault()
-          const delta = e.deltaY > 0 ? -0.15 : 0.15
-          setZoom((z) => Math.min(4, Math.max(1, z + delta)))
+          const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+          setZoom((z) => {
+            const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta))
+            if (next <= MIN_ZOOM) setPan({ x: 0, y: 0 })
+            return next
+          })
         }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         {urls.length > 1 ? (
           <button
@@ -122,7 +223,7 @@ export function ProductImageLightbox({
             onClick={(e) => {
               e.stopPropagation()
               setIndex((i) => (i - 1 + urls.length) % urls.length)
-              setZoom(1)
+              resetView()
             }}
           >
             ‹
@@ -131,10 +232,15 @@ export function ProductImageLightbox({
         <img
           src={src}
           alt={alt}
-          className="max-h-full max-w-full object-contain transition-transform duration-150"
-          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+          className="max-h-full max-w-full select-none object-contain"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center center',
+            transition: dragging ? 'none' : 'transform 120ms ease-out',
+          }}
           draggable={false}
           onClick={(e) => e.stopPropagation()}
+          onDoubleClick={onDoubleClick}
         />
         {urls.length > 1 ? (
           <button
@@ -144,7 +250,7 @@ export function ProductImageLightbox({
             onClick={(e) => {
               e.stopPropagation()
               setIndex((i) => (i + 1) % urls.length)
-              setZoom(1)
+              resetView()
             }}
           >
             ›
@@ -152,7 +258,7 @@ export function ProductImageLightbox({
         ) : null}
       </div>
       <p className="m-0 mt-2 text-center text-xs text-white/70">
-        Scroll ou +/- para zoom · Esc fecha
+        Scroll ou +/- para zoom · arraste para mover · duplo clique amplia · Esc fecha
         {urls.length > 1 ? ' · setas navegam' : ''}
       </p>
     </div>,

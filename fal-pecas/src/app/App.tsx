@@ -10,6 +10,7 @@ export function App() {
     <ErrorBoundary>
       <AuthProvider>
         <CartProvider>
+          {/* Toast fora do router: CTAs usam <a href>, não <Link> */}
           <ToastProvider>
             <RouterProvider router={router} />
           </ToastProvider>
