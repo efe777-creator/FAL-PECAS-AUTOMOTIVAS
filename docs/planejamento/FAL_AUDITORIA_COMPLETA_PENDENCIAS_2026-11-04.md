@@ -107,7 +107,7 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 |-------|--------|----------|------|
 | M3 | DOCS-SYNC-POS-ALPHA | PR com docs α locais + PRD §7/§22/§23/§31/§32/§36 + ROADMAP + `FAL_REGRAS_FLUXO_PEDIDOS` | **FEITO** #51 |
 | M4 | REGRAS-PEDIDOS-ONDA1 | cancelar não pago, decisão cliente, labels/CTAs | **FEITO** SQL wtbp + VAL + PR |
-| M5 | CRON-EXPIRY | Agendar expiry (decidir mecanismo) + executar 1ª limpeza dos 9 | Decisão eFe + aprovação BD |
+| M5 | CRON-EXPIRY | `pg_cron` + 1ª limpeza dos 9 | **FEITO** (job horário + 9 expirados) |
 | M6 | DADOS-MEDIDAS | Bulk peso/dimensões por Categoria/Grupo | Operação eFe (valores) |
 | M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | — |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Cancelamento pós-pago + refund MP | Decisão política de estorno |
@@ -119,7 +119,7 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 
 ## 7. Decisões humanas pendentes
 
-1. ~~Mecanismo do cron~~ — **`pg_cron`** escolhido por eFe 04/11 (M5).
+1. ~~Mecanismo do cron~~ — **`pg_cron`** FEITO (job `fal-expire-unpaid-orders` · `15 * * * *`).
 2. **Política de estorno** (Onda 2): estorno automático via MP vs manual pelo operador; prazo de solicitação.
 3. **Valores padrão de medidas** por grupo (para o bulk M6).
 4. **Cartão salvo** (Onda 3): seguir ou adiar.
