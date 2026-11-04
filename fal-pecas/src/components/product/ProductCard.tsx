@@ -128,9 +128,6 @@ export function ProductCard({ product }: { product: Product }) {
               className="h-full w-full object-contain transition group-hover:scale-[1.03]"
               loading="lazy"
             />
-            <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded bg-fal-navy/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
-              Zoom
-            </span>
           </button>
         ) : (
           <ProductImagePlaceholder className="scale-75" />
