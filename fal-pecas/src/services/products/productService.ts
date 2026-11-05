@@ -58,6 +58,9 @@ function mapProduct(row: Record<string, unknown>): Product {
     heightCm: row.height_cm == null ? null : Number(row.height_cm),
     widthCm: row.width_cm == null ? null : Number(row.width_cm),
     lengthCm: row.length_cm == null ? null : Number(row.length_cm),
+    polUnit: row.pol_unit == null ? null : Number(row.pol_unit),
+    ownDeliveryAllowed:
+      row.own_delivery_allowed == null ? true : Boolean(row.own_delivery_allowed),
   }
 }
 
@@ -66,6 +69,7 @@ const PRODUCT_SELECT = `
   manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id,
   posicao, lado, attrs,
   weight_kg, height_cm, width_cm, length_cm,
+  pol_unit, own_delivery_allowed,
   product_brands ( name ),
   product_categories ( id, name, slug )
 `

@@ -3,10 +3,10 @@ import { Input } from '@/components/common/Input'
 import { formatMoney } from '@/lib/money'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
-import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
+import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import type { Product } from '@/types'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type Props = {
   product: Product
@@ -18,11 +18,28 @@ function formatCepInput(raw: string): string {
   return `${d.slice(0, 5)}-${d.slice(5)}`
 }
 
+function productQuoteReady(product: Product): boolean {
+  return (
+    product.weightKg != null &&
+    product.weightKg > 0 &&
+    product.heightCm != null &&
+    product.heightCm > 0 &&
+    product.widthCm != null &&
+    product.widthCm > 0 &&
+    product.lengthCm != null &&
+    product.lengthCm > 0
+  )
+}
+
 export function ProductShippingQuoteBlock({ product }: Props) {
   const [cep, setCep] = useState('')
+  const [number, setNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [envelope, setEnvelope] = useState<ShippingQuoteEnvelope | null>(null)
   const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
+  const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
+
+  const ready = useMemo(() => productQuoteReady(product), [product])
 
   useEffect(() => {
     let active = true
@@ -38,15 +55,20 @@ export function ProductShippingQuoteBlock({ product }: Props) {
     }
   }, [])
 
+  if (!ready) {
+    return null
+  }
+
   async function onConsultar() {
     setLoading(true)
     setEnvelope(null)
+    setHintNeedsNumber(false)
     try {
       const digits = cep.replace(/\D/g, '')
       if (digits.length !== 8) {
         setEnvelope({
           status: 'invalid_cep',
-          providerId: 'correios',
+          providerId: 'melhorenvio',
           mode: 'sandbox',
           options: [],
           quotedAt: new Date().toISOString(),
@@ -58,10 +80,13 @@ export function ProductShippingQuoteBlock({ product }: Props) {
 
       const addr = await viaCepProvider.lookupByCep(digits)
       const price = product.price ?? 0
-      const env = await quoteShippingEnvelope({
+      const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
         postalCode: addr.cep,
         state: addr.state,
         city: addr.city,
+        street: addr.street,
+        district: addr.district,
+        number: number.trim() || undefined,
         subtotal: price,
         itemCount: 1,
         originPostalCode,
@@ -77,11 +102,12 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         ],
         totalWeightKg: product.weightKg ?? undefined,
       })
+      setHintNeedsNumber(needsAddressNumber)
       setEnvelope(env)
     } catch (e) {
       setEnvelope({
         status: 'provider_error',
-        providerId: 'local',
+        providerId: 'melhorenvio',
         mode: 'sandbox',
         options: [],
         quotedAt: new Date().toISOString(),
@@ -102,7 +128,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         Entrega e frete
       </h2>
       <p className="mb-3 mt-1 text-sm text-fal-muted">
-        Informe seu CEP para consultar as opções de entrega.
+        Informe o CEP para cotar Melhor Envio e, se cobrir sua região, frete próprio FAL.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
@@ -122,6 +148,17 @@ export function ProductShippingQuoteBlock({ product }: Props) {
             }}
           />
         </div>
+        <div className="w-full sm:w-28">
+          <Input
+            label="Nº"
+            name="pdp-shipping-number"
+            inputMode="text"
+            autoComplete="address-line2"
+            placeholder="123"
+            value={number}
+            onChange={(e) => setNumber(e.target.value.slice(0, 20))}
+          />
+        </div>
         <Button
           type="button"
           variant="light"
@@ -132,9 +169,18 @@ export function ProductShippingQuoteBlock({ product }: Props) {
           {loading ? 'Consultando…' : 'Consultar'}
         </Button>
       </div>
+      <p className="mb-0 mt-1 text-xs text-fal-muted">
+        Nº do endereço libera cotação de frete próprio (quando disponível na região).
+      </p>
 
       {envelope?.disclaimer ? (
         <p className="mb-0 mt-3 text-xs font-semibold text-fal-muted">{envelope.disclaimer}</p>
+      ) : null}
+
+      {hintNeedsNumber ? (
+        <p className="mb-0 mt-2 text-xs text-amber-800">
+          Preencha o número e consulte de novo para incluir entrega FAL nesta região.
+        </p>
       ) : null}
 
       {envelope && envelope.status !== 'ok' ? (
