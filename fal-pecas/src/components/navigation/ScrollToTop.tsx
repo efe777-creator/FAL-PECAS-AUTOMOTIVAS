@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
-/** Garante que toda navegação comece no topo (Bloco A / navegação). */
+/** Rola ao topo só em troca de rota (pathname). Não reage a ?page= no catálogo. */
 export function ScrollToTop() {
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [pathname, search])
+  }, [pathname])
   return null
 }

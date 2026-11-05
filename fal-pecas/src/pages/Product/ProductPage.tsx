@@ -3,26 +3,35 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
+import { productHref } from '@/lib/productHref'
 import {
-  getProductById,
+  getProductBySlugOrId,
   listRelatedProductsForPdp,
 } from '@/services/products/productService'
+import {
+  categoryChainById,
+  categoryChainBySlug,
+  listAllCategories,
+  type CategoryPathCrumb,
+} from '@/services/categories/categoryService'
 import {
   STORE_BACKEND_UNAVAILABLE_MESSAGE,
   STORE_BACKEND_UNAVAILABLE_TITLE,
   isStoreBackendUnavailableError,
 } from '@/lib/storeBackend'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { Product } from '@/types'
 import { Button } from '@/components/common/Button'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/components/common/Toast'
-import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
 import {
   buildProductWhatsAppMessage,
   storeWhatsAppPhone,
@@ -39,6 +48,8 @@ import {
   VER_DESCRICAO_COMPLETA_LABEL,
   VER_MAIS_CATALOGO_LABEL,
   VER_MENOS_DESCRICAO_LABEL,
+  ADICIONAR_AO_CARRINHO_LABEL,
+  COMPRAR_AGORA_LABEL,
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
@@ -52,21 +63,80 @@ import { buildProductSpecRows } from '@/lib/productSpecs'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { formatMoney } from '@/lib/money'
 
+/** Teto da quantidade local na PDP (antes de adicionar ao carrinho). */
+const MAX_QTY = 99
+
 export function ProductPage() {
-  const { id } = useParams()
+  const { slugOrId = '' } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [backendDown, setBackendDown] = useState(false)
-  const [liked, setLiked] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [related, setRelated] = useState<Product[]>([])
-  const { addItem, items, updateQty } = useCart()
+  const [categoryPath, setCategoryPath] = useState<CategoryPathCrumb[]>([])
+  const [qty, setQty] = useState(1)
+  const { addItem, items } = useCart()
   const { user } = useAuth()
+  const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
   const cartQty = product ? (items.find((i) => i.productId === product.id)?.quantity ?? 0) : 0
   const inCart = cartQty > 0
+  const liked = product ? isFavorite(product.id) : false
+
+  useDocumentTitle(
+    product
+      ? `${toCommercialTitleCase(product.name)} | FAL Peças Automotivas`
+      : loading
+        ? 'Carregando… | FAL Peças Automotivas'
+        : 'Produto | FAL Peças Automotivas',
+  )
+
+  useEffect(() => {
+    if (!product) return
+    const price = displayPrice(product)
+    const payload = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: toCommercialTitleCase(product.name),
+      sku: product.commercialRef || product.sku,
+      description: product.shortDescription || product.description || undefined,
+      image: product.imageUrl ? [product.imageUrl] : product.images?.length ? product.images : undefined,
+      brand: product.brand
+        ? { '@type': 'Brand', name: toCommercialTitleCase(product.brand) }
+        : undefined,
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: 'BRL',
+        price: Number(price.toFixed(2)),
+        availability:
+          product.available === false
+            ? 'https://schema.org/OutOfStock'
+            : 'https://schema.org/InStock',
+        url: typeof window !== 'undefined' ? window.location.href : undefined,
+      },
+    }
+    const el = document.createElement('script')
+    el.type = 'application/ld+json'
+    el.id = 'fal-product-jsonld'
+    el.text = JSON.stringify(payload)
+    document.getElementById('fal-product-jsonld')?.remove()
+    document.head.appendChild(el)
+    return () => {
+      el.remove()
+    }
+  }, [product])
+
+  /** Canônico: se entrou por UUID e há slug, replace para /produto/:slug */
+  useEffect(() => {
+    if (!product?.slug?.trim()) return
+    const current = decodeURIComponent(slugOrId.trim())
+    if (current === product.slug) return
+    if (current === product.id) {
+      navigate(productHref(product), { replace: true })
+    }
+  }, [product, slugOrId, navigate])
 
   useEffect(() => {
     let active = true
@@ -76,8 +146,10 @@ export function ProductPage() {
       setBackendDown(false)
       setProduct(null)
       setDescExpanded(false)
+      setQty(1)
       try {
-        const data = id ? await getProductById(id) : null
+        const key = decodeURIComponent(slugOrId.trim())
+        const data = key ? await getProductBySlugOrId(key) : null
         if (active) setProduct(data)
       } catch (err) {
         if (!active) return
@@ -94,17 +166,7 @@ export function ProductPage() {
     return () => {
       active = false
     }
-  }, [id])
-
-  useEffect(() => {
-    if (!user || !product) {
-      setLiked(false)
-      return
-    }
-    void isFavorite(product.id)
-      .then(setLiked)
-      .catch(() => setLiked(false))
-  }, [user, product?.id])
+  }, [slugOrId])
 
   useEffect(() => {
     const currentProduct = product
@@ -124,6 +186,68 @@ export function ProductPage() {
       active = false
     }
   }, [product?.id, product?.categorySlug])
+
+  /** Path completo Categoria → Grupo → Subgrupo (cache listAllCategories). */
+  useEffect(() => {
+    const currentProduct = product
+    if (!currentProduct?.categoryId && !currentProduct?.categorySlug) {
+      setCategoryPath([])
+      return
+    }
+    let active = true
+    void listAllCategories()
+      .then((all) => {
+        if (!active) return
+        const chain = currentProduct.categoryId
+          ? categoryChainById(all, currentProduct.categoryId)
+          : categoryChainBySlug(all, currentProduct.categorySlug!.trim())
+        setCategoryPath(chain)
+      })
+      .catch(() => {
+        if (active) setCategoryPath([])
+      })
+    return () => {
+      active = false
+    }
+  }, [product?.id, product?.categoryId, product?.categorySlug])
+
+  /** JSON-LD BreadcrumbList (Início → níveis → produto). */
+  useEffect(() => {
+    if (!product) return
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const itemListElement: Array<Record<string, unknown>> = [
+      { '@type': 'ListItem', position: 1, name: 'Início', item: `${origin}/` },
+      { '@type': 'ListItem', position: 2, name: 'Catálogo', item: `${origin}/catalogo` },
+    ]
+    categoryPath.forEach((crumb, i) => {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: i + 3,
+        name: crumb.name,
+        item: `${origin}/catalogo?cat=${encodeURIComponent(crumb.slug)}`,
+      })
+    })
+    itemListElement.push({
+      '@type': 'ListItem',
+      position: categoryPath.length + 3,
+      name: toCommercialTitleCase(product.name),
+      item: typeof window !== 'undefined' ? window.location.href : undefined,
+    })
+    const payload = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement,
+    }
+    const el = document.createElement('script')
+    el.type = 'application/ld+json'
+    el.id = 'fal-breadcrumb-jsonld'
+    el.text = JSON.stringify(payload)
+    document.getElementById('fal-breadcrumb-jsonld')?.remove()
+    document.head.appendChild(el)
+    return () => {
+      el.remove()
+    }
+  }, [product, categoryPath])
 
   if (loading) {
     return (
@@ -156,7 +280,8 @@ export function ProductPage() {
             setLoadError(null)
             void (async () => {
               try {
-                const data = id ? await getProductById(id) : null
+                const key = decodeURIComponent(slugOrId.trim())
+                const data = key ? await getProductBySlugOrId(key) : null
                 setProduct(data)
               } catch (err) {
                 if (isStoreBackendUnavailableError(err)) {
@@ -194,9 +319,6 @@ export function ProductPage() {
   const price = displayPrice(current)
   const listPrice = current.listPrice ?? current.price
   const showStrike = listPrice > price + 0.001
-  const categoryHref = current.categorySlug
-    ? `/catalogo?cat=${encodeURIComponent(current.categorySlug)}`
-    : null
   const shortDesc = current.shortDescription?.trim() || ''
   const longDesc = current.description?.trim() || ''
   const fullDescription = joinProductDescription(shortDesc, longDesc)
@@ -219,16 +341,33 @@ export function ProductPage() {
 
   async function onFavoriteClick() {
     if (!user) {
-      navigate('/login', { state: { from: `/produto/${current.id}` } })
+      navigate('/login', { state: { from: productHref(current) } })
       return
     }
     try {
-      const next = await toggleFavorite(current.id)
-      setLiked(next)
+      const next = await toggle(current.id)
       push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
     } catch (err) {
       push(err instanceof Error ? err.message : 'Erro ao favoritar', 'error')
     }
+  }
+
+  function onAddToCart() {
+    if (current.available === false) return
+    addItem(current, qty)
+    const next = cartQty + qty
+    push(
+      next === 1 ? 'Produto adicionado ao carrinho' : `${next} unidades no carrinho`,
+      'success',
+      { action: { label: 'Ver carrinho', to: '/carrinho' } },
+    )
+  }
+
+  /** Garante item no carrinho (se já está, NÃO incrementa) e vai ao carrinho. */
+  function onBuyNow() {
+    if (current.available === false) return
+    if (!inCart) addItem(current, qty)
+    navigate('/carrinho')
   }
 
   function goBack() {
@@ -246,27 +385,56 @@ export function ProductPage() {
       >
         ← Voltar
       </button>
-      <p className="mb-2 text-[13px] text-fal-muted">
-        <Link to="/" className="hover:underline">
-          Início
-        </Link>
-        {' / '}
-        {current.categoryName ? (
-          categoryHref ? (
-            <Link to={categoryHref} className="hover:underline">
-              {current.categoryName}
+      <nav className="mb-2 text-[13px] text-fal-muted" aria-label="Caminho do produto">
+        <ol className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+          <li className="inline-flex items-center gap-x-1">
+            <Link to="/" className="hover:underline">
+              Início
             </Link>
-          ) : (
-            <span>{current.categoryName}</span>
-          )
-        ) : (
-          <Link to="/catalogo" className="hover:underline">
-            Catálogo
-          </Link>
-        )}
-        {' / '}
-        <span className="text-fal-ink">{displayName}</span>
-      </p>
+            <span aria-hidden="true">/</span>
+          </li>
+          <li className="inline-flex items-center gap-x-1">
+            <Link to="/catalogo" className="hover:underline">
+              Catálogo
+            </Link>
+            {categoryPath.length || current.categoryName ? (
+              <span aria-hidden="true">/</span>
+            ) : null}
+          </li>
+          {categoryPath.length
+            ? categoryPath.map((crumb) => (
+                <li key={crumb.id} className="inline-flex items-center gap-x-1">
+                  <Link
+                    to={`/catalogo?cat=${encodeURIComponent(crumb.slug)}`}
+                    className="hover:underline"
+                  >
+                    {crumb.name}
+                  </Link>
+                  <span aria-hidden="true">/</span>
+                </li>
+              ))
+            : current.categoryName
+              ? (
+                  <li className="inline-flex items-center gap-x-1">
+                    {current.categorySlug ? (
+                      <Link
+                        to={`/catalogo?cat=${encodeURIComponent(current.categorySlug)}`}
+                        className="hover:underline"
+                      >
+                        {current.categoryName}
+                      </Link>
+                    ) : (
+                      <span>{current.categoryName}</span>
+                    )}
+                    <span aria-hidden="true">/</span>
+                  </li>
+                )
+              : null}
+          <li className="text-fal-ink" aria-current="page">
+            {displayName}
+          </li>
+        </ol>
+      </nav>
 
       {/* Desktop: galeria | buy-box · Mobile: galeria → compra (CTA alto) */}
       <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
@@ -296,6 +464,9 @@ export function ProductPage() {
           {current.available !== false && showStrike ? (
             <p className="mt-1 text-sm text-fal-muted line-through">{formatMoney(listPrice)}</p>
           ) : null}
+          {current.available !== false ? (
+            <PaymentConditionHint amount={price} surface="pdp" />
+          ) : null}
           <p className="mt-2 text-sm">
             {current.available === false ? (
               <span className="font-semibold text-fal-danger">Indisponível</span>
@@ -309,47 +480,60 @@ export function ProductPage() {
               <Button variant="primary" fullWidth disabled>
                 Indisponível
               </Button>
-            ) : inCart ? (
-              <div className="flex w-full min-w-0 items-center gap-2">
-                <button
-                  type="button"
-                  className="grid h-[51px] w-12 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg"
-                  aria-label="Diminuir quantidade"
-                  onClick={() => updateQty(current.id, cartQty - 1)}
-                >
-                  −
-                </button>
-                <div className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-[#fff8db] px-2 py-2 text-center">
-                  <span className="text-xs leading-none text-fal-muted">No carrinho</span>
-                  <span className="text-base font-black text-fal-navy">{cartQty}</span>
-                </div>
-                <button
-                  type="button"
-                  className="grid h-[51px] w-12 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-lg font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
-                  aria-label="Aumentar quantidade"
-                  onClick={() => {
-                    addItem(current, 1)
-                    push('Quantidade atualizada', 'success', {
-                      action: { label: 'Ver carrinho', to: '/carrinho' },
-                    })
-                  }}
-                >
-                  +
-                </button>
-              </div>
             ) : (
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={() => {
-                  addItem(current, 1)
-                  push('Produto adicionado ao carrinho', 'success', {
-                    action: { label: 'Ver carrinho', to: '/carrinho' },
-                  })
-                }}
-              >
-                Adicionar ao carrinho
-              </Button>
+              <>
+                <div className="flex items-center gap-3">
+                  <span id="pdp-qty-label" className="text-sm font-semibold text-fal-navy">
+                    Quantidade
+                  </span>
+                  <div
+                    className="inline-flex items-center gap-1"
+                    role="group"
+                    aria-labelledby="pdp-qty-label"
+                  >
+                    <button
+                      type="button"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="Diminuir quantidade"
+                      disabled={qty <= 1}
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    >
+                      −
+                    </button>
+                    <span
+                      className="grid h-11 min-w-[3rem] place-items-center rounded-[10px] bg-fal-bg px-2 text-base font-black text-fal-navy"
+                      aria-live="polite"
+                    >
+                      {qty}
+                    </span>
+                    <button
+                      type="button"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="Aumentar quantidade"
+                      disabled={qty >= MAX_QTY}
+                      onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <Button variant="primary" fullWidth onClick={onBuyNow}>
+                  {COMPRAR_AGORA_LABEL}
+                </Button>
+                <Button variant="light" fullWidth onClick={onAddToCart}>
+                  {ADICIONAR_AO_CARRINHO_LABEL}
+                </Button>
+
+                {inCart ? (
+                  <p className="m-0 text-sm text-fal-muted" aria-live="polite">
+                    Já há {cartQty} no carrinho —{' '}
+                    <Link to="/carrinho" className="font-semibold text-fal-navy hover:underline">
+                      Ver carrinho
+                    </Link>
+                  </p>
+                ) : null}
+              </>
             )}
             {(() => {
               if (!waPhone || current.available === false) return null
@@ -358,7 +542,7 @@ export function ProductPage() {
                 buildProductWhatsAppMessage({
                   name: displayName,
                   sku: current.commercialRef ?? current.sku,
-                  quantity: 1,
+                  quantity: qty,
                   productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
                 }),
               )
@@ -367,7 +551,7 @@ export function ProductPage() {
                   href={href}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex w-full items-center justify-center rounded-[10px] border border-[#25D366] bg-[#25D366]/10 px-4 py-3 text-sm font-extrabold text-[#128C7E] hover:bg-[#25D366]/20"
+                  className="flex w-full items-center justify-center rounded-[10px] border border-transparent px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 hover:underline"
                 >
                   Comprar pelo WhatsApp
                 </a>

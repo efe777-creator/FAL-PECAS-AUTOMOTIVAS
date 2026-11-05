@@ -1,3 +1,4 @@
+import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
@@ -29,13 +30,26 @@ function ensureMpInit(publicKey: string) {
   mpInitedKey = publicKey
 }
 
+function paymentStatusPt(status: string): string {
+  switch (status) {
+    case 'approved':
+      return 'aprovado'
+    case 'rejected':
+      return 'recusado'
+    case 'cancelled':
+      return 'cancelado'
+    case 'pending':
+      return 'pendente'
+    case 'in_process':
+      return 'em análise'
+    default:
+      return status
+  }
+}
+
 /**
- * F9-D — Card Payment Brick. PAN/CVV ficam no iframe MP.
+ * Card Payment Brick. Dados do cartão ficam no iframe do Mercado Pago.
  * Create payment no backend; approve só via webhook (poll status).
- *
- * IMPORTANTE: callbacks do CardPayment precisam ser estáveis. Re-render do
- * checkout (clear carrinho / toast / setError) com onSubmit/onError inline
- * re-inicializa o Brick e deixa o skeleton eterno (secure-fields h=0).
  */
 export function MercadoPagoCardBrickPanel({
   orderId,
@@ -49,6 +63,7 @@ export function MercadoPagoCardBrickPanel({
   const [submitting, setSubmitting] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('idle')
+  const [rejectReason, setRejectReason] = useState<string | null>(null)
   const [brickKey, setBrickKey] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const onApprovedRef = useRef(onApproved)
@@ -69,7 +84,7 @@ export function MercadoPagoCardBrickPanel({
       ensureMpInit(publicKey)
       setReady(true)
     } catch (e) {
-      onErrorRef.current(e instanceof Error ? e.message : 'Falha ao iniciar Mercado Pago')
+      onErrorRef.current(e instanceof Error ? e.message : 'Falha ao iniciar o pagamento')
     }
   }, [publicKey])
 
@@ -86,7 +101,13 @@ export function MercadoPagoCardBrickPanel({
         }
         if (p.status === 'rejected' || p.status === 'cancelled') {
           if (pollRef.current) clearInterval(pollRef.current)
-          onErrorRef.current(`Pagamento ${p.status}`)
+          const msg =
+            p.status === 'rejected'
+              ? 'Pagamento recusado. Verifique os dados do cartão ou use outro meio.'
+              : 'Pagamento cancelado. Você pode tentar novamente.'
+          setRejectReason(msg)
+          onErrorRef.current(msg)
+          setPaymentId(null)
         }
       } catch {
         /* poll best-effort */
@@ -101,12 +122,15 @@ export function MercadoPagoCardBrickPanel({
 
   const remountBrick = useCallback(() => {
     setBrickReady(false)
+    setRejectReason(null)
+    setStatus('idle')
     setBrickKey((k) => k + 1)
   }, [])
 
   const handleSubmit = useCallback(
     async (formData: BrickFormData) => {
       setSubmitting(true)
+      setRejectReason(null)
       try {
         const res = await createMercadoPagoPayment(orderId, {
           token: formData.token,
@@ -119,7 +143,7 @@ export function MercadoPagoCardBrickPanel({
         setPaymentId(res.paymentId)
         setStatus(res.status)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Falha ao criar pagamento cartão'
+        const msg = e instanceof Error ? e.message : 'Falha ao criar pagamento com cartão'
         onErrorRef.current(msg)
         remountBrick()
         throw e
@@ -137,7 +161,7 @@ export function MercadoPagoCardBrickPanel({
           ? err
           : err && typeof err === 'object' && 'message' in err
             ? String((err as { message: unknown }).message)
-            : 'Erro no Brick de cartão'
+            : 'Erro no formulário de cartão'
       onErrorRef.current(msg)
       remountBrick()
     },
@@ -153,7 +177,7 @@ export function MercadoPagoCardBrickPanel({
   if (!Number.isFinite(amountNum) || amountNum <= 0) {
     return (
       <p className="text-sm text-fal-danger">
-        Valor inválido para o Brick ({String(amount)}). Recrie o pedido.
+        Valor inválido para cobrança. Recrie o pedido.
       </p>
     )
   }
@@ -163,10 +187,9 @@ export function MercadoPagoCardBrickPanel({
       <div className="space-y-3">
         <h2 className="mt-0 text-lg font-extrabold">Cartão — aguardando confirmação</h2>
         <p className="text-sm text-fal-muted">
-          Pagamento enviado. A confirmação chega via webhook — não marcamos como pago neste
-          navegador.
+          Pagamento enviado. Estamos confirmando com o banco — isso pode levar alguns segundos.
         </p>
-        <p className="text-xs text-fal-muted">Status: {status}</p>
+        <p className="text-xs text-fal-muted">Status: {paymentStatusPt(status)}</p>
         <Loading label="Aguardando confirmação…" />
       </div>
     )
@@ -176,9 +199,22 @@ export function MercadoPagoCardBrickPanel({
     <div className="space-y-4">
       <h2 className="mt-0 text-lg font-extrabold">Pagamento com cartão</h2>
       <p className="text-sm text-fal-muted">
-        Dados do cartão são tokenizados pelo Mercado Pago (sem PAN/CVV na FAL). Valor cobrado =
-        total do pedido no servidor.
+        Os dados do cartão são protegidos pelo Mercado Pago. O valor cobrado é o total do pedido.
       </p>
+      {rejectReason ? (
+        <div className="rounded-[10px] border border-fal-danger/30 bg-red-50 p-3 text-sm text-fal-danger">
+          <p className="m-0 font-semibold">{rejectReason}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={remountBrick}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      ) : null}
       {submitting ? <Loading label="Processando cartão…" /> : null}
       {!brickReady ? (
         <p className="text-xs text-fal-muted">Montando campos seguros do Mercado Pago…</p>

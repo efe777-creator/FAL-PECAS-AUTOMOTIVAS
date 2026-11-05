@@ -102,6 +102,12 @@ export function AdminImportsPage() {
           >
             Importar custos
           </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            to="/admin/produtos/importar-imagens"
+          >
+            Importar imagens
+          </Link>
         </div>
       </div>
 

@@ -1,4 +1,6 @@
+import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { formatDateTime } from '@/lib/datetime'
@@ -8,6 +10,7 @@ import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
 import {
   adminGetCustomer,
   adminListCustomers,
+  ADMIN_CUSTOMERS_PAGE_SIZE,
   staffCanViewCustomersF8,
   type AdminCustomerDetail,
   type AdminCustomerListRow,
@@ -41,6 +44,8 @@ export function AdminCustomersPage() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -49,7 +54,9 @@ export function AdminCustomersPage() {
         const ok = await staffCanViewCustomersF8()
         setAllowed(ok)
         if (!ok) return
-        setRows(await adminListCustomers())
+        const list = await adminListCustomers()
+        setRows(list)
+        setHasMore(list.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Erro ao carregar clientes')
       } finally {
@@ -59,6 +66,23 @@ export function AdminCustomersPage() {
   }, [])
 
   const filtered = useMemo(() => rows.filter((r) => matchesQuery(r, query.trim())), [rows, query])
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const next = await adminListCustomers({ offset: rows.length })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setHasMore(next.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
+    } catch (e) {
+      setError(toUserMessage(e, 'Erro ao carregar mais clientes'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   async function open(id: string) {
     setError(null)
@@ -94,12 +118,18 @@ export function AdminCustomersPage() {
       <header>
         <h1 className="text-2xl font-extrabold text-fal-navy">Clientes</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Consulta operacional — {rows.length} cadastro{rows.length === 1 ? '' : 's'} (máx. 200). Sem
-          CRM nesta fatia.
+          Consulta operacional — {rows.length} cadastro{rows.length === 1 ? '' : 's'} carregado
+          {rows.length === 1 ? '' : 's'}. Sem CRM nesta fatia.
         </p>
       </header>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_CUSTOMERS_PAGE_SIZE} registros por carga. A busca vale só para os{' '}
+          {rows.length} já carregados — use “Carregar mais clientes” para ampliar.
+        </p>
+      ) : null}
 
       <div className="max-w-md">
         <Input
@@ -160,6 +190,18 @@ export function AdminCustomersPage() {
               </tbody>
             </table>
           )}
+          {hasMore ? (
+            <div className="flex justify-center border-t border-fal-line p-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais clientes'}
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-[14px] border border-fal-line bg-white p-4">

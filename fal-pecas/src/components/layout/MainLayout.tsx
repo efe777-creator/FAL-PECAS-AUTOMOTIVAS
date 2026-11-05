@@ -11,7 +11,7 @@ export function MainLayout() {
       <ScrollToTop />
       <Topbar />
       <Header />
-      <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
+      <main className="flex-1 pb-[calc(56px+env(safe-area-inset-bottom))] lg:pb-0">
         <Outlet />
       </main>
       <Footer />

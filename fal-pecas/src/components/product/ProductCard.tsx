@@ -1,52 +1,43 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
-import { ProductImageLightbox } from '@/components/product/ProductImageLightbox'
+import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
 import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/components/common/Toast'
-import { isFavorite, toggleFavorite } from '@/services/customers/favoriteService'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
+import { productHref as productPath } from '@/lib/productHref'
 import {
   ADICIONAR_AO_CARRINHO_LABEL,
+  COMPRAR_AGORA_LABEL,
   FABRICANTE_LABEL,
-  VER_PRODUTO_LABEL,
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
 import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
-import { useEffect, useState, type MouseEvent } from 'react'
+import { type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth()
-  const { items, addItem, updateQty } = useCart()
+  const { items, addItem } = useCart()
+  const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
   const navigate = useNavigate()
-  const [liked, setLiked] = useState(false)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const liked = isFavorite(product.id)
   const price = displayPrice(product)
   const listPrice = product.listPrice ?? product.price
   const showStrike = listPrice > price + 0.001
   const displayName = toCommercialTitleCase(product.name)
   const brandName = product.brand ? toCommercialTitleCase(product.brand) : null
-  const productHref = `/produto/${product.id}`
+  const productHref = productPath(product)
   const available = product.available !== false
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
-
-  useEffect(() => {
-    if (!user) {
-      setLiked(false)
-      return
-    }
-    void isFavorite(product.id)
-      .then(setLiked)
-      .catch(() => setLiked(false))
-  }, [user, product.id])
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()
@@ -56,8 +47,7 @@ export function ProductCard({ product }: { product: Product }) {
       return
     }
     try {
-      const next = await toggleFavorite(product.id)
-      setLiked(next)
+      const next = await toggle(product.id)
       push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
     } catch (err) {
       push(err instanceof Error ? err.message : 'Erro ao favoritar', 'error')
@@ -79,21 +69,13 @@ export function ProductCard({ product }: { product: Product }) {
     )
   }
 
-  function onDecreaseQty(e: MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!inCart) return
-    updateQty(product.id, cartQty - 1)
-  }
-
-  function onIncreaseQty(e: MouseEvent) {
+  /** Garante item no carrinho (sem incrementar se já está) e vai ao carrinho. */
+  function onBuyNow(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
-    addItem(product, 1)
-    push(`${cartQty + 1} unidades no carrinho`, 'success', {
-      action: { label: 'Ver carrinho', to: '/carrinho' },
-    })
+    if (!inCart) addItem(product, 1)
+    navigate('/carrinho')
   }
 
   return (
@@ -106,7 +88,7 @@ export function ProductCard({ product }: { product: Product }) {
 
       <button
         type="button"
-        className="absolute top-3.5 right-3.5 z-[2] grid h-8 w-8 place-items-center rounded-full border border-fal-line bg-white/95 text-sm shadow-sm hover:border-fal-navy"
+        className="absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border border-fal-line bg-white/95 text-base shadow-sm hover:border-fal-navy"
         aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
         onClick={(e) => void onFavoriteClick(e)}
       >
@@ -115,15 +97,10 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="mb-1 grid h-[120px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] sm:h-[168px]">
         {product.imageUrl ? (
-          <button
-            type="button"
+          <Link
+            to={productHref}
             className="group relative grid h-full w-full place-items-center"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setLightboxOpen(true)
-            }}
-            aria-label={`Ampliar imagem de ${displayName}`}
+            aria-label={`Ver ${displayName}`}
           >
             <img
               src={product.imageUrl}
@@ -131,7 +108,7 @@ export function ProductCard({ product }: { product: Product }) {
               className="h-full w-full object-contain transition group-hover:scale-[1.03]"
               loading="lazy"
             />
-          </button>
+          </Link>
         ) : (
           <ProductImagePlaceholder className="scale-75" />
         )}
@@ -147,6 +124,21 @@ export function ProductCard({ product }: { product: Product }) {
         <p className="m-0 truncate text-[11px] text-fal-muted">
           {formatReferenciaFromProduct(product)}
         </p>
+        {product.categoryName ? (
+          <p className="m-0 truncate text-[11px] text-fal-muted">
+            {product.categorySlug ? (
+              <Link
+                to={`/catalogo?cat=${encodeURIComponent(product.categorySlug)}`}
+                className="hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {product.categoryName}
+              </Link>
+            ) : (
+              product.categoryName
+            )}
+          </p>
+        ) : null}
         {brandName || product.manufacturerCode ? (
           <p className="m-0 truncate text-[11px] text-fal-muted">
             {brandName ? (
@@ -191,61 +183,30 @@ export function ProductCard({ product }: { product: Product }) {
                 {formatMoneyStrike(listPrice)}
               </p>
             ) : null}
+            <PaymentConditionHint amount={price} surface="card" />
           </>
         )}
 
-        {!available ? null : inCart ? (
-          <div className="flex w-full min-w-0 items-center gap-1.5">
-            <button
-              type="button"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-base font-bold text-fal-navy hover:bg-fal-bg"
-              aria-label="Diminuir quantidade"
-              onClick={onDecreaseQty}
-            >
-              −
-            </button>
-            <div
-              className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-[#fff8db] px-1.5 py-1 text-center"
-              aria-live="polite"
-            >
-              <span className="text-[10px] leading-none text-fal-muted">No carrinho</span>
-              <span className="text-sm font-black text-fal-navy">{cartQty}</span>
-            </div>
-            <button
-              type="button"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-base font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
-              aria-label="Aumentar quantidade"
-              onClick={onIncreaseQty}
-            >
-              +
-            </button>
-          </div>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            fullWidth
-            onClick={onAddToCart}
+        {available && inCart ? (
+          <p
+            className="m-0 w-fit max-w-full truncate rounded-full bg-[#fff8db] px-2.5 py-1 text-xs font-bold text-fal-navy"
+            aria-live="polite"
           >
-            {ADICIONAR_AO_CARRINHO_LABEL}
-          </Button>
-        )}
+            No carrinho: {cartQty}
+          </p>
+        ) : null}
 
-        <Link to={productHref} className="block">
-          <Button variant="light" size="sm" fullWidth>
-            {VER_PRODUTO_LABEL}
-          </Button>
-        </Link>
+        {available ? (
+          <>
+            <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
+              {COMPRAR_AGORA_LABEL}
+            </Button>
+            <Button variant="light" size="sm" fullWidth onClick={onAddToCart}>
+              {ADICIONAR_AO_CARRINHO_LABEL}
+            </Button>
+          </>
+        ) : null}
       </div>
-
-      {product.imageUrl ? (
-        <ProductImageLightbox
-          images={product.images?.length ? product.images : [product.imageUrl]}
-          alt={displayName}
-          open={lightboxOpen}
-          onClose={() => setLightboxOpen(false)}
-        />
-      ) : null}
     </article>
   )
 }

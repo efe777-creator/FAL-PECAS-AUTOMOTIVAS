@@ -1,7 +1,8 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
-import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
@@ -9,9 +10,10 @@ export function LoginPage() {
   const { signIn, user, loading, isConfigured } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/conta'
+  const fromState = (location.state as { from?: string } | null)?.from
+  const from = fromState ?? '/conta'
 
-  const [emailOrUsername, setEmailOrUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -23,16 +25,10 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      await signIn(emailOrUsername, password)
+      await signIn(email, password)
       navigate(from, { replace: true })
     } catch (err) {
-      if (err instanceof AuthNotConfiguredError) {
-        setError(err.message)
-      } else if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Não foi possível entrar.')
-      }
+      setError(toUserMessage(err, 'Não foi possível entrar. Tente novamente.'))
     } finally {
       setSubmitting(false)
     }
@@ -50,8 +46,7 @@ export function LoginPage() {
           </p>
           {!isConfigured ? (
             <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
-              Supabase ainda não configurado. Copie <code>.env.example</code> para{' '}
-              <code>.env</code> e preencha URL + anon key.
+              Login indisponível no momento. Tente novamente mais tarde.
             </p>
           ) : null}
         </div>
@@ -61,7 +56,11 @@ export function LoginPage() {
             <span className="bg-[#fafbfc] px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
               Entrar
             </span>
-            <Link to="/cadastro" className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]">
+            <Link
+              to="/cadastro"
+              state={fromState ? { from: fromState } : undefined}
+              className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]"
+            >
               Criar conta grátis
             </Link>
           </div>
@@ -69,12 +68,12 @@ export function LoginPage() {
             <h2 className="mt-0 text-xl font-extrabold">Entrar na conta</h2>
             <div className="mt-3 space-y-3">
               <Input
-                label="E-mail ou usuário"
-                name="emailOrUsername"
-                autoComplete="username"
-                value={emailOrUsername}
-                onChange={(e) => setEmailOrUsername(e.target.value)}
-                hint="Fase 1: use e-mail. Login por usuário virá com resolução segura no backend."
+                label="E-mail"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
               <Input
@@ -87,15 +86,16 @@ export function LoginPage() {
                 required
               />
             </div>
-            <div className="mt-4 flex items-center justify-between gap-2 text-[13px]">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" /> Manter conectado
-              </label>
+            <div className="mt-4 flex items-center justify-end gap-2 text-[13px]">
               <Link to="/recuperar-senha" className="font-bold text-fal-auth-link">
                 Esqueci minha senha
               </Link>
             </div>
-            {error ? <p className="mt-3 text-sm text-fal-danger">{error}</p> : null}
+            {error ? (
+              <p className="mt-3 text-sm text-fal-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
             <Button type="submit" variant="primary" fullWidth className="mt-4" disabled={submitting}>
               {submitting ? 'Entrando…' : 'Entrar'}
             </Button>

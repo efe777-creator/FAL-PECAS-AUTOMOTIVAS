@@ -20,6 +20,14 @@ type Props = {
   disabled?: boolean
   emptyLabel?: string
   className?: string
+  /** Se false (padrão), oculta nós arquivados na cascata. */
+  includeArchived?: boolean
+  /** Se true, só `published` (loja / filtros admin). */
+  publishedOnly?: boolean
+}
+
+function sortCats(a: Category, b: Category) {
+  return (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name)
 }
 
 /**
@@ -33,16 +41,24 @@ export function CategoryCascadeSelects({
   disabled = false,
   emptyLabel = '—',
   className,
+  includeArchived = false,
+  publishedOnly = false,
 }: Props) {
-  const roots = categories
-    .filter((c) => !c.parentId)
-    .sort((a, b) => a.name.localeCompare(b.name))
-  const grupos = categories
+  let pool = includeArchived
+    ? categories
+    : categories.filter((c) => c.status !== 'archived')
+  if (publishedOnly) {
+    pool = pool.filter((c) => !c.status || c.status === 'published')
+  }
+  const roots = pool.filter((c) => !c.parentId).slice().sort(sortCats)
+  const grupos = pool
     .filter((c) => c.parentId === value.categoriaId)
-    .sort((a, b) => a.name.localeCompare(b.name))
-  const subgrupos = categories
+    .slice()
+    .sort(sortCats)
+  const subgrupos = pool
     .filter((c) => c.parentId === value.grupoId)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice()
+    .sort(sortCats)
 
   return (
     <div className={className ?? 'grid gap-3 sm:grid-cols-3'}>

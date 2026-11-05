@@ -16,7 +16,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export function AccountProfilePage() {
-  const { user, session, signOut } = useAuth()
+  const { user, session, signOut, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -82,6 +82,7 @@ export function AccountProfilePage() {
         cpf: cpfDigits || null,
         cnpj: cnpjDigits || null,
       })
+      await refreshUser()
       setMessage('Dados salvos com sucesso.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar')
@@ -95,7 +96,7 @@ export function AccountProfilePage() {
   return (
     <div className="rounded-fal border border-fal-line bg-white p-5">
       <h2 className="mt-0 text-xl font-extrabold">Perfil</h2>
-      <p className="text-sm text-fal-muted">E-mail vinculado à autenticação. Role não é editável.</p>
+      <p className="text-sm text-fal-muted">E-mail vinculado à sua conta. O tipo de acesso não é editável aqui.</p>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       <form onSubmit={onSubmit} className="mt-4 grid max-w-xl gap-3">

@@ -20,12 +20,21 @@ export async function staffCanViewCustomersF8(): Promise<boolean> {
   return Boolean(data)
 }
 
-export async function adminListCustomers(): Promise<AdminCustomerListRow[]> {
+/** Tamanho padrão de página da lista de clientes. */
+export const ADMIN_CUSTOMERS_PAGE_SIZE = 200
+
+export async function adminListCustomers(opts?: {
+  offset?: number
+  limit?: number
+}): Promise<AdminCustomerListRow[]> {
+  const limit = opts?.limit ?? ADMIN_CUSTOMERS_PAGE_SIZE
+  const offset = opts?.offset ?? 0
   const { data, error } = await getSupabase()
     .from('customers')
     .select('id, cpf, cnpj, created_at, profiles(full_name, username, phone)')
     .order('created_at', { ascending: false })
-    .limit(200)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
 
   return (data ?? []).map((c) => {

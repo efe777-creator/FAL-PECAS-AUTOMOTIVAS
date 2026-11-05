@@ -142,7 +142,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         return prev.map((i) =>
           i.productId === product.id
-            ? { ...i, quantity: i.quantity + quantity, price }
+            ? {
+                ...i,
+                quantity: i.quantity + quantity,
+                price,
+                slug: product.slug || i.slug,
+                commercialRef: product.commercialRef ?? i.commercialRef,
+                imageUrl: product.imageUrl ?? i.imageUrl,
+              }
             : i,
         )
       }
@@ -152,6 +159,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           productId: product.id,
           sku: product.sku,
           commercialRef: product.commercialRef ?? product.sku,
+          slug: product.slug,
           name: product.name,
           price,
           quantity,

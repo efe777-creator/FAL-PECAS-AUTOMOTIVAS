@@ -12,6 +12,7 @@ import {
   adminListCategories,
   collectCategorySubtreeIds,
 } from '@/services/admin/adminCategoryService'
+import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminApplyGlobalProductMeasures,
@@ -64,24 +65,37 @@ export function AdminProductsPage() {
   const hasSelection = selected.size > 0
   const panelDisabled = !hasSelection || busyBulk || busyMeasures
 
-  async function reload() {
+  async function reload(overrides?: {
+    q?: string
+    status?: string
+    availableFilter?: string
+    manufacturerId?: string
+    withoutImage?: boolean
+    filterCascade?: CategoryCascadeValue
+  }) {
     setLoading(true)
     setSelected(new Set())
     try {
-      const filterNode = effectiveCategoryId(filterCascade)
+      const nextQ = overrides?.q ?? q
+      const nextStatus = overrides?.status ?? status
+      const nextAvailable = overrides?.availableFilter ?? availableFilter
+      const nextMaker = overrides?.manufacturerId ?? manufacturerId
+      const nextNoImage = overrides?.withoutImage ?? withoutImage
+      const nextCascade = overrides?.filterCascade ?? filterCascade
+      const filterNode = effectiveCategoryId(nextCascade)
       const categoryIds = filterNode
         ? collectCategorySubtreeIds(categories, filterNode)
         : undefined
       const available =
-        availableFilter === 'true' ? true : availableFilter === 'false' ? false : undefined
+        nextAvailable === 'true' ? true : nextAvailable === 'false' ? false : undefined
       setItems(
         await adminListProducts({
-          q,
-          status: status || undefined,
+          q: nextQ,
+          status: nextStatus || undefined,
           available,
-          withoutImage,
+          withoutImage: nextNoImage,
           categoryIds,
-          manufacturerId: manufacturerId || undefined,
+          manufacturerId: nextMaker || undefined,
         }),
       )
       setError(null)
@@ -108,9 +122,26 @@ export function AdminProductsPage() {
   }, [])
 
   useEffect(() => {
+    return subscribeCategoriesChanged(() => {
+      void adminListCategories()
+        .then(setCategories)
+        .catch(() => undefined)
+    })
+  }, [])
+
+  useEffect(() => {
     void reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [withoutImage])
+  }, [])
+
+  function clearFilters() {
+    setQ('')
+    setStatus('')
+    setAvailableFilter('')
+    setManufacturerId('')
+    setFilterCascade(EMPTY_CASCADE)
+    setWithoutImage(false)
+  }
 
   function toggleSelectAllPage() {
     if (allPageSelected) {
@@ -334,48 +365,59 @@ export function AdminProductsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Arquivar = remoção comercial da loja. Exclusão permanente não é usada (integridade).
+            Arquivar tira da loja (fica no banco). Status ≠ disponibilidade.
           </p>
+          <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-navy">
+            <Link className="hover:underline" to="/admin/produtos/importar">
+              Importar
+            </Link>
+            <Link className="hover:underline" to="/admin/aplicacoes">
+              Aplicações
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-aplicacoes">
+              Importar apps
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-hf">
+              Importar HF
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-imagens">
+              Importar imagens
+            </Link>
+            <Link className="hover:underline" to="/admin/importacoes">
+              Histórico
+            </Link>
+            <Link className="hover:underline" to="/admin/home">
+              Home / Destaques
+            </Link>
+          </nav>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/admin/produtos/importar">
-            <Button variant="light">Importar produtos</Button>
-          </Link>
-          <Link to="/admin/aplicacoes">
-            <Button variant="light">Aplicações</Button>
-          </Link>
-          <Link to="/admin/produtos/importar-aplicacoes">
-            <Button variant="light">Importar aplicações</Button>
-          </Link>
-          <Link to="/admin/produtos/importar-hf">
-            <Button variant="light">Importar HF</Button>
-          </Link>
-          <Link to="/admin/importacoes">
-            <Button variant="light">Histórico importações</Button>
-          </Link>
-          <Link to="/admin/produtos/novo">
-            <Button variant="primary">Novo produto</Button>
-          </Link>
-        </div>
+        <Link to="/admin/produtos/novo">
+          <Button variant="primary">Novo produto</Button>
+        </Link>
       </div>
 
-      <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[180px] flex-1">
-            <Input
-              label="Buscar (nome / código / SKU)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-          <label className="block min-w-[140px] text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Status</span>
+      <form
+        className="space-y-2 rounded-[14px] border border-fal-line bg-white p-3"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void reload()
+        }}
+      >
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(7.5rem,9rem)_minmax(7.5rem,9rem)_minmax(0,1fr)_auto_auto]">
+          <Input
+            label="Buscar"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Nome, código ou SKU"
+          />
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -385,22 +427,22 @@ export function AdminProductsPage() {
               <option value="archived">Arquivado</option>
             </select>
           </label>
-          <label className="block min-w-[140px] text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Situação</span>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Estoque</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
               value={availableFilter}
               onChange={(e) => setAvailableFilter(e.target.value)}
             >
-              <option value="">Todas</option>
+              <option value="">Todos</option>
               <option value="true">Disponível</option>
               <option value="false">Indisponível</option>
             </select>
           </label>
-          <label className="block min-w-[160px] flex-1 text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Montadora</span>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
               value={manufacturerId}
               onChange={(e) => setManufacturerId(e.target.value)}
             >
@@ -412,40 +454,57 @@ export function AdminProductsPage() {
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-2 pb-2 text-sm font-semibold text-fal-navy">
+          <label className="flex min-h-[42px] items-center gap-2 text-sm font-semibold text-fal-navy">
             <input
               type="checkbox"
               checked={withoutImage}
               onChange={(e) => setWithoutImage(e.target.checked)}
             />
-            Sem imagem / incompletos
+            Sem imagem
           </label>
-          <Button type="button" variant="light" onClick={() => void reload()}>
-            Filtrar
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="primary">
+              Buscar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                clearFilters()
+                void reload({
+                  q: '',
+                  status: '',
+                  availableFilter: '',
+                  manufacturerId: '',
+                  withoutImage: false,
+                  filterCascade: EMPTY_CASCADE,
+                })
+              }}
+            >
+              Limpar
+            </Button>
+          </div>
         </div>
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fal-muted">
-            Classificação
-          </p>
-          <CategoryCascadeSelects
-            categories={categories}
-            value={filterCascade}
-            onChange={setFilterCascade}
-            idPrefix="filter-cat"
-            emptyLabel="Todas"
-          />
-        </div>
-      </div>
+        <CategoryCascadeSelects
+          categories={categories}
+          value={filterCascade}
+          onChange={setFilterCascade}
+          idPrefix="filter-cat"
+          emptyLabel="Todas"
+          publishedOnly
+          className="grid gap-2 sm:grid-cols-3"
+        />
+      </form>
 
+      {hasSelection || releasePreflight ? (
       <div className="space-y-4 rounded-[14px] border border-fal-navy/15 bg-white p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Alterações globais</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Alterações em lote</h2>
             <p className="mt-1 text-sm text-fal-muted">
               {hasSelection
-                ? `${selected.size} produto(s) selecionado(s). Ações aplicam só à seleção.`
-                : 'Selecione produtos na tabela para habilitar as seções.'}
+                ? `${selected.size} selecionado(s).`
+                : 'Pré-flight em andamento.'}
             </p>
           </div>
           {hasSelection ? (
@@ -673,6 +732,7 @@ export function AdminProductsPage() {
           </div>
         </section>
       </div>
+      ) : null}
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}

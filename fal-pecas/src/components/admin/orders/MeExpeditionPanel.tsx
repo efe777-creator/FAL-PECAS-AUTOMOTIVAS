@@ -1,5 +1,7 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   alreadyGenerated,
   alreadyPurchased,
@@ -35,7 +37,17 @@ type Props = {
   onError: (msg: string | null) => void
 }
 
-function openRomaneio(order: AdminOrderDetail) {
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** Abre o romaneio via Blob URL. Retorna false se o popup foi bloqueado. */
+function openRomaneio(order: AdminOrderDetail): boolean {
   const addr = order.addressSnapshot
   const addrLine = addr
     ? [
@@ -53,25 +65,31 @@ function openRomaneio(order: AdminOrderDetail) {
   const itemsHtml = order.items
     .map(
       (it) =>
-        `<tr><td>${it.sku}</td><td>${it.nameSnapshot}</td><td>${it.quantity}</td></tr>`,
+        `<tr><td>${escapeHtml(it.sku)}</td><td>${escapeHtml(it.nameSnapshot)}</td><td>${escapeHtml(it.quantity)}</td></tr>`,
     )
     .join('')
-  const html = `<!doctype html><html><head><title>Romaneio ${order.id.slice(0, 8)}</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Romaneio ${escapeHtml(order.id.slice(0, 8))}</title>
     <style>body{font-family:system-ui;padding:24px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px;text-align:left}</style>
     </head><body>
     <h1>Romaneio interno FAL</h1>
-    <p><strong>Pedido:</strong> ${order.id}<br/>
-    <strong>Cliente:</strong> ${order.customerName ?? '—'}<br/>
-    <strong>Endereço:</strong> ${addrLine}<br/>
+    <p><strong>Pedido:</strong> ${escapeHtml(order.id)}<br/>
+    <strong>Cliente:</strong> ${escapeHtml(order.customerName ?? '—')}<br/>
+    <strong>Endereço:</strong> ${escapeHtml(addrLine)}<br/>
     <strong>Frete cobrado:</strong> R$ ${order.shippingAmount.toFixed(2)}</p>
     <table><thead><tr><th>SKU</th><th>Produto</th><th>Qtd</th></tr></thead><tbody>${itemsHtml}</tbody></table>
     <p style="margin-top:24px;font-size:12px;color:#666">Etiqueta Melhor Envio (sandbox) é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
     <script>window.print()</script></body></html>`
-  const w = window.open('', '_blank', 'noopener,noreferrer,width=800,height=900')
-  if (w) {
-    w.document.write(html)
-    w.document.close()
+  // Sem 'noopener': com noopener o window.open retorna null e não dá para escrever no popup.
+  // Blob URL evita document.write e funciona com o script de impressão.
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const w = window.open(url, '_blank', 'width=800,height=900')
+  if (!w) {
+    URL.revokeObjectURL(url)
+    return false
   }
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  return true
 }
 
 export function MeExpeditionPanel({
@@ -207,11 +225,17 @@ export function MeExpeditionPanel({
           type="button"
           disabled={busy || meBusy || !canBuy}
           onClick={() => {
-            const ok = window.confirm(
-              'Confirmar compra da etiqueta no Melhor Envio Sandbox?\n\nIsto NÃO marca o pedido como enviado.',
-            )
-            if (!ok) return
-            void runMe(() => mePurchaseLabel(order.id, true))
+            void confirmDialog({
+              title: 'Comprar etiqueta?',
+              message:
+                'Confirmar compra da etiqueta no Melhor Envio Sandbox?\n\nIsto NÃO marca o pedido como enviado.',
+              confirmLabel: 'Comprar etiqueta',
+            })
+              .then(({ confirmed }) => {
+                if (!confirmed) return
+                return runMe(() => mePurchaseLabel(order.id, true))
+              })
+              .catch((e) => onError(toUserMessage(e, 'Falha ao comprar etiqueta')))
           }}
         >
           Comprar etiqueta
@@ -232,7 +256,11 @@ export function MeExpeditionPanel({
         >
           Imprimir etiqueta
         </Button>
-        <Button type="button" variant="light" disabled={busy || meBusy} onClick={() => openRomaneio(order)}>
+        <Button type="button" variant="light" disabled={busy || meBusy} onClick={() => {
+            if (!openRomaneio(order)) {
+              onError('Não foi possível abrir o romaneio. Libere pop-ups para este site.')
+            }
+          }}>
           Romaneio interno
         </Button>
       </div>

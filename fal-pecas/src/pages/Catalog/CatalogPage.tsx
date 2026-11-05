@@ -8,12 +8,37 @@ import { Select } from '@/components/common/Select'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
-import { listCategories } from '@/services/categories/categoryService'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { listAllCategories } from '@/services/categories/categoryService'
+import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import type { Category, Product, ProductBrand, ProductSearchSort, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+
+/** Resolve Categoria → Grupo → Subgrupo a partir do slug em `?cat=`. */
+function categoryPathFromSlug(
+  all: Category[],
+  slug: string,
+): { categoriaId: string; grupoId: string; subgrupoId: string; label: string } {
+  const node = all.find((c) => c.slug === slug)
+  if (!node) return { categoriaId: '', grupoId: '', subgrupoId: '', label: slug }
+  const chain: Category[] = []
+  let cur: Category | undefined = node
+  const seen = new Set<string>()
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id)
+    chain.unshift(cur)
+    cur = cur.parentId ? all.find((c) => c.id === cur!.parentId) : undefined
+  }
+  return {
+    categoriaId: chain[0]?.id ?? '',
+    grupoId: chain[1]?.id ?? '',
+    subgrupoId: chain[2]?.id ?? '',
+    label: chain.map((c) => c.name).join(' › '),
+  }
+}
 
 const PAGE_SIZE = 24
 
@@ -54,37 +79,49 @@ export function CatalogPage() {
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [loadedPage, setLoadedPage] = useState(1)
-  const [rootCategories, setRootCategories] = useState<Category[]>([])
+  const [allCategories, setAllCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [vehicleTree, setVehicleTree] = useState<VehicleOptionTree | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
 
   const vehicleFiltersActive = Boolean(maker || model || year || engine || version)
 
+  useDocumentTitle(
+    q.trim()
+      ? `Busca: ${q.trim()} | FAL Peças Automotivas`
+      : cat.trim()
+        ? `Catálogo · ${cat} | FAL Peças Automotivas`
+        : 'Catálogo | FAL Peças Automotivas',
+  )
+
   useEffect(() => {
     setSearchDraft(q)
   }, [q])
+
+  const [catsRev, setCatsRev] = useState(0)
+  useEffect(() => subscribeCategoriesChanged(() => setCatsRev((n) => n + 1)), [])
 
   useEffect(() => {
     void (async () => {
       try {
         const [cats, vehicles, brandList] = await Promise.all([
-          listCategories(),
+          listAllCategories(),
           getVehicleOptions(),
           listActiveBrands(),
         ])
-        setRootCategories(cats)
+        setAllCategories(cats)
         setVehicleTree(vehicles)
         setBrands(brandList)
       } catch {
         /* filtros ficam vazios; listagem ainda tenta carregar */
       }
     })()
-  }, [])
+  }, [catsRev])
 
   const searchArgs = useMemo(
     () => ({
@@ -179,6 +216,58 @@ export function CatalogPage() {
     [brands],
   )
 
+  const catPath = useMemo(
+    () => categoryPathFromSlug(allCategories, cat),
+    [allCategories, cat],
+  )
+
+  const sortCatOpts = (a: Category, b: Category) =>
+    (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name)
+
+  const rootCategoryOptions = useMemo(
+    () =>
+      allCategories
+        .filter((c) => !c.parentId)
+        .slice()
+        .sort(sortCatOpts)
+        .map((c) => ({ value: c.id, label: c.name, slug: c.slug })),
+    [allCategories],
+  )
+
+  const grupoOptions = useMemo(() => {
+    if (!catPath.categoriaId) return []
+    return allCategories
+      .filter((c) => c.parentId === catPath.categoriaId)
+      .slice()
+      .sort(sortCatOpts)
+      .map((c) => ({ value: c.id, label: c.name, slug: c.slug }))
+  }, [allCategories, catPath.categoriaId])
+
+  const subgrupoOptions = useMemo(() => {
+    if (!catPath.grupoId) return []
+    return allCategories
+      .filter((c) => c.parentId === catPath.grupoId)
+      .slice()
+      .sort(sortCatOpts)
+      .map((c) => ({ value: c.id, label: c.name, slug: c.slug }))
+  }, [allCategories, catPath.grupoId])
+
+  function setCategoryFacet(level: 'categoria' | 'grupo' | 'subgrupo', id: string) {
+    if (!id) {
+      if (level === 'categoria') patchParams({ cat: null })
+      else if (level === 'grupo') {
+        const root = allCategories.find((c) => c.id === catPath.categoriaId)
+        patchParams({ cat: root?.slug ?? null })
+      } else {
+        const grupo = allCategories.find((c) => c.id === catPath.grupoId)
+        patchParams({ cat: grupo?.slug ?? null })
+      }
+      return
+    }
+    const node = allCategories.find((c) => c.id === id)
+    patchParams({ cat: node?.slug ?? null })
+  }
+
   function patchParams(next: Record<string, string | null>, resetPage = true) {
     const draft = new URLSearchParams(params)
     for (const [key, value] of Object.entries(next)) {
@@ -205,7 +294,7 @@ export function CatalogPage() {
     if (loadingMore || !hasMore) return
     const nextPage = loadedPage + 1
     setLoadingMore(true)
-    setError(null)
+    setLoadMoreError(null)
     try {
       const result = await searchCatalog({
         ...searchArgs,
@@ -221,7 +310,7 @@ export function CatalogPage() {
       setLoadedPage(nextPage)
       patchParams({ page: String(nextPage) }, false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+      setLoadMoreError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
     } finally {
       setLoadingMore(false)
     }
@@ -231,7 +320,7 @@ export function CatalogPage() {
     q && { key: 'q', label: `Busca: ${q}` },
     cat && {
       key: 'cat',
-      label: `Categoria: ${rootCategories.find((c) => c.slug === cat)?.name ?? cat}`,
+      label: `Classificação: ${catPath.label || cat}`,
     },
     maker && { key: 'maker', label: `Montadora: ${maker}` },
     model && { key: 'model', label: `Modelo: ${model}` },
@@ -275,7 +364,7 @@ export function CatalogPage() {
       </p>
       <h1 className="mt-0 mb-1 text-[28px] font-extrabold sm:text-[34px]">Catálogo</h1>
       <p className="mb-0 text-sm text-fal-muted sm:text-base">
-        Listagem: produtos publicados. Compra: somente disponíveis na loja.
+        Encontre peças por nome, código, categoria ou veículo.
       </p>
 
       <form
@@ -301,15 +390,33 @@ export function CatalogPage() {
         </div>
       </form>
 
-      {/* Filtros primários — compactos para manter resultados no 1º viewport */}
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Classificação Categoria → Grupo → Subgrupo + fabricante/ordem */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Select
           label="Categoria"
-          name="cat"
+          name="cat-root"
           placeholder="Todas"
-          value={cat}
-          options={rootCategories.map((c) => ({ value: c.slug, label: c.name }))}
-          onChange={(e) => patchParams({ cat: e.target.value || null })}
+          value={catPath.categoriaId}
+          options={rootCategoryOptions.map((c) => ({ value: c.value, label: c.label }))}
+          onChange={(e) => setCategoryFacet('categoria', e.target.value)}
+        />
+        <Select
+          label="Grupo"
+          name="cat-grupo"
+          placeholder={catPath.categoriaId ? 'Todos / opcional' : 'Escolha a categoria'}
+          value={catPath.grupoId}
+          options={grupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+          disabled={!catPath.categoriaId || grupoOptions.length === 0}
+          onChange={(e) => setCategoryFacet('grupo', e.target.value)}
+        />
+        <Select
+          label="Subgrupo"
+          name="cat-sub"
+          placeholder={catPath.grupoId ? 'Todos / opcional' : 'Escolha o grupo'}
+          value={catPath.subgrupoId}
+          options={subgrupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+          disabled={!catPath.grupoId || subgrupoOptions.length === 0}
+          onChange={(e) => setCategoryFacet('subgrupo', e.target.value)}
         />
         <Select
           label="Fabricante"
@@ -491,14 +598,17 @@ export function CatalogPage() {
               ))}
             </div>
             {hasMore ? (
-              <div className="mt-6 flex justify-center">
+              <div className="mt-6 flex flex-col items-center gap-2">
+                {loadMoreError ? (
+                  <p className="m-0 text-sm text-fal-danger">{loadMoreError}</p>
+                ) : null}
                 <Button
                   type="button"
                   variant="light"
                   onClick={() => void loadMore()}
                   disabled={loadingMore}
                 >
-                  {loadingMore ? 'Carregando…' : 'Carregar mais'}
+                  {loadingMore ? 'Carregando…' : loadMoreError ? 'Tentar novamente' : 'Carregar mais'}
                 </Button>
               </div>
             ) : null}

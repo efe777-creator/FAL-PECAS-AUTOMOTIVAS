@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -7,12 +8,13 @@ import {
   CATEGORY_IMG_KEYS,
   resolveCategoryIcon,
 } from '@/lib/categoryEmoji'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
+  adminApplyCategoryDefaultMeasures,
   adminCountProductsInCategory,
   adminCountProductsPerCategory,
   adminDeleteCategory,
   adminListCategories,
-  adminPublishAllArchivedCategories,
   adminReorderSiblingCategories,
   adminSetCategoryStatus,
   adminUpsertCategory,
@@ -62,12 +64,34 @@ export function AdminCategoriesPage() {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [busyId, setBusyId] = useState<string | null>(null)
-  /** Importados sem produto costumam ficar arquivados — mostrar por padrão para editar. */
-  const [showArchived, setShowArchived] = useState(true)
   const [viewMode, setViewMode] = useState<'tree' | 'list'>('list')
   const [levelFilter, setLevelFilter] = useState<0 | 1 | 2 | 3>(0)
+  const [archivedMenuOpen, setArchivedMenuOpen] = useState(false)
+  const [selectedArchived, setSelectedArchived] = useState<Set<string>>(() => new Set())
+  const archivedMenuRef = useRef<HTMLDivElement>(null)
+  const [defaultWeightKg, setDefaultWeightKg] = useState('')
+  const [defaultLengthCm, setDefaultLengthCm] = useState('')
+  const [defaultWidthCm, setDefaultWidthCm] = useState('')
+  const [defaultHeightCm, setDefaultHeightCm] = useState('')
+  const [busyApplyMeasures, setBusyApplyMeasures] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const measuresSectionRef = useRef<HTMLDivElement>(null)
+
+  function parseOptionalMeasure(raw: string): number | null {
+    const t = raw.trim()
+    if (!t) return null
+    const n = Number(t.replace(',', '.'))
+    if (!Number.isFinite(n) || n <= 0) {
+      throw new Error('Medidas padrão devem ser números maiores que zero (ou vazias).')
+    }
+    return n
+  }
+
+  function fmtMeasure(v: number | null | undefined): string {
+    if (v == null) return ''
+    return String(v)
+  }
 
   async function reload() {
     setLoading(true)
@@ -101,9 +125,30 @@ export function AdminCategoriesPage() {
     void reload()
   }, [])
 
+  useEffect(() => {
+    if (window.location.hash !== '#medidas-padrao') return
+    window.requestAnimationFrame(() => {
+      measuresSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [loading])
+
+  /** Lista principal só com ativos; arquivados ficam no menu “Ver arquivados”. */
   const treeItems = useMemo(
-    () => (showArchived ? items : items.filter((c) => c.status !== 'archived')),
-    [items, showArchived],
+    () => items.filter((c) => c.status !== 'archived'),
+    [items],
+  )
+
+  const archivedItems = useMemo(
+    () =>
+      items
+        .filter((c) => c.status === 'archived')
+        .slice()
+        .sort(
+          (a, b) =>
+            categoryPath(items, a.id).localeCompare(categoryPath(items, b.id)) ||
+            a.name.localeCompare(b.name),
+        ),
+    [items],
   )
 
   const roots = useMemo(() => treeItems.filter((c) => !c.parentId), [treeItems])
@@ -198,11 +243,14 @@ export function AdminCategoriesPage() {
     let sub = 0
     let archived = 0
     for (const c of items) {
+      if (c.status === 'archived') {
+        archived += 1
+        continue
+      }
       const d = categoryDepth(items, c.id)
       if (d === 1) cat += 1
       else if (d === 2) grp += 1
       else if (d === 3) sub += 1
-      if (c.status === 'archived') archived += 1
     }
     return { cat, grp, sub, archived, total: items.length }
   }, [items])
@@ -227,27 +275,23 @@ export function AdminCategoriesPage() {
       .sort((a, b) => a.path.localeCompare(b.path) || a.depth - b.depth)
   }, [treeItems, items, levelFilter, searchQ])
 
-  async function onPublishAllArchived() {
-    if (levelStats.archived === 0) return
-    if (
-      !window.confirm(
-        `Publicar ${levelStats.archived} classificação(ões) arquivada(s)?\n\nÚtil para reativar categoria/grupo/subgrupo vindos da importação e usá-los de novo na planilha.`,
-      )
-    ) {
-      return
+  useEffect(() => {
+    if (!archivedMenuOpen) return
+    function onDocClick(e: MouseEvent) {
+      if (!archivedMenuRef.current?.contains(e.target as Node)) {
+        setArchivedMenuOpen(false)
+      }
     }
-    setBusyId('__bulk__')
-    setError(null)
-    try {
-      const n = await adminPublishAllArchivedCategories()
-      setInfo(`${n} classificação(ões) publicadas. Já aparecem para edição e importação.`)
-      await reload()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao publicar arquivadas')
-    } finally {
-      setBusyId(null)
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setArchivedMenuOpen(false)
     }
-  }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [archivedMenuOpen])
 
   useEffect(() => {
     if (!searchQ) return
@@ -288,6 +332,10 @@ export function AdminCategoriesPage() {
     setSubgrupoCategoriaId('')
     setSortOrder('0')
     setEmoji('')
+    setDefaultWeightKg('')
+    setDefaultLengthCm('')
+    setDefaultWidthCm('')
+    setDefaultHeightCm('')
     setCreateLevel(1)
   }
 
@@ -304,6 +352,10 @@ export function AdminCategoriesPage() {
     setName('')
     setDescription('')
     setEmoji('') // ícone só na Categoria (raiz / L1)
+    setDefaultWeightKg('')
+    setDefaultLengthCm('')
+    setDefaultWidthCm('')
+    setDefaultHeightCm('')
     setCreateLevel(level)
     setError(null)
     setInfo(
@@ -355,6 +407,10 @@ export function AdminCategoriesPage() {
     setParentId(cat.parentId ?? '')
     setSortOrder(String(cat.sortOrder ?? 0))
     setEmoji(depth === 1 ? (cat.emoji ?? '') : '')
+    setDefaultWeightKg(fmtMeasure(cat.defaultWeightKg))
+    setDefaultLengthCm(fmtMeasure(cat.defaultLengthCm))
+    setDefaultWidthCm(fmtMeasure(cat.defaultWidthCm))
+    setDefaultHeightCm(fmtMeasure(cat.defaultHeightCm))
     setCreateLevel(depth)
     if (depth === 3 && cat.parentId) {
       const grupo = items.find((c) => c.id === cat.parentId)
@@ -378,6 +434,10 @@ export function AdminCategoriesPage() {
     setName('')
     setDescription('')
     setEmoji('')
+    setDefaultWeightKg('')
+    setDefaultLengthCm('')
+    setDefaultWidthCm('')
+    setDefaultHeightCm('')
     setCreateLevel(nextLevel)
     setParentId(parent.id)
     if (nextLevel === 3) {
@@ -417,6 +477,10 @@ export function AdminCategoriesPage() {
         status: editing?.status ?? 'published',
         sortOrder: Number(sortOrder) || 0,
         emoji: emojiToSave,
+        defaultWeightKg: parseOptionalMeasure(defaultWeightKg),
+        defaultLengthCm: parseOptionalMeasure(defaultLengthCm),
+        defaultWidthCm: parseOptionalMeasure(defaultWidthCm),
+        defaultHeightCm: parseOptionalMeasure(defaultHeightCm),
         allCategories: items,
       })
       if (saved.parentId) {
@@ -427,6 +491,55 @@ export function AdminCategoriesPage() {
       setInfo('Classificação salva.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao salvar')
+    }
+  }
+
+  async function onApplyDefaultMeasures() {
+    if (!editing) return
+    setError(null)
+    setInfo(null)
+    const { confirmed } = await confirmDialog({
+      title: 'Aplicar medidas padrão',
+      message:
+        `Aplicar peso/dimensões padrão de "${editing.name}" aos produtos desta classificação e subárvore? ` +
+        'Medidas marcadas como Manual no produto não serão alteradas.',
+      confirmLabel: 'Aplicar (respeitar Manual)',
+    })
+    if (!confirmed) return
+    setBusyApplyMeasures(true)
+    try {
+      // Garante defaults salvos antes do apply (mesmo se o operador não clicou Salvar).
+      await adminUpsertCategory({
+        id: editing.id,
+        name: editing.name,
+        description: editing.description,
+        parentId: editing.parentId ?? null,
+        status: editing.status ?? 'published',
+        sortOrder: editing.sortOrder ?? 0,
+        emoji: editing.emoji ?? null,
+        defaultWeightKg: parseOptionalMeasure(defaultWeightKg),
+        defaultLengthCm: parseOptionalMeasure(defaultLengthCm),
+        defaultWidthCm: parseOptionalMeasure(defaultWidthCm),
+        defaultHeightCm: parseOptionalMeasure(defaultHeightCm),
+        allCategories: items,
+      })
+      const r = await adminApplyCategoryDefaultMeasures({
+        categoryId: editing.id,
+        allCategories: await adminListCategories(),
+        mode: 'skip_manual',
+      })
+      await reload()
+      const refreshed = (await adminListCategories()).find((c) => c.id === editing.id)
+      if (refreshed) startEdit(refreshed)
+      setInfo(
+        r.productCount === 0
+          ? 'Nenhum produto nesta classificação/subárvore.'
+          : `Padrão aplicado: ${r.productCount} produto(s) no escopo · ${r.updatedFieldRows} campo(s) atualizado(s) (origem Global).`,
+      )
+    } catch (err) {
+      setError(toUserMessage(err, 'Falha ao aplicar medidas padrão'))
+    } finally {
+      setBusyApplyMeasures(false)
     }
   }
 
@@ -629,16 +742,89 @@ export function AdminCategoriesPage() {
     emoji: emoji || null,
   })
 
+  function toggleArchivedSelect(id: string) {
+    setSelectedArchived((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function onPublishSelectedArchived() {
+    const ids = [...selectedArchived]
+    if (!ids.length) return
+    setBusyId('__archived__')
+    setError(null)
+    setInfo(null)
+    try {
+      for (const id of ids) {
+        await adminSetCategoryStatus(id, 'published')
+      }
+      setSelectedArchived(new Set())
+      setArchivedMenuOpen(false)
+      setInfo(`${ids.length} classificação(ões) publicada(s) de novo.`)
+      await reload()
+    } catch (err) {
+      setError(toUserMessage(err, 'Falha ao publicar selecionadas'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function onDeleteSelectedArchived() {
+    const ids = [...selectedArchived]
+    if (!ids.length) return
+    const { confirmed } = await confirmDialog({
+      title: 'Excluir arquivadas?',
+      message:
+        `Excluir permanentemente ${ids.length} classificação(ões)?\n\n` +
+        'Só funciona sem filhos e sem produtos. Em caso de vínculo, a exclusão daquela linha falha.',
+      confirmLabel: 'Excluir',
+      danger: true,
+    })
+    if (!confirmed) return
+    setBusyId('__archived__')
+    setError(null)
+    setInfo(null)
+    let ok = 0
+    const fails: string[] = []
+    try {
+      // Filhos antes dos pais
+      const ordered = ids
+        .map((id) => items.find((c) => c.id === id))
+        .filter((c): c is Category => Boolean(c))
+        .sort((a, b) => categoryDepth(items, b.id) - categoryDepth(items, a.id))
+      let working = items
+      for (const cat of ordered) {
+        try {
+          await adminDeleteCategory(cat.id, working)
+          working = working.filter((c) => c.id !== cat.id)
+          ok += 1
+        } catch (err) {
+          fails.push(`${cat.name}: ${toUserMessage(err, 'erro')}`)
+        }
+      }
+      setSelectedArchived(new Set())
+      if (ok) setInfo(`${ok} excluída(s).`)
+      if (fails.length) setError(fails.slice(0, 3).join(' · '))
+      if (!fails.length) setArchivedMenuOpen(false)
+      await reload()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold text-fal-navy">Classificação</h1>
       <p className="text-sm text-fal-muted">
         Mesma árvore da planilha e do cadastro manual:{' '}
-        <strong>Categoria</strong> → <strong>Grupo</strong> → <strong>Subgrupo</strong>. Tudo que
-        a importação criou ou que você cadastrou aparece aqui para editar, publicar ou excluir.
+        <strong>Categoria</strong> → <strong>Grupo</strong> → <strong>Subgrupo</strong>. Edite,
+        arquive ou exclua aqui; arquivados ficam no menu discreto abaixo.
       </p>
 
-      <div className="flex flex-wrap gap-3 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-navy">
+      <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-navy">
         <span>
           <strong>{levelStats.cat}</strong> categorias
         </span>
@@ -649,10 +835,68 @@ export function AdminCategoriesPage() {
           <strong>{levelStats.sub}</strong> subgrupos
         </span>
         {levelStats.archived > 0 ? (
-          <span className="text-amber-800">
-            <strong>{levelStats.archived}</strong> arquivadas (import sem produto costuma arquivar —
-            use Publicar)
-          </span>
+          <div className="relative ml-auto" ref={archivedMenuRef}>
+            <button
+              type="button"
+              className="text-xs font-semibold text-fal-muted underline-offset-2 hover:text-fal-navy hover:underline"
+              aria-expanded={archivedMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setArchivedMenuOpen((o) => !o)}
+            >
+              Ver arquivados ({levelStats.archived})
+            </button>
+            {archivedMenuOpen ? (
+              <div
+                role="menu"
+                className="absolute right-0 z-30 mt-2 w-[min(100vw-2rem,22rem)] rounded-[12px] border border-fal-line bg-white p-3 shadow-lg"
+              >
+                <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+                  Arquivados
+                </p>
+                <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+                  {archivedItems.map((c) => (
+                    <li key={c.id}>
+                      <label className="flex cursor-pointer items-start gap-2 rounded-md px-1 py-1 text-sm hover:bg-fal-bg">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={selectedArchived.has(c.id)}
+                          onChange={() => toggleArchivedSelect(c.id)}
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-fal-navy">
+                            {c.name}
+                          </span>
+                          <span className="block truncate text-[11px] text-fal-muted">
+                            {categoryLevelLabel(categoryDepth(items, c.id))} ·{' '}
+                            {categoryPath(items, c.id)}
+                          </span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-fal-line pt-3">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={busyId === '__archived__' || selectedArchived.size === 0}
+                    onClick={() => void onPublishSelectedArchived()}
+                  >
+                    Publicar ({selectedArchived.size})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busyId === '__archived__' || selectedArchived.size === 0}
+                    onClick={() => void onDeleteSelectedArchived()}
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -666,16 +910,6 @@ export function AdminCategoriesPage() {
         <Button type="button" variant="light" onClick={() => startCreate(3)}>
           + Subgrupo
         </Button>
-        {levelStats.archived > 0 ? (
-          <Button
-            type="button"
-            variant="primary"
-            disabled={busyId === '__bulk__'}
-            onClick={() => void onPublishAllArchived()}
-          >
-            Publicar todas arquivadas ({levelStats.archived})
-          </Button>
-        ) : null}
       </div>
 
       <form
@@ -925,6 +1159,61 @@ export function AdminCategoriesPage() {
           </p>
         )}
 
+        <div
+          id="medidas-padrao"
+          ref={measuresSectionRef}
+          className="md:col-span-2 space-y-3 rounded-[10px] border border-dashed border-fal-line bg-fal-bg/60 p-3"
+        >
+          <div>
+            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Medidas padrão (frete)</h3>
+            <p className="mb-0 mt-1 text-[13px] text-fal-muted">
+              Fallback O1-C quando o produto não tem medida própria. Salve a classificação e, se
+              quiser, aplique aos produtos da subárvore respeitando origem Manual.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              label="Peso (kg)"
+              inputMode="decimal"
+              value={defaultWeightKg}
+              onChange={(e) => setDefaultWeightKg(e.target.value)}
+              placeholder="ex.: 1,2"
+            />
+            <Input
+              label="Comprimento (cm)"
+              inputMode="decimal"
+              value={defaultLengthCm}
+              onChange={(e) => setDefaultLengthCm(e.target.value)}
+            />
+            <Input
+              label="Largura (cm)"
+              inputMode="decimal"
+              value={defaultWidthCm}
+              onChange={(e) => setDefaultWidthCm(e.target.value)}
+            />
+            <Input
+              label="Altura (cm)"
+              inputMode="decimal"
+              value={defaultHeightCm}
+              onChange={(e) => setDefaultHeightCm(e.target.value)}
+            />
+          </div>
+          {editing ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busyApplyMeasures}
+              onClick={() => void onApplyDefaultMeasures()}
+            >
+              {busyApplyMeasures ? 'Aplicando…' : 'Aplicar padrão aos produtos (respeitar Manual)'}
+            </Button>
+          ) : (
+            <p className="m-0 text-[13px] text-fal-muted">
+              Crie/salve a classificação para poder aplicar o padrão em lote.
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-end gap-2 md:col-span-2">
           <Button type="submit" variant="primary" disabled={resultingDepth > CATEGORY_MAX_DEPTH}>
             {editing ? 'Salvar alterações' : `Criar ${categoryLevelLabel(createLevel).toLowerCase()}`}
@@ -993,14 +1282,6 @@ export function AdminCategoriesPage() {
             Árvore
           </button>
         </div>
-        <label className="inline-flex items-center gap-2 pb-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-          />
-          Mostrar arquivadas
-        </label>
         {viewMode === 'tree' ? (
           <>
             <Button
@@ -1043,12 +1324,14 @@ export function AdminCategoriesPage() {
             <div className="px-3 py-4">
               <EmptyState
                 title="Nenhuma classificação encontrada"
-                description="Ajuste o filtro de nível, marque “Mostrar arquivadas” ou limpe a busca."
+                description="Ajuste o filtro de nível ou limpe a busca. Arquivados ficam em “Ver arquivados”."
               >
                 <div className="mt-4 flex justify-center gap-2">
-                  <Button type="button" variant="light" onClick={() => setShowArchived(true)}>
-                    Mostrar arquivadas
-                  </Button>
+                  {levelStats.archived > 0 ? (
+                    <Button type="button" variant="light" onClick={() => setArchivedMenuOpen(true)}>
+                      Ver arquivados ({levelStats.archived})
+                    </Button>
+                  ) : null}
                   <Button type="button" onClick={() => startCreate(1)}>
                     + Criar categoria
                   </Button>
@@ -1130,12 +1413,14 @@ export function AdminCategoriesPage() {
           <div className="px-3 py-4">
             <EmptyState
               title="Nenhuma classificação encontrada"
-              description="Marque “Mostrar arquivadas” para ver nós da importação sem produto, ou limpe a busca."
+              description="Limpe a busca. Arquivados ficam em “Ver arquivados”."
             >
               <div className="mt-4 flex justify-center gap-2">
-                <Button type="button" variant="light" onClick={() => setShowArchived(true)}>
-                  Mostrar arquivadas
-                </Button>
+                {levelStats.archived > 0 ? (
+                  <Button type="button" variant="light" onClick={() => setArchivedMenuOpen(true)}>
+                    Ver arquivados ({levelStats.archived})
+                  </Button>
+                ) : null}
                 <Button type="button" onClick={() => startCreate(1)}>
                   + Criar categoria
                 </Button>

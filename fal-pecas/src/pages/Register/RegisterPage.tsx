@@ -1,15 +1,25 @@
 import { Button } from '@/components/common/Button'
+import { ButtonLink } from '@/components/common/ButtonLink'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
-import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+
+const MIN_PASSWORD_LENGTH = 6
 
 export function RegisterPage() {
   const { signUp, user, loading, isConfigured } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromState = (location.state as { from?: string } | null)?.from
+  // Veio do funil (carrinho/checkout) → volta para lá; senão área da conta.
+  const from = fromState ?? '/conta'
+  const loginState = fromState ? { from: fromState } : undefined
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -21,12 +31,17 @@ export function RegisterPage() {
   const [terms, setTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false)
 
-  if (!loading && user) return <Navigate to="/conta" replace />
+  if (!loading && user) return <Navigate to={from} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+      return
+    }
     if (password !== password2) {
       setError('As senhas não coincidem.')
       return
@@ -47,7 +62,7 @@ export function RegisterPage() {
     }
     setSubmitting(true)
     try {
-      await signUp({
+      const result = await signUp({
         email,
         password,
         firstName,
@@ -56,14 +71,33 @@ export function RegisterPage() {
         phone: phoneDigits || undefined,
         cpf: cpfDigits,
       })
-      navigate('/conta', { replace: true })
+      if (!result.session) {
+        setNeedsEmailConfirm(true)
+        return
+      }
+      navigate(from, { replace: true })
     } catch (err) {
-      if (err instanceof AuthNotConfiguredError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError('Não foi possível criar a conta.')
+      setError(toUserMessage(err, 'Não foi possível criar a conta. Tente novamente.'))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (needsEmailConfirm) {
+    return (
+      <Container className="py-8">
+        <div className="mx-auto max-w-[560px] rounded-fal border border-fal-line bg-white p-6 text-center sm:p-8">
+          <h1 className="mt-0 text-[28px] font-black">Confirme seu e-mail</h1>
+          <p className="text-fal-muted">
+            Enviamos um link de confirmação para <strong>{email}</strong>. Abra o e-mail, confirme
+            o cadastro e depois entre na sua conta.
+          </p>
+          <ButtonLink to="/login" state={loginState} variant="primary" className="mt-2">
+            Ir para o login
+          </ButtonLink>
+        </div>
+      </Container>
+    )
   }
 
   return (
@@ -86,7 +120,11 @@ export function RegisterPage() {
 
         <div className="overflow-hidden rounded-fal border border-fal-line bg-white">
           <div className="grid grid-cols-2 border-b border-fal-line">
-            <Link to="/login" className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]">
+            <Link
+              to="/login"
+              state={loginState}
+              className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]"
+            >
               Entrar
             </Link>
             <span className="bg-[#fafbfc] px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
@@ -99,6 +137,7 @@ export function RegisterPage() {
               <Input
                 label="Nome"
                 name="firstName"
+                autoComplete="given-name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
@@ -106,6 +145,7 @@ export function RegisterPage() {
               <Input
                 label="Sobrenome"
                 name="lastName"
+                autoComplete="family-name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
@@ -115,6 +155,7 @@ export function RegisterPage() {
                   label="E-mail"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -142,6 +183,7 @@ export function RegisterPage() {
               <Input
                 label="Usuário (opcional)"
                 name="username"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 hint="Opcional. Você também pode entrar com o e-mail."
@@ -150,14 +192,18 @@ export function RegisterPage() {
                 label="Senha"
                 name="password"
                 type="password"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                hint={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres.`}
                 required
               />
               <Input
                 label="Confirmar senha"
                 name="password2"
                 type="password"
+                autoComplete="new-password"
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
                 required
@@ -169,9 +215,23 @@ export function RegisterPage() {
                 checked={terms}
                 onChange={(e) => setTerms(e.target.checked)}
               />
-              Li e aceito os termos de uso e a política de privacidade.
+              <span>
+                Li e aceito os{' '}
+                <Link to="/termos" className="font-semibold text-fal-navy hover:underline">
+                  termos de uso
+                </Link>{' '}
+                e a{' '}
+                <Link to="/privacidade" className="font-semibold text-fal-navy hover:underline">
+                  política de privacidade
+                </Link>
+                .
+              </span>
             </label>
-            {error ? <p className="mt-3 text-sm text-fal-danger">{error}</p> : null}
+            {error ? (
+              <p className="mt-3 text-sm text-fal-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
             <Button type="submit" variant="primary" fullWidth className="mt-4" disabled={submitting}>
               {submitting ? 'Criando…' : 'Criar conta'}
             </Button>

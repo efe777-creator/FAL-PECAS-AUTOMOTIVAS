@@ -106,10 +106,16 @@ export async function signOut(): Promise<void> {
 
 export async function resetPassword(email: string): Promise<void> {
   if (!isSupabaseConfigured) throw new AuthNotConfiguredError()
-  const redirectTo = `${window.location.origin}/recuperar-senha`
+  const redirectTo = `${window.location.origin}/redefinir-senha`
   const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim(), {
     redirectTo,
   })
+  if (error) throw error
+}
+
+export async function updatePassword(newPassword: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new AuthNotConfiguredError()
+  const { error } = await getSupabase().auth.updateUser({ password: newPassword })
   if (error) throw error
 }
 

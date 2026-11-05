@@ -76,13 +76,22 @@ export async function isAdministrador(): Promise<boolean> {
   return Boolean(data)
 }
 
-export async function listInventory(search?: string): Promise<InventoryRow[]> {
+/** Tamanho padrão de página do estoque admin. */
+export const ADMIN_INVENTORY_PAGE_SIZE = 200
+
+export async function listInventory(
+  search?: string,
+  opts?: { offset?: number; limit?: number },
+): Promise<InventoryRow[]> {
+  const limit = opts?.limit ?? ADMIN_INVENTORY_PAGE_SIZE
+  const offset = opts?.offset ?? 0
   let q = getSupabase()
     .from('products')
     .select('id, sku, name, inventory(quantity_on_hand, quantity_reserved)')
     .neq('status', 'archived')
     .order('name')
-    .limit(200)
+    .order('id')
+    .range(offset, offset + limit - 1)
 
   if (search?.trim()) {
     const s = search.trim()

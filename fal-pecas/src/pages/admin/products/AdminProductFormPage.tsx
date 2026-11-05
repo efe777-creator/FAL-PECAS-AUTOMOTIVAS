@@ -1,6 +1,9 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
 import {
@@ -74,6 +77,19 @@ export function AdminProductFormPage() {
   const isNew = !id || id === 'novo'
   const navigate = useNavigate()
   const { user } = useAuth()
+  const toast = useToast()
+
+  /** Flag simples: qualquer edição no formulário "Geral" marca como não salvo. */
+  const [dirty, setDirty] = useState(false)
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
@@ -415,13 +431,15 @@ export function AdminProductFormPage() {
         setError(`Checklist D-LIBERAR: ${pre.summary}`)
         return
       }
-      const ok = window.confirm(
-        `Liberar na loja (D-LIBERAR)?\n\n` +
+      const { confirmed } = await confirmDialog({
+        title: 'Liberar na loja (D-LIBERAR)?',
+        message:
           `• Hard: nome, código ref., categoria, preço resolvido > 0\n` +
           `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já published'}\n` +
-          `• Marcar is_available${soft}\n\nConfirmar?`,
-      )
-      if (!ok) return
+          `• Marcar is_available${soft}`,
+        confirmLabel: 'Liberar na loja',
+      })
+      if (!confirmed) return
       const result = await adminReleaseProductToStore({
         productId,
         publishIfNeeded,
@@ -538,9 +556,14 @@ export function AdminProductFormPage() {
         setListRows(await adminListProductListPrices(saved.id))
       }
 
+      setDirty(false)
+      toast.push('Produto salvo com sucesso.', 'success')
+
       if (isNew) navigate(`/admin/produtos/${saved.id}`, { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar')
+      const msg = toUserMessage(err, 'Falha ao salvar')
+      setError(msg)
+      toast.push(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -560,8 +583,17 @@ export function AdminProductFormPage() {
       </div>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 
-      <form onSubmit={saveGeneral} className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
+      <form
+        onSubmit={saveGeneral}
+        onChange={() => setDirty(true)}
+        className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4"
+      >
         <h2 className="font-extrabold text-fal-navy">Geral</h2>
+        {dirty ? (
+          <p className="m-0 text-xs font-semibold text-fal-yellow-dark">
+            Há alterações não salvas.
+          </p>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
           <Input
@@ -766,7 +798,10 @@ export function AdminProductFormPage() {
                   type="button"
                   variant="light"
                   disabled={saving}
-                  onClick={() => setAvailable(false)}
+                  onClick={() => {
+                    setAvailable(false)
+                    setDirty(true)
+                  }}
                 >
                   Marcar indisponível (salvar depois)
                 </Button>
@@ -1107,7 +1142,30 @@ export function AdminProductFormPage() {
                     {entityStatusLabel(r.status)}
                   </span>
                   {r.id ? (
-                    <button type="button" className="text-fal-danger font-semibold" onClick={() => void adminDeleteReference(r.id!).then(async () => setRefs(await adminListReferences(productId)))}>
+                    <button
+                      type="button"
+                      className="text-fal-danger font-semibold"
+                      onClick={() => {
+                        const refId = r.id!
+                        void confirmDialog({
+                          title: 'Remover referência?',
+                          message: `A referência "${r.code}" será removida deste produto.`,
+                          confirmLabel: 'Remover',
+                          danger: true,
+                        })
+                          .then(async ({ confirmed }) => {
+                            if (!confirmed) return
+                            await adminDeleteReference(refId)
+                            setRefs(await adminListReferences(productId))
+                            toast.push('Referência removida.', 'success')
+                          })
+                          .catch((err) => {
+                            const msg = toUserMessage(err, 'Falha ao remover referência')
+                            setError(msg)
+                            toast.push(msg, 'error')
+                          })
+                      }}
+                    >
                       Remover
                     </button>
                   ) : null}
@@ -1319,11 +1377,25 @@ export function AdminProductFormPage() {
                       <button
                         type="button"
                         className="font-semibold text-fal-danger"
-                        onClick={() =>
-                          void adminRemoveApplication(row.id).then(async () => {
-                            if (productId) setApps(await adminListApplications(productId))
+                        onClick={() => {
+                          void confirmDialog({
+                            title: 'Remover aplicação?',
+                            message: 'O vínculo deste produto com o veículo será removido.',
+                            confirmLabel: 'Remover',
+                            danger: true,
                           })
-                        }
+                            .then(async ({ confirmed }) => {
+                              if (!confirmed) return
+                              await adminRemoveApplication(row.id)
+                              if (productId) setApps(await adminListApplications(productId))
+                              toast.push('Aplicação removida.', 'success')
+                            })
+                            .catch((err) => {
+                              const msg = toUserMessage(err, 'Falha ao remover aplicação')
+                              setError(msg)
+                              toast.push(msg, 'error')
+                            })
+                        }}
                       >
                         Remover
                       </button>
@@ -1336,15 +1408,35 @@ export function AdminProductFormPage() {
 
           <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
             <h2 className="font-extrabold text-fal-navy">Imagens</h2>
+            <p className="m-0 text-xs text-fal-muted">
+              Várias de uma vez neste produto · lote por SKU em{' '}
+              <Link className="font-semibold text-fal-navy hover:underline" to="/admin/produtos/importar-imagens">
+                Importar imagens
+              </Link>
+            </p>
             <input
               type="file"
               accept="image/*"
+              multiple
               onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                void adminUploadImage(productId, file)
-                  .then(async () => setImages(await adminListImages(productId)))
-                  .catch((err) => setError(String(err.message ?? err)))
+                const list = e.target.files
+                if (!list?.length) return
+                const arr = Array.from(list)
+                e.target.value = ''
+                void (async () => {
+                  try {
+                    for (const file of arr) await adminUploadImage(productId, file)
+                    setImages(await adminListImages(productId))
+                    toast.push(
+                      arr.length === 1 ? 'Imagem enviada.' : `${arr.length} imagens enviadas.`,
+                      'success',
+                    )
+                  } catch (err) {
+                    const msg = toUserMessage(err, 'Falha ao enviar imagem')
+                    setError(msg)
+                    toast.push(msg, 'error')
+                  }
+                })()
               }}
             />
             <div className="grid gap-3 sm:grid-cols-3">
@@ -1359,7 +1451,29 @@ export function AdminProductFormPage() {
                         Tornar principal
                       </button>
                     )}
-                    <button type="button" className="font-semibold text-fal-danger" onClick={() => void adminDeleteImage(img).then(async () => setImages(await adminListImages(productId)))}>
+                    <button
+                      type="button"
+                      className="font-semibold text-fal-danger"
+                      onClick={() => {
+                        void confirmDialog({
+                          title: 'Excluir imagem?',
+                          message: 'A imagem será removida do produto. Esta ação não pode ser desfeita.',
+                          confirmLabel: 'Excluir',
+                          danger: true,
+                        })
+                          .then(async ({ confirmed }) => {
+                            if (!confirmed) return
+                            await adminDeleteImage(img)
+                            setImages(await adminListImages(productId))
+                            toast.push('Imagem excluída.', 'success')
+                          })
+                          .catch((err) => {
+                            const msg = toUserMessage(err, 'Falha ao excluir imagem')
+                            setError(msg)
+                            toast.push(msg, 'error')
+                          })
+                      }}
+                    >
                       Excluir
                     </button>
                   </div>
