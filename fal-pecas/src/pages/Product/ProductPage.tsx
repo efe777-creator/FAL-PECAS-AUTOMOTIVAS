@@ -332,6 +332,11 @@ export function ProductPage() {
   const catalogFilterHref = buildCatalogMakerFilterHref(
     current.compatibilityGroups?.[0]?.maker ?? null,
   )
+  const categorySlugForMore =
+    categoryPath[categoryPath.length - 1]?.slug || current.categorySlug || null
+  const categoryHref = categorySlugForMore
+    ? `/catalogo?cat=${encodeURIComponent(categorySlugForMore)}`
+    : null
   const galleryImages =
     current.images?.length
       ? current.images
