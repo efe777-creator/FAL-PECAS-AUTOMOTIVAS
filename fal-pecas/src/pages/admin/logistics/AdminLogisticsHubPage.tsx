@@ -10,7 +10,7 @@ const cards = [
   {
     to: '/admin/logistica/frete-proprio',
     title: 'Frete próprio',
-    desc: 'Ativação, faixas CEP (SP capital) e tabela editável — cotação sob D-FRETE B.',
+    desc: 'Menus: Gerais · Veículos (nome/ícone/POL/km) · Tarifas (mín/km/adicional) · Produtos POL — D-FRETE B.',
     ready: true,
   },
   {
@@ -33,8 +33,8 @@ export function AdminLogisticsHubPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Logística</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Hub de configuração. Medidas de produto ficam em Produtos; Pedidos só opera.
-          Política vigente: D-FRETE <strong>B</strong> (sandbox/mock).
+          POL do frete próprio edita-se aqui (Frete próprio → Produtos) ou no cadastro do
+          produto — mesma fonte. Pedidos só opera. Política: D-FRETE <strong>B</strong>.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

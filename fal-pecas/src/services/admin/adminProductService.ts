@@ -37,6 +37,14 @@ type ProductRow = {
   height_origin?: string | null
   width_origin?: string | null
   length_origin?: string | null
+  pol_unit?: number | null
+  logistic_porte?: string | null
+  vehicle_min_code?: string | null
+  compatible_vehicle_codes?: string[] | null
+  logistic_restrictions?: unknown
+  own_delivery_allowed?: boolean | null
+  pol_origin?: string | null
+  logistic_profile_origin?: string | null
   product_brands?: { name: string } | { name: string }[] | null
   product_categories?: { id: string; name: string } | { id: string; name: string }[] | null
 }
@@ -83,6 +91,16 @@ function mapProduct(row: ProductRow): Product {
     heightOrigin: asMeasureOrigin(row.height_origin),
     widthOrigin: asMeasureOrigin(row.width_origin),
     lengthOrigin: asMeasureOrigin(row.length_origin),
+    polUnit: row.pol_unit == null ? null : Number(row.pol_unit),
+    logisticPorte: (row.logistic_porte as Product['logisticPorte']) ?? null,
+    vehicleMinCode: row.vehicle_min_code ?? null,
+    compatibleVehicleCodes: Array.isArray(row.compatible_vehicle_codes)
+      ? row.compatible_vehicle_codes
+      : [],
+    logisticRestrictions: row.logistic_restrictions ?? [],
+    ownDeliveryAllowed: row.own_delivery_allowed !== false,
+    polOrigin: asMeasureOrigin(row.pol_origin),
+    logisticProfileOrigin: asMeasureOrigin(row.logistic_profile_origin),
   }
 }
 
@@ -91,6 +109,8 @@ const SELECT = `
   category_id, price, promo_price, status, manufacturer_code, is_incomplete,
   is_available, posicao, lado, attrs, weight_kg, height_cm, width_cm, length_cm,
   weight_origin, height_origin, width_origin, length_origin,
+  pol_unit, logistic_porte, vehicle_min_code, compatible_vehicle_codes, logistic_restrictions,
+  own_delivery_allowed, pol_origin, logistic_profile_origin,
   product_brands ( name ),
   product_categories ( id, name )
 `
@@ -180,6 +200,13 @@ export async function adminUpsertProduct(input: {
   heightOrigin?: MeasureOrigin
   widthOrigin?: MeasureOrigin
   lengthOrigin?: MeasureOrigin
+  polUnit?: number | null
+  logisticPorte?: Product['logisticPorte']
+  vehicleMinCode?: string | null
+  compatibleVehicleCodes?: string[]
+  ownDeliveryAllowed?: boolean
+  polOrigin?: MeasureOrigin
+  logisticProfileOrigin?: MeasureOrigin
   /** Quando false, o caller sincroniza as listas (modo listas no formulário). */
   syncBasePromoLists?: boolean
 }): Promise<Product> {
@@ -212,6 +239,13 @@ export async function adminUpsertProduct(input: {
     height_origin: input.heightOrigin ?? (input.heightCm != null ? 'manual' : 'global'),
     width_origin: input.widthOrigin ?? (input.widthCm != null ? 'manual' : 'global'),
     length_origin: input.lengthOrigin ?? (input.lengthCm != null ? 'manual' : 'global'),
+    pol_unit: input.polUnit ?? null,
+    logistic_porte: input.logisticPorte ?? null,
+    vehicle_min_code: input.vehicleMinCode || null,
+    compatible_vehicle_codes: input.compatibleVehicleCodes ?? [],
+    own_delivery_allowed: input.ownDeliveryAllowed ?? true,
+    pol_origin: input.polOrigin ?? (input.polUnit != null ? 'manual' : 'global'),
+    logistic_profile_origin: input.logisticProfileOrigin ?? 'manual',
     search_document: [
       input.name,
       identity.sku,

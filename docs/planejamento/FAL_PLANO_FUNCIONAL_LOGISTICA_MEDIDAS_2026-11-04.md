@@ -1,9 +1,11 @@
 # Plano funcional — Logística e gestão de medidas (FAL)
 
-**Data:** 2026-11-04 (revisão pós-auditoria ME)  
+**Data:** 2026-11-04 (revisão 2026-11-05 — frete próprio v2 + rebase ME)  
 **Tipo:** planejamento canônico pós-α  
 **Auditoria de consolidação:** [FAL_AUDITORIA_LOGISTICA_ME_CONSOLIDACAO_2026-11-04.md](./FAL_AUDITORIA_LOGISTICA_ME_CONSOLIDACAO_2026-11-04.md)  
-**MARCHA ME híbrido (detalhe):** [FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md)  
+**Frete próprio v2 (POL + distância + veículo):** [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md)  
+**Correções Melhor Envio:** [FAL_PLANO_CORRECOES_MELHOR_ENVIO_2026-11-05.md](./FAL_PLANO_CORRECOES_MELHOR_ENVIO_2026-11-05.md)  
+**MARCHA ME híbrido (detalhe):** [FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md) · [VAL D12](./FAL_MARCHA_ME_HIBRIDO_VAL_2026-11-04.md)  
 **D-FRETE vigente:** **B** assinada ([ficha](./FAL_D_FRETE_DECISAO_2026-10-10.md))  
 **STOP α:** [FAL_STOP_ALPHA_FORMAL_2026-11-04.md](./FAL_STOP_ALPHA_FORMAL_2026-11-04.md)  
 **Backlog cruzado:** [FAL_BACKLOG_POS_ALPHA_2026-11-04.md](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md) · [próximos passos pós-#56](./FAL_MARCHA_PROXIMOS_PASSOS_POS_56_2026-11-04.md)
@@ -56,7 +58,26 @@ flowchart LR
 | D9 | D-FRETE **B**: cotação loja mock/sandbox + disclaimer; sem frete produção | APROVADO · ASSINADO |
 | D10 | **Compra/geração/impressão** de etiqueta ME **não** no webhook MP — ação **manual** do operador na Expedição | APROVADO (VAL Central + eFe 04/11) |
 | D11 | `ship_order` ≠ gerar etiqueta; `deliver_order` = cliente | APROVADO |
-| D12 | **Híbrido eFe:** cotação ME/próprio na loja (preço/prazo reais sandbox); no approve MP só **preparar** snapshot (`metadata.me`, serviço, volumes, valor cobrado); operador verifica → emite/imprime → coleta | APROVADO (eFe 2026-11-04) — implementação = MARCHA |
+| D12 | **Híbrido eFe:** cotação ME/próprio na loja (preço/prazo reais sandbox); no approve MP só **preparar** snapshot (`metadata.me`, serviço, volumes, valor cobrado); operador verifica → emite/imprime → coleta | APROVADO (eFe 2026-11-04) · **código VAL** ([VAL D12](./FAL_MARCHA_ME_HIBRIDO_VAL_2026-11-04.md)) · default loja permanece mock |
+| D13 | Frete próprio **v2** — contrato unificado POL + veículo + distância **ida** + tarifa por categoria; evoluir `/admin/logistica/frete-proprio` (sem hub paralelo) | APROVADO (eFe A–H 2026-11-05) · planejamento em [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md) · **não** implementado |
+| D14 | Distância = só ida Routes (Google via Edge); número obrigatório; sem ida/volta nesta versão; sem adicionais extras v1 | APROVADO |
+| D15 | Moto ≤ 12 POL inclusive; >12 → carro; restrições prevalecem; incompatível → análise manual; sem split automático | APROVADO |
+| D16 | Contrato de cotação own **já prevê** `vehicle_category` + tarifa da categoria (proibido motor km com tarifa única descartável) | APROVADO |
+
+### Frete próprio v2 — decisões A–H (resumo)
+
+Detalhe completo: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md).
+
+| Bloco | Conteúdo | Status |
+|-------|----------|--------|
+| A | Km ida only · Routes Edge · número · max_distance | APROVADO |
+| B | Tarifa por categoria (mín + R$/km + ativo); sem extras v1 | APROVADO · **fórmula piso = PROPOSTA** (validar eFe) |
+| C | POL_TOTAL · moto 12 · manual se incompatível | APROVADO |
+| D | Campos produto POL/porte/veículo/compat/restrições/own_allowed · bulk com confirmação | APROVADO |
+| E | Admin frete-próprio em 6 blocos | APROVADO |
+| F | Pipeline integrado; motores POL ⊥ distância ⊥ preço | APROVADO |
+| G | Infra rota pode antecipar; contrato comercial unificado desde o dia 1 | APROVADO |
+| H | Só docs nesta marcha | APROVADO |
 
 ### Propostas substituídas / rejeitadas
 
@@ -69,25 +90,27 @@ flowchart LR
 
 ---
 
-## 4. Fatos confirmados no código
+## 4. Fatos confirmados no código (rebase 2026-11-05)
 
 | Item | Estado | Evidência |
 |------|--------|-----------|
 | Hub `/admin/logistica` 4 atalhos | IMPLEMENTADO | `AdminLogisticsHubPage` (ME/config “Em breve”) |
-| Origem + remetente + ViaCEP | IMPLEMENTADO | `AdminShippingOriginPage` · migration `20261104130000_…` |
-| Frete próprio + `own:*` em `resolve_mock_shipping_option` | IMPLEMENTADO | `20261104140000_…` · `enabled` default false em prod |
-| Medidas `*_origin` + form + bulk | IMPLEMENTADO | VAL medidas · `adminProductService` |
-| Alterações globais + filtros catálogo | IMPLEMENTADO | VAL alterações globais |
+| Origem + remetente + ViaCEP | IMPLEMENTADO | `AdminShippingOriginPage` · wtbp + VAL ORIGEM |
+| Frete próprio **v1** flat + `own:*` | IMPLEMENTADO | `store_own_delivery_settings` · `AdminOwnDeliveryPage` · `enabled=false` prod · [VAL](./FAL_MARCHA_LOGISTICA_FRETE_PROPRIO_VAL_2026-11-04.md) |
+| Frete próprio **v2** (POL/veículo/km) | **GAP** | Planejamento: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md) |
+| Medidas `*_origin` + form + bulk + M6 | IMPLEMENTADO | VAL medidas · VAL M6 (100 quote-ready) |
 | Cotação PDP/carrinho/checkout envelope | IMPLEMENTADO | mock default; disclaimer B |
-| Checkout usa `loadCartLogistics` | IMPLEMENTADO | `CheckoutPage` |
-| Carrinho **não** carrega peso/dims na cotação | PARCIAL / GAP | `CartShippingQuoteBlock` só `productId`+`qty` |
-| Edge `quote-shipping` | PARCIAL | Esqueleto Correios 501; sem ME |
-| `carrierRegistry` | PARCIAL | mock/correios/frenet/carrier — **sem** `melhorenvio` |
-| `place_order` frete | PARCIAL | `mock:*` + `own:*`; sem `meq:` |
-| Edges `melhorenvio-label` / `melhorenvio-webhook` | PARCIAL | Deployed (doc pós-#56); dry-run / stub |
-| Contrato `metadata.me.label_state` | IMPLEMENTADO (código) | `melhorEnvioCore` / `melhorEnvioLabelState` |
-| Tabela `shipping_quotes` | GAP (só proposed) | `migrations/proposed/20261104190000_…` — **não aplicar** sem OK + fix RLS |
-| RLS proposed `customers.user_id` | BUG documental | Schema: `profile_id` |
+| Carrinho `loadCartLogistics` | **IMPLEMENTADO** | `CartShippingQuoteBlock` · VAL ME PR-1 |
+| Checkout `loadCartLogistics` | IMPLEMENTADO | `CheckoutPage` |
+| `carrierRegistry` entrada `melhorenvio` | **IMPLEMENTADO** | `placeOrderReady: true` · opt-in `VITE_SHIPPING_PROVIDER` |
+| Edge `quote-shipping` path ME | **IMPLEMENTADO** | calculate + `shipping_quotes` · smoke calc PASS |
+| `place_order` `meq:` + `own:*` + `mock:*` | **IMPLEMENTADO** | migration `20261104192000_me_hybrid_…` · wtbp |
+| Prepare-on-approve (`prepared`, sem purchase) | **IMPLEMENTADO** | `mercado-pago-webhook` · D12 |
+| Edges `melhorenvio-label` / webhook | PARCIAL | Label HTTP; E2E etiqueta humano pendente (M7) |
+| UI hub Melhor Envio / Configurações | GAP | `ready: false` |
+| Contrato `metadata.me.label_state` | IMPLEMENTADO | `melhorEnvioCore` / `melhorEnvioLabelState` |
+
+**Nota:** trechos anteriores deste §4 (carrinho sem logistics / ME ausente / `meq:` GAP) ficam **obsoletos** após VAL D12 / PR #57. Preferir esta tabela + VALs.
 
 ---
 
@@ -133,63 +156,59 @@ Quatro atalhos (APROVADO):
 
 ## 8. Frete próprio FAL
 
-**IMPLEMENTADO** config: faixas CEP, rates `own:*`, resolve no `place_order` alinhado.
+### 8.1 v1 — IMPLEMENTADO
 
-- Cobertura alvo: SP capital.  
-- Em produção: `enabled=false` (smoke 04/11).  
-- **PENDÊNCIA:** critérios avançados de precificação; múltiplas modalidades além da tabela editável.  
-- Sob D-FRETE B: se habilitado, continua disclaimer de homologação até C (decisão comercial).
+Config: faixas CEP, rates `own:*` com **amount flat**, resolve no `place_order`.
+
+- Cobertura alvo atual: SP capital (`01000000–05999999` default).  
+- Produção: `enabled=false` (smoke 04/11).  
+- Sob D-FRETE B: se habilitado, disclaimer de homologação até C.
+
+### 8.2 v2 — APROVADO no planejamento (não implementado)
+
+Substitui P-ME-5 “critérios avançados” pelo desenho completo:
+
+- Contrato unificado: POL + seleção de veículo + km **ida** (Google Routes Edge) + tarifa **por categoria**.  
+- Evoluir a mesma rota `/admin/logistica/frete-proprio` (6 blocos).  
+- Fórmula `frete = max(km × R$/km, tarifa_mínima)` = **APROVADO** (piso · MARCHA sequencial 2026-11-05).  
+- Documento canônico da frente: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md).
+
+Manter v1 flat como `pricing_mode: flat` até cutover.
 
 ---
 
-## 9. Melhor Envio — modelo híbrido (D12) — APROVADO
+## 9. Melhor Envio — modelo híbrido (D12) — APROVADO · código VAL
 
-Detalhamento executável: [FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md).
+Detalhamento: [FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md) · [VAL](./FAL_MARCHA_ME_HIBRIDO_VAL_2026-11-04.md) · [correções](./FAL_PLANO_CORRECOES_MELHOR_ENVIO_2026-11-05.md).
 
-### 9.1 Camadas
+### 9.1 Camadas (estado 2026-11-05)
 
-| Camada | Onde | Sob B? | Estado | Classificação |
-|--------|------|--------|--------|---------------|
-| A — Config Logística | `/admin/logistica/melhor-envio` | Sim | GAP UI | GAP |
-| B — Cotação loja ME + own | PDP/carrinho/checkout | Sim (sandbox + disclaimer) | GAP | **APROVADO** D12.1 |
-| B2 — `place_order` `meq:` | RPC | Sim | GAP | **APROVADO** |
-| B3 — Prepare no approve | webhook MP | Sim | GAP | **APROVADO** D12.3 (só snapshot) |
-| C — Etiqueta manual Expedição | `melhorenvio-label` | Sim | PARCIAL | **APROVADO** D12.4 |
-| D — Produção / NF-e / auto-status | — | **C** | Fora | PENDÊNCIA assinatura |
+| Camada | Onde | Sob B? | Estado |
+|--------|------|--------|--------|
+| A — Config Logística | `/admin/logistica/melhor-envio` | Sim | GAP UI |
+| B — Cotação loja ME + own | PDP/carrinho/checkout | Sim + disclaimer | **IMPLEMENTADO** (opt-in provider; default mock) |
+| B2 — `place_order` `meq:` | RPC | Sim | **IMPLEMENTADO** |
+| B3 — Prepare no approve | webhook MP | Sim | **IMPLEMENTADO** (`prepared` sem purchase) |
+| C — Etiqueta manual Expedição | `melhorenvio-label` | Sim | PARCIAL — HTTP; E2E humano M7 pendente |
+| D — Produção / NF-e / auto-status | — | **C** | Fora |
 
-### 9.2 Cotação loja (APROVADO — a implementar)
+### 9.2 Cotação / pedido / prepare
 
-- Carrier `melhorenvio`, `quoteRuntime: edge`.
-- `quote-shipping` → `POST /api/v2/me/shipment/calculate` (sandbox).
-- `from` = `store_shipping_origin`; secrets `MELHOR_ENVIO_*`.
-- `shipping_quotes` TTL 15 min; ids `meq:…`; preço só server-side.
-- Modalidades concorrentes: `own:*` (se enabled + CEP) + ME.
-- `CartShippingQuoteBlock` + `loadCartLogistics`.
-- Default Netlify permanece mock até opt-in explícito; disclaimer B.
+- Carrier `melhorenvio` + Edge calculate + `shipping_quotes` TTL · ids `meq:…` · preço server-side.  
+- Modalidades concorrentes: `own:*` (se enabled) + ME quando provider ME.  
+- `loadCartLogistics` no carrinho e checkout.  
+- Default Netlify = **mock** até opt-in; disclaimer B.  
+- Approve: no máximo `prepared`; **nunca** purchase/generate/print no webhook MP.  
+- Smoke calculate: PASS ([VAL](./FAL_MARCHA_ME_SMOKE_CALC_VAL_2026-11-04.md)).
 
-### 9.3 Pedido `meq:` (APROVADO — a implementar)
-
-- Preservar `mock:*` e `own:*`.
-- Consumo atômico: mesmo cliente, CEP, fingerprint, não expirada, não consumida.
-- Snapshot frete em `shipments.metadata`.
-
-### 9.4 Prepare no approve ≠ comprar etiqueta
-
-| No webhook MP | Permitido? |
-|---------------|------------|
-| `confirm_mercadopago_payment` | Sim |
-| Gravar `metadata.me` com `label_state: prepared` + service/volumes/valor | Sim |
-| POST cart / checkout / generate / print ME | **Não** |
-| Falha do prepare reverter pagamento | **Não** |
-
-### 9.5 Expedição manual (APROVADO / PARCIAL no código)
+### 9.3 Expedição manual
 
 ```mermaid
 sequenceDiagram
   participant MP as mp_webhook
   participant Ops as Expedicao
   participant Label as melhorenvio_label
-  participant ME as MelhorEnvioSandbox
+  participant ME as MelhorEnvio
 
   MP->>MP: approve + prepare snapshot
   Note over MP: label_state prepared no max
@@ -199,14 +218,9 @@ sequenceDiagram
   Ops->>Ops: ship_order apos ponto de coleta
 ```
 
-- Só `pronto_para_envio` | `preparando_envio`.
-- `purchase` exige `confirm:true` + check divergência.
-- Completar HTTP cart + origem DB (hoje dry-run / CEP hardcoded).
-
-### 9.6 Migration proposed
-
-- Corrigir RLS `profile_id` → apply só com OK eFe.
-- Ver §8 do planejamento híbrido.
+- Só em estados de expedição autorizados.  
+- `purchase` exige `confirm:true` + check divergência.  
+- Follow-up: smoke E2E etiqueta (M7).
 
 
 ## 10. Segurança, secrets e RLS
@@ -233,10 +247,11 @@ sequenceDiagram
 | Superfície | Estado |
 |------------|--------|
 | PDP cotação | IMPLEMENTADO (provider ativo) |
-| Carrinho | PARCIAL — sem `loadCartLogistics` |
+| Carrinho | **IMPLEMENTADO** `loadCartLogistics` |
 | Checkout | IMPLEMENTADO logistics + disclaimer B |
 | Handoff CEP sessão | IMPLEMENTADO `shippingQuoteSession` |
 | Default provider | mock |
+| Own v2 (POL/km/número) | GAP — ver planejamento frete próprio |
 
 ---
 
@@ -253,51 +268,45 @@ Nenhuma opção A/B/C nova é presumida. Vigente = **B**.
 
 ---
 
-## 14. Sequência de desenvolvimento (ajustada)
+## 14. Sequência de desenvolvimento (ajustada 2026-11-05)
 
-Justificativa das mudanças vs sequência original: itens 1–4 já VALidados; ME etiqueta já começou em Pedidos (#56); cotação loja ME fica **depois** de dados + secrets + decisão.
+1. ~~Gestão de medidas / Hub / Origem / Frete próprio v1~~ → **FEITO**  
+2. ~~M6 / PR-1 cart / M-ME-SEC / PR-2–4 híbrido ME (código)~~ → **FEITO** (VALs)  
+3. **M7** — smoke E2E etiqueta Expedição (humano)  
+4. **UI hub ME + Configurações** + filtro serviços (P-ME-3)  
+5. **Frete próprio v2** — MARCHAs conforme [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md) (contrato unificado → Routes → POL → pipeline → admin 6 blocos → place_order)  
+6. Correções ME remanescentes: [FAL_PLANO_CORRECOES_MELHOR_ENVIO_2026-11-05.md](./FAL_PLANO_CORRECOES_MELHOR_ENVIO_2026-11-05.md)  
+7. Eventual D-FRETE **C**  
 
-1. ~~Gestão de medidas~~ → **FEITO** (dados = M6)  
-2. ~~Hub Logística~~ → **FEITO**  
-3. ~~Origem e expedição~~ → **FEITO** (ligar ME à origem = follow-up)  
-4. ~~Frete próprio config~~ → **FEITO** (preço avançado = PENDÊNCIA)  
-5. **M6** — preencher medidas (bloqueante cotação real)  
-6. **PR-1** — `loadCartLogistics` no carrinho  
-7. **M-ME-SEC** — secrets + migration `shipping_quotes` (RLS fix)  
-8. **PR-2** — cotação ME loja + `meq:` + own híbrido  
-9. **PR-3** — prepare-on-approve (metadata only)  
-10. **PR-4** — label HTTP manual Expedição + origem DB  
-11. UI hub Melhor Envio + Configurações  
-12. VAL E2E + eventual D-FRETE **C**  
+### Subetapas Melhor Envio (híbrido) — pós VAL
 
-Detalhe PRs: [planejamento híbrido §9](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_2026-11-04.md).
-
-### Subetapas Melhor Envio (híbrido)
-
-1. Cart logistics — GAP  
-2. Cotação sandbox loja + `shipping_quotes` — GAP (APROVADO)  
-3. `meq:` no `place_order` — GAP (APROVADO)  
-4. Prepare no approve — GAP (APROVADO)  
-5. Etiqueta manual Expedição — PARCIAL  
-6. Testes / VAL — PENDÊNCIA  
-7. Gate produção — D-FRETE C  
+1. Cart logistics — **FEITO**  
+2. Cotação + `shipping_quotes` + `meq:` — **FEITO**  
+3. Prepare no approve — **FEITO**  
+4. Etiqueta Expedição — PARCIAL (falta M7 E2E)  
+5. UI config Logística ME — GAP  
+6. Gate produção — D-FRETE C  
 
 ---
 
 ## 15. Critérios de aceite
 
-### Híbrido sandbox (D12) — antes do VAL
+### Híbrido sandbox (D12)
 
-- [ ] PDP/carrinho/checkout: preço/prazo coerentes aos itens (`loadCartLogistics`)  
-- [ ] Modalidades `own:*` + `meq:*` (e mock se provider mock)  
-- [ ] `place_order` server-side (`meq`/`own`/`mock`)  
-- [ ] Approve: `prepared` no máximo; sem purchase/generate/print  
-- [ ] Operador emite/imprime na Expedição; `ship_order` pós coleta  
-- [ ] Origem DB; secrets só Edge; disclaimer B  
+- [x] Carrinho/checkout com logistics  
+- [x] Path `meq:` + prepare sem purchase  
+- [x] Secrets + smoke calculate  
+- [ ] Smoke E2E etiqueta (M7)  
+- [ ] Disclaimer B visível com provider ME opt-in  
+
+### Frete próprio v2 (antes de MARCHA de código)
+
+- [ ] eFe valida fórmula piso ([§6 do planejamento](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md))  
+- [ ] MARCHA nomeada + auth  
+- [ ] Sem R$ hardcoded; admin configura tarifas  
 
 ### Pré D-FRETE C / produção
 
-- [ ] Medidas nos SKUs vendáveis  
 - [ ] Secrets produção separados  
 - [ ] Disclaimer B removido só com assinatura C  
 - [ ] VAL + smoke E2E  
@@ -306,22 +315,23 @@ Detalhe PRs: [planejamento híbrido §9](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_20
 
 ## 16. Gaps técnicos (lista curta)
 
-1. Carrier + Edge cotação ME loja + híbrido own  
-2. `shipping_quotes` + fix RLS + consumo atômico  
-3. Carrinho sem logistics  
-4. Prepare-on-approve  
-5. Label HTTP cart real + `postal_code` + origem DB  
-6. UI Logística ME / Configurações  
-7. Histórico medidas / padrões categoria  
-8. Dados de peso em massa (M6)  
+1. Frete próprio v2 (POL / veículo / Routes / tarifa por categoria)  
+2. UI Logística ME / Configurações  
+3. M7 E2E etiqueta  
+4. Filtro `service_id` ME  
+5. Histórico medidas / padrões categoria  
+6. Drift: versionar no repo migrations own/origem só no wtbp  
+7. Decisão `MELHOR_ENVIO_API_BASE` (prod vs sandbox) sob B  
 
 ---
 
 ## 17. Pendências explícitas
 
-**Fechadas por eFe (D12):** cotação loja sob B; prepare no approve; etiqueta manual; sem auto-purchase MP; origem DB.
+**Fechadas:** D12 híbrido (código); M6; cart logistics; etiqueta só na Expedição.
 
-**Ainda abertas:** apply migration (P-ME-1); timing secrets vs M6 (P-ME-2); filtro serviços ME (P-ME-3); cart ME no approve vs só na Expedição — recomendação v1 = só Expedição (P-ME-4); precificação frete próprio (P-ME-5).
+**Abertas (ME):** M7 E2E; UI config; P-ME-3 filtro serviços; P-ME-4 cart no approve (rec: só Expedição); API_BASE sob B.
+
+**Abertas (frete próprio v2):** aceite fórmula piso; R$ tarifas; capacidade POL do carro; POL unitários/portes; perfil incompleto block vs manual; ETA; billing Google; D-FRETE C. Detalhe: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md) §19.
 
 ---
 
@@ -332,5 +342,6 @@ Detalhe PRs: [planejamento híbrido §9](./FAL_MARCHA_ME_HIBRIDO_PLANEJAMENTO_20
 | 2026-11-04 | Versão inicial pós-α (planejamento) |
 | 2026-11-04 | Revisão auditoria ME: estado código, rejeição fulfill-MP |
 | 2026-11-04 | D12 híbrido + planejamento MARCHA detalhado |
+| 2026-11-05 | Rebase §4 FATO pós VAL D12; D13–D16 frete próprio v2 (A–H); links planejamento + correções ME |
 
-**Assinatura agente:** plano funcional logística/medidas — D12 híbrido detalhado 2026-11-04 (docs only).
+**Assinatura agente:** plano funcional logística — rebase 2026-11-05 (docs only).

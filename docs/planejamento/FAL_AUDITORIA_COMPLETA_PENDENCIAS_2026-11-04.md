@@ -82,8 +82,8 @@
 | ID | Item |
 |----|------|
 | P1-REG2 | Onda 2: solicitação de cancelamento pós-pagamento + análise admin + estorno MP (refund) |
-| P1-WH | Diagnóstico webhook (`notifications_history`) |
-| P1-OPS-E2E | Concluir `08da5ada` até `enviado`/`entregue` (ship/deliver) como smoke operador |
+| P1-WH | Diagnóstico webhook (`notifications_history`) | **FEITO** 05/11 — MCP vazio (ressalva) · Edge 405 GET · [VAL M9](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) |
+| P1-OPS-E2E | Concluir `08da5ada` até `enviado`/`entregue` | **FEITO** 05/11 — `entregue` |
 | P1-LOG-HIST | Histórico de alterações de medidas (`MARCHA_LOGISTICA_FILTROS_HISTORICO_MEDIDAS`) |
 | P1-TEST | E2E contínuo (PRD §28) — regressão admin/cliente automatizada |
 
@@ -92,7 +92,7 @@
 | ID | Item |
 |----|------|
 | P2-REG3 | Onda 3: cartão salvo tokenizado (MP Customers/Cards) — regra de segurança eFe obrigatória |
-| P2-OWN | Frete próprio: critérios de preço avançados + ativação (`enabled=true`) |
+| P2-OWN | Frete próprio v2 distance+POL+ownq | **FEITO** 05/11 — cutover `enabled=true` · tarifas homolog (eFe edita no admin) · VAL/auditoria |
 | P2-ME / P2-C | Melhor Envio / D-FRETE **C** — só com nova assinatura |
 
 ### P3
@@ -108,10 +108,10 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 | M3 | DOCS-SYNC-POS-ALPHA | PR com docs α locais + PRD §7/§22/§23/§31/§32/§36 + ROADMAP + `FAL_REGRAS_FLUXO_PEDIDOS` | **FEITO** #51 |
 | M4 | REGRAS-PEDIDOS-ONDA1 | cancelar não pago, decisão cliente, labels/CTAs | **FEITO** SQL wtbp + VAL + PR |
 | M5 | CRON-EXPIRY | `pg_cron` + 1ª limpeza dos 9 | **FEITO** (job horário + 9 expirados) |
-| M6 | DADOS-MEDIDAS | Bulk peso/dimensões por Categoria/Grupo | Operação eFe (valores) |
-| M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | — |
+| M6 | DADOS-MEDIDAS | Bulk peso/dimensões por Categoria/Grupo | **FEITO** provisório 04/11 (100 quote-ready); calibração comercial = eFe |
+| M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | **FEITO** 05/11 — status `entregue` · [VAL](./FAL_MARCHA_OPS_E2E_ENTREGA_VAL_2026-11-05.md) |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Cancelamento pós-pago + refund MP | Decisão política de estorno |
-| M9 | WEBHOOK-DIAG | MCP `notifications_history` / logs Edge | — |
+| M9 | WEBHOOK-DIAG | MCP `notifications_history` / logs Edge | **FEITO** 05/11 — [VAL](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) · MCP ainda vazio (≠ FAIL loja) |
 | M10 | REGRAS-PEDIDOS-ONDA3 | Cartão tokenizado | Decisão + MP Customers |
 | M11+ | Frete C / Melhor Envio · F11 · domínio | — | Assinaturas |
 

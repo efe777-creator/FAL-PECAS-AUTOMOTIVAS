@@ -37,6 +37,10 @@ import {
 } from '@/services/admin/adminPriceListService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
+import {
+  listOwnVehicleCategories,
+  type OwnVehicleCategory,
+} from '@/services/admin/adminOwnDeliveryService'
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
@@ -109,12 +113,19 @@ export function AdminProductFormPage() {
   const [heightOrigin, setHeightOrigin] = useState<MeasureOrigin>('global')
   const [widthOrigin, setWidthOrigin] = useState<MeasureOrigin>('global')
   const [lengthOrigin, setLengthOrigin] = useState<MeasureOrigin>('global')
+  const [polUnit, setPolUnit] = useState('')
+  const [logisticPorte, setLogisticPorte] = useState<'' | 'pequeno' | 'medio' | 'grande'>('')
+  const [vehicleMinCode, setVehicleMinCode] = useState('')
+  const [compatibleCodes, setCompatibleCodes] = useState('motorcycle,car')
+  const [ownDeliveryAllowed, setOwnDeliveryAllowed] = useState(true)
+  const [polOrigin, setPolOrigin] = useState<MeasureOrigin>('global')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
   const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
   const [lado, setLado] = useState<Product['lado']>(null)
 
   const [categories, setCategories] = useState<Category[]>([])
+  const [ownVehicles, setOwnVehicles] = useState<OwnVehicleCategory[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [refs, setRefs] = useState<ProductReference[]>([])
@@ -142,12 +153,13 @@ export function AdminProductFormPage() {
 
   useEffect(() => {
     void (async () => {
-      const [cats, brs, sups, mfrs, lists] = await Promise.all([
+      const [cats, brs, sups, mfrs, lists, vehicles] = await Promise.all([
         adminListCategories(),
         adminListBrands(),
         adminListSuppliers(),
         adminListManufacturers(),
         adminListPriceLists(),
+        listOwnVehicleCategories().catch(() => [] as OwnVehicleCategory[]),
       ])
       // Só published na lista; preserva nós extras (ex. arquivados do produto em edição).
       setCategories((prev) => {
@@ -157,6 +169,7 @@ export function AdminProductFormPage() {
         )
         return [...published, ...extras]
       })
+      setOwnVehicles(vehicles.filter((v) => v.active))
       setBrands(brs.filter((b) => b.status === 'active'))
       setSuppliers(sups.filter((s) => s.status === 'active'))
       setMakers(mfrs.filter((m) => m.status === 'active'))
@@ -223,6 +236,12 @@ export function AdminProductFormPage() {
         setHeightOrigin(p.heightOrigin ?? (p.heightCm != null ? 'manual' : 'global'))
         setWidthOrigin(p.widthOrigin ?? (p.widthCm != null ? 'manual' : 'global'))
         setLengthOrigin(p.lengthOrigin ?? (p.lengthCm != null ? 'manual' : 'global'))
+        setPolUnit(p.polUnit != null ? String(p.polUnit) : '')
+        setLogisticPorte((p.logisticPorte as '' | 'pequeno' | 'medio' | 'grande') || '')
+        setVehicleMinCode(p.vehicleMinCode ?? '')
+        setCompatibleCodes((p.compatibleVehicleCodes ?? ['motorcycle', 'car']).join(','))
+        setOwnDeliveryAllowed(p.ownDeliveryAllowed !== false)
+        setPolOrigin(p.polOrigin ?? (p.polUnit != null ? 'manual' : 'global'))
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
         setPosicaoAtoms(parsePosicaoAtoms(p.posicao))
@@ -459,6 +478,16 @@ export function AdminProductFormPage() {
         heightOrigin,
         widthOrigin,
         lengthOrigin,
+        polUnit: polUnit.trim() ? Number(polUnit) : null,
+        logisticPorte: logisticPorte || null,
+        vehicleMinCode: vehicleMinCode.trim() || null,
+        compatibleVehicleCodes: compatibleCodes
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        ownDeliveryAllowed,
+        polOrigin,
+        logisticProfileOrigin: 'manual',
         shortDescription,
         description,
         posicao: composePosicao(posicaoAtoms),
@@ -833,11 +862,80 @@ export function AdminProductFormPage() {
           ) : null}
         </div>
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Logística (opcional)</h2>
+        <h2 className="pt-2 font-extrabold text-fal-navy">Frete próprio — POL e veículo</h2>
         <p className="m-0 text-xs text-fal-muted">
-          Novos produtos começam sem medidas (vazio). Categoria não preenche automaticamente.
-          Editar valor marca <strong>Manual</strong> (protegido do bulk). Global = elegível à
-          alteração em massa na lista de produtos.
+          Mesmo campo usado em{' '}
+          <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-navy">
+            Logística → Frete próprio → Produtos
+          </Link>
+          . Sem duplicar cadastro. Editar marca origem <strong>Manual</strong>.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <Input
+            label="POL unitário (capacidade de carga)"
+            type="number"
+            step="0.01"
+            min="0"
+            value={polUnit}
+            onChange={(e) => {
+              setPolUnit(e.target.value)
+              setPolOrigin('manual')
+            }}
+            hint="Unidade de volume/carga usada na cotação por modalidade"
+          />
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Porte logístico</span>
+            <select
+              className="w-full rounded-lg border border-fal-line px-3 py-2"
+              value={logisticPorte}
+              onChange={(e) => setLogisticPorte(e.target.value as typeof logisticPorte)}
+            >
+              <option value="">—</option>
+              <option value="pequeno">Pequeno</option>
+              <option value="medio">Médio</option>
+              <option value="grande">Grande</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Veículo mínimo</span>
+            <select
+              className="w-full rounded-lg border border-fal-line px-3 py-2"
+              value={vehicleMinCode}
+              onChange={(e) => setVehicleMinCode(e.target.value)}
+            >
+              <option value="">—</option>
+              {ownVehicles.map((v) => (
+                <option key={v.id} value={v.code}>
+                  {v.label} (até {v.capacityPol} POL)
+                </option>
+              ))}
+            </select>
+          </label>
+          <Input
+            label="Compatível (códigos, vírgula)"
+            value={compatibleCodes}
+            onChange={(e) => setCompatibleCodes(e.target.value)}
+            hint={
+              ownVehicles.length
+                ? `Modalidades: ${ownVehicles.map((v) => v.code).join(', ')}`
+                : 'Cadastre modalidades em Frete próprio → Veículos'
+            }
+          />
+          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <input
+              type="checkbox"
+              checked={ownDeliveryAllowed}
+              onChange={(e) => setOwnDeliveryAllowed(e.target.checked)}
+            />
+            Permite frete próprio FAL
+          </label>
+          <p className="m-0 self-center text-xs text-fal-muted">
+            Origem POL: <strong>{polOrigin === 'manual' ? 'Manual' : 'Global'}</strong>
+          </p>
+        </div>
+        <h2 className="pt-2 font-extrabold text-fal-navy">Medidas físicas (opcional)</h2>
+        <p className="m-0 text-xs text-fal-muted">
+          Peso e dimensões para ME/transportadoras. Independente do POL do frete próprio.
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(
