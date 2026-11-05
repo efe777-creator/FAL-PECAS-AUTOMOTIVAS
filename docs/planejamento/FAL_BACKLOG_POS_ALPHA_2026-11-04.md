@@ -3,6 +3,7 @@
 **Data:** 2026-11-04  
 **Premissa:** Fase α **ENCERRADA** ([STOP formal](./FAL_STOP_ALPHA_FORMAL_2026-11-04.md)) · D-FRETE **B** vigente  
 **Planejamento cruzado:** [auditoria completa](./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md) · [regras de pedidos](./FAL_REGRAS_FLUXO_PEDIDOS_2026-11-04.md)  
+**Plano mestre vigente (site como um todo):** [FAL_PLANO_MESTRE_SITE_2026-11-05.md](./FAL_PLANO_MESTRE_SITE_2026-11-05.md) — Onda 0 (UI/bugs/copy) → Onda 1 (ops/funil/CTAs) → Ondas 2–4.  
 **Regra:** cada item exige MARCHA nomeada + auth; sem misturar Pedidos com Logística na mesma frente sem gate.
 
 ---

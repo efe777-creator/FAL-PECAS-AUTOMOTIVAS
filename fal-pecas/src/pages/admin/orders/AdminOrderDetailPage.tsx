@@ -84,9 +84,12 @@ export function AdminOrderDetailPage() {
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [cancelNote, setCancelNote] = useState('')
 
-  async function reload() {
-    setLoading(true)
-    setError(null)
+  /** Reload silencioso por padrão: só o primeiro load mostra spinner de página inteira. */
+  async function reload(opts?: { initial?: boolean }) {
+    if (opts?.initial) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const [d, cancel] = await Promise.all([adminGetOrderDetail(id), staffCanCancel()])
       setOrder(d)
@@ -101,16 +104,34 @@ export function AdminOrderDetailPage() {
           }
         }
         setDrafts(next)
+        // ME-C3/plano: pré-preencher transportadora/rastreio com retorno ME quando vazio
+        const meRaw = d.shipment?.metadata?.me
+        const me =
+          meRaw && typeof meRaw === 'object'
+            ? (meRaw as {
+                company_name?: string
+                tracking?: string
+                service_id?: string | number
+              })
+            : null
+        setCarrier((prev) => prev || d.shipment?.carrier || me?.company_name || '')
+        setService((prev) =>
+          prev ||
+          d.shipment?.service ||
+          (me?.service_id != null ? `ME #${me.service_id}` : '') ||
+          '',
+        )
+        setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar')
     } finally {
-      setLoading(false)
+      if (opts?.initial) setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (id) void reload()
+    if (id) void reload({ initial: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
@@ -801,7 +822,7 @@ export function AdminOrderDetailPage() {
           onService={setService}
           onTracking={setTracking}
           onRequestShip={() => setPending({ kind: 'ship' })}
-          onReload={reload}
+          onReload={() => reload()}
           onMessage={setMsg}
           onError={setError}
         />

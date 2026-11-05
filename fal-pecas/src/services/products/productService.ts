@@ -1,4 +1,5 @@
 import { mockProducts } from '@/data/mocks/products'
+import { looksLikeProductUuid } from '@/lib/productHref'
 import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { yearMatchesVehicleApp } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
@@ -74,12 +75,40 @@ const PRODUCT_SELECT = `
   product_categories ( id, name, slug )
 `
 
+async function hydratePublishedByIds(ids: string[]): Promise<Product[]> {
+  if (!ids.length || !isSupabaseConfigured || !supabase) return []
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .in('id', ids)
+    .eq('status', 'published')
+  if (error) throw error
+  const mapped = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+  const byId = new Map(mapped.map((p) => [p.id, p]))
+  const ordered = ids.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p))
+  const withApps = await attachCompatibilitySummaries(ordered, {
+    compact: true,
+    maxEntries: 4,
+    maxMakers: null,
+    maxLinesPerMaker: null,
+  })
+  const withImages = await attachPrimaryProductImages(withApps)
+  return attachResolvedPrices(withImages)
+}
+
 /**
- * Destaques da home (IMP-12): published, preferindo disponíveis; sem flag `is_featured`.
- * Fallback mock só sem configuração Supabase.
+ * Destaques da home (IMP-12 / Onda 3):
+ * 1) curadoria store_home_featured_products se houver
+ * 2) senão published recentes, preferindo disponíveis
  */
 export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
-  const pool = await listPublishedProducts(Math.max(limit * 2, limit))
+  const { listCuratedFeaturedProductIds } = await import('@/services/home/homeContentService')
+  const curatedIds = await listCuratedFeaturedProductIds()
+  if (curatedIds.length) {
+    const curated = await hydratePublishedByIds(curatedIds.slice(0, Math.max(limit, 1) * 2))
+    if (curated.length) return curated.slice(0, limit)
+  }
+  const pool = await listPublishedProducts(Math.max(limit * 2, 12))
   const available = pool.filter((p) => p.available !== false)
   const rest = pool.filter((p) => p.available === false)
   return [...available, ...rest].slice(0, limit)
@@ -245,29 +274,13 @@ export async function filterProductIdsByVehicle(filter: {
   return [...ids]
 }
 
-export async function getProductById(id: string): Promise<Product | null> {
-  assertStoreBackendConfigured()
-  if (!isSupabaseConfigured || !supabase) {
-    if (!allowCatalogMocks()) return null
-    return mockProducts.find((p) => p.id === id) ?? null
-  }
-
-  const { data, error } = await supabase
-    .from('products')
-    .select(PRODUCT_SELECT)
-    .eq('id', id)
-    .eq('status', 'published')
-    .maybeSingle()
-
-  if (error) throw error
-  if (!data) return null
-
-  const product = mapProduct(data as Record<string, unknown>)
+async function hydrateStorefrontProduct(product: Product): Promise<Product> {
+  if (!isSupabaseConfigured || !supabase) return product
 
   const { data: refs } = await supabase
     .from('product_references')
     .select('code, ref_type, brand_label, brand_id, status')
-    .eq('product_id', id)
+    .eq('product_id', product.id)
     .eq('status', 'active')
 
   if (refs?.length) {
@@ -289,6 +302,58 @@ export async function getProductById(id: string): Promise<Product | null> {
   const withGallery = await attachProductImageGallery(withApps ?? product)
   const [resolved] = await attachResolvedPrices([withGallery])
   return resolved ?? withGallery
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  assertStoreBackendConfigured()
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return null
+    return mockProducts.find((p) => p.id === id) ?? null
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('id', id)
+    .eq('status', 'published')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  return hydrateStorefrontProduct(mapProduct(data as Record<string, unknown>))
+}
+
+/** PDP: resolve por slug (canônico) ou UUID legado. */
+export async function getProductBySlugOrId(slugOrId: string): Promise<Product | null> {
+  const key = slugOrId.trim()
+  if (!key) return null
+  assertStoreBackendConfigured()
+
+  if (looksLikeProductUuid(key)) {
+    return getProductById(key)
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return null
+    return (
+      mockProducts.find((p) => p.slug === key) ??
+      mockProducts.find((p) => p.id === key) ??
+      null
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .eq('slug', key)
+    .eq('status', 'published')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  return hydrateStorefrontProduct(mapProduct(data as Record<string, unknown>))
 }
 
 /** @deprecated Preferir `searchCatalog` (Fase 4). Mantido como fachada. */

@@ -46,7 +46,9 @@ export function CartPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
         <div className="rounded-fal border border-fal-line bg-white p-5">
           {items.map((item) => {
-            const productHref = `/produto/${item.productId}`
+            const productHref = item.slug
+              ? `/produto/${encodeURIComponent(item.slug)}`
+              : `/produto/${item.productId}`
             return (
               <div
                 key={item.productId}
@@ -93,18 +95,28 @@ export function CartPage() {
                       Ver produto
                     </Link>
                   </p>
+                  <p className="mb-0 mt-1 text-xs text-fal-muted">
+                    {formatMoney(item.price)} cada
+                  </p>
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       type="button"
                       className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      aria-label={`Diminuir quantidade de ${item.name}`}
                       onClick={() => updateQty(item.productId, item.quantity - 1)}
                     >
                       −
                     </button>
-                    <span className="min-w-[30px] text-center font-extrabold">{item.quantity}</span>
+                    <span
+                      className="min-w-[30px] text-center font-extrabold"
+                      aria-label={`Quantidade: ${item.quantity}`}
+                    >
+                      {item.quantity}
+                    </span>
                     <button
                       type="button"
                       className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      aria-label={`Aumentar quantidade de ${item.name}`}
                       onClick={() => updateQty(item.productId, item.quantity + 1)}
                     >
                       +
@@ -112,6 +124,7 @@ export function CartPage() {
                     <button
                       type="button"
                       className="ml-2 text-sm font-bold text-fal-danger"
+                      aria-label={`Remover ${item.name} do carrinho`}
                       onClick={() => removeItem(item.productId)}
                     >
                       Remover

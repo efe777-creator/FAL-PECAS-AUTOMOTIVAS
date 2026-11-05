@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { Link } from 'react-router-dom'
 
 interface ToastAction {
   label: string
@@ -70,17 +71,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             ]
               .filter(Boolean)
               .join(' ')}
-            role="status"
+            role={t.tone === 'error' ? 'alert' : 'status'}
           >
             <span className="min-w-0 flex-1 leading-snug">{t.message}</span>
             {t.action ? (
-              // <a> (não Link): ToastProvider fica fora do RouterProvider em App.tsx
-              <a
-                href={t.action.to}
+              <Link
+                to={t.action.to}
                 className="shrink-0 rounded-md bg-white/20 px-2.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white no-underline hover:bg-white/30"
               >
                 {t.action.label}
-              </a>
+              </Link>
             ) : null}
           </div>
         ))}

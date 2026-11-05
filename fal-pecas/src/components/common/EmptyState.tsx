@@ -1,6 +1,5 @@
-import { Button } from './Button'
+import { ButtonLink } from './ButtonLink'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
 interface EmptyStateProps {
   title: string
@@ -24,9 +23,9 @@ export function EmptyState({
       {children}
       {actionLabel && actionTo ? (
         <div className="mt-5 flex justify-center">
-          <Link to={actionTo}>
-            <Button variant="primary">{actionLabel}</Button>
-          </Link>
+          <ButtonLink to={actionTo} variant="primary">
+            {actionLabel}
+          </ButtonLink>
         </div>
       ) : null}
     </div>

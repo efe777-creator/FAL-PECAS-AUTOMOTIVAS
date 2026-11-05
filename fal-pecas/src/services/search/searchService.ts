@@ -1,12 +1,14 @@
 import { mockProducts } from '@/data/mocks/products'
 import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import { attachCategoryMeta } from '@/services/categories/categoryService'
 import {
   attachResolvedPrices,
   displayPrice,
 } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import { attachPrimaryProductImages } from '@/services/products/productImages'
+import { prepareSearchQuery } from '@/services/search/searchPrepService'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
@@ -172,8 +174,9 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
     return mockSearch({ ...params, page, pageSize, sort })
   }
 
+  const qPrepared = await prepareSearchQuery(params.q)
   const { data, error } = await supabase.rpc('search_products', {
-    p_q: params.q?.trim() || null,
+    p_q: qPrepared || null,
     p_category: params.category?.trim() || null,
     p_brand: params.brand?.trim() || null,
     p_maker: params.maker?.trim() || null,
@@ -200,6 +203,7 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
   })
   const withImages = await attachPrimaryProductImages(withApps)
   let items = await attachResolvedPrices(withImages)
+  await attachCategoryMeta(items)
 
   // FIND-012: RPC já ordena por resolve; reordenação da página = rede de segurança
   if (sort === 'price_asc' || sort === 'price_desc') {
@@ -223,4 +227,70 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
 export async function searchProductsLegacy(query: string): Promise<Product[]> {
   const result = await searchCatalog({ q: query, page: 1, pageSize: 40, sort: 'relevance' })
   return result.items
+}
+
+const SUGGEST_BUCKET = 'product-images'
+
+function suggestImageUrl(storagePath: string | null | undefined): string | undefined {
+  if (!storagePath || !supabase) return undefined
+  const { data } = supabase.storage.from(SUGGEST_BUCKET).getPublicUrl(storagePath)
+  return data.publicUrl || undefined
+}
+
+function mapSuggestionRow(row: Record<string, unknown>): Product {
+  const sku = String(row.sku ?? '')
+  const resolved =
+    row.resolved_amount == null || row.resolved_amount === ''
+      ? undefined
+      : Number(row.resolved_amount)
+  const price = Number(row.price ?? 0)
+  const imageUrl = suggestImageUrl((row.image_path as string | null) ?? null)
+  return {
+    id: String(row.id),
+    sku,
+    commercialRef: (row.commercial_ref as string | null) ?? sku,
+    name: String(row.name),
+    slug: String(row.slug),
+    brand: (row.brand_name as string | null) ?? undefined,
+    price,
+    promoPrice: row.promo_price == null ? null : Number(row.promo_price),
+    ...(resolved != null && Number.isFinite(resolved)
+      ? { resolvedPrice: resolved, listPrice: price }
+      : {}),
+    status: 'published',
+    available: true,
+    imageUrl,
+  }
+}
+
+function mockSuggestions(query: string, limit: number): Product[] {
+  const result = mockSearch({ q: query, page: 1, pageSize: limit, sort: 'relevance' })
+  return result.items.slice(0, limit)
+}
+
+/**
+ * Sugestões leves do SearchBar (RPC `search_product_suggestions`).
+ * Sem enrich de compatibilidade/categoria — só campos do combobox.
+ */
+export async function searchProductSuggestions(
+  query: string,
+  limit = 6,
+): Promise<Product[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+
+  const capped = Math.min(Math.max(limit, 1), 12)
+  assertStoreBackendConfigured()
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) throw new Error('Catálogo indisponível')
+    return mockSuggestions(q, capped)
+  }
+
+  const qPrepared = await prepareSearchQuery(q)
+  const { data, error } = await supabase.rpc('search_product_suggestions', {
+    p_q: qPrepared || q,
+    p_limit: capped,
+  })
+  if (error) throw error
+  return ((data ?? []) as Record<string, unknown>[]).map(mapSuggestionRow)
 }

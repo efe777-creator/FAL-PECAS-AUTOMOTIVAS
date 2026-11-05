@@ -117,9 +117,25 @@ export function MercadoPagoPixPanel({
 
   async function copyPix() {
     if (!row?.pixQrCode) return
-    await navigator.clipboard.writeText(row.pixQrCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(row.pixQrCode)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = row.pixQrCode
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* fallback: usuário pode selecionar o código manualmente */
+    }
   }
 
   const expired = localExpired || row?.status === 'expired' || isPaymentExpired(row?.expiresAt)

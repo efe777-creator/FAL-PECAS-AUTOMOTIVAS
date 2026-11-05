@@ -127,11 +127,11 @@ begin
     );
   end if;
 
-  if old.logistic_profile is distinct from new.logistic_profile
+  if old.logistic_porte is distinct from new.logistic_porte
      or old.logistic_profile_origin is distinct from new.logistic_profile_origin then
     v_changes := v_changes || jsonb_build_object(
-      'logistic_profile', jsonb_build_object(
-        'old', old.logistic_profile, 'new', new.logistic_profile,
+      'logistic_porte', jsonb_build_object(
+        'old', old.logistic_porte, 'new', new.logistic_porte,
         'old_origin', old.logistic_profile_origin,
         'new_origin', new.logistic_profile_origin
       )

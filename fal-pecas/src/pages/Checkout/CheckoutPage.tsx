@@ -98,11 +98,11 @@ export function CheckoutPage() {
     if (target >= 3) {
       if (!shippingOptionId) return 'Selecione uma opção de entrega'
       if (!carrierDesc.placeOrderReady) {
-        return `Provedor ${carrierDesc.label} ainda não fecha pedido. Use mock até D-FRETE C.`
+        return 'Entrega indisponível no momento. Tente novamente mais tarde.'
       }
     }
     if (target >= 4 && mpEnabled && mpChannel === 'card' && !mpPublicKey) {
-      return 'VITE_MP_PUBLIC_KEY não configurada'
+      return 'Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.'
     }
     return null
   }
@@ -132,7 +132,7 @@ export function CheckoutPage() {
   const onMpApproved = useCallback(
     (oid: string) => {
       push('Pagamento confirmado — pedido em análise', 'success')
-      navigate(`/conta/pedidos/${oid}`)
+      navigate(`/pedido/${oid}/confirmacao`)
     },
     [navigate, push],
   )
@@ -145,13 +145,22 @@ export function CheckoutPage() {
     [push],
   )
 
+  const skippedIdentRef = useRef(false)
   useEffect(() => {
-    if (user?.cpf) {
+    if (user?.cpf && isValidCpf(user.cpf)) {
       setDocKind('cpf')
       setDocValue(formatDocumentMask('cpf', user.cpf))
-    } else if (user?.cnpj) {
+      if (!skippedIdentRef.current) {
+        skippedIdentRef.current = true
+        goToStepIndex(1)
+      }
+    } else if (user?.cnpj && isValidCnpj(user.cnpj)) {
       setDocKind('cnpj')
       setDocValue(formatDocumentMask('cnpj', user.cnpj))
+      if (!skippedIdentRef.current) {
+        skippedIdentRef.current = true
+        goToStepIndex(1)
+      }
     }
   }, [user?.cpf, user?.cnpj])
 
@@ -164,8 +173,13 @@ export function CheckoutPage() {
         (selectId ? list.find((a) => a.id === selectId) : null) ??
         list.find((a: CustomerAddress) => a.isDefault) ??
         list[0]
-      if (preferred) setAddressId(preferred.id)
-      else setAddressId('')
+      if (preferred) {
+        setAddressId(preferred.id)
+        setShowNewAddress(false)
+      } else {
+        setAddressId('')
+        setShowNewAddress(true)
+      }
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
@@ -284,7 +298,7 @@ export function CheckoutPage() {
     if (!validateDoc() || !addressId || !shippingOptionId) return
     if (!carrierDesc.placeOrderReady) {
       setError(
-        `Provedor ${carrierDesc.label} ainda não fecha pedido. Mantendo produção em mock até D-FRETE C.`,
+        'Entrega indisponível no momento. Tente novamente mais tarde.',
       )
       return
     }
@@ -311,14 +325,14 @@ export function CheckoutPage() {
         push('Pedido já registrado', 'success')
         clear()
         clearShippingQuoteHandoff()
-        navigate(`/conta/pedidos/${placed.orderId}`)
+        navigate(`/pedido/${placed.orderId}/confirmacao`)
         return
       }
 
       if (mpEnabled) {
         if (mpChannel === 'card') {
           if (!mpPublicKey) {
-            throw new Error('VITE_MP_PUBLIC_KEY não configurada')
+            throw new Error('Pagamento com cartão indisponível no momento.')
           }
           // FIND-SMOKE-UI-001: setar awaiting ANTES de clear — senão empty-cart early-return esconde o Brick
           setMpAwaiting({
@@ -335,7 +349,7 @@ export function CheckoutPage() {
         const mp = await createMercadoPagoPayment(placed.orderId)
         if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
           throw new Error(
-            'Cobrança criada sem QR Pix. Confira MP_ACCESS_TOKEN (TEST) no Edge e se a conta sandbox gera Pix.',
+            'Não foi possível gerar o Pix. Tente novamente ou escolha cartão.',
           )
         }
         // FIND-SMOKE-UI-001: awaiting antes do clear — senão empty-cart early-return esconde o Pix panel
@@ -363,7 +377,7 @@ export function CheckoutPage() {
       } else {
         push('Pagamento simulado recusado — pedido cancelado', 'error')
       }
-      navigate(`/conta/pedidos/${pay.orderId ?? placed.orderId}`)
+      navigate(`/pedido/${pay.orderId ?? placed.orderId}/confirmacao`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao finalizar pedido')
     } finally {
@@ -430,8 +444,27 @@ export function CheckoutPage() {
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Identificação</h2>
               <p className="text-sm text-fal-muted">
-                Logado como {user?.fullName || user?.email}. CPF/CNPJ é obrigatório para finalizar.
+                Logado como {user?.fullName || user?.email}.
               </p>
+              {(user?.cpf && isValidCpf(user.cpf)) || (user?.cnpj && isValidCnpj(user.cnpj)) ? (
+                <div className="rounded-fal border border-fal-line bg-fal-bg/50 p-3 text-sm">
+                  <p className="m-0 font-semibold text-fal-navy">Documento já cadastrado</p>
+                  <p className="mb-0 mt-1">
+                    {docKind.toUpperCase()}: {formatDocumentMask(docKind, docValue)}
+                  </p>
+                  <p className="mb-0 mt-2 text-xs text-fal-muted">
+                    Continuaremos com este documento. Você pode alterá-lo abaixo se necessário.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="mt-3"
+                    onClick={() => void goToStep(1)}
+                  >
+                    Continuar
+                  </Button>
+                </div>
+              ) : null}
               <div className="flex gap-3">
                 <label className="flex items-center gap-2 text-sm font-semibold">
                   <input
@@ -482,7 +515,13 @@ export function CheckoutPage() {
                           type="radio"
                           name="address"
                           checked={addressId === a.id}
-                          onChange={() => setAddressId(a.id)}
+                          onChange={() => {
+                            setAddressId(a.id)
+                            setShippingOptions([])
+                            setShippingOptionId('')
+                            setMaxReachedStep((m) => Math.min(m, 1))
+                            if (step > 1) setStep(1)
+                          }}
                         />
                         <span className="text-sm">
                           <strong>{a.label || a.recipient}</strong>
@@ -546,14 +585,13 @@ export function CheckoutPage() {
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Entrega</h2>
               <p className="m-0 text-sm text-fal-muted">
-                {shippingDisclaimer ??
-                  'Cotação do ambiente atual. Valores comerciais definitivos dependem da política D-FRETE.'}
+                {shippingDisclaimer && !/D-FRETE|VITE_|mock/i.test(shippingDisclaimer)
+                  ? shippingDisclaimer
+                  : 'Escolha a forma de entrega. O valor e o prazo são confirmados ao finalizar.'}
               </p>
               {!carrierDesc.placeOrderReady ? (
                 <p className="m-0 text-sm font-semibold text-fal-danger" role="status">
-                  Provedor ativo ({carrierDesc.label}) não fecha pedido ainda — use{' '}
-                  <code className="text-xs">VITE_SHIPPING_PROVIDER=mock</code> até D-FRETE C +
-                  integração.
+                  Entrega indisponível no momento. Tente novamente mais tarde.
                 </p>
               ) : null}
               {quoting ? (
@@ -759,29 +797,29 @@ export function CheckoutPage() {
             </div>
           ) : null}
 
-          {step < 4 ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {step > 0 ? (
-                <Button type="button" variant="light" onClick={() => void goToStep(step - 1)}>
-                  Voltar
+          <div className="mt-6 flex flex-wrap gap-2">
+            {step > 0 ? (
+              <Button type="button" variant="light" onClick={() => void goToStep(step - 1)}>
+                Voltar
+              </Button>
+            ) : (
+              <Link to="/carrinho">
+                <Button type="button" variant="light">
+                  Carrinho
                 </Button>
-              ) : (
-                <Link to="/carrinho">
-                  <Button type="button" variant="light">
-                    Carrinho
-                  </Button>
-                </Link>
-              )}
+              </Link>
+            )}
+            {step < 4 ? (
               <Button
                 type="button"
                 variant="primary"
-                disabled={quoting || (step === 1 && addresses.length === 0)}
+                disabled={quoting || (step === 1 && addresses.length === 0 && !showNewAddress)}
                 onClick={() => void goNext()}
               >
                 Continuar
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
 
         <aside className="h-max rounded-fal border border-fal-line bg-white p-5">

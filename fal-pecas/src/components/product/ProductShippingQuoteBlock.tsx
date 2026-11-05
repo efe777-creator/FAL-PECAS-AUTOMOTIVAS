@@ -57,7 +57,11 @@ export function ProductShippingQuoteBlock({ product }: Props) {
   }, [])
 
   if (!ready) {
-    return null
+    return (
+      <div className="mt-4 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm text-fal-muted">
+        Frete: complete peso e medidas do produto no cadastro para cotar nesta página.
+      </div>
+    )
   }
 
   async function onConsultar() {

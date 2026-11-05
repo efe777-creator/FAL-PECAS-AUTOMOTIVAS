@@ -1,6 +1,11 @@
 import { formatCategoryName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
+import {
+  adminApplyGlobalProductMeasures,
+  type ApplyGlobalMeasuresMode,
+} from '@/services/admin/adminProductService'
+import { bumpCategoriesRevision } from '@/services/categories/categoryService'
 import type { Category } from '@/types'
 
 /** Alinhado à planilha de import: categoria(1) → grupo(2) → subgrupo(3). */
@@ -15,6 +20,16 @@ type Row = {
   sort_order: number
   status: string
   emoji?: string | null
+  default_weight_kg?: number | string | null
+  default_length_cm?: number | string | null
+  default_width_cm?: number | string | null
+  default_height_cm?: number | string | null
+}
+
+function numOrNull(v: number | string | null | undefined): number | null {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 function map(row: Row): Category {
@@ -27,13 +42,19 @@ function map(row: Row): Category {
     sortOrder: row.sort_order,
     status: row.status as Category['status'],
     emoji: row.emoji ?? undefined,
+    defaultWeightKg: numOrNull(row.default_weight_kg),
+    defaultLengthCm: numOrNull(row.default_length_cm),
+    defaultWidthCm: numOrNull(row.default_width_cm),
+    defaultHeightCm: numOrNull(row.default_height_cm),
   }
 }
 
 export async function adminListCategories(): Promise<Category[]> {
   const { data, error } = await getSupabase()
     .from('product_categories')
-    .select('id, parent_id, name, slug, description, sort_order, status, emoji')
+    .select(
+      'id, parent_id, name, slug, description, sort_order, status, emoji, default_weight_kg, default_length_cm, default_width_cm, default_height_cm',
+    )
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true })
   if (error) throw error
@@ -168,6 +189,7 @@ export async function adminReorderSiblingCategories(
       .eq('id', reordered[i]!.id)
     if (error) throw error
   }
+  bumpCategoriesRevision()
 }
 
 export async function adminUpsertCategory(input: {
@@ -180,6 +202,10 @@ export async function adminUpsertCategory(input: {
   status?: Category['status']
   /** Emoji unicode ou chave img:suspensao|freios|filtros. */
   emoji?: string | null
+  defaultWeightKg?: number | null
+  defaultLengthCm?: number | null
+  defaultWidthCm?: number | null
+  defaultHeightCm?: number | null
   /** Lista atual para validar profundidade (obrigatória para hard-limit). */
   allCategories?: Category[]
 }): Promise<Category> {
@@ -221,16 +247,35 @@ export async function adminUpsertCategory(input: {
   const name = formatCategoryName(input.name)
   if (!name) throw new Error('Informe o nome da categoria.')
 
-  if (!input.id) {
-    const siblings = all.filter((c) => (c.parentId ?? null) === parentId)
-    const dup = siblings.find(
-      (c) =>
-        c.status !== 'archived' &&
-        normalizeEntityMatchKey(c.name) === normalizeEntityMatchKey(name),
+  const siblings = all.filter(
+    (c) =>
+      (c.parentId ?? null) === parentId &&
+      (!input.id || c.id !== input.id) &&
+      c.status !== 'archived',
+  )
+  const dup = siblings.find(
+    (c) => normalizeEntityMatchKey(c.name) === normalizeEntityMatchKey(name),
+  )
+  if (dup) {
+    throw new Error(`Já existe categoria "${dup.name}" neste nível.`)
+  }
+
+  const existing = input.id ? all.find((c) => c.id === input.id) : undefined
+  // Update: preserva slug se não veio explícito (evita quebrar ?cat= / links).
+  const baseSlug =
+    (input.slug?.trim() ||
+      (input.id ? existing?.slug : undefined) ||
+      toSlug(name) ||
+      toSlug(`cat-${Date.now()}`)).trim()
+  let slug = baseSlug
+  let n = 0
+  while (
+    all.some(
+      (c) => c.slug === slug && (!input.id || c.id !== input.id),
     )
-    if (dup) {
-      throw new Error(`Já existe categoria "${dup.name}" neste nível.`)
-    }
+  ) {
+    n += 1
+    slug = `${baseSlug}-${n}`
   }
 
   const emoji =
@@ -242,19 +287,47 @@ export async function adminUpsertCategory(input: {
 
   const payload = {
     name,
-    slug: (input.slug?.trim() || toSlug(name)) || toSlug(`cat-${Date.now()}`),
+    slug,
     description: input.description?.trim() || null,
     parent_id: parentId,
     sort_order: input.sortOrder ?? 0,
     status: input.status ?? 'published',
     ...(emoji !== undefined ? { emoji } : {}),
+    ...(input.defaultWeightKg !== undefined
+      ? { default_weight_kg: input.defaultWeightKg }
+      : {}),
+    ...(input.defaultLengthCm !== undefined
+      ? { default_length_cm: input.defaultLengthCm }
+      : {}),
+    ...(input.defaultWidthCm !== undefined
+      ? { default_width_cm: input.defaultWidthCm }
+      : {}),
+    ...(input.defaultHeightCm !== undefined
+      ? { default_height_cm: input.defaultHeightCm }
+      : {}),
   }
   const q = getSupabase().from('product_categories')
   const { data, error } = input.id
     ? await q.update(payload).eq('id', input.id).select().single()
     : await q.insert(payload).select().single()
   if (error) throw error
+  bumpCategoriesRevision()
   return map(data as Row)
+}
+
+/** IDs de produto em um nó e toda a subárvore (apply de medidas padrão). */
+export async function adminListProductIdsInCategorySubtree(
+  items: Category[],
+  categoryId: string,
+): Promise<string[]> {
+  const catIds = collectCategorySubtreeIds(items, categoryId)
+  if (!catIds.length) return []
+  const { data, error } = await getSupabase()
+    .from('products')
+    .select('id')
+    .in('category_id', catIds)
+  if (error) throw error
+  return (data ?? []).map((r) => String((r as { id: string }).id))
 }
 
 export async function adminSetCategoryStatus(
@@ -266,17 +339,40 @@ export async function adminSetCategoryStatus(
     .update({ status })
     .eq('id', id)
   if (error) throw error
+  bumpCategoriesRevision()
 }
 
-/** Republica todos os nós arquivados (ex.: hierarquia de import sem produto ainda). */
-export async function adminPublishAllArchivedCategories(): Promise<number> {
-  const { data, error } = await getSupabase()
-    .from('product_categories')
-    .update({ status: 'published' })
-    .eq('status', 'archived')
-    .select('id')
-  if (error) throw error
-  return data?.length ?? 0
+/** Relatório leve para integridade: nomes duplicados (normalizados) entre nós ativos. */
+export async function adminCategoryIntegrityReport(): Promise<{
+  duplicateNameGroups: { key: string; ids: string[]; names: string[] }[]
+  archivedWithProducts: { id: string; name: string; productCount: number }[]
+}> {
+  const items = await adminListCategories()
+  const byKey = new Map<string, Category[]>()
+  for (const c of items) {
+    if (c.status === 'archived') continue
+    const key = `${c.parentId ?? 'root'}::${normalizeEntityMatchKey(c.name)}`
+    const list = byKey.get(key) ?? []
+    list.push(c)
+    byKey.set(key, list)
+  }
+  const duplicateNameGroups = [...byKey.entries()]
+    .filter(([, list]) => list.length > 1)
+    .map(([key, list]) => ({
+      key,
+      ids: list.map((c) => c.id),
+      names: list.map((c) => c.name),
+    }))
+
+  const archived = items.filter((c) => c.status === 'archived')
+  const archivedWithProducts: { id: string; name: string; productCount: number }[] = []
+  for (const c of archived) {
+    const productCount = await adminCountProductsInCategory(c.id)
+    if (productCount > 0) {
+      archivedWithProducts.push({ id: c.id, name: c.name, productCount })
+    }
+  }
+  return { duplicateNameGroups, archivedWithProducts }
 }
 
 /**
@@ -287,10 +383,10 @@ export async function adminDeleteCategory(id: string, all?: Category[]): Promise
   const items = all ?? (await adminListCategories())
   const node = items.find((c) => c.id === id)
   if (!node) throw new Error('Classificação não encontrada')
-  const kids = items.filter((c) => c.parentId === id && c.status !== 'archived')
+  const kids = items.filter((c) => c.parentId === id)
   if (kids.length > 0) {
     throw new Error(
-      `Não é possível excluir "${node.name}" com ${kids.length} filho(s). Remova ou mova os filhos antes.`,
+      `Não é possível excluir "${node.name}" com ${kids.length} filho(s). Exclua os filhos antes.`,
     )
   }
   const productCount = await adminCountProductsInCategory(id)
@@ -301,4 +397,44 @@ export async function adminDeleteCategory(id: string, all?: Category[]): Promise
   }
   const { error } = await getSupabase().from('product_categories').delete().eq('id', id)
   if (error) throw error
+  bumpCategoriesRevision()
+}
+
+/**
+ * Aplica `default_*` da classificação aos produtos do nó + subárvore.
+ * Default: `skip_manual` (não sobrescreve medidas manuais).
+ */
+export async function adminApplyCategoryDefaultMeasures(opts: {
+  categoryId: string
+  allCategories?: Category[]
+  mode?: ApplyGlobalMeasuresMode
+}): Promise<{ productCount: number; updatedFieldRows: number }> {
+  const items = opts.allCategories ?? (await adminListCategories())
+  const cat = items.find((c) => c.id === opts.categoryId)
+  if (!cat) throw new Error('Classificação não encontrada.')
+
+  const patch: {
+    weightKg?: number | null
+    lengthCm?: number | null
+    widthCm?: number | null
+    heightCm?: number | null
+  } = {}
+  if (cat.defaultWeightKg != null) patch.weightKg = cat.defaultWeightKg
+  if (cat.defaultLengthCm != null) patch.lengthCm = cat.defaultLengthCm
+  if (cat.defaultWidthCm != null) patch.widthCm = cat.defaultWidthCm
+  if (cat.defaultHeightCm != null) patch.heightCm = cat.defaultHeightCm
+  if (!Object.keys(patch).length) {
+    throw new Error('Defina ao menos uma medida padrão nesta classificação antes de aplicar.')
+  }
+
+  const productIds = await adminListProductIdsInCategorySubtree(items, opts.categoryId)
+  if (!productIds.length) {
+    return { productCount: 0, updatedFieldRows: 0 }
+  }
+  const { updatedFieldRows } = await adminApplyGlobalProductMeasures({
+    productIds,
+    patch,
+    mode: opts.mode ?? 'skip_manual',
+  })
+  return { productCount: productIds.length, updatedFieldRows }
 }

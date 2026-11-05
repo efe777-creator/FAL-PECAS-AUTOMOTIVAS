@@ -65,7 +65,7 @@ export function AdminReportsPage() {
           {statusKeys.map((k) => (
             <Link
               key={k}
-              to={`/admin/pedidos?status=${k}`}
+              to={`/admin/pedidos/lista?status=${k}`}
               className="rounded-[12px] border border-fal-line px-3 py-2 hover:border-fal-navy"
             >
               <div className="text-xs text-fal-muted">{orderStatusAdminLabel[k] ?? k}</div>

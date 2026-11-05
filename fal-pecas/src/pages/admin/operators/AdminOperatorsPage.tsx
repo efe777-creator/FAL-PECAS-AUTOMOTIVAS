@@ -1,3 +1,4 @@
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
@@ -52,6 +53,16 @@ export function AdminOperatorsPage() {
 
   async function onRoleChange(row: AdminOperatorUserRow, next: AssignableRole) {
     if (!isAdmin || next === row.role) return
+    if (row.id === user?.id) {
+      setError('Você não pode alterar o próprio acesso. Peça a outro administrador.')
+      return
+    }
+    const { confirmed } = await confirmDialog({
+      title: 'Alterar acesso',
+      message: `Alterar o acesso de ${row.email ?? row.fullName ?? 'este usuário'} para "${next}"?`,
+      confirmLabel: 'Alterar',
+    })
+    if (!confirmed) return
     setError(null)
     setOkMsg(null)
     setSavingId(row.id)
@@ -181,7 +192,11 @@ export function AdminOperatorsPage() {
                     <td className="px-3 py-2">
                       <select
                         value={r.role}
-                        disabled={savingId === r.id || Boolean(r.deactivatedAt)}
+                        disabled={
+                          savingId === r.id ||
+                          Boolean(r.deactivatedAt) ||
+                          r.id === user?.id
+                        }
                         onChange={(e) => void onRoleChange(r, e.target.value as AssignableRole)}
                         className="w-full max-w-[220px] rounded-[8px] border border-fal-line bg-white px-2 py-1.5 text-sm font-semibold text-fal-navy disabled:opacity-50"
                       >

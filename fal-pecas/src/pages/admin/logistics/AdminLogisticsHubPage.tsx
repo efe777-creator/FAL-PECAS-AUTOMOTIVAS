@@ -4,25 +4,37 @@ const cards = [
   {
     to: '/admin/logistica/origem',
     title: 'Origem e expedição',
-    desc: 'Origem da loja: remetente + endereço (CEP/ViaCEP). Base para frete próprio e Melhor Envio.',
+    desc: 'Remetente e endereço da loja (CEP). Base para frete próprio e Melhor Envio.',
     ready: true,
   },
   {
     to: '/admin/logistica/frete-proprio',
     title: 'Frete próprio',
-    desc: 'Menus: Gerais · Veículos (nome/ícone/POL/km) · Tarifas (mín/km/adicional) · Produtos POL — D-FRETE B.',
+    desc: 'Gerais, veículos, tarifas e produtos elegíveis ao frete da FAL.',
     ready: true,
   },
   {
     to: '/admin/logistica/melhor-envio',
     title: 'Melhor Envio',
-    desc: 'Status, catálogo com logo/nome da transportadora e quais fretes aparecem na loja.',
+    desc: 'Status da integração e quais transportadoras aparecem na loja.',
+    ready: true,
+  },
+  {
+    to: '/admin/logistica/caixas',
+    title: 'Caixas e embalagens',
+    desc: 'Modelos de caixa para cotação de frete (peso e volume do pedido).',
+    ready: true,
+  },
+  {
+    to: '/admin/categorias#medidas-padrao',
+    title: 'Medidas por classificação',
+    desc: 'Peso e dimensões padrão por categoria/grupo/subgrupo; apply respeitando Manual.',
     ready: true,
   },
   {
     to: '/admin/logistica/configuracoes',
     title: 'Configurações de envio',
-    desc: 'Regras gerais, validação de medidas, comportamento de cotação.',
+    desc: 'Regras gerais e validação de medidas.',
     ready: false,
   },
 ] as const
@@ -33,8 +45,8 @@ export function AdminLogisticsHubPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Logística</h1>
         <p className="m-0 text-sm text-fal-muted">
-          POL do frete próprio edita-se aqui (Frete próprio → Produtos) ou no cadastro do
-          produto — mesma fonte. Pedidos só opera. Política: D-FRETE <strong>B</strong>.
+          Configure origem, frete próprio, Melhor Envio e embalagens. Pedidos e expedição ficam na
+          área de Pedidos.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -56,10 +68,6 @@ export function AdminLogisticsHubPage() {
           </Link>
         ))}
       </div>
-      <p className="text-xs text-fal-muted">
-        Plano:{' '}
-        <code className="text-[11px]">FAL_PLANO_FUNCIONAL_LOGISTICA_MEDIDAS_2026-11-04.md</code>
-      </p>
     </div>
   )
 }

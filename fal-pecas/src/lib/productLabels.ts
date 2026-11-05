@@ -23,7 +23,10 @@ export const MENOS_APLICACOES_LABEL = 'Menos aplicações'
 
 export const VER_PRODUTO_LABEL = 'Ver produto'
 
-/** CTA primário no card — mesmo verbo da PDP. */
+/** CTA primário no card/PDP (MARCHA O1-G) — garante item no carrinho e vai a /carrinho. */
+export const COMPRAR_AGORA_LABEL = 'Comprar agora'
+
+/** CTA secundário no card/PDP — adiciona e permanece na tela. */
 export const ADICIONAR_AO_CARRINHO_LABEL = 'Adicionar ao carrinho'
 
 /** Seção PDP — atributos existentes (MARCHA PDP-A). */
@@ -68,12 +71,17 @@ export function formatReferenciaFromProduct(product: {
 }
 
 /**
- * D2: prefixo “A partir de” só com variação real (lista > resolvido).
+ * D2: preço resolvido. O preço riscado (promoção) é exibido à parte no card/PDP —
+ * não prefixar "A partir de" para promoção (reservado a faixa min/max real de variação).
  */
-export function formatStorePriceLabel(resolved: number, listPrice?: number | null): string {
-  const money = formatMoney(resolved)
-  if (listPrice != null && listPrice > resolved + 0.001) {
-    return `A partir de ${money}`
+export function formatStorePriceLabel(
+  resolved: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _listPrice?: number | null,
+  range?: { min: number; max: number } | null,
+): string {
+  if (range && range.max > range.min + 0.001) {
+    return `A partir de ${formatMoney(range.min)}`
   }
-  return money
+  return formatMoney(resolved)
 }

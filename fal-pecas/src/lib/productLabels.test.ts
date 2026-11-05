@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ADICIONAR_AO_CARRINHO_LABEL,
   AJUDA_APLICACAO_TEXT,
+  COMPRAR_AGORA_LABEL,
   DESCRICAO_SECTION_LABEL,
   ESPECIFICACOES_SECTION_LABEL,
   FILTRAR_NO_CATALOGO_LABEL,
@@ -26,8 +27,13 @@ describe('productLabels (IMP-11 card)', () => {
     expect(REFERENCIA_LABEL).toBe('Referência')
   })
 
-  it('D3: CTA Ver produto + Adicionar ao carrinho', () => {
+  it('D3: CTA Ver produto (legado) + Adicionar ao carrinho', () => {
     expect(VER_PRODUTO_LABEL).toBe('Ver produto')
+    expect(ADICIONAR_AO_CARRINHO_LABEL).toBe('Adicionar ao carrinho')
+  })
+
+  it('MARCHA O1-G: Comprar agora + Adicionar ao carrinho', () => {
+    expect(COMPRAR_AGORA_LABEL).toBe('Comprar agora')
     expect(ADICIONAR_AO_CARRINHO_LABEL).toBe('Adicionar ao carrinho')
   })
 
@@ -53,11 +59,13 @@ describe('productLabels (IMP-11 card)', () => {
     expect(VER_MAIS_CATALOGO_LABEL).toBe('Ver mais no catálogo')
   })
 
-  it('D2: A partir de só com listPrice > resolved', () => {
+  it('D2: promoção não usa "A partir de"; só variação real min/max', () => {
     expect(formatStorePriceLabel(50)).toBe('R$\u00a050,00')
     expect(formatStorePriceLabel(50, 50)).toBe('R$\u00a050,00')
     expect(formatStorePriceLabel(50, 49.99)).toBe('R$\u00a050,00')
-    expect(formatStorePriceLabel(37.99, 50)).toMatch(/^A partir de /)
-    expect(formatStorePriceLabel(37.99, 50)).toContain('37,99')
+    expect(formatStorePriceLabel(37.99, 50)).toBe('R$\u00a037,99')
+    expect(formatStorePriceLabel(37.99, 50)).not.toMatch(/^A partir de /)
+    expect(formatStorePriceLabel(30, null, { min: 30, max: 45 })).toMatch(/^A partir de /)
+    expect(formatStorePriceLabel(30, null, { min: 30, max: 30 })).toBe('R$\u00a030,00')
   })
 })

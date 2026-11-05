@@ -10,6 +10,7 @@ const catalogLinks = [
   { to: '/admin/precos', label: 'Preços' },
   { to: '/admin/importacoes', label: 'Importações' },
   { to: '/admin/categorias', label: 'Categorias' },
+  { to: '/admin/home', label: 'Home da loja' },
   { to: '/admin/montadoras', label: 'Montadoras' },
   { to: '/admin/veiculos', label: 'Veículos' },
   { to: '/admin/fabricantes', label: 'Fabricantes' },

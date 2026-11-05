@@ -34,11 +34,11 @@ export function ForgotPasswordPage() {
       <div className="mx-auto max-w-md rounded-fal border border-fal-line bg-white p-6">
         <h1 className="mt-0 text-[28px] font-extrabold">Recuperar senha</h1>
         <p className="text-fal-muted">
-          Enviaremos um link de redefinição para o e-mail cadastrado (Supabase Auth).
+          Enviaremos um link de redefinição para o e-mail cadastrado.
         </p>
         {!isConfigured ? (
           <p className="mt-3 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
-            Configure o Supabase no <code>.env</code> para ativar a recuperação.
+            Recuperação de senha indisponível no momento. Tente mais tarde.
           </p>
         ) : null}
         <form className="mt-4 space-y-3" onSubmit={onSubmit}>

@@ -30,7 +30,7 @@
 |----|----------|----------------|----------|------|-----|
 | ME-C1 | Rebase docs canônico/auditoria vs VAL D12 | Parcialmente feito 05/11 | Docs = FATO | Manter sync | P0 |
 | ME-C2 | Versionar no git migrations own/origem só no wtbp | Drift repo | DDL no `supabase/migrations/` | MARCHA ops dump/apply doc | P0 |
-| ME-C3 | Smoke E2E etiqueta Expedição (M7) | Pendente | Pedido âncora → print | Humano + VAL | P1 |
+| ME-C3 | Smoke E2E etiqueta Expedição (M7) | Seed `f6c08149-…` pronto · print gate | Pedido âncora → print | [VAL prep](./FAL_MARCHA_ME_C3_ETIQUETA_VAL_2026-11-05.md) + humano | P1 |
 | ME-C4 | UI hub Melhor Envio (status, ambiente, UA mascarado) | Placeholder | Staff vê saúde integração | MARCHA UI | P1 |
 | ME-C5 | Filtro `service_id` ME (P-ME-3) | Todas do calculate | Lista admin allowlist | Decisão + UI | P1 |
 | ME-C6 | `MELHOR_ENVIO_API_BASE` prod vs sandbox sob B | Smoke usou prod API | Decisão explícita eFe | Registrar na ficha / ops | P0 |

@@ -9,6 +9,12 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { meApiBase } from '../_shared/melhorEnvioCore.ts'
+import {
+  pickSmallestFittingBox,
+  sumItemsWeightKg,
+  type PackingBox,
+  type PackingItem,
+} from '../_shared/shippingPacking.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -360,41 +366,97 @@ Deno.serve(async (req) => {
         })
       }
 
-      let weightSum = 0
       let maxH = 0
       let maxW = 0
       let maxL = 0
-      const products = items.map((it, idx) => {
+      const packingItems: PackingItem[] = items.map((it) => {
         const qty = Math.max(1, Number(it.quantity ?? 1))
         const w = Number(it.weightKg)
         const h = Number(it.heightCm)
         const wi = Number(it.widthCm)
         const le = Number(it.lengthCm)
-        weightSum += w * qty
         maxH = Math.max(maxH, h)
         maxW = Math.max(maxW, wi)
         maxL = Math.max(maxL, le)
-        const share = subtotal > 0 ? (subtotal * (w * qty)) / Math.max(weightSum, 0.001) : 0
-        return {
-          id: String(it.productId ?? idx + 1),
-          width: wi,
-          height: h,
-          length: le,
-          weight: w,
-          insurance_value: Number((share || subtotal / items.length || 1).toFixed(2)),
-          quantity: qty,
-        }
+        return { lengthCm: le, widthCm: wi, heightCm: h, weightKg: w, qty }
       })
-      // Recalcula insurance rateado pelo peso após soma final
-      const productsFinal = items.map((it, idx) => {
-        const qty = Math.max(1, Number(it.quantity ?? 1))
-        const w = Number(it.weightKg)
-        const share = weightSum > 0 ? (subtotal * (w * qty)) / weightSum : subtotal / items.length
-        return {
-          ...products[idx]!,
-          insurance_value: Number(Math.max(1, share).toFixed(2)),
-        }
-      })
+      const weightSum = sumItemsWeightKg(packingItems)
+
+      // O1-C: menor caixa ativa que comporta volume+peso; fallback = max eixos (legado)
+      const { data: boxRows } = await admin
+        .from('shipping_box_templates')
+        .select(
+          'id, name, length_cm, width_cm, height_cm, empty_weight_kg, max_weight_kg, active',
+        )
+        .eq('active', true)
+        .order('sort_order', { ascending: true })
+      const packBoxes: PackingBox[] = (boxRows ?? []).map((r) => ({
+        id: String(r.id),
+        name: String(r.name),
+        lengthCm: Number(r.length_cm),
+        widthCm: Number(r.width_cm),
+        heightCm: Number(r.height_cm),
+        emptyWeightKg: Number(r.empty_weight_kg ?? 0),
+        maxWeightKg: r.max_weight_kg == null ? null : Number(r.max_weight_kg),
+        active: Boolean(r.active),
+      }))
+      const fitted = pickSmallestFittingBox(packBoxes, packingItems)
+
+      let productsFinal: Array<{
+        id: string
+        width: number
+        height: number
+        length: number
+        weight: number
+        insurance_value: number
+        quantity: number
+      }>
+      let packingMode: 'box_template' | 'max_axes' = 'max_axes'
+
+      if (fitted) {
+        packingMode = 'box_template'
+        const packedWeight = Number(
+          (weightSum + fitted.emptyWeightKg).toFixed(3),
+        )
+        productsFinal = [
+          {
+            id: `box:${fitted.id}`,
+            width: fitted.widthCm,
+            height: fitted.heightCm,
+            length: fitted.lengthCm,
+            weight: packedWeight,
+            insurance_value: Number(Math.max(1, subtotal || 1).toFixed(2)),
+            quantity: 1,
+          },
+        ]
+      } else {
+        const products = items.map((it, idx) => {
+          const qty = Math.max(1, Number(it.quantity ?? 1))
+          const w = Number(it.weightKg)
+          const h = Number(it.heightCm)
+          const wi = Number(it.widthCm)
+          const le = Number(it.lengthCm)
+          return {
+            id: String(it.productId ?? idx + 1),
+            width: wi,
+            height: h,
+            length: le,
+            weight: w,
+            insurance_value: 1,
+            quantity: qty,
+          }
+        })
+        productsFinal = items.map((it, idx) => {
+          const qty = Math.max(1, Number(it.quantity ?? 1))
+          const w = Number(it.weightKg)
+          const share =
+            weightSum > 0 ? (subtotal * (w * qty)) / weightSum : subtotal / items.length
+          return {
+            ...products[idx]!,
+            insurance_value: Number(Math.max(1, share).toFixed(2)),
+          }
+        })
+      }
 
       const meRes = await fetch(`${meApiBase()}/api/v2/me/shipment/calculate`, {
         method: 'POST',
@@ -450,12 +512,25 @@ Deno.serve(async (req) => {
         items,
       })
       const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString()
-      const volumes = {
-        weightKg: weightSum,
-        heightCm: maxH,
-        widthCm: maxW,
-        lengthCm: maxL,
-      }
+      const volumes = fitted
+        ? {
+            packingMode,
+            boxTemplateId: fitted.id,
+            boxName: fitted.name,
+            weightKg: Number((weightSum + fitted.emptyWeightKg).toFixed(3)),
+            heightCm: fitted.heightCm,
+            widthCm: fitted.widthCm,
+            lengthCm: fitted.lengthCm,
+            itemsWeightKg: weightSum,
+            emptyWeightKg: fitted.emptyWeightKg,
+          }
+        : {
+            packingMode,
+            weightKg: weightSum,
+            heightCm: maxH,
+            widthCm: maxW,
+            lengthCm: maxL,
+          }
 
       /** Allowlist admin: só `enabled` vai para a loja. */
       const { data: catalogRows } = await admin

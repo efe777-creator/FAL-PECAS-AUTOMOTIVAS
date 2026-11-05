@@ -19,8 +19,10 @@ import {
   adminExpireUnpaidOrders,
   adminListOrders,
   adminOrderStatusCounts,
+  ADMIN_LIST_PAGE_SIZE,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -83,6 +85,8 @@ export function AdminOrdersPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
   const [search, setSearch] = useState('')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   function syncParams(nextStatus: string, nextGroup: AdminOrderGroupId | '') {
     const p = new URLSearchParams()
@@ -113,11 +117,28 @@ export function AdminOrdersPage() {
         adminOrderStatusCounts(),
       ])
       setRows(list)
+      setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
       setCounts(c)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    try {
+      const next = await adminListOrders(statusFilter || null, { offset: rows.length })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setHasMore(next.length >= ADMIN_LIST_PAGE_SIZE)
+    } catch (e) {
+      setError(toUserMessage(e, 'Erro ao carregar mais pedidos'))
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -250,6 +271,13 @@ export function AdminOrdersPage() {
       {loading ? <Loading label="Carregando pedidos…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
+      {!loading && !error && hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_LIST_PAGE_SIZE} registros por carga ({rows.length} carregados). Há mais
+          pedidos — use “Carregar mais” ao final da lista ou filtre por status.
+        </p>
+      ) : null}
+
       {!loading && !error && visible.length === 0 ? (
         <EmptyState
           title="Nenhum pedido neste filtro"
@@ -311,6 +339,19 @@ export function AdminOrdersPage() {
               })}
             </tbody>
           </table>
+        </div>
+      ) : null}
+
+      {!loading && !error && hasMore ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
+            {loadingMore ? 'Carregando…' : 'Carregar mais pedidos'}
+          </Button>
         </div>
       ) : null}
     </div>

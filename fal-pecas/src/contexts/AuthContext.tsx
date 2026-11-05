@@ -7,6 +7,7 @@ import {
   signInWithIdentifier,
   signOut,
   signUp,
+  updatePassword,
 } from '@/services/supabase/authService'
 import { fetchProfileRole } from '@/services/admin/staffService'
 import { getCustomerProfile } from '@/services/customers/customerService'
@@ -38,9 +39,11 @@ interface AuthContextValue {
     username?: string
     phone?: string
     cpf?: string
-  }) => Promise<void>
+  }) => Promise<{ session: Session | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
+  updatePassword: (newPassword: string) => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -140,12 +143,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName: string
       username?: string
       phone?: string
+      cpf?: string
     }) => {
       const result = await signUp(params)
       setSession(result.session)
       setProfileLoading(true)
       setUser(await enrichUser(result.session?.user ?? null))
       setProfileLoading(false)
+      return { session: result.session }
     },
     [],
   )
@@ -160,6 +165,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await resetPassword(email)
   }, [])
 
+  const handleUpdatePassword = useCallback(async (newPassword: string) => {
+    await updatePassword(newPassword)
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    const current = await getSession()
+    setSession(current)
+    setProfileLoading(true)
+    try {
+      setUser(await enrichUser(current?.user ?? null))
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -171,8 +191,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp: handleSignUp,
       signOut: handleSignOut,
       resetPassword: handleReset,
+      updatePassword: handleUpdatePassword,
+      refreshUser,
     }),
-    [user, session, loading, profileLoading, handleSignIn, handleSignUp, handleSignOut, handleReset],
+    [
+      user,
+      session,
+      loading,
+      profileLoading,
+      handleSignIn,
+      handleSignUp,
+      handleSignOut,
+      handleReset,
+      handleUpdatePassword,
+      refreshUser,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

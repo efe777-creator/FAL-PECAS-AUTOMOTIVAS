@@ -1,3 +1,4 @@
+import { AppChrome } from '@/app/App'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
@@ -61,6 +62,17 @@ const ForgotPasswordPage = lazy(() =>
     default: m.ForgotPasswordPage,
   })),
 )
+const ResetPasswordPage = lazy(() =>
+  import('@/pages/ForgotPassword/ResetPasswordPage').then((m) => ({
+    default: m.ResetPasswordPage,
+  })),
+)
+const TermsPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.TermsPage })),
+)
+const PrivacyPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.PrivacyPage })),
+)
 
 const AdminDashboardPage = lazy(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
@@ -106,6 +118,16 @@ const AdminOrderDetailPage = lazy(() =>
 const AdminCategoriesPage = lazy(() =>
   import('@/pages/admin/categories/AdminCategoriesPage').then((m) => ({
     default: m.AdminCategoriesPage,
+  })),
+)
+const AdminHomeContentPage = lazy(() =>
+  import('@/pages/admin/home/AdminHomeContentPage').then((m) => ({
+    default: m.AdminHomeContentPage,
+  })),
+)
+const AdminSearchPrepPage = lazy(() =>
+  import('@/pages/admin/search/AdminSearchPrepPage').then((m) => ({
+    default: m.AdminSearchPrepPage,
   })),
 )
 const AdminManufacturersPage = lazy(() =>
@@ -166,6 +188,11 @@ const AdminHfBundleImportPage = lazy(() =>
     default: m.AdminHfBundleImportPage,
   })),
 )
+const AdminImageSkuImportPage = lazy(() =>
+  import('@/pages/admin/products/AdminImageSkuImportPage').then((m) => ({
+    default: m.AdminImageSkuImportPage,
+  })),
+)
 const AdminImportsPage = lazy(() =>
   import('@/pages/admin/imports/AdminImportsPage').then((m) => ({
     default: m.AdminImportsPage,
@@ -206,6 +233,19 @@ const AdminMelhorEnvioPage = lazy(() =>
     default: m.AdminMelhorEnvioPage,
   })),
 )
+const AdminShippingBoxesPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminShippingBoxesPage').then((m) => ({
+    default: m.AdminShippingBoxesPage,
+  })),
+)
+const NotFoundPage = lazy(() =>
+  import('@/pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+)
+const OrderConfirmationPage = lazy(() =>
+  import('@/pages/Checkout/OrderConfirmationPage').then((m) => ({
+    default: m.OrderConfirmationPage,
+  })),
+)
 const AdminOperatorsPage = lazy(() =>
   import('@/pages/admin/operators/AdminOperatorsPage').then((m) => ({
     default: m.AdminOperatorsPage,
@@ -228,9 +268,11 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      <AdminSuspend>
-        <AdminLayout />
-      </AdminSuspend>
+      <AppChrome>
+        <AdminSuspend>
+          <AdminLayout />
+        </AdminSuspend>
+      </AppChrome>
     ),
     children: [
       { index: true, element: <AdminDashboardPage /> },
@@ -245,12 +287,18 @@ export const router = createBrowserRouter([
         path: 'produtos/importar-hf',
         element: <AdminHfBundleImportPage />,
       },
+      {
+        path: 'produtos/importar-imagens',
+        element: <AdminImageSkuImportPage />,
+      },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
       { path: 'precos', element: <AdminPriceListsPage /> },
       { path: 'precos/:id', element: <AdminPriceListDetailPage /> },
       { path: 'importacoes', element: <AdminImportsPage /> },
       { path: 'categorias', element: <AdminCategoriesPage /> },
+      { path: 'home', element: <AdminHomeContentPage /> },
+      { path: 'busca', element: <AdminSearchPrepPage /> },
       { path: 'montadoras', element: <AdminManufacturersPage /> },
       { path: 'veiculos', element: <AdminVehiclesPage /> },
       { path: 'fabricantes', element: <AdminBrandsPage /> },
@@ -277,6 +325,7 @@ export const router = createBrowserRouter([
       { path: 'logistica/origem', element: <AdminShippingOriginPage /> },
       { path: 'logistica/frete-proprio', element: <AdminOwnDeliveryPage /> },
       { path: 'logistica/melhor-envio', element: <AdminMelhorEnvioPage /> },
+      { path: 'logistica/caixas', element: <AdminShippingBoxesPage /> },
       { path: 'logistica/:slug', element: <AdminLogisticsPlaceholderPage /> },
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
@@ -285,7 +334,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <AppChrome>
+        <MainLayout />
+      </AppChrome>
+    ),
     children: [
       {
         index: true,
@@ -304,7 +357,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'produto/:id',
+        path: 'produto/:slugOrId',
         element: (
           <Suspend>
             <ProductPage />
@@ -316,6 +369,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspend>
             <VehiclePage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'termos',
+        element: (
+          <Suspend>
+            <TermsPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'privacidade',
+        element: (
+          <Suspend>
+            <PrivacyPage />
           </Suspend>
         ),
       },
@@ -384,7 +453,32 @@ export const router = createBrowserRouter([
           </Suspend>
         ),
       },
-      { path: '*', element: <Navigate to="/" replace /> },
+      {
+        path: 'redefinir-senha',
+        element: (
+          <Suspend>
+            <ResetPasswordPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'pedido/:id/confirmacao',
+        element: (
+          <ProtectedRoute>
+            <Suspend>
+              <OrderConfirmationPage />
+            </Suspend>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '*',
+        element: (
+          <Suspend>
+            <NotFoundPage />
+          </Suspend>
+        ),
+      },
     ],
   },
 ])

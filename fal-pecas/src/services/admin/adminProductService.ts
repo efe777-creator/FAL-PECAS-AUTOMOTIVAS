@@ -115,6 +115,9 @@ const SELECT = `
   product_categories ( id, name )
 `
 
+/** Tamanho padrão de página da lista de produtos admin. */
+export const ADMIN_PRODUCTS_PAGE_SIZE = 200
+
 export async function adminListProducts(params?: {
   q?: string
   status?: string
@@ -125,7 +128,12 @@ export async function adminListProducts(params?: {
   categoryIds?: string[]
   /** Montadora: produtos com aplicação em vehicle_versions dessa manufacturer. */
   manufacturerId?: string
+  /** Paginação simples (padrão: primeiros 200). */
+  offset?: number
+  limit?: number
 }): Promise<Product[]> {
+  const pageLimit = params?.limit ?? ADMIN_PRODUCTS_PAGE_SIZE
+  const pageOffset = params?.offset ?? 0
   let productIdsByMaker: string[] | null = null
   if (params?.manufacturerId) {
     const { data: compat, error: compatErr } = await getSupabase()
@@ -150,7 +158,9 @@ export async function adminListProducts(params?: {
     const term = params.q.trim()
     q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%,commercial_ref.ilike.%${term}%`)
   }
-  const { data, error } = await q.limit(200)
+  const { data, error } = await q
+    .order('id', { ascending: false })
+    .range(pageOffset, pageOffset + pageLimit - 1)
   if (error) throw error
   let list = (data as ProductRow[]).map(mapProduct)
 
@@ -246,6 +256,7 @@ export async function adminUpsertProduct(input: {
     own_delivery_allowed: input.ownDeliveryAllowed ?? true,
     pol_origin: input.polOrigin ?? (input.polUnit != null ? 'manual' : 'global'),
     logistic_profile_origin: input.logisticProfileOrigin ?? 'manual',
+    // search_document canônico via RPC após salvar (marca/refs/sinônimos)
     search_document: [
       input.name,
       identity.sku,
@@ -271,6 +282,11 @@ export async function adminUpsertProduct(input: {
   if (error) throw error
 
   const product = mapProduct(data as ProductRow)
+  try {
+    await getSupabase().rpc('rebuild_product_search_documents', { p_ids: [product.id] })
+  } catch {
+    // fallback: mantém search_document do payload se RPC ainda não existir
+  }
   if (input.syncBasePromoLists !== false) {
     await adminEnsureBaseAndPromoPrices(product.id, input.price, input.promoPrice ?? null)
   }

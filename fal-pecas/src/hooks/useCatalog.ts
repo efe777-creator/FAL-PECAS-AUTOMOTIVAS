@@ -1,10 +1,11 @@
 import { listCategories } from '@/services/categories/categoryService'
+import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import {
   listFeaturedProducts,
   listProductsByCategorySlug,
   listPromoHighlightProducts,
 } from '@/services/products/productService'
-import { searchCatalog } from '@/services/search/searchService'
+import { searchProductSuggestions } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import type { Category, Product, VehicleOptionTree } from '@/types'
 import { useEffect, useState } from 'react'
@@ -21,6 +22,9 @@ export function useCategories() {
     loading: true,
     error: null,
   })
+  const [rev, setRev] = useState(0)
+
+  useEffect(() => subscribeCategoriesChanged(() => setRev((n) => n + 1)), [])
 
   useEffect(() => {
     let active = true
@@ -40,7 +44,7 @@ export function useCategories() {
     return () => {
       active = false
     }
-  }, [])
+  }, [rev])
 
   return state
 }
@@ -194,7 +198,7 @@ export function useProductSearch(query: string) {
 
   useEffect(() => {
     const q = query.trim()
-    if (!q) {
+    if (q.length < 2) {
       setState({ data: [], loading: false, error: null })
       return
     }
@@ -203,8 +207,8 @@ export function useProductSearch(query: string) {
       void (async () => {
         setState((s) => ({ ...s, loading: true }))
         try {
-          const result = await searchCatalog({ q, page: 1, pageSize: 8, sort: 'relevance' })
-          if (active) setState({ data: result.items, loading: false, error: null })
+          const items = await searchProductSuggestions(q, 6)
+          if (active) setState({ data: items, loading: false, error: null })
         } catch (e) {
           if (active)
             setState({

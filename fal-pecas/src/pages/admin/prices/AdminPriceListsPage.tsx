@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -13,6 +14,8 @@ import {
   adminGetPriceListsOverview,
   adminSaveListExtraCostPercent,
   adminUpsertPriceList,
+  PRICE_LIST_BASE_ID,
+  PRICE_LIST_PROMO_ID,
   priceListStatusLabel,
   pricingMethodLabel,
   pricingRuleLabel,
@@ -229,11 +232,26 @@ export function AdminPriceListsPage() {
   }
 
   async function onDelete(list: PriceListOverviewRow) {
-    const ok = window.confirm(
-      `Excluir a lista "${list.name}"?\n\nEsta ação não pode ser desfeita.\n` +
-        `Todos os ${list.itemCount ?? 0} item(ns) desta lista também serão excluídos (cascade).`,
-    )
-    if (!ok) return
+    if (
+      list.id === PRICE_LIST_BASE_ID ||
+      list.id === PRICE_LIST_PROMO_ID ||
+      /^(base|promo)$/i.test(list.slug ?? '') ||
+      /^(lista\s*)?base$/i.test(list.name) ||
+      /^(lista\s*)?promo/i.test(list.name)
+    ) {
+      setError('Listas de sistema (Base e Promo) não podem ser excluídas.')
+      setMenuOpenId(null)
+      return
+    }
+    const { confirmed } = await confirmDialog({
+      title: 'Excluir lista de preços',
+      message:
+        `Excluir a lista "${list.name}"?\n\nEsta ação não pode ser desfeita.\n` +
+        `Todos os ${list.itemCount ?? 0} item(ns) desta lista também serão excluídos.`,
+      confirmLabel: 'Excluir',
+      danger: true,
+    })
+    if (!confirmed) return
     setBusy(true)
     setError(null)
     setMenuOpenId(null)

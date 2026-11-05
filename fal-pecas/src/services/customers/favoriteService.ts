@@ -63,6 +63,17 @@ export async function isFavorite(productId: string): Promise<boolean> {
   return Boolean(data)
 }
 
+/** Uma query: todos os product_id favoritos do usuário logado (Onda 2 — evita N+1 no grid). */
+export async function listFavoriteProductIds(): Promise<string[]> {
+  const sb = getSupabase()
+  const { data: auth } = await sb.auth.getUser()
+  const uid = auth.user?.id
+  if (!uid) return []
+  const { data, error } = await sb.from('favorites').select('product_id').eq('user_id', uid)
+  if (error) throw error
+  return (data ?? []).map((r) => String((r as { product_id: string }).product_id))
+}
+
 export async function addFavorite(productId: string): Promise<void> {
   const sb = getSupabase()
   const { data: auth } = await sb.auth.getUser()
@@ -81,8 +92,15 @@ export async function removeFavorite(productId: string): Promise<void> {
   if (error) throw error
 }
 
-export async function toggleFavorite(productId: string): Promise<boolean> {
-  const liked = await isFavorite(productId)
+/**
+ * Alterna favorito.
+ * Passe `currentlyLiked` quando o UI já sabe o estado (batch) — evita SELECT extra.
+ */
+export async function toggleFavorite(
+  productId: string,
+  currentlyLiked?: boolean,
+): Promise<boolean> {
+  const liked = currentlyLiked ?? (await isFavorite(productId))
   if (liked) {
     await removeFavorite(productId)
     return false

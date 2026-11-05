@@ -27,6 +27,8 @@ const sections: { title: string; cards: DashCard[] }[] = [
       { to: '/admin/produtos', title: 'Produtos', desc: 'Cadastrar, publicar e arquivar' },
       { to: '/admin/precos', title: 'Preços', desc: 'Listas comerciais e importação' },
       { to: '/admin/categorias', title: 'Categorias', desc: 'Árvore comercial' },
+      { to: '/admin/home', title: 'Home da loja', desc: 'Campanhas e destaques' },
+      { to: '/admin/busca', title: 'Busca (prep IA)', desc: 'Documento, sinônimos e rebuild' },
       { to: '/admin/montadoras', title: 'Montadoras', desc: 'Cadastro de montadoras' },
       { to: '/admin/veiculos', title: 'Veículos', desc: 'Modelos e configurações' },
       { to: '/admin/fabricantes', title: 'Fabricantes', desc: 'Fabricante de peça' },
@@ -72,9 +74,11 @@ export function AdminDashboardPage() {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<AdminOrderListRow[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     void (async () => {
+      setLoading(true)
       try {
         const [c, list] = await Promise.all([adminOrderStatusCounts(), adminListOrders(null)])
         setCounts(c)
@@ -84,6 +88,8 @@ export function AdminDashboardPage() {
         setLoadError(e instanceof Error ? e.message : 'Falha ao carregar pedidos')
         setCounts({})
         setOrders([])
+      } finally {
+        setLoading(false)
       }
     })()
   }, [])
@@ -127,7 +133,11 @@ export function AdminDashboardPage() {
             {teamCount} ação da equipe · {customerCount} ação do cliente
           </p>
         </div>
-        {attention.length === 0 ? (
+        {loading ? (
+          <p className="rounded-[12px] border border-fal-line bg-white px-4 py-3 text-sm text-fal-muted">
+            Carregando pendências…
+          </p>
+        ) : attention.length === 0 ? (
           <p className="rounded-[12px] border border-fal-line bg-white px-4 py-3 text-sm text-fal-muted">
             Nenhuma pendência operacional na amostra recente. Pedidos só aguardando pagamento ficam
             no bloco Pagamento.

@@ -295,6 +295,11 @@ export interface Category {
   parentId?: string | null
   sortOrder?: number
   status?: 'draft' | 'published' | 'archived'
+  /** Peso padrão (kg) — fallback O1-C quando produto sem medida própria. */
+  defaultWeightKg?: number | null
+  defaultLengthCm?: number | null
+  defaultWidthCm?: number | null
+  defaultHeightCm?: number | null
 }
 
 export interface ProductReference {
@@ -505,6 +510,8 @@ export interface CartItem {
   sku: string
   /** Código referência comercial (UI); fallback sku na exibição. */
   commercialRef?: string
+  /** Slug para link da PDP (quando conhecido). */
+  slug?: string
   name: string
   price: number
   quantity: number

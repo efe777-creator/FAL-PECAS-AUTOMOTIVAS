@@ -79,7 +79,15 @@ export type AdminOrderDetail = {
   } | null
 }
 
-export async function adminListOrders(filterStatus?: string | null): Promise<AdminOrderListRow[]> {
+/** Tamanho padrão de página das listas admin (limite histórico de 200). */
+export const ADMIN_LIST_PAGE_SIZE = 200
+
+export async function adminListOrders(
+  filterStatus?: string | null,
+  opts?: { offset?: number; limit?: number },
+): Promise<AdminOrderListRow[]> {
+  const limit = opts?.limit ?? ADMIN_LIST_PAGE_SIZE
+  const offset = opts?.offset ?? 0
   let q = getSupabase()
     .from('orders')
     .select(
@@ -92,7 +100,8 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
     `,
     )
     .order('created_at', { ascending: false })
-    .limit(200)
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   if (filterStatus) q = q.eq('status', filterStatus)
 
