@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
-import type { OwnPricingMode } from '@/types'
+import type { OwnPricingMode, Product } from '@/types'
+import { adminListProducts, adminUpsertProduct } from '@/services/admin/adminProductService'
 
 export type OwnDeliveryCepRange = { from: string; to: string }
 
@@ -28,7 +29,9 @@ export type OwnVehicleCategory = {
   id: string
   code: string
   label: string
+  icon: string
   capacityPol: number
+  maxDistanceKm: number | null
   sortOrder: number
   active: boolean
 }
@@ -38,6 +41,7 @@ export type OwnVehicleTariff = {
   categoryId: string
   tarifaMinima: number
   valorPorKm: number
+  adicional: number
   active: boolean
   version: number
 }
@@ -56,6 +60,16 @@ type SettingsRow = {
 
 function onlyDigits8(v: string): string {
   return v.replace(/\D/g, '').slice(0, 8)
+}
+
+function slugCode(label: string): string {
+  return label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 40)
 }
 
 function mapSettings(row: SettingsRow): OwnDeliverySettings {
@@ -118,7 +132,7 @@ export async function upsertOwnDeliverySettings(input: {
       if (!(rate.amount >= 0)) throw new Error('Valor da modalidade inválido.')
     }
   }
-  if (input.maxDistanceKm != null && (!(input.maxDistanceKm > 0))) {
+  if (input.maxDistanceKm != null && !(input.maxDistanceKm > 0)) {
     throw new Error('Distância máxima inválida.')
   }
 
@@ -153,36 +167,50 @@ export async function upsertOwnDeliverySettings(input: {
   return mapSettings(data as SettingsRow)
 }
 
+function mapCategory(r: Record<string, unknown>): OwnVehicleCategory {
+  return {
+    id: String(r.id),
+    code: String(r.code),
+    label: String(r.label),
+    icon: String(r.icon ?? 'vehicle'),
+    capacityPol: Number(r.capacity_pol),
+    maxDistanceKm: r.max_distance_km == null ? null : Number(r.max_distance_km),
+    sortOrder: Number(r.sort_order),
+    active: Boolean(r.active),
+  }
+}
+
 export async function listOwnVehicleCategories(): Promise<OwnVehicleCategory[]> {
   const { data, error } = await getSupabase()
     .from('own_vehicle_categories')
     .select('*')
     .order('sort_order')
   if (error) throw error
-  return (data ?? []).map((r) => ({
-    id: String(r.id),
-    code: String(r.code),
-    label: String(r.label),
-    capacityPol: Number(r.capacity_pol),
-    sortOrder: Number(r.sort_order),
-    active: Boolean(r.active),
-  }))
+  return (data ?? []).map((r) => mapCategory(r as Record<string, unknown>))
 }
 
 export async function upsertOwnVehicleCategory(input: {
   id?: string
-  code: string
+  code?: string
   label: string
+  icon: string
   capacityPol: number
+  maxDistanceKm: number | null
   sortOrder: number
   active: boolean
 }): Promise<OwnVehicleCategory> {
-  if (!input.code.trim()) throw new Error('Código do veículo obrigatório.')
+  if (!input.label.trim()) throw new Error('Nome da modalidade obrigatório.')
   if (!(input.capacityPol > 0)) throw new Error('Capacidade POL inválida.')
+  if (input.maxDistanceKm != null && !(input.maxDistanceKm > 0)) {
+    throw new Error('Km máximo inválido.')
+  }
+  const code = (input.code?.trim() || slugCode(input.label) || `veiculo_${Date.now()}`).slice(0, 40)
   const payload = {
-    code: input.code.trim(),
+    code,
     label: input.label.trim(),
+    icon: input.icon.trim() || 'vehicle',
     capacity_pol: input.capacityPol,
+    max_distance_km: input.maxDistanceKm,
     sort_order: input.sortOrder,
     active: input.active,
     updated_at: new Date().toISOString(),
@@ -192,37 +220,40 @@ export async function upsertOwnVehicleCategory(input: {
     ? await q.update(payload).eq('id', input.id).select().single()
     : await q.insert(payload).select().single()
   if (error) throw error
+  return mapCategory(data as Record<string, unknown>)
+}
+
+export async function deleteOwnVehicleCategory(id: string): Promise<void> {
+  const { error } = await getSupabase().from('own_vehicle_categories').delete().eq('id', id)
+  if (error) throw error
+}
+
+function mapTariff(r: Record<string, unknown>): OwnVehicleTariff {
   return {
-    id: String(data.id),
-    code: String(data.code),
-    label: String(data.label),
-    capacityPol: Number(data.capacity_pol),
-    sortOrder: Number(data.sort_order),
-    active: Boolean(data.active),
+    id: String(r.id),
+    categoryId: String(r.category_id),
+    tarifaMinima: Number(r.tarifa_minima),
+    valorPorKm: Number(r.valor_por_km),
+    adicional: Number(r.adicional ?? 0),
+    active: Boolean(r.active),
+    version: Number(r.version) || 1,
   }
 }
 
 export async function listOwnVehicleTariffs(): Promise<OwnVehicleTariff[]> {
   const { data, error } = await getSupabase().from('own_vehicle_tariffs').select('*').order('created_at')
   if (error) throw error
-  return (data ?? []).map((r) => ({
-    id: String(r.id),
-    categoryId: String(r.category_id),
-    tarifaMinima: Number(r.tarifa_minima),
-    valorPorKm: Number(r.valor_por_km),
-    active: Boolean(r.active),
-    version: Number(r.version) || 1,
-  }))
+  return (data ?? []).map((r) => mapTariff(r as Record<string, unknown>))
 }
 
-/** Nova versão de tarifa (não sobrescreve versão usada em quotes). */
 export async function createOwnVehicleTariff(input: {
   categoryId: string
   tarifaMinima: number
   valorPorKm: number
+  adicional: number
   active: boolean
 }): Promise<OwnVehicleTariff> {
-  if (!(input.tarifaMinima >= 0) || !(input.valorPorKm >= 0)) {
+  if (!(input.tarifaMinima >= 0) || !(input.valorPorKm >= 0) || !(input.adicional >= 0)) {
     throw new Error('Tarifa inválida.')
   }
   const { data: prev } = await getSupabase()
@@ -248,20 +279,45 @@ export async function createOwnVehicleTariff(input: {
       category_id: input.categoryId,
       tarifa_minima: input.tarifaMinima,
       valor_por_km: input.valorPorKm,
+      adicional: input.adicional,
       active: input.active,
       version,
     })
     .select()
     .single()
   if (error) throw error
-  return {
-    id: String(data.id),
-    categoryId: String(data.category_id),
-    tarifaMinima: Number(data.tarifa_minima),
-    valorPorKm: Number(data.valor_por_km),
-    active: Boolean(data.active),
-    version: Number(data.version),
+  return mapTariff(data as Record<string, unknown>)
+}
+
+/** Atualiza a tarifa ativa em lugar (ou cria versão se preferir histórico). Aqui edita a linha ativa. */
+export async function updateOwnVehicleTariff(input: {
+  id: string
+  tarifaMinima: number
+  valorPorKm: number
+  adicional: number
+  active: boolean
+}): Promise<OwnVehicleTariff> {
+  if (!(input.tarifaMinima >= 0) || !(input.valorPorKm >= 0) || !(input.adicional >= 0)) {
+    throw new Error('Tarifa inválida.')
   }
+  const { data, error } = await getSupabase()
+    .from('own_vehicle_tariffs')
+    .update({
+      tarifa_minima: input.tarifaMinima,
+      valor_por_km: input.valorPorKm,
+      adicional: input.adicional,
+      active: input.active,
+    })
+    .eq('id', input.id)
+    .select()
+    .single()
+  if (error) throw error
+  return mapTariff(data as Record<string, unknown>)
+}
+
+export async function deleteOwnVehicleTariff(id: string): Promise<void> {
+  const { error } = await getSupabase().from('own_vehicle_tariffs').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function listOwnManualReviews(limit = 50) {
@@ -283,3 +339,69 @@ export async function listOwnAdminAudit(limit = 50) {
   if (error) throw error
   return data ?? []
 }
+
+/** Lista produtos para gestão POL na Logística (mesma tabela products). */
+export async function listProductsForOwnPol(params?: {
+  q?: string
+  status?: string
+  missingPol?: boolean
+}): Promise<Product[]> {
+  const rows = await adminListProducts({
+    q: params?.q,
+    status: params?.status,
+  })
+  if (params?.missingPol) return rows.filter((p) => p.polUnit == null)
+  return rows
+}
+
+export async function saveProductPol(input: {
+  product: Product
+  polUnit: number | null
+  logisticPorte: Product['logisticPorte']
+  vehicleMinCode: string | null
+  compatibleVehicleCodes: string[]
+  ownDeliveryAllowed: boolean
+}): Promise<Product> {
+  return adminUpsertProduct({
+    id: input.product.id,
+    name: input.product.name,
+    sku: input.product.sku,
+    commercialRef: input.product.commercialRef,
+    categoryId: input.product.categoryId ?? null,
+    brandId: input.product.brandId ?? null,
+    supplierId: input.product.supplierId ?? null,
+    price: input.product.price,
+    promoPrice: input.product.promoPrice ?? null,
+    status: input.product.status,
+    shortDescription: input.product.shortDescription,
+    description: input.product.description,
+    posicao: input.product.posicao,
+    lado: input.product.lado,
+    isAvailable: input.product.available,
+    weightKg: input.product.weightKg,
+    heightCm: input.product.heightCm,
+    widthCm: input.product.widthCm,
+    lengthCm: input.product.lengthCm,
+    weightOrigin: input.product.weightOrigin,
+    heightOrigin: input.product.heightOrigin,
+    widthOrigin: input.product.widthOrigin,
+    lengthOrigin: input.product.lengthOrigin,
+    polUnit: input.polUnit,
+    logisticPorte: input.logisticPorte,
+    vehicleMinCode: input.vehicleMinCode,
+    compatibleVehicleCodes: input.compatibleVehicleCodes,
+    ownDeliveryAllowed: input.ownDeliveryAllowed,
+    polOrigin: 'manual',
+    logisticProfileOrigin: 'manual',
+    syncBasePromoLists: false,
+  })
+}
+
+export const OWN_VEHICLE_ICON_OPTIONS = [
+  { value: 'motorcycle', label: 'Motocicleta' },
+  { value: 'car', label: 'Carro' },
+  { value: 'van', label: 'Van' },
+  { value: 'truck', label: 'Caminhão' },
+  { value: 'utilitario', label: 'Utilitário' },
+  { value: 'vehicle', label: 'Genérico' },
+] as const

@@ -4,7 +4,10 @@ export type OwnVehicleCategory = {
   id: string
   code: string
   label: string
+  icon?: string
   capacityPol: number
+  /** Alcance desta modalidade; null = usa max global das settings. */
+  maxDistanceKm?: number | null
   sortOrder: number
   active: boolean
 }
@@ -13,6 +16,7 @@ export type OwnVehicleTariff = {
   categoryId: string
   tarifaMinima: number
   valorPorKm: number
+  adicional?: number
   active: boolean
   version: number
 }

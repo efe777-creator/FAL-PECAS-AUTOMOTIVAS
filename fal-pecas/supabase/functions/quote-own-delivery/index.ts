@@ -21,8 +21,10 @@ function onlyDigits(v: string): string {
   return (v || '').replace(/\D/g, '')
 }
 
-function computeAmount(km: number, perKm: number, min: number): number {
-  return Math.round(Math.max(km * perKm, min) * 100) / 100
+/** frete = max(km_ida * R$/km, tarifa_minima) + adicional */
+function computeAmount(km: number, perKm: number, min: number, adicional = 0): number {
+  const extra = Number.isFinite(adicional) && adicional > 0 ? adicional : 0
+  return Math.round((Math.max(km * perKm, min) + extra) * 100) / 100
 }
 
 function addressHash(parts: {
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
       return json(200, { status: 'out_of_coverage', message: 'CEP fora da cobertura', options: [] })
     }
 
-    const maxKm = settings.max_distance_km != null ? Number(settings.max_distance_km) : null
+    const maxKmGlobal = settings.max_distance_km != null ? Number(settings.max_distance_km) : null
 
     const productIds = items.map((i) => i.productId)
     const { data: products, error: prodErr } = await admin
@@ -271,9 +273,20 @@ Deno.serve(async (req) => {
         },
       )
       if (!routeRes.ok) {
+        let googleReason = `http_${routeRes.status}`
+        try {
+          const errJson = await routeRes.json()
+          const msg = errJson?.error?.message || errJson?.error?.status
+          if (typeof msg === 'string' && msg.trim()) {
+            googleReason = msg.trim().slice(0, 160)
+          }
+        } catch {
+          /* ignore parse */
+        }
         return json(200, {
           status: 'routing_error',
           message: 'Não foi possível calcular a rota.',
+          detail: googleReason,
           options: [],
         })
       }
@@ -305,19 +318,28 @@ Deno.serve(async (req) => {
     if (distanceKm == null) {
       return json(200, { status: 'routing_error', message: 'Distância indisponível', options: [] })
     }
-    if (maxKm != null && distanceKm > maxKm) {
+
+    const maxKmVehicle =
+      chosen.max_distance_km != null && Number.isFinite(Number(chosen.max_distance_km))
+        ? Number(chosen.max_distance_km)
+        : null
+    const maxKmEffective = maxKmVehicle ?? maxKmGlobal
+    if (maxKmEffective != null && distanceKm > maxKmEffective) {
       return json(200, {
         status: 'out_of_coverage',
-        message: 'Distância acima do limite atendido',
+        message: 'Distância acima do limite atendido pela modalidade',
         distanceKm,
+        maxKm: maxKmEffective,
         options: [],
       })
     }
 
+    const adicional = Number(tariff.adicional ?? 0)
     const amount = computeAmount(
       distanceKm,
       Number(tariff.valor_por_km),
       Number(tariff.tarifa_minima),
+      adicional,
     )
     const etaMin = Number(settings.eta_days_min) || 1
     const etaMax = Number(settings.eta_days_max) || 3
@@ -338,8 +360,11 @@ Deno.serve(async (req) => {
       distance_km_one_way: distanceKm,
       tariff_min: Number(tariff.tarifa_minima),
       tariff_per_km: Number(tariff.valor_por_km),
+      tariff_adicional: adicional,
       tariff_version: tariff.version,
       category_id: chosen.id,
+      vehicle_icon: chosen.icon ?? null,
+      vehicle_max_km: maxKmEffective,
     }
 
     const fingerprint = [
