@@ -31,7 +31,7 @@ export type OwnVehicleSelectResult =
 
 const MOTORCYCLE_MAX_POL = 12
 
-function categoryRank(code: string, sortOrder: number): number {
+function categoryRank(_code: string, sortOrder: number): number {
   return sortOrder
 }
 

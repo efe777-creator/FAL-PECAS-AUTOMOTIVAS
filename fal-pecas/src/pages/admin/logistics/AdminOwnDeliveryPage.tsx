@@ -338,7 +338,7 @@ export function AdminOwnDeliveryPage() {
                 />
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
                   onClick={() => setCepRanges(cepRanges.filter((_, j) => j !== i))}
                 >
                   Remover
@@ -347,7 +347,7 @@ export function AdminOwnDeliveryPage() {
             ))}
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={() => setCepRanges([...cepRanges, { from: '', to: '' }])}
             >
               + Faixa de CEP
@@ -389,7 +389,7 @@ export function AdminOwnDeliveryPage() {
               ))}
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 onClick={() =>
                   setRates([
                     ...rates,
@@ -546,7 +546,7 @@ export function AdminOwnDeliveryPage() {
                     <Button type="submit">Salvar</Button>
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       onClick={() => {
                         if (
                           !confirm(
@@ -726,7 +726,7 @@ export function AdminOwnDeliveryPage() {
                       <Button type="submit">Salvar preço</Button>
                       <Button
                         type="button"
-                        variant="secondary"
+                        variant="outline"
                         onClick={() => {
                           if (!confirm(`Remover o preço de “${c.label}”?`)) return
                           void (async () => {
