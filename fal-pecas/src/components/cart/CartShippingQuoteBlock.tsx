@@ -4,7 +4,7 @@ import { formatMoney } from '@/lib/money'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
-import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
+import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
 import type { CartItem } from '@/types'
@@ -28,10 +28,12 @@ function formatCepInput(raw: string): string {
  */
 export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange }: Props) {
   const [cep, setCep] = useState('')
+  const [number, setNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [envelope, setEnvelope] = useState<ShippingQuoteEnvelope | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
+  const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
 
   const cartKey = useMemo(
     () =>
@@ -80,12 +82,13 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   async function onConsultar() {
     setLoading(true)
     setEnvelope(null)
+    setHintNeedsNumber(false)
     try {
       const digits = cep.replace(/\D/g, '')
       if (digits.length !== 8) {
         setEnvelope({
           status: 'invalid_cep',
-          providerId: 'local',
+          providerId: 'melhorenvio',
           mode: 'sandbox',
           options: [],
           quotedAt: new Date().toISOString(),
@@ -98,19 +101,22 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
       const logistics = await loadCartLogistics(
         items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       )
-      const env = await quoteShippingEnvelope({
+      const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
         postalCode: addr.cep,
         state: addr.state,
         city: addr.city,
+        street: addr.street,
+        district: addr.district,
+        number: number.trim() || undefined,
         subtotal,
         itemCount: items.reduce((n, i) => n + i.quantity, 0),
         originPostalCode,
         items: logistics,
-        totalWeightKg: logistics.reduce(
-          (acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1),
-          0,
-        ) || undefined,
+        totalWeightKg:
+          logistics.reduce((acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1), 0) ||
+          undefined,
       })
+      setHintNeedsNumber(needsAddressNumber)
       setEnvelope(env)
       if (env.status === 'ok' && env.options[0]) {
         setSelectedId(env.options[0].id)
@@ -118,7 +124,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     } catch (e) {
       setEnvelope({
         status: 'provider_error',
-        providerId: 'local',
+        providerId: 'melhorenvio',
         mode: 'sandbox',
         options: [],
         quotedAt: new Date().toISOString(),
@@ -149,6 +155,15 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
             }
           }}
         />
+        <Input
+          label="Nº (frete próprio)"
+          name="cart-shipping-number"
+          inputMode="text"
+          autoComplete="address-line2"
+          placeholder="123"
+          value={number}
+          onChange={(e) => setNumber(e.target.value.slice(0, 20))}
+        />
         <Button type="button" variant="light" size="sm" disabled={loading} onClick={() => void onConsultar()}>
           {loading ? 'Consultando…' : 'Consultar frete'}
         </Button>
@@ -156,6 +171,12 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
 
       {envelope?.disclaimer ? (
         <p className="mb-0 mt-2 text-[11px] font-semibold text-fal-muted">{envelope.disclaimer}</p>
+      ) : null}
+
+      {hintNeedsNumber ? (
+        <p className="mb-0 mt-2 text-[11px] text-amber-800">
+          Preencha o número para incluir entrega FAL nesta região.
+        </p>
       ) : null}
 
       {envelope && envelope.status !== 'ok' ? (
