@@ -112,7 +112,7 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 | M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | **FEITO** 05/11 — status `entregue` · [VAL](./FAL_MARCHA_OPS_E2E_ENTREGA_VAL_2026-11-05.md) |
 | M8 | REGRAS-PEDIDOS-ONDA2 | Cancelamento pós-pago + refund MP | **FEITO** 05/11 — estorno **manual** provisório · [VAL](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA2_VAL_2026-11-05.md) |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` / logs Edge | **FEITO** 05/11 — [VAL](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) · MCP ainda vazio (≠ FAIL loja) |
-| M10 | REGRAS-PEDIDOS-ONDA3 | Cartão tokenizado | Decisão + MP Customers |
+| M10 | REGRAS-PEDIDOS-ONDA3 | Cartão tokenizado | **ADIADO** 05/11 — [STOP](./FAL_MARCHA_M10_CARTAO_TOKEN_STOP_2026-11-05.md) até eFe assinar seguir |
 | M11+ | Frete C / Melhor Envio · F11 · domínio | — | Assinaturas |
 
 ---
@@ -122,5 +122,5 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 1. ~~Mecanismo do cron~~ — **`pg_cron`** FEITO (job `fal-expire-unpaid-orders` · `15 * * * *`).
 2. ~~**Política de estorno** (Onda 2)~~ — **MANUAL** provisório (M8 05/11); auto-refund = marcha futura.
 3. **Valores padrão de medidas** por grupo (para o bulk M6).
-4. **Cartão salvo** (Onda 3): seguir ou adiar.
+4. **Cartão salvo** (Onda 3): ~~seguir ou adiar~~ → **ADIADO** (STOP M10 05/11); desbloqueia com “SEGUIR M10”.
 5. Taxonomia/autoridade de campos (PRD §36.3–4) — antes de F11/F12.

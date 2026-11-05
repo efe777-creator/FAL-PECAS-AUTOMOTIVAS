@@ -112,6 +112,6 @@ Cliente gerencia/remove cartões; nas compras seguintes seleciona o cadastrado.
 |------|--------|--------|
 | **1** | Cancelar não pago (cliente) · decisão em `aguardando_decisao` · labels/CTAs comerciais | **Próxima MARCHA (M4)** |
 | **2** | Solicitação de cancelamento pós-pagamento + análise + estorno MP | **FEITO** M8 05/11 — estorno **manual** provisório · [VAL](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA2_VAL_2026-11-05.md) |
-| **3** | Cartão salvo tokenizado (MP Customers/Cards) | Planejado (M10) — decisão seguir/adiar |
+| **3** | Cartão salvo tokenizado (MP Customers/Cards) | **ADIADO** M10 05/11 — [STOP](./FAL_MARCHA_M10_CARTAO_TOKEN_STOP_2026-11-05.md) |
 
 Já operacional (fora das ondas): retomar pagamento, confirmação/separação admin, expiry 48 h (RPC; cron = M5 `pg_cron`).
