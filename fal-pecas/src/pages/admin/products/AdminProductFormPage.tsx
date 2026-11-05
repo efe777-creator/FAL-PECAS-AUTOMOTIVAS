@@ -109,6 +109,12 @@ export function AdminProductFormPage() {
   const [heightOrigin, setHeightOrigin] = useState<MeasureOrigin>('global')
   const [widthOrigin, setWidthOrigin] = useState<MeasureOrigin>('global')
   const [lengthOrigin, setLengthOrigin] = useState<MeasureOrigin>('global')
+  const [polUnit, setPolUnit] = useState('')
+  const [logisticPorte, setLogisticPorte] = useState<'' | 'pequeno' | 'medio' | 'grande'>('')
+  const [vehicleMinCode, setVehicleMinCode] = useState('')
+  const [compatibleCodes, setCompatibleCodes] = useState('motorcycle,car')
+  const [ownDeliveryAllowed, setOwnDeliveryAllowed] = useState(true)
+  const [polOrigin, setPolOrigin] = useState<MeasureOrigin>('global')
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
   const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
@@ -223,6 +229,12 @@ export function AdminProductFormPage() {
         setHeightOrigin(p.heightOrigin ?? (p.heightCm != null ? 'manual' : 'global'))
         setWidthOrigin(p.widthOrigin ?? (p.widthCm != null ? 'manual' : 'global'))
         setLengthOrigin(p.lengthOrigin ?? (p.lengthCm != null ? 'manual' : 'global'))
+        setPolUnit(p.polUnit != null ? String(p.polUnit) : '')
+        setLogisticPorte((p.logisticPorte as '' | 'pequeno' | 'medio' | 'grande') || '')
+        setVehicleMinCode(p.vehicleMinCode ?? '')
+        setCompatibleCodes((p.compatibleVehicleCodes ?? ['motorcycle', 'car']).join(','))
+        setOwnDeliveryAllowed(p.ownDeliveryAllowed !== false)
+        setPolOrigin(p.polOrigin ?? (p.polUnit != null ? 'manual' : 'global'))
         setShortDescription(p.shortDescription ?? '')
         setDescription(p.description ?? '')
         setPosicaoAtoms(parsePosicaoAtoms(p.posicao))
@@ -459,6 +471,16 @@ export function AdminProductFormPage() {
         heightOrigin,
         widthOrigin,
         lengthOrigin,
+        polUnit: polUnit.trim() ? Number(polUnit) : null,
+        logisticPorte: logisticPorte || null,
+        vehicleMinCode: vehicleMinCode.trim() || null,
+        compatibleVehicleCodes: compatibleCodes
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        ownDeliveryAllowed,
+        polOrigin,
+        logisticProfileOrigin: 'manual',
         shortDescription,
         description,
         posicao: composePosicao(posicaoAtoms),
@@ -839,6 +861,61 @@ export function AdminProductFormPage() {
           Editar valor marca <strong>Manual</strong> (protegido do bulk). Global = elegível à
           alteração em massa na lista de produtos.
         </p>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <Input
+            label="POL unitário"
+            type="number"
+            step="0.01"
+            min="0"
+            value={polUnit}
+            onChange={(e) => {
+              setPolUnit(e.target.value)
+              setPolOrigin('manual')
+            }}
+          />
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Porte logístico</span>
+            <select
+              className="w-full rounded-lg border border-fal-line px-3 py-2"
+              value={logisticPorte}
+              onChange={(e) => setLogisticPorte(e.target.value as typeof logisticPorte)}
+            >
+              <option value="">—</option>
+              <option value="pequeno">Pequeno</option>
+              <option value="medio">Médio</option>
+              <option value="grande">Grande</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-fal-navy">Veículo mínimo</span>
+            <select
+              className="w-full rounded-lg border border-fal-line px-3 py-2"
+              value={vehicleMinCode}
+              onChange={(e) => setVehicleMinCode(e.target.value)}
+            >
+              <option value="">—</option>
+              <option value="motorcycle">Motocicleta</option>
+              <option value="car">Carro</option>
+            </select>
+          </label>
+          <Input
+            label="Compatível (códigos, vírgula)"
+            value={compatibleCodes}
+            onChange={(e) => setCompatibleCodes(e.target.value)}
+            hint="Ex.: motorcycle,car"
+          />
+          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <input
+              type="checkbox"
+              checked={ownDeliveryAllowed}
+              onChange={(e) => setOwnDeliveryAllowed(e.target.checked)}
+            />
+            Permite frete próprio FAL
+          </label>
+          <p className="m-0 self-center text-xs text-fal-muted">
+            Origem POL: <strong>{polOrigin === 'manual' ? 'Manual' : 'Global'}</strong>
+          </p>
+        </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(
             [

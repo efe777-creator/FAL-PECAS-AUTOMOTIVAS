@@ -1,7 +1,4 @@
-import {
-  cepInOwnDeliveryRanges,
-  getOwnDeliverySettings,
-} from '@/services/admin/adminOwnDeliveryService'
+import { resolveOwnQuoteOptions } from '@/services/shipping/own/ownQuoteOptions'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 function regionSurcharge(postalCode: string): number {
@@ -12,38 +9,14 @@ function regionSurcharge(postalCode: string): number {
   return 10
 }
 
-/** Provider mock F6 — espelha `resolve_mock_shipping_option` no SQL (+ frete próprio config). */
+/** Provider mock F6 — espelha `resolve_mock_shipping_option` no SQL (+ frete próprio v1/v2). */
 export const mockShippingProvider: ShippingProvider = {
   async quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
     const surcharge = regionSurcharge(req.postalCode)
     const options: ShippingQuoteOption[] = []
 
-    try {
-      const own = await getOwnDeliverySettings()
-      if (
-        own?.enabled &&
-        own.rates.length &&
-        cepInOwnDeliveryRanges(req.postalCode, own.cepRanges)
-      ) {
-        for (const rate of own.rates) {
-          options.push({
-            id: rate.id,
-            provider: 'own',
-            serviceCode: rate.serviceCode,
-            label: rate.label,
-            amount: Number(rate.amount),
-            etaDaysMin: rate.etaDaysMin,
-            etaDaysMax: rate.etaDaysMax,
-            metadata: {
-              kind: 'own_delivery_table',
-              coverage: own.coverageLabel,
-            },
-          })
-        }
-      }
-    } catch {
-      // Sem config / RLS: segue só mock clássico.
-    }
+    const own = await resolveOwnQuoteOptions(req)
+    options.push(...own)
 
     options.push(
       {

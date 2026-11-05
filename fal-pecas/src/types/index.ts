@@ -178,6 +178,10 @@ export interface ShippingQuoteRequest {
   originPostalCode?: string
   items?: ShippingQuoteItem[]
   totalWeightKg?: number
+  /** Frete próprio v2 — número obrigatório para distância. */
+  street?: string
+  number?: string
+  district?: string
 }
 
 export interface ShippingQuoteOption {
@@ -371,7 +375,20 @@ export interface Product {
   heightOrigin?: MeasureOrigin
   widthOrigin?: MeasureOrigin
   lengthOrigin?: MeasureOrigin
+  /** Frete próprio v2 — perfil logístico. */
+  polUnit?: number | null
+  logisticPorte?: 'pequeno' | 'medio' | 'grande' | null
+  vehicleMinCode?: string | null
+  compatibleVehicleCodes?: string[]
+  logisticRestrictions?: unknown
+  ownDeliveryAllowed?: boolean
+  polOrigin?: MeasureOrigin
+  logisticProfileOrigin?: MeasureOrigin
 }
+
+export type OwnPricingMode = 'flat' | 'distance_vehicle'
+
+export type OwnVehicleCategoryCode = 'motorcycle' | 'car' | (string & {})
 
 export type EntityStatus = 'active' | 'inactive'
 

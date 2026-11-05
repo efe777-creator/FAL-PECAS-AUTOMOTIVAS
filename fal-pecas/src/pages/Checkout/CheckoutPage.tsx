@@ -200,6 +200,7 @@ export function CheckoutPage() {
     const key = [
       originPostalCode ?? '',
       selectedAddress.postalCode,
+      selectedAddress.number ?? '',
       itemCount,
       subtotal.toFixed(2),
     ].join('|')
@@ -217,6 +218,9 @@ export function CheckoutPage() {
         postalCode: selectedAddress.postalCode,
         state: selectedAddress.state,
         city: selectedAddress.city,
+        street: selectedAddress.street,
+        number: selectedAddress.number,
+        district: selectedAddress.district ?? undefined,
         subtotal,
         itemCount,
         originPostalCode,
@@ -231,13 +235,14 @@ export function CheckoutPage() {
         return
       }
       const opts = env.options
+      const selectable = opts.filter((o) => o.metadata?.selectable !== false)
       quoteKeyRef.current = key
       setShippingOptions(opts)
       const preferred = preferredShipOptRef.current
       setShippingOptionId((prev) => {
-        if (prev && opts.some((o) => o.id === prev)) return prev
-        if (preferred && opts.some((o) => o.id === preferred)) return preferred
-        return opts[0]?.id ?? ''
+        if (prev && selectable.some((o) => o.id === prev)) return prev
+        if (preferred && selectable.some((o) => o.id === preferred)) return preferred
+        return selectable[0]?.id ?? ''
       })
     } catch (e) {
       setShippingOptions([])
@@ -557,12 +562,15 @@ export function CheckoutPage() {
                 <p className="text-sm text-fal-muted">Nenhuma opção disponível. Volte e confira o CEP.</p>
               ) : (
                 <ul className="m-0 list-none space-y-2 p-0">
-                  {shippingOptions.map((o) => (
+                  {shippingOptions.map((o) => {
+                    const locked = o.metadata?.selectable === false
+                    return (
                     <li key={o.id}>
-                      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-fal border border-fal-line p-3 hover:border-fal-navy">
+                      <label className={`flex items-center justify-between gap-3 rounded-fal border border-fal-line p-3 ${locked ? 'opacity-80' : 'cursor-pointer hover:border-fal-navy'}`}>
                         <span className="flex items-center gap-3 text-sm">
                           <input
                             type="radio"
+                            disabled={locked}
                             name="ship"
                             checked={shippingOptionId === o.id}
                             onChange={() => setShippingOptionId(o.id)}
@@ -578,10 +586,11 @@ export function CheckoutPage() {
                             ) : null}
                           </span>
                         </span>
-                        <strong>{money(o.amount)}</strong>
+                        <strong>{locked ? '—' : money(o.amount)}</strong>
                       </label>
                     </li>
-                  ))}
+                    )
+                  })}
                 </ul>
               )}
               <button

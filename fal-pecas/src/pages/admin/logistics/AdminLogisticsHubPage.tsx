@@ -10,7 +10,7 @@ const cards = [
   {
     to: '/admin/logistica/frete-proprio',
     title: 'Frete próprio',
-    desc: 'Ativação, faixas CEP (SP capital) e tabela editável — cotação sob D-FRETE B.',
+    desc: 'Cobertura, veículos/POL, tarifas por km (v2) e tabela flat (v1) — D-FRETE B.',
     ready: true,
   },
   {

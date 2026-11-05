@@ -1,8 +1,5 @@
-import {
-  cepInOwnDeliveryRanges,
-  getOwnDeliverySettings,
-} from '@/services/admin/adminOwnDeliveryService'
 import { invokeQuoteShippingEdge } from '@/services/shipping/edgeQuoteClient'
+import { resolveOwnQuoteOptions } from '@/services/shipping/own/ownQuoteOptions'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 type EdgeEnvelope = {
@@ -12,33 +9,12 @@ type EdgeEnvelope = {
   providerId?: string
 }
 
-async function ownOptions(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
-  try {
-    const own = await getOwnDeliverySettings()
-    if (!own?.enabled || !own.rates.length) return []
-    if (!cepInOwnDeliveryRanges(req.postalCode, own.cepRanges)) return []
-    return own.rates.map((rate) => ({
-      id: rate.id,
-      provider: 'own',
-      serviceCode: rate.serviceCode,
-      label: rate.label,
-      amount: Number(rate.amount),
-      etaDaysMin: rate.etaDaysMin,
-      etaDaysMax: rate.etaDaysMax,
-      metadata: { kind: 'own_delivery_table', coverage: own.coverageLabel },
-    }))
-  } catch {
-    return []
-  }
-}
-
 /**
- * Cotação Melhor Envio via Edge `quote-shipping` + frete próprio quando coberto.
- * Sem secrets na Edge → erro honesto (not_configured).
+ * Cotação Melhor Envio via Edge `quote-shipping` + frete próprio (flat ou v2).
  */
 export const melhorEnvioEdgeProvider: ShippingProvider = {
   async quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
-    const own = await ownOptions(req)
+    const own = await resolveOwnQuoteOptions(req)
     const data = (await invokeQuoteShippingEdge({
       postalCode: req.postalCode,
       state: req.state,
