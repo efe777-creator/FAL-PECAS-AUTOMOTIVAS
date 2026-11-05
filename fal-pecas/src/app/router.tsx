@@ -201,6 +201,11 @@ const AdminOwnDeliveryPage = lazy(() =>
     default: m.AdminOwnDeliveryPage,
   })),
 )
+const AdminMelhorEnvioPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminMelhorEnvioPage').then((m) => ({
+    default: m.AdminMelhorEnvioPage,
+  })),
+)
 const AdminOperatorsPage = lazy(() =>
   import('@/pages/admin/operators/AdminOperatorsPage').then((m) => ({
     default: m.AdminOperatorsPage,
@@ -271,6 +276,7 @@ export const router = createBrowserRouter([
       { path: 'logistica', element: <AdminLogisticsHubPage /> },
       { path: 'logistica/origem', element: <AdminShippingOriginPage /> },
       { path: 'logistica/frete-proprio', element: <AdminOwnDeliveryPage /> },
+      { path: 'logistica/melhor-envio', element: <AdminMelhorEnvioPage /> },
       { path: 'logistica/:slug', element: <AdminLogisticsPlaceholderPage /> },
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },

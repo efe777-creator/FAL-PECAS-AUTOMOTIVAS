@@ -86,12 +86,14 @@ export async function quoteStorefrontShippingEnvelope(
     }
   }
 
+  const sorted = [...selectable].sort((a, b) => a.amount - b.amount)
+
   return {
     needsAddressNumber,
     envelope: buildOkEnvelope({
       providerId: env.providerId,
       mode: env.mode,
-      options: selectable,
+      options: sorted,
       req,
       disclaimer:
         'Cotação Melhor Envio (sandbox) e/ou frete próprio FAL quando houver cobertura. Confirme no checkout.',

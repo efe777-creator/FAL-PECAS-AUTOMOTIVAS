@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { ShippingOptionBrand } from '@/components/shipping/ShippingOptionBrand'
 import { formatMoney } from '@/lib/money'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
@@ -198,7 +199,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
                 key={o.id}
                 className="rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm"
               >
-                <div className="font-extrabold text-fal-navy">{o.label}</div>
+                <ShippingOptionBrand option={o} />
                 <div className="mt-0.5 text-fal-ink">
                   Frete: <strong>{formatMoney(o.amount)}</strong>
                 </div>
@@ -213,10 +214,6 @@ export function ProductShippingQuoteBlock({ product }: Props) {
                 ) : (
                   <div className="text-xs text-fal-muted">Prazo estimado: conforme cotação</div>
                 )}
-                <div className="text-xs text-fal-muted">
-                  {o.provider}
-                  {o.serviceCode ? ` · ${o.serviceCode}` : ''}
-                </div>
               </li>
             ))}
           </ul>

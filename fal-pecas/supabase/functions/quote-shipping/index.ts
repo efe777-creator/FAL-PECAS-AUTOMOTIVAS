@@ -98,6 +98,179 @@ Deno.serve(async (req) => {
       return json(400, { error: 'invalid_json' })
     }
 
+    const action = String(body.action ?? '').trim()
+    const quotedAtEarly = new Date().toISOString()
+
+    /** Status integração ME (staff) — sem expor secrets. */
+    if (action === 'me_admin_status') {
+      const { data: staffOk } = await userClient.rpc('is_staff')
+      if (!staffOk) return json(403, { error: 'staff_required' })
+      if (!serviceKey) return json(500, { error: 'supabase_service_role_missing' })
+      const admin = createClient(supabaseUrl, serviceKey)
+      const meToken = (Deno.env.get('MELHOR_ENVIO_TOKEN') ?? '').trim()
+      const meUa = (Deno.env.get('MELHOR_ENVIO_USER_AGENT') ?? '').trim()
+      const { data: origin } = await admin
+        .from('store_shipping_origin')
+        .select('postal_code, city, state, sender_name')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      const { count: enabledCount } = await admin
+        .from('me_shipping_services')
+        .select('service_id', { count: 'exact', head: true })
+        .eq('enabled', true)
+      const { count: catalogCount } = await admin
+        .from('me_shipping_services')
+        .select('service_id', { count: 'exact', head: true })
+      const { data: lastQuote } = await admin
+        .from('shipping_quotes')
+        .select('id, created_at, postal_code')
+        .eq('provider', 'melhorenvio')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      return json(200, {
+        status: 'ok',
+        providerId: 'melhorenvio',
+        mode: 'sandbox',
+        apiBase: meApiBase(),
+        tokenConfigured: meToken.length > 0,
+        userAgentConfigured: meUa.length > 0,
+        originPostalCode: origin?.postal_code ?? null,
+        originCity: origin?.city ?? null,
+        originState: origin?.state ?? null,
+        senderName: origin?.sender_name ?? null,
+        catalogCount: catalogCount ?? 0,
+        enabledCount: enabledCount ?? 0,
+        lastQuoteAt: lastQuote?.created_at ?? null,
+        lastQuotePostal: lastQuote?.postal_code ?? null,
+        quotedAt: quotedAtEarly,
+        disclaimer:
+          'Cotação Melhor Envio sob D-FRETE B (sandbox). Etiqueta só na Expedição.',
+      })
+    }
+
+    /**
+     * Sync catálogo ME (staff): calculate → upsert me_shipping_services
+     * (novos entram enabled=false; existentes atualizam nome/logo).
+     */
+    if (action === 'me_sync_catalog') {
+      const { data: staffOk } = await userClient.rpc('is_staff')
+      if (!staffOk) return json(403, { error: 'staff_required' })
+      const meToken = (Deno.env.get('MELHOR_ENVIO_TOKEN') ?? '')
+        .trim()
+        .replace(/^Bearer\s+/i, '')
+      const meUa = (
+        Deno.env.get('MELHOR_ENVIO_USER_AGENT') ??
+        'FAL Pecas Automotivas (efe.comercioltda@gmail.com)'
+      ).trim()
+      if (!meToken) {
+        return json(501, {
+          error: 'not_configured',
+          message: 'MELHOR_ENVIO_TOKEN ausente no Edge.',
+        })
+      }
+      if (!serviceKey) return json(500, { error: 'supabase_service_role_missing' })
+      const admin = createClient(supabaseUrl, serviceKey)
+      const { data: origin } = await admin
+        .from('store_shipping_origin')
+        .select('postal_code')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      const originPostal = String(origin?.postal_code ?? '')
+        .replace(/\D/g, '')
+        .slice(0, 8)
+      const toPostal =
+        String(body.postalCode ?? '01310100').replace(/\D/g, '').slice(0, 8) || '01310100'
+      if (originPostal.length !== 8) {
+        return json(422, {
+          error: 'not_configured',
+          message: 'CEP de origem ausente (store_shipping_origin).',
+        })
+      }
+      const meRes = await fetch(`${meApiBase()}/api/v2/me/shipment/calculate`, {
+        method: 'POST',
+        headers: meHeaders(meToken, meUa),
+        body: JSON.stringify({
+          from: { postal_code: originPostal },
+          to: { postal_code: toPostal },
+          products: [
+            {
+              id: 'sync',
+              width: 11,
+              height: 2,
+              length: 16,
+              weight: 0.3,
+              insurance_value: 50,
+              quantity: 1,
+            },
+          ],
+        }),
+      })
+      const meData = await meRes.json().catch(() => null)
+      if (!meRes.ok) {
+        return json(502, {
+          error: 'provider_error',
+          message: `ME calculate HTTP ${meRes.status}`,
+          detail: meData,
+        })
+      }
+      const rawList = Array.isArray(meData) ? meData : []
+      const optionsPayload = rawList
+        .filter((row) => row && typeof row === 'object' && !(row as { error?: unknown }).error)
+        .map((s) => {
+          const row = s as Record<string, unknown>
+          const company = (row.company ?? null) as Record<string, unknown> | null
+          return {
+            service_id: Number(row.id),
+            name: String(row.name ?? `Serviço ${row.id}`),
+            company: company
+              ? {
+                  id: company.id ?? null,
+                  name: company.name ?? '',
+                  picture: company.picture ?? null,
+                }
+              : null,
+          }
+        })
+        .filter((o) => Number.isFinite(o.service_id) && o.service_id > 0)
+
+      // Preserva enabled/display_name; atualiza nome/logo da ME
+      let upserted = 0
+      for (const o of optionsPayload) {
+        const { data: existing } = await admin
+          .from('me_shipping_services')
+          .select('service_id, enabled, display_name, sort_hint')
+          .eq('service_id', o.service_id)
+          .maybeSingle()
+        const company = o.company
+        const payload = {
+          service_id: o.service_id,
+          service_name: o.name,
+          company_id: company?.id != null ? Number(company.id) : null,
+          company_name: String(company?.name ?? ''),
+          company_picture: company?.picture ? String(company.picture) : null,
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          enabled: existing?.enabled ?? false,
+          display_name: existing?.display_name ?? null,
+          sort_hint: existing?.sort_hint ?? 100,
+        }
+        const { error: upErr } = await admin.from('me_shipping_services').upsert(payload, {
+          onConflict: 'service_id',
+        })
+        if (!upErr) upserted += 1
+      }
+
+      return json(200, {
+        status: 'ok',
+        upserted,
+        services: optionsPayload.length,
+        quotedAt: quotedAtEarly,
+      })
+    }
+
     const postalCode = String(body.postalCode ?? '').replace(/\D/g, '')
     if (postalCode.length !== 8) {
       return json(400, {
@@ -284,23 +457,73 @@ Deno.serve(async (req) => {
         lengthCm: maxL,
       }
 
-      const optionsPayload = services.map((s) => {
-        const serviceId = Number(s.id)
-        const price = Number(s.custom_price ?? s.price ?? 0)
-        const range = (s.custom_delivery_range ?? s.delivery_range ?? {}) as {
-          min?: number
-          max?: number
-        }
-        return {
-          service_id: serviceId,
-          name: String(s.name ?? `Serviço ${serviceId}`),
-          amount: price,
-          eta_days_min: Number(range.min ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
-          eta_days_max: Number(range.max ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
-          packages: s.packages ?? null,
-          company: s.company ?? null,
-        }
-      })
+      /** Allowlist admin: só `enabled` vai para a loja. */
+      const { data: catalogRows } = await admin
+        .from('me_shipping_services')
+        .select(
+          'service_id, enabled, display_name, service_name, company_name, company_picture',
+        )
+      const catalogById = new Map(
+        (catalogRows ?? []).map((r) => [Number(r.service_id), r] as const),
+      )
+      const hasCatalog = catalogById.size > 0
+
+      const optionsPayload = services
+        .map((s) => {
+          const serviceId = Number(s.id)
+          const price = Number(s.custom_price ?? s.price ?? 0)
+          const range = (s.custom_delivery_range ?? s.delivery_range ?? {}) as {
+            min?: number
+            max?: number
+          }
+          const company = (s.company ?? null) as Record<string, unknown> | null
+          const cfg = catalogById.get(serviceId)
+          if (hasCatalog && (!cfg || cfg.enabled !== true)) {
+            return null
+          }
+          const meName = String(s.name ?? cfg?.service_name ?? `Serviço ${serviceId}`)
+          const companyName = String(
+            company?.name ?? cfg?.company_name ?? '',
+          )
+          const display =
+            (cfg?.display_name && String(cfg.display_name).trim()) ||
+            (companyName ? `${companyName} — ${meName}` : meName)
+          const picture =
+            (company?.picture ? String(company.picture) : null) ||
+            (cfg?.company_picture ? String(cfg.company_picture) : null)
+          return {
+            service_id: serviceId,
+            name: display,
+            me_name: meName,
+            amount: price,
+            eta_days_min: Number(range.min ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
+            eta_days_max: Number(range.max ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
+            packages: s.packages ?? null,
+            company: company
+              ? {
+                  id: company.id ?? null,
+                  name: companyName,
+                  picture,
+                }
+              : companyName || picture
+                ? { id: null, name: companyName, picture }
+                : null,
+          }
+        })
+        .filter((o): o is NonNullable<typeof o> => o != null)
+        .sort((a, b) => a.amount - b.amount)
+
+      if (!optionsPayload.length) {
+        return json(200, {
+          status: 'unavailable',
+          providerId: 'melhorenvio',
+          mode: 'live',
+          options: [],
+          message:
+            'Nenhuma opção Melhor Envio habilitada para este CEP. Ative serviços em Logística → Melhor Envio.',
+          quotedAt,
+        })
+      }
 
       const { data: quoteRow, error: quoteErr } = await admin
         .from('shipping_quotes')
@@ -332,7 +555,19 @@ Deno.serve(async (req) => {
             amount: o.amount,
             etaDaysMin: o.eta_days_min,
             etaDaysMax: o.eta_days_max,
-            metadata: { ephemeral: true, volumes, warning: 'shipping_quotes_unavailable' },
+            metadata: {
+              ephemeral: true,
+              volumes,
+              warning: 'shipping_quotes_unavailable',
+              service_id: o.service_id,
+              company: o.company,
+              company_name: o.company && typeof o.company === 'object'
+                ? (o.company as { name?: string }).name
+                : null,
+              company_picture: o.company && typeof o.company === 'object'
+                ? (o.company as { picture?: string | null }).picture
+                : null,
+            },
           })),
           quotedAt,
           expiresAt,
@@ -359,6 +594,12 @@ Deno.serve(async (req) => {
           volumes,
           packages: o.packages,
           company: o.company,
+          company_name: o.company && typeof o.company === 'object'
+            ? (o.company as { name?: string }).name
+            : null,
+          company_picture: o.company && typeof o.company === 'object'
+            ? (o.company as { picture?: string | null }).picture
+            : null,
         },
       }))
 
