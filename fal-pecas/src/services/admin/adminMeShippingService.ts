@@ -1,4 +1,4 @@
-import { getSupabase } from '@/services/supabase/client'
+import { getSupabase } from '@/lib/supabase'
 
 export type MeShippingServiceRow = {
   serviceId: number
