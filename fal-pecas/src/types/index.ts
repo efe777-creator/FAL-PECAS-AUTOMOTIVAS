@@ -122,6 +122,8 @@ export interface OrderLifecycleEvent {
 
 export type OrderCustomerDecision = 'pending' | 'authorized' | 'rejected' | null
 
+export type OrderCancellationRequest = 'pending' | 'approved' | 'rejected' | null
+
 export interface OrderDetail {
   id: string
   status: string
@@ -133,6 +135,9 @@ export interface OrderDetail {
   paymentRef?: string | null
   /** Decisão do cliente em aguardando_decisao. */
   customerDecision?: OrderCustomerDecision
+  /** Solicitação de cancelamento pós-pago (Onda 2). */
+  cancellationRequest?: OrderCancellationRequest
+  cancellationReason?: string | null
   items: OrderItemSnapshot[]
   history: OrderStatusEvent[]
   /** Eventos customer-visible (F7A). */

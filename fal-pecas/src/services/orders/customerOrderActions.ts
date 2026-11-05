@@ -33,3 +33,22 @@ export async function customerRespondOrderDecision(
   if (error) throw error
   return data as CustomerDecisionResponse
 }
+
+export type RequestCancellationResponse = {
+  order_id: string
+  status: string
+  cancellation_request: 'pending'
+  refund_policy: 'manual'
+}
+
+export async function requestOrderCancellation(
+  orderId: string,
+  reason?: string,
+): Promise<RequestCancellationResponse> {
+  const { data, error } = await getSupabase().rpc('request_order_cancellation', {
+    p_order_id: orderId,
+    p_reason: reason?.trim() ? reason.trim() : null,
+  })
+  if (error) throw error
+  return data as RequestCancellationResponse
+}

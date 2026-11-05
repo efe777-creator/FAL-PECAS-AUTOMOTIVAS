@@ -13,6 +13,8 @@ export type AdminOrderListRow = {
   paymentStatus: string | null
   paymentExpiresAt: string | null
   customerDecision: 'pending' | 'authorized' | 'rejected' | null
+  cancellationRequest: 'pending' | 'approved' | 'rejected' | null
+  cancellationReason: string | null
 }
 
 export type AdminOrderItem = {
@@ -42,6 +44,9 @@ export type AdminOrderDetail = {
   customerEmail: string | null
   customerDoc: string | null
   customerDecision: 'pending' | 'authorized' | 'rejected' | null
+  cancellationRequest: 'pending' | 'approved' | 'rejected' | null
+  cancellationReason: string | null
+  cancellationResolveNote: string | null
   items: AdminOrderItem[]
   events: {
     id: string
@@ -80,6 +85,7 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
     .select(
       `
       id, status, total, created_at, customer_id, customer_decision,
+      cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
       payments ( status, expires_at )
@@ -108,6 +114,12 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
       r.customer_decision === 'rejected'
         ? r.customer_decision
         : null
+    const cancelReq =
+      r.cancellation_request === 'pending' ||
+      r.cancellation_request === 'approved' ||
+      r.cancellation_request === 'rejected'
+        ? r.cancellation_request
+        : null
     return {
       id: String(r.id),
       status: String(r.status),
@@ -118,6 +130,8 @@ export async function adminListOrders(filterStatus?: string | null): Promise<Adm
       paymentStatus: pay?.status != null ? String(pay.status) : null,
       paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
       customerDecision: decision,
+      cancellationRequest: cancelReq,
+      cancellationReason: r.cancellation_reason != null ? String(r.cancellation_reason) : null,
     }
   })
 }
@@ -128,6 +142,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     .select(
       `
       id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id, customer_decision,
+      cancellation_request, cancellation_reason, cancellation_resolve_note,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated ),
       order_events ( id, event_type, payload, visibility, created_at ),
@@ -181,6 +196,15 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
       r.customer_decision === 'rejected'
         ? r.customer_decision
         : null,
+    cancellationRequest:
+      r.cancellation_request === 'pending' ||
+      r.cancellation_request === 'approved' ||
+      r.cancellation_request === 'rejected'
+        ? r.cancellation_request
+        : null,
+    cancellationReason: r.cancellation_reason != null ? String(r.cancellation_reason) : null,
+    cancellationResolveNote:
+      r.cancellation_resolve_note != null ? String(r.cancellation_resolve_note) : null,
     items: items.map((i: Record<string, unknown>) => ({
       id: String(i.id),
       productId: i.product_id != null ? String(i.product_id) : null,
@@ -365,4 +389,42 @@ export async function staffCanCancel(): Promise<boolean> {
   const { data, error } = await getSupabase().rpc('staff_can_cancel')
   if (error) throw error
   return Boolean(data)
+}
+
+export async function adminResolveOrderCancellation(
+  orderId: string,
+  approve: boolean,
+  note?: string,
+): Promise<{
+  order_id: string
+  status: string
+  cancellation_request: string
+  refund_policy?: string
+  refund_status?: string
+}> {
+  const { data, error } = await getSupabase().rpc('admin_resolve_order_cancellation', {
+    p_order_id: orderId,
+    p_approve: approve,
+    p_note: note?.trim() ? note.trim() : null,
+  })
+  if (error) throw error
+  return data as {
+    order_id: string
+    status: string
+    cancellation_request: string
+    refund_policy?: string
+    refund_status?: string
+  }
+}
+
+export async function adminMarkPaymentRefunded(
+  orderId: string,
+  note?: string,
+): Promise<{ order_id: string; payment_status: string }> {
+  const { data, error } = await getSupabase().rpc('admin_mark_payment_refunded', {
+    p_order_id: orderId,
+    p_note: note?.trim() ? note.trim() : null,
+  })
+  if (error) throw error
+  return data as { order_id: string; payment_status: string }
 }

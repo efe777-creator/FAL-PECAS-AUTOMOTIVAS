@@ -490,10 +490,10 @@ export const ADMIN_ORDER_VIEWS: readonly AdminOrderView[] = [
   {
     id: 'solicitacoes-cancelamento',
     title: 'Solicitações de cancelamento',
-    description: 'Onda 2 ainda não implementada — visão vazia até haver fluxo.',
+    description:
+      'Cancelamento pós-pago pendente de análise. Estorno = manual no MP após aprovar.',
     path: '/admin/pedidos/visao/solicitacoes-cancelamento',
-    statuses: [],
-    placeholder: true,
+    statuses: null,
   },
   {
     id: 'cancelados',

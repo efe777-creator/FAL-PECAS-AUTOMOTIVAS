@@ -20,6 +20,8 @@ import {
   adminDeliverOrder,
   adminFinalizeConfirmation,
   adminGetOrderDetail,
+  adminMarkPaymentRefunded,
+  adminResolveOrderCancellation,
   adminSetItemAvailability,
   adminSetItemSeparated,
   adminShipOrder,
@@ -414,6 +416,109 @@ export function AdminOrderDetailPage() {
                 ? 'Cliente recusou. Cancele o pedido ou renegocie; não confirme em silêncio.'
                 : 'Aguardando resposta do cliente (autorizar / recusar). Não confirme sem autorização.'}
           </p>
+        </section>
+      ) : null}
+
+      {current.cancellationRequest === 'pending' ? (
+        <section className="rounded-[14px] border border-amber-400 bg-amber-50 px-4 py-3">
+          <h2 className="m-0 text-base font-extrabold text-fal-navy">
+            Solicitação de cancelamento (pós-pago)
+          </h2>
+          <p className="mt-1 mb-2 text-sm text-fal-muted">
+            Motivo do cliente: {current.cancellationReason?.trim() || '—'}
+          </p>
+          <p className="mt-0 mb-3 text-xs text-fal-muted">
+            Política M8: estorno <strong>manual</strong> no Mercado Pago após aprovar. Depois use
+            “Marcar estorno feito”.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                const note =
+                  window.prompt('Aprovar cancelamento? Nota opcional (estorno manual):', '') ?? null
+                if (note === null) return
+                void (async () => {
+                  setBusy(true)
+                  setMsg(null)
+                  try {
+                    await adminResolveOrderCancellation(current.id, true, note)
+                    setMsg('Cancelamento aprovado. Faça o estorno no MP e marque abaixo.')
+                    await reload()
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Falha ao aprovar')
+                  } finally {
+                    setBusy(false)
+                  }
+                })()
+              }}
+            >
+              Aprovar cancelamento
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                const note = window.prompt('Recusar solicitação? Informe o motivo:', '') ?? null
+                if (note === null) return
+                void (async () => {
+                  setBusy(true)
+                  setMsg(null)
+                  try {
+                    await adminResolveOrderCancellation(current.id, false, note)
+                    setMsg('Solicitação recusada. Pedido permanece ativo.')
+                    await reload()
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Falha ao recusar')
+                  } finally {
+                    setBusy(false)
+                  }
+                })()
+              }}
+            >
+              Recusar solicitação
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {current.status === 'cancelado' &&
+      current.cancellationRequest === 'approved' &&
+      current.payment?.status === 'approved' ? (
+        <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] px-4 py-3">
+          <h2 className="m-0 text-base font-extrabold text-fal-navy">Estorno pendente (manual)</h2>
+          <p className="mt-1 mb-3 text-sm text-fal-muted">
+            Após concluir o refund no painel Mercado Pago, registre aqui.
+            {current.cancellationResolveNote
+              ? ` Nota: ${current.cancellationResolveNote}`
+              : ''}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              const note = window.prompt('Confirma que o estorno já foi feito no MP?', '') ?? null
+              if (note === null) return
+              void (async () => {
+                setBusy(true)
+                setMsg(null)
+                try {
+                  await adminMarkPaymentRefunded(current.id, note)
+                  setMsg('Pagamento marcado como refunded.')
+                  await reload()
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Falha ao marcar estorno')
+                } finally {
+                  setBusy(false)
+                }
+              })()
+            }}
+          >
+            Marcar estorno feito
+          </Button>
         </section>
       ) : null}
 

@@ -49,8 +49,9 @@ describe('ADMIN_ORDER_AREAS / views', () => {
     ).toBe(false)
   })
 
-  it('atalho cancelamento é placeholder', () => {
+  it('atalho cancelamento filtra por solicitação pendente (não placeholder)', () => {
     const v = ADMIN_ORDER_VIEWS.find((x) => x.id === 'solicitacoes-cancelamento')
-    expect(v?.placeholder).toBe(true)
+    expect(v?.placeholder).toBeFalsy()
+    expect(v?.statuses).toBeNull()
   })
 })
