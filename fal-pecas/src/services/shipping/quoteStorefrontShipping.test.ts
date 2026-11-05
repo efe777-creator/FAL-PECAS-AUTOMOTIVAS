@@ -47,4 +47,14 @@ describe('selectableShippingOptions', () => {
     const out = selectableShippingOptions(opts)
     expect(out.map((o) => o.id)).toEqual(['meq:1', 'ownq:moto', 'mock:pickup'])
   })
+
+  it('ordem preço crescente na seleção (contrato vitrine)', () => {
+    const opts: ShippingQuoteOption[] = [
+      { id: 'a', provider: 'melhorenvio', serviceCode: '2', label: 'SEDEX', amount: 40 },
+      { id: 'b', provider: 'melhorenvio', serviceCode: '1', label: 'PAC', amount: 12 },
+      { id: 'c', provider: 'own', serviceCode: 'moto', label: 'FAL', amount: 25 },
+    ]
+    const sorted = [...selectableShippingOptions(opts)].sort((a, b) => a.amount - b.amount)
+    expect(sorted.map((o) => o.id)).toEqual(['b', 'c', 'a'])
+  })
 })

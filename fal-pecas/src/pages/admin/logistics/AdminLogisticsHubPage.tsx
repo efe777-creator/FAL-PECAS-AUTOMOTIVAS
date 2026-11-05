@@ -16,8 +16,8 @@ const cards = [
   {
     to: '/admin/logistica/melhor-envio',
     title: 'Melhor Envio',
-    desc: 'Cotação nacional via intermediador — exige secrets + MARCHA; live ≠ B.',
-    ready: false,
+    desc: 'Status, catálogo com logo/nome da transportadora e quais fretes aparecem na loja.',
+    ready: true,
   },
   {
     to: '/admin/logistica/configuracoes',

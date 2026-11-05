@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { ShippingOptionBrand } from '@/components/shipping/ShippingOptionBrand'
 import { formatMoney } from '@/lib/money'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
@@ -197,13 +198,14 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
                 checked={selectedId === o.id}
                 onChange={() => setSelectedId(o.id)}
               />
-              <span>
-                <strong>{o.label}</strong>
-                <br />
-                {formatMoney(o.amount)}
-                {o.etaDaysMin != null && o.etaDaysMax != null
-                  ? ` · ${o.etaDaysMin}–${o.etaDaysMax} dias (est.)`
-                  : ''}
+              <span className="min-w-0 flex-1">
+                <ShippingOptionBrand option={o} />
+                <span className="mt-0.5 block text-fal-ink">
+                  {formatMoney(o.amount)}
+                  {o.etaDaysMin != null && o.etaDaysMax != null
+                    ? ` · ${o.etaDaysMin}–${o.etaDaysMax} dias (est.)`
+                    : ''}
+                </span>
               </span>
             </label>
           ))
