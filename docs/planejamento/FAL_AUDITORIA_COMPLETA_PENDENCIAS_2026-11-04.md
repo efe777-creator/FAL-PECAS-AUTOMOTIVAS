@@ -81,7 +81,7 @@
 
 | ID | Item |
 |----|------|
-| P1-REG2 | Onda 2: solicitação de cancelamento pós-pagamento + análise admin + estorno MP (refund) |
+| P1-REG2 | Onda 2: solicitação de cancelamento pós-pagamento + análise admin + estorno MP (refund) | **FEITO** 05/11 código — estorno **manual** · [VAL M8](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA2_VAL_2026-11-05.md) |
 | P1-WH | Diagnóstico webhook (`notifications_history`) | **FEITO** 05/11 — MCP vazio (ressalva) · Edge 405 GET · [VAL M9](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) |
 | P1-OPS-E2E | Concluir `08da5ada` até `enviado`/`entregue` | **FEITO** 05/11 — `entregue` |
 | P1-LOG-HIST | Histórico de alterações de medidas (`MARCHA_LOGISTICA_FILTROS_HISTORICO_MEDIDAS`) |
@@ -110,7 +110,7 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 | M5 | CRON-EXPIRY | `pg_cron` + 1ª limpeza dos 9 | **FEITO** (job horário + 9 expirados) |
 | M6 | DADOS-MEDIDAS | Bulk peso/dimensões por Categoria/Grupo | **FEITO** provisório 04/11 (100 quote-ready); calibração comercial = eFe |
 | M7 | OPS-E2E-ENTREGA | Levar `08da5ada` a entregue; VAL do ciclo completo | **FEITO** 05/11 — status `entregue` · [VAL](./FAL_MARCHA_OPS_E2E_ENTREGA_VAL_2026-11-05.md) |
-| M8 | REGRAS-PEDIDOS-ONDA2 | Cancelamento pós-pago + refund MP | Decisão política de estorno |
+| M8 | REGRAS-PEDIDOS-ONDA2 | Cancelamento pós-pago + refund MP | **FEITO** 05/11 — estorno **manual** provisório · [VAL](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA2_VAL_2026-11-05.md) |
 | M9 | WEBHOOK-DIAG | MCP `notifications_history` / logs Edge | **FEITO** 05/11 — [VAL](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) · MCP ainda vazio (≠ FAIL loja) |
 | M10 | REGRAS-PEDIDOS-ONDA3 | Cartão tokenizado | Decisão + MP Customers |
 | M11+ | Frete C / Melhor Envio · F11 · domínio | — | Assinaturas |
@@ -120,7 +120,7 @@ F11 catálogo mestre · domínio definitivo · F12/F13 · HOLD (B3, Bloco F perm
 ## 7. Decisões humanas pendentes
 
 1. ~~Mecanismo do cron~~ — **`pg_cron`** FEITO (job `fal-expire-unpaid-orders` · `15 * * * *`).
-2. **Política de estorno** (Onda 2): estorno automático via MP vs manual pelo operador; prazo de solicitação.
+2. ~~**Política de estorno** (Onda 2)~~ — **MANUAL** provisório (M8 05/11); auto-refund = marcha futura.
 3. **Valores padrão de medidas** por grupo (para o bulk M6).
 4. **Cartão salvo** (Onda 3): seguir ou adiar.
 5. Taxonomia/autoridade de campos (PRD §36.3–4) — antes de F11/F12.

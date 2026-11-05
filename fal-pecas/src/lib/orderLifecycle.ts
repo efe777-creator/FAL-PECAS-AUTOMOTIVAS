@@ -247,6 +247,10 @@ export const orderEventLabel: Record<string, string> = {
   order_awaiting_decision: 'Loja pediu sua autorização',
   customer_authorized_changes: 'Você autorizou as alterações',
   customer_rejected_changes: 'Você recusou as alterações',
+  cancellation_requested: 'Solicitação de cancelamento enviada',
+  cancellation_approved: 'Cancelamento aprovado pela loja',
+  cancellation_rejected: 'Solicitação de cancelamento recusada',
+  payment_refunded: 'Estorno do pagamento registrado',
   status_changed: 'Atualização do pedido',
   item_separated: 'Item marcado na separação',
 }

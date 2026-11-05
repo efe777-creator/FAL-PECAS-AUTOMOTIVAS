@@ -20,6 +20,7 @@ import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
 import {
   customerCancelUnpaidOrder,
   customerRespondOrderDecision,
+  requestOrderCancellation,
 } from '@/services/orders/customerOrderActions'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
@@ -82,6 +83,13 @@ export function AccountOrderDetailPage() {
   const decisionPending =
     awaitingDecision &&
     (order?.customerDecision == null || order.customerDecision === 'pending')
+  const canRequestCancel =
+    !!order &&
+    order.payment?.status === 'approved' &&
+    !['aguardando_pagamento', 'cancelado', 'enviado', 'entregue'].includes(order.status) &&
+    order.cancellationRequest !== 'pending' &&
+    order.cancellationRequest !== 'approved'
+  const cancelRequestPending = order?.cancellationRequest === 'pending'
 
   async function restoreItemsToCart(detail: OrderDetail) {
     const result = await buildBuyAgainCart(detail.items)
@@ -147,6 +155,28 @@ export function AccountOrderDetailPage() {
       await reload()
     } catch (e) {
       setActionMsg(e instanceof Error ? e.message : 'Falha ao registrar decisão')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function onRequestCancellation() {
+    if (!order) return
+    const reason = window.prompt(
+      'Solicitar cancelamento? A loja analisará. Se aprovado, o estorno é feito pela FAL (manual). Motivo (opcional):',
+      '',
+    )
+    if (reason === null) return
+    setActionBusy(true)
+    setActionMsg(null)
+    try {
+      await requestOrderCancellation(order.id, reason)
+      setActionMsg(
+        'Solicitação enviada. Aguarde a análise da loja. O pedido segue no status atual até a resposta.',
+      )
+      await reload()
+    } catch (e) {
+      setActionMsg(e instanceof Error ? e.message : 'Falha ao solicitar cancelamento')
     } finally {
       setActionBusy(false)
     }
@@ -233,6 +263,11 @@ export function AccountOrderDetailPage() {
                 A loja pediu sua autorização — veja o painel abaixo
               </p>
             ) : null}
+            {cancelRequestPending ? (
+              <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
+                Cancelamento solicitado — aguardando análise da loja
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {awaitingPayment ? (
@@ -243,6 +278,16 @@ export function AccountOrderDetailPage() {
                 onClick={() => void onCancelUnpaid()}
               >
                 {actionBusy ? 'Cancelando…' : 'Cancelar pedido'}
+              </Button>
+            ) : null}
+            {canRequestCancel ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={actionBusy}
+                onClick={() => void onRequestCancellation()}
+              >
+                Solicitar cancelamento
               </Button>
             ) : null}
             <Button type="button" variant="light" disabled={rebuyBusy} onClick={() => void onBuyAgain()}>

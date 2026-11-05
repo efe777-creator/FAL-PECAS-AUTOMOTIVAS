@@ -33,7 +33,9 @@ export function AdminOrdersViewPage() {
     if (!view) return []
     if (view.placeholder) return []
     let base = rows
-    if (view.id === 'problemas') {
+    if (view.id === 'solicitacoes-cancelamento') {
+      base = rows.filter((o) => o.cancellationRequest === 'pending')
+    } else if (view.id === 'problemas') {
       base = rows.filter((o) =>
         orderMatchesProblemsView({
           status: o.status,

@@ -11,6 +11,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     .select(
       `
       id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_decision,
+      cancellation_request, cancellation_reason,
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note ),
       order_status_history ( id, status, note, created_at ),
       order_events ( id, event_type, payload, visibility, created_at ),
@@ -75,6 +76,12 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     decisionRaw === 'pending' || decisionRaw === 'authorized' || decisionRaw === 'rejected'
       ? decisionRaw
       : null
+  const cancelRaw = (data as { cancellation_request?: string | null }).cancellation_request
+  const cancellationRequest =
+    cancelRaw === 'pending' || cancelRaw === 'approved' || cancelRaw === 'rejected'
+      ? cancelRaw
+      : null
+  const cancelReason = (data as { cancellation_reason?: string | null }).cancellation_reason
 
   return {
     id: String(data.id),
@@ -86,6 +93,8 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     addressSnapshot: (data.address_snapshot as Record<string, unknown> | null) ?? null,
     paymentRef: data.payment_ref != null ? String(data.payment_ref) : null,
     customerDecision,
+    cancellationRequest,
+    cancellationReason: cancelReason != null ? String(cancelReason) : null,
     items: items.map((i: Record<string, unknown>) => ({
       id: String(i.id),
       productId: i.product_id != null ? String(i.product_id) : null,
