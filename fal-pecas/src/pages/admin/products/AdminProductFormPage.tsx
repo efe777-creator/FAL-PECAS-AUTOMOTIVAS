@@ -20,8 +20,10 @@ import {
   adminReleaseProductToStore,
   adminRemoveApplication,
   adminUpdateApplicationYears,
+  adminListProductMeasureHistory,
   adminUpsertProduct,
   adminUpsertReference,
+  type ProductMeasureHistoryRow,
 } from '@/services/admin/adminProductService'
 import {
   adminClearPriceOverride,
@@ -119,6 +121,8 @@ export function AdminProductFormPage() {
   const [compatibleCodes, setCompatibleCodes] = useState('motorcycle,car')
   const [ownDeliveryAllowed, setOwnDeliveryAllowed] = useState(true)
   const [polOrigin, setPolOrigin] = useState<MeasureOrigin>('global')
+  const [measureHistory, setMeasureHistory] = useState<ProductMeasureHistoryRow[]>([])
+  const [measureHistoryErr, setMeasureHistoryErr] = useState<string | null>(null)
   const [shortDescription, setShortDescription] = useState('')
   const [description, setDescription] = useState('')
   const [posicaoAtoms, setPosicaoAtoms] = useState<PosicaoAtom[]>([])
@@ -189,6 +193,22 @@ export function AdminProductFormPage() {
       }
     })()
   }, [isNew])
+
+  useEffect(() => {
+    if (!productId) {
+      setMeasureHistory([])
+      return
+    }
+    void (async () => {
+      try {
+        setMeasureHistory(await adminListProductMeasureHistory(productId))
+        setMeasureHistoryErr(null)
+      } catch (e) {
+        setMeasureHistory([])
+        setMeasureHistoryErr(e instanceof Error ? e.message : 'Falha ao carregar histórico')
+      }
+    })()
+  }, [productId])
 
   useEffect(() => {
     if (isNew || !id) return
@@ -1000,6 +1020,42 @@ export function AdminProductFormPage() {
             </div>
           ))}
         </div>
+
+        {productId ? (
+          <div className="rounded-[10px] border border-fal-line bg-[#f7f9fc] p-3">
+            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Histórico de medidas</h3>
+            <p className="mt-1 mb-2 text-xs text-fal-muted">
+              Alterações de peso/dims/POL (manual ou bulk). Máx. 30 recentes.
+            </p>
+            {measureHistoryErr ? (
+              <p className="m-0 text-xs text-red-700">{measureHistoryErr}</p>
+            ) : measureHistory.length === 0 ? (
+              <p className="m-0 text-xs text-fal-muted">Nenhuma alteração registrada ainda.</p>
+            ) : (
+              <ul className="m-0 max-h-48 list-none space-y-2 overflow-y-auto p-0 text-xs">
+                {measureHistory.map((h) => (
+                  <li key={h.id} className="rounded-md border border-fal-line bg-white px-2 py-1.5">
+                    <div className="flex flex-wrap justify-between gap-2 font-semibold text-fal-navy">
+                      <span>{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
+                      <span className="uppercase tracking-wide text-fal-muted">{h.source}</span>
+                    </div>
+                    <ul className="mt-1 mb-0 list-disc pl-4 text-fal-muted">
+                      {Object.entries(h.changes).map(([field, delta]) => (
+                        <li key={field}>
+                          <code>{field}</code>: {String(delta.old ?? '—')} →{' '}
+                          {String(delta.new ?? '—')}
+                          {delta.old_origin || delta.new_origin
+                            ? ` (${delta.old_origin ?? '—'}→${delta.new_origin ?? '—'})`
+                            : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
 
         <h2 className="pt-2 font-extrabold text-fal-navy">Descrição</h2>
         <Input label="Descrição curta" value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} />

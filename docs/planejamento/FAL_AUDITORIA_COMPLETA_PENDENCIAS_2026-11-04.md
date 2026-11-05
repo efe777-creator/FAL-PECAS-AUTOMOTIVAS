@@ -84,7 +84,7 @@
 | P1-REG2 | Onda 2: solicitação de cancelamento pós-pagamento + análise admin + estorno MP (refund) | **FEITO** 05/11 código — estorno **manual** · [VAL M8](./FAL_MARCHA_PEDIDOS_REGRAS_ONDA2_VAL_2026-11-05.md) |
 | P1-WH | Diagnóstico webhook (`notifications_history`) | **FEITO** 05/11 — MCP vazio (ressalva) · Edge 405 GET · [VAL M9](./FAL_MARCHA_M9_WEBHOOK_DIAG_VAL_2026-11-05.md) |
 | P1-OPS-E2E | Concluir `08da5ada` até `enviado`/`entregue` | **FEITO** 05/11 — `entregue` |
-| P1-LOG-HIST | Histórico de alterações de medidas (`MARCHA_LOGISTICA_FILTROS_HISTORICO_MEDIDAS`) |
+| P1-LOG-HIST | Histórico de alterações de medidas (`MARCHA_LOGISTICA_FILTROS_HISTORICO_MEDIDAS`) | **FEITO** 05/11 — [VAL](./FAL_MARCHA_LOG_HIST_MEDIDAS_VAL_2026-11-05.md) |
 | P1-TEST | E2E contínuo (PRD §28) — regressão admin/cliente automatizada |
 
 ### P2

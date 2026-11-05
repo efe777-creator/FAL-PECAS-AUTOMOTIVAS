@@ -262,7 +262,11 @@ export async function adminUpsertProduct(input: {
 
   const q = getSupabase().from('products')
   const { data, error } = input.id
-    ? await q.update(payload).eq('id', input.id).select(SELECT).single()
+    ? await q
+        .update({ ...payload, measure_audit_source: 'manual' })
+        .eq('id', input.id)
+        .select(SELECT)
+        .single()
     : await q.insert(payload).select(SELECT).single()
   if (error) throw error
 
@@ -313,7 +317,7 @@ export async function adminApplyGlobalProductMeasures(opts: {
     const value = opts.patch[f.valueKey] ?? null
     let q = getSupabase()
       .from('products')
-      .update({ [f.col]: value, [f.originCol]: 'global' })
+      .update({ [f.col]: value, [f.originCol]: 'global', measure_audit_source: 'bulk' })
       .in('id', ids)
     if (opts.mode === 'skip_manual') q = q.eq(f.originCol, 'global')
     const { data, error } = await q.select('id')
@@ -321,6 +325,37 @@ export async function adminApplyGlobalProductMeasures(opts: {
     updatedFieldRows += data?.length ?? 0
   }
   return { updatedFieldRows }
+}
+
+export type ProductMeasureHistoryRow = {
+  id: string
+  productId: string
+  changes: Record<string, { old?: unknown; new?: unknown; old_origin?: string; new_origin?: string }>
+  source: 'manual' | 'bulk' | 'system' | 'seed'
+  createdAt: string
+}
+
+export async function adminListProductMeasureHistory(
+  productId: string,
+  limit = 30,
+): Promise<ProductMeasureHistoryRow[]> {
+  const { data, error } = await getSupabase()
+    .from('product_measure_change_history')
+    .select('id, product_id, changes, source, created_at')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    id: String(r.id),
+    productId: String(r.product_id),
+    changes: (r.changes ?? {}) as ProductMeasureHistoryRow['changes'],
+    source:
+      r.source === 'bulk' || r.source === 'system' || r.source === 'seed' || r.source === 'manual'
+        ? r.source
+        : 'manual',
+    createdAt: String(r.created_at),
+  }))
 }
 
 export async function adminSetProductStatus(id: string, status: NonNullable<Product['status']>) {
