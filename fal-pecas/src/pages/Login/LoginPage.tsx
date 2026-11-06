@@ -2,11 +2,13 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 export function LoginPage() {
+  useDocumentTitle('Entrar | FAL Peças Automotivas')
   const { signIn, user, loading, isConfigured } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

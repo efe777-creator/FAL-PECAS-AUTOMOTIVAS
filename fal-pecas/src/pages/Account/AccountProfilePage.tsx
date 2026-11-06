@@ -11,12 +11,14 @@ import {
   onlyDigits,
 } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { requestAccountDeletion } from '@/services/customers/accountDeletionService'
 import { getCustomerProfile, updateCustomerProfile } from '@/services/customers/customerService'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export function AccountProfilePage() {
+  useDocumentTitle('Perfil | FAL Peças Automotivas')
   const { user, session, signOut, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')

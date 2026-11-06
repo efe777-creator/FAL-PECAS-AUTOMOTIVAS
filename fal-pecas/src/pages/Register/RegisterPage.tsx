@@ -3,6 +3,7 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
 import { toUserMessage } from '@/lib/toUserMessage'
@@ -12,6 +13,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 const MIN_PASSWORD_LENGTH = 6
 
 export function RegisterPage() {
+  useDocumentTitle('Criar conta | FAL Peças Automotivas')
   const { signUp, user, loading, isConfigured } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

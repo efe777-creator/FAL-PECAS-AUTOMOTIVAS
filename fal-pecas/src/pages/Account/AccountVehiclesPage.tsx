@@ -12,11 +12,13 @@ import {
   setPrimaryVehicle,
 } from '@/services/customers/customerVehicleService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { CustomerSavedVehicle, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AccountVehiclesPage() {
+  useDocumentTitle('Meus veículos | FAL Peças Automotivas')
   const [items, setItems] = useState<CustomerSavedVehicle[]>([])
   const [tree, setTree] = useState<VehicleOptionTree | null>(null)
   const [maker, setMaker] = useState('')

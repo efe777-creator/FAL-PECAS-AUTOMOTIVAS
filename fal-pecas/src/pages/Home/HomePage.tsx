@@ -125,23 +125,9 @@ export function HomePage() {
         </Container>
       </section>
 
-      <HomeBannerCarousel />
-
-      <ProductRailSection
-        title="Destaques"
-        subtitle="Seleção da loja — deslize para ver mais"
-        linkLabel="Ver catálogo →"
-        linkTo="/catalogo"
-        loading={featured.loading || offers.loading}
-        error={featured.error}
-        products={featuredWithoutOffers}
-        emptyTitle="Ainda não há produtos em destaque"
-        emptyDescription="Explore o catálogo completo."
-      />
-
       <section
         id="veiculo"
-        className="scroll-mt-20 border-y border-fal-line bg-fal-bg py-6 sm:py-8"
+        className="scroll-mt-20 border-b border-fal-line bg-fal-bg py-6 sm:py-8"
       >
         <Container>
           <div className="mb-3 max-w-3xl">
@@ -155,6 +141,20 @@ export function HomePage() {
           </div>
         </Container>
       </section>
+
+      <HomeBannerCarousel />
+
+      <ProductRailSection
+        title="Destaques"
+        subtitle="Seleção da loja — deslize para ver mais"
+        linkLabel="Ver catálogo →"
+        linkTo="/catalogo"
+        loading={featured.loading || offers.loading}
+        error={featured.error}
+        products={featuredWithoutOffers}
+        emptyTitle="Ainda não há produtos em destaque"
+        emptyDescription="Explore o catálogo completo."
+      />
 
       {!offers.loading && !offers.error && offers.data.length > 0 ? (
         <ProductRailSection

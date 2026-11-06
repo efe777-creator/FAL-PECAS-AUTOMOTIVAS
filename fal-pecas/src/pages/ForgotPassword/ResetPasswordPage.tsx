@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -12,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom'
  * O cliente define a nova senha aqui; o e-mail aponta para /redefinir-senha.
  */
 export function ResetPasswordPage() {
+  useDocumentTitle('Redefinir senha | FAL Peças Automotivas')
   const { updatePassword, isConfigured } = useAuth()
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
