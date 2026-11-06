@@ -40,9 +40,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin pedidos: titles nas subpáginas (lista, área, visão, detalhe)  
 - Admin produtos: titles no form + wizards de import  
 - Admin titles: residual fechado (preço detalhe, fornecedor, prep IA, placeholder) — 100% `pages/admin/*Page`  
+- Admin pedidos: paginação em áreas e visões (cap 200 deixava de ser só na lista avançada)  
 
 ## Próximo código (opcional)
 
-- Auditoria residual de caps em listagens menores (se aparecer)  
 - Itens do plano mestre ainda P/N + gates humanos (frete/pagamento/ME/sinônimos)  
+- Caps menores se aparecerem em auditoria pontual  
 
