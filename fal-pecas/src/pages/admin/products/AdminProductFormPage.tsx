@@ -45,6 +45,10 @@ import {
   parsePosicaoAtoms,
   type PosicaoAtom,
 } from '@/lib/productPosicaoLado'
+import {
+  resolveProductPrice,
+  type ResolvedPrice,
+} from '@/services/pricing/priceResolutionService'
 import type {
   Category,
   MeasureOrigin,
@@ -95,9 +99,11 @@ export function AdminProductFormPage() {
   const categoryId = catSubgrupoId || catGrupoId || catCategoriaId || ''
   /** Preços nas listas — somente leitura (exceto preço inicial Base no novo produto). */
   const [listRows, setListRows] = useState<ProductListPriceRow[]>([])
-  /** Espelho products.price / promo_price (não editáveis na UI após criação). */
+  /** Espelho products.price / promo_price (legado; loja usa resolve_product_price). */
   const [mirrorPrice, setMirrorPrice] = useState(0)
   const [mirrorPromo, setMirrorPromo] = useState<number | null>(null)
+  const [resolvedStore, setResolvedStore] = useState<ResolvedPrice | null>(null)
+  const [resolvedErr, setResolvedErr] = useState<string | null>(null)
   /** Só no cadastro novo: semente da Lista Base. */
   const [initialBasePrice, setInitialBasePrice] = useState('')
   const [overrideEnabled, setOverrideEnabled] = useState(false)
@@ -184,6 +190,29 @@ export function AdminProductFormPage() {
       }
     })()
   }, [productId])
+
+  useEffect(() => {
+    if (!productId || isNew) {
+      setResolvedStore(null)
+      setResolvedErr(null)
+      return
+    }
+    let active = true
+    void resolveProductPrice(productId)
+      .then((r) => {
+        if (!active) return
+        setResolvedStore(r)
+        setResolvedErr(null)
+      })
+      .catch((e) => {
+        if (!active) return
+        setResolvedStore(null)
+        setResolvedErr(toUserMessage(e, 'Preço na loja indisponível'))
+      })
+    return () => {
+      active = false
+    }
+  }, [productId, isNew, listRows, overrideEnabled, overrideAmount, mirrorPrice])
 
   useEffect(() => {
     if (isNew || !id) return
@@ -646,6 +675,32 @@ export function AdminProductFormPage() {
               Gerenciar em Listas de preços
             </Link>
           </div>
+          {!isNew && productId ? (
+            <div className="rounded-[10px] border border-fal-navy/20 bg-white px-3 py-2 text-sm">
+              <p className="m-0 font-extrabold text-fal-navy">Preço na loja (resolvido)</p>
+              {resolvedErr ? (
+                <p className="mt-1 m-0 text-xs text-fal-danger">{resolvedErr}</p>
+              ) : resolvedStore ? (
+                <p className="mt-1 m-0">
+                  <strong className="text-lg">{formatMoney(resolvedStore.amount)}</strong>
+                  <span className="ml-2 text-xs text-fal-muted">
+                    {resolvedStore.priceSource === 'override'
+                      ? 'via preço avulso'
+                      : resolvedStore.priceSource === 'default'
+                        ? 'via fallback padrão'
+                        : `via lista ${resolvedStore.priceListSlug || '—'}`}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 m-0 text-xs text-fal-muted">Calculando…</p>
+              )}
+              <p className="mt-1 mb-0 text-[11px] text-fal-muted">
+                Espelho legado <code>products.price</code>: {formatMoney(mirrorPrice)}
+                {mirrorPromo != null ? ` · promo ${formatMoney(mirrorPromo)}` : ''} — não é o valor
+                canônico da vitrine.
+              </p>
+            </div>
+          ) : null}
           {listRows.length === 0 ? (
             <p className="m-0 text-sm text-fal-muted">Nenhuma lista cadastrada.</p>
           ) : (
