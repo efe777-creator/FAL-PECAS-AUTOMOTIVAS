@@ -14,7 +14,6 @@ import {
   type MeShippingServiceRow,
 } from '@/services/admin/adminMeShippingService'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 
 type Draft = MeShippingServiceRow & { dirty?: boolean }
 
@@ -135,9 +134,6 @@ export function AdminMelhorEnvioPage() {
 
   return (
     <div className="space-y-5">
-      <Link to="/admin/logistica" className="text-sm font-semibold text-fal-navy no-underline">
-        ← Logística
-      </Link>
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Melhor Envio</h1>
         <p className="m-0 text-sm text-fal-muted">

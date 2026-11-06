@@ -12,7 +12,6 @@ import {
   type ShippingBoxTemplate,
 } from '@/services/admin/adminShippingBoxService'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 const emptyForm = {
   name: '',
@@ -128,9 +127,6 @@ export function AdminShippingBoxesPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/admin/logistica" className="text-sm font-semibold text-fal-navy no-underline">
-        ← Logística
-      </Link>
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Caixas e embalagens</h1>
         <p className="m-0 text-sm text-fal-muted">

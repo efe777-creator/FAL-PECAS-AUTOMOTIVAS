@@ -366,10 +366,7 @@ export function AdminOrderDetailPage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/admin/pedidos" className="text-sm font-semibold text-fal-navy underline">
-          ← Central de Pedidos
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">
           Pedido {order.id.slice(0, 8)}…
         </h1>
         <p className="text-sm text-fal-muted">

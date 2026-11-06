@@ -20,7 +20,7 @@ import {
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { AdminOrdersListPanel, filterOrdersBySearch } from './AdminOrdersListPanel'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -146,10 +146,7 @@ export function AdminOrdersPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/admin/pedidos" className="text-sm font-semibold text-fal-navy no-underline">
-            ← Central de Pedidos
-          </Link>
-          <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Lista avançada</h1>
+          <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Lista avançada</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Filtro fino por grupo e status. Para filas de trabalho, use as áreas da central.
           </p>
