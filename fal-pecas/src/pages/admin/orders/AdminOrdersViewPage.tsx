@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { useToast } from '@/components/common/Toast'
 import {
   getAdminOrderView,
   orderMatchesProblemsView,
@@ -18,12 +19,18 @@ export function AdminOrdersViewPage() {
   const { viewId = '' } = useParams()
   const view = getAdminOrderView(viewId)
   useDocumentTitle(view ? `${view.title} | Admin FAL` : 'Pedidos | Admin FAL')
+  const toast = useToast()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   async function reload() {
     setLoading(true)
@@ -33,7 +40,7 @@ export function AdminOrdersViewPage() {
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
     } finally {
       setLoading(false)
     }
@@ -53,7 +60,7 @@ export function AdminOrdersViewPage() {
       })
       setHasMore(next.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
-      setError(toUserMessage(e, 'Erro ao carregar mais pedidos'))
+      pushError(toUserMessage(e, 'Erro ao carregar mais pedidos'))
     } finally {
       setLoadingMore(false)
     }
