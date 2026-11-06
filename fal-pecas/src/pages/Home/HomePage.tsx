@@ -139,14 +139,13 @@ export function HomePage() {
 
   return (
     <>
+      <HomeBannerCarousel />
+
       <section className="bg-gradient-to-br from-fal-navy-dark to-[#4a5562] py-6 text-white sm:py-8">
         <Container>
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold tracking-[0.08em] text-fal-yellow uppercase">
+            <h1 className="m-0 text-[28px] font-black leading-tight sm:text-[40px]">
               FAL Peças Automotivas
-            </p>
-            <h1 className="mt-2 text-[28px] font-black leading-tight sm:text-[40px]">
-              Peças certas para o seu carro
             </h1>
             <p className="mt-2 max-w-xl text-sm text-[#e3e7eb] sm:text-base">
               Busque pela peça ou navegue pelos destaques — depois filtre pelo seu veículo.
@@ -171,8 +170,6 @@ export function HomePage() {
           </div>
         </Container>
       </section>
-
-      <HomeBannerCarousel />
 
       <ProductRailSection
         title="Destaques"
