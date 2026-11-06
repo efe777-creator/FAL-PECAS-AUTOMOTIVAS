@@ -1,12 +1,15 @@
 import { Button } from '@/components/common/Button'
-import { confirmDialog } from '@/components/common/ConfirmDialog'
 import {
   getAdminOrderArea,
   orderMatchesArea,
   type AdminOrderAreaId,
 } from '@/lib/adminOrderOps'
 import {
-  adminExpireUnpaidOrders,
+  confirmExpireUnpaidIntent,
+  formatExpireUnpaidMessage,
+  runExpireUnpaidOrders,
+} from '@/lib/adminExpireUnpaidFlow'
+import {
   adminListOrders,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
@@ -95,22 +98,12 @@ export function AdminOrdersAreaPage() {
           disabled={busyExpire || loading}
           onClick={() => {
             void (async () => {
-              const { confirmed } = await confirmDialog({
-                title: 'Retirar pedidos não pagos?',
-                message: 'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?',
-                confirmLabel: 'Retirar da fila',
-                danger: true,
-              })
-              if (!confirmed) return
+              if (!(await confirmExpireUnpaidIntent({ detailed: false }))) return
               setBusyExpire(true)
               setMessage(null)
               try {
-                const r = await adminExpireUnpaidOrders({ limit: 50, maxAgeHours: 48 })
-                setMessage(
-                  r.expired === 0
-                    ? 'Nenhum pedido elegível.'
-                    : `${r.expired} pedido(s) cancelado(s) e retirado(s) da fila.`,
-                )
+                const r = await runExpireUnpaidOrders()
+                setMessage(formatExpireUnpaidMessage(r))
                 await reload()
               } catch (e) {
                 setError(e instanceof Error ? e.message : 'Falha ao expirar')
