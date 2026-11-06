@@ -1,3 +1,6 @@
+import { OwnDeliveryAuditTab } from '@/components/admin/ownDelivery/OwnDeliveryAuditTab'
+import { OwnDeliveryManualTab } from '@/components/admin/ownDelivery/OwnDeliveryManualTab'
+import { OwnDeliveryProductsTab } from '@/components/admin/ownDelivery/OwnDeliveryProductsTab'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -7,12 +10,8 @@ import {
   deleteOwnVehicleCategory,
   deleteOwnVehicleTariff,
   getOwnDeliverySettings,
-  listOwnAdminAudit,
-  listOwnManualReviews,
   listOwnVehicleCategories,
   listOwnVehicleTariffs,
-  listProductsForOwnPol,
-  saveProductPol,
   updateOwnVehicleTariff,
   upsertOwnDeliverySettings,
   upsertOwnVehicleCategory,
@@ -21,7 +20,7 @@ import {
   type OwnVehicleCategory,
   type OwnVehicleTariff,
 } from '@/services/admin/adminOwnDeliveryService'
-import type { OwnPricingMode, Product } from '@/types'
+import type { OwnPricingMode } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -82,9 +81,6 @@ export function AdminOwnDeliveryPage() {
   const [etaDaysMax, setEtaDaysMax] = useState(3)
   const [categories, setCategories] = useState<OwnVehicleCategory[]>([])
   const [tariffs, setTariffs] = useState<OwnVehicleTariff[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [manualRows, setManualRows] = useState<unknown[]>([])
-  const [auditRows, setAuditRows] = useState<unknown[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -95,45 +91,15 @@ export function AdminOwnDeliveryPage() {
   const [newIcon, setNewIcon] = useState('car')
   const [newPol, setNewPol] = useState('12')
   const [newMaxKm, setNewMaxKm] = useState('')
-
-  // Produtos POL
-  const [prodQ, setProdQ] = useState('')
-  const [prodStatus, setProdStatus] = useState('')
-  const [prodMissingPol, setProdMissingPol] = useState(false)
-  const [prodLoading, setProdLoading] = useState(false)
-  const [draftPol, setDraftPol] = useState<Record<string, string>>({})
   const [showTech, setShowTech] = useState(false)
 
   async function reloadExtras() {
-    const [cats, tars, manuals, audits] = await Promise.all([
+    const [cats, tars] = await Promise.all([
       listOwnVehicleCategories().catch(() => [] as OwnVehicleCategory[]),
       listOwnVehicleTariffs().catch(() => [] as OwnVehicleTariff[]),
-      listOwnManualReviews().catch(() => []),
-      listOwnAdminAudit().catch(() => []),
     ])
     setCategories(cats)
     setTariffs(tars)
-    setManualRows(manuals)
-    setAuditRows(audits)
-  }
-
-  async function reloadProducts() {
-    setProdLoading(true)
-    try {
-      const rows = await listProductsForOwnPol({
-        q: prodQ.trim() || undefined,
-        status: prodStatus || undefined,
-        missingPol: prodMissingPol || undefined,
-      })
-      setProducts(rows)
-      const drafts: Record<string, string> = {}
-      for (const p of rows) drafts[p.id] = p.polUnit != null ? String(p.polUnit) : ''
-      setDraftPol(drafts)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao listar produtos')
-    } finally {
-      setProdLoading(false)
-    }
   }
 
   useEffect(() => {
@@ -160,11 +126,6 @@ export function AdminOwnDeliveryPage() {
       }
     })()
   }, [])
-
-  useEffect(() => {
-    if (tab === 'produtos') void reloadProducts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab])
 
   const activeTariffByCat = useMemo(() => {
     const map = new Map<string, OwnVehicleTariff>()
@@ -816,261 +777,23 @@ export function AdminOwnDeliveryPage() {
         </div>
       ) : null}
 
-      {/* —— PRODUTOS POL —— */}
       {tab === 'produtos' ? (
-        <div className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Capacidade POL dos produtos</h2>
-          <p className="m-0 text-sm text-fal-muted">
-            É o mesmo valor do cadastro do produto — altere aqui ou em{' '}
-            <Link to="/admin/produtos" className="font-semibold text-fal-navy">
-              Produtos
-            </Link>
-            ; não cria registro duplicado.
-          </p>
-          <div className="flex flex-wrap items-end gap-2">
-            <Input
-              label="Busca (nome / SKU / ref)"
-              value={prodQ}
-              onChange={(e) => setProdQ(e.target.value)}
-            />
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
-              <select
-                className="rounded-[9px] border border-fal-line px-3 py-3"
-                value={prodStatus}
-                onChange={(e) => setProdStatus(e.target.value)}
-              >
-                <option value="">Todos</option>
-                <option value="published">Publicado</option>
-                <option value="draft">Rascunho</option>
-                <option value="archived">Arquivado</option>
-              </select>
-            </label>
-            <label className="flex items-center gap-2 pb-3 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={prodMissingPol}
-                onChange={(e) => setProdMissingPol(e.target.checked)}
-              />
-              Só sem capacidade POL
-            </label>
-            <Button type="button" onClick={() => void reloadProducts()} disabled={prodLoading}>
-              {prodLoading ? 'Buscando…' : 'Filtrar'}
-            </Button>
-          </div>
-
-          {prodLoading ? (
-            <Loading label="Carregando produtos…" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-fal-line text-left text-xs text-fal-muted">
-                    <th className="px-2 py-2">Produto</th>
-                    <th className="px-2 py-2">Capacidade POL</th>
-                    <th className="px-2 py-2">Porte</th>
-                    <th className="px-2 py-2">Veículo mínimo</th>
-                    <th className="px-2 py-2">Frete FAL</th>
-                    <th className="px-2 py-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="border-b border-fal-line/70 align-top">
-                      <td className="px-2 py-2">
-                        <div className="font-semibold text-fal-navy">{p.name}</div>
-                        <div className="text-xs text-fal-muted">
-                          {p.commercialRef || p.sku} · {p.status}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          className="w-20 rounded border border-fal-line px-2 py-1"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={draftPol[p.id] ?? ''}
-                          onChange={(e) =>
-                            setDraftPol((d) => ({ ...d, [p.id]: e.target.value }))
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          className="rounded border border-fal-line px-2 py-1"
-                          defaultValue={p.logisticPorte ?? ''}
-                          id={`porte-${p.id}`}
-                        >
-                          <option value="">—</option>
-                          <option value="pequeno">Pequeno</option>
-                          <option value="medio">Médio</option>
-                          <option value="grande">Grande</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          className="rounded border border-fal-line px-2 py-1"
-                          defaultValue={p.vehicleMinCode ?? ''}
-                          id={`vmin-${p.id}`}
-                        >
-                          <option value="">—</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.code}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-2 py-2">
-                        <input
-                          type="checkbox"
-                          defaultChecked={p.ownDeliveryAllowed !== false}
-                          id={`own-${p.id}`}
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              const porteEl = document.getElementById(
-                                `porte-${p.id}`,
-                              ) as HTMLSelectElement | null
-                              const vminEl = document.getElementById(
-                                `vmin-${p.id}`,
-                              ) as HTMLSelectElement | null
-                              const ownEl = document.getElementById(
-                                `own-${p.id}`,
-                              ) as HTMLInputElement | null
-                              const polRaw = (draftPol[p.id] ?? '').trim()
-                              void (async () => {
-                                try {
-                                  await saveProductPol({
-                                    product: p,
-                                    polUnit: polRaw === '' ? null : Number(polRaw),
-                                    logisticPorte: (porteEl?.value ||
-                                      null) as Product['logisticPorte'],
-                                    vehicleMinCode: vminEl?.value || null,
-                                    compatibleVehicleCodes:
-                                      p.compatibleVehicleCodes?.length
-                                        ? p.compatibleVehicleCodes
-                                        : categories.map((c) => c.code),
-                                    ownDeliveryAllowed: ownEl?.checked !== false,
-                                  })
-                                  setOk(`Capacidade de “${p.name}” salva no cadastro do produto.`)
-                                  await reloadProducts()
-                                } catch (err) {
-                                  setError(
-                                    err instanceof Error ? err.message : 'Falha ao salvar capacidade',
-                                  )
-                                }
-                              })()
-                            }}
-                          >
-                            Salvar
-                          </Button>
-                          <Link
-                            className="text-xs font-semibold text-fal-navy"
-                            to={`/admin/produtos/${p.id}`}
-                          >
-                            Abrir cadastro
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!products.length ? (
-                <p className="text-sm text-fal-muted">Nenhum produto no filtro.</p>
-              ) : null}
-            </div>
-          )}
-        </div>
+        <OwnDeliveryProductsTab
+          categories={categories}
+          onOk={(msg) => {
+            setError(null)
+            setOk(msg)
+          }}
+          onError={(msg) => {
+            setOk(null)
+            setError(msg)
+          }}
+        />
       ) : null}
 
-      {tab === 'manual' ? (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-          <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Análise manual</h2>
-          <p className="text-fal-muted">
-            Pedidos que a cotação não conseguiu precificar sozinha ({manualRows.length}).
-          </p>
-          {!manualRows.length ? (
-            <p>Nenhum caso no momento.</p>
-          ) : showTech ? (
-            <pre className="overflow-auto text-xs">{JSON.stringify(manualRows, null, 2)}</pre>
-          ) : (
-            <ul className="m-0 list-disc pl-5">
-              {manualRows.map((row, i) => {
-                const r = row as { id?: string; status?: string; message?: string; created_at?: string }
-                return (
-                  <li key={r.id ?? i}>
-                    {r.message || r.status || 'Caso'}{' '}
-                    {r.created_at ? (
-                      <span className="text-fal-muted">
-                        · {new Date(r.created_at).toLocaleString('pt-BR')}
-                      </span>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          {manualRows.length ? (
-            <label className="mt-3 flex items-center gap-2 text-xs text-fal-muted">
-              <input
-                type="checkbox"
-                checked={showTech}
-                onChange={(e) => setShowTech(e.target.checked)}
-              />
-              Ver JSON técnico
-            </label>
-          ) : null}
-        </div>
-      ) : null}
+      {tab === 'manual' ? <OwnDeliveryManualTab /> : null}
 
-      {tab === 'historico' ? (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-          <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Histórico</h2>
-          <p className="text-fal-muted">Últimas alterações deste frete ({auditRows.length}).</p>
-          {!auditRows.length ? (
-            <p>Sem eventos ainda.</p>
-          ) : showTech ? (
-            <pre className="overflow-auto text-xs">{JSON.stringify(auditRows, null, 2)}</pre>
-          ) : (
-            <ul className="m-0 list-disc pl-5">
-              {auditRows.map((row, i) => {
-                const r = row as {
-                  id?: string
-                  action?: string
-                  created_at?: string
-                  entity?: string
-                }
-                return (
-                  <li key={r.id ?? i}>
-                    {r.action || r.entity || 'Alteração'}{' '}
-                    {r.created_at ? (
-                      <span className="text-fal-muted">
-                        · {new Date(r.created_at).toLocaleString('pt-BR')}
-                      </span>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          {auditRows.length ? (
-            <label className="mt-3 flex items-center gap-2 text-xs text-fal-muted">
-              <input
-                type="checkbox"
-                checked={showTech}
-                onChange={(e) => setShowTech(e.target.checked)}
-              />
-              Ver JSON técnico
-            </label>
-          ) : null}
-        </div>
-      ) : null}
+      {tab === 'historico' ? <OwnDeliveryAuditTab /> : null}
     </div>
   )
 }
