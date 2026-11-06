@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
 import {
   adminApplyCostImport,
@@ -71,6 +72,7 @@ export function PriceImportWizard({
   allowed,
   onApplied,
 }: Props) {
+  const toast = useToast()
   const [step, setStep] = useState<Step>(0)
   const [sheetKind, setSheetKind] = useState<SheetKind | null>(null)
 
@@ -86,6 +88,16 @@ export function PriceImportWizard({
   const [importId, setImportId] = useState<string | null>(null)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [resultMsg, setResultMsg] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushResult(message: string) {
+    setResultMsg(message)
+    toast.push(message, 'success')
+  }
   const [profileName, setProfileName] = useState('HF — Lista de preços')
   const [detectedProfile, setDetectedProfile] = useState<SavedImportProfile | null>(null)
   const [savedProfiles, setSavedProfiles] = useState<SavedImportProfile[]>([])
@@ -159,7 +171,7 @@ export function PriceImportWizard({
 
   async function runSellPreview(f: File) {
     if (!priceListId) {
-      setError('Selecione a lista de destino')
+      pushError('Selecione a lista de destino')
       return
     }
     setBusy(true)
@@ -173,11 +185,11 @@ export function PriceImportWizard({
       })
       if (fe.length) {
         setFileErrors(fe)
-        setError(fe.join(' · '))
+        pushError(fe.join(' · '))
         return
       }
       if (!rows.length) {
-        setError('Arquivo sem linhas de dados')
+        pushError('Arquivo sem linhas de dados')
         return
       }
       setFile(f)
@@ -187,7 +199,7 @@ export function PriceImportWizard({
       setDetectedProfile(detected)
       setStep(6)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha no preview')
+      pushError(e instanceof Error ? e.message : 'Falha no preview')
     } finally {
       setBusy(false)
     }
@@ -195,11 +207,11 @@ export function PriceImportWizard({
 
   async function runCostPreview(f: File) {
     if (!supplierId) {
-      setError('Selecione o fornecedor')
+      pushError('Selecione o fornecedor')
       return
     }
     if (!costOnly && !priceListId) {
-      setError('Selecione a lista de preços de destino')
+      pushError('Selecione a lista de preços de destino')
       return
     }
     setBusy(true)
@@ -214,11 +226,11 @@ export function PriceImportWizard({
       })
       if (fe.length) {
         setFileErrors(fe)
-        setError(fe.join(' · '))
+        pushError(fe.join(' · '))
         return
       }
       if (!rows.length) {
-        setError('Arquivo sem linhas de dados')
+        pushError('Arquivo sem linhas de dados')
         return
       }
       setFile(f)
@@ -232,7 +244,7 @@ export function PriceImportWizard({
       setCostImportId(id)
       setStep(6)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha no preview de custo')
+      pushError(e instanceof Error ? e.message : 'Falha no preview de custo')
     } finally {
       setBusy(false)
     }
@@ -241,13 +253,13 @@ export function PriceImportWizard({
   async function onConfirmSellApply() {
     if (!preparedRows || !file || !priceListId) return
     if (mode === 'simulate') {
-      setResultMsg('Simulação concluída — nenhum dado foi gravado.')
+      pushResult('Simulação concluída — nenhum dado foi gravado.')
       setStep(9)
       return
     }
     const toApply = preparedRows.filter((r) => r.ok)
     if (!toApply.length) {
-      setError('Nenhuma linha aplicável no modo selecionado')
+      pushError('Nenhuma linha aplicável no modo selecionado')
       return
     }
     setBusy(true)
@@ -265,7 +277,7 @@ export function PriceImportWizard({
       setProgress({ done: Math.floor(toApply.length / 2), total: toApply.length })
       const result = await adminApplyPriceImport(id)
       setProgress({ done: toApply.length, total: toApply.length })
-      setResultMsg(
+      pushResult(
         `Preços de venda na lista "${selectedList?.name ?? ''}": aplicados ${result.applied} ` +
           `(novos: ${result.inserted}, atualizados: ${result.updated}). Falhas: ${result.failed}. ` +
           `Ignorados: ${result.skipped}. Origem = Importado.`,
@@ -273,7 +285,7 @@ export function PriceImportWizard({
       setStep(9)
       onApplied?.()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao aplicar importação')
+      pushError(e instanceof Error ? e.message : 'Falha ao aplicar importação')
       setStep(7)
     } finally {
       setBusy(false)
@@ -283,11 +295,11 @@ export function PriceImportWizard({
   async function onConfirmCostApply() {
     if (!costImportId || !costRows) return
     if (!costOnly && !priceListId) {
-      setError('Selecione a lista de preços de destino')
+      pushError('Selecione a lista de preços de destino')
       return
     }
     if (costValid === 0) {
-      setError('Nenhuma linha válida para aplicar')
+      pushError('Nenhuma linha válida para aplicar')
       return
     }
     setBusy(true)
@@ -306,7 +318,7 @@ export function PriceImportWizard({
 
       if (costOnly) {
         setProgress({ done: costValid, total: costValid })
-        setResultMsg(
+        pushResult(
           `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
             (result.created ? ` · criados ${result.created}` : '') +
             `. Falhas: ${result.failed}. Ignorados: ${result.skipped}. ` +
@@ -335,8 +347,8 @@ export function PriceImportWizard({
           dryRun: false,
         })
         sellMsg =
-          `Preços CALCULATED atualizados pela regra da lista: ${applied.updated}. ` +
-          `Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}` +
+          `Preços pela regra da lista atualizados: ${applied.updated}. ` +
+          `Manuais preservados: ${applied.skippedManual}; importados preservados: ${applied.skippedImported}` +
           (applied.skippedNoCost > 0 ? `; sem custo: ${applied.skippedNoCost}` : '') +
           '.'
         if (applied.skippedNoCost > 0 && applied.updated === 0) {
@@ -349,7 +361,7 @@ export function PriceImportWizard({
       }
 
       setProgress({ done: costValid, total: costValid })
-      setResultMsg(
+      pushResult(
         `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
           (result.created ? ` · criados ${result.created}` : '') +
           `. Falhas: ${result.failed}. ` +
@@ -361,7 +373,7 @@ export function PriceImportWizard({
       setStep(9)
       onApplied?.()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao aplicar custos')
+      pushError(e instanceof Error ? e.message : 'Falha ao aplicar custos')
       setStep(7)
     } finally {
       setBusy(false)
@@ -720,7 +732,7 @@ export function PriceImportWizard({
               ) : null}{' '}
               {costOnly
                 ? 'Atualiza só o custo base. Preços de venda não são recalculados.'
-                : 'Inclui produtos na lista com venda 0 (calculated) até aplicar margem.'}
+                : 'Inclui produtos na lista com venda 0 até aplicar a margem da regra.'}
             </p>
             <div>
               <p className="mb-2 text-sm font-semibold text-fal-navy">Arquivo (CSV / XLSX)</p>
@@ -837,7 +849,7 @@ export function PriceImportWizard({
                     <span>
                       <strong>Atualizar preço pela regra da lista</strong>
                       <span className="block text-xs text-fal-muted">
-                        Novo custo + markup/margem da lista → novo preço (só CALCULATED)
+                        Novo custo + markup/margem da lista → novo preço (não altera preços manuais)
                       </span>
                     </span>
                   </label>
@@ -877,7 +889,7 @@ export function PriceImportWizard({
             </p>
             <p className="text-xs text-fal-muted">Não feche esta tela.</p>
             {importId || costImportId ? (
-              <p className="text-xs text-fal-muted">Import id: {importId ?? costImportId}</p>
+              <p className="text-xs text-fal-muted">Processamento registrado no histórico de importações.</p>
             ) : null}
           </div>
         ) : null}
