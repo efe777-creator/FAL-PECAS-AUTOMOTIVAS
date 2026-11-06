@@ -96,7 +96,7 @@ export async function quoteStorefrontShippingEnvelope(
       options: sorted,
       req,
       disclaimer:
-        'Cotação Melhor Envio (sandbox) e/ou frete próprio FAL quando houver cobertura. Confirme no checkout.',
+        'Cotação Melhor Envio e/ou frete próprio FAL quando houver cobertura. Confirme no checkout.',
     }),
   }
 }

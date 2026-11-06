@@ -33,7 +33,8 @@ function edgeErrorMessage(data: unknown, fallback: string): string {
     const row = data as { error?: string; detail?: string; message?: string }
     const code = row.error ?? row.message
     if (code === 'MP_ACCESS_TOKEN missing') {
-      return 'MP_ACCESS_TOKEN ausente no Edge Supabase. Configure o secret TEST e faça redeploy de create-mp-payment.'
+      console.error('[mp] create-mp-payment: access token ausente no Edge')
+      return 'Pagamento indisponível no momento. Tente novamente mais tarde.'
     }
     if (code) {
       return row.detail ? `${code}: ${row.detail}` : code
