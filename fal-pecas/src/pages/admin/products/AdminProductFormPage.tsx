@@ -88,8 +88,17 @@ export function AdminProductFormPage() {
   const [saving, setSaving] = useState(false)
   const [releasing, setReleasing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [productId, setProductId] = useState<string | null>(isNew ? null : id)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
 
   const [name, setName] = useState('')
   useDocumentTitle(
@@ -304,7 +313,7 @@ export function AdminProductFormPage() {
           setOverrideValidUntil('')
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro')
+        pushError(e instanceof Error ? e.message : 'Erro')
       } finally {
         setLoading(false)
       }
@@ -316,11 +325,10 @@ export function AdminProductFormPage() {
     const publishIfNeeded = status !== 'published'
     setReleasing(true)
     setError(null)
-    setMessage(null)
     try {
       const pre = await adminEvaluateReleaseChecklist(productId, { publishIfNeeded })
       if (!pre) {
-        setError('Produto não encontrado')
+        pushError('Produto não encontrado')
         return
       }
       const soft =
@@ -328,15 +336,15 @@ export function AdminProductFormPage() {
           ? `\nAvisos: ${pre.softWarnings.map((w) => w.label).join(', ')}`
           : ''
       if (!pre.canRelease) {
-        setError(`Checklist de liberação: ${pre.summary}`)
+        pushError(`Checklist de liberação: ${pre.summary}`)
         return
       }
       const { confirmed } = await confirmDialog({
         title: 'Liberar na loja?',
         message:
-          `• Hard: nome, código ref., categoria, preço resolvido > 0\n` +
-          `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já published'}\n` +
-          `• Marcar is_available${soft}`,
+          `• Obrigatório: nome, código ref., categoria, preço > 0\n` +
+          `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já publicado'}\n` +
+          `• Marcar como disponível na loja${soft}`,
         confirmLabel: 'Liberar na loja',
       })
       if (!confirmed) return
@@ -345,7 +353,7 @@ export function AdminProductFormPage() {
         publishIfNeeded,
       })
       if (!result.ok) {
-        setError(result.reason)
+        pushError(result.reason)
         return
       }
       setAvailable(true)
@@ -354,13 +362,13 @@ export function AdminProductFormPage() {
         result.checklist.softWarnings.length > 0
           ? ` Avisos: ${result.checklist.softWarnings.map((w) => w.label).join(', ')}.`
           : ''
-      setMessage(
+      pushOk(
         (result.publishedNow
           ? 'Produto publicado e liberado na loja.'
           : 'Produto liberado na loja.') + warnMsg,
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao liberar na loja')
+      pushError(err instanceof Error ? err.message : 'Falha ao liberar na loja')
     } finally {
       setReleasing(false)
     }
@@ -370,7 +378,6 @@ export function AdminProductFormPage() {
     e.preventDefault()
     setSaving(true)
     setError(null)
-    setMessage(null)
     try {
       let priceNum: number
       let promoNum: number | null = null
@@ -664,8 +671,6 @@ export function AdminProductFormPage() {
             </label>
           )}
         </div>
-        {message ? <p className="m-0 text-sm font-semibold text-fal-navy">{message}</p> : null}
-
         {isNew ? (
           <Input
             label="Preço inicial (Lista Base)"
