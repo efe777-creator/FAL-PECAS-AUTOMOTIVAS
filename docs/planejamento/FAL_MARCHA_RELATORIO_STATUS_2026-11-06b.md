@@ -37,9 +37,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin importações: paginação visível (cap 150 + Carregar mais)  
 - Admin hub: `document.title` em todos os itens do menu principal  
 - Admin logística: titles nas subpáginas (origem, frete próprio, ME, caixas, placeholder)  
+- Admin pedidos: titles nas subpáginas (lista, área, visão, detalhe)  
 
 ## Próximo código (opcional)
 
-- Titles em pedidos/produtos/wizards (subpáginas restantes)  
+- Titles em produtos/wizards/fornecedores/preço detalhe/prep IA  
 - Auditoria residual de caps em listagens menores (se aparecer)  
 
