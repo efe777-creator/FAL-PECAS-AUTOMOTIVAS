@@ -46,7 +46,7 @@ export const VER_MENOS_DESCRICAO_LABEL = 'Ver menos'
 /** Atalho para filtros de veículo no catálogo (não clona checker ML). */
 export const FILTRAR_NO_CATALOGO_LABEL = 'Filtrar no catálogo'
 
-/** Bloco PDP relacionados por categoria (MARCHA PDP-D / P3). */
+/** Bloco PDP: curadoria admin + fallback categoria (Onda 4 / 26). */
 export const RELACIONADOS_SECTION_LABEL = 'Produtos relacionados'
 export const VER_MAIS_CATALOGO_LABEL = 'Ver mais no catálogo'
 
