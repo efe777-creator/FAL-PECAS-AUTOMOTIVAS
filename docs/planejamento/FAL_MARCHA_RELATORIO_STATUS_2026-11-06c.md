@@ -20,8 +20,10 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 
 1. ~~Checkout: CPF/CNPJ modo leitura + avanço~~ — feito  
 2. ~~PDP: cotação OK com 0 opções~~ — feito  
-3. ~~Admin 404 `path:'*'`~~ — feito (VAL `O1H_ADMIN_404`)  
-4. Dashboard: não mostrar zeros no “Fluxo operacional” enquanto `loading` (O1-I)  
+3. ~~Admin 404 `path:'*'`~~ — feito  
+4. ~~Dashboard zeros no loading~~ — feito (VAL `O1I_DASHBOARD_LOADING`)  
+
+**Residuais O1 acionáveis desta lista:** esgotados. Seguir plano mestre (O1-B/C/E gates, Onda 2/3/4) + gates humanos.  
 
 ### Gates humanos (não código)
 
@@ -40,6 +42,7 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 - Checkout Identificação: documento do perfil em modo leitura + avanço auto  
 - PDP frete: mensagem quando cotação OK com 0 opções  
 - Admin 404 (`AdminNotFoundPage` + `path:'*'`)  
+- Dashboard: loading real no Fluxo operacional (sem zeros falsos)  
 
 ## Standby
 

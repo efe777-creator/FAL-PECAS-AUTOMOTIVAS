@@ -131,8 +131,10 @@ export function AdminDashboardPage() {
           <h2 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
             Pedidos que precisam de atenção
           </h2>
-          <p className="m-0 text-xs text-fal-muted">
-            {teamCount} ação da equipe · {customerCount} ação do cliente
+          <p className="m-0 text-xs text-fal-muted" aria-live="polite">
+            {loading
+              ? 'Carregando contagens…'
+              : `${teamCount} ação da equipe · ${customerCount} ação do cliente`}
           </p>
         </div>
         {loading ? (
@@ -204,49 +206,55 @@ export function AdminDashboardPage() {
         <h2 className="text-xs font-bold uppercase tracking-wide text-fal-muted">
           Fluxo operacional
         </h2>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {ADMIN_ORDER_GROUPS.map((group) => {
-            const total = sumGroupCount(counts, group)
-            const statuses = visibleStatusesInGroup(group, counts)
-            return (
-              <div
-                key={group.id}
-                className="rounded-[14px] border border-fal-line bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="m-0 text-base font-extrabold text-fal-navy">{group.title}</h3>
-                    <p className="mb-0 mt-1 text-xs text-fal-muted">{group.description}</p>
+        {loading ? (
+          <p className="rounded-[14px] border border-fal-line bg-white px-4 py-6 text-sm text-fal-muted">
+            Carregando fluxo operacional…
+          </p>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {ADMIN_ORDER_GROUPS.map((group) => {
+              const total = sumGroupCount(counts, group)
+              const statuses = visibleStatusesInGroup(group, counts)
+              return (
+                <div
+                  key={group.id}
+                  className="rounded-[14px] border border-fal-line bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="m-0 text-base font-extrabold text-fal-navy">{group.title}</h3>
+                      <p className="mb-0 mt-1 text-xs text-fal-muted">{group.description}</p>
+                    </div>
+                    <Link
+                      to={`/admin/pedidos/lista?grupo=${group.id}`}
+                      className="shrink-0 text-2xl font-black text-fal-navy tabular-nums"
+                      title="Abrir listagem do grupo"
+                    >
+                      {total}
+                    </Link>
                   </div>
-                  <Link
-                    to={`/admin/pedidos/lista?grupo=${group.id}`}
-                    className="shrink-0 text-2xl font-black text-fal-navy tabular-nums"
-                    title="Abrir listagem do grupo"
-                  >
-                    {total}
-                  </Link>
+                  <ul className="mt-3 m-0 list-none space-y-1.5 p-0">
+                    {statuses.map((s) => (
+                      <li key={s}>
+                        <Link
+                          to={`/admin/pedidos/lista?status=${s}`}
+                          className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
+                        >
+                          <span className="text-fal-navy">
+                            {orderStatusOperatorLabel[s] ?? s}
+                          </span>
+                          <span className="font-extrabold tabular-nums text-fal-navy">
+                            {counts[s] ?? 0}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="mt-3 m-0 list-none space-y-1.5 p-0">
-                  {statuses.map((s) => (
-                    <li key={s}>
-                      <Link
-                        to={`/admin/pedidos/lista?status=${s}`}
-                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
-                      >
-                        <span className="text-fal-navy">
-                          {orderStatusOperatorLabel[s] ?? s}
-                        </span>
-                        <span className="font-extrabold tabular-nums text-fal-navy">
-                          {counts[s] ?? 0}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       {sections.map((section) => (
