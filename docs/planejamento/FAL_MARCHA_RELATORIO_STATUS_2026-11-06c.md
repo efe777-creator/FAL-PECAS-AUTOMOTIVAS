@@ -18,8 +18,8 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 
 ### Aberto acionável (próximas MARCHAs)
 
-1. ~~Checkout: CPF/CNPJ modo leitura + avanço~~ — feito (VAL `O1F_CHECKOUT_DOC_READONLY`)  
-2. PDP: mensagem quando cotação OK com 0 opções de frete (O1-D)  
+1. ~~Checkout: CPF/CNPJ modo leitura + avanço~~ — feito  
+2. ~~PDP: cotação OK com 0 opções~~ — feito (VAL `O1D_PDP_FRETE_ZERO_OPCOES`)  
 3. Admin: rota 404 `path:'*'` (O1-H/I)  
 4. Dashboard: não mostrar zeros no “Fluxo operacional” enquanto `loading` (O1-I)  
 
@@ -38,6 +38,7 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 - #138 Carregar mais sem pular ao topo  
 - #139 Remover carrinho + Desfazer  
 - Checkout Identificação: documento do perfil em modo leitura + avanço auto  
+- PDP frete: mensagem quando cotação OK com 0 opções  
 
 ## Standby
 
