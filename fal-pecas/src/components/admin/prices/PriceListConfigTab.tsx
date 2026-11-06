@@ -18,7 +18,6 @@ type Props = {
   cfgDefault: boolean
   cfgValidFrom: string
   cfgValidUntil: string
-  cfgReport: string | null
   onCfgName: (v: string) => void
   onCfgDescription: (v: string) => void
   onCfgStatus: (v: PriceListStatus) => void
@@ -40,7 +39,6 @@ export function PriceListConfigTab({
   cfgDefault,
   cfgValidFrom,
   cfgValidUntil,
-  cfgReport,
   onCfgName,
   onCfgDescription,
   onCfgStatus,
@@ -124,7 +122,6 @@ export function PriceListConfigTab({
           Salvar configuração
         </Button>
       </div>
-      {cfgReport ? <p className="text-sm text-green-700 md:col-span-2">{cfgReport}</p> : null}
     </form>
   )
 }
