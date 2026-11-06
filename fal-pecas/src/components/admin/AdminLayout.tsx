@@ -1,7 +1,8 @@
 import { Loading } from '@/components/common/Loading'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
-import { filterAdminNavLinks } from '@/lib/adminNavAccess'
+import { canAccessAdminPath, filterAdminNavLinks } from '@/lib/adminNavAccess'
+import { AdminForbiddenPage } from '@/pages/admin/AdminForbiddenPage'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
@@ -141,6 +142,7 @@ export function AdminLayout() {
   const catalogNav = useMemo(() => filterAdminNavLinks(catalogLinks, role), [role])
   const salesNav = useMemo(() => filterAdminNavLinks(salesLinks, role), [role])
   const opsNav = useMemo(() => filterAdminNavLinks(opsLinks, role), [role])
+  const pathAllowed = canAccessAdminPath(location.pathname, role)
 
   const aside = (
     <aside
@@ -240,7 +242,7 @@ export function AdminLayout() {
 
         <main className="min-w-0 flex-1 p-4 md:p-6">
           <Suspense fallback={<Loading label="Carregando admin…" />}>
-            <Outlet />
+            {pathAllowed ? <Outlet /> : <AdminForbiddenPage />}
           </Suspense>
         </main>
       </div>
