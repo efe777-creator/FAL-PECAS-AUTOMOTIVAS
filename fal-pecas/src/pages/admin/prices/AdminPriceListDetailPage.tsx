@@ -1,19 +1,21 @@
+import { PriceListConfigTab } from '@/components/admin/prices/PriceListConfigTab'
+import { PriceListFormacaoTab } from '@/components/admin/prices/PriceListFormacaoTab'
+import { PriceListImportsTab } from '@/components/admin/prices/PriceListImportsTab'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
-import { datetimeLocalToIso, formatDateTime, isoToDatetimeLocal } from '@/lib/datetime'
+import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import {
   PRICE_LIST_LAYERS_HINT,
-  PRICE_LIST_PRIORITY_HINT,
   PRICE_ORIGIN_VS_METHOD_HINT,
   isPriceListItemPriced,
   priceListItemPricingStateLabel,
   priceOriginLabel,
 } from '@/lib/priceLabels'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
-import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { formatMoney, parseMoneyBr } from '@/lib/money'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
 import {
   PriceItemPricingModal,
@@ -41,7 +43,6 @@ import {
   adminUpsertPriceList,
   adminUpsertPriceListItem,
   buildPriceListItemsCsv,
-  computeAdjustedPrice,
   filterPriceListItems,
   isVirtualPriceListItemId,
   priceListStatusLabel,
@@ -1234,296 +1235,64 @@ export function AdminPriceListDetailPage() {
       ) : null}
 
       {tab === 'formacao' ? (
-        <div className="space-y-4">
-          <div className="rounded-[14px] border border-fal-line bg-white p-4">
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Regra de formação</h2>
-            <p className="mt-1 text-sm text-fal-muted">
-              Fluxo: CUSTO → adicional de custo (%) → base → markup/margem ou preço fixo → preço
-              final. Formação não altera a origem de preço de itens importados/manuais. O adicional
-              em R$ da lista permanece informativo e fora do cálculo.
-            </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">
-                  Regra de formação
-                </span>
-                <select
-                  className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-                  value={ruleMethod}
-                  disabled={busy || !allowed}
-                  onChange={(e) => setRuleMethod(e.target.value as PricingMethod)}
-                >
-                  <option value="fixed">Preço fixo (sem fórmula automática)</option>
-                  <option value="markup_on_cost">Markup sobre custo</option>
-                  <option value="margin_on_sell">Margem sobre venda</option>
-                </select>
-              </label>
-              <Input
-                label={ruleMethod === 'markup_on_cost' ? 'Markup (%)' : ruleMethod === 'margin_on_sell' ? 'Margem (%)' : '% (formação)'}
-                value={rulePercent}
-                disabled={busy || !allowed || ruleMethod === 'fixed'}
-                onChange={(e) => setRulePercent(e.target.value)}
-                hint="Percentual da regra de venda — não é adicional de custo."
-              />
-              <Input
-                label="Adicional de custo (%)"
-                value={ruleExtraCostPercent}
-                disabled={busy || !allowed}
-                onChange={(e) => setRuleExtraCostPercent(e.target.value)}
-                hint="Paralelo ao adicional em R$ da lista (informativo)."
-              />
-              <Input
-                label="Adicional em R$ (informativo)"
-                value={formatMoneyInput(list.listExtraCost)}
-                disabled
-                hint="Não entra no cálculo. Não reinterpretar como %."
-              />
-              <div className="flex flex-wrap items-end gap-2 md:col-span-2">
-                <Button
-                  type="button"
-                  variant="light"
-                  disabled={busy || !allowed}
-                  onClick={() => void onSaveRuleKeepPrices()}
-                >
-                  Salvar margem (manter venda)
-                </Button>
-                <Button
-                  type="button"
-                  disabled={busy || !allowed || ruleMethod === 'fixed'}
-                  onClick={() => void onApplyMarginToSell()}
-                >
-                  Aplicar margem → atualizar venda
-                </Button>
-                <Link
-                  className="pb-3 text-sm font-semibold text-fal-navy underline"
-                  to="/admin/precos"
-                >
-                  Voltar à consulta
-                </Link>
-              </div>
-              <p className="md:col-span-2 text-xs text-fal-muted">
-                Salvar margem: só persiste regra/adicional. Aplicar margem: inclui produtos com custo
-                ainda fora da lista e recalcula só itens Calculados (Importado/Manual ficam iguais).
-              </p>
-            </div>
-            {ruleReport ? <p className="mt-2 text-sm text-green-700">{ruleReport}</p> : null}
-          </div>
-
-          <div className="rounded-[14px] border border-fal-line bg-white p-4">
-            <h2 className="text-lg font-extrabold text-fal-navy">Ajuste global (lista inteira)</h2>
-            <p className="mt-1 text-sm text-fal-muted">
-              RPC adjust_price_list_items — distinto da seleção em massa da aba Produtos. Aplica só à
-              lista <strong>{list.name}</strong>. Ex.:{' '}
-              {items[0] ? formatMoney(computeAdjustedPrice(items[0].price, 'percent', 10)) : '—'}
-            </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-4">
-              <select
-                className="rounded-[9px] border border-fal-line px-3 py-3"
-                value={adjustMode}
-                onChange={(e) => setAdjustMode(e.target.value as PriceAdjustMode)}
-              >
-                <option value="percent">Percentual</option>
-                <option value="fixed">Valor fixo</option>
-              </select>
-              <select
-                className="rounded-[9px] border border-fal-line px-3 py-3"
-                value={adjustDirection}
-                onChange={(e) => setAdjustDirection(e.target.value as 'up' | 'down')}
-              >
-                <option value="up">Aumentar</option>
-                <option value="down">Diminuir</option>
-              </select>
-              <Input label="Valor" value={adjustValue} onChange={(e) => setAdjustValue(e.target.value)} />
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  disabled={busy || !allowed}
-                  onClick={() => void onApplyGlobalAdjust()}
-                >
-                  Aplicar a todos
-                </Button>
-              </div>
-            </div>
-            {adjustReport ? <p className="mt-2 text-sm text-green-700">{adjustReport}</p> : null}
-          </div>
-        </div>
+        <PriceListFormacaoTab
+          list={list}
+          items={items}
+          allowed={allowed}
+          busy={busy}
+          ruleMethod={ruleMethod}
+          rulePercent={rulePercent}
+          ruleExtraCostPercent={ruleExtraCostPercent}
+          ruleReport={ruleReport}
+          adjustMode={adjustMode}
+          adjustDirection={adjustDirection}
+          adjustValue={adjustValue}
+          adjustReport={adjustReport}
+          onRuleMethod={setRuleMethod}
+          onRulePercent={setRulePercent}
+          onRuleExtraCostPercent={setRuleExtraCostPercent}
+          onAdjustMode={setAdjustMode}
+          onAdjustDirection={setAdjustDirection}
+          onAdjustValue={setAdjustValue}
+          onSaveRuleKeepPrices={() => void onSaveRuleKeepPrices()}
+          onApplyMarginToSell={() => void onApplyMarginToSell()}
+          onApplyGlobalAdjust={() => void onApplyGlobalAdjust()}
+        />
       ) : null}
 
       {tab === 'importacoes' ? (
-        <div className="space-y-4">
-          <div className="rounded-[14px] border border-fal-line bg-white p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="m-0 text-lg font-extrabold text-fal-navy">Histórico de importações</h2>
-                <p className="mt-1 text-sm text-fal-muted">
-                  Runs desta lista (kind=price_list). Histórico de todos os kinds:{' '}
-                  <Link className="font-semibold text-fal-navy underline" to="/admin/importacoes">
-                    Importações
-                  </Link>
-                  .
-                </p>
-              </div>
-              <Button type="button" disabled={!allowed} onClick={() => setWizardOpen(true)}>
-                Nova importação
-              </Button>
-            </div>
-            <div className="mt-3 overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-fal-bg text-fal-muted">
-                  <tr>
-                    <th className="px-3 py-2">Data</th>
-                    <th className="px-3 py-2">Arquivo</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2 text-right">Linhas</th>
-                    <th className="px-3 py-2 text-right">Erros</th>
-                    <th className="px-3 py-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {imports.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
-                        Nenhuma importação registrada para esta lista.
-                      </td>
-                    </tr>
-                  ) : (
-                    imports.map((imp) => (
-                      <tr key={imp.id} className="border-b border-fal-line/70">
-                        <td className="px-3 py-2 text-xs">{formatDateTime(imp.createdAt)}</td>
-                        <td className="px-3 py-2">{imp.filename}</td>
-                        <td className="px-3 py-2">{imp.status}</td>
-                        <td className="px-3 py-2 text-right">{imp.totalItems}</td>
-                        <td className="px-3 py-2 text-right">{imp.errorItems}</td>
-                        <td className="px-3 py-2">
-                          <button
-                            type="button"
-                            className="font-semibold text-fal-navy underline"
-                            onClick={() => void openImportDetail(imp.id)}
-                          >
-                            Detalhes
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {importDetail ? (
-            <div className="rounded-[14px] border border-fal-line bg-white p-4">
-              <h3 className="m-0 font-extrabold text-fal-navy">{importDetail.filename}</h3>
-              <p className="text-sm text-fal-muted">
-                {importDetail.status} · {formatDateTime(importDetail.createdAt)} ·{' '}
-                {importDetail.totalItems} itens
-              </p>
-              <div className="mt-2 max-h-64 overflow-auto text-xs">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="bg-fal-bg text-left">
-                      <th className="px-2 py-1">Linha</th>
-                      <th className="px-2 py-1">Resultado</th>
-                      <th className="px-2 py-1">Payload</th>
-                      <th className="px-2 py-1">Erros</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importDetail.items.slice(0, 100).map((it) => (
-                      <tr key={it.id}>
-                        <td className="px-2 py-1">{it.lineNumber ?? '—'}</td>
-                        <td className="px-2 py-1">{it.result ?? '—'}</td>
-                        <td className="px-2 py-1 font-mono">
-                          {String(it.payload.sku ?? '')} {String(it.payload.price ?? '')}
-                        </td>
-                        <td className="px-2 py-1 text-red-600">{it.errors.join('; ')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Button type="button" variant="light" className="mt-2" onClick={() => setImportDetail(null)}>
-                Fechar detalhes
-              </Button>
-            </div>
-          ) : null}
-        </div>
+        <PriceListImportsTab
+          allowed={allowed}
+          imports={imports}
+          importDetail={importDetail}
+          onOpenWizard={() => setWizardOpen(true)}
+          onOpenDetail={(importId) => void openImportDetail(importId)}
+          onCloseDetail={() => setImportDetail(null)}
+        />
       ) : null}
 
       {tab === 'config' ? (
-        <form
+        <PriceListConfigTab
+          busy={busy}
+          cfgName={cfgName}
+          cfgDescription={cfgDescription}
+          cfgStatus={cfgStatus}
+          cfgScope={cfgScope}
+          cfgPriority={cfgPriority}
+          cfgDefault={cfgDefault}
+          cfgValidFrom={cfgValidFrom}
+          cfgValidUntil={cfgValidUntil}
+          cfgReport={cfgReport}
+          onCfgName={setCfgName}
+          onCfgDescription={setCfgDescription}
+          onCfgStatus={setCfgStatus}
+          onCfgScope={setCfgScope}
+          onCfgPriority={setCfgPriority}
+          onCfgDefault={setCfgDefault}
+          onCfgValidFrom={setCfgValidFrom}
+          onCfgValidUntil={setCfgValidUntil}
           onSubmit={(e) => void onSaveConfig(e)}
-          className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-2"
-        >
-          <Input label="Nome" value={cfgName} onChange={(e) => setCfgName(e.target.value)} required />
-          <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Status</span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={cfgStatus}
-              onChange={(e) => setCfgStatus(e.target.value as PriceListStatus)}
-            >
-              <option value="draft">Rascunho</option>
-              <option value="active">Ativa</option>
-              <option value="inactive">Inativa</option>
-            </select>
-          </label>
-          <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block font-semibold text-fal-navy">Descrição</span>
-            <textarea
-              className="min-h-[72px] w-full rounded-[10px] border border-fal-line px-3 py-2 text-sm"
-              value={cfgDescription}
-              onChange={(e) => setCfgDescription(e.target.value)}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Escopo</span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={cfgScope}
-              onChange={(e) => setCfgScope(e.target.value as PriceListScope)}
-            >
-              <option value="public">public</option>
-              <option value="assigned">assigned</option>
-            </select>
-          </label>
-          <Input
-            label="Prioridade da lista"
-            type="number"
-            value={cfgPriority}
-            onChange={(e) => setCfgPriority(e.target.value)}
-            hint={PRICE_LIST_PRIORITY_HINT}
-          />
-          <Input
-            label="Válida de"
-            type="datetime-local"
-            value={cfgValidFrom}
-            onChange={(e) => setCfgValidFrom(e.target.value)}
-          />
-          <Input
-            label="Válida até"
-            type="datetime-local"
-            value={cfgValidUntil}
-            onChange={(e) => setCfgValidUntil(e.target.value)}
-          />
-          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy md:col-span-2">
-            <input
-              type="checkbox"
-              checked={cfgDefault}
-              onChange={(e) => setCfgDefault(e.target.checked)}
-            />
-            Lista padrão (fallback)
-          </label>
-          <p className="text-xs text-fal-muted md:col-span-2">
-            {PRICE_LIST_LAYERS_HINT} Formação (método/%) edita-se na aba Formação —{' '}
-            {PRICE_ORIGIN_VS_METHOD_HINT}
-          </p>
-          <div className="flex gap-2 md:col-span-2">
-            <Button type="submit" disabled={busy}>
-              Salvar configuração
-            </Button>
-          </div>
-          {cfgReport ? <p className="text-sm text-green-700 md:col-span-2">{cfgReport}</p> : null}
-        </form>
+        />
       ) : null}
 
       <PriceItemPricingModal
