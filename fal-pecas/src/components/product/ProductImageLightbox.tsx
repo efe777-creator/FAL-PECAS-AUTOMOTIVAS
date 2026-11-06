@@ -144,7 +144,7 @@ export function ProductImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label={`Ampliar imagem: ${alt}`}
-      className="fixed inset-0 z-[100] flex flex-col bg-black/90 p-3 sm:p-6"
+      className="fixed inset-0 z-[280] flex flex-col bg-black/90 p-3 sm:p-6"
       onClick={onBackdrop}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 text-white">

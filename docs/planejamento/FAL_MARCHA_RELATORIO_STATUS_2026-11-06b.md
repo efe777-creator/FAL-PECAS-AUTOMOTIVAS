@@ -44,9 +44,9 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Catálogo mobile: filtros em `MobileDrawer` + sticky contagem corrigida (O1-H residual)  
 - Catálogo ↔ PDP: restaura scroll ao voltar (`ScrollToTop` ignora POP + sessionStorage)  
 - Meus pedidos: cards mobile + CTA botão (Continuar pagamento / Responder loja)  
+- Lightbox PDP acima da MobileNav (`z-[280]`) — fecha residual O1-H de empilhamento  
 
 ## Próximo código (opcional)
 
-- Residuais O1-H finos (lightbox z-index / padding, se ainda aberto)  
 - Itens do plano mestre ainda P/N + gates humanos (frete/pagamento/ME/sinônimos)  
 
