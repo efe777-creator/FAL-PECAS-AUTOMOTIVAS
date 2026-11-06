@@ -1,6 +1,8 @@
+import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs'
 import { Loading } from '@/components/common/Loading'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
+import { buildAdminBreadcrumbs } from '@/lib/adminBreadcrumbs'
 import { canAccessAdminPath, filterAdminNavLinks } from '@/lib/adminNavAccess'
 import { AdminForbiddenPage } from '@/pages/admin/AdminForbiddenPage'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -143,6 +145,10 @@ export function AdminLayout() {
   const salesNav = useMemo(() => filterAdminNavLinks(salesLinks, role), [role])
   const opsNav = useMemo(() => filterAdminNavLinks(opsLinks, role), [role])
   const pathAllowed = canAccessAdminPath(location.pathname, role)
+  const crumbs = useMemo(
+    () => buildAdminBreadcrumbs(location.pathname),
+    [location.pathname],
+  )
 
   const aside = (
     <aside
@@ -241,6 +247,7 @@ export function AdminLayout() {
         </header>
 
         <main className="min-w-0 flex-1 p-4 md:p-6">
+          {pathAllowed && crumbs.length > 0 ? <AdminBreadcrumbs items={crumbs} /> : null}
           <Suspense fallback={<Loading label="Carregando admin…" />}>
             {pathAllowed ? <Outlet /> : <AdminForbiddenPage />}
           </Suspense>
