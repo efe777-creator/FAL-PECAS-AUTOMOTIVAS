@@ -2,6 +2,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatDateTime } from '@/lib/datetime'
@@ -17,24 +18,27 @@ import { useEffect, useState, type FormEvent } from 'react'
 
 export function AdminOperatorsPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const isAdmin = user?.role === 'administrador'
 
   const [query, setQuery] = useState('')
   const [rows, setRows] = useState<AdminOperatorUserRow[]>([])
   const [loading, setLoading] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [okMsg, setOkMsg] = useState<string | null>(null)
+  /** Só falha de carga — não misturar com erro de ação (escondia a tabela). */
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   async function load(q: string) {
     if (!isAdmin) return
-    setError(null)
+    setLoadError(null)
     setLoading(true)
     try {
       setRows(await adminSearchUsers(q))
     } catch (err) {
       setRows([])
-      setError(err instanceof Error ? err.message : 'Erro ao carregar operadores')
+      const msg = err instanceof Error ? err.message : 'Erro ao carregar operadores'
+      setLoadError(msg)
+      toast.push(msg, 'error')
     } finally {
       setLoading(false)
     }
@@ -47,14 +51,16 @@ export function AdminOperatorsPage() {
 
   async function search(e?: FormEvent) {
     e?.preventDefault()
-    setOkMsg(null)
     await load(query)
   }
 
   async function onRoleChange(row: AdminOperatorUserRow, next: AssignableRole) {
     if (!isAdmin || next === row.role) return
     if (row.id === user?.id) {
-      setError('Você não pode alterar o próprio acesso. Peça a outro administrador.')
+      toast.push(
+        'Você não pode alterar o próprio acesso. Peça a outro administrador.',
+        'error',
+      )
       return
     }
     const { confirmed } = await confirmDialog({
@@ -63,8 +69,6 @@ export function AdminOperatorsPage() {
       confirmLabel: 'Alterar',
     })
     if (!confirmed) return
-    setError(null)
-    setOkMsg(null)
     setSavingId(row.id)
     try {
       const updated = await adminSetUserRole(row.id, next)
@@ -80,9 +84,9 @@ export function AdminOperatorsPage() {
             : r,
         ),
       )
-      setOkMsg(`Acesso atualizado: ${row.email ?? row.id}`)
+      toast.push(`Acesso atualizado: ${row.email ?? row.id}`, 'success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao alterar acesso')
+      toast.push(err instanceof Error ? err.message : 'Erro ao alterar acesso', 'error')
     } finally {
       setSavingId(null)
     }
@@ -99,8 +103,6 @@ export function AdminOperatorsPage() {
       danger: true,
     })
     if (!confirmed) return
-    setError(null)
-    setOkMsg(null)
     setSavingId(row.id)
     try {
       const updated = await adminDeactivateOperator(row.id)
@@ -114,10 +116,10 @@ export function AdminOperatorsPage() {
           ),
         )
       }
-      setOkMsg(`Acesso desativado: ${row.email ?? row.id}`)
+      toast.push(`Acesso desativado: ${row.email ?? row.id}`, 'success')
       if (!query.trim()) await load('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao desativar')
+      toast.push(err instanceof Error ? err.message : 'Erro ao desativar', 'error')
     } finally {
       setSavingId(null)
     }
@@ -159,19 +161,17 @@ export function AdminOperatorsPage() {
           </button>
         </form>
 
-        {okMsg ? <p className="text-sm text-emerald-700">{okMsg}</p> : null}
-
         {loading ? <Loading label="Carregando…" /> : null}
-        {!loading && error ? <ErrorState message={error} /> : null}
+        {!loading && loadError ? <ErrorState message={loadError} /> : null}
 
-        {!loading && !error && rows.length === 0 ? (
+        {!loading && !loadError && rows.length === 0 ? (
           <EmptyState
             title="Nenhum operador listado"
             description="Busque pelo e-mail de quem já se cadastrou na loja."
           />
         ) : null}
 
-        {!loading && !error && rows.length > 0 ? (
+        {!loading && !loadError && rows.length > 0 ? (
           <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
