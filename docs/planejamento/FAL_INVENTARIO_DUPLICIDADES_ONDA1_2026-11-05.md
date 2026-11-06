@@ -49,7 +49,7 @@
 
 | Item | Estado | Ação |
 |------|--------|------|
-| Tabela pedidos Hub/Lista/Área | 2–3 implementações | **CONSOLIDAR** via `AdminOrdersListPanel` |
+| Tabela pedidos Hub/Lista/Área | Lista+Área usam `AdminOrdersListPanel`; Hub = cards/resumo | **MANTER** (VAL 2026-11-06; Hub distinto) |
 | “Retirar não pagos 48h” ×3 | Unificado em `adminExpireUnpaidFlow` | **MANTER** (VAL 2026-11-06) |
 | Cascata categoria no form vs `CategoryCascadeSelects` | Form já usa o componente | **MANTER** |
 | Import custo wizard × página fornecedor | 2 fluxos | **CONSOLIDAR** depois |
