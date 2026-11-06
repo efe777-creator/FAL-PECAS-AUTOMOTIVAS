@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import { formatPhoneMask } from '@/lib/phone'
@@ -36,6 +37,7 @@ function matchesQuery(row: AdminCustomerListRow, q: string): boolean {
 }
 
 export function AdminCustomersPage() {
+  useDocumentTitle('Clientes | Admin FAL')
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [rows, setRows] = useState<AdminCustomerListRow[]>([])
   const [detail, setDetail] = useState<AdminCustomerDetail | null>(null)

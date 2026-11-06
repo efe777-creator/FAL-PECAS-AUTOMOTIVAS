@@ -35,9 +35,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin estoque: paginação visível (banner + Carregar mais)  
 - Admin aplicações: Carregar mais (total já existia; lote 250 deixava só “refine filtros”)  
 - Admin importações: paginação visível (cap 150 + Carregar mais)  
+- Admin hub: `document.title` em todos os itens do menu principal  
 
 ## Próximo código (opcional)
 
-- Polimento SEO/admin titles (hub admin residual)  
+- Titles em subpáginas admin (detalhe/form/wizards/logística)  
 - Auditoria residual de caps em listagens menores (se aparecer)  
 

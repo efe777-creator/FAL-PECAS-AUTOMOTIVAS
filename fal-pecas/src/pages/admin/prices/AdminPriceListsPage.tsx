@@ -6,6 +6,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
@@ -41,6 +42,7 @@ function canManagePricing(role: string | undefined): boolean {
 }
 
 export function AdminPriceListsPage() {
+  useDocumentTitle('Preços | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canManagePricing(user?.role)

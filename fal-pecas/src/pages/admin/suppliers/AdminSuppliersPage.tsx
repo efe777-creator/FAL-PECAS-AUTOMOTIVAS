@@ -1,5 +1,6 @@
 import { AdminNamedEntityCrud } from '@/components/admin/AdminNamedEntityCrud'
 import { Button } from '@/components/common/Button'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   adminListSuppliers,
   adminSetSupplierStatus,
@@ -8,6 +9,7 @@ import {
 import { Link } from 'react-router-dom'
 
 export function AdminSuppliersPage() {
+  useDocumentTitle('Fornecedores | Admin FAL')
   return (
     <AdminNamedEntityCrud
       title="Fornecedores"

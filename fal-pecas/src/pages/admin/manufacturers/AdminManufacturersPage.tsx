@@ -1,4 +1,5 @@
 import { AdminNamedEntityCrud } from '@/components/admin/AdminNamedEntityCrud'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   adminListManufacturers,
   adminSetManufacturerStatus,
@@ -6,6 +7,7 @@ import {
 } from '@/services/admin/adminManufacturerService'
 
 export function AdminManufacturersPage() {
+  useDocumentTitle('Montadoras | Admin FAL')
   return (
     <AdminNamedEntityCrud
       title="Montadoras"

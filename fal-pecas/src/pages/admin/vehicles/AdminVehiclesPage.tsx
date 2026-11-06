@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { entityStatusLabel } from '@/lib/adminLabels'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
@@ -18,6 +19,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminVehiclesPage() {
+  useDocumentTitle('Veículos | Admin FAL')
   const toast = useToast()
   const [makers, setMakers] = useState<Manufacturer[]>([])
   const [models, setModels] = useState<VehicleModel[]>([])

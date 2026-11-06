@@ -8,6 +8,7 @@ import {
   formatPaymentConditionLine,
   type PaymentDisplaySettings,
 } from '@/lib/paymentDisplay'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -59,6 +60,7 @@ const emptyBanner = (): Omit<AdminHomeBanner, 'id'> => ({
 })
 
 export function AdminHomeContentPage() {
+  useDocumentTitle('Home da loja | Admin FAL')
   const { push } = useToast()
   const [tab, setTab] = useState<Tab>('banners')
   const [banners, setBanners] = useState<AdminHomeBanner[]>([])
