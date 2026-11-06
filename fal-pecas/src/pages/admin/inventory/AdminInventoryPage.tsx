@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
@@ -25,13 +26,13 @@ const MODE_OPTIONS = Object.keys(INVENTORY_MODE_LABELS) as InventoryMode[]
 
 export function AdminInventoryPage() {
   useDocumentTitle('Estoque | Admin FAL')
+  const toast = useToast()
   const [mode, setMode] = useState<InventoryMode>('com_estoque')
   const [pendingMode, setPendingMode] = useState<InventoryMode | null>(null)
   const [rows, setRows] = useState<InventoryRow[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [msg, setMsg] = useState<string | null>(null)
   const [canAdjust, setCanAdjust] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [selected, setSelected] = useState<InventoryRow | null>(null)
@@ -44,6 +45,16 @@ export function AdminInventoryPage() {
 
   const showPhysicalCols = mode === 'com_estoque' || mode === 'estoque_ficticio'
   const allowAdjust = canAdjust && mode === 'com_estoque'
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
 
   async function reload(q?: string) {
     setLoading(true)
@@ -70,7 +81,7 @@ export function AdminInventoryPage() {
         }
       }
     } catch (e) {
-      setError(formatInventoryError(e, 'Erro ao carregar estoque'))
+      pushError(formatInventoryError(e, 'Erro ao carregar estoque'))
     } finally {
       setLoading(false)
     }
@@ -90,7 +101,7 @@ export function AdminInventoryPage() {
       })
       setHasMore(next.length >= ADMIN_INVENTORY_PAGE_SIZE)
     } catch (e) {
-      setError(formatInventoryError(e, 'Erro ao carregar mais estoque'))
+      pushError(formatInventoryError(e, 'Erro ao carregar mais estoque'))
     } finally {
       setLoadingMore(false)
     }
@@ -103,11 +114,11 @@ export function AdminInventoryPage() {
 
   async function openProduct(row: InventoryRow) {
     setSelected(row)
-    setMsg(null)
+    setError(null)
     try {
       setMovements(await listInventoryMovements(row.productId))
     } catch (e) {
-      setError(formatInventoryError(e, 'Erro ao carregar movimentos'))
+      pushError(formatInventoryError(e, 'Erro ao carregar movimentos'))
     }
   }
 
@@ -117,7 +128,6 @@ export function AdminInventoryPage() {
       return
     }
     setError(null)
-    setMsg(null)
     setPendingMode(next)
   }
 
@@ -130,16 +140,15 @@ export function AdminInventoryPage() {
     const next = pendingMode
     setBusy(true)
     setError(null)
-    setMsg(null)
     try {
       const m = await setStoreInventoryMode(next)
       setPendingMode(null)
       setMode(m)
-      setMsg(INVENTORY_MODE_SUCCESS_MSG[m])
+      pushOk(INVENTORY_MODE_SUCCESS_MSG[m])
       await reload(search)
     } catch (e) {
       setPendingMode(null)
-      setError(formatInventoryError(e, 'Falha ao alterar modo'))
+      pushError(formatInventoryError(e, 'Falha ao alterar modo'))
       try {
         const current = await getStoreInventoryMode()
         setMode(current)
@@ -155,14 +164,14 @@ export function AdminInventoryPage() {
     if (!selected || !allowAdjust) return
     const n = Number(delta)
     if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
-      setError('Informe um delta inteiro positivo')
+      pushError('Informe um delta inteiro positivo')
       return
     }
     setBusy(true)
     setError(null)
     try {
       await adjustInventory(selected.productId, sign * n, reason || undefined)
-      setMsg('Ajuste registrado')
+      pushOk('Ajuste registrado')
       await reload(search)
       const refreshed = (await listInventory(selected.sku)).find((r) => r.productId === selected.productId)
       if (refreshed) {
@@ -170,7 +179,7 @@ export function AdminInventoryPage() {
         setMovements(await listInventoryMovements(refreshed.productId))
       }
     } catch (e) {
-      setError(formatInventoryError(e, 'Falha no ajuste'))
+      pushError(formatInventoryError(e, 'Falha no ajuste'))
     } finally {
       setBusy(false)
     }
@@ -265,7 +274,6 @@ export function AdminInventoryPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
       {hasMore ? (
         <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
           Exibindo até {ADMIN_INVENTORY_PAGE_SIZE} registros por carga ({rows.length} carregados). Há
