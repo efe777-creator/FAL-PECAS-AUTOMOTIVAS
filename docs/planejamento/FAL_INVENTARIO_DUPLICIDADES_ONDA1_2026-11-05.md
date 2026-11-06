@@ -56,7 +56,7 @@
 | CRUD Fabricantes / Montadoras / Fornecedores | Quase iguais | **CONSOLIDAR** genérico depois |
 | Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
 | Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
-| Toast admin | Pedidos expire + classificação (CRUD); outras ainda `<p>` | **CONSOLIDAR** gradualmente |
+| Toast admin | Pedidos expire + classificação + listas de preços; outras ainda `<p>` | **CONSOLIDAR** gradualmente |
 
 ## Gate
 
