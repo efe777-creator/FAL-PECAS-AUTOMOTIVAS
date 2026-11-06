@@ -1,7 +1,7 @@
 import { Loading } from '@/components/common/Loading'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const catalogLinks = [
@@ -61,13 +61,35 @@ function NavSection({
   )
 }
 
+function pageTitleFromDocument(): string {
+  const raw = document.title.trim()
+  const stripped = raw.replace(/\s*\|\s*Admin FAL\s*$/i, '').trim()
+  if (!stripped || /fal peças/i.test(stripped)) return 'Painel'
+  return stripped
+}
+
 export function AdminLayout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
+  const [pageTitle, setPageTitle] = useState('Painel')
+  const asideRef = useRef<HTMLElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setNavOpen(false)
+  }, [location.pathname])
+
+  /** Título da página no header mobile (após o filho setar document.title). */
+  useEffect(() => {
+    const sync = () => setPageTitle(pageTitleFromDocument())
+    sync()
+    const t0 = window.setTimeout(sync, 0)
+    const t1 = window.setTimeout(sync, 120)
+    return () => {
+      window.clearTimeout(t0)
+      window.clearTimeout(t1)
+    }
   }, [location.pathname])
 
   useEffect(() => {
@@ -79,11 +101,44 @@ export function AdminLayout() {
     }
   }, [navOpen])
 
+  /** Escape fecha o menu mobile. */
+  useEffect(() => {
+    if (!navOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setNavOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [navOpen])
+
+  /** inert: conteúdo atrás do drawer; aside fechado no mobile. */
+  useEffect(() => {
+    const aside = asideRef.current
+    const content = contentRef.current
+    const mq = window.matchMedia('(max-width: 1023px)')
+    function apply() {
+      const mobile = mq.matches
+      if (aside) {
+        if (mobile && !navOpen) aside.setAttribute('inert', '')
+        else aside.removeAttribute('inert')
+      }
+      if (content) {
+        if (mobile && navOpen) content.setAttribute('inert', '')
+        else content.removeAttribute('inert')
+      }
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [navOpen])
+
   const closeNav = () => setNavOpen(false)
   const userLabel = user?.email ?? user?.fullName ?? 'staff'
 
   const aside = (
     <aside
+      ref={asideRef}
+      id="admin-sidebar"
       className={[
         'flex w-[min(288px,88vw)] flex-col bg-fal-navy text-white lg:w-[260px] lg:shrink-0',
         'fixed inset-y-0 left-0 z-40 h-screen transition-transform duration-200 ease-out',
@@ -110,7 +165,7 @@ export function AdminLayout() {
         </div>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col">
+      <nav className="flex min-h-0 flex-1 flex-col" aria-label="Menu admin">
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-3">
           <div>
             <NavLink to="/admin" end className={linkClass} onClick={closeNav}>
@@ -154,13 +209,14 @@ export function AdminLayout() {
 
       {aside}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div ref={contentRef} className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-fal-line bg-white px-4 py-3 lg:hidden">
           <button
             type="button"
             className="grid h-10 w-10 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-navy"
             aria-label="Abrir menu"
             aria-expanded={navOpen}
+            aria-controls="admin-sidebar"
             onClick={() => setNavOpen(true)}
           >
             <span className="flex flex-col gap-1" aria-hidden>
@@ -171,7 +227,7 @@ export function AdminLayout() {
           </button>
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wider text-fal-navy">FAL ADMIN</p>
-            <p className="truncate text-sm text-fal-muted">Menu</p>
+            <p className="truncate text-sm font-semibold text-fal-ink">{pageTitle}</p>
           </div>
         </header>
 

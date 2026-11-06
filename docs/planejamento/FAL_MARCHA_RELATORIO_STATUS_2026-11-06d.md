@@ -80,6 +80,7 @@
 - O1-B relatório + merge A→B (`CategoriesIntegrityPanel`)  
 - Onda 2 SEO: title `/veiculo`, JSON-LD Home, `OrdersPage` → `/conta/pedidos`  
 - O1-E: ME sync avisa edições não salvas  
+- O1-I: AdminLayout mobile Escape + inert + título da página  
 
-**Próxima MARCHA sugerida (código):** Onda 3/4 (cond. pagamento gated; import imagens) **ou** polish O1-I detalhe pedido.  
+**Próxima MARCHA sugerida (código):** O1-I detalhe pedido (seções) **ou** Onda 3/4 gated.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
