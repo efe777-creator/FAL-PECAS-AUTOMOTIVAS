@@ -3,6 +3,8 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import { formatCepMask, isCompleteCep, normalizeCep } from '@/lib/cep'
+import { formatCpfOrCnpjMask } from '@/lib/document'
+import { formatPhoneMask } from '@/lib/phone'
 import {
   getStoreShippingOrigin,
   upsertStoreShippingOrigin,
@@ -10,26 +12,6 @@ import {
 import { lookupCep } from '@/services/address/addressLookupService'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-
-function formatPhoneMask(raw: string): string {
-  const d = raw.replace(/\D/g, '').slice(0, 11)
-  if (d.length <= 2) return d
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
-
-function formatDocumentMask(raw: string): string {
-  const d = raw.replace(/\D/g, '').slice(0, 14)
-  if (d.length <= 11) {
-    if (d.length <= 3) return d
-    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`
-    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`
-    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
-  }
-  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
-}
 
 export function AdminShippingOriginPage() {
   const [id, setId] = useState<string | undefined>()
@@ -62,7 +44,7 @@ export function AdminShippingOriginPage() {
           setId(o.id)
           setInternalName(o.internalName?.trim() || 'Origem principal')
           setSenderName(o.senderName ?? '')
-          setDocument(o.document ? formatDocumentMask(o.document) : '')
+          setDocument(o.document ? formatCpfOrCnpjMask(o.document) : '')
           setPhone(o.phone ? formatPhoneMask(o.phone) : '')
           setPostalCode(formatCepMask(o.postalCode))
           setStreet(o.street)
@@ -204,7 +186,7 @@ export function AdminShippingOriginPage() {
           label="CPF / CNPJ"
           inputMode="numeric"
           value={document}
-          onChange={(e) => setDocument(formatDocumentMask(e.target.value))}
+          onChange={(e) => setDocument(formatCpfOrCnpjMask(e.target.value))}
           required
         />
         <Input
