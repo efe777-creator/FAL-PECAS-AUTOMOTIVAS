@@ -5,7 +5,7 @@ import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
 import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
 import {
   ProductMediaFrame,
-  productMediaImgClass,
+  productMediaImgClassCard,
 } from '@/components/product/ProductMediaFrame'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -109,7 +109,7 @@ export function ProductCard({ product }: { product: Product }) {
             <img
               src={product.imageUrl}
               alt={displayName}
-              className={`${productMediaImgClass} transition group-hover:scale-[1.03]`}
+              className={`${productMediaImgClassCard} transition group-hover:scale-[1.22]`}
               loading="lazy"
             />
           </Link>
