@@ -118,12 +118,27 @@ const SELECT = `
 /** Tamanho padrão de página da lista de produtos admin. */
 export const ADMIN_PRODUCTS_PAGE_SIZE = 200
 
+/** Gap de medidas logísticas na listagem admin (residual P1-LOG-HIST). */
+export type AdminMeasureGapFilter = 'weight' | 'dims' | 'any'
+
+/** Filtro PostgREST `.or(...)` para gaps de peso/dims (null ou ≤ 0). */
+export function adminMeasureGapOrFilter(gap: AdminMeasureGapFilter): string {
+  const weight = 'weight_kg.is.null,weight_kg.lte.0'
+  const dims =
+    'height_cm.is.null,height_cm.lte.0,width_cm.is.null,width_cm.lte.0,length_cm.is.null,length_cm.lte.0'
+  if (gap === 'weight') return weight
+  if (gap === 'dims') return dims
+  return `${weight},${dims}`
+}
+
 export async function adminListProducts(params?: {
   q?: string
   status?: string
   /** Filtro Situação na listagem admin. */
   available?: boolean
   withoutImage?: boolean
+  /** Sem peso / sem dims / qualquer gap de medidas. */
+  measureGap?: AdminMeasureGapFilter
   /** category_id IN (nó + descendentes). */
   categoryIds?: string[]
   /** Montadora: produtos com aplicação em vehicle_versions dessa manufacturer. */
@@ -154,6 +169,9 @@ export async function adminListProducts(params?: {
     q = q.in('category_id', params.categoryIds)
   }
   if (productIdsByMaker) q = q.in('id', productIdsByMaker)
+  if (params?.measureGap) {
+    q = q.or(adminMeasureGapOrFilter(params.measureGap))
+  }
   if (params?.q?.trim()) {
     const term = params.q.trim()
     q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%,commercial_ref.ilike.%${term}%`)
