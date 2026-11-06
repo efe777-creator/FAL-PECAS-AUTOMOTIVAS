@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
@@ -94,6 +95,16 @@ export function AdminMelhorEnvioPage() {
   }
 
   async function onSync() {
+    if (dirty) {
+      const { confirmed } = await confirmDialog({
+        title: 'Descartar edições não salvas?',
+        message:
+          'Há alterações de nome ou “Exibir no site” ainda não salvas. Atualizar o catálogo recarrega a lista e descarta essas edições. Salve antes se quiser mantê-las.',
+        confirmLabel: 'Atualizar e descartar',
+        danger: true,
+      })
+      if (!confirmed) return
+    }
     setSyncing(true)
     setErr(null)
     try {
@@ -203,6 +214,16 @@ export function AdminMelhorEnvioPage() {
         {err ? (
           <p className="mb-0 mt-3 text-sm text-fal-danger" role="alert">
             {err}
+          </p>
+        ) : null}
+
+        {dirty ? (
+          <p
+            className="mb-0 mt-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+            role="status"
+          >
+            Alterações não salvas. Clique em Salvar antes de atualizar o catálogo, ou confirme o
+            descarte no aviso.
           </p>
         ) : null}
 
