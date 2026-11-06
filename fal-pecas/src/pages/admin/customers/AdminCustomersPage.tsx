@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
@@ -38,6 +39,7 @@ function matchesQuery(row: AdminCustomerListRow, q: string): boolean {
 
 export function AdminCustomersPage() {
   useDocumentTitle('Clientes | Admin FAL')
+  const toast = useToast()
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [rows, setRows] = useState<AdminCustomerListRow[]>([])
   const [detail, setDetail] = useState<AdminCustomerDetail | null>(null)
@@ -48,6 +50,11 @@ export function AdminCustomersPage() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   useEffect(() => {
     void (async () => {
@@ -60,11 +67,12 @@ export function AdminCustomersPage() {
         setRows(list)
         setHasMore(list.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar clientes')
+        pushError(e instanceof Error ? e.message : 'Erro ao carregar clientes')
       } finally {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   const filtered = useMemo(() => rows.filter((r) => matchesQuery(r, query.trim())), [rows, query])
@@ -80,7 +88,7 @@ export function AdminCustomersPage() {
       })
       setHasMore(next.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
     } catch (e) {
-      setError(toUserMessage(e, 'Erro ao carregar mais clientes'))
+      pushError(toUserMessage(e, 'Erro ao carregar mais clientes'))
     } finally {
       setLoadingMore(false)
     }
@@ -94,13 +102,13 @@ export function AdminCustomersPage() {
       const d = await adminGetCustomer(id)
       if (!d) {
         setDetail(null)
-        setError('Cliente não encontrado.')
+        pushError('Cliente não encontrado.')
         return
       }
       setDetail(d)
     } catch (e) {
       setDetail(null)
-      setError(e instanceof Error ? e.message : 'Erro ao abrir cliente')
+      pushError(e instanceof Error ? e.message : 'Erro ao abrir cliente')
     } finally {
       setDetailLoading(false)
     }
@@ -110,7 +118,7 @@ export function AdminCustomersPage() {
   if (allowed === false) {
     return (
       <p className="text-sm text-red-600">
-        Sem permissão para consultar clientes nesta fase (role atendimento não possui acesso F8).
+        Sem permissão para consultar clientes. Peça acesso a um administrador ou gerente.
       </p>
     )
   }
@@ -120,8 +128,8 @@ export function AdminCustomersPage() {
       <header>
         <h1 className="text-2xl font-extrabold text-fal-navy">Clientes</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Consulta operacional — {rows.length} cadastro{rows.length === 1 ? '' : 's'} carregado
-          {rows.length === 1 ? '' : 's'}. Sem CRM nesta fatia.
+          Consulta de cadastros e pedidos recentes — {rows.length} cadastro
+          {rows.length === 1 ? '' : 's'} carregado{rows.length === 1 ? '' : 's'}.
         </p>
       </header>
 
