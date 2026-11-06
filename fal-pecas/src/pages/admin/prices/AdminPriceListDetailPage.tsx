@@ -652,7 +652,7 @@ export function AdminPriceListDetailPage() {
       const extra = await adminSaveListExtraCostPercent(id, extraPct)
       if (extra.pendingMigration) {
         extraMsg =
-          ' Adicional de custo (%) não gravado neste ambiente (coluna ausente). list_extra_cost (R$) inalterado.'
+          ' Adicional de custo (%) não gravado neste ambiente. Adicional em R$ inalterado.'
       } else if (extra.saved) {
         extraMsg = ` Adicional de custo: ${extraPct}%.`
       }
@@ -1216,9 +1216,8 @@ export function AdminPriceListDetailPage() {
             <h2 className="m-0 text-lg font-extrabold text-fal-navy">Regra de formação</h2>
             <p className="mt-1 text-sm text-fal-muted">
               Fluxo: CUSTO → adicional de custo (%) → base → markup/margem ou preço fixo → preço
-              final. Formação não altera `price_origin` de itens importados/manuais.{' '}
-              <code className="rounded bg-fal-bg px-1">list_extra_cost</code> (R$) permanece
-              informativo e fora do cálculo.
+              final. Formação não altera a origem de preço de itens importados/manuais. O adicional
+              em R$ da lista permanece informativo e fora do cálculo.
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               <label className="block text-sm">
@@ -1248,13 +1247,13 @@ export function AdminPriceListDetailPage() {
                 value={ruleExtraCostPercent}
                 disabled={busy || !allowed}
                 onChange={(e) => setRuleExtraCostPercent(e.target.value)}
-                hint="Campo paralelo a list_extra_cost (R$). Persistido em list_extra_cost_percent."
+                hint="Paralelo ao adicional em R$ da lista (informativo)."
               />
               <Input
-                label="list_extra_cost R$ (informativo)"
+                label="Adicional em R$ (informativo)"
                 value={formatMoneyInput(list.listExtraCost)}
                 disabled
-                hint="Não entra no cálculo. Não remover / não reinterpretar como %."
+                hint="Não entra no cálculo. Não reinterpretar como %."
               />
               <div className="flex flex-wrap items-end gap-2 md:col-span-2">
                 <Button

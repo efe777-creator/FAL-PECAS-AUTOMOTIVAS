@@ -56,7 +56,7 @@ const PENDING_COPY: Record<PendingAction['kind'], { title: string; body: string 
   },
   ship: {
     title: 'Registrar entrega à transportadora?',
-    body: 'Isto marca o pedido como enviado (ship_order). Não use só por ter gerado a etiqueta.',
+    body: 'Isto marca o pedido como enviado. Não use só por ter gerado a etiqueta.',
   },
   deliver: {
     title: 'Confirmar entrega ao cliente?',
@@ -449,7 +449,7 @@ export function AdminOrderDetailPage() {
             Motivo do cliente: {current.cancellationReason?.trim() || '—'}
           </p>
           <p className="mt-0 mb-3 text-xs text-fal-muted">
-            Política M8: estorno <strong>manual</strong> no Mercado Pago após aprovar. Depois use
+            Estorno <strong>manual</strong> no Mercado Pago após aprovar. Depois use
             “Marcar estorno feito”.
           </p>
           <div className="flex flex-wrap gap-2">

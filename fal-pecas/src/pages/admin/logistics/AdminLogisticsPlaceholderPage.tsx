@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 const copy: Record<string, { title: string; body: string }> = {
   'melhor-envio': {
     title: 'Melhor Envio',
-    body: 'Conexão, credenciais e cotação (≠ contratação) exigem secrets + MARCHA. Não autorizado sob D-FRETE B sozinho.',
+    body: 'Conexão e credenciais ficam no servidor. Cotação na loja não compra etiqueta — isso só na Expedição do pedido.',
   },
   configuracoes: {
     title: 'Configurações de envio',

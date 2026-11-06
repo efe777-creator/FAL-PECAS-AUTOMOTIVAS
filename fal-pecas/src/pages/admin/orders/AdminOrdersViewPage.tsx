@@ -73,8 +73,7 @@ export function AdminOrdersViewPage() {
 
       {view.placeholder ? (
         <div className="rounded-[14px] border border-fal-line bg-white p-5 text-sm text-fal-muted">
-          Esta visão fica pronta quando a Onda 2 (solicitação de cancelamento pós-pago) existir no
-          banco. Nenhum status artificial foi criado.
+          Esta visão ainda não está disponível neste ambiente. Nenhum status artificial foi criado.
         </div>
       ) : (
         <AdminOrdersListPanel

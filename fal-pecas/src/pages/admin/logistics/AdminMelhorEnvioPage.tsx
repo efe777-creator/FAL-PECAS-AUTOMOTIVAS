@@ -120,7 +120,7 @@ export function AdminMelhorEnvioPage() {
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Melhor Envio</h1>
         <p className="m-0 text-sm text-fal-muted">
           Status da integração e quais fretes aparecem na loja (nome + logo da transportadora).
-          Política D-FRETE <strong>B</strong> · etiqueta só na Expedição.
+          Cotação na loja ativa; compra de etiqueta só na Expedição do pedido.
         </p>
       </div>
 

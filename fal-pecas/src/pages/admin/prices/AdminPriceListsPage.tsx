@@ -167,7 +167,7 @@ export function AdminPriceListsPage() {
       await reloadOverviewQuiet()
       if (pendingExtra) {
         setFormNotice(
-          'Lista salva. Adicional de custo (%) não pôde ser gravado (coluna ausente neste ambiente). list_extra_cost (R$) permanece inalterado.',
+          'Lista salva. Adicional de custo (%) não pôde ser gravado neste ambiente. O adicional em R$ permanece inalterado.',
         )
       } else if (Number.isFinite(pctExtra) && pctExtra >= 0) {
         setFormNotice(`Lista salva. Adicional de custo: ${pctExtra}%.`)
@@ -541,7 +541,7 @@ export function AdminPriceListsPage() {
                   min="0"
                   value={listExtraCostPercent}
                   onChange={(e) => setListExtraCostPercent(e.target.value)}
-                  hint="CUSTO → este % → base de formação → markup/margem. Paralelo a list_extra_cost (R$). Persistido em list_extra_cost_percent."
+                  hint="CUSTO → este % → base de formação → markup/margem. Paralelo ao adicional em R$ da lista."
                 />
                 {editing ? (
                   <p className="text-sm text-fal-muted md:col-span-2">

@@ -174,7 +174,8 @@ export function AdminShippingOriginPage() {
       <h1 className="text-2xl font-extrabold text-fal-navy">Origem e expedição</h1>
       <p className="text-sm text-fal-muted">
         Cadastro da origem da loja + remetente (compartilhado por frete próprio e Melhor Envio).
-        Cotação live exige D-FRETE C + secrets. Complemento é o único campo opcional.
+        Frete com transportadora externa exige credenciais configuradas no servidor. Complemento é o
+        único campo opcional.
       </p>
       <form
         onSubmit={(e) => void onSubmit(e)}

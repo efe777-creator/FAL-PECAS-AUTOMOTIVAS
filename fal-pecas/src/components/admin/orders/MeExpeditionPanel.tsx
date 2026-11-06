@@ -77,7 +77,7 @@ function openRomaneio(order: AdminOrderDetail): boolean {
     <strong>Endereço:</strong> ${escapeHtml(addrLine)}<br/>
     <strong>Frete cobrado:</strong> R$ ${order.shippingAmount.toFixed(2)}</p>
     <table><thead><tr><th>SKU</th><th>Produto</th><th>Qtd</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-    <p style="margin-top:24px;font-size:12px;color:#666">Etiqueta Melhor Envio (sandbox) é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
+    <p style="margin-top:24px;font-size:12px;color:#666">Etiqueta Melhor Envio é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
     <script>window.print()</script></body></html>`
   // Sem 'noopener': com noopener o window.open retorna null e não dá para escrever no popup.
   // Blob URL evita document.write e funciona com o script de impressão.
@@ -136,7 +136,7 @@ export function MeExpeditionPanel({
       if (!r.ok) {
         onError(r.error ?? r.message ?? 'Operação Melhor Envio falhou')
       } else {
-        onMessage(r.message ?? 'Melhor Envio: ok (sandbox)')
+        onMessage(r.message ?? 'Melhor Envio: operação concluída')
         if (r.printUrl) window.open(r.printUrl, '_blank', 'noopener,noreferrer')
       }
       await onReload()
@@ -162,8 +162,8 @@ export function MeExpeditionPanel({
       <div>
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">7. Expedição e entrega</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Etiqueta Melhor Envio (sandbox) ≠ postagem física ≠ entrega ao cliente. Frete cobrado do
-          cliente: <strong>{formatMoney(order.shippingAmount)}</strong>.
+          Etiqueta Melhor Envio ≠ postagem física ≠ entrega ao cliente. Frete cobrado do cliente:{' '}
+          <strong>{formatMoney(order.shippingAmount)}</strong>.
         </p>
         <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
           Situação da etiqueta: {meLabelStateLabel(labelState)}
@@ -211,7 +211,7 @@ export function MeExpeditionPanel({
           disabled={busy || meBusy}
           onClick={() => void runMe(() => meQuoteLabel(order.id, packageOverride))}
         >
-          Cotar etiqueta (sandbox)
+          Cotar etiqueta
         </Button>
         <Button
           type="button"
@@ -270,8 +270,7 @@ export function MeExpeditionPanel({
           Entrega à transportadora (postagem física)
         </h3>
         <p className="mt-1 text-xs text-fal-muted">
-          Só use depois de embalar e (se aplicável) imprimir a etiqueta. Chama <code>ship_order</code>{' '}
-          — pedido vira enviado.
+          Só use depois de embalar e (se aplicável) imprimir a etiqueta. O pedido passa a enviado.
         </p>
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           <Input label="Transportadora" value={carrier} onChange={(e) => onCarrier(e.target.value)} />
