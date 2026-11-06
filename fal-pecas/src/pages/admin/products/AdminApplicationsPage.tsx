@@ -7,6 +7,7 @@ import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import {
+  ADMIN_APPLICATIONS_PAGE_SIZE,
   adminAddApplicationsBulk,
   adminFindProductIdBySku,
   adminListApplicationsGlobal,
@@ -17,6 +18,7 @@ import {
 } from '@/services/admin/adminApplicationService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -34,6 +36,7 @@ function parseYear(raw: string): number | null {
 }
 
 export function AdminApplicationsPage() {
+  useDocumentTitle('Aplicações | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canManage(user?.role)
@@ -42,6 +45,7 @@ export function AdminApplicationsPage() {
   const [rows, setRows] = useState<AdminApplicationRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -183,19 +187,24 @@ export function AdminApplicationsPage() {
 
   const productIdFilter = searchParams.get('productId') || ''
 
+  function listFilter(offset: number) {
+    return {
+      q: qDebounced || undefined,
+      manufacturerId: makerId || undefined,
+      modelId: modelId || undefined,
+      engine: engineFilter || undefined,
+      versionName: versionFilter || undefined,
+      productId: productIdFilter || undefined,
+      limit: ADMIN_APPLICATIONS_PAGE_SIZE,
+      offset,
+    }
+  }
+
   async function reload() {
     setLoading(true)
     setError(null)
     try {
-      const { rows: list, total: n } = await adminListApplicationsGlobal({
-        q: qDebounced || undefined,
-        manufacturerId: makerId || undefined,
-        modelId: modelId || undefined,
-        engine: engineFilter || undefined,
-        versionName: versionFilter || undefined,
-        productId: productIdFilter || undefined,
-        limit: 250,
-      })
+      const { rows: list, total: n } = await adminListApplicationsGlobal(listFilter(0))
       setRows(list)
       setTotal(n)
       setSelected(new Set())
@@ -209,6 +218,27 @@ export function AdminApplicationsPage() {
       setLoading(false)
     }
   }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const { rows: next, total: n } = await adminListApplicationsGlobal(listFilter(rows.length))
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setTotal(n)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Falha ao carregar mais aplicações'
+      setError(msg)
+      toast.push(msg, 'error')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  const hasMore = rows.length < total
 
   useEffect(() => {
     setSearchParams(
@@ -604,6 +634,12 @@ export function AdminApplicationsPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {!loading && hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo {rows.length} de {total} aplicações (até {ADMIN_APPLICATIONS_PAGE_SIZE} por carga).
+          Use “Carregar mais aplicações” ao final da lista ou refine os filtros.
+        </p>
+      ) : null}
 
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
@@ -768,8 +804,21 @@ export function AdminApplicationsPage() {
               )}
             </tbody>
           </table>
-          <div className="border-t border-fal-line px-3 py-2 text-xs text-fal-muted">
-            Exibindo {rows.length} de {total} (lote máx. 250). Refine os filtros se necessário.
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-fal-line px-3 py-2 text-xs text-fal-muted">
+            <span>
+              Exibindo {rows.length} de {total} (até {ADMIN_APPLICATIONS_PAGE_SIZE} por carga).
+              {hasMore ? ' Use “Carregar mais aplicações” ou refine os filtros.' : null}
+            </span>
+            {hasMore ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingMore || busy || loading}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais aplicações'}
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}

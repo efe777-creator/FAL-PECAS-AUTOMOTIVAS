@@ -33,9 +33,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - `document.title` no funil e na conta (Onda 2 residual)  
 - Admin produtos: paginação visível (banner + Carregar mais; `hasMore` pré-filtro imagem)  
 - Admin estoque: paginação visível (banner + Carregar mais)  
+- Admin aplicações: Carregar mais (total já existia; lote 250 deixava só “refine filtros”)  
 
 ## Próximo código (opcional)
 
-- Revalidar outras listagens admin com cap (ex.: aplicações / importações)  
+- Importações admin (cap 150 silencioso)  
 - Polimento SEO/admin titles (se desejado)  
 
