@@ -4,6 +4,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import {
   fetchMeAdminStatus,
   listMeShippingServices,
@@ -61,6 +62,20 @@ export function AdminMelhorEnvioPage() {
 
   const enabledCount = useMemo(() => rows.filter((r) => r.enabled).length, [rows])
   const dirty = useMemo(() => rows.some((r) => r.dirty), [rows])
+
+  useUnsavedChangesBlocker(dirty, {
+    message:
+      'Há alterações de nome ou “Exibir no site” ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   function patchRow(serviceId: number, patch: Partial<Draft>) {
     setRows((prev) =>
