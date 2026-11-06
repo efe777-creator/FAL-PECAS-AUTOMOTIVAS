@@ -241,6 +241,9 @@ const AdminShippingBoxesPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 )
+const AdminNotFoundPage = lazy(() =>
+  import('@/pages/admin/AdminNotFoundPage').then((m) => ({ default: m.AdminNotFoundPage })),
+)
 const OrderConfirmationPage = lazy(() =>
   import('@/pages/Checkout/OrderConfirmationPage').then((m) => ({
     default: m.OrderConfirmationPage,
@@ -330,6 +333,14 @@ export const router = createBrowserRouter([
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
       { path: 'operadores', element: <AdminOperatorsPage /> },
+      {
+        path: '*',
+        element: (
+          <Suspend>
+            <AdminNotFoundPage />
+          </Suspend>
+        ),
+      },
     ],
   },
   {
