@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
+import { useToast } from '@/components/common/Toast'
 import {
   addSavedVehicle,
   listSavedVehicles,
@@ -19,6 +20,7 @@ import { Link } from 'react-router-dom'
 
 export function AccountVehiclesPage() {
   useDocumentTitle('Meus veículos | FAL Peças Automotivas')
+  const toast = useToast()
   const [items, setItems] = useState<CustomerSavedVehicle[]>([])
   const [tree, setTree] = useState<VehicleOptionTree | null>(null)
   const [maker, setMaker] = useState('')
@@ -30,7 +32,16 @@ export function AccountVehiclesPage() {
   const [asPrimary, setAsPrimary] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
 
   async function reload() {
     setLoading(true)
@@ -40,7 +51,7 @@ export function AccountVehiclesPage() {
       setTree(options)
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar veículos')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar veículos')
     } finally {
       setLoading(false)
     }
@@ -48,6 +59,7 @@ export function AccountVehiclesPage() {
 
   useEffect(() => {
     void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   const modelOptions = useMemo(() => {
@@ -77,15 +89,16 @@ export function AccountVehiclesPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    setMessage(null)
     if (!maker || !model) {
-      setError('Selecione montadora e modelo.')
+      pushError('Selecione montadora e modelo.')
       return
     }
     try {
       const resolved = await resolveVersionId({ maker, model, year, engine, version })
       if (!resolved) {
-        setError('Não encontramos essa combinação de montadora, modelo e versão. Ajuste os filtros.')
+        pushError(
+          'Não encontramos essa combinação de montadora, modelo e versão. Ajuste os filtros.',
+        )
         return
       }
       await addSavedVehicle({
@@ -104,10 +117,10 @@ export function AccountVehiclesPage() {
       setVersion('')
       setNickname('')
       setAsPrimary(false)
-      setMessage('Veículo salvo.')
+      pushOk('Veículo salvo.')
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar veículo')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar veículo')
     }
   }
 
@@ -120,7 +133,6 @@ export function AccountVehiclesPage() {
           modelo entre as opções disponíveis.
         </p>
         {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-        {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
 
         <form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
           <Select
@@ -188,7 +200,7 @@ export function AccountVehiclesPage() {
       {!loading && items.length === 0 ? (
         <EmptyState
           title="Você ainda não cadastrou nenhum veículo."
-          description="Salve um veículo do catálogo mestre para facilitar buscas futuras."
+          description="Salve o carro da sua garagem para filtrar o catálogo mais rápido."
         />
       ) : null}
 
@@ -219,8 +231,11 @@ export function AccountVehiclesPage() {
                     size="sm"
                     onClick={() =>
                       void setPrimaryVehicle(v.id)
-                        .then(reload)
-                        .catch((err) => setError(String(err)))
+                        .then(async () => {
+                          pushOk('Veículo principal atualizado.')
+                          await reload()
+                        })
+                        .catch((err) => pushError(String(err)))
                     }
                   >
                     Tornar principal
@@ -241,9 +256,10 @@ export function AccountVehiclesPage() {
                       if (!confirmed) return
                       try {
                         await removeSavedVehicle(v.id)
+                        pushOk('Veículo removido.')
                         await reload()
                       } catch (err) {
-                        setError(String(err))
+                        pushError(String(err))
                       }
                     })()
                   }}
