@@ -4,6 +4,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatDateTime } from '@/lib/datetime'
 import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
@@ -41,6 +42,7 @@ function canManagePricing(role: string | undefined): boolean {
 
 export function AdminPriceListsPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canManagePricing(user?.role)
   const [overview, setOverview] = useState<PriceListsOverview>(emptyOverview())
   const [loading, setLoading] = useState(true)
@@ -66,6 +68,20 @@ export function AdminPriceListsPage() {
   const formRef = useRef<HTMLFormElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    toast.push(msg, 'success')
+  }
+
+  function pushNotice(msg: string) {
+    setFormNotice(msg)
+    toast.push(msg, 'info')
+  }
+
   async function reload(opts?: { showPageLoading?: boolean }) {
     const showPageLoading = opts?.showPageLoading ?? false
     if (showPageLoading) setLoading(true)
@@ -73,7 +89,7 @@ export function AdminPriceListsPage() {
     try {
       setOverview(await adminGetPriceListsOverview())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar listas')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar listas')
     } finally {
       setLoading(false)
     }
@@ -85,7 +101,7 @@ export function AdminPriceListsPage() {
     try {
       setOverview(await adminGetPriceListsOverview())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar listas')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar listas')
     }
   }
 
@@ -167,14 +183,16 @@ export function AdminPriceListsPage() {
       closeForm()
       await reloadOverviewQuiet()
       if (pendingExtra) {
-        setFormNotice(
+        pushNotice(
           'Lista salva. Adicional de custo (%) não pôde ser gravado neste ambiente. O adicional em R$ permanece inalterado.',
         )
       } else if (Number.isFinite(pctExtra) && pctExtra >= 0) {
-        setFormNotice(`Lista salva. Adicional de custo: ${pctExtra}%.`)
+        pushNotice(`Lista salva. Adicional de custo: ${pctExtra}%.`)
+      } else {
+        pushOk('Lista salva.')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar lista')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar lista')
     } finally {
       setBusy(false)
     }
@@ -208,8 +226,9 @@ export function AdminPriceListsPage() {
         pricingPercent: list.pricingPercent,
       })
       await reloadOverviewQuiet()
+      pushOk(next === 'active' ? 'Lista ativada.' : 'Lista inativada.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao alterar status')
+      pushError(err instanceof Error ? err.message : 'Falha ao alterar status')
     } finally {
       setBusy(false)
     }
@@ -228,8 +247,9 @@ export function AdminPriceListsPage() {
     try {
       await adminDuplicatePriceList(list.id)
       await reloadOverviewQuiet()
+      pushOk(`Lista "${list.name}" duplicada.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao duplicar lista')
+      pushError(err instanceof Error ? err.message : 'Falha ao duplicar lista')
     } finally {
       setBusy(false)
     }
@@ -243,7 +263,7 @@ export function AdminPriceListsPage() {
       /^(lista\s*)?base$/i.test(list.name) ||
       /^(lista\s*)?promo/i.test(list.name)
     ) {
-      setError('Listas de sistema (Base e Promo) não podem ser excluídas.')
+      pushError('Listas de sistema (Base e Promo) não podem ser excluídas.')
       setMenuOpenId(null)
       return
     }
@@ -263,8 +283,9 @@ export function AdminPriceListsPage() {
       await adminDeletePriceList(list.id)
       if (editing?.id === list.id) closeForm()
       await reloadOverviewQuiet()
+      pushOk('Lista excluída.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao excluir lista')
+      pushError(err instanceof Error ? err.message : 'Falha ao excluir lista')
     } finally {
       setBusy(false)
     }
