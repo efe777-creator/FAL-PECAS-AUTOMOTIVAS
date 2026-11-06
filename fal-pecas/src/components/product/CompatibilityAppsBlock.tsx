@@ -63,15 +63,14 @@ export function CompatibilityAppsBlock({
     return (
       <div className={`space-y-1.5 text-sm text-fal-ink ${className}`.trim()}>
         <p className="m-0 font-semibold text-fal-navy">{APLICACAO_SECTION_LABEL}</p>
-        {visible.map((g) => (
-          <div key={g.maker}>
+        {visible.map((g, gi) => (
+          <div key={`${gi}-${g.maker}`}>
             <p className="m-0 font-bold text-fal-navy">{g.maker}</p>
             <ul className="m-0 list-none space-y-0.5 p-0 text-fal-muted">
-              {g.lines.map((line) => {
+              {g.lines.map((line, li) => {
                 const mid = [line.engine, line.version].filter(Boolean).join(' · ')
-                const key = `${line.model}-${mid}-${line.yearLabel ?? ''}`
                 return (
-                  <li key={key} className="grid grid-cols-[1fr_auto] gap-x-2">
+                  <li key={`${gi}-${li}`} className="grid grid-cols-[1fr_auto] gap-x-2">
                     <span className="min-w-0 truncate">
                       {line.model}
                       {mid ? ` ${mid}` : ''}
@@ -110,8 +109,8 @@ export function CompatibilityAppsBlock({
       <div className={`text-sm ${className}`.trim()}>
         <p className="m-0 font-semibold text-fal-navy">{APLICACAO_SECTION_LABEL}</p>
         <ul className="mb-0 mt-1 list-none space-y-0.5 p-0 text-fal-ink">
-          {summary.split(' · ').map((line) => (
-            <li key={line}>{line}</li>
+          {summary.split(' · ').map((line, i) => (
+            <li key={`${i}-${line}`}>{line}</li>
           ))}
         </ul>
       </div>
