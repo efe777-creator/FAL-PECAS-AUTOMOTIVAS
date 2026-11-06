@@ -392,7 +392,7 @@ export const ADMIN_ORDER_AREAS: readonly AdminOrderArea[] = [
     id: 'expedicao',
     title: 'Expedição e entrega',
     description:
-      'Etiqueta (Melhor Envio sandbox), postagem à transportadora e entrega ao cliente — etapas distintas.',
+      'Etiqueta Melhor Envio, postagem à transportadora e entrega ao cliente — etapas distintas.',
     path: '/admin/pedidos/expedicao',
     statuses: ['pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'],
     primaryCta: 'Preparar envio / postagem',

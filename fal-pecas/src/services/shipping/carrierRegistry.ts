@@ -125,13 +125,13 @@ export function resolveCarrierProvider(envKey?: string | null): ShippingProvider
 export function commercialShippingDisclaimer(desc: CarrierDescriptor): string | null {
   if (desc.mode === 'live' && desc.placeOrderReady) return null
   if (desc.mode === 'mock') {
-    return 'Cotação de homologação (mock). Não é frete de produção até D-FRETE.'
+    return 'Cotação de homologação. Confirme o frete no checkout.'
   }
   if (desc.mode === 'sandbox') {
-    return `Cotação sandbox (${desc.label}). Não é frete de produção até D-FRETE e integração live.`
+    return `Cotação em ambiente de teste (${desc.label}). Confirme o frete no checkout.`
   }
   if (desc.mode === 'stub' || !desc.enabled) {
     return `${desc.label} ainda não está disponível para cotação.`
   }
-  return 'Cotação indisponível como frete comercial até autorização D-FRETE.'
+  return 'Cotação de frete indisponível no momento. Tente novamente mais tarde.'
 }

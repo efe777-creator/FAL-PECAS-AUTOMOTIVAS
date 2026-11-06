@@ -48,7 +48,9 @@ describe('carrierRegistry', () => {
   it('resolve melhorenvio edge sandbox', () => {
     expect(getCarrierByEnvKey('melhorenvio').quoteRuntime).toBe('edge')
     expect(getCarrierByEnvKey('melhorenvio').mode).toBe('sandbox')
-    expect(commercialShippingDisclaimer(getCarrierByEnvKey('melhorenvio'))).toMatch(/sandbox/i)
+    expect(commercialShippingDisclaimer(getCarrierByEnvKey('melhorenvio'))).toMatch(
+      /ambiente de teste/i,
+    )
   })
 
   it('resolve env desconhecido para mock', () => {
@@ -56,9 +58,11 @@ describe('carrierRegistry', () => {
     expect(getCarrierByEnvKey('correios').id).toBe('correios')
   })
 
-  it('disclaimer honesto para sandbox/mock', () => {
-    expect(commercialShippingDisclaimer(getCarrierByEnvKey('mock'))).toMatch(/mock/i)
-    expect(commercialShippingDisclaimer(getCarrierByEnvKey('correios'))).toMatch(/sandbox/i)
+  it('disclaimer honesto para sandbox/mock (sem jargão D-FRETE/VITE)', () => {
+    expect(commercialShippingDisclaimer(getCarrierByEnvKey('mock'))).toMatch(/homologação/i)
+    expect(commercialShippingDisclaimer(getCarrierByEnvKey('correios'))).toMatch(
+      /ambiente de teste/i,
+    )
   })
 
   it('provider correios sandbox cotação PAC/SEDEX', async () => {

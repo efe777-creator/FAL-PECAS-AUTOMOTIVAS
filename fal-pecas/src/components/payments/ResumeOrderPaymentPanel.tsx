@@ -169,7 +169,9 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
 
       {channel === 'card' ? (
         !mpPublicKey ? (
-          <p className="m-0 text-sm text-fal-danger">VITE_MP_PUBLIC_KEY não configurada.</p>
+          <p className="m-0 text-sm text-fal-danger">
+            Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.
+          </p>
         ) : cardReady ? (
           <MercadoPagoCardBrickPanel
             orderId={order.id}
