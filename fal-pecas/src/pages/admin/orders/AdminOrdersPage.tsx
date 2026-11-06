@@ -1,16 +1,8 @@
 import { Button } from '@/components/common/Button'
-import { EmptyState } from '@/components/common/EmptyState'
-import { ErrorState } from '@/components/common/ErrorState'
-import { Input } from '@/components/common/Input'
-import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import {
   ADMIN_ORDER_GROUPS,
-  adminActorBadgeLabel,
-  adminActorKind,
-  adminNextActionLabel,
   orderMatchesGroup,
-  orderStatusOperatorLabel,
   sumGroupCount,
   type AdminOrderGroupId,
 } from '@/lib/adminOrderOps'
@@ -19,17 +11,16 @@ import {
   formatExpireUnpaidMessage,
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
-import { formatDateTime } from '@/lib/datetime'
-import { formatMoney } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminListOrders,
   adminOrderStatusCounts,
   ADMIN_LIST_PAGE_SIZE,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
-import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { AdminOrdersListPanel, filterOrdersBySearch } from './AdminOrdersListPanel'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Todos os status' },
@@ -46,36 +37,6 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'entregue', label: 'Entregues' },
   { value: 'cancelado', label: 'Cancelados' },
 ]
-
-function matchesOrderSearch(o: AdminOrderListRow, raw: string): boolean {
-  const q = raw.trim().toLowerCase()
-  if (!q) return true
-  return (
-    o.id.toLowerCase().includes(q) ||
-    (o.customerName?.toLowerCase().includes(q) ?? false) ||
-    (o.paymentStatus?.toLowerCase().includes(q) ?? false)
-  )
-}
-
-function paymentBadge(o: AdminOrderListRow) {
-  if (!o.paymentStatus) return '—'
-  const expired =
-    o.paymentExpiresAt != null && new Date(o.paymentExpiresAt).getTime() < Date.now()
-  return expired && o.paymentStatus === 'pending' ? 'pending (expirado)' : o.paymentStatus
-}
-
-function actorClass(kind: ReturnType<typeof adminActorKind>): string {
-  switch (kind) {
-    case 'team':
-      return 'bg-amber-100 text-amber-950'
-    case 'customer':
-      return 'bg-sky-100 text-sky-950'
-    case 'wait_payment':
-      return 'bg-fal-bg text-fal-muted'
-    case 'done':
-      return 'bg-green-100 text-green-900'
-  }
-}
 
 export function AdminOrdersPage() {
   const toast = useToast()
@@ -116,7 +77,6 @@ export function AdminOrdersPage() {
     setLoading(true)
     setError(null)
     try {
-      // Com grupo: carrega todos e filtra client-side; com status: filtra no servidor
       const [list, c] = await Promise.all([
         adminListOrders(statusFilter || null),
         adminOrderStatusCounts(),
@@ -159,11 +119,12 @@ export function AdminOrdersPage() {
     setGroupFilter(s ? '' : g)
   }, [searchParams])
 
-  const visible = useMemo(() => {
-    return rows
-      .filter((o) => orderMatchesGroup(o.status, groupFilter))
-      .filter((o) => matchesOrderSearch(o, search))
-  }, [rows, groupFilter, search])
+  const byGroup = useMemo(
+    () => rows.filter((o) => orderMatchesGroup(o.status, groupFilter)),
+    [rows, groupFilter],
+  )
+
+  const visible = useMemo(() => filterOrdersBySearch(byGroup, search), [byGroup, search])
 
   async function runExpireUnpaid() {
     if (!(await confirmExpireUnpaidIntent())) return
@@ -251,18 +212,7 @@ export function AdminOrdersPage() {
             ))}
           </select>
         </label>
-        <div className="min-w-[200px] flex-1">
-          <Input
-            label="Busca (id / cliente / pagamento)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ex.: a1b2c3d4 ou nome"
-          />
-        </div>
       </div>
-
-      {loading ? <Loading label="Carregando pedidos…" /> : null}
-      {!loading && error ? <ErrorState message={error} /> : null}
 
       {!loading && !error && hasMore ? (
         <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -271,69 +221,16 @@ export function AdminOrdersPage() {
         </p>
       ) : null}
 
-      {!loading && !error && visible.length === 0 ? (
-        <EmptyState
-          title="Nenhum pedido neste filtro"
-          description="Altere o grupo, o status ou a busca."
-        />
-      ) : null}
-
-      {!loading && !error && visible.length > 0 ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
-              <tr>
-                <th className="px-3 py-2">Pedido</th>
-                <th className="px-3 py-2">Cliente</th>
-                <th className="px-3 py-2">Data</th>
-                <th className="px-3 py-2">Situação</th>
-                <th className="px-3 py-2">Próxima ação</th>
-                <th className="px-3 py-2">Pagamento</th>
-                <th className="px-3 py-2">Itens</th>
-                <th className="px-3 py-2">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((o) => {
-                const kind = adminActorKind(o.status, o.customerDecision)
-                return (
-                  <tr
-                    key={o.id}
-                    className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60"
-                  >
-                    <td className="px-3 py-2">
-                      <Link
-                        to={`/admin/pedidos/${o.id}`}
-                        className="font-semibold text-fal-navy underline-offset-2 hover:underline"
-                      >
-                        {o.id.slice(0, 8)}…
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2">{o.customerName ?? '—'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(o.createdAt)}</td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
-                      >
-                        {adminActorBadgeLabel(kind)}
-                      </span>
-                      <span className="mt-1 block text-xs">
-                        {orderStatusOperatorLabel[o.status] ?? o.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs font-semibold text-fal-navy">
-                      {adminNextActionLabel(o.status, o.customerDecision)}
-                    </td>
-                    <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
-                    <td className="px-3 py-2">{o.itemCount}</td>
-                    <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+      <AdminOrdersListPanel
+        rows={visible}
+        loading={loading}
+        error={error}
+        search={search}
+        onSearch={setSearch}
+        showItemCount
+        emptyTitle="Nenhum pedido neste filtro"
+        emptyDescription="Altere o grupo, o status ou a busca."
+      />
 
       {!loading && !error && hasMore ? (
         <div className="flex justify-center">

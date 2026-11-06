@@ -52,6 +52,8 @@ type Props = {
   emptyTitle?: string
   emptyDescription?: string
   showWaitingTime?: boolean
+  /** Coluna com contagem de itens (lista avançada). */
+  showItemCount?: boolean
 }
 
 export function AdminOrdersListPanel({
@@ -65,6 +67,7 @@ export function AdminOrdersListPanel({
   emptyTitle = 'Nenhum pedido nesta fila',
   emptyDescription = 'Altere a busca ou volte ao hub.',
   showWaitingTime,
+  showItemCount,
 }: Props) {
   return (
     <div className="space-y-3">
@@ -96,6 +99,7 @@ export function AdminOrdersListPanel({
                 <th className="px-3 py-2">Situação</th>
                 <th className="px-3 py-2">Próxima ação</th>
                 {showItemPreview ? <th className="px-3 py-2">Produtos</th> : null}
+                {showItemCount ? <th className="px-3 py-2">Itens</th> : null}
                 <th className="px-3 py-2">Pagamento</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2" />
@@ -132,6 +136,9 @@ export function AdminOrdersListPanel({
                       <td className="px-3 py-2 max-w-[220px] text-xs text-fal-muted">
                         {itemPreviewByOrderId?.[o.id] ?? `${o.itemCount} item(ns)`}
                       </td>
+                    ) : null}
+                    {showItemCount ? (
+                      <td className="px-3 py-2">{o.itemCount}</td>
                     ) : null}
                     <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
                     <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
