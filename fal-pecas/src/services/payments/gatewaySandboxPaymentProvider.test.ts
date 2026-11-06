@@ -9,10 +9,15 @@ describe('resolvePaymentProviderKey (F9-C)', () => {
     expect(resolvePaymentProviderKey('SANDBOX')).toBe('gateway')
   })
 
-  it('default simulated', () => {
-    expect(resolvePaymentProviderKey(undefined)).toBe('simulated')
+  it('vazio ou desconhecido → simulated', () => {
+    // `undefined` dispara o default do parâmetro (= VITE_PAYMENT_PROVIDER); não usar aqui.
+    expect(resolvePaymentProviderKey('')).toBe('simulated')
     expect(resolvePaymentProviderKey('simulated')).toBe('simulated')
     expect(resolvePaymentProviderKey('other')).toBe('simulated')
+  })
+
+  it('sem argumento resolve a partir do env (simulated|gateway|mercadopago)', () => {
+    expect(['simulated', 'gateway', 'mercadopago']).toContain(resolvePaymentProviderKey())
   })
 })
 

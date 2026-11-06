@@ -213,18 +213,14 @@ export function AdminCategoriesPage() {
     let cat = 0
     let grp = 0
     let sub = 0
-    let archived = 0
     for (const c of items) {
-      if (c.status === 'archived') {
-        archived += 1
-        continue
-      }
+      if (c.status === 'archived') continue
       const d = categoryDepth(items, c.id)
       if (d === 1) cat += 1
       else if (d === 2) grp += 1
       else if (d === 3) sub += 1
     }
-    return { cat, grp, sub, archived, total: items.length }
+    return { cat, grp, sub }
   }, [items])
 
   const flatRows = useMemo(() => {
