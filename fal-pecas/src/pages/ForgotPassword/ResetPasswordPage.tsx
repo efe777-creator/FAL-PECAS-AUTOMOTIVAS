@@ -3,6 +3,11 @@ import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import {
+  MIN_PASSWORD_LENGTH,
+  passwordRuleHint,
+  passwordTooShortMessage,
+} from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -48,8 +53,8 @@ export function ResetPasswordPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.')
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(passwordTooShortMessage())
       return
     }
     if (password !== confirm) {
@@ -100,7 +105,8 @@ export function ResetPasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_LENGTH}
+              hint={passwordRuleHint()}
             />
             <Input
               label="Confirmar senha"
@@ -110,9 +116,8 @@ export function ResetPasswordPage() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_LENGTH}
             />
-            <p className="m-0 text-xs text-fal-muted">Mínimo de 6 caracteres.</p>
             {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
             {success ? (
               <p className="text-sm text-fal-success">
