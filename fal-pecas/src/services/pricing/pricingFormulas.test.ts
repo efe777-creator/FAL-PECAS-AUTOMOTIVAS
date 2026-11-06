@@ -4,6 +4,7 @@ import {
   calculateSellPrice,
   effectiveMarginFraction,
   effectiveMarkupFraction,
+  pricingPercentInputLabel,
   shouldRecalculatePriceOnCostChange,
   toPercent,
 } from '@/services/pricing/pricingFormulas'
@@ -85,5 +86,11 @@ describe('pricingFormulas — markup ≠ margem + D16', () => {
     expect(toPercent(effectiveMarkupFraction(price, oldCost))).toBe(30)
     expect(toPercent(effectiveMarkupFraction(price, newCost))).toBeCloseTo(18.18, 1)
     expect(toPercent(effectiveMarginFraction(price, newCost))).toBeCloseTo(15.38, 1)
+  })
+
+  it('pricingPercentInputLabel cobre os 3 métodos', () => {
+    expect(pricingPercentInputLabel('markup_on_cost')).toBe('Markup (%)')
+    expect(pricingPercentInputLabel('margin_on_sell')).toBe('Margem (%)')
+    expect(pricingPercentInputLabel('fixed')).toBe('% (formação)')
   })
 })

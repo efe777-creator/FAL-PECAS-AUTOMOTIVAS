@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCategoryDefaultMeasures,
@@ -28,11 +29,22 @@ import type { Category } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 export function AdminCategoriesPage() {
+  const toast = useToast()
   const [items, setItems] = useState<Category[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setInfo(msg)
+    toast.push(msg, 'success')
+  }
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [parentId, setParentId] = useState('')
@@ -93,7 +105,7 @@ export function AdminCategoriesPage() {
           : e instanceof Error
             ? e.message
             : 'Erro ao carregar categorias'
-      setError(msg)
+      pushError(msg)
     } finally {
       setLoading(false)
     }
@@ -369,7 +381,7 @@ export function AdminCategoriesPage() {
   function startAddChild(parent: Category) {
     const depth = categoryDepth(items, parent.id)
     if (depth >= CATEGORY_MAX_DEPTH) {
-      setError('Subgrupo não pode ter filhos (máx. 3 níveis).')
+      pushError('Subgrupo não pode ter filhos (máx. 3 níveis).')
       return
     }
     const nextLevel = (depth + 1) as CreateLevel
@@ -403,7 +415,7 @@ export function AdminCategoriesPage() {
     setInfo(null)
     const effectiveParent = createLevel === 1 && !editing ? '' : parentId
     if (!editing && createLevel > 1 && !effectiveParent) {
-      setError(`Selecione o pai para criar ${categoryLevelLabel(createLevel).toLowerCase()}.`)
+      pushError(`Selecione o pai para criar ${categoryLevelLabel(createLevel).toLowerCase()}.`)
       return
     }
     try {
@@ -431,9 +443,9 @@ export function AdminCategoriesPage() {
       }
       resetForm()
       await reload()
-      setInfo('Classificação salva.')
+      pushOk('Classificação salva.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar')
     }
   }
 
@@ -474,13 +486,13 @@ export function AdminCategoriesPage() {
       await reload()
       const refreshed = (await adminListCategories()).find((c) => c.id === editing.id)
       if (refreshed) startEdit(refreshed)
-      setInfo(
+      pushOk(
         r.productCount === 0
           ? 'Nenhum produto nesta classificação/subárvore.'
           : `Padrão aplicado: ${r.productCount} produto(s) no escopo · ${r.updatedFieldRows} campo(s) atualizado(s) (origem Global).`,
       )
     } catch (err) {
-      setError(toUserMessage(err, 'Falha ao aplicar medidas padrão'))
+      pushError(toUserMessage(err, 'Falha ao aplicar medidas padrão'))
     } finally {
       setBusyApplyMeasures(false)
     }
@@ -493,14 +505,14 @@ export function AdminCategoriesPage() {
       if (cat.status !== 'archived') {
         const kids = items.filter((c) => c.parentId === cat.id && c.status !== 'archived')
         if (kids.length > 0) {
-          setError(
+          pushError(
             `Não é possível arquivar "${cat.name}" enquanto houver filhos (${kids.length}). Arquive ou mova os filhos antes.`,
           )
           return
         }
         const productCount = counts[cat.id] ?? (await adminCountProductsInCategory(cat.id))
         if (productCount > 0) {
-          setError(
+          pushError(
             `Há ${productCount} produto(s) nesta classificação. Reclassifique-os antes de arquivar.`,
           )
           return
@@ -511,9 +523,9 @@ export function AdminCategoriesPage() {
         cat.status === 'archived' ? 'published' : 'archived',
       )
       await reload()
-      setInfo(cat.status === 'archived' ? 'Publicado novamente.' : 'Arquivado.')
+      pushOk(cat.status === 'archived' ? 'Publicado novamente.' : 'Arquivado.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao alterar status')
+      pushError(err instanceof Error ? err.message : 'Falha ao alterar status')
     } finally {
       setBusyId(null)
     }
@@ -535,9 +547,9 @@ export function AdminCategoriesPage() {
       await adminDeleteCategory(cat.id, items)
       if (editing?.id === cat.id) resetForm()
       await reload()
-      setInfo('Classificação excluída.')
+      pushOk('Classificação excluída.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao excluir')
+      pushError(err instanceof Error ? err.message : 'Falha ao excluir')
     } finally {
       setBusyId(null)
     }
@@ -554,7 +566,7 @@ export function AdminCategoriesPage() {
       )
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao reordenar')
+      pushError(err instanceof Error ? err.message : 'Falha ao reordenar')
     } finally {
       setBusyId(null)
     }

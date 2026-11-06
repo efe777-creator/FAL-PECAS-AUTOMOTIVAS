@@ -1,11 +1,10 @@
 import { Input } from '@/components/common/Input'
-import type { PricingMethod } from '@/services/pricing/pricingFormulas'
+import {
+  pricingPercentInputLabel,
+  type PricingMethod,
+} from '@/services/pricing/pricingFormulas'
 
-export function pricingPercentInputLabel(method: PricingMethod): string {
-  if (method === 'markup_on_cost') return 'Markup (%)'
-  if (method === 'margin_on_sell') return 'Margem (%)'
-  return '% (formação)'
-}
+export { pricingPercentInputLabel }
 
 type Props = {
   method: PricingMethod
