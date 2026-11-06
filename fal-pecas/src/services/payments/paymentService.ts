@@ -13,7 +13,7 @@ export type PaymentProviderKey = 'simulated' | 'gateway' | 'mercadopago'
 export function resolvePaymentProviderKey(
   raw: string | undefined = import.meta.env.VITE_PAYMENT_PROVIDER as string | undefined,
 ): PaymentProviderKey {
-  const key = raw?.toLowerCase()
+  const key = (raw ?? '').trim().toLowerCase()
   if (key === 'mercadopago' || key === 'mp') return 'mercadopago'
   if (key === 'gateway' || key === 'sandbox') return 'gateway'
   return 'simulated'
