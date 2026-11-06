@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import {
   ADMIN_ORDER_GROUPS,
   adminActorBadgeLabel,
@@ -77,6 +78,7 @@ function actorClass(kind: ReturnType<typeof adminActorKind>): string {
 }
 
 export function AdminOrdersPage() {
+  const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -86,7 +88,6 @@ export function AdminOrdersPage() {
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
   const [search, setSearch] = useState('')
   const [hasMore, setHasMore] = useState(false)
@@ -167,14 +168,12 @@ export function AdminOrdersPage() {
   async function runExpireUnpaid() {
     if (!(await confirmExpireUnpaidIntent())) return
     setBusyExpire(true)
-    setMessage(null)
-    setError(null)
     try {
       const r = await runExpireUnpaidOrders()
-      setMessage(formatExpireUnpaidMessage(r))
+      toast.push(formatExpireUnpaidMessage(r), 'success')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao expirar pedidos')
+      toast.push(e instanceof Error ? e.message : 'Falha ao expirar pedidos', 'error')
     } finally {
       setBusyExpire(false)
     }
@@ -201,8 +200,6 @@ export function AdminOrdersPage() {
           {busyExpire ? 'Expirando…' : 'Retirar não pagos (48 h)'}
         </Button>
       </header>
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
-
       <div className="flex flex-wrap gap-2">
         <button
           type="button"

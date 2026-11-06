@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import {
   ADMIN_ORDER_AREAS,
   ADMIN_ORDER_VIEWS,
@@ -26,11 +27,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminOrdersHubPage() {
+  const toast = useToast()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
 
   async function reload() {
@@ -67,14 +68,12 @@ export function AdminOrdersHubPage() {
   async function runExpireUnpaid() {
     if (!(await confirmExpireUnpaidIntent())) return
     setBusyExpire(true)
-    setMessage(null)
-    setError(null)
     try {
       const r = await runExpireUnpaidOrders()
-      setMessage(formatExpireUnpaidMessage(r))
+      toast.push(formatExpireUnpaidMessage(r), 'success')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao expirar pedidos')
+      toast.push(e instanceof Error ? e.message : 'Falha ao expirar pedidos', 'error')
     } finally {
       setBusyExpire(false)
     }
@@ -103,7 +102,6 @@ export function AdminOrdersHubPage() {
         </div>
       </header>
 
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {loading ? <Loading label="Carregando central…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
