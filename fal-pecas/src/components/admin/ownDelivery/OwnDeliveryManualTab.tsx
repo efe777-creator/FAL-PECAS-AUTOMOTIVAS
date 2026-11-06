@@ -1,7 +1,11 @@
 import { listOwnManualReviews } from '@/services/admin/adminOwnDeliveryService'
 import { useEffect, useState } from 'react'
 
-export function OwnDeliveryManualTab() {
+type Props = {
+  onError?: (msg: string) => void
+}
+
+export function OwnDeliveryManualTab({ onError }: Props) {
   const [rows, setRows] = useState<unknown[]>([])
   const [showTech, setShowTech] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -9,7 +13,12 @@ export function OwnDeliveryManualTab() {
   useEffect(() => {
     void listOwnManualReviews()
       .then(setRows)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar análise manual'))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : 'Falha ao carregar análise manual'
+        setError(msg)
+        onError?.(msg)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga ao montar aba
   }, [])
 
   return (

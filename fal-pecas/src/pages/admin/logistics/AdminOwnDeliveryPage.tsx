@@ -9,6 +9,7 @@ import {
   pricingModeLabel,
 } from '@/components/admin/ownDelivery/ownDeliveryHelpers'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import {
   getOwnDeliverySettings,
   listOwnVehicleCategories,
@@ -45,6 +46,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
 ]
 
 export function AdminOwnDeliveryPage() {
+  const toast = useToast()
   const [tab, setTab] = useState<Tab>('geral')
   const [id, setId] = useState<string | undefined>()
   const [enabled, setEnabled] = useState(false)
@@ -62,15 +64,23 @@ export function AdminOwnDeliveryPage() {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
 
-  const reportOk = useCallback((msg: string) => {
-    setError(null)
-    setOk(msg)
-  }, [])
+  const reportOk = useCallback(
+    (msg: string) => {
+      setError(null)
+      setOk(msg)
+      toast.push(msg, 'success')
+    },
+    [toast],
+  )
 
-  const reportError = useCallback((msg: string) => {
-    setOk(null)
-    setError(msg)
-  }, [])
+  const reportError = useCallback(
+    (msg: string) => {
+      setOk(null)
+      setError(msg)
+      toast.push(msg, 'error')
+    },
+    [toast],
+  )
 
   useEffect(() => {
     void (async () => {
@@ -93,11 +103,15 @@ export function AdminOwnDeliveryPage() {
         }
         setCategories(cats)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar frete próprio')
+        const msg = e instanceof Error ? e.message : 'Erro ao carregar frete próprio'
+        setOk(null)
+        setError(msg)
+        toast.push(msg, 'error')
       } finally {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial
   }, [])
 
   async function onSubmitGeral(e: FormEvent) {
@@ -120,11 +134,11 @@ export function AdminOwnDeliveryPage() {
       })
       setId(saved.id)
       setRates(saved.rates)
-      setOk(
+      reportOk(
         `Salvo. Frete ${saved.enabled ? 'ativo' : 'desligado'} · cálculo ${pricingModeLabel(saved.pricingMode)}.`,
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar')
+      reportError(err instanceof Error ? err.message : 'Falha ao salvar')
     } finally {
       setSaving(false)
     }
@@ -227,9 +241,9 @@ export function AdminOwnDeliveryPage() {
         />
       ) : null}
 
-      {tab === 'manual' ? <OwnDeliveryManualTab /> : null}
+      {tab === 'manual' ? <OwnDeliveryManualTab onError={reportError} /> : null}
 
-      {tab === 'historico' ? <OwnDeliveryAuditTab /> : null}
+      {tab === 'historico' ? <OwnDeliveryAuditTab onError={reportError} /> : null}
     </div>
   )
 }

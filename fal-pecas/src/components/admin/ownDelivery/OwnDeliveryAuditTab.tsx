@@ -1,7 +1,11 @@
 import { listOwnAdminAudit } from '@/services/admin/adminOwnDeliveryService'
 import { useEffect, useState } from 'react'
 
-export function OwnDeliveryAuditTab() {
+type Props = {
+  onError?: (msg: string) => void
+}
+
+export function OwnDeliveryAuditTab({ onError }: Props) {
   const [rows, setRows] = useState<unknown[]>([])
   const [showTech, setShowTech] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -9,7 +13,12 @@ export function OwnDeliveryAuditTab() {
   useEffect(() => {
     void listOwnAdminAudit()
       .then(setRows)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Falha ao carregar histórico'))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : 'Falha ao carregar histórico'
+        setError(msg)
+        onError?.(msg)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga ao montar aba
   }, [])
 
   return (
