@@ -2,6 +2,7 @@ import {
   getAdminOrderView,
   orderMatchesProblemsView,
 } from '@/lib/adminOrderOps'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { adminListOrders, type AdminOrderListRow } from '@/services/admin/adminOrderService'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -10,6 +11,7 @@ import { AdminOrdersListPanel, filterOrdersBySearch } from './AdminOrdersListPan
 export function AdminOrdersViewPage() {
   const { viewId = '' } = useParams()
   const view = getAdminOrderView(viewId)
+  useDocumentTitle(view ? `${view.title} | Admin FAL` : 'Pedidos | Admin FAL')
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

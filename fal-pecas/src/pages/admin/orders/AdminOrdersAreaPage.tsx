@@ -10,6 +10,7 @@ import {
   formatExpireUnpaidMessage,
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   adminListOrders,
   type AdminOrderListRow,
@@ -34,6 +35,7 @@ export function AdminOrdersAreaPage() {
   const location = useLocation()
   const areaId = areaIdFromPath(location.pathname)
   const area = getAdminOrderArea(areaId)
+  useDocumentTitle(area ? `${area.title} | Admin FAL` : 'Pedidos | Admin FAL')
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

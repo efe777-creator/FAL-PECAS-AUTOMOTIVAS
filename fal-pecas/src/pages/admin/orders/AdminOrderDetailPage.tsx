@@ -3,6 +3,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
@@ -72,6 +73,9 @@ const PENDING_COPY: Record<PendingAction['kind'], { title: string; body: string 
 export function AdminOrderDetailPage() {
   const { id = '' } = useParams()
   const [order, setOrder] = useState<AdminOrderDetail | null>(null)
+  useDocumentTitle(
+    order ? `Pedido ${order.id.slice(0, 8)} | Admin FAL` : 'Pedido | Admin FAL',
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)

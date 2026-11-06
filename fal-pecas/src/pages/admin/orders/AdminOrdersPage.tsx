@@ -11,6 +11,7 @@ import {
   formatExpireUnpaidMessage,
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminListOrders,
@@ -39,6 +40,7 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 ]
 
 export function AdminOrdersPage() {
+  useDocumentTitle('Lista avançada | Admin FAL')
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
