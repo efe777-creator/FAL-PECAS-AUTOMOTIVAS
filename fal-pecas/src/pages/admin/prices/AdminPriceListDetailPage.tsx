@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
@@ -515,7 +516,13 @@ export function AdminPriceListDetailPage() {
       setError('Item ainda não está na lista — nada a remover')
       return
     }
-    if (!window.confirm('Remover este item da lista?')) return
+    const { confirmed: okRemove } = await confirmDialog({
+      title: 'Remover item?',
+      message: 'Remover este item da lista?',
+      confirmLabel: 'Remover',
+      danger: true,
+    })
+    if (!okRemove) return
     setRowBusy(itemId)
     try {
       await adminDeletePriceListItem(itemId)
@@ -533,7 +540,13 @@ export function AdminPriceListDetailPage() {
       setError('Seleção só tem itens ainda fora da lista — nada a remover')
       return
     }
-    if (!window.confirm(`Remover ${real.length} item(ns) da lista?`)) return
+    const { confirmed: okBulkRemove } = await confirmDialog({
+      title: 'Remover itens?',
+      message: `Remover ${real.length} item(ns) da lista?`,
+      confirmLabel: 'Remover',
+      danger: true,
+    })
+    if (!okBulkRemove) return
     setBusy(true)
     try {
       for (const item of real) {
@@ -549,11 +562,14 @@ export function AdminPriceListDetailPage() {
 
   async function onBulkApplyRule() {
     if (!selectedItems.length) return
-    const ok = window.confirm(
-      `Incluir (se necessário) e calcular venda pela regra em ${selectedItems.length} item(ns)?\n` +
+    const { confirmed: okRule } = await confirmDialog({
+      title: 'Aplicar regra de formação?',
+      message:
+        `Incluir (se necessário) e calcular venda pela regra em ${selectedItems.length} item(ns)?\n` +
         `Origem ${priceOriginLabel('calculated')}. Importado/manual na seleção serão convertidos para calculado.`,
-    )
-    if (!ok) return
+      confirmLabel: 'Aplicar',
+    })
+    if (!okRule) return
     setBusy(true)
     try {
       const virtualIds = selectedItems
@@ -589,12 +605,13 @@ export function AdminPriceListDetailPage() {
       return
     }
     if (!selectedItems.length) return
-    if (
-      !window.confirm(
-        `Definir preço ${priceOriginLabel('manual')} ${formatMoney(priceNum)} em ${selectedItems.length} item(ns)?`,
-      )
-    ) {
-      return
+    {
+      const { confirmed: okManual } = await confirmDialog({
+        title: 'Definir preço manual?',
+        message: `Definir preço ${priceOriginLabel('manual')} ${formatMoney(priceNum)} em ${selectedItems.length} item(ns)?`,
+        confirmLabel: 'Definir',
+      })
+      if (!okManual) return
     }
     setBusy(true)
     try {
@@ -708,14 +725,17 @@ export function AdminPriceListDetailPage() {
         await reload()
         return
       }
-      const ok = window.confirm(
-        `Aplicar margem → atualizar preço de venda?\n` +
+      const { confirmed: okMargin } = await confirmDialog({
+        title: 'Aplicar margem?',
+        message:
+          `Aplicar margem → atualizar preço de venda?\n` +
           `Novos na lista (com custo): ${sync.created}\n` +
           `Atualizar ${priceOriginLabel('calculated')}: ${dry.wouldUpdate}\n` +
           `Manual: ${dry.skippedManual} · Importado: ${dry.skippedImported} · Sem custo: ${dry.skippedNoCost}\n` +
-          `Imported/manual NÃO mudam.`,
-      )
-      if (!ok) {
+          `Importado/manual NÃO mudam.`,
+        confirmLabel: 'Aplicar',
+      })
+      if (!okMargin) {
         setRuleReport(
           `Regra salva; aplicação de venda cancelada. Incluídos na lista: ${sync.created}.${extraMsg}`,
         )
@@ -745,10 +765,13 @@ export function AdminPriceListDetailPage() {
       return
     }
     const signed = adjustDirection === 'down' ? -Math.abs(raw) : Math.abs(raw)
-    const ok = window.confirm(
-      `Ajuste global (lista inteira, ${items.length} itens) — não é formação custo+margem. Continuar?`,
-    )
-    if (!ok) return
+    const { confirmed: okAdjust } = await confirmDialog({
+      title: 'Ajuste global de preços?',
+      message: `Ajuste global (lista inteira, ${items.length} itens) — não é formação custo+margem. Continuar?`,
+      confirmLabel: 'Continuar',
+      danger: true,
+    })
+    if (!okAdjust) return
     setBusy(true)
     try {
       const result = await adminAdjustAllPriceListItems({

@@ -577,12 +577,14 @@ export function AdminCategoriesPage() {
   }
 
   async function onDelete(cat: Category) {
-    if (
-      !window.confirm(
-        `Excluir permanentemente "${cat.name}"?\n\nSó funciona sem filhos e sem produtos. Prefira Arquivar para remoção comercial.`,
-      )
-    ) {
-      return
+    {
+      const { confirmed } = await confirmDialog({
+        title: 'Excluir categoria?',
+        message: `Excluir permanentemente "${cat.name}"?\n\nSó funciona sem filhos e sem produtos. Prefira Arquivar para remoção comercial.`,
+        confirmLabel: 'Excluir',
+        danger: true,
+      })
+      if (!confirmed) return
     }
     setError(null)
     setBusyId(cat.id)

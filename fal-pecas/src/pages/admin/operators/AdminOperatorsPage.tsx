@@ -90,11 +90,15 @@ export function AdminOperatorsPage() {
 
   async function onDeactivate(row: AdminOperatorUserRow) {
     if (!isAdmin || row.id === user?.id) return
-    const ok = window.confirm(
-      `Desativar acesso de ${row.email ?? row.fullName ?? 'este usuário'}?\n\n` +
+    const { confirmed } = await confirmDialog({
+      title: 'Desativar operador?',
+      message:
+        `Desativar acesso de ${row.email ?? row.fullName ?? 'este usuário'}?\n\n` +
         `A conta vira Cliente e deixa de entrar no painel. Pedidos e histórico permanecem.`,
-    )
-    if (!ok) return
+      confirmLabel: 'Desativar',
+      danger: true,
+    })
+    if (!confirmed) return
     setError(null)
     setOkMsg(null)
     setSavingId(row.id)

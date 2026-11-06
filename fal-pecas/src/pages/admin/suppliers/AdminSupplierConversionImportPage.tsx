@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   adminApplyConversionImport,
@@ -98,12 +99,15 @@ export function AdminSupplierConversionImportPage() {
     const valid = preview?.filter((r) => r.ok).length ?? 0
     if (valid === 0) return
     const supplierName = suppliers.find((s) => s.id === supplierId)?.name ?? 'fornecedor'
-    const ok = window.confirm(
-      `Confirmar ${valid} conversão(ões) para "${supplierName}"?\n\n` +
+    const { confirmed } = await confirmDialog({
+      title: 'Confirmar conversões?',
+      message:
+        `Confirmar ${valid} conversão(ões) para "${supplierName}"?\n\n` +
         `SKU FAL inexistente não cria produto.\n` +
         `Linhas com erro serão ignoradas.`,
-    )
-    if (!ok) return
+      confirmLabel: 'Confirmar',
+    })
+    if (!confirmed) return
 
     setBusy(true)
     setError(null)

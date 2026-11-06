@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import {
   getAdminOrderArea,
   orderMatchesArea,
@@ -94,10 +95,13 @@ export function AdminOrdersAreaPage() {
           disabled={busyExpire || loading}
           onClick={() => {
             void (async () => {
-              const ok = window.confirm(
-                'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?',
-              )
-              if (!ok) return
+              const { confirmed } = await confirmDialog({
+                title: 'Retirar pedidos não pagos?',
+                message: 'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?',
+                confirmLabel: 'Retirar da fila',
+                danger: true,
+              })
+              if (!confirmed) return
               setBusyExpire(true)
               setMessage(null)
               try {

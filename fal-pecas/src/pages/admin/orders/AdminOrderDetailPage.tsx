@@ -1,5 +1,6 @@
 import { MeExpeditionPanel } from '@/components/admin/orders/MeExpeditionPanel'
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { formatDateTime } from '@/lib/datetime'
@@ -457,14 +458,20 @@ export function AdminOrderDetailPage() {
               type="button"
               disabled={busy}
               onClick={() => {
-                const note =
-                  window.prompt('Aprovar cancelamento? Nota opcional (estorno manual):', '') ?? null
-                if (note === null) return
                 void (async () => {
+                  const { confirmed, reason } = await confirmDialog({
+                    title: 'Aprovar cancelamento?',
+                    message: 'O pedido será cancelado. Estorno no Mercado Pago continua manual.',
+                    confirmLabel: 'Aprovar',
+                    askReason: true,
+                    reasonLabel: 'Nota (opcional)',
+                    reasonPlaceholder: 'Ex.: estorno será feito no painel MP',
+                  })
+                  if (!confirmed) return
                   setBusy(true)
                   setMsg(null)
                   try {
-                    await adminResolveOrderCancellation(current.id, true, note)
+                    await adminResolveOrderCancellation(current.id, true, reason ?? '')
                     setMsg('Cancelamento aprovado. Faça o estorno no MP e marque abaixo.')
                     await reload()
                   } catch (e) {
@@ -482,13 +489,20 @@ export function AdminOrderDetailPage() {
               variant="outline"
               disabled={busy}
               onClick={() => {
-                const note = window.prompt('Recusar solicitação? Informe o motivo:', '') ?? null
-                if (note === null) return
                 void (async () => {
+                  const { confirmed, reason } = await confirmDialog({
+                    title: 'Recusar solicitação?',
+                    message: 'O pedido permanece ativo. Informe o motivo da recusa.',
+                    confirmLabel: 'Recusar',
+                    danger: true,
+                    requireReason: true,
+                    reasonLabel: 'Motivo',
+                  })
+                  if (!confirmed || !reason) return
                   setBusy(true)
                   setMsg(null)
                   try {
-                    await adminResolveOrderCancellation(current.id, false, note)
+                    await adminResolveOrderCancellation(current.id, false, reason)
                     setMsg('Solicitação recusada. Pedido permanece ativo.')
                     await reload()
                   } catch (e) {
@@ -521,14 +535,20 @@ export function AdminOrderDetailPage() {
             variant="outline"
             disabled={busy}
             onClick={() => {
-              const note = window.prompt('Confirma que o estorno já foi feito no MP?', '') ?? null
-              if (note === null) return
               void (async () => {
+                const { confirmed, reason } = await confirmDialog({
+                  title: 'Estorno concluído no Mercado Pago?',
+                  message: 'Confirme que o refund já foi feito no painel do Mercado Pago.',
+                  confirmLabel: 'Marcar estorno feito',
+                  askReason: true,
+                  reasonLabel: 'Nota (opcional)',
+                })
+                if (!confirmed) return
                 setBusy(true)
                 setMsg(null)
                 try {
-                  await adminMarkPaymentRefunded(current.id, note)
-                  setMsg('Pagamento marcado como refunded.')
+                  await adminMarkPaymentRefunded(current.id, reason ?? '')
+                  setMsg('Pagamento marcado como estornado.')
                   await reload()
                 } catch (e) {
                   setError(e instanceof Error ? e.message : 'Falha ao marcar estorno')

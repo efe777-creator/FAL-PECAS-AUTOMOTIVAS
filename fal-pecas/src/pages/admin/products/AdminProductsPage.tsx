@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
@@ -168,10 +169,13 @@ export function AdminProductsPage() {
   async function toggleArchive(p: Product) {
     const next = p.status === 'archived' ? 'published' : 'archived'
     if (next === 'archived') {
-      const ok = window.confirm(
-        `Remover "${p.name}" do catálogo público?\n\nO produto será arquivado (permanece no banco; some da loja e da busca).`,
-      )
-      if (!ok) return
+      const { confirmed } = await confirmDialog({
+        title: 'Arquivar produto?',
+        message: `Remover "${p.name}" do catálogo público?\n\nO produto será arquivado (permanece no banco; some da loja e da busca).`,
+        confirmLabel: 'Arquivar',
+        danger: true,
+      })
+      if (!confirmed) return
     }
     setMessage(null)
     setError(null)
@@ -188,10 +192,13 @@ export function AdminProductsPage() {
     const ids = [...selected]
     if (ids.length === 0) return
     if (next === 'archived') {
-      const ok = window.confirm(
-        `Arquivar ${ids.length} produto(s)?\n\nRemoção comercial da loja (permanecem no banco).`,
-      )
-      if (!ok) return
+      const { confirmed } = await confirmDialog({
+        title: 'Arquivar produtos?',
+        message: `Arquivar ${ids.length} produto(s)?\n\nRemoção comercial da loja (permanecem no banco).`,
+        confirmLabel: 'Arquivar',
+        danger: true,
+      })
+      if (!confirmed) return
     }
     setBusyBulk(true)
     setMessage(null)
@@ -259,13 +266,16 @@ export function AdminProductsPage() {
       return
     }
     const blocked = releasePreflight.length - eligible.length
-    const ok = window.confirm(
-      `Liberar ${eligible.length} produto(s) que passaram no checklist?\n` +
+    const { confirmed } = await confirmDialog({
+      title: 'Liberar na loja?',
+      message:
+        `Liberar ${eligible.length} produto(s) que passaram no checklist?\n` +
         (blocked > 0 ? `${blocked} bloqueado(s) serão ignorados.\n` : '') +
-        '\nHard: nome, código ref., categoria, preço resolvido > 0, publicação.\n' +
+        '\nExige: nome, código ref., categoria, preço resolvido > 0, publicação.\n' +
         'Avisos (app/imagem) não bloqueiam.',
-    )
-    if (!ok) return
+      confirmLabel: 'Liberar',
+    })
+    if (!confirmed) return
     setBusyBulk(true)
     setMessage(null)
     setError(null)
@@ -302,10 +312,12 @@ export function AdminProductsPage() {
     }
     if (!bulkCascade.subgrupoId) {
       const level = bulkCascade.grupoId ? 'grupo' : 'categoria'
-      const ok = window.confirm(
-        `Aplicar classificação no nível ${level} (sem subgrupo) a ${ids.length} produto(s)?`,
-      )
-      if (!ok) return
+      const { confirmed } = await confirmDialog({
+        title: 'Aplicar classificação?',
+        message: `Aplicar classificação no nível ${level} (sem subgrupo) a ${ids.length} produto(s)?`,
+        confirmLabel: 'Aplicar',
+      })
+      if (!confirmed) return
     }
     setBusyBulk(true)
     setMessage(null)
@@ -342,10 +354,13 @@ export function AdminProductsPage() {
       return
     }
     if (bulkMode === 'overwrite_manual') {
-      const ok = window.confirm(
-        `Sobrescrever também campos Manual em ${selected.size} produto(s)? Eles passam a Global.`,
-      )
-      if (!ok) return
+      const { confirmed } = await confirmDialog({
+        title: 'Sobrescrever medidas manuais?',
+        message: `Sobrescrever também campos Manual em ${selected.size} produto(s)? Eles passam a Global.`,
+        confirmLabel: 'Sobrescrever',
+        danger: true,
+      })
+      if (!confirmed) return
     }
     setBusyMeasures(true)
     setError(null)

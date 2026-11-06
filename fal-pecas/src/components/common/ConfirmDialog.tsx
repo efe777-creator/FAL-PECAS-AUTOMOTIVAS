@@ -10,6 +10,8 @@ export type ConfirmDialogOptions = {
   danger?: boolean
   /** Se true, pede um motivo obrigatório (substitui window.prompt). */
   requireReason?: boolean
+  /** Mostra campo de nota/motivo opcional (Cancelar = aborta). */
+  askReason?: boolean
   reasonLabel?: string
   reasonPlaceholder?: string
 }
@@ -55,13 +57,17 @@ export function ConfirmDialogHost() {
   }
 
   function onConfirm() {
+    const trimmed = reason.trim()
     if (pending?.requireReason) {
-      const trimmed = reason.trim()
       if (!trimmed) {
         setReasonError('Informe o motivo para continuar.')
         return
       }
       close({ confirmed: true, reason: trimmed })
+      return
+    }
+    if (pending?.askReason) {
+      close({ confirmed: true, reason: trimmed || undefined })
       return
     }
     close({ confirmed: true })
@@ -76,9 +82,9 @@ export function ConfirmDialogHost() {
       {pending ? (
         <div className="space-y-4">
           <p className="m-0 text-sm text-fal-ink whitespace-pre-wrap">{pending.message}</p>
-          {pending.requireReason ? (
+          {pending.requireReason || pending.askReason ? (
             <label className="block text-sm font-semibold text-fal-navy">
-              {pending.reasonLabel ?? 'Motivo'}
+              {pending.reasonLabel ?? (pending.requireReason ? 'Motivo' : 'Nota (opcional)')}
               <textarea
                 className="mt-1 w-full rounded-[10px] border border-fal-line px-3 py-2 text-sm font-normal text-fal-ink"
                 rows={3}
