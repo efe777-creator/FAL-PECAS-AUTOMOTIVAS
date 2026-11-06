@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { Link, useParams } from 'react-router-dom'
 
 const copy: Record<string, { title: string; body: string }> = {
@@ -17,6 +18,7 @@ export function AdminLogisticsPlaceholderPage() {
     title: 'Logística',
     body: 'Módulo ainda não implementado.',
   }
+  useDocumentTitle(`${meta.title} | Admin FAL`)
 
   return (
     <div className="space-y-4">

@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminDeleteShippingBox,
@@ -25,6 +26,7 @@ const emptyForm = {
 }
 
 export function AdminShippingBoxesPage() {
+  useDocumentTitle('Caixas e embalagens | Admin FAL')
   const toast = useToast()
   const [rows, setRows] = useState<ShippingBoxTemplate[]>([])
   const [loading, setLoading] = useState(true)
