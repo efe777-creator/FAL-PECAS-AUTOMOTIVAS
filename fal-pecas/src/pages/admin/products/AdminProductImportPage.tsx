@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -17,6 +18,7 @@ function canImportCatalog(role: string | undefined): boolean {
 
 export function AdminProductImportPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canImportCatalog(user?.role)
 
   const [busy, setBusy] = useState(false)
@@ -30,6 +32,11 @@ export function AdminProductImportPage() {
   const [phase, setPhase] = useState<'idle' | 'preview' | 'confirm' | 'done'>('idle')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
   async function onFile(file: File) {
     setBusy(true)
     setError(null)
@@ -42,11 +49,11 @@ export function AdminProductImportPage() {
       const { rows, delimiter: d, fileErrors } = await adminPreviewCatalogImport(file)
       setDelimiter(d)
       if (fileErrors.length) {
-        setError(fileErrors.join(' · '))
+        pushError(fileErrors.join(' · '))
         return
       }
       if (rows.length === 0) {
-        setError('Arquivo sem linhas de dados')
+        pushError('Arquivo sem linhas de dados')
         return
       }
       const id = await adminCreateCatalogImport({
@@ -58,7 +65,7 @@ export function AdminProductImportPage() {
       setPreview(rows)
       setPhase('preview')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha no preview')
+      pushError(err instanceof Error ? err.message : 'Falha no preview')
     } finally {
       setBusy(false)
     }
@@ -70,13 +77,14 @@ export function AdminProductImportPage() {
     setError(null)
     try {
       const result = await adminApplyCatalogImport(importId)
-      setReport(
+      const msg =
         `Criados: ${result.created}. Atualizados: ${result.updated}. ` +
-          `Ignorados: ${result.skipped}. Categorias novas: ${result.categories_created}.`,
-      )
+        `Ignorados: ${result.skipped}. Categorias novas: ${result.categories_created}.`
+      setReport(msg)
       setPhase('done')
+      toast.push(msg, 'success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
       setPhase('preview')
     } finally {
       setBusy(false)

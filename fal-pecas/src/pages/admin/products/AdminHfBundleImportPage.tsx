@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -18,6 +19,7 @@ function canImport(role: string | undefined): boolean {
 
 export function AdminHfBundleImportPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canImport(user?.role)
 
   const [busy, setBusy] = useState(false)
@@ -30,6 +32,11 @@ export function AdminHfBundleImportPage() {
   const [phase, setPhase] = useState<'idle' | 'preview' | 'confirm' | 'done'>('idle')
   const [result, setResult] = useState<HfBundleApplyResult | null>(null)
 
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
   async function onFile(file: File) {
     setBusy(true)
     setError(null)
@@ -39,11 +46,11 @@ export function AdminHfBundleImportPage() {
       setFileName(file.name)
       const preview = await adminPreviewHfBundleImport(file)
       if (preview.fileErrors.length) {
-        setError(preview.fileErrors.join(' · '))
+        pushError(preview.fileErrors.join(' · '))
         return
       }
       if (!preview.products.length) {
-        setError('Arquivo sem produtos válidos')
+        pushError('Arquivo sem produtos válidos')
         return
       }
       const ids = await adminCreateHfBundleImports({
@@ -58,7 +65,7 @@ export function AdminHfBundleImportPage() {
       setApplicationImportId(ids.applicationImportId)
       setPhase('preview')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
+      pushError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
     } finally {
       setBusy(false)
     }
@@ -75,9 +82,21 @@ export function AdminHfBundleImportPage() {
       })
       setResult(r)
       setPhase('done')
-      if (r.applicationsError) setError(r.applicationsError)
+      if (r.applicationsError) {
+        pushError(r.applicationsError)
+      } else {
+        const apps = r.applications
+        toast.push(
+          `HF aplicado: ${r.products.created + r.products.updated} produto(s)` +
+            (apps
+              ? `, ${apps.created_applications + apps.updated_applications} aplicação(ões)`
+              : '') +
+            '.',
+          'success',
+        )
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar')
+      pushError(err instanceof Error ? err.message : 'Falha ao aplicar')
       setPhase('preview')
     } finally {
       setBusy(false)

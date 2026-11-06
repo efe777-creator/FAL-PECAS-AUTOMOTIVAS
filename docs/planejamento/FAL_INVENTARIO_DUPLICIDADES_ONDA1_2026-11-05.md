@@ -56,7 +56,7 @@
 | CRUD Fabricantes / Montadoras / Fornecedores | Três telas via `AdminNamedEntityCrud` (código opcional) | **MANTER** (VAL 2026-11-06b) |
 | Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
 | Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
-| Toast admin | + apps + abas formação/config preço; residual ainda `<p>` (imports HF/apps, etc.) | **CONSOLIDAR** gradualmente |
+| Toast admin | + imports produto/apps/HF; residual fino (image SKU errors, etc.) | **CONSOLIDAR** gradualmente |
 
 ## Gate
 
