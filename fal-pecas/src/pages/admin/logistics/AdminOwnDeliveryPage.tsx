@@ -10,6 +10,7 @@ import {
 } from '@/components/admin/ownDelivery/ownDeliveryHelpers'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   getOwnDeliverySettings,
   listOwnVehicleCategories,
@@ -46,6 +47,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
 ]
 
 export function AdminOwnDeliveryPage() {
+  useDocumentTitle('Frete próprio | Admin FAL')
   const toast = useToast()
   const [tab, setTab] = useState<Tab>('geral')
   const [id, setId] = useState<string | undefined>()

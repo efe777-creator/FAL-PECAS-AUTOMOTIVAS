@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import { formatCepMask, isCompleteCep, normalizeCep } from '@/lib/cep'
 import { formatCpfOrCnpjMask } from '@/lib/document'
@@ -15,6 +16,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminShippingOriginPage() {
+  useDocumentTitle('Origem e expedição | Admin FAL')
   const toast = useToast()
   const [id, setId] = useState<string | undefined>()
   const [internalName, setInternalName] = useState('Origem principal')

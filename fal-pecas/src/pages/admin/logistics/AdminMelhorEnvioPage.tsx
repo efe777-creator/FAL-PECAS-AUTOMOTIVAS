@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   fetchMeAdminStatus,
   listMeShippingServices,
@@ -26,6 +27,7 @@ function formatWhen(iso: string | null): string {
 }
 
 export function AdminMelhorEnvioPage() {
+  useDocumentTitle('Melhor Envio | Admin FAL')
   const toast = useToast()
   const [rows, setRows] = useState<Draft[]>([])
   const [status, setStatus] = useState<MeAdminStatus | null>(null)

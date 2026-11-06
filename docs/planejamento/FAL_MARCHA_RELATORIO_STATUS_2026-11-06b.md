@@ -36,9 +36,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin aplicações: Carregar mais (total já existia; lote 250 deixava só “refine filtros”)  
 - Admin importações: paginação visível (cap 150 + Carregar mais)  
 - Admin hub: `document.title` em todos os itens do menu principal  
+- Admin logística: titles nas subpáginas (origem, frete próprio, ME, caixas, placeholder)  
 
 ## Próximo código (opcional)
 
-- Titles em subpáginas admin (detalhe/form/wizards/logística)  
+- Titles em pedidos/produtos/wizards (subpáginas restantes)  
 - Auditoria residual de caps em listagens menores (se aparecer)  
 
