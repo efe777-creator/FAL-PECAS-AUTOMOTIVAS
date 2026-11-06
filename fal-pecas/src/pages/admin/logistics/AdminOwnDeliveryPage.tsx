@@ -11,6 +11,7 @@ import {
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import {
   getOwnDeliverySettings,
   listOwnVehicleCategories,
@@ -62,8 +63,23 @@ export function AdminOwnDeliveryPage() {
   const [categories, setCategories] = useState<OwnVehicleCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
+
+  useUnsavedChangesBlocker(dirty, {
+    message:
+      'Há alterações em Gerais (cobertura, prazos ou tarifa) ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   const reportOk = useCallback(
     (msg: string) => {
@@ -135,6 +151,7 @@ export function AdminOwnDeliveryPage() {
       })
       setId(saved.id)
       setRates(saved.rates)
+      setDirty(false)
       reportOk(
         `Salvo. Frete ${saved.enabled ? 'ativo' : 'desligado'} · cálculo ${pricingModeLabel(saved.pricingMode)}.`,
       )
@@ -189,6 +206,14 @@ export function AdminOwnDeliveryPage() {
           {ok}
         </p>
       ) : null}
+      {dirty ? (
+        <p
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+          role="status"
+        >
+          Alterações em Gerais não salvas. Clique em Salvar nesta aba antes de sair do admin.
+        </p>
+      ) : null}
 
       {tab === 'geral' ? (
         <OwnDeliveryGeralTab
@@ -205,6 +230,8 @@ export function AdminOwnDeliveryPage() {
           }}
           saving={saving}
           onChange={(patch) => {
+            const { showTech: nextShowTech, ...persisted } = patch
+            if (Object.keys(persisted).length > 0) setDirty(true)
             if (patch.enabled !== undefined) setEnabled(patch.enabled)
             if (patch.coverageLabel !== undefined) setCoverageLabel(patch.coverageLabel)
             if (patch.cepRanges !== undefined) setCepRanges(patch.cepRanges)
@@ -213,7 +240,7 @@ export function AdminOwnDeliveryPage() {
             if (patch.maxDistanceKm !== undefined) setMaxDistanceKm(patch.maxDistanceKm)
             if (patch.etaDaysMin !== undefined) setEtaDaysMin(patch.etaDaysMin)
             if (patch.etaDaysMax !== undefined) setEtaDaysMax(patch.etaDaysMax)
-            if (patch.showTech !== undefined) setShowTech(patch.showTech)
+            if (nextShowTech !== undefined) setShowTech(nextShowTech)
           }}
           onSubmit={(e) => void onSubmitGeral(e)}
         />
