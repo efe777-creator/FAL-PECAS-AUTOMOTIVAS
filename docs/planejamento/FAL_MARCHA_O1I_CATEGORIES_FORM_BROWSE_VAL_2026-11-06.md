@@ -20,7 +20,7 @@
 
 ## Residual O1-I
 
-- Extrair `CategoriesTreePanel` / lista plana (próxima minuciosa)
+- [x] Extrair `CategoriesBrowsePanel` (lista + árvore) — VAL 2026-11-06b
 
 ## Gate humano
 
