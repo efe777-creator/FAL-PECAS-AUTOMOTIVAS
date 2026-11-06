@@ -42,9 +42,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin titles: residual fechado (preço detalhe, fornecedor, prep IA, placeholder) — 100% `pages/admin/*Page`  
 - Admin pedidos: paginação em áreas e visões (cap 200 deixava de ser só na lista avançada)  
 - Catálogo mobile: filtros em `MobileDrawer` + sticky contagem corrigida (O1-H residual)  
+- Catálogo ↔ PDP: restaura scroll ao voltar (`ScrollToTop` ignora POP + sessionStorage)  
 
 ## Próximo código (opcional)
 
+- Residuais O1-H (Meus pedidos cards mobile / Continuar pagamento)  
 - Itens do plano mestre ainda P/N + gates humanos (frete/pagamento/ME/sinônimos)  
-- Outros residuais O1-H (ScrollRestoration PDP→catálogo, se ainda aberto)  
 

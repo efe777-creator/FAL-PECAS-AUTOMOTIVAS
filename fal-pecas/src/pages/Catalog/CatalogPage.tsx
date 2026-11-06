@@ -10,6 +10,7 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { readCatalogScroll, saveCatalogScroll } from '@/lib/catalogScroll'
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
@@ -17,7 +18,7 @@ import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import type { Category, Product, ProductBrand, ProductSearchSort, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom'
 
 /** Resolve Categoria → Grupo → Subgrupo a partir do slug em `?cat=`. */
 function categoryPathFromSlug(
@@ -65,6 +66,8 @@ function parsePage(value: string | null): number {
 
 export function CatalogPage() {
   const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const navType = useNavigationType()
   const q = params.get('q') ?? ''
   const cat = params.get('cat') ?? ''
   const maker = params.get('maker') ?? ''
@@ -91,6 +94,7 @@ export function CatalogPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
+  const scrollRestoredRef = useRef(false)
 
   const vehicleFiltersActive = Boolean(maker || model || year || engine || version)
 
@@ -105,6 +109,32 @@ export function CatalogPage() {
   useEffect(() => {
     setSearchDraft(q)
   }, [q])
+
+  /** Persiste scroll ao sair / durante o scroll (voltar da PDP). */
+  useEffect(() => {
+    scrollRestoredRef.current = false
+    const path = location.pathname
+    const search = location.search
+    function persist() {
+      saveCatalogScroll(path, search)
+    }
+    window.addEventListener('scroll', persist, { passive: true })
+    return () => {
+      persist()
+      window.removeEventListener('scroll', persist)
+    }
+  }, [location.pathname, location.search])
+
+  /** Após carregar resultados num POP, restaura Y salvo. */
+  useEffect(() => {
+    if (loading || scrollRestoredRef.current || navType !== 'POP') return
+    const y = readCatalogScroll(location.pathname, location.search)
+    if (y == null) return
+    scrollRestoredRef.current = true
+    requestAnimationFrame(() => {
+      window.scrollTo(0, y)
+    })
+  }, [loading, products.length, navType, location.pathname, location.search])
 
   const [catsRev, setCatsRev] = useState(0)
   useEffect(() => subscribeCategoriesChanged(() => setCatsRev((n) => n + 1)), [])
