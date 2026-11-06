@@ -46,6 +46,7 @@ export function AdminProductsPage() {
   const [manufacturerId, setManufacturerId] = useState('')
   const [filterCascade, setFilterCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
   const [withoutImage, setWithoutImage] = useState(false)
+  const [measureGap, setMeasureGap] = useState<'' | 'weight' | 'dims' | 'any'>('')
   const [loading, setLoading] = useState(true)
   const [busyBulk, setBusyBulk] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +72,7 @@ export function AdminProductsPage() {
     availableFilter?: string
     manufacturerId?: string
     withoutImage?: boolean
+    measureGap?: '' | 'weight' | 'dims' | 'any'
     filterCascade?: CategoryCascadeValue
   }) {
     setLoading(true)
@@ -81,6 +83,7 @@ export function AdminProductsPage() {
       const nextAvailable = overrides?.availableFilter ?? availableFilter
       const nextMaker = overrides?.manufacturerId ?? manufacturerId
       const nextNoImage = overrides?.withoutImage ?? withoutImage
+      const nextGap = overrides?.measureGap ?? measureGap
       const nextCascade = overrides?.filterCascade ?? filterCascade
       const filterNode = effectiveCategoryId(nextCascade)
       const categoryIds = filterNode
@@ -94,6 +97,7 @@ export function AdminProductsPage() {
           status: nextStatus || undefined,
           available,
           withoutImage: nextNoImage,
+          measureGap: nextGap || undefined,
           categoryIds,
           manufacturerId: nextMaker || undefined,
         }),
@@ -139,6 +143,7 @@ export function AdminProductsPage() {
     setStatus('')
     setAvailableFilter('')
     setManufacturerId('')
+    setMeasureGap('')
     setFilterCascade(EMPTY_CASCADE)
     setWithoutImage(false)
   }
@@ -477,6 +482,7 @@ export function AdminProductsPage() {
                   availableFilter: '',
                   manufacturerId: '',
                   withoutImage: false,
+                  measureGap: '',
                   filterCascade: EMPTY_CASCADE,
                 })
               }}
@@ -485,6 +491,19 @@ export function AdminProductsPage() {
             </Button>
           </div>
         </div>
+        <label className="block max-w-xs text-sm">
+          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Medidas (logística)</span>
+          <select
+            className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
+            value={measureGap}
+            onChange={(e) => setMeasureGap(e.target.value as '' | 'weight' | 'dims' | 'any')}
+          >
+            <option value="">Todas</option>
+            <option value="weight">Sem peso</option>
+            <option value="dims">Sem dimensões</option>
+            <option value="any">Sem peso ou dimensões</option>
+          </select>
+        </label>
         <CategoryCascadeSelects
           categories={categories}
           value={filterCascade}
