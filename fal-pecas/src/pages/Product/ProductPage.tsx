@@ -77,7 +77,7 @@ export function ProductPage() {
   const [related, setRelated] = useState<Product[]>([])
   const [categoryPath, setCategoryPath] = useState<CategoryPathCrumb[]>([])
   const [qty, setQty] = useState(1)
-  const { addItem, items } = useCart()
+  const { addItem, updateQty, items } = useCart()
   const { user } = useAuth()
   const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
@@ -368,10 +368,11 @@ export function ProductPage() {
     )
   }
 
-  /** Garante item no carrinho (se já está, NÃO incrementa) e vai ao carrinho. */
+  /** Garante a quantidade escolhida no carrinho e vai a /carrinho (O1-G). */
   function onBuyNow() {
     if (current.available === false) return
-    if (!inCart) addItem(current, qty)
+    if (inCart) updateQty(current.id, qty)
+    else addItem(current, qty)
     navigate('/carrinho')
   }
 

@@ -23,7 +23,7 @@ export const MENOS_APLICACOES_LABEL = 'Menos aplicações'
 
 export const VER_PRODUTO_LABEL = 'Ver produto'
 
-/** CTA primário no card/PDP (MARCHA O1-G) — garante item no carrinho e vai a /carrinho. */
+/** CTA primário no card/PDP (MARCHA O1-G) — garante a qtd no carrinho e vai a /carrinho. */
 export const COMPRAR_AGORA_LABEL = 'Comprar agora'
 
 /** CTA secundário no card/PDP — adiciona e permanece na tela. */
