@@ -18,8 +18,8 @@
 - [x] `tsc --noEmit` OK  
 - [x] Vitest packing OK  
 - [x] Inventário → **MANTER**  
-- [ ] **Redeploy** Edge `quote-shipping` no projetobp (humano/ops)
+- [ ] **Redeploy** Edge `quote-shipping` — CLI exige `supabase functions deploy quote-shipping --yes` (consentimento humano)
 
 ## Gate humano
 
-Redeploy da função `quote-shipping` para valer em sandbox/prod.
+Redeploy da função `quote-shipping` com `--yes` no projeto wtbp.

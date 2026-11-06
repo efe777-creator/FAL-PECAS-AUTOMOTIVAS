@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import {
   fetchMeAdminStatus,
   listMeShippingServices,
@@ -25,12 +26,12 @@ function formatWhen(iso: string | null): string {
 }
 
 export function AdminMelhorEnvioPage() {
+  const toast = useToast()
   const [rows, setRows] = useState<Draft[]>([])
   const [status, setStatus] = useState<MeAdminStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -44,11 +45,13 @@ export function AdminMelhorEnvioPage() {
       setRows(list.map((r) => ({ ...r })))
       setStatus(st)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao carregar Melhor Envio')
+      const msg = e instanceof Error ? e.message : 'Falha ao carregar Melhor Envio'
+      setErr(msg)
+      toast.push(msg, 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     void load()
@@ -65,7 +68,6 @@ export function AdminMelhorEnvioPage() {
 
   async function onSave() {
     setSaving(true)
-    setMsg(null)
     setErr(null)
     try {
       await saveMeShippingServicesBatch(
@@ -75,10 +77,15 @@ export function AdminMelhorEnvioPage() {
           displayName: r.displayName,
         })),
       )
-      setMsg('Configuração salva. A loja passa a exibir só os serviços ligados.')
+      toast.push(
+        'Configuração salva. A loja passa a exibir só os serviços ligados.',
+        'success',
+      )
       await load()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao salvar')
+      const msg = e instanceof Error ? e.message : 'Falha ao salvar'
+      setErr(msg)
+      toast.push(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -86,7 +93,6 @@ export function AdminMelhorEnvioPage() {
 
   async function onSync() {
     setSyncing(true)
-    setMsg(null)
     setErr(null)
     try {
       let fromQuotes = 0
@@ -96,14 +102,17 @@ export function AdminMelhorEnvioPage() {
         fromQuotes = 0
       }
       const edge = await syncMeCatalogFromEdge()
-      setMsg(
+      toast.push(
         `Catálogo atualizado: ${edge.upserted} via ME` +
           (fromQuotes ? ` · ${fromQuotes} das cotações recentes` : '') +
           '. Novos entram desligados — ligue os que devem aparecer no site.',
+        'success',
       )
       await load()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao atualizar catálogo')
+      const msg = e instanceof Error ? e.message : 'Falha ao atualizar catálogo'
+      setErr(msg)
+      toast.push(msg, 'error')
     } finally {
       setSyncing(false)
     }
@@ -189,7 +198,6 @@ export function AdminMelhorEnvioPage() {
           </div>
         </div>
 
-        {msg ? <p className="mb-0 mt-3 text-sm text-emerald-800">{msg}</p> : null}
         {err ? (
           <p className="mb-0 mt-3 text-sm text-fal-danger" role="alert">
             {err}
