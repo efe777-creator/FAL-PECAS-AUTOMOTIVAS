@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #167 (+ login password rule em ship)  
+**HEAD:** `main` @ merge #168 (+ account vehicles copy em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -102,6 +102,7 @@
 - O1-D / O0-B: Frete próprio Gerais — blocker + banner + beforeunload — VAL `O1D_OWN_UNSAVED_BLOCKER`  
 - O0-B: Origem/expedição — blocker + banner + beforeunload — VAL `O0B_SHIPPING_ORIGIN_UNSAVED_BLOCKER`  
 - O1-F: regra de senha visível no login + constante única — VAL `O1F_LOGIN_PASSWORD_RULE`  
+- O0-C: Meus veículos sem “cadastro mestre” — VAL `O0C_ACCOUNT_VEHICLES_COPY`  
 
 **Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
 **Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
