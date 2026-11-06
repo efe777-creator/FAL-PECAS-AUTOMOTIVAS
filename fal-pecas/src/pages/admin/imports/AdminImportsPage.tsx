@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
@@ -29,6 +30,7 @@ function payloadPreview(payload: Record<string, unknown>): string {
 
 export function AdminImportsPage() {
   useDocumentTitle('Importações | Admin FAL')
+  const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const kindFromUrl = searchParams.get('kind') ?? ''
   const [rows, setRows] = useState<ImportRunSummary[]>([])
@@ -40,6 +42,11 @@ export function AdminImportsPage() {
   const [error, setError] = useState<string | null>(null)
   const [detail, setDetail] = useState<ImportRunDetail | null>(null)
   const [detailBusy, setDetailBusy] = useState(false)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   useEffect(() => {
     setKind(kindFromUrl)
@@ -58,10 +65,13 @@ export function AdminImportsPage() {
       setHasMore(list.length >= ADMIN_IMPORTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao listar importações')
+      const message = e instanceof Error ? e.message : 'Erro ao listar importações'
+      setError(message)
+      toast.push(message, 'error')
     } finally {
       setLoading(false)
     }
+    // toast omitido de deps: push é estável o bastante; evita loop com useEffect(reload)
   }, [kind, status])
 
   useEffect(() => {
@@ -84,7 +94,7 @@ export function AdminImportsPage() {
       })
       setHasMore(next.length >= ADMIN_IMPORTS_PAGE_SIZE)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar mais importações')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar mais importações')
     } finally {
       setLoadingMore(false)
     }
@@ -95,7 +105,7 @@ export function AdminImportsPage() {
     try {
       setDetail(await adminGetImportRunDetail(id))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar detalhes')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar detalhes')
     } finally {
       setDetailBusy(false)
     }
@@ -107,10 +117,10 @@ export function AdminImportsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Importações</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Histórico unificado de runs (`imports` / `import_items`) — catálogo, aplicações,
-            conversões, custos e listas de preços.
+            Histórico das importações da loja — catálogo, aplicações, conversões, custos e listas de
+            preços.
             {rows.length > 0
-              ? ` · ${rows.length} run${rows.length === 1 ? '' : 's'} carregada${rows.length === 1 ? '' : 's'}.`
+              ? ` · ${rows.length} importaç${rows.length === 1 ? 'ão' : 'ões'} carregada${rows.length === 1 ? '' : 's'}.`
               : null}
           </p>
         </div>
@@ -187,8 +197,8 @@ export function AdminImportsPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {hasMore ? (
         <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Exibindo até {ADMIN_IMPORTS_PAGE_SIZE} runs por carga ({rows.length} carregadas). Há mais
-          no histórico — use “Carregar mais importações” ao final da lista ou refine os filtros.
+          Exibindo até {ADMIN_IMPORTS_PAGE_SIZE} importações por carga ({rows.length} carregadas). Há
+          mais no histórico — use “Carregar mais importações” ao final da lista ou refine os filtros.
         </p>
       ) : null}
       {loading ? <Loading label="Carregando histórico…" /> : null}
@@ -214,7 +224,7 @@ export function AdminImportsPage() {
                   <td colSpan={8} className="px-3 py-4">
                     <EmptyState
                       title="Nenhuma importação encontrada"
-                      description="Ajuste os filtros ou execute um novo import pelo wizard correspondente."
+                      description="Ajuste os filtros ou execute uma nova importação pelo assistente correspondente."
                     />
                   </td>
                 </tr>
@@ -261,7 +271,7 @@ export function AdminImportsPage() {
                           ) : null}
                           {wizard && !row.priceListId ? (
                             <Link className="font-semibold text-fal-muted underline" to={wizard}>
-                              Wizard
+                              Assistente
                             </Link>
                           ) : null}
                         </div>
