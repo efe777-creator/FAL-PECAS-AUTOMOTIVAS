@@ -1,6 +1,7 @@
 import { useProductSearch } from '@/hooks/useCatalog'
 import { productHref } from '@/lib/productHref'
 import { formatMoney } from '@/lib/money'
+import { SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -86,7 +87,7 @@ export function SearchBar() {
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        placeholder="Busque por peça, código, aplicação ou veículo"
+        placeholder={SEARCH_INPUT_PLACEHOLDER}
         className="min-h-11 w-full rounded-xl border border-fal-line bg-[#fafbfc] py-2.5 pr-10 pl-3 text-sm outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)] sm:min-h-[46px] sm:py-[13px] sm:pr-11 sm:pl-4 lg:py-[15px] lg:pl-[18px]"
         aria-label="Busca de produtos"
         role="combobox"

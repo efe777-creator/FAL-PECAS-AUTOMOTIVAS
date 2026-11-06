@@ -35,7 +35,7 @@
 |------|--------|------|
 | RPC `search_products` | Canônico loja | **MANTER** |
 | `mockSearch` | Fallback offline | **NÃO TOCAR** (dev) |
-| SearchBar vs busca do catálogo | Duas UIs | **CONSOLIDAR** copy (Onda 2) |
+| SearchBar vs busca do catálogo | Duas UIs; copy unificado em `lib/searchCopy` | **MANTER** (VAL 2026-11-06; UIs distintas OK) |
 
 ## Veículos
 
@@ -56,7 +56,7 @@
 | CRUD Fabricantes / Montadoras / Fornecedores | Três telas via `AdminNamedEntityCrud` (código opcional) | **MANTER** (VAL 2026-11-06b) |
 | Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
 | Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
-| Toast admin | + imports produto/apps/HF; residual fino (image SKU errors, etc.) | **CONSOLIDAR** gradualmente |
+| Toast admin | Admin principal + imports + image SKU erros; banner `<p>` só onde útil | **MANTER** (VAL 2026-11-06c; residual aceitável) |
 
 ## Gate
 

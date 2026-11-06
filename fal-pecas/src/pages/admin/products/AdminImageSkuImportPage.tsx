@@ -50,7 +50,9 @@ export function AdminImageSkuImportPage() {
       setPhase('preview')
     } catch (err) {
       setPreview(null)
-      setError(toUserMessage(err, 'Falha ao analisar arquivos'))
+      const msg = toUserMessage(err, 'Falha ao analisar arquivos')
+      setError(msg)
+      push(msg, 'error')
     } finally {
       setBusy(false)
     }
@@ -74,7 +76,9 @@ export function AdminImageSkuImportPage() {
         result.error ? 'error' : 'success',
       )
     } catch (err) {
-      setError(toUserMessage(err, 'Falha ao enviar imagens'))
+      const msg = toUserMessage(err, 'Falha ao enviar imagens')
+      setError(msg)
+      push(msg, 'error')
       setPhase('preview')
     } finally {
       setBusy(false)
@@ -116,7 +120,9 @@ export function AdminImageSkuImportPage() {
                     setPreview(await adminPreviewImageSkuImport(files, { skipIfHasImage: next }))
                     setPhase('preview')
                   } catch (err) {
-                    setError(toUserMessage(err, 'Falha ao reanalisar'))
+                    const msg = toUserMessage(err, 'Falha ao reanalisar')
+                    setError(msg)
+                    push(msg, 'error')
                   } finally {
                     setBusy(false)
                   }

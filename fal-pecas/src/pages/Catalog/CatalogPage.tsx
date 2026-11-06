@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { searchCatalog } from '@/services/search/searchService'
@@ -363,9 +364,7 @@ export function CatalogPage() {
         / Catálogo
       </p>
       <h1 className="mt-0 mb-1 text-[28px] font-extrabold sm:text-[34px]">Catálogo</h1>
-      <p className="mb-0 text-sm text-fal-muted sm:text-base">
-        Encontre peças por nome, código, categoria ou veículo.
-      </p>
+      <p className="mb-0 text-sm text-fal-muted sm:text-base">{SEARCH_CATALOG_HINT}</p>
 
       <form
         onSubmit={applySearch}
@@ -376,7 +375,7 @@ export function CatalogPage() {
           name="catalog-q"
           value={searchDraft}
           onChange={(e) => setSearchDraft(e.target.value)}
-          placeholder="Peça, código ou referência"
+          placeholder={SEARCH_INPUT_PLACEHOLDER}
         />
         <div className="flex items-end gap-2">
           <Button type="submit" variant="primary">
