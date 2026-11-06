@@ -19,11 +19,9 @@ type Props = {
   ruleMethod: PricingMethod
   rulePercent: string
   ruleExtraCostPercent: string
-  ruleReport: string | null
   adjustMode: PriceAdjustMode
   adjustDirection: 'up' | 'down'
   adjustValue: string
-  adjustReport: string | null
   onRuleMethod: (v: PricingMethod) => void
   onRulePercent: (v: string) => void
   onRuleExtraCostPercent: (v: string) => void
@@ -43,11 +41,9 @@ export function PriceListFormacaoTab({
   ruleMethod,
   rulePercent,
   ruleExtraCostPercent,
-  ruleReport,
   adjustMode,
   adjustDirection,
   adjustValue,
-  adjustReport,
   onRuleMethod,
   onRulePercent,
   onRuleExtraCostPercent,
@@ -112,7 +108,6 @@ export function PriceListFormacaoTab({
             </p>
           </div>
         </div>
-        {ruleReport ? <p className="mt-2 text-sm text-green-700">{ruleReport}</p> : null}
       </div>
 
       <div className="rounded-[14px] border border-fal-line bg-white p-4">
@@ -146,7 +141,6 @@ export function PriceListFormacaoTab({
             </Button>
           </div>
         </div>
-        {adjustReport ? <p className="mt-2 text-sm text-green-700">{adjustReport}</p> : null}
       </div>
     </div>
   )

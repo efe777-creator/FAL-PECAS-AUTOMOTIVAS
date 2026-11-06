@@ -144,11 +144,9 @@ export function AdminPriceListDetailPage() {
   const [adjustMode, setAdjustMode] = useState<PriceAdjustMode>('percent')
   const [adjustDirection, setAdjustDirection] = useState<'up' | 'down'>('up')
   const [adjustValue, setAdjustValue] = useState('')
-  const [adjustReport, setAdjustReport] = useState<string | null>(null)
   const [ruleMethod, setRuleMethod] = useState<PricingMethod>('fixed')
   const [rulePercent, setRulePercent] = useState('0')
   const [ruleExtraCostPercent, setRuleExtraCostPercent] = useState('0')
-  const [ruleReport, setRuleReport] = useState<string | null>(null)
 
   const [cfgName, setCfgName] = useState('')
   const [cfgDescription, setCfgDescription] = useState('')
@@ -158,7 +156,6 @@ export function AdminPriceListDetailPage() {
   const [cfgDefault, setCfgDefault] = useState(false)
   const [cfgValidFrom, setCfgValidFrom] = useState('')
   const [cfgValidUntil, setCfgValidUntil] = useState('')
-  const [cfgReport, setCfgReport] = useState<string | null>(null)
 
   const initialFilters = id ? readDetailFilters(id) : {}
   const [filterQ, setFilterQ] = useState(initialFilters.q ?? '')
@@ -234,10 +231,7 @@ export function AdminPriceListDetailPage() {
     setSku('')
     setPrice('')
     setAdjustValue('')
-    setAdjustReport(null)
-    setRuleReport(null)
     setRuleExtraCostPercent('0')
-    setCfgReport(null)
     setImportDetail(null)
   }
 
@@ -680,7 +674,6 @@ export function AdminPriceListDetailPage() {
     try {
       const extraMsg = await persistRuleOnly()
       const msg = `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda NÃO foram alterados.${extraMsg}`
-      setRuleReport(msg)
       pushOk(msg)
       await reload()
     } catch (err) {
@@ -711,7 +704,6 @@ export function AdminPriceListDetailPage() {
       const dry = await adminRecalculatePriceListItems({ priceListId: id, dryRun: true })
       if (dry.message) {
         const msg = dry.message + extraMsg
-        setRuleReport(msg)
         pushOk(msg)
         await reload()
         return
@@ -728,7 +720,6 @@ export function AdminPriceListDetailPage() {
       })
       if (!okMargin) {
         const cancelMsg = `Regra salva; aplicação de venda cancelada. Incluídos na lista: ${sync.created}.${extraMsg}`
-        setRuleReport(cancelMsg)
         pushOk(cancelMsg)
         await reload()
         return
@@ -737,7 +728,6 @@ export function AdminPriceListDetailPage() {
       const applyMsg =
         `Margem aplicada. Venda atualizada: ${applied.updated}. ` +
         `Incluídos na lista: ${sync.created}. Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}.${extraMsg}`
-      setRuleReport(applyMsg)
       pushOk(applyMsg)
       await reload()
     } catch (err) {
@@ -773,7 +763,6 @@ export function AdminPriceListDetailPage() {
         changedBy: user?.id ?? null,
       })
       const adjMsg = `Atualizados: ${result.updated}. Sem mudança: ${result.skipped}.`
-      setAdjustReport(adjMsg)
       pushOk(adjMsg)
       setAdjustValue('')
       await reload()
@@ -787,7 +776,6 @@ export function AdminPriceListDetailPage() {
   async function onSaveConfig(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setCfgReport(null)
     try {
       await adminUpsertPriceList({
         id,
@@ -803,7 +791,6 @@ export function AdminPriceListDetailPage() {
         pricingMethod: list?.pricingMethod,
         pricingPercent: list?.pricingPercent,
       })
-      setCfgReport('Configuração salva.')
       pushOk('Configuração salva.')
       await reload()
     } catch (err) {
@@ -980,11 +967,9 @@ export function AdminPriceListDetailPage() {
           ruleMethod={ruleMethod}
           rulePercent={rulePercent}
           ruleExtraCostPercent={ruleExtraCostPercent}
-          ruleReport={ruleReport}
           adjustMode={adjustMode}
           adjustDirection={adjustDirection}
           adjustValue={adjustValue}
-          adjustReport={adjustReport}
           onRuleMethod={setRuleMethod}
           onRulePercent={setRulePercent}
           onRuleExtraCostPercent={setRuleExtraCostPercent}
@@ -1019,7 +1004,6 @@ export function AdminPriceListDetailPage() {
           cfgDefault={cfgDefault}
           cfgValidFrom={cfgValidFrom}
           cfgValidUntil={cfgValidUntil}
-          cfgReport={cfgReport}
           onCfgName={setCfgName}
           onCfgDescription={setCfgDescription}
           onCfgStatus={setCfgStatus}
