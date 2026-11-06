@@ -10,7 +10,11 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { readCatalogScroll, saveCatalogScroll } from '@/lib/catalogScroll'
+import {
+  catalogScrollSearchKey,
+  readCatalogScroll,
+  saveCatalogScroll,
+} from '@/lib/catalogScroll'
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
@@ -110,6 +114,12 @@ export function CatalogPage() {
     setSearchDraft(q)
   }, [q])
 
+  /** Identidade de scroll: filtros importam; `page` do “Carregar mais” não. */
+  const scrollIdentity = useMemo(
+    () => `${location.pathname}${catalogScrollSearchKey(location.search)}`,
+    [location.pathname, location.search],
+  )
+
   /** Persiste scroll ao sair / durante o scroll (voltar da PDP). */
   useEffect(() => {
     scrollRestoredRef.current = false
@@ -123,7 +133,7 @@ export function CatalogPage() {
       persist()
       window.removeEventListener('scroll', persist)
     }
-  }, [location.pathname, location.search])
+  }, [scrollIdentity, location.pathname, location.search])
 
   /** Após carregar resultados num POP, restaura Y salvo. */
   useEffect(() => {
@@ -134,7 +144,7 @@ export function CatalogPage() {
     requestAnimationFrame(() => {
       window.scrollTo(0, y)
     })
-  }, [loading, products.length, navType, location.pathname, location.search])
+  }, [loading, products.length, navType, scrollIdentity, location.pathname, location.search])
 
   const [catsRev, setCatsRev] = useState(0)
   useEffect(() => subscribeCategoriesChanged(() => setCatsRev((n) => n + 1)), [])
@@ -170,6 +180,13 @@ export function CatalogPage() {
     }),
     [q, cat, brand, maker, model, year, engine, version, sort],
   )
+
+  /** Filtro/busca/ordenação: vai aos resultados. “Carregar mais” (só page) não mexe. */
+  useEffect(() => {
+    if (navType === 'POP') return
+    resultsRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando filtros mudam
+  }, [searchArgs])
 
   useEffect(() => {
     const id = ++requestId.current
@@ -341,7 +358,11 @@ export function CatalogPage() {
       setTotal(result.total)
       setHasMore(result.hasMore)
       setLoadedPage(nextPage)
+      const keepY = window.scrollY
       patchParams({ page: String(nextPage) }, false)
+      requestAnimationFrame(() => {
+        if (Math.abs(window.scrollY - keepY) > 1) window.scrollTo(0, keepY)
+      })
     } catch (e) {
       setLoadMoreError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
     } finally {
