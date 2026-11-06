@@ -1,7 +1,9 @@
 import { Container } from '@/components/layout/Container'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function VehiclePage() {
+  useDocumentTitle('Busca por veículo | FAL Peças Automotivas')
   return (
     <Container className="py-8">
       <p className="mb-2 text-[13px] text-fal-muted">Início / Veículo</p>

@@ -76,7 +76,9 @@
 | Ondas 2–4 | Parciais / futuras |
 | Produção comercial | Travada nos **gates humanos** |
 
-**Feito após 06d:** O1-B relatório + merge A→B na UI (`CategoriesIntegrityPanel`).  
+**Feito após 06d:**  
+- O1-B relatório + merge A→B (`CategoriesIntegrityPanel`)  
+- Onda 2 SEO: title `/veiculo`, JSON-LD Home, `OrdersPage` → `/conta/pedidos`  
 
-**Próxima MARCHA sugerida (código):** O1-C regra cotação/caixas residual **ou** Onda 2 facetas.  
+**Próxima MARCHA sugerida (código):** O1-E ME fino **ou** Onda 3/4 (cond. pagamento gated; import imagens).  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

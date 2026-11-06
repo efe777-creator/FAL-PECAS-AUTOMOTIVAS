@@ -15,7 +15,8 @@ import {
 } from '@/hooks/useCatalog'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { excludeProductsById } from '@/lib/homeSections'
-import { useMemo } from 'react'
+import { getStoreIdentity } from '@/lib/storeIdentity'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { Product } from '@/types'
 
@@ -84,6 +85,52 @@ export function HomePage() {
   const offers = usePromoHighlightProducts(8)
   const line = useCategoryProducts(['suspensao', 'direcao'], 8)
   useDocumentTitle('FAL Peças Automotivas')
+
+  /** JSON-LD Organization + WebSite (Onda 2 SEO). */
+  useEffect(() => {
+    const store = getStoreIdentity()
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const org: Record<string, unknown> = {
+      '@type': 'Organization',
+      name: store.legalName,
+      url: origin || undefined,
+    }
+    if (store.cnpjFormatted) org.taxID = store.cnpjFormatted
+    if (store.phone) org.telephone = store.phoneDisplay ?? store.phone
+    if (store.email) org.email = store.email
+    if (store.cityState) {
+      org.address = {
+        '@type': 'PostalAddress',
+        addressLocality: store.cityState,
+        addressCountry: 'BR',
+      }
+    }
+    const payload = {
+      '@context': 'https://schema.org',
+      '@graph': [
+        org,
+        {
+          '@type': 'WebSite',
+          name: store.legalName,
+          url: origin || undefined,
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${origin}/catalogo?q={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+          },
+        },
+      ],
+    }
+    const el = document.createElement('script')
+    el.type = 'application/ld+json'
+    el.id = 'fal-home-jsonld'
+    el.text = JSON.stringify(payload)
+    document.getElementById('fal-home-jsonld')?.remove()
+    document.head.appendChild(el)
+    return () => {
+      el.remove()
+    }
+  }, [])
 
   const featuredWithoutOffers = useMemo(
     () => excludeProductsById(featured.data, offers.data),
