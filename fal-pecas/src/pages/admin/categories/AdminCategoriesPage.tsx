@@ -11,6 +11,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCategoryDefaultMeasures,
@@ -67,9 +68,24 @@ export function AdminCategoriesPage() {
   const [defaultWidthCm, setDefaultWidthCm] = useState('')
   const [defaultHeightCm, setDefaultHeightCm] = useState('')
   const [busyApplyMeasures, setBusyApplyMeasures] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const measuresSectionRef = useRef<HTMLDivElement>(null)
+
+  useUnsavedChangesBlocker(dirty, {
+    message:
+      'Há alterações na classificação ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   function parseOptionalMeasure(raw: string): number | null {
     const t = raw.trim()
@@ -295,6 +311,7 @@ export function AdminCategoriesPage() {
     setDefaultWidthCm('')
     setDefaultHeightCm('')
     setCreateLevel(1)
+    setDirty(false)
   }
 
   function focusForm() {
@@ -323,6 +340,7 @@ export function AdminCategoriesPage() {
           ? 'Novo Grupo — escolha a Categoria pai (coluna grupo da planilha).'
           : 'Novo Subgrupo — escolha o Grupo pai (coluna subgrupo da planilha).',
     )
+    setDirty(false)
     if (level === 1) {
       setParentId('')
       setSubgrupoCategoriaId('')
@@ -378,6 +396,7 @@ export function AdminCategoriesPage() {
     }
     setError(null)
     setInfo(null)
+    setDirty(false)
     focusForm()
   }
 
@@ -408,6 +427,7 @@ export function AdminCategoriesPage() {
     setSortOrder(String(childrenOf(parent.id).length))
     setError(null)
     setInfo(`Nova ${categoryLevelLabel(nextLevel).toLowerCase()} sob "${parent.name}".`)
+    setDirty(false)
     setExpanded((prev) => new Set(prev).add(parent.id))
     focusForm()
   }
@@ -616,6 +636,15 @@ export function AdminCategoriesPage() {
         </Button>
       </div>
 
+      {dirty ? (
+        <p
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+          role="status"
+        >
+          Alterações na classificação não salvas. Clique em Salvar antes de sair do admin.
+        </p>
+      ) : null}
+
       <CategoriesEditorForm
         formRef={formRef}
         nameInputRef={nameInputRef}
@@ -644,16 +673,46 @@ export function AdminCategoriesPage() {
         onReset={resetForm}
         onDelete={(c) => void onDelete(c)}
         onApplyDefaultMeasures={() => void onApplyDefaultMeasures()}
-        onName={setName}
-        onDescription={setDescription}
-        onParentId={setParentId}
-        onSubgrupoCategoriaId={setSubgrupoCategoriaId}
-        onSortOrder={setSortOrder}
-        onEmoji={setEmoji}
-        onDefaultWeightKg={setDefaultWeightKg}
-        onDefaultLengthCm={setDefaultLengthCm}
-        onDefaultWidthCm={setDefaultWidthCm}
-        onDefaultHeightCm={setDefaultHeightCm}
+        onName={(v) => {
+          setDirty(true)
+          setName(v)
+        }}
+        onDescription={(v) => {
+          setDirty(true)
+          setDescription(v)
+        }}
+        onParentId={(v) => {
+          setDirty(true)
+          setParentId(v)
+        }}
+        onSubgrupoCategoriaId={(v) => {
+          setDirty(true)
+          setSubgrupoCategoriaId(v)
+        }}
+        onSortOrder={(v) => {
+          setDirty(true)
+          setSortOrder(v)
+        }}
+        onEmoji={(v) => {
+          setDirty(true)
+          setEmoji(v)
+        }}
+        onDefaultWeightKg={(v) => {
+          setDirty(true)
+          setDefaultWeightKg(v)
+        }}
+        onDefaultLengthCm={(v) => {
+          setDirty(true)
+          setDefaultLengthCm(v)
+        }}
+        onDefaultWidthCm={(v) => {
+          setDirty(true)
+          setDefaultWidthCm(v)
+        }}
+        onDefaultHeightCm={(v) => {
+          setDirty(true)
+          setDefaultHeightCm(v)
+        }}
       />
 
       <CategoriesBrowseBar
