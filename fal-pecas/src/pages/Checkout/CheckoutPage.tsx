@@ -147,6 +147,11 @@ export function CheckoutPage() {
     [push],
   )
 
+  const profileDocReady = Boolean(
+    (user?.cpf && isValidCpf(user.cpf)) || (user?.cnpj && isValidCnpj(user.cnpj)),
+  )
+
+  /** Documento válido no perfil → preenche e pula Identificação (modo leitura se voltar). */
   const skippedIdentRef = useRef(false)
   useEffect(() => {
     if (user?.cpf && isValidCpf(user.cpf)) {
@@ -448,59 +453,62 @@ export function CheckoutPage() {
               <p className="text-sm text-fal-muted">
                 Logado como {user?.fullName || user?.email}.
               </p>
-              {(user?.cpf && isValidCpf(user.cpf)) || (user?.cnpj && isValidCnpj(user.cnpj)) ? (
-                <div className="rounded-fal border border-fal-line bg-fal-bg/50 p-3 text-sm">
-                  <p className="m-0 font-semibold text-fal-navy">Documento já cadastrado</p>
-                  <p className="mb-0 mt-1">
+              {profileDocReady ? (
+                <div className="rounded-fal border border-fal-line bg-fal-bg/50 p-4 text-sm">
+                  <p className="m-0 font-semibold text-fal-navy">Documento do perfil</p>
+                  <p className="mb-0 mt-2 text-base font-extrabold tracking-wide text-fal-ink">
                     {docKind.toUpperCase()}: {formatDocumentMask(docKind, docValue)}
                   </p>
-                  <p className="mb-0 mt-2 text-xs text-fal-muted">
-                    Continuaremos com este documento. Você pode alterá-lo abaixo se necessário.
+                  <p className="mb-0 mt-3 text-xs text-fal-muted">
+                    Modo leitura — usamos o documento já validado na sua conta. Para alterar,{' '}
+                    <Link
+                      to="/conta/perfil"
+                      state={{ from: '/checkout' }}
+                      className="font-bold text-fal-auth-link underline-offset-2 hover:underline"
+                    >
+                      edite no perfil
+                    </Link>
+                    .
                   </p>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="mt-3"
-                    onClick={() => void goToStep(1)}
-                  >
-                    Continuar
-                  </Button>
                 </div>
-              ) : null}
-              <div className="flex gap-3">
-                <label className="flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="radio"
-                    name="docKind"
-                    checked={docKind === 'cpf'}
-                    onChange={() => {
-                      setDocKind('cpf')
-                      setDocValue((v) => formatDocumentMask('cpf', v))
-                    }}
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      <input
+                        type="radio"
+                        name="docKind"
+                        checked={docKind === 'cpf'}
+                        onChange={() => {
+                          setDocKind('cpf')
+                          setDocValue((v) => formatDocumentMask('cpf', v))
+                        }}
+                      />
+                      Pessoa física (CPF)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      <input
+                        type="radio"
+                        name="docKind"
+                        checked={docKind === 'cnpj'}
+                        onChange={() => {
+                          setDocKind('cnpj')
+                          setDocValue((v) => formatDocumentMask('cnpj', v))
+                        }}
+                      />
+                      Pessoa jurídica (CNPJ)
+                    </label>
+                  </div>
+                  <Input
+                    label={docKind === 'cpf' ? 'CPF' : 'CNPJ'}
+                    name="document"
+                    inputMode="numeric"
+                    value={docValue}
+                    onChange={(e) => setDocValue(formatDocumentMask(docKind, e.target.value))}
+                    placeholder={docKind === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
                   />
-                  Pessoa física (CPF)
-                </label>
-                <label className="flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="radio"
-                    name="docKind"
-                    checked={docKind === 'cnpj'}
-                    onChange={() => {
-                      setDocKind('cnpj')
-                      setDocValue((v) => formatDocumentMask('cnpj', v))
-                    }}
-                  />
-                  Pessoa jurídica (CNPJ)
-                </label>
-              </div>
-              <Input
-                label={docKind === 'cpf' ? 'CPF' : 'CNPJ'}
-                name="document"
-                inputMode="numeric"
-                value={docValue}
-                onChange={(e) => setDocValue(formatDocumentMask(docKind, e.target.value))}
-                placeholder={docKind === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
-              />
+                </>
+              )}
             </div>
           ) : null}
 
