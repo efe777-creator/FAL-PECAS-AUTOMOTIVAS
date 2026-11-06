@@ -1,4 +1,5 @@
 import { ProductCard } from '@/components/product/ProductCard'
+import { carouselPageStep } from '@/lib/carouselPageStep'
 import type { Product } from '@/types'
 import { useEffect, useRef, useState } from 'react'
 
@@ -7,7 +8,10 @@ type Props = {
   label: string
 }
 
-/** Trilho horizontal com scroll-snap (item 08). */
+/**
+ * Trilho horizontal com scroll-snap.
+ * Larguras em N colunas exatas (2/3/4) para não cortar card ao meio na borda.
+ */
 export function ProductCarousel({ products, label }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [canPrev, setCanPrev] = useState(false)
@@ -38,7 +42,12 @@ export function ProductCarousel({ products, label }: Props) {
   function scrollByDir(dir: -1 | 1) {
     const el = scrollerRef.current
     if (!el) return
-    const delta = Math.max(el.clientWidth * 0.85, 240) * dir
+    const item = el.querySelector<HTMLElement>('[data-carousel-item]')
+    if (!item) return
+    const styles = getComputedStyle(el)
+    const gapPx = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0
+    const visible = Math.max(1, Math.round(el.clientWidth / (item.offsetWidth + gapPx)))
+    const delta = carouselPageStep(item.offsetWidth, gapPx, visible) * dir
     el.scrollBy({ left: delta, behavior: 'smooth' })
   }
 
@@ -53,7 +62,8 @@ export function ProductCarousel({ products, label }: Props) {
         {products.map((p) => (
           <div
             key={p.id}
-            className="w-[min(48%,11.5rem)] shrink-0 snap-start sm:w-[min(32%,14rem)] lg:w-[min(24%,16rem)]"
+            data-carousel-item
+            className="w-[calc((100%-0.625rem)/2)] shrink-0 snap-start snap-always sm:w-[calc((100%-2rem)/3)] lg:w-[calc((100%-3rem)/4)]"
           >
             <ProductCard product={p} />
           </div>
