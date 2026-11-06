@@ -74,6 +74,7 @@ export function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
   const preferredShipOptRef = useRef<string | undefined>(undefined)
+  const errorRef = useRef<HTMLParagraphElement>(null)
   const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
@@ -146,6 +147,15 @@ export function CheckoutPage() {
     },
     [push],
   )
+
+  /** Erro do checkout: scroll + foco no alerta (acessível). */
+  useEffect(() => {
+    if (!error) return
+    const el = errorRef.current
+    if (!el) return
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    el.focus()
+  }, [error])
 
   const profileDocReady = Boolean(
     (user?.cpf && isValidCpf(user.cpf)) || (user?.cnpj && isValidCnpj(user.cnpj)),
@@ -440,7 +450,12 @@ export function CheckoutPage() {
       </div>
 
       {error ? (
-        <p className="mt-4 rounded-fal border border-fal-danger/30 bg-red-50 px-3 py-2 text-sm text-fal-danger">
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="mt-4 rounded-fal border border-fal-danger/30 bg-red-50 px-3 py-2 text-sm text-fal-danger outline-none"
+        >
           {error}
         </p>
       ) : null}
@@ -579,7 +594,12 @@ export function CheckoutPage() {
                       })
                       setShowNewAddress(false)
                       await reloadAddresses(saved.id)
+                      setAddressId(saved.id)
+                      setShippingOptions([])
+                      setShippingOptionId('')
                       push('Endereço salvo', 'success')
+                      // Avança para Entrega; cotação sobe no effect do step 2
+                      goToStepIndex(2)
                     }}
                   />
                 </div>
@@ -855,7 +875,23 @@ export function CheckoutPage() {
             </>
           ) : (
             <>
-              <div className="mb-3 flex justify-between text-sm">
+              <h2 className="mt-0 mb-3 text-sm font-extrabold text-fal-navy">Resumo do pedido</h2>
+              <ul className="mb-3 m-0 max-h-48 list-none space-y-1.5 overflow-y-auto p-0">
+                {items.map((item) => (
+                  <li
+                    key={item.productId}
+                    className="flex items-start justify-between gap-2 text-xs text-fal-ink"
+                  >
+                    <span className="min-w-0 leading-snug">
+                      <span className="font-bold">{item.quantity}×</span> {item.name}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">
+                      {money(item.price * item.quantity)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mb-3 flex justify-between border-t border-fal-line pt-3 text-sm">
                 <span>Subtotal</span>
                 <strong>{money(subtotal)}</strong>
               </div>

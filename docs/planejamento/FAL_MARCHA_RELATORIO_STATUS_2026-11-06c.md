@@ -23,7 +23,10 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 3. ~~Admin 404 `path:'*'`~~ — feito  
 4. ~~Dashboard zeros no loading~~ — feito (VAL `O1I_DASHBOARD_LOADING`)  
 
-**Residuais O1 acionáveis desta lista:** esgotados. Seguir plano mestre (O1-B/C/E gates, Onda 2/3/4) + gates humanos.  
+**Residuais O1 da lista rápida:** esgotados.  
+**+ O1-F fino:** resumo itens + foco erro + Salvar endereço → Entrega (VAL `O1F_CHECKOUT_RESUMO_FOCO`).  
+
+Seguir plano mestre (O1-B/C/E gates, Onda 2/3/4) + gates humanos.  
 
 ### Gates humanos (não código)
 
@@ -43,6 +46,7 @@ Onda 2/3 parciais: SearchBar combobox, titles, robots/sitemap, “Buscar pelo ca
 - PDP frete: mensagem quando cotação OK com 0 opções  
 - Admin 404 (`AdminNotFoundPage` + `path:'*'`)  
 - Dashboard: loading real no Fluxo operacional (sem zeros falsos)  
+- Checkout: resumo de itens, foco no erro, Salvar endereço → Entrega  
 
 ## Standby
 

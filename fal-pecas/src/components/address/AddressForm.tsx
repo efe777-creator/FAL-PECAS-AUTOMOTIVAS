@@ -70,6 +70,15 @@ export function AddressForm({
   const consultedCep = useRef(initialCep.length === 8 ? initialCep : '')
   const requestId = useRef(0)
   const numberRef = useRef<HTMLInputElement>(null)
+  const formErrorRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (!error) return
+    const el = formErrorRef.current
+    if (!el) return
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    el.focus()
+  }, [error])
 
   useEffect(() => {
     const digits = normalizeCep(form.postalCode)
@@ -341,7 +350,16 @@ export function AddressForm({
         Usar como endereço padrão
       </label>
 
-      {error ? <p className="text-sm text-fal-danger sm:col-span-2">{error}</p> : null}
+      {error ? (
+        <p
+          ref={formErrorRef}
+          tabIndex={-1}
+          role="alert"
+          className="text-sm text-fal-danger outline-none sm:col-span-2"
+        >
+          {error}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2 sm:col-span-2">
         <Button type="submit" disabled={saving}>
