@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #176 (+ home topo design em ship)  
+**HEAD:** `main` @ merge #177 (+ forgot-password from em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -41,6 +41,7 @@
 | #175 | O1-C / O0-B | Caixas — blocker + banner se form sujo |
 | #176 | Onda 3 | Home: Campanhas primeiro; sem título “Peças certas” |
 | #177 | Onda 3 | Topo Home redesenhado (banner + faixa clara CTAs) |
+| #178 | O1-F | Recuperar senha preserva `from` do funil |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

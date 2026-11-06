@@ -4,11 +4,15 @@ import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 export function ForgotPasswordPage() {
   useDocumentTitle('Recuperar senha | FAL Peças Automotivas')
   const { resetPassword, isConfigured } = useAuth()
+  const location = useLocation()
+  const fromState = (location.state as { from?: string } | null)?.from
+  const loginState = fromState ? { from: fromState } : undefined
+
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -48,11 +52,16 @@ export function ForgotPasswordPage() {
             label="E-mail"
             name="email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
+          {error ? (
+            <p className="text-sm text-fal-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
           {success ? (
             <p className="text-sm text-fal-success">
               Se o e-mail existir, você receberá as instruções em breve.
@@ -63,7 +72,7 @@ export function ForgotPasswordPage() {
           </Button>
         </form>
         <p className="mt-4 text-sm">
-          <Link to="/login" className="font-bold text-fal-auth-link">
+          <Link to="/login" state={loginState} className="font-bold text-fal-auth-link">
             Voltar ao login
           </Link>
         </p>
