@@ -1,4 +1,5 @@
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
 import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
@@ -8,6 +9,7 @@ import { Link } from 'react-router-dom'
 
 export function AdminReportsPage() {
   useDocumentTitle('Relatórios | Admin FAL')
+  const toast = useToast()
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [totals, setTotals] = useState({
@@ -30,17 +32,25 @@ export function AdminReportsPage() {
         const bundle = await adminReportsBundle()
         setCounts(bundle.counts)
         setTotals(bundle.totals)
+        setError(null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar relatórios')
+        const message = e instanceof Error ? e.message : 'Erro ao carregar relatórios'
+        setError(message)
+        toast.push(message, 'error')
       } finally {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   if (loading) return <Loading label="Carregando relatórios…" />
   if (allowed === false) {
-    return <p className="text-sm text-red-600">Sem permissão para relatórios nesta fase.</p>
+    return (
+      <p className="text-sm text-red-600">
+        Sem permissão para ver relatórios. Peça acesso a um administrador ou gerente.
+      </p>
+    )
   }
 
   const statusKeys = Object.keys(counts).sort()
