@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #184  
+**HEAD:** `main` @ merge #185  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -48,6 +48,7 @@
 | #182 | O1-A | Toast na lista de produtos admin |
 | #183 | O0-C / O1-A | Importações: copy + toast |
 | #184 | O1-A / O0-C | Clientes: toast + copy |
+| #185 | O1-A / O0-C | Relatórios: toast + copy |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
@@ -113,6 +114,6 @@
 
 ## 5. VALs recentes (âncoras)
 
-`O0C_IMPORTS_COPY_TOAST` · `O1A_CUSTOMERS_TOAST` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#183 no histórico)
+`O1A_CUSTOMERS_TOAST` · `O1A_REPORTS_TOAST` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#184 no histórico)
 
 **Soberana:** `FAL_MARCHA_SOBERANA_PLANO_MESTRE_EXEC_2026-11-06.md`
