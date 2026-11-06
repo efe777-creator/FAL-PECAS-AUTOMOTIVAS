@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #161 (+ PDP catalog filter em ship)  
+**HEAD:** `main` @ merge #162 (+ year end-only label em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -95,6 +95,7 @@
 - Compat: resumo `+N` com motor/versão — VAL `COMPAT_SUMMARY_ENGINE_DEDUPE`  
 - `useDocumentTitle` sem restore no cleanup (SPA) — VAL `DOCUMENT_TITLE_SPA`  
 - PDP: filtro catálogo sem viés da 1ª montadora — VAL `PDP_CATALOG_FILTER_COPY`  
+- Ano app só-fim → `.../YY` — VAL `VEHICLE_YEAR_END_ONLY`  
 
 **Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
 **Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

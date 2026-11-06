@@ -28,8 +28,9 @@ describe('vehicleAppYear (MARCHA UI)', () => {
     expect(formatVehicleAppYear({ yearStart: 2012, yearEnd: null })).toBe('12/...')
   })
 
-  it('formatVehicleAppYear — só fim → Sem ano inicial', () => {
-    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 2010 })).toBe(YEAR_NO_START_LABEL)
+  it('formatVehicleAppYear — só fim → .../YY (mostra o fim conhecido)', () => {
+    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 2010 })).toBe('.../10')
+    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 1997 })).toBe('.../97')
     expect(YEAR_NO_START_LABEL).toBe('Sem ano inicial')
   })
 

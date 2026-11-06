@@ -1,10 +1,10 @@
 /**
  * Período de aplicação (PVC): year_start / year_end é a fonte de verdade.
  * vehicle_versions.year é legado / opcional.
- * Formatação visual (MARCHA UI): YY/YY · YY/... · Sem ano inicial — sem alterar PVC.
+ * Formatação visual (MARCHA UI): YY/YY · YY/... · .../YY — sem alterar PVC.
  */
 
-/** Copy quando só existe ano final (não inventar início). */
+/** @deprecated Preferir formato `.../YY` via formatVehicleAppYear. */
 export const YEAR_NO_START_LABEL = 'Sem ano inicial'
 
 function isValidYear(n: number): boolean {
@@ -44,7 +44,9 @@ export function formatVehicleAppYear(input: {
   }
   if (start == null && end != null) {
     if (!isValidYear(end)) return null
-    return YEAR_NO_START_LABEL
+    const b = toYy(end)
+    // Simétrico a YY/... : mostra o fim conhecido sem inventar início.
+    return b == null ? null : `.../${b}`
   }
   if (input.versionYear != null) {
     return toYy(input.versionYear)
