@@ -49,6 +49,12 @@ type Props = {
   onClose: () => void
   /** Pré-selecionada quando aberto do detalhe (fluxo venda) */
   initialPriceListId?: string
+  /** Abre já no fluxo de custo (rota fornecedores) */
+  initialSheetKind?: SheetKind
+  /** Não permite voltar à escolha preço vs custo */
+  lockSheetKind?: boolean
+  /** Só atualiza custo — sem lista de preços / venda (tela clássica fornecedor) */
+  costOnly?: boolean
   createdBy?: string | null
   allowed: boolean
   onApplied?: () => void
@@ -58,6 +64,9 @@ export function PriceImportWizard({
   open,
   onClose,
   initialPriceListId,
+  initialSheetKind,
+  lockSheetKind = false,
+  costOnly = false,
   createdBy,
   allowed,
   onApplied,
@@ -89,8 +98,9 @@ export function PriceImportWizard({
 
   useEffect(() => {
     if (!open) return
-    setSheetKind(null)
-    setStep(0)
+    const kind = initialSheetKind ?? null
+    setSheetKind(kind)
+    setStep(kind ? 1 : 0)
     setPriceListId(initialPriceListId ?? '')
     setFile(null)
     setRawRows(null)
@@ -110,7 +120,7 @@ export function PriceImportWizard({
     void adminListSuppliers()
       .then((s) => setSuppliers(s.filter((x) => x.status === 'active')))
       .catch(() => setSuppliers([]))
-  }, [open, initialPriceListId])
+  }, [open, initialPriceListId, initialSheetKind])
 
   const preparedRows = useMemo(() => {
     if (!rawRows) return null
@@ -188,7 +198,7 @@ export function PriceImportWizard({
       setError('Selecione o fornecedor')
       return
     }
-    if (!priceListId) {
+    if (!costOnly && !priceListId) {
       setError('Selecione a lista de preços de destino')
       return
     }
@@ -272,7 +282,7 @@ export function PriceImportWizard({
 
   async function onConfirmCostApply() {
     if (!costImportId || !costRows) return
-    if (!priceListId) {
+    if (!costOnly && !priceListId) {
       setError('Selecione a lista de preços de destino')
       return
     }
@@ -293,6 +303,20 @@ export function PriceImportWizard({
       if (isFalPrincipalSupplier(selectedSupplier?.code)) {
         await adminEnsurePrincipalSupplier(productIds)
       }
+
+      if (costOnly) {
+        setProgress({ done: costValid, total: costValid })
+        setResultMsg(
+          `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
+            (result.created ? ` · criados ${result.created}` : '') +
+            `. Falhas: ${result.failed}. Ignorados: ${result.skipped}. ` +
+            `Preços de venda NÃO foram recalculados.`,
+        )
+        setStep(9)
+        onApplied?.()
+        return
+      }
+
       setProgress({ done: Math.floor(costValid / 2), total: costValid })
       const sync = await adminSyncProductsOntoPriceList({
         priceListId,
@@ -424,9 +448,9 @@ export function PriceImportWizard({
               </span>
             </label>
             <p className="text-xs text-fal-muted">
-              Preferir a tela clássica de custo?{' '}
-              <Link className="font-semibold underline" to="/admin/fornecedores">
-                Abrir fornecedores
+              Só custo (sem lista de preços)?{' '}
+              <Link className="font-semibold underline" to="/admin/fornecedores/importar-custos">
+                Importar custos do fornecedor
               </Link>
             </p>
           </div>
@@ -435,9 +459,11 @@ export function PriceImportWizard({
         {/* —— Venda —— */}
         {sheetKind === 'sell_price' && (step === 1 || step === 2) ? (
           <div className="mt-4 space-y-3">
-            <Button type="button" variant="light" onClick={() => { setSheetKind(null); setStep(0) }}>
-              ← Trocar tipo
-            </Button>
+            {!lockSheetKind ? (
+              <Button type="button" variant="light" onClick={() => { setSheetKind(null); setStep(0) }}>
+                ← Trocar tipo
+              </Button>
+            ) : null}
             <label className="block text-sm">
               <span className="mb-1 block font-semibold text-fal-navy">Lista de destino *</span>
               <select
@@ -635,9 +661,11 @@ export function PriceImportWizard({
         {/* —— Custo —— */}
         {sheetKind === 'supplier_cost' && step === 1 ? (
           <div className="mt-4 space-y-3">
-            <Button type="button" variant="light" onClick={() => { setSheetKind(null); setStep(0) }}>
-              ← Trocar tipo
-            </Button>
+            {!lockSheetKind ? (
+              <Button type="button" variant="light" onClick={() => { setSheetKind(null); setStep(0) }}>
+                ← Trocar tipo
+              </Button>
+            ) : null}
             <label className="block text-sm">
               <span className="mb-1 block font-semibold text-fal-navy">Fornecedor *</span>
               <select
@@ -658,25 +686,27 @@ export function PriceImportWizard({
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-semibold text-fal-navy">Lista de preços destino *</span>
-              <select
-                className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
-                value={priceListId}
-                onChange={(e) => {
-                  setPriceListId(e.target.value)
-                  setCostRows(null)
-                  setCostImportId(null)
-                }}
-              >
-                <option value="">Selecione…</option>
-                {lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} ({l.status})
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!costOnly ? (
+              <label className="block text-sm">
+                <span className="mb-1 block font-semibold text-fal-navy">Lista de preços destino *</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+                  value={priceListId}
+                  onChange={(e) => {
+                    setPriceListId(e.target.value)
+                    setCostRows(null)
+                    setCostImportId(null)
+                  }}
+                >
+                  <option value="">Selecione…</option>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} ({l.status})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <p className="text-xs text-fal-muted">
               Formato: codigo_fornecedor;custo. Demais fornecedores exigem conversão prévia.
               {isFalPrincipalSupplier(selectedSupplier?.code) ? (
@@ -688,14 +718,18 @@ export function PriceImportWizard({
                   — sem conversão.
                 </>
               ) : null}{' '}
-              Inclui produtos na lista com venda 0 (calculated) até aplicar margem.
+              {costOnly
+                ? 'Atualiza só o custo base. Preços de venda não são recalculados.'
+                : 'Inclui produtos na lista com venda 0 (calculated) até aplicar margem.'}
             </p>
             <div>
               <p className="mb-2 text-sm font-semibold text-fal-navy">Arquivo (CSV / XLSX)</p>
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls,text/csv"
-                disabled={busy || !allowed || !supplierId || !priceListId}
+                disabled={
+                  busy || !allowed || !supplierId || (!costOnly && !priceListId)
+                }
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   e.target.value = ''
@@ -765,57 +799,65 @@ export function PriceImportWizard({
             <p className="text-sm font-semibold text-fal-navy">Confirmação — custo do fornecedor</p>
             <ul className="list-inside list-disc text-sm">
               <li>Fornecedor: {selectedSupplier?.name}</li>
-              <li>Lista: {selectedList?.name ?? '—'}</li>
+              {!costOnly ? <li>Lista: {selectedList?.name ?? '—'}</li> : null}
               <li>Linhas válidas: {costValid}</li>
-              <li>Custo no fornecedor + inclusão na lista</li>
+              <li>
+                {costOnly
+                  ? 'Somente custo base (sem alterar venda)'
+                  : 'Custo no fornecedor + inclusão na lista'}
+              </li>
             </ul>
-            <div className="rounded-[10px] border border-fal-line p-3">
-              <p className="m-0 text-sm font-extrabold text-fal-navy">
-                O que fazer com os preços de venda?
-              </p>
-              <div className="mt-2 space-y-2 text-sm">
-                <label className="flex cursor-pointer gap-2">
-                  <input
-                    type="radio"
-                    name="costSellAction"
-                    checked={costSellAction === 'cost_only'}
-                    onChange={() => setCostSellAction('cost_only')}
-                  />
-                  <span>
-                    <strong>Atualizar somente o custo</strong>
-                    <span className="block text-xs text-fal-muted">Mantém o preço atual (recomendado)</span>
-                  </span>
-                </label>
-                <label className="flex cursor-pointer gap-2">
-                  <input
-                    type="radio"
-                    name="costSellAction"
-                    checked={costSellAction === 'recalc_sell'}
-                    onChange={() => setCostSellAction('recalc_sell')}
-                  />
-                  <span>
-                    <strong>Atualizar preço pela regra da lista</strong>
-                    <span className="block text-xs text-fal-muted">
-                      Novo custo + markup/margem da lista → novo preço (só CALCULATED)
+            {!costOnly ? (
+              <div className="rounded-[10px] border border-fal-line p-3">
+                <p className="m-0 text-sm font-extrabold text-fal-navy">
+                  O que fazer com os preços de venda?
+                </p>
+                <div className="mt-2 space-y-2 text-sm">
+                  <label className="flex cursor-pointer gap-2">
+                    <input
+                      type="radio"
+                      name="costSellAction"
+                      checked={costSellAction === 'cost_only'}
+                      onChange={() => setCostSellAction('cost_only')}
+                    />
+                    <span>
+                      <strong>Atualizar somente o custo</strong>
+                      <span className="block text-xs text-fal-muted">
+                        Mantém o preço atual (recomendado)
+                      </span>
                     </span>
-                  </span>
-                </label>
-                <label className="flex cursor-pointer gap-2">
-                  <input
-                    type="radio"
-                    name="costSellAction"
-                    checked={costSellAction === 'keep_sell'}
-                    onChange={() => setCostSellAction('keep_sell')}
-                  />
-                  <span>
-                    <strong>Manter preço e recalcular indicadores</strong>
-                    <span className="block text-xs text-fal-muted">
-                      Preço igual; markup/margem efetivos mudam na tela
+                  </label>
+                  <label className="flex cursor-pointer gap-2">
+                    <input
+                      type="radio"
+                      name="costSellAction"
+                      checked={costSellAction === 'recalc_sell'}
+                      onChange={() => setCostSellAction('recalc_sell')}
+                    />
+                    <span>
+                      <strong>Atualizar preço pela regra da lista</strong>
+                      <span className="block text-xs text-fal-muted">
+                        Novo custo + markup/margem da lista → novo preço (só CALCULATED)
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
+                  <label className="flex cursor-pointer gap-2">
+                    <input
+                      type="radio"
+                      name="costSellAction"
+                      checked={costSellAction === 'keep_sell'}
+                      onChange={() => setCostSellAction('keep_sell')}
+                    />
+                    <span>
+                      <strong>Manter preço e recalcular indicadores</strong>
+                      <span className="block text-xs text-fal-muted">
+                        Preço igual; markup/margem efetivos mudam na tela
+                      </span>
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
+            ) : null}
             <div className="flex gap-2">
               <Button type="button" variant="light" onClick={() => setStep(6)} disabled={busy}>
                 Voltar
