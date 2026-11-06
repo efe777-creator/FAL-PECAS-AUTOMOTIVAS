@@ -1,6 +1,6 @@
-import { ButtonLink } from '@/components/common/ButtonLink'
 import { CategoryCard } from '@/components/product/CategoryCard'
 import { HomeBannerCarousel } from '@/components/home/HomeBannerCarousel'
+import { HomeQuickEntry } from '@/components/home/HomeQuickEntry'
 import { ProductCarousel } from '@/components/home/ProductCarousel'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { Container } from '@/components/layout/Container'
@@ -140,36 +140,7 @@ export function HomePage() {
   return (
     <>
       <HomeBannerCarousel />
-
-      <section className="bg-gradient-to-br from-fal-navy-dark to-[#4a5562] py-6 text-white sm:py-8">
-        <Container>
-          <div className="max-w-3xl">
-            <h1 className="m-0 text-[28px] font-black leading-tight sm:text-[40px]">
-              FAL Peças Automotivas
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-[#e3e7eb] sm:text-base">
-              Busque pela peça ou navegue pelos destaques — depois filtre pelo seu veículo.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <ButtonLink to="/catalogo" variant="primary">
-                Buscar peça
-              </ButtonLink>
-              <a
-                href="#veiculo"
-                className="inline-flex min-h-11 items-center justify-center rounded-fal border border-white/40 bg-transparent px-4 text-sm font-bold text-white no-underline hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
-              >
-                Buscar pelo carro
-              </a>
-              <a
-                href="#categorias"
-                className="inline-flex min-h-11 items-center justify-center rounded-fal border border-white/40 bg-transparent px-4 text-sm font-bold text-white no-underline hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
-              >
-                Ver categorias
-              </a>
-            </div>
-          </div>
-        </Container>
-      </section>
+      <HomeQuickEntry />
 
       <ProductRailSection
         title="Destaques"
