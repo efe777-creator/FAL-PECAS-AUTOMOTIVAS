@@ -31,9 +31,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 
 - Home: “Buscar pelo carro” logo após o hero  
 - `document.title` no funil e na conta (Onda 2 residual)  
+- Admin produtos: paginação visível (banner + Carregar mais; `hasMore` pré-filtro imagem)  
 
 ## Próximo código (opcional)
 
-- Revalidar paginação admin 100% telas  
+- Revalidar paginação admin nas demais listagens (não-produtos)  
 - Polimento SEO/admin titles (se desejado)  
 

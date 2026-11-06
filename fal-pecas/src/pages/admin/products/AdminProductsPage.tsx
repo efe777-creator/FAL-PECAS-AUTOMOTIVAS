@@ -16,16 +16,18 @@ import {
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
+  ADMIN_PRODUCTS_PAGE_SIZE,
   adminApplyGlobalProductMeasures,
   adminBulkSetProductCategory,
   adminEvaluateReleaseChecklistBatch,
-  adminListProducts,
+  adminListProductsPage,
   adminReleaseProductsToStore,
   adminSetProductStatus,
   adminSetProductsAvailability,
   type ApplyGlobalMeasuresMode,
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import type { Category, Manufacturer, Product } from '@/types'
 import { useEffect, useState } from 'react'
@@ -38,6 +40,7 @@ const EMPTY_CASCADE: CategoryCascadeValue = {
 }
 
 export function AdminProductsPage() {
+  useDocumentTitle('Produtos | Admin FAL')
   const [items, setItems] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
@@ -61,11 +64,50 @@ export function AdminProductsPage() {
   const [bulkMode, setBulkMode] = useState<ApplyGlobalMeasuresMode>('skip_manual')
   const [busyMeasures, setBusyMeasures] = useState(false)
   const [bulkCascade, setBulkCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [nextOffset, setNextOffset] = useState(0)
 
   const allPageSelected = items.length > 0 && items.every((p) => selected.has(p.id))
   const somePageSelected = items.some((p) => selected.has(p.id))
   const hasSelection = selected.size > 0
   const panelDisabled = !hasSelection || busyBulk || busyMeasures
+
+  function listParams(overrides?: {
+    q?: string
+    status?: string
+    availableFilter?: string
+    manufacturerId?: string
+    withoutImage?: boolean
+    measureGap?: '' | 'weight' | 'dims' | 'any'
+    filterCascade?: CategoryCascadeValue
+    offset?: number
+  }) {
+    const nextQ = overrides?.q ?? q
+    const nextStatus = overrides?.status ?? status
+    const nextAvailable = overrides?.availableFilter ?? availableFilter
+    const nextMaker = overrides?.manufacturerId ?? manufacturerId
+    const nextNoImage = overrides?.withoutImage ?? withoutImage
+    const nextGap = overrides?.measureGap ?? measureGap
+    const nextCascade = overrides?.filterCascade ?? filterCascade
+    const filterNode = effectiveCategoryId(nextCascade)
+    const categoryIds = filterNode
+      ? collectCategorySubtreeIds(categories, filterNode)
+      : undefined
+    const available =
+      nextAvailable === 'true' ? true : nextAvailable === 'false' ? false : undefined
+    return {
+      q: nextQ,
+      status: nextStatus || undefined,
+      available,
+      withoutImage: nextNoImage,
+      measureGap: nextGap || undefined,
+      categoryIds,
+      manufacturerId: nextMaker || undefined,
+      offset: overrides?.offset ?? 0,
+      limit: ADMIN_PRODUCTS_PAGE_SIZE,
+    }
+  }
 
   async function reload(overrides?: {
     q?: string
@@ -79,35 +121,33 @@ export function AdminProductsPage() {
     setLoading(true)
     setSelected(new Set())
     try {
-      const nextQ = overrides?.q ?? q
-      const nextStatus = overrides?.status ?? status
-      const nextAvailable = overrides?.availableFilter ?? availableFilter
-      const nextMaker = overrides?.manufacturerId ?? manufacturerId
-      const nextNoImage = overrides?.withoutImage ?? withoutImage
-      const nextGap = overrides?.measureGap ?? measureGap
-      const nextCascade = overrides?.filterCascade ?? filterCascade
-      const filterNode = effectiveCategoryId(nextCascade)
-      const categoryIds = filterNode
-        ? collectCategorySubtreeIds(categories, filterNode)
-        : undefined
-      const available =
-        nextAvailable === 'true' ? true : nextAvailable === 'false' ? false : undefined
-      setItems(
-        await adminListProducts({
-          q: nextQ,
-          status: nextStatus || undefined,
-          available,
-          withoutImage: nextNoImage,
-          measureGap: nextGap || undefined,
-          categoryIds,
-          manufacturerId: nextMaker || undefined,
-        }),
-      )
+      const page = await adminListProductsPage(listParams({ ...overrides, offset: 0 }))
+      setItems(page.items)
+      setHasMore(page.hasMore)
+      setNextOffset(ADMIN_PRODUCTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao listar produtos')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const page = await adminListProductsPage(listParams({ offset: nextOffset }))
+      setItems((prev) => {
+        const seen = new Set(prev.map((p) => p.id))
+        return [...prev, ...page.items.filter((p) => !seen.has(p.id))]
+      })
+      setHasMore(page.hasMore)
+      setNextOffset((o) => o + ADMIN_PRODUCTS_PAGE_SIZE)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -390,6 +430,9 @@ export function AdminProductsPage() {
           <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Arquivar tira da loja (fica no banco). Status ≠ disponibilidade.
+            {items.length > 0
+              ? ` · ${items.length} carregado${items.length === 1 ? '' : 's'}.`
+              : null}
           </p>
           <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-navy">
             <Link className="hover:underline" to="/admin/produtos/importar">
@@ -770,6 +813,16 @@ export function AdminProductsPage() {
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
+      {hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_PRODUCTS_PAGE_SIZE} registros por carga ({items.length} carregados).
+          Use “Carregar mais produtos” para ampliar
+          {withoutImage
+            ? ' — filtro «Sem imagem» aplica-se a cada página carregada'
+            : ''}
+          .
+        </p>
+      ) : null}
       {loading ? <Loading /> : null}
 
       <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
@@ -853,6 +906,18 @@ export function AdminProductsPage() {
             ))}
           </tbody>
         </table>
+        {hasMore ? (
+          <div className="flex justify-center border-t border-fal-line p-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loadingMore || loading}
+              onClick={() => void loadMore()}
+            >
+              {loadingMore ? 'Carregando…' : 'Carregar mais produtos'}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   )
