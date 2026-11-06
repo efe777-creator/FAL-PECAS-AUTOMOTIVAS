@@ -26,7 +26,7 @@
 | Item | Estado | Ação |
 |------|--------|------|
 | Resolução SQL / `priceResolutionService` | Canônico | **MANTER** |
-| Espelho `products.price` | Display legado admin | **CONSOLIDAR** (mostrar resolvido) |
+| Espelho `products.price` | Form mostra resolvido + legado | **MANTER** (VAL 2026-11-06) |
 | Formação editável em 3 UIs de preço | Duplicado | **CONSOLIDAR** (Onda 1-I / preços) |
 
 ## Busca
