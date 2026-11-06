@@ -15,6 +15,13 @@ dist-ssr
 .env.local
 .env.*.local
 
+# npm é o gerenciador do deploy; pnpm local não vai pro git
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Gerado em `npm run build`
+public/sitemap.xml
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

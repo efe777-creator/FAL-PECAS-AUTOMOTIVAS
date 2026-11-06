@@ -1,3 +1,4 @@
+import { CategoryCascadeSelects } from '@/components/admin/CategoryCascadeSelects'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
@@ -618,71 +619,20 @@ export function AdminProductFormPage() {
               Mesma hierarquia da planilha: Categoria → Grupo → Subgrupo. Cadastre em Admin →
               Categorias antes de importar ou vincular aqui.
             </p>
-            <div className="grid gap-3 md:grid-cols-3">
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold">Categoria</span>
-                <select
-                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catCategoriaId}
-                  onChange={(e) => {
-                    setCatCategoriaId(e.target.value)
-                    setCatGrupoId('')
-                    setCatSubgrupoId('')
-                  }}
-                >
-                  <option value="">—</option>
-                  {categories
-                    .filter((c) => !c.parentId)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold">Grupo</span>
-                <select
-                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catGrupoId}
-                  disabled={!catCategoriaId}
-                  onChange={(e) => {
-                    setCatGrupoId(e.target.value)
-                    setCatSubgrupoId('')
-                  }}
-                >
-                  <option value="">—</option>
-                  {categories
-                    .filter((c) => c.parentId === catCategoriaId)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold">Subgrupo</span>
-                <select
-                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={catSubgrupoId}
-                  disabled={!catGrupoId}
-                  onChange={(e) => setCatSubgrupoId(e.target.value)}
-                >
-                  <option value="">—</option>
-                  {categories
-                    .filter((c) => c.parentId === catGrupoId)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            </div>
+            <CategoryCascadeSelects
+              categories={categories}
+              includeArchived
+              value={{
+                categoriaId: catCategoriaId,
+                grupoId: catGrupoId,
+                subgrupoId: catSubgrupoId,
+              }}
+              onChange={(next) => {
+                setCatCategoriaId(next.categoriaId)
+                setCatGrupoId(next.grupoId)
+                setCatSubgrupoId(next.subgrupoId)
+              }}
+            />
           </fieldset>
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>

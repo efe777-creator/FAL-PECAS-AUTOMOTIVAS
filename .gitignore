@@ -45,3 +45,17 @@ desktop.ini
 
 # Local Netlify folder
 .netlify
+
+# Lockfile errado (deploy Netlify = npm / package-lock)
+fal-pecas/pnpm-lock.yaml
+fal-pecas/pnpm-workspace.yaml
+
+# Sitemap gerado no build (scripts/generate-sitemap.mjs)
+fal-pecas/public/sitemap.xml
+
+# Lixo local de auditoria / mídia (não versionar)
+agent-tools-*
+ARQUIVOS IMPORTAÇÕES/
+FOTOS PRODUTOS/
+ajuste.txt
+cursor_fal_automotive_parts_project.md
