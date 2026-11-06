@@ -3,6 +3,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import { formatCepMask, isCompleteCep, normalizeCep } from '@/lib/cep'
 import { formatCpfOrCnpjMask } from '@/lib/document'
@@ -31,11 +32,29 @@ export function AdminShippingOriginPage() {
   const [state, setState] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [cepMessage, setCepMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const consultedCep = useRef('')
   const requestId = useRef(0)
+
+  useUnsavedChangesBlocker(dirty, {
+    message: 'Há alterações na origem/remetente ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
+  function markDirty() {
+    setDirty(true)
+  }
 
   function pushError(msg: string) {
     setError(msg)
@@ -151,6 +170,7 @@ export function AdminShippingOriginPage() {
         state,
       })
       setId(saved.id)
+      setDirty(false)
       pushOk('Origem e remetente salvos.')
     } catch (err) {
       pushError(err instanceof Error ? err.message : 'Falha ao salvar')
@@ -169,6 +189,14 @@ export function AdminShippingOriginPage() {
         Frete com transportadora externa exige credenciais configuradas no servidor. Complemento é o
         único campo opcional.
       </p>
+      {dirty ? (
+        <p
+          className="max-w-2xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+          role="status"
+        >
+          Alterações não salvas. Clique em Salvar origem antes de sair do admin.
+        </p>
+      ) : null}
       <form
         onSubmit={(e) => void onSubmit(e)}
         className="grid max-w-2xl gap-3 rounded-[14px] border border-fal-line bg-white p-4 sm:grid-cols-2"
@@ -180,7 +208,10 @@ export function AdminShippingOriginPage() {
           <Input
             label="Nome interno"
             value={internalName}
-            onChange={(e) => setInternalName(e.target.value)}
+            onChange={(e) => {
+              markDirty()
+              setInternalName(e.target.value)
+            }}
             required
           />
         </div>
@@ -188,7 +219,10 @@ export function AdminShippingOriginPage() {
           <Input
             label="Nome do remetente"
             value={senderName}
-            onChange={(e) => setSenderName(e.target.value)}
+            onChange={(e) => {
+              markDirty()
+              setSenderName(e.target.value)
+            }}
             required
           />
         </div>
@@ -196,14 +230,20 @@ export function AdminShippingOriginPage() {
           label="CPF / CNPJ"
           inputMode="numeric"
           value={document}
-          onChange={(e) => setDocument(formatCpfOrCnpjMask(e.target.value))}
+          onChange={(e) => {
+            markDirty()
+            setDocument(formatCpfOrCnpjMask(e.target.value))
+          }}
           required
         />
         <Input
           label="Telefone"
           inputMode="tel"
           value={phone}
-          onChange={(e) => setPhone(formatPhoneMask(e.target.value))}
+          onChange={(e) => {
+            markDirty()
+            setPhone(formatPhoneMask(e.target.value))
+          }}
           required
         />
 
@@ -217,6 +257,7 @@ export function AdminShippingOriginPage() {
             placeholder="00000-000"
             value={postalCode}
             onChange={(e) => {
+              markDirty()
               const next = formatCepMask(e.target.value)
               const digits = normalizeCep(next)
               if (consultedCep.current && digits !== consultedCep.current) {
@@ -250,7 +291,10 @@ export function AdminShippingOriginPage() {
             className="w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
             name="state"
             value={state}
-            onChange={(e) => setState(e.target.value)}
+            onChange={(e) => {
+              markDirty()
+              setState(e.target.value)
+            }}
             required
           >
             <option value="">Selecione a UF</option>
@@ -261,26 +305,50 @@ export function AdminShippingOriginPage() {
             ))}
           </select>
         </label>
-        <Input label="Cidade" value={city} onChange={(e) => setCity(e.target.value)} required />
-        <Input label="Bairro" value={district} onChange={(e) => setDistrict(e.target.value)} />
+        <Input
+          label="Cidade"
+          value={city}
+          onChange={(e) => {
+            markDirty()
+            setCity(e.target.value)
+          }}
+          required
+        />
+        <Input
+          label="Bairro"
+          value={district}
+          onChange={(e) => {
+            markDirty()
+            setDistrict(e.target.value)
+          }}
+        />
         <div className="sm:col-span-2">
           <Input
             label="Logradouro"
             value={street}
-            onChange={(e) => setStreet(e.target.value)}
+            onChange={(e) => {
+              markDirty()
+              setStreet(e.target.value)
+            }}
             required
           />
         </div>
         <Input
           label="Número"
           value={number}
-          onChange={(e) => setNumber(e.target.value)}
+          onChange={(e) => {
+            markDirty()
+            setNumber(e.target.value)
+          }}
           required
         />
         <Input
           label="Complemento (opcional)"
           value={complement}
-          onChange={(e) => setComplement(e.target.value)}
+          onChange={(e) => {
+            markDirty()
+            setComplement(e.target.value)
+          }}
         />
         {error ? <p className="text-sm text-red-600 sm:col-span-2">{error}</p> : null}
         <div className="sm:col-span-2">
