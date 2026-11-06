@@ -1,4 +1,3 @@
-import { pricingPercentInputLabel } from '@/components/admin/prices/PricingRuleFields'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { priceOriginLabel } from '@/lib/priceLabels'
@@ -9,6 +8,7 @@ import {
   calculateSellPrice,
   effectiveMarginFraction,
   effectiveMarkupFraction,
+  pricingPercentInputLabel,
   toPercent,
   type PricingMethod,
 } from '@/services/pricing/pricingFormulas'
