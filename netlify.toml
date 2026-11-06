@@ -6,6 +6,8 @@
   command = "npm run build"
   # relativo ao base (fal-pecas/)
   publish = "dist"
+  # Nunca pular build de produção (deploys recentes vieram "skipped")
+  ignore = "exit 1"
 
 # Arquivos SEO estáticos (não cair no SPA)
 [[redirects]]
