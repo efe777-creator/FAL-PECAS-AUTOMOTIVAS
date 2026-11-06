@@ -9,6 +9,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
@@ -69,6 +70,10 @@ export function AdminProductFormPage() {
 
   /** Flag simples: qualquer edição no formulário "Geral" marca como não salvo. */
   const [dirty, setDirty] = useState(false)
+  useUnsavedChangesBlocker(dirty, {
+    message:
+      'Há alterações no formulário Geral que ainda não foram salvas. Sair mesmo assim?',
+  })
   useEffect(() => {
     if (!dirty) return
     function onBeforeUnload(e: BeforeUnloadEvent) {
