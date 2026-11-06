@@ -142,7 +142,7 @@ export function AccountOrderDetailPage() {
 
   async function onRespondDecision(decision: 'authorize' | 'reject') {
     if (!order) return
-    const { confirmed } =
+    const { confirmed, reason } =
       decision === 'authorize'
         ? await confirmDialog({
             title: 'Autorizar alterações?',
@@ -153,15 +153,18 @@ export function AccountOrderDetailPage() {
         : await confirmDialog({
             title: 'Recusar alterações?',
             message:
-              'A loja será avisada e precisará cancelar ou renegociar.',
+              'Informe o motivo. A loja será avisada e precisará cancelar ou renegociar.',
             confirmLabel: 'Recusar',
             danger: true,
+            requireReason: true,
+            reasonLabel: 'Motivo da recusa',
+            reasonPlaceholder: 'Ex.: prefiro cancelar / prazo longo demais',
           })
     if (!confirmed) return
     setActionBusy(true)
     setActionMsg(null)
     try {
-      await customerRespondOrderDecision(order.id, decision)
+      await customerRespondOrderDecision(order.id, decision, reason)
       setActionMsg(
         decision === 'authorize'
           ? 'Autorização registrada. A loja poderá confirmar o pedido.'
@@ -540,10 +543,11 @@ export function AccountOrderDetailPage() {
         <h3 className="mt-0 text-base font-extrabold">Atualizações do pedido</h3>
         <ol className="m-0 list-none space-y-2 p-0">
           {updates.map((ev) => {
+            const payload = ev.payload as Record<string, unknown>
             const note =
-              typeof ev.payload.note === 'string' && ev.payload.note
-                ? ev.payload.note
-                : null
+              (typeof payload.reason === 'string' && payload.reason) ||
+              (typeof payload.note === 'string' && payload.note) ||
+              null
             return (
               <li key={ev.id} className="border-l-2 border-fal-yellow pl-3 text-sm">
                 <strong>{orderEventLabel[ev.eventType] ?? ev.eventType}</strong>

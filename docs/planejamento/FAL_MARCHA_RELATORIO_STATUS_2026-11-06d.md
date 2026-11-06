@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #157 (+ ME-C7 leve / copy em ship)  
+**HEAD:** `main` @ merge #158 (+ reject reason em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -91,6 +91,7 @@
 - O0-C: copy retomada MP + disclaimers frete sem VITE_/D-FRETE/sandbox — VAL `O0C_PAYMENT_SHIPPING_COPY`  
 - Onda 3: Buscar pelo carro abaixo de Destaques — VAL `ONDA3_HOME_VEICULO_ABAIXO_DESTAQUES`  
 - O1-E: Configurações de envio (ME-C7 leve) + copy sandbox/auth — VAL `O1E_SHIPPING_SETTINGS_COPY`  
+- O1-F: motivo obrigatório recusa alterações (cliente) — VAL `O1F_CUSTOMER_REJECT_REASON` · **apply SQL wtbp**  
 
-**Próxima MARCHA sugerida (código):** allowlist ME (ME-C5) **ou** Onda 4 import imagens.  
-**Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
+**Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
+**Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

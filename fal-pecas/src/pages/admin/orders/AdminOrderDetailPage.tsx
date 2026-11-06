@@ -907,16 +907,25 @@ export function AdminOrderDetailPage() {
           {order.events.length === 0 ? (
             <li className="text-sm text-fal-muted">Sem eventos.</li>
           ) : (
-            order.events.map((e) => (
-              <li key={e.id} className="rounded-[10px] bg-fal-bg px-3 py-2 text-sm">
-                <span className="font-semibold">
-                  {orderEventLabel[e.eventType] ?? e.eventType}
-                </span>{' '}
-                <span className="text-xs text-fal-muted">
-                  ({e.visibility}) · {formatDateTime(e.createdAt)}
-                </span>
-              </li>
-            ))
+            order.events.map((e) => {
+              const reason =
+                (typeof e.payload.reason === 'string' && e.payload.reason) ||
+                (typeof e.payload.note === 'string' && e.payload.note) ||
+                null
+              return (
+                <li key={e.id} className="rounded-[10px] bg-fal-bg px-3 py-2 text-sm">
+                  <span className="font-semibold">
+                    {orderEventLabel[e.eventType] ?? e.eventType}
+                  </span>{' '}
+                  <span className="text-xs text-fal-muted">
+                    ({e.visibility}) · {formatDateTime(e.createdAt)}
+                  </span>
+                  {reason ? (
+                    <span className="mt-1 block text-sm text-fal-ink">Motivo: {reason}</span>
+                  ) : null}
+                </li>
+              )
+            })
           )}
         </ul>
       </section>
