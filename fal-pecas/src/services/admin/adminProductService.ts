@@ -256,16 +256,8 @@ export async function adminUpsertProduct(input: {
     own_delivery_allowed: input.ownDeliveryAllowed ?? true,
     pol_origin: input.polOrigin ?? (input.polUnit != null ? 'manual' : 'global'),
     logistic_profile_origin: input.logisticProfileOrigin ?? 'manual',
-    // search_document canônico via RPC após salvar (marca/refs/sinônimos)
-    search_document: [
-      input.name,
-      identity.sku,
-      identity.commercialRef,
-      input.shortDescription,
-      input.description,
-      input.posicao,
-      input.lado,
-    ]
+    // Placeholder; documento canônico vem de rebuild_product_search_documents (SQL).
+    search_document: [input.name, identity.sku, identity.commercialRef]
       .filter(Boolean)
       .join(' ')
       .toLowerCase(),
@@ -285,7 +277,7 @@ export async function adminUpsertProduct(input: {
   try {
     await getSupabase().rpc('rebuild_product_search_documents', { p_ids: [product.id] })
   } catch {
-    // fallback: mantém search_document do payload se RPC ainda não existir
+    // fallback: placeholder do payload permanece se RPC indisponível
   }
   if (input.syncBasePromoLists !== false) {
     await adminEnsureBaseAndPromoPrices(product.id, input.price, input.promoPrice ?? null)
