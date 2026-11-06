@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
 import { PRICE_LIST_LAYERS_HINT, priceOriginLabel } from '@/lib/priceLabels'
 import {
@@ -65,12 +66,22 @@ export function PriceListQuickAdjustPanel({
   forceWithoutPrice,
   onRequestImport,
 }: Props) {
+  const toast = useToast()
   const stored = readStoredFilters()
   const [listId, setListId] = useState('')
   const [items, setItems] = useState<PriceListItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [info, setInfo] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
 
   const [filterQ, setFilterQ] = useState(stored.q ?? '')
   const [filterQDebounced, setFilterQDebounced] = useState(stored.q ?? '')
@@ -140,7 +151,6 @@ export function PriceListQuickAdjustPanel({
     setItems([])
     setPricingItem(null)
     setError(null)
-    setInfo(null)
     setLoadingItems(true)
     sessionStorage.setItem(STORAGE_KEY, listId)
 
@@ -154,7 +164,9 @@ export function PriceListQuickAdjustPanel({
       } catch (e) {
         if (cancelled || gen !== loadGenRef.current) return
         setItems([])
-        setError(e instanceof Error ? e.message : 'Falha ao carregar itens da lista')
+        const message = e instanceof Error ? e.message : 'Falha ao carregar itens da lista'
+        setError(message)
+        toast.push(message, 'error')
       } finally {
         if (!cancelled && gen === loadGenRef.current) setLoadingItems(false)
       }
@@ -163,6 +175,7 @@ export function PriceListQuickAdjustPanel({
     return () => {
       cancelled = true
     }
+    // toast omitido: evita reler lista se a identidade do contexto mudar
   }, [listId])
 
   const filteredItems = useMemo(() => {
@@ -199,7 +212,6 @@ export function PriceListQuickAdjustPanel({
   function openAddForm() {
     setAddOpen(true)
     setError(null)
-    setInfo(null)
     window.setTimeout(focusAddSku, addOpen ? 0 : 50)
   }
 
@@ -219,7 +231,7 @@ export function PriceListQuickAdjustPanel({
       onItemsChanged?.()
     } catch (e) {
       if (gen !== loadGenRef.current) return
-      setError(e instanceof Error ? e.message : 'Falha ao recarregar itens')
+      pushError(e instanceof Error ? e.message : 'Falha ao recarregar itens')
     }
   }
 
@@ -246,7 +258,6 @@ export function PriceListQuickAdjustPanel({
     if (!pricingItem || !selectedList) return
     setRowBusy(pricingItem.id)
     setError(null)
-    setInfo(null)
     try {
       const itemId = await ensureItemOnList(pricingItem)
       if (result.mode === 'apply_list_rule') {
@@ -271,10 +282,10 @@ export function PriceListQuickAdjustPanel({
         })
       }
       setPricingItem(null)
-      setInfo(`Precificação atualizada na lista ${selectedList.name}.`)
+      pushOk(`Precificação atualizada na lista ${selectedList.name}.`)
       await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: addOpen }))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
     } finally {
       setRowBusy(null)
     }
@@ -284,23 +295,22 @@ export function PriceListQuickAdjustPanel({
     e.preventDefault()
     if (!listId || !allowed) return
     setError(null)
-    setInfo(null)
 
     const sku = addSku.trim()
     if (!sku) {
-      setError('Informe o código (SKU)')
+      pushError('Informe o código (SKU)')
       focusAddSku()
       return
     }
     const priceNum = parseMoneyBr(addPrice)
     if (priceNum == null || priceNum < 0) {
-      setError('Preço inválido ou negativo')
+      pushError('Preço inválido ou negativo')
       return
     }
 
     const existing = items.find((i) => (i.sku ?? '').toLowerCase() === sku.toLowerCase())
     if (existing) {
-      setError('Este código já está na lista. Use Editar na linha.')
+      pushError('Este código já está na lista. Use Editar na linha.')
       setPricingItem(existing)
       setFilterQ(sku)
       setFilterQDebounced(sku)
@@ -312,7 +322,7 @@ export function PriceListQuickAdjustPanel({
     try {
       const productId = await adminFindProductIdBySku(sku)
       if (!productId) {
-        setError(`Código não encontrado no cadastro: ${sku}`)
+        pushError(`Código não encontrado no cadastro: ${sku}`)
         focusAddSku()
         return
       }
@@ -325,11 +335,11 @@ export function PriceListQuickAdjustPanel({
       })
       setAddSku('')
       setAddPrice('')
-      setInfo(`Item ${sku} adicionado à lista ${selectedList?.name ?? ''} com origem Manual.`)
+      pushOk(`Item ${sku} adicionado à lista ${selectedList?.name ?? ''} com origem Manual.`)
       await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: true }))
       focusAddSku()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao adicionar item')
+      pushError(err instanceof Error ? err.message : 'Falha ao adicionar item')
     } finally {
       setAddBusy(false)
     }
@@ -429,7 +439,6 @@ export function PriceListQuickAdjustPanel({
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {info ? <p className="text-sm text-green-700">{info}</p> : null}
 
       {singleMatch && selectedList ? (
         <div className="rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/20 px-3 py-2 text-sm">
