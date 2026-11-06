@@ -85,7 +85,7 @@ export function AccountVehiclesPage() {
     try {
       const resolved = await resolveVersionId({ maker, model, year, engine, version })
       if (!resolved) {
-        setError('Nenhuma configuração correspondente no cadastro mestre. Ajuste os filtros.')
+        setError('Não encontramos essa combinação de montadora, modelo e versão. Ajuste os filtros.')
         return
       }
       await addSavedVehicle({
@@ -116,8 +116,8 @@ export function AccountVehiclesPage() {
       <div className="rounded-fal border border-fal-line bg-white p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus veículos</h2>
         <p className="text-sm text-fal-muted">
-          Referencia o cadastro mestre (não cria montadora/modelo novos). Use na busca pelo
-          catálogo.
+          Salve o carro da sua garagem para filtrar o catálogo mais rápido. Escolha montadora e
+          modelo entre as opções disponíveis.
         </p>
         {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
         {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
