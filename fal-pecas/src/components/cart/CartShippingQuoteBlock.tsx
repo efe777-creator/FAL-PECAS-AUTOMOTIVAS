@@ -9,7 +9,7 @@ import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStoref
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
 import type { CartItem } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type Props = {
   items: CartItem[]
@@ -25,7 +25,7 @@ function formatCepInput(raw: string): string {
 
 /**
  * Cotação do **conjunto** do carrinho (não soma fretes unitários).
- * Invalida ao mudar itens/qty (fingerprint no envelope).
+ * Invalida e recota ao mudar itens/qty quando o CEP já está completo.
  */
 export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange }: Props) {
   const [cep, setCep] = useState('')
@@ -35,6 +35,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   const [selectedId, setSelectedId] = useState('')
   const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
   const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
+  const quoteGen = useRef(0)
 
   const cartKey = useMemo(
     () =>
@@ -57,12 +58,85 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     }
   }, [])
 
-  // Mudança de carrinho invalida cotação anterior
+  const runQuote = useCallback(
+    async (opts?: { silentClear?: boolean }) => {
+      const digits = cep.replace(/\D/g, '')
+      const gen = ++quoteGen.current
+      setLoading(true)
+      if (!opts?.silentClear) {
+        setEnvelope(null)
+        setSelectedId('')
+        setHintNeedsNumber(false)
+      }
+      try {
+        if (digits.length !== 8) {
+          if (gen !== quoteGen.current) return
+          setEnvelope({
+            status: 'invalid_cep',
+            providerId: 'melhorenvio',
+            mode: 'sandbox',
+            options: [],
+            quotedAt: new Date().toISOString(),
+            requestFingerprint: digits,
+            message: 'Informe um CEP válido com 8 dígitos.',
+          })
+          return
+        }
+        const addr = await viaCepProvider.lookupByCep(digits)
+        const logistics = await loadCartLogistics(
+          items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        )
+        const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
+          postalCode: addr.cep,
+          state: addr.state,
+          city: addr.city,
+          street: addr.street,
+          district: addr.district,
+          number: number.trim() || undefined,
+          subtotal,
+          itemCount: items.reduce((n, i) => n + i.quantity, 0),
+          originPostalCode,
+          items: logistics,
+          totalWeightKg:
+            logistics.reduce((acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1), 0) ||
+            undefined,
+        })
+        if (gen !== quoteGen.current) return
+        setHintNeedsNumber(needsAddressNumber)
+        setEnvelope(env)
+        if (env.status === 'ok' && env.options[0]) {
+          setSelectedId(env.options[0].id)
+        } else {
+          setSelectedId('')
+        }
+      } catch (e) {
+        if (gen !== quoteGen.current) return
+        setEnvelope({
+          status: 'provider_error',
+          providerId: 'melhorenvio',
+          mode: 'sandbox',
+          options: [],
+          quotedAt: new Date().toISOString(),
+          requestFingerprint: cep,
+          message: e instanceof Error ? e.message : 'Não foi possível consultar a entrega.',
+        })
+        setSelectedId('')
+      } finally {
+        if (gen === quoteGen.current) setLoading(false)
+      }
+    },
+    [cep, number, items, subtotal, originPostalCode],
+  )
+
+  // Mudança de carrinho: limpa e recota se CEP completo (O1-D).
   useEffect(() => {
     setEnvelope(null)
     setSelectedId('')
     onShippingAmountChange?.(null, null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8 || items.length === 0) return
+    void runQuote({ silentClear: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage a cartKey; CEP/nº já no runQuote
   }, [cartKey])
 
   useEffect(() => {
@@ -77,65 +151,10 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
       if (digits.length === 8) {
         saveShippingQuoteHandoff({ postalCode: digits, preferredOptionId: opt.id })
       }
+    } else {
+      onShippingAmountChange?.(null, null)
     }
   }, [envelope, selectedId, onShippingAmountChange, cep])
-
-  async function onConsultar() {
-    setLoading(true)
-    setEnvelope(null)
-    setHintNeedsNumber(false)
-    try {
-      const digits = cep.replace(/\D/g, '')
-      if (digits.length !== 8) {
-        setEnvelope({
-          status: 'invalid_cep',
-          providerId: 'melhorenvio',
-          mode: 'sandbox',
-          options: [],
-          quotedAt: new Date().toISOString(),
-          requestFingerprint: digits,
-          message: 'Informe um CEP válido com 8 dígitos.',
-        })
-        return
-      }
-      const addr = await viaCepProvider.lookupByCep(digits)
-      const logistics = await loadCartLogistics(
-        items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-      )
-      const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
-        postalCode: addr.cep,
-        state: addr.state,
-        city: addr.city,
-        street: addr.street,
-        district: addr.district,
-        number: number.trim() || undefined,
-        subtotal,
-        itemCount: items.reduce((n, i) => n + i.quantity, 0),
-        originPostalCode,
-        items: logistics,
-        totalWeightKg:
-          logistics.reduce((acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1), 0) ||
-          undefined,
-      })
-      setHintNeedsNumber(needsAddressNumber)
-      setEnvelope(env)
-      if (env.status === 'ok' && env.options[0]) {
-        setSelectedId(env.options[0].id)
-      }
-    } catch (e) {
-      setEnvelope({
-        status: 'provider_error',
-        providerId: 'melhorenvio',
-        mode: 'sandbox',
-        options: [],
-        quotedAt: new Date().toISOString(),
-        requestFingerprint: cep,
-        message: e instanceof Error ? e.message : 'Não foi possível consultar a entrega.',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="mb-3 border-b border-fal-line pb-3">
@@ -152,7 +171,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              void onConsultar()
+              void runQuote()
             }
           }}
         />
@@ -165,7 +184,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           value={number}
           onChange={(e) => setNumber(e.target.value.slice(0, 20))}
         />
-        <Button type="button" variant="light" size="sm" disabled={loading} onClick={() => void onConsultar()}>
+        <Button type="button" variant="light" size="sm" disabled={loading} onClick={() => void runQuote()}>
           {loading ? 'Consultando…' : 'Consultar frete'}
         </Button>
       </div>
@@ -183,6 +202,13 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
       {envelope && envelope.status !== 'ok' ? (
         <p className="mb-0 mt-2 text-xs text-fal-danger" role="alert">
           {envelope.message ?? 'Consulta indisponível.'}
+        </p>
+      ) : null}
+
+      {envelope?.status === 'ok' && envelope.options.length === 0 ? (
+        <p className="mb-0 mt-2 text-xs text-fal-muted" role="status">
+          {envelope.message ??
+            'Nenhuma opção de entrega para este CEP e itens. Confira medidas dos produtos ou tente outro CEP.'}
         </p>
       ) : null}
 
