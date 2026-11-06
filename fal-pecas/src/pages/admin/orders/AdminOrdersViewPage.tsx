@@ -1,9 +1,15 @@
+import { Button } from '@/components/common/Button'
 import {
   getAdminOrderView,
   orderMatchesProblemsView,
 } from '@/lib/adminOrderOps'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { adminListOrders, type AdminOrderListRow } from '@/services/admin/adminOrderService'
+import { toUserMessage } from '@/lib/toUserMessage'
+import {
+  ADMIN_LIST_PAGE_SIZE,
+  adminListOrders,
+  type AdminOrderListRow,
+} from '@/services/admin/adminOrderService'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AdminOrdersListPanel, filterOrdersBySearch } from './AdminOrdersListPanel'
@@ -14,21 +20,47 @@ export function AdminOrdersViewPage() {
   useDocumentTitle(view ? `${view.title} | Admin FAL` : 'Pedidos | Admin FAL')
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
+  async function reload() {
+    setLoading(true)
+    setError(null)
+    try {
+      const list = await adminListOrders(null, { offset: 0, limit: ADMIN_LIST_PAGE_SIZE })
+      setRows(list)
+      setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const next = await adminListOrders(null, {
+        offset: rows.length,
+        limit: ADMIN_LIST_PAGE_SIZE,
+      })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setHasMore(next.length >= ADMIN_LIST_PAGE_SIZE)
+    } catch (e) {
+      setError(toUserMessage(e, 'Erro ao carregar mais pedidos'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   useEffect(() => {
-    void (async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        setRows(await adminListOrders(null))
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar')
-      } finally {
-        setLoading(false)
-      }
-    })()
+    void reload()
   }, [viewId])
 
   const filtered = useMemo(() => {
@@ -78,13 +110,33 @@ export function AdminOrdersViewPage() {
           Esta visão ainda não está disponível neste ambiente. Nenhum status artificial foi criado.
         </div>
       ) : (
-        <AdminOrdersListPanel
-          rows={filtered}
-          loading={loading}
-          error={error}
-          search={search}
-          onSearch={setSearch}
-        />
+        <>
+          {!loading && !error && hasMore ? (
+            <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              Exibindo até {ADMIN_LIST_PAGE_SIZE} pedidos por carga ({rows.length} carregados). A
+              visão filtra o que já veio do servidor — use “Carregar mais pedidos” se faltar volume.
+            </p>
+          ) : null}
+          <AdminOrdersListPanel
+            rows={filtered}
+            loading={loading}
+            error={error}
+            search={search}
+            onSearch={setSearch}
+          />
+          {!loading && !error && hasMore ? (
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais pedidos'}
+              </Button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   )

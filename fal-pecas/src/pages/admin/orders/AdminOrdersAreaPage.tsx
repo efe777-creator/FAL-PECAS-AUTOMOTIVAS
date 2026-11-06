@@ -11,7 +11,9 @@ import {
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
+  ADMIN_LIST_PAGE_SIZE,
   adminListOrders,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
@@ -38,6 +40,8 @@ export function AdminOrdersAreaPage() {
   useDocumentTitle(area ? `${area.title} | Admin FAL` : 'Pedidos | Admin FAL')
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [busyExpire, setBusyExpire] = useState(false)
@@ -47,12 +51,33 @@ export function AdminOrdersAreaPage() {
     setLoading(true)
     setError(null)
     try {
-      const list = await adminListOrders(null)
+      const list = await adminListOrders(null, { offset: 0, limit: ADMIN_LIST_PAGE_SIZE })
       setRows(list)
+      setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const next = await adminListOrders(null, {
+        offset: rows.length,
+        limit: ADMIN_LIST_PAGE_SIZE,
+      })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setHasMore(next.length >= ADMIN_LIST_PAGE_SIZE)
+    } catch (e) {
+      setError(toUserMessage(e, 'Erro ao carregar mais pedidos'))
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -137,6 +162,13 @@ export function AdminOrdersAreaPage() {
         </div>
       ) : null}
 
+      {!loading && !error && hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_LIST_PAGE_SIZE} pedidos por carga ({rows.length} carregados). A fila
+          filtra o que já veio do servidor — use “Carregar mais pedidos” se faltar volume.
+        </p>
+      ) : null}
+
       <AdminOrdersListPanel
         rows={filtered}
         loading={loading}
@@ -151,6 +183,19 @@ export function AdminOrdersAreaPage() {
             : undefined
         }
       />
+
+      {!loading && !error && hasMore ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
+            {loadingMore ? 'Carregando…' : 'Carregar mais pedidos'}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
