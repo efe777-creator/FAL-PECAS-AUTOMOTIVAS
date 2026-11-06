@@ -1,108 +1,101 @@
-# Relatório MARCHA — o que fizemos / o que falta
+# Relatório MARCHA — o que fizemos / onde estamos / o que falta
 
-**Data:** 2026-11-06d  
+**Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #168 (+ account vehicles copy em ship)  
+**HEAD:** `main` @ `6c35c7a` (merge **#169**)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
 
-## 1. O que fizemos (continuidade recente — PRs #122–#149+)
+## 1. Onde estamos (leitura em 30s)
 
-### Loja / funil
-| PR | Entrega |
-|----|---------|
-| #132–#135 | O1-H: drawer filtros, scroll catálogo↔PDP, pedidos mobile cards, lightbox z-index |
-| #136 | O1-D: recota frete no carrinho ao mudar qty |
-| #137 | Fotos contain sem moldura cinza |
-| #138 | Carregar mais sem pular ao topo |
-| #139 | Remover + Desfazer no toast |
-| #140 | Checkout: CPF/CNPJ modo leitura + avanço |
-| #141 | PDP: mensagem frete 0 opções |
-| #144 | Checkout: resumo itens, foco no erro, Salvar endereço → Entrega |
+| Camada | Situação |
+|--------|----------|
+| **Onda 0** | Fechada no código (UI, bugs bloqueantes, copy residual fino) |
+| **Onda 1 UX loja/admin** | Quase fechada — funil, CTAs, mobile, admin nav/paginação/blocker |
+| **O1 B/C/D/E operação** | Parcial — código base existe; faltam dados eFe + VALs E2E + gates |
+| **Ondas 2–4** | Parciais (SEO/busca/home admin já adiantados; escala ainda aberta) |
+| **Produção comercial** | Travada nos **gates humanos** (não é MARCHA de código) |
 
-### Admin
-| PR | Entrega |
-|----|---------|
-| #122–#131 | Paginação listas + `document.title` hubs/subpáginas |
-| #142 | 404 `/admin/*` |
-| #143 | Dashboard sem zeros falsos no loading |
-
-### Antes (ondas fechadas no código)
-- **Onda 0** fundação UI + bugs bloqueantes (toast, ConfirmDialog, copy, senha, cartão, etc.)
-- **O1-A** inventário duplicidades (sem CONSOLIDAR aberto)
-- **O1-G** CTAs Comprar agora / Adicionar; card → PDP
-- **Onda 2/3 parciais:** SearchBar combobox, titles, robots/sitemap, Buscar pelo carro no topo, carrosséis/admin home em fatias anteriores
+**Veredito:** o site está operacional no espelho eFe; “produção plena” depende de eFe/fernando (frete, MP, Publish, sinônimos, tarifas, etiqueta).
 
 ---
 
-## 2. O que falta para “concluir” o plano
+## 2. O que fizemos
 
-### A) Gates humanos (bloqueiam “produção plena” — não é MARCHA de código)
-1. Publish / créditos Netlify (fernando)  
-2. **D-FRETE C** (cutover frete)  
-3. Pagamento Mercado Pago produção  
+### 2.1 Bloco recente desta sessão (#164–#169)
+
+| PR | Frente | Entrega |
+|----|--------|---------|
+| #164 | O1-G | Comprar agora aplica a qtd escolhida na PDP |
+| #165 | O1-E / O0-B | ME: `useBlocker` + `beforeunload` com edições sujas |
+| #166 | O1-D / O0-B | Frete próprio Gerais: blocker + banner |
+| #167 | O0-B | Origem/expedição: blocker + banner |
+| #168 | O1-F | Regra de senha visível no login + constante única |
+| #169 | O0-C | Meus veículos sem jargão “cadastro mestre” |
+
+### 2.2 Continuidade #122–#163 (resumo)
+
+**Loja / funil:** drawer filtros, scroll catálogo↔PDP, pedidos mobile, lightbox, recota frete no carrinho, fotos contain, carregar mais, remover+desfazer, CPF readonly no checkout, frete 0 opções na PDP, resumo/foco checkout, buy-now qty, compat/ano/title SPA.
+
+**Admin:** paginação listas, titles, 404 admin, dashboard loading real, nav por papel + path gate + breadcrumbs, ME sync dirty warn, settings de envio, motivo recusa cliente (SQL **ainda apply no wtbp**).
+
+**Antes (ondas):** O0 fundação; O1-A inventário; O1-G CTAs; Onda 2/3 parciais (SearchBar, SEO, home veículo/destaques, admin home/campanhas).
+
+### 2.3 Já no código (mas ainda “P” no plano por gate/dados)
+
+- O1-B: painel integridade + merge A→B (massa = revisão eFe)
+- O1-C: templates de caixa + menor caixa na cotação
+- O1-D/E: hubs frete próprio / ME sob D-FRETE **B**
+- Onda 2: combobox busca, JSON-LD Product/Home/breadcrumb, robots/sitemap, favoritos em lote
+- Onda 3/4: admin home (banners/destaques/cond. pag.), relacionados curados base, import imagens página existe
+
+---
+
+## 3. O que falta
+
+### A) Gates humanos (bloqueiam produção plena)
+
+1. Publish / créditos Netlify (**fernando**)  
+2. **D-FRETE C** (cutover frete) — só com assinatura eFe  
+3. Mercado Pago **produção**  
 4. Sinônimos (dados + ligar flag)  
-5. ME etiqueta em produção (M7)  
+5. ME etiqueta produção (**M7**)  
 6. Tarifas frete próprio (dados eFe)  
+7. **Apply SQL** `20261106140000_customer_respond_decision_reason` no wtbp (motivo recusa cliente)
 
-### B) Código ainda P/N no plano (próximas MARCHAs / ondas)
+### B) Código ainda aberto (próximas MARCHAs)
 
-| Frente | Status | O que falta |
-|--------|--------|-------------|
-| **O1-B** Classificação | P | Relatório + merge A→B; revisão dados eFe antes de massa |
-| **O1-C** Caixas / padrões categoria | P/N | Templates + regra menor caixa; integrar cotação |
-| **O1-D** Frete próprio | P | Smoke `ownq` E2E; tarifas = gate; cutover = gate |
-| **O1-E** Melhor Envio | P | Allowlist finos; configs toggles; etiqueta = gate |
-| **Onda 2** Busca/SEO | P | Facetas classificação; JSON-LD residual se faltar; favoritos em lote |
-| **Onda 3** Home comercial | P/N | Carrosséis/campanhas finos; **cond. pagamento (11/12) = decisão eFe** |
-| **Onda 4** Escala | N | Import imagens SKU; prep IA; relacionados curados |
+| Frente | Status | O que falta de código |
+|--------|--------|------------------------|
+| **O1-B** | P | Revisão dados eFe antes de merge em massa |
+| **O1-C** | P | Padrões por categoria finos / smoke packing E2E se faltar |
+| **O1-D** | P | Smoke `ownq` place_order E2E (tarifas = gate) |
+| **O1-E** | P | Allowlist/toggles finos; etiqueta = gate |
+| **Onda 2** | P | Facetas/SEO finos se aparecer finding |
+| **Onda 3** | P/N | Carrosséis finos; **cond. pagamento 11/12 = decisão eFe** |
+| **Onda 4** | N/P | Import SKU robusto; prep IA; curadoria relacionados em escala |
 | Paralelo | — | Cancelamento pós-pago/estorno (M8); webhook M9 |
 
 ### C) Critério “Onda 1 concluída” (plano §3)
+
 - [x] Funil guest/CPF/confirmação/CTAs/mobile drawer/paginação admin (grande parte)  
-- [ ] Merge classificação usável + caixa/padrão categoria  
+- [ ] Merge classificação usável em massa + caixa/padrão categoria “fechados” operacionalmente  
 - [ ] VAL `ownq` place_order + VAL M7  
 - [ ] Cutover frete **só com assinatura eFe**  
 
 ---
 
-## 3. Leitura rápida
+## 4. Próximo passo sugerido
 
-| Camada | Situação |
-|--------|----------|
-| Onda 0 | Fechada no código |
-| Onda 1 UX loja/admin | Quase fechada; faltam B/C/E + gates frete |
-| Ondas 2–4 | Parciais / futuras |
-| Produção comercial | Travada nos **gates humanos** |
+| Quem | Ação |
+|------|------|
+| **eFe** | Apply migration reject-reason · tarifas own · decisão cond. pag. · D-FRETE C / MP prod quando for a hora |
+| **fernando** | Publish / créditos Netlify |
+| **MARCHA código** | Residuals finos **ou** smoke `ownq` / packing E2E **sem** cutover |
 
-**Feito após 06d:**  
-- O1-B relatório + merge A→B (`CategoriesIntegrityPanel`)  
-- Onda 2 SEO: title `/veiculo`, JSON-LD Home, `OrdersPage` → `/conta/pedidos`  
-- O1-E: ME sync avisa edições não salvas  
-- O1-I: AdminLayout mobile Escape + inert + título da página  
-- O1-I: detalhe pedido — seções 1–6 + painel confirmação junto dos botões  
-- O1-I: menu/dashboard filtrados por papel (`adminNavAccess`) — VAL `O1I_ADMIN_NAV_ROLE`  
-- O1-I: gate de rota (`AdminForbiddenPage`) — VAL `O1I_ADMIN_PATH_GATE`  
-- O1-I: breadcrumbs no shell (`AdminBreadcrumbs`) — VAL `O1I_ADMIN_BREADCRUMBS`  
-- O1-I: limpeza “← Voltar” ad hoc — VAL `O1I_ADMIN_BACK_LINKS`  
-- O0-B: `useBlocker` form produto sujo — VAL `O0B_PRODUCT_UNSAVED_BLOCKER`  
-- Verify: tsc + vitest 363 + build PASS; blocker com guard anti-dup — VAL `VERIFY_SUITE`  
-- O0-C: copy retomada MP + disclaimers frete sem VITE_/D-FRETE/sandbox — VAL `O0C_PAYMENT_SHIPPING_COPY`  
-- Onda 3: Buscar pelo carro abaixo de Destaques — VAL `ONDA3_HOME_VEICULO_ABAIXO_DESTAQUES`  
-- O1-E: Configurações de envio (ME-C7 leve) + copy sandbox/auth — VAL `O1E_SHIPPING_SETTINGS_COPY`  
-- O1-F: motivo obrigatório recusa alterações (cliente) — VAL `O1F_CUSTOMER_REJECT_REASON` · **apply SQL wtbp**  
-- Compat: resumo `+N` com motor/versão — VAL `COMPAT_SUMMARY_ENGINE_DEDUPE`  
-- `useDocumentTitle` sem restore no cleanup (SPA) — VAL `DOCUMENT_TITLE_SPA`  
-- PDP: filtro catálogo sem viés da 1ª montadora — VAL `PDP_CATALOG_FILTER_COPY`  
-- Ano app só-fim → `.../YY` — VAL `VEHICLE_YEAR_END_ONLY`  
-- Compat apps: keys React únicas — VAL `COMPAT_APPS_REACT_KEYS`  
-- O1-G: Comprar agora aplica qtd da PDP — VAL `O1G_BUY_NOW_QTY`  
-- O1-E / O0-B: ME — `useBlocker` + `beforeunload` com edições sujas — VAL `O1E_ME_UNSAVED_BLOCKER`  
-- O1-D / O0-B: Frete próprio Gerais — blocker + banner + beforeunload — VAL `O1D_OWN_UNSAVED_BLOCKER`  
-- O0-B: Origem/expedição — blocker + banner + beforeunload — VAL `O0B_SHIPPING_ORIGIN_UNSAVED_BLOCKER`  
-- O1-F: regra de senha visível no login + constante única — VAL `O1F_LOGIN_PASSWORD_RULE`  
-- O0-C: Meus veículos sem “cadastro mestre” — VAL `O0C_ACCOUNT_VEHICLES_COPY`  
+---
 
-**Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
-**Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
+## 5. VALs recentes (âncoras)
+
+`O1G_BUY_NOW_QTY` · `O1E_ME_UNSAVED_BLOCKER` · `O1D_OWN_UNSAVED_BLOCKER` · `O0B_SHIPPING_ORIGIN_UNSAVED_BLOCKER` · `O1F_LOGIN_PASSWORD_RULE` · `O0C_ACCOUNT_VEHICLES_COPY` · (+ série #150–#163 no histórico do mesmo arquivo)
