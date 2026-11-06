@@ -194,7 +194,14 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         </p>
       ) : null}
 
-      {envelope?.status === 'ok' && envelope.options.length ? (
+      {envelope?.status === 'ok' && envelope.options.length === 0 ? (
+        <p className="mb-0 mt-3 text-sm text-fal-muted" role="status">
+          {envelope.message ??
+            'Nenhuma opção de entrega para este CEP. Confira as medidas do produto ou tente outro CEP.'}
+        </p>
+      ) : null}
+
+      {envelope?.status === 'ok' && envelope.options.length > 0 ? (
         <div className="mt-3 space-y-2">
           <p className="m-0 text-sm font-bold text-fal-ink">Opções disponíveis</p>
           <ul className="m-0 list-none space-y-2 p-0">
