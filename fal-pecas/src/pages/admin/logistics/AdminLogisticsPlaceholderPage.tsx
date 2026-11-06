@@ -1,5 +1,5 @@
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 
 const copy: Record<string, { title: string; body: string }> = {
   'melhor-envio': {
@@ -22,9 +22,6 @@ export function AdminLogisticsPlaceholderPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/admin/logistica" className="text-sm font-semibold text-fal-navy no-underline">
-        ← Logística
-      </Link>
       <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">{meta.title}</h1>
       <p className="rounded-[14px] border border-fal-line bg-white p-5 text-sm text-fal-muted">
         {meta.body}

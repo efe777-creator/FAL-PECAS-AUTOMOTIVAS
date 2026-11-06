@@ -15,7 +15,6 @@ import {
   type SearchSynonymRow,
 } from '@/services/search/searchPrepService'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 export function AdminSearchPrepPage() {
   useDocumentTitle('Busca — prep IA | Admin FAL')
@@ -106,11 +105,6 @@ export function AdminSearchPrepPage() {
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
           Prepara o catálogo para busca melhor (e IA depois): documento unificado + sinônimos.
           Sem modelo vetorial nesta etapa.
-        </p>
-        <p className="mt-2 text-sm">
-          <Link className="font-semibold text-fal-navy hover:underline" to="/admin">
-            ← Painel
-          </Link>
         </p>
       </div>
 

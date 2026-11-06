@@ -13,7 +13,6 @@ import {
 } from '@/services/admin/adminShippingOriginService'
 import { lookupCep } from '@/services/address/addressLookupService'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 
 export function AdminShippingOriginPage() {
   useDocumentTitle('Origem e expedição | Admin FAL')
@@ -164,10 +163,7 @@ export function AdminShippingOriginPage() {
 
   return (
     <div className="space-y-4">
-      <Link to="/admin/logistica" className="text-sm font-semibold text-fal-navy no-underline">
-        ← Logística
-      </Link>
-      <h1 className="text-2xl font-extrabold text-fal-navy">Origem e expedição</h1>
+      <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Origem e expedição</h1>
       <p className="text-sm text-fal-muted">
         Cadastro da origem da loja + remetente (compartilhado por frete próprio e Melhor Envio).
         Frete com transportadora externa exige credenciais configuradas no servidor. Complemento é o

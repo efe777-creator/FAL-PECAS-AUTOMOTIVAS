@@ -468,13 +468,10 @@ export function AdminProductFormPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-extrabold text-fal-navy">
+      <div>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">
           {isNew ? 'Novo produto' : 'Editar produto'}
         </h1>
-        <Link to="/admin/produtos" className="text-sm font-semibold text-fal-auth-link">
-          Voltar à lista
-        </Link>
       </div>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 

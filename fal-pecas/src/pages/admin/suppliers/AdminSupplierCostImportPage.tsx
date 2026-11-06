@@ -19,10 +19,7 @@ export function AdminSupplierCostImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/admin/fornecedores" className="text-sm font-semibold text-fal-navy underline">
-          ← Voltar aos fornecedores
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Importar custos</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Importar custos</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Formato: <code className="rounded bg-fal-bg px-1">codigo_fornecedor;custo</code>. Atualiza
           o custo base no fornecedor (exige conversão prévia). Preços de venda não são

@@ -99,11 +99,6 @@ export function AdminImageSkuImportPage() {
           {CODIGO_REFERENCIA_LABEL} (ex.: <code className="text-fal-ink">BRD5605.jpg</code>,{' '}
           <code className="text-fal-ink">BRD5605_2.png</code> para foto extra).
         </p>
-        <p className="mt-2 text-sm">
-          <Link className="font-semibold text-fal-navy hover:underline" to="/admin/produtos">
-            ← Produtos
-          </Link>
-        </p>
       </div>
 
       <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">

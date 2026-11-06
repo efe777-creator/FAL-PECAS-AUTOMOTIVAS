@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #151 (+ breadcrumbs em ship)  
+**HEAD:** `main` @ merge #152 (+ limpeza ← Voltar em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -85,6 +85,7 @@
 - O1-I: menu/dashboard filtrados por papel (`adminNavAccess`) — VAL `O1I_ADMIN_NAV_ROLE`  
 - O1-I: gate de rota (`AdminForbiddenPage`) — VAL `O1I_ADMIN_PATH_GATE`  
 - O1-I: breadcrumbs no shell (`AdminBreadcrumbs`) — VAL `O1I_ADMIN_BREADCRUMBS`  
+- O1-I: limpeza “← Voltar” ad hoc — VAL `O1I_ADMIN_BACK_LINKS`  
 
-**Próxima MARCHA sugerida (código):** limpar “← Voltar” ad hoc **ou** Onda 3/4 gated / residuals.  
+**Próxima MARCHA sugerida (código):** Onda 3/4 gated **ou** residuals O1-B/C/E pontuais.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

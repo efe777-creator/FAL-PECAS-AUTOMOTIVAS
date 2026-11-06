@@ -98,10 +98,7 @@ export function AdminOrdersViewPage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/admin/pedidos" className="text-sm font-semibold text-fal-navy no-underline">
-          ← Central de Pedidos
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">{view.title}</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">{view.title}</h1>
         <p className="mt-1 text-sm text-fal-muted">{view.description}</p>
       </div>
 

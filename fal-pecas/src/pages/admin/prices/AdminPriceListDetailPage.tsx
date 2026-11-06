@@ -836,10 +836,7 @@ export function AdminPriceListDetailPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <Link to="/admin/precos" className="text-sm font-semibold text-fal-navy underline">
-            ← Listas de preços
-          </Link>
-          <div className="mt-2 flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <label className="block min-w-[240px] flex-1 text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Lista de preços</span>
               <select

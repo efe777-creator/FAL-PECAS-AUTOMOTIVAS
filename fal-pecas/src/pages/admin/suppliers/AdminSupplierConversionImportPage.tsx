@@ -13,7 +13,6 @@ import { adminListSuppliers } from '@/services/admin/adminSupplierService'
 import { delimiterLabel, type CsvDelimiter } from '@/services/import'
 import type { Supplier } from '@/types'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 
 function canImport(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
@@ -150,10 +149,7 @@ export function AdminSupplierConversionImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/admin/fornecedores" className="text-sm font-semibold text-fal-navy underline">
-          ← Voltar aos fornecedores
-        </Link>
-        <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Importar conversões</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Importar conversões</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Formato: <code className="rounded bg-fal-bg px-1">codigo_fal;codigo_fornecedor</code>.
           Fornecedor obrigatório na tela (não inferido do arquivo). Persiste em{' '}
