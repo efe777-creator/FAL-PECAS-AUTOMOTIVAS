@@ -43,9 +43,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin pedidos: paginação em áreas e visões (cap 200 deixava de ser só na lista avançada)  
 - Catálogo mobile: filtros em `MobileDrawer` + sticky contagem corrigida (O1-H residual)  
 - Catálogo ↔ PDP: restaura scroll ao voltar (`ScrollToTop` ignora POP + sessionStorage)  
+- Meus pedidos: cards mobile + CTA botão (Continuar pagamento / Responder loja)  
 
 ## Próximo código (opcional)
 
-- Residuais O1-H (Meus pedidos cards mobile / Continuar pagamento)  
+- Residuais O1-H finos (lightbox z-index / padding, se ainda aberto)  
 - Itens do plano mestre ainda P/N + gates humanos (frete/pagamento/ME/sinônimos)  
 
