@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -228,10 +229,21 @@ export function AccountVehiclesPage() {
                   variant="danger"
                   size="sm"
                   onClick={() => {
-                    if (!window.confirm('Remover este veículo salvo?')) return
-                    void removeSavedVehicle(v.id)
-                      .then(reload)
-                      .catch((err) => setError(String(err)))
+                    void (async () => {
+                      const { confirmed } = await confirmDialog({
+                        title: 'Remover veículo?',
+                        message: 'Remover este veículo salvo?',
+                        confirmLabel: 'Remover',
+                        danger: true,
+                      })
+                      if (!confirmed) return
+                      try {
+                        await removeSavedVehicle(v.id)
+                        await reload()
+                      } catch (err) {
+                        setError(String(err))
+                      }
+                    })()
                   }}
                 >
                   Remover
