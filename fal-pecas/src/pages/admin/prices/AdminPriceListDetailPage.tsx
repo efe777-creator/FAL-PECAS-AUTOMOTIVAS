@@ -1,10 +1,11 @@
-import { PriceListConfigTab } from '@/components/admin/prices/PriceListConfigTab'
+﻿import { PriceListConfigTab } from '@/components/admin/prices/PriceListConfigTab'
 import { PriceListFormacaoTab } from '@/components/admin/prices/PriceListFormacaoTab'
 import { PriceListImportsTab } from '@/components/admin/prices/PriceListImportsTab'
 import { PriceListProductsTab } from '@/components/admin/prices/PriceListProductsTab'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import {
@@ -109,6 +110,7 @@ export function AdminPriceListDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canManagePricing(user?.role)
 
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')))
@@ -125,6 +127,15 @@ export function AdminPriceListDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    toast.push(msg, 'success')
+  }
   const [pricingItem, setPricingItem] = useState<PriceListItem | null>(null)
   const [rowBusy, setRowBusy] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -264,7 +275,7 @@ export function AdminPriceListDetailPage() {
         setCfgValidUntil(isoToDatetimeLocal(l.validUntil))
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
     } finally {
       setLoading(false)
     }
@@ -401,8 +412,9 @@ export function AdminPriceListDetailPage() {
       setSku('')
       setPrice('')
       await reload()
+      pushOk('Item salvo na lista.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar item')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar item')
     }
   }
 
@@ -442,7 +454,7 @@ export function AdminPriceListDetailPage() {
         setRuleExtraCostPercent(String(l.listExtraCostPercent ?? 0))
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao recarregar')
+      pushError(e instanceof Error ? e.message : 'Erro ao recarregar')
     }
   }
 
@@ -476,8 +488,9 @@ export function AdminPriceListDetailPage() {
       }
       setPricingItem(null)
       await withWindowScrollPreserved(() => reloadQuiet())
+      pushOk('Precificação atualizada.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
     } finally {
       setRowBusy(null)
     }
@@ -485,7 +498,7 @@ export function AdminPriceListDetailPage() {
 
   async function removeItem(itemId: string) {
     if (isVirtualPriceListItemId(itemId)) {
-      setError('Item ainda não está na lista — nada a remover')
+      pushError('Item ainda não está na lista — nada a remover')
       return
     }
     const { confirmed: okRemove } = await confirmDialog({
@@ -499,8 +512,9 @@ export function AdminPriceListDetailPage() {
     try {
       await adminDeletePriceListItem(itemId)
       await withWindowScrollPreserved(() => reloadQuiet())
+      pushOk('Item removido da lista.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao remover')
+      pushError(err instanceof Error ? err.message : 'Falha ao remover')
     } finally {
       setRowBusy(null)
     }
@@ -509,7 +523,7 @@ export function AdminPriceListDetailPage() {
   async function onBulkRemove() {
     const real = selectedItems.filter((i) => !isVirtualPriceListItemId(i.id))
     if (!real.length) {
-      setError('Seleção só tem itens ainda fora da lista — nada a remover')
+      pushError('Seleção só tem itens ainda fora da lista — nada a remover')
       return
     }
     const { confirmed: okBulkRemove } = await confirmDialog({
@@ -525,8 +539,9 @@ export function AdminPriceListDetailPage() {
         await adminDeletePriceListItem(item.id)
       }
       await reload()
+      pushOk(`${real.length} item(ns) removido(s).`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha na remoção em massa')
+      pushError(err instanceof Error ? err.message : 'Falha na remoção em massa')
     } finally {
       setBusy(false)
     }
@@ -563,8 +578,9 @@ export function AdminPriceListDetailPage() {
         })
       }
       await reload()
+      pushOk(`Regra aplicada em ${selectedItems.length} item(ns).`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha no recálculo da seleção')
+      pushError(err instanceof Error ? err.message : 'Falha no recálculo da seleção')
     } finally {
       setBusy(false)
     }
@@ -573,7 +589,7 @@ export function AdminPriceListDetailPage() {
   async function onBulkSetPrice() {
     const priceNum = parseMoneyBr(bulkPrice)
     if (priceNum == null || priceNum < 0) {
-      setError('Preço em massa inválido')
+      pushError('Preço em massa inválido')
       return
     }
     if (!selectedItems.length) return
@@ -611,8 +627,9 @@ export function AdminPriceListDetailPage() {
       }
       setBulkPrice('')
       await reload()
+      pushOk(`Preço manual definido em ${selectedItems.length} item(ns).`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao alterar preços')
+      pushError(err instanceof Error ? err.message : 'Falha ao alterar preços')
     } finally {
       setBusy(false)
     }
@@ -662,12 +679,12 @@ export function AdminPriceListDetailPage() {
     setError(null)
     try {
       const extraMsg = await persistRuleOnly()
-      setRuleReport(
-        `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda NÃO foram alterados.${extraMsg}`,
-      )
+      const msg = `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda NÃO foram alterados.${extraMsg}`
+      setRuleReport(msg)
+      pushOk(msg)
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar regra')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar regra')
     } finally {
       setBusy(false)
     }
@@ -680,7 +697,7 @@ export function AdminPriceListDetailPage() {
   async function onApplyMarginToSell() {
     if (!allowed) return
     if (ruleMethod === 'fixed') {
-      setError('Lista em modo fixo — não há formação por margem/markup')
+      pushError('Lista em modo fixo — não há formação por margem/markup')
       return
     }
     setBusy(true)
@@ -693,7 +710,9 @@ export function AdminPriceListDetailPage() {
       })
       const dry = await adminRecalculatePriceListItems({ priceListId: id, dryRun: true })
       if (dry.message) {
-        setRuleReport(dry.message + extraMsg)
+        const msg = dry.message + extraMsg
+        setRuleReport(msg)
+        pushOk(msg)
         await reload()
         return
       }
@@ -708,20 +727,21 @@ export function AdminPriceListDetailPage() {
         confirmLabel: 'Aplicar',
       })
       if (!okMargin) {
-        setRuleReport(
-          `Regra salva; aplicação de venda cancelada. Incluídos na lista: ${sync.created}.${extraMsg}`,
-        )
+        const cancelMsg = `Regra salva; aplicação de venda cancelada. Incluídos na lista: ${sync.created}.${extraMsg}`
+        setRuleReport(cancelMsg)
+        pushOk(cancelMsg)
         await reload()
         return
       }
       const applied = await adminRecalculatePriceListItems({ priceListId: id, dryRun: false })
-      setRuleReport(
+      const applyMsg =
         `Margem aplicada. Venda atualizada: ${applied.updated}. ` +
-          `Incluídos na lista: ${sync.created}. Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}.${extraMsg}`,
-      )
+        `Incluídos na lista: ${sync.created}. Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}.${extraMsg}`
+      setRuleReport(applyMsg)
+      pushOk(applyMsg)
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar margem')
+      pushError(err instanceof Error ? err.message : 'Falha ao aplicar margem')
     } finally {
       setBusy(false)
     }
@@ -733,7 +753,7 @@ export function AdminPriceListDetailPage() {
         ? Number(String(adjustValue).replace(',', '.'))
         : parseMoneyBr(adjustValue)
     if (raw == null || Number.isNaN(raw) || raw === 0) {
-      setError('Informe um valor de ajuste diferente de zero')
+      pushError('Informe um valor de ajuste diferente de zero')
       return
     }
     const signed = adjustDirection === 'down' ? -Math.abs(raw) : Math.abs(raw)
@@ -752,11 +772,13 @@ export function AdminPriceListDetailPage() {
         value: signed,
         changedBy: user?.id ?? null,
       })
-      setAdjustReport(`Atualizados: ${result.updated}. Sem mudança: ${result.skipped}.`)
+      const adjMsg = `Atualizados: ${result.updated}. Sem mudança: ${result.skipped}.`
+      setAdjustReport(adjMsg)
+      pushOk(adjMsg)
       setAdjustValue('')
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha no ajuste global')
+      pushError(err instanceof Error ? err.message : 'Falha no ajuste global')
     } finally {
       setBusy(false)
     }
@@ -782,9 +804,10 @@ export function AdminPriceListDetailPage() {
         pricingPercent: list?.pricingPercent,
       })
       setCfgReport('Configuração salva.')
+      pushOk('Configuração salva.')
       await reload()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
     } finally {
       setBusy(false)
     }
@@ -794,7 +817,7 @@ export function AdminPriceListDetailPage() {
     try {
       setImportDetail(await adminGetImportDetail(importId))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao abrir importação')
+      pushError(err instanceof Error ? err.message : 'Falha ao abrir importação')
     }
   }
 
