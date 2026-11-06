@@ -81,6 +81,7 @@
 - Onda 2 SEO: title `/veiculo`, JSON-LD Home, `OrdersPage` → `/conta/pedidos`  
 - O1-E: ME sync avisa edições não salvas  
 - O1-I: AdminLayout mobile Escape + inert + título da página  
+- O1-I: detalhe pedido — seções 1–6 + painel confirmação junto dos botões  
 
-**Próxima MARCHA sugerida (código):** O1-I detalhe pedido (seções) **ou** Onda 3/4 gated.  
+**Próxima MARCHA sugerida (código):** Onda 3/4 gated **ou** residuals pontuais do plano.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
