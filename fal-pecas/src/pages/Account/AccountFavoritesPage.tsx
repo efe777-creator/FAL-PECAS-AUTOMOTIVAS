@@ -1,6 +1,7 @@
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { ProductCard } from '@/components/product/ProductCard'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { listFavoriteProducts } from '@/services/customers/favoriteService'
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react'
 
 export function AccountFavoritesPage() {
   useDocumentTitle('Favoritos | FAL Peças Automotivas')
+  const toast = useToast()
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,11 +22,14 @@ export function AccountFavoritesPage() {
         setItems(await listFavoriteProducts())
         setError(null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar favoritos')
+        const message = e instanceof Error ? e.message : 'Erro ao carregar favoritos'
+        setError(message)
+        toast.push(message, 'error')
       } finally {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   if (loading) return <Loading label="Carregando favoritos…" />

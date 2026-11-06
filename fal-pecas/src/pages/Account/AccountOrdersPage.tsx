@@ -3,6 +3,7 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDate } from '@/lib/datetime'
 import { customerOrderListCta, orderStatusLabel } from '@/lib/orderLifecycle'
@@ -23,6 +24,7 @@ function statusBadgeClass(status: string): string | undefined {
 
 export function AccountOrdersPage() {
   useDocumentTitle('Meus pedidos | FAL Peças Automotivas')
+  const toast = useToast()
   const navigate = useNavigate()
   const [items, setItems] = useState<CustomerOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,11 +37,14 @@ export function AccountOrdersPage() {
         setItems(await listMyOrders())
         setError(null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
+        const message = e instanceof Error ? e.message : 'Erro ao carregar pedidos'
+        setError(message)
+        toast.push(message, 'error')
       } finally {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   if (loading) return <Loading label="Carregando pedidos…" />
