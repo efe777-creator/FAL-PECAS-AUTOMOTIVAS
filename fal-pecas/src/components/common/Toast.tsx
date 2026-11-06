@@ -10,7 +10,10 @@ import { Link } from 'react-router-dom'
 
 interface ToastAction {
   label: string
-  to: string
+  /** Navegação (Link). Mutuamente exclusivo com onClick na prática. */
+  to?: string
+  /** Ação imediata (ex.: Desfazer remoção no carrinho). */
+  onClick?: () => void
 }
 
 interface ToastItem {
@@ -74,7 +77,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role={t.tone === 'error' ? 'alert' : 'status'}
           >
             <span className="min-w-0 flex-1 leading-snug">{t.message}</span>
-            {t.action ? (
+            {t.action?.onClick ? (
+              <button
+                type="button"
+                className="shrink-0 rounded-md bg-white/20 px-2.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white hover:bg-white/30"
+                onClick={() => {
+                  t.action?.onClick?.()
+                  setItems((prev) => prev.filter((x) => x.id !== t.id))
+                }}
+              >
+                {t.action.label}
+              </button>
+            ) : t.action?.to ? (
               <Link
                 to={t.action.to}
                 className="shrink-0 rounded-md bg-white/20 px-2.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white no-underline hover:bg-white/30"

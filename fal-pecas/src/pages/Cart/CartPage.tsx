@@ -1,24 +1,50 @@
 import { Button } from '@/components/common/Button'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
+import { useToast } from '@/components/common/Toast'
 import { CartShippingQuoteBlock } from '@/components/cart/CartShippingQuoteBlock'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
+import type { CartItem } from '@/types'
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
   useDocumentTitle('Carrinho | FAL Peças Automotivas')
   const { user } = useAuth()
-  const { items, itemCount, subtotal, updateQty, removeItem, storageKind, syncPending } =
-    useCart()
+  const { push } = useToast()
+  const {
+    items,
+    itemCount,
+    subtotal,
+    updateQty,
+    removeItem,
+    restoreItem,
+    storageKind,
+    syncPending,
+  } = useCart()
   const [shippingAmount, setShippingAmount] = useState<number | null>(null)
   const onShippingAmountChange = useCallback((amount: number | null) => {
     setShippingAmount(amount)
   }, [])
+
+  function onRemove(item: CartItem) {
+    const snapshot: CartItem = { ...item }
+    removeItem(item.productId)
+    push('Item removido do carrinho', 'info', {
+      durationMs: 7000,
+      action: {
+        label: 'Desfazer',
+        onClick: () => {
+          restoreItem(snapshot)
+          push('Item restaurado no carrinho', 'success')
+        },
+      },
+    })
+  }
 
   if (!items.length) {
     return (
@@ -41,9 +67,9 @@ export function CartPage() {
       </h1>
       <p className="mt-0 mb-6 text-sm text-fal-muted">
         {storageKind === 'supabase'
-          ? 'Carrinho salvo nesta conta (sincronizado).'
+          ? 'Carrinho salvo nesta conta.'
           : 'Carrinho salvo neste dispositivo.'}
-        {syncPending ? ' Sincronizando…' : ''}
+        {syncPending ? ' Salvando…' : ''}
       </p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
         <div className="rounded-fal border border-fal-line bg-white p-5">
@@ -127,7 +153,7 @@ export function CartPage() {
                       type="button"
                       className="ml-2 text-sm font-bold text-fal-danger"
                       aria-label={`Remover ${item.name} do carrinho`}
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => onRemove(item)}
                     >
                       Remover
                     </button>

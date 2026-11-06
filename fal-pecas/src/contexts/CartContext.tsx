@@ -27,6 +27,8 @@ interface CartContextValue {
   subtotal: number
   addItem: (product: Product, quantity?: number) => void
   removeItem: (productId: string) => void
+  /** Recoloca um item removido (Desfazer no toast). */
+  restoreItem: (item: CartItem) => void
   updateQty: (productId: string, quantity: number) => void
   clear: () => void
   /** true enquanto merge/sync remoto em andamento */
@@ -192,6 +194,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((i) => i.productId !== productId))
   }, [])
 
+  const restoreItem = useCallback((item: CartItem) => {
+    if (!item.productId || item.quantity <= 0) return
+    setItems((prev) => {
+      if (prev.some((i) => i.productId === item.productId)) {
+        return prev.map((i) =>
+          i.productId === item.productId
+            ? { ...i, quantity: item.quantity, price: item.price }
+            : i,
+        )
+      }
+      return [...prev, { ...item }]
+    })
+  }, [])
+
   const updateQty = useCallback((productId: string, quantity: number) => {
     setItems((prev) =>
       prev
@@ -227,12 +243,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal,
       addItem,
       removeItem,
+      restoreItem,
       updateQty,
       clear,
       syncPending,
       storageKind,
     }),
-    [items, itemCount, subtotal, addItem, removeItem, updateQty, clear, syncPending, storageKind],
+    [
+      items,
+      itemCount,
+      subtotal,
+      addItem,
+      removeItem,
+      restoreItem,
+      updateQty,
+      clear,
+      syncPending,
+      storageKind,
+    ],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
