@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminDeleteSearchSynonym,
@@ -17,6 +18,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminSearchPrepPage() {
+  useDocumentTitle('Busca — prep IA | Admin FAL')
   const { push } = useToast()
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<SearchPrepSettings | null>(null)

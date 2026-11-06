@@ -7,6 +7,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import {
   PRICE_LIST_LAYERS_HINT,
@@ -116,6 +117,11 @@ export function AdminPriceListDetailPage() {
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')))
   const [wizardOpen, setWizardOpen] = useState(false)
   const [list, setList] = useState<PriceList | null>(null)
+  useDocumentTitle(
+    list?.name?.trim()
+      ? `${list.name.trim().slice(0, 48)} | Admin FAL`
+      : 'Lista de preços | Admin FAL',
+  )
   const [allLists, setAllLists] = useState<PriceList[]>([])
   const [items, setItems] = useState<PriceListItem[]>([])
   const [stats, setStats] = useState<PriceListStats | null>(null)
