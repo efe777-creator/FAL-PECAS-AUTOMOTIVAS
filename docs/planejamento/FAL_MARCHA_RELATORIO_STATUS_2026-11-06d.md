@@ -2,12 +2,12 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #144  
+**HEAD:** `main` @ merge #149 (+ O1-I nav role em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
 
-## 1. O que fizemos (continuidade recente — PRs #122–#144)
+## 1. O que fizemos (continuidade recente — PRs #122–#149+)
 
 ### Loja / funil
 | PR | Entrega |
@@ -82,6 +82,7 @@
 - O1-E: ME sync avisa edições não salvas  
 - O1-I: AdminLayout mobile Escape + inert + título da página  
 - O1-I: detalhe pedido — seções 1–6 + painel confirmação junto dos botões  
+- O1-I: menu/dashboard filtrados por papel (`adminNavAccess`) — VAL `O1I_ADMIN_NAV_ROLE`  
 
-**Próxima MARCHA sugerida (código):** Onda 3/4 gated **ou** residuals pontuais do plano.  
+**Próxima MARCHA sugerida (código):** guard de rota admin por papel **ou** Onda 3/4 gated / residuals.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

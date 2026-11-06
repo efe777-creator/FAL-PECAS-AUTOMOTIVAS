@@ -1,7 +1,8 @@
 import { Loading } from '@/components/common/Loading'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { filterAdminNavLinks } from '@/lib/adminNavAccess'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const catalogLinks = [
@@ -45,6 +46,7 @@ function NavSection({
   links: { to: string; label: string }[]
   onNavigate: () => void
 }) {
+  if (!links.length) return null
   return (
     <div>
       <p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-wide text-white/45">
@@ -134,6 +136,11 @@ export function AdminLayout() {
 
   const closeNav = () => setNavOpen(false)
   const userLabel = user?.email ?? user?.fullName ?? 'staff'
+  const role = user?.role
+
+  const catalogNav = useMemo(() => filterAdminNavLinks(catalogLinks, role), [role])
+  const salesNav = useMemo(() => filterAdminNavLinks(salesLinks, role), [role])
+  const opsNav = useMemo(() => filterAdminNavLinks(opsLinks, role), [role])
 
   const aside = (
     <aside
@@ -172,9 +179,9 @@ export function AdminLayout() {
               Dashboard
             </NavLink>
           </div>
-          <NavSection title="Catálogo" links={catalogLinks} onNavigate={closeNav} />
-          <NavSection title="Vendas" links={salesLinks} onNavigate={closeNav} />
-          <NavSection title="Operação" links={opsLinks} onNavigate={closeNav} />
+          <NavSection title="Catálogo" links={catalogNav} onNavigate={closeNav} />
+          <NavSection title="Vendas" links={salesNav} onNavigate={closeNav} />
+          <NavSection title="Operação" links={opsNav} onNavigate={closeNav} />
         </div>
 
         <div className="shrink-0 space-y-0.5 border-t border-white/10 p-3">

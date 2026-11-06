@@ -9,7 +9,9 @@ import {
   sumGroupCount,
   visibleStatusesInGroup,
 } from '@/lib/adminOrderOps'
+import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { canAccessAdminPath } from '@/lib/adminNavAccess'
 import { formatDateTime } from '@/lib/datetime'
 import {
   adminListOrders,
@@ -73,10 +75,22 @@ function actorClass(kind: ReturnType<typeof adminActorKind>): string {
 
 export function AdminDashboardPage() {
   useDocumentTitle('Dashboard | Admin FAL')
+  const { user } = useAuth()
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<AdminOrderListRow[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const visibleSections = useMemo(
+    () =>
+      sections
+        .map((section) => ({
+          ...section,
+          cards: section.cards.filter((c) => canAccessAdminPath(c.to, user?.role)),
+        }))
+        .filter((s) => s.cards.length > 0),
+    [user?.role],
+  )
 
   useEffect(() => {
     void (async () => {
@@ -257,7 +271,7 @@ export function AdminDashboardPage() {
         )}
       </section>
 
-      {sections.map((section) => (
+      {visibleSections.map((section) => (
         <section key={section.title} className="space-y-3">
           <h2 className="text-xs font-bold uppercase tracking-wide text-fal-muted">
             {section.title}
