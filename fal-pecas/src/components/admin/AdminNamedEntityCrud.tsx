@@ -5,38 +5,47 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { entityStatusLabel } from '@/lib/adminLabels'
 import type { EntityStatus } from '@/types'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 
 export type NamedEntityRow = {
   id: string
   name: string
-  slug: string
   status: EntityStatus
+  /** Fabricante/montadora */
+  slug?: string
+  /** Fornecedor */
+  code?: string | null
 }
 
 type Props = {
   title: string
-  description: string
-  /** Singular, ex.: fabricante / montadora */
+  description?: string
+  /** Singular, ex.: fabricante / montadora / fornecedor */
   entityLabel: string
   emptyTitle: string
   emptyDescription: string
+  /** Coluna secundária: slug (padrão) ou código */
+  secondaryField?: 'slug' | 'code'
+  headerActions?: ReactNode
   list: () => Promise<NamedEntityRow[]>
   upsert: (input: {
     id?: string
     name: string
     status?: EntityStatus
+    code?: string | null
   }) => Promise<unknown>
   setStatus: (id: string, status: EntityStatus) => Promise<unknown>
 }
 
-/** CRUD nome+slug+status compartilhado (Fabricantes / Montadoras). */
+/** CRUD compartilhado Fabricantes / Montadoras / Fornecedores. */
 export function AdminNamedEntityCrud({
   title,
   description,
   entityLabel,
   emptyTitle,
   emptyDescription,
+  secondaryField = 'slug',
+  headerActions,
   list,
   upsert,
   setStatus,
@@ -44,6 +53,7 @@ export function AdminNamedEntityCrud({
   const toast = useToast()
   const [items, setItems] = useState<NamedEntityRow[]>([])
   const [name, setName] = useState('')
+  const [code, setCode] = useState('')
   const [editing, setEditing] = useState<NamedEntityRow | null>(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -76,14 +86,18 @@ export function AdminNamedEntityCrud({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return items
-    return items.filter(
-      (row) => row.name.toLowerCase().includes(q) || row.slug.toLowerCase().includes(q),
-    )
+    return items.filter((row) => {
+      if (row.name.toLowerCase().includes(q)) return true
+      if ((row.slug ?? '').toLowerCase().includes(q)) return true
+      if ((row.code ?? '').toLowerCase().includes(q)) return true
+      return false
+    })
   }, [items, search])
 
   function startEdit(row: NamedEntityRow) {
     setEditing(row)
     setName(row.name)
+    setCode(row.code ?? '')
     window.requestAnimationFrame(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       nameInputRef.current?.focus()
@@ -94,6 +108,7 @@ export function AdminNamedEntityCrud({
   function cancelEdit() {
     setEditing(null)
     setName('')
+    setCode('')
   }
 
   async function onSubmit(e: FormEvent) {
@@ -103,8 +118,10 @@ export function AdminNamedEntityCrud({
         id: editing?.id,
         name,
         status: editing?.status ?? 'active',
+        ...(secondaryField === 'code' ? { code: code || null } : {}),
       })
       setName('')
+      setCode('')
       setEditing(null)
       await reload()
       toast.push(editing ? `${entityLabel} atualizado(a).` : `${entityLabel} criado(a).`, 'success')
@@ -127,12 +144,24 @@ export function AdminNamedEntityCrud({
     }
   }
 
-  const nameLabel = editing ? `Editar ${entityLabel}` : `Nov${entityLabel.endsWith('a') ? 'a' : 'o'} ${entityLabel}`
+  const createLabel = editing
+    ? `Editar ${entityLabel}`
+    : entityLabel.endsWith('a')
+      ? `Nova ${entityLabel}`
+      : `Novo ${entityLabel}`
+
+  const secondaryHeader = secondaryField === 'code' ? 'Código' : 'Slug'
+  const searchHint = secondaryField === 'code' ? 'Nome ou código…' : 'Nome ou slug…'
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">{title}</h1>
-      <p className="text-sm text-fal-muted">{description}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-fal-navy">{title}</h1>
+          {description ? <p className="mt-1 text-sm text-fal-muted">{description}</p> : null}
+        </div>
+        {headerActions ? <div className="flex flex-wrap gap-2">{headerActions}</div> : null}
+      </div>
       <form
         ref={formRef}
         onSubmit={(e) => void onSubmit(e)}
@@ -143,12 +172,17 @@ export function AdminNamedEntityCrud({
         <div className="min-w-[220px] flex-1">
           <Input
             ref={nameInputRef}
-            label={nameLabel}
+            label={createLabel}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
+        {secondaryField === 'code' ? (
+          <div className="min-w-[140px]">
+            <Input label="Código" value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+        ) : null}
         <Button type="submit" variant="primary">
           {editing ? 'Salvar' : 'Criar'}
         </Button>
@@ -162,7 +196,7 @@ export function AdminNamedEntityCrud({
         label={`Buscar ${entityLabel}`}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Nome ou slug…"
+        placeholder={searchHint}
       />
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {loading ? <Loading /> : null}
@@ -171,7 +205,7 @@ export function AdminNamedEntityCrud({
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
               <th className="px-3 py-2">Nome</th>
-              <th className="px-3 py-2">Slug</th>
+              <th className="px-3 py-2">{secondaryHeader}</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Ações</th>
             </tr>
@@ -192,7 +226,9 @@ export function AdminNamedEntityCrud({
                   }`}
                 >
                   <td className="px-3 py-2 font-semibold">{row.name}</td>
-                  <td className="px-3 py-2 text-fal-muted">{row.slug}</td>
+                  <td className="px-3 py-2 text-fal-muted">
+                    {secondaryField === 'code' ? (row.code ?? '—') : (row.slug ?? '—')}
+                  </td>
                   <td className="px-3 py-2">{entityStatusLabel(row.status)}</td>
                   <td className="px-3 py-2 space-x-2">
                     <button
