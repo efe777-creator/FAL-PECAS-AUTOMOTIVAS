@@ -245,7 +245,7 @@ export function AdminProductsPage() {
       })
       setReleasePreflight(rows)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha no pré-flight D-LIBERAR')
+      setError(e instanceof Error ? e.message : 'Falha no pré-flight de liberação')
     } finally {
       setBusyBulk(false)
     }
@@ -255,7 +255,7 @@ export function AdminProductsPage() {
     if (!releasePreflight?.length) return
     const eligible = releasePreflight.filter((r) => r.canRelease).map((r) => r.productId)
     if (!eligible.length) {
-      setError('Nenhum produto passou no checklist hard (D-LIBERAR).')
+      setError('Nenhum produto passou no checklist de liberação.')
       return
     }
     const blocked = releasePreflight.length - eligible.length
@@ -542,7 +542,7 @@ export function AdminProductsPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h3 className="m-0 text-base font-extrabold text-fal-navy">
-                  Pré-flight Liberar (D-LIBERAR)
+                  Pré-flight Liberar
                 </h3>
                 <p className="mt-1 text-sm text-fal-muted">
                   Hard bloqueia; aplicação/imagem são avisos. Só quem passa hard será liberado.
@@ -610,7 +610,7 @@ export function AdminProductsPage() {
           <div>
             <h3 className="m-0 text-base font-extrabold text-fal-navy">Situação</h3>
             <p className="mt-1 text-xs text-fal-muted">
-              Status comercial e disponibilidade na loja. Liberar usa checklist D-LIBERAR.
+              Status comercial e disponibilidade na loja. Liberar usa o checklist de publicação.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

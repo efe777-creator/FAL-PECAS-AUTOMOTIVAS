@@ -430,11 +430,11 @@ export function AdminProductFormPage() {
           ? `\nAvisos: ${pre.softWarnings.map((w) => w.label).join(', ')}`
           : ''
       if (!pre.canRelease) {
-        setError(`Checklist D-LIBERAR: ${pre.summary}`)
+        setError(`Checklist de liberação: ${pre.summary}`)
         return
       }
       const { confirmed } = await confirmDialog({
-        title: 'Liberar na loja (D-LIBERAR)?',
+        title: 'Liberar na loja?',
         message:
           `• Hard: nome, código ref., categoria, preço resolvido > 0\n` +
           `• ${publishIfNeeded ? 'Publicar neste passo' : 'Já published'}\n` +

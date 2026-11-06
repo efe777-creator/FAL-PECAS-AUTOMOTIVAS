@@ -138,9 +138,8 @@ export function AdminSupplierCostImportPage() {
         <h1 className="mt-2 text-2xl font-extrabold text-fal-navy">Importar custos</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Formato: <code className="rounded bg-fal-bg px-1">codigo_fornecedor;custo</code>.
-          Atualiza <strong>supplier_products.cost</strong> (custo base). Exige conversão prévia.
-          Schema D15 preparado (<code className="rounded bg-fal-bg px-1">extra_cost</code> /
-          <code className="rounded bg-fal-bg px-1">list_extra_cost</code>) — sem rateio nesta fatia.
+          Atualiza o custo base do produto no fornecedor. Exige conversão prévia. Adicionais de
+          lista (R$ / %) não são rateados nesta importação.
         </p>
       </div>
 
