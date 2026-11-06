@@ -10,7 +10,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { meApiBase } from '../_shared/melhorEnvioCore.ts'
 import {
-  pickSmallestFittingBox,
+  resolvePackingStrategy,
   sumItemsWeightKg,
   type PackingBox,
   type PackingItem,
@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
       })
       const weightSum = sumItemsWeightKg(packingItems)
 
-      // O1-C: menor caixa ativa que comporta volume+peso; fallback = max eixos (legado)
+      // O1-C: menor caixa ativa; sem templates → por item; com templates e nenhuma cabe → erro
       const { data: boxRows } = await admin
         .from('shipping_box_templates')
         .select(
@@ -400,7 +400,19 @@ Deno.serve(async (req) => {
         maxWeightKg: r.max_weight_kg == null ? null : Number(r.max_weight_kg),
         active: Boolean(r.active),
       }))
-      const fitted = pickSmallestFittingBox(packBoxes, packingItems)
+      const packing = resolvePackingStrategy(packBoxes, packingItems)
+
+      if (packing.mode === 'packing_failed') {
+        return json(422, {
+          status: 'packing_failed',
+          providerId: 'melhorenvio',
+          mode: 'live',
+          options: [],
+          message:
+            'Nenhuma caixa cadastrada comporta o volume/peso deste pedido. Ajuste modelos em Logística → Caixas ou as medidas dos produtos.',
+          quotedAt,
+        })
+      }
 
       let productsFinal: Array<{
         id: string
@@ -411,10 +423,10 @@ Deno.serve(async (req) => {
         insurance_value: number
         quantity: number
       }>
-      let packingMode: 'box_template' | 'max_axes' = 'max_axes'
+      const packingMode = packing.mode
+      const fitted = packing.mode === 'box_template' ? packing.box : null
 
       if (fitted) {
-        packingMode = 'box_template'
         const packedWeight = Number(
           (weightSum + fitted.emptyWeightKg).toFixed(3),
         )
@@ -430,30 +442,22 @@ Deno.serve(async (req) => {
           },
         ]
       } else {
-        const products = items.map((it, idx) => {
+        productsFinal = items.map((it, idx) => {
           const qty = Math.max(1, Number(it.quantity ?? 1))
           const w = Number(it.weightKg)
           const h = Number(it.heightCm)
           const wi = Number(it.widthCm)
           const le = Number(it.lengthCm)
+          const share =
+            weightSum > 0 ? (subtotal * (w * qty)) / weightSum : subtotal / items.length
           return {
             id: String(it.productId ?? idx + 1),
             width: wi,
             height: h,
             length: le,
             weight: w,
-            insurance_value: 1,
-            quantity: qty,
-          }
-        })
-        productsFinal = items.map((it, idx) => {
-          const qty = Math.max(1, Number(it.quantity ?? 1))
-          const w = Number(it.weightKg)
-          const share =
-            weightSum > 0 ? (subtotal * (w * qty)) / weightSum : subtotal / items.length
-          return {
-            ...products[idx]!,
             insurance_value: Number(Math.max(1, share).toFixed(2)),
+            quantity: qty,
           }
         })
       }
@@ -525,11 +529,13 @@ Deno.serve(async (req) => {
             emptyWeightKg: fitted.emptyWeightKg,
           }
         : {
-            packingMode,
+            packingMode: 'per_item' as const,
             weightKg: weightSum,
             heightCm: maxH,
             widthCm: maxW,
             lengthCm: maxL,
+            itemLines: items.length,
+            note: 'Sem templates ativos — cotação Melhor Envio por item',
           }
 
       /** Allowlist admin: só `enabled` vai para a loja. */

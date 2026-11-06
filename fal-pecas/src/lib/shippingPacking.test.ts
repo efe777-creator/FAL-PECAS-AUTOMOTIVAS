@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { pickSmallestFittingBox, type PackingBox } from './shippingPacking'
+import {
+  pickSmallestFittingBox,
+  resolvePackingStrategy,
+  type PackingBox,
+} from './shippingPacking'
 
 const boxes: PackingBox[] = [
   {
@@ -44,5 +48,27 @@ describe('pickSmallestFittingBox', () => {
       { lengthCm: 100, widthCm: 100, heightCm: 100, weightKg: 50, qty: 1 },
     ])
     expect(pick).toBeNull()
+  })
+})
+
+describe('resolvePackingStrategy', () => {
+  const item = { lengthCm: 10, widthCm: 10, heightCm: 5, weightKg: 1, qty: 1 }
+
+  it('usa caixa quando templates ativos comportam', () => {
+    const r = resolvePackingStrategy(boxes, [item])
+    expect(r.mode).toBe('box_template')
+    if (r.mode === 'box_template') expect(r.box.id).toBe('s')
+  })
+
+  it('falha quando há caixas mas nenhuma cabe (não usa max eixos)', () => {
+    const r = resolvePackingStrategy(boxes, [
+      { lengthCm: 100, widthCm: 100, heightCm: 100, weightKg: 50, qty: 1 },
+    ])
+    expect(r).toEqual({ mode: 'packing_failed' })
+  })
+
+  it('cai em per_item só sem templates ativos', () => {
+    const r = resolvePackingStrategy([], [item])
+    expect(r).toEqual({ mode: 'per_item' })
   })
 })

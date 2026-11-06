@@ -53,3 +53,25 @@ export function pickSmallestFittingBox(
 export function sumItemsWeightKg(items: PackingItem[]): number {
   return items.reduce((n, it) => n + it.weightKg * Math.max(1, it.qty), 0)
 }
+
+export type PackingStrategy =
+  | { mode: 'box_template'; box: PackingBox }
+  /** Sem templates ativos — cotação envia produtos individuais à API. */
+  | { mode: 'per_item' }
+  /** Há caixas ativas, mas nenhuma comporta volume/peso. */
+  | { mode: 'packing_failed' }
+
+/**
+ * O1-C: com templates ativos, exige caixa; sem templates, fallback por item
+ * (não inventa envelope “max eixos” como se fosse embalagem).
+ */
+export function resolvePackingStrategy(
+  boxes: PackingBox[],
+  items: PackingItem[],
+): PackingStrategy {
+  const active = boxes.filter((b) => b.active)
+  if (!active.length) return { mode: 'per_item' }
+  const box = pickSmallestFittingBox(active, items)
+  if (box) return { mode: 'box_template', box }
+  return { mode: 'packing_failed' }
+}
