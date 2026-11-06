@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { groupCompatibilityApps } from '@/services/products/compatibilitySummary'
+import {
+  groupCompatibilityApps,
+  summarizeCompatibilityRows,
+} from '@/services/products/compatibilitySummary'
 
 describe('groupCompatibilityApps (IMP-11 M3)', () => {
   it('agrupa por montadora e deduplica linhas', () => {
@@ -77,5 +80,71 @@ describe('groupCompatibilityApps (IMP-11 M3)', () => {
     expect(groups[0].lines).toHaveLength(6)
     const capped = groupCompatibilityApps(rows, 4)
     expect(capped[0].lines).toHaveLength(4)
+  })
+})
+
+describe('summarizeCompatibilityRows', () => {
+  it('não colapsa mesmo maker/modelo/ano com motores distintos', () => {
+    const map = summarizeCompatibilityRows(
+      [
+        {
+          productId: 'p1',
+          maker: 'VW',
+          model: 'Gol',
+          engine: '1.0',
+          version: null,
+          yearLabel: '2010',
+          notes: null,
+        },
+        {
+          productId: 'p1',
+          maker: 'VW',
+          model: 'Gol',
+          engine: '1.6',
+          version: null,
+          yearLabel: '2010',
+          notes: null,
+        },
+      ],
+      { maxEntries: 4 },
+    )
+    const summary = map.get('p1') ?? ''
+    expect(summary).toContain('1.0')
+    expect(summary).toContain('1.6')
+    expect(summary).not.toMatch(/\+\d/)
+  })
+
+  it('+N conta apps distintas por motor/versão', () => {
+    const rows = [
+      {
+        productId: 'p1',
+        maker: 'Fiat',
+        model: 'Uno',
+        engine: '1.0',
+        version: null,
+        yearLabel: '2012',
+        notes: null,
+      },
+      {
+        productId: 'p1',
+        maker: 'Fiat',
+        model: 'Uno',
+        engine: '1.4',
+        version: null,
+        yearLabel: '2012',
+        notes: null,
+      },
+      {
+        productId: 'p1',
+        maker: 'Fiat',
+        model: 'Uno',
+        engine: 'Fire',
+        version: null,
+        yearLabel: '2012',
+        notes: null,
+      },
+    ]
+    const map = summarizeCompatibilityRows(rows, { maxEntries: 1 })
+    expect(map.get('p1')).toMatch(/· \+2$/)
   })
 })
