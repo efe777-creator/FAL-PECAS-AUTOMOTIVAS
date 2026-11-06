@@ -344,7 +344,12 @@ export async function adminSetCategoryStatus(
 
 /** Relatório leve para integridade: nomes duplicados (normalizados) entre nós ativos. */
 export async function adminCategoryIntegrityReport(): Promise<{
-  duplicateNameGroups: { key: string; ids: string[]; names: string[] }[]
+  duplicateNameGroups: {
+    key: string
+    ids: string[]
+    names: string[]
+    productCounts: number[]
+  }[]
   archivedWithProducts: { id: string; name: string; productCount: number }[]
 }> {
   const items = await adminListCategories()
@@ -356,13 +361,17 @@ export async function adminCategoryIntegrityReport(): Promise<{
     list.push(c)
     byKey.set(key, list)
   }
-  const duplicateNameGroups = [...byKey.entries()]
-    .filter(([, list]) => list.length > 1)
-    .map(([key, list]) => ({
+  const duplicateNameGroups = []
+  for (const [key, list] of byKey.entries()) {
+    if (list.length < 2) continue
+    const productCounts = await Promise.all(list.map((c) => adminCountProductsInCategory(c.id)))
+    duplicateNameGroups.push({
       key,
       ids: list.map((c) => c.id),
       names: list.map((c) => c.name),
-    }))
+      productCounts,
+    })
+  }
 
   const archived = items.filter((c) => c.status === 'archived')
   const archivedWithProducts: { id: string; name: string; productCount: number }[] = []
@@ -373,6 +382,61 @@ export async function adminCategoryIntegrityReport(): Promise<{
     }
   }
   return { duplicateNameGroups, archivedWithProducts }
+}
+
+/**
+ * Mescla classificação A → B: reatribui `products.category_id`, arquiva A.
+ * Bloqueia se A tiver filhos ativos ou se B estiver sob A.
+ */
+export async function adminMergeCategory(opts: {
+  fromId: string
+  toId: string
+}): Promise<{ movedProducts: number; fromName: string; toName: string }> {
+  if (opts.fromId === opts.toId) {
+    throw new Error('Origem e destino devem ser diferentes.')
+  }
+  const items = await adminListCategories()
+  const from = items.find((c) => c.id === opts.fromId)
+  const to = items.find((c) => c.id === opts.toId)
+  if (!from) throw new Error('Classificação de origem não encontrada.')
+  if (!to) throw new Error('Classificação de destino não encontrada.')
+  if (to.status === 'archived') {
+    throw new Error(`Destino "${to.name}" está arquivado. Escolha um destino ativo.`)
+  }
+
+  let walk: string | null | undefined = to.parentId
+  const seen = new Set<string>()
+  while (walk) {
+    if (seen.has(walk)) break
+    seen.add(walk)
+    if (walk === from.id) {
+      throw new Error('Não é possível mesclar um ancestral no próprio descendente.')
+    }
+    walk = items.find((c) => c.id === walk)?.parentId ?? null
+  }
+
+  const kids = items.filter((c) => c.parentId === from.id && c.status !== 'archived')
+  if (kids.length > 0) {
+    throw new Error(
+      `"${from.name}" ainda tem ${kids.length} filho(s) ativo(s). Mova ou mescle os filhos antes.`,
+    )
+  }
+
+  const beforeCount = await adminCountProductsInCategory(from.id)
+
+  const { error: moveError } = await getSupabase()
+    .from('products')
+    .update({ category_id: opts.toId })
+    .eq('category_id', opts.fromId)
+  if (moveError) throw moveError
+
+  await adminSetCategoryStatus(opts.fromId, 'archived')
+
+  return {
+    movedProducts: beforeCount,
+    fromName: from.name,
+    toName: to.name,
+  }
 }
 
 /**

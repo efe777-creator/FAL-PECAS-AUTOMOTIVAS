@@ -1,0 +1,82 @@
+# Relatório MARCHA — o que fizemos / o que falta
+
+**Data:** 2026-11-06d  
+**Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
+**HEAD:** `main` @ merge #144  
+**Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
+
+---
+
+## 1. O que fizemos (continuidade recente — PRs #122–#144)
+
+### Loja / funil
+| PR | Entrega |
+|----|---------|
+| #132–#135 | O1-H: drawer filtros, scroll catálogo↔PDP, pedidos mobile cards, lightbox z-index |
+| #136 | O1-D: recota frete no carrinho ao mudar qty |
+| #137 | Fotos contain sem moldura cinza |
+| #138 | Carregar mais sem pular ao topo |
+| #139 | Remover + Desfazer no toast |
+| #140 | Checkout: CPF/CNPJ modo leitura + avanço |
+| #141 | PDP: mensagem frete 0 opções |
+| #144 | Checkout: resumo itens, foco no erro, Salvar endereço → Entrega |
+
+### Admin
+| PR | Entrega |
+|----|---------|
+| #122–#131 | Paginação listas + `document.title` hubs/subpáginas |
+| #142 | 404 `/admin/*` |
+| #143 | Dashboard sem zeros falsos no loading |
+
+### Antes (ondas fechadas no código)
+- **Onda 0** fundação UI + bugs bloqueantes (toast, ConfirmDialog, copy, senha, cartão, etc.)
+- **O1-A** inventário duplicidades (sem CONSOLIDAR aberto)
+- **O1-G** CTAs Comprar agora / Adicionar; card → PDP
+- **Onda 2/3 parciais:** SearchBar combobox, titles, robots/sitemap, Buscar pelo carro no topo, carrosséis/admin home em fatias anteriores
+
+---
+
+## 2. O que falta para “concluir” o plano
+
+### A) Gates humanos (bloqueiam “produção plena” — não é MARCHA de código)
+1. Publish / créditos Netlify (fernando)  
+2. **D-FRETE C** (cutover frete)  
+3. Pagamento Mercado Pago produção  
+4. Sinônimos (dados + ligar flag)  
+5. ME etiqueta em produção (M7)  
+6. Tarifas frete próprio (dados eFe)  
+
+### B) Código ainda P/N no plano (próximas MARCHAs / ondas)
+
+| Frente | Status | O que falta |
+|--------|--------|-------------|
+| **O1-B** Classificação | P | Relatório + merge A→B; revisão dados eFe antes de massa |
+| **O1-C** Caixas / padrões categoria | P/N | Templates + regra menor caixa; integrar cotação |
+| **O1-D** Frete próprio | P | Smoke `ownq` E2E; tarifas = gate; cutover = gate |
+| **O1-E** Melhor Envio | P | Hub/API_BASE/allowlist finos; etiqueta = gate |
+| **Onda 2** Busca/SEO | P | Facetas classificação; JSON-LD residual se faltar; favoritos em lote |
+| **Onda 3** Home comercial | P/N | Carrosséis/campanhas finos; **cond. pagamento (11/12) = decisão eFe** |
+| **Onda 4** Escala | N | Import imagens SKU; prep IA; relacionados curados |
+| Paralelo | — | Cancelamento pós-pago/estorno (M8); webhook M9 |
+
+### C) Critério “Onda 1 concluída” (plano §3)
+- [x] Funil guest/CPF/confirmação/CTAs/mobile drawer/paginação admin (grande parte)  
+- [ ] Merge classificação usável + caixa/padrão categoria  
+- [ ] VAL `ownq` place_order + VAL M7  
+- [ ] Cutover frete **só com assinatura eFe**  
+
+---
+
+## 3. Leitura rápida
+
+| Camada | Situação |
+|--------|----------|
+| Onda 0 | Fechada no código |
+| Onda 1 UX loja/admin | Quase fechada; faltam B/C/E + gates frete |
+| Ondas 2–4 | Parciais / futuras |
+| Produção comercial | Travada nos **gates humanos** |
+
+**Feito após 06d:** O1-B relatório + merge A→B na UI (`CategoriesIntegrityPanel`).  
+
+**Próxima MARCHA sugerida (código):** O1-C regra cotação/caixas residual **ou** Onda 2 facetas.  
+**Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

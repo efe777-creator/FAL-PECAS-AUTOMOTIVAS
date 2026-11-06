@@ -1,6 +1,7 @@
 ﻿import { CategoriesArchivedMenu } from '@/components/admin/categories/CategoriesArchivedMenu'
 import { CategoriesBrowseBar } from '@/components/admin/categories/CategoriesBrowseBar'
 import { CategoriesBrowsePanel } from '@/components/admin/categories/CategoriesBrowsePanel'
+import { CategoriesIntegrityPanel } from '@/components/admin/categories/CategoriesIntegrityPanel'
 import {
   CategoriesEditorForm,
   type CreateLevel,
@@ -595,6 +596,13 @@ export function AdminCategoriesPage() {
         </span>
         <CategoriesArchivedMenu items={items} onChanged={reload} />
       </div>
+
+      <CategoriesIntegrityPanel
+        items={items}
+        onChanged={reload}
+        onError={pushError}
+        onOk={pushOk}
+      />
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="light" onClick={() => startCreate(1)}>
