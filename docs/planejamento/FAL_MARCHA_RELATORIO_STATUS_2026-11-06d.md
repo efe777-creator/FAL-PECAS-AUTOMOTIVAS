@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #164 (+ ME unsaved blocker em ship)  
+**HEAD:** `main` @ merge #165 (+ own delivery unsaved blocker em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -99,6 +99,7 @@
 - Compat apps: keys React únicas — VAL `COMPAT_APPS_REACT_KEYS`  
 - O1-G: Comprar agora aplica qtd da PDP — VAL `O1G_BUY_NOW_QTY`  
 - O1-E / O0-B: ME — `useBlocker` + `beforeunload` com edições sujas — VAL `O1E_ME_UNSAVED_BLOCKER`  
+- O1-D / O0-B: Frete próprio Gerais — blocker + banner + beforeunload — VAL `O1D_OWN_UNSAVED_BLOCKER`  
 
 **Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
 **Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
