@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #173 (+ categories unsaved blocker em ship)  
+**HEAD:** `main` @ merge #174 (+ shipping boxes unsaved blocker em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -38,6 +38,7 @@
 | #172 | SOBERANA | Runbook + Home admin unsaved; **fernando Netlify STALE** |
 | #173 | Onda 2 | Fotos card escala ideal (não pequenininhas) |
 | #174 | O0-B | Classificação — blocker + banner se form sujo |
+| #175 | O1-C / O0-B | Caixas — blocker + banner se form sujo |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

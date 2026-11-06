@@ -4,6 +4,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminDeleteShippingBox,
@@ -24,6 +25,8 @@ const emptyForm = {
   sortOrder: '0',
 }
 
+type BoxForm = typeof emptyForm
+
 export function AdminShippingBoxesPage() {
   useDocumentTitle('Caixas e embalagens | Admin FAL')
   const toast = useToast()
@@ -33,6 +36,31 @@ export function AdminShippingBoxesPage() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [dirty, setDirty] = useState(false)
+
+  useUnsavedChangesBlocker(dirty, {
+    message: 'Há alterações na caixa ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
+  function patchForm(patch: Partial<BoxForm>) {
+    setDirty(true)
+    setForm((f) => ({ ...f, ...patch }))
+  }
+
+  function clearForm() {
+    setEditingId(null)
+    setForm(emptyForm)
+    setDirty(false)
+  }
 
   function pushError(msg: string) {
     setError(msg)
@@ -80,8 +108,7 @@ export function AdminShippingBoxesPage() {
         sortOrder: Number(form.sortOrder) || 0,
       })
       const wasEdit = Boolean(editingId)
-      setForm(emptyForm)
-      setEditingId(null)
+      clearForm()
       await reload()
       pushOk(wasEdit ? 'Caixa atualizada.' : 'Caixa adicionada.')
     } catch (err) {
@@ -102,6 +129,7 @@ export function AdminShippingBoxesPage() {
     setBusy(true)
     try {
       await adminDeleteShippingBox(row.id)
+      if (editingId === row.id) clearForm()
       await reload()
       pushOk(`Caixa "${row.name}" excluída.`)
     } catch (err) {
@@ -123,6 +151,7 @@ export function AdminShippingBoxesPage() {
       active: row.active,
       sortOrder: String(row.sortOrder),
     })
+    setDirty(false)
   }
 
   return (
@@ -136,6 +165,14 @@ export function AdminShippingBoxesPage() {
       </div>
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
+      {dirty ? (
+        <p
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+          role="status"
+        >
+          Alterações na caixa não salvas. Clique em Salvar antes de sair do admin.
+        </p>
+      ) : null}
       {loading ? <Loading label="Carregando caixas…" /> : null}
 
       <form
@@ -145,7 +182,7 @@ export function AdminShippingBoxesPage() {
         <Input
           label="Nome"
           value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          onChange={(e) => patchForm({ name: e.target.value })}
           required
         />
         <Input
@@ -154,7 +191,7 @@ export function AdminShippingBoxesPage() {
           step="0.1"
           min="0.1"
           value={form.lengthCm}
-          onChange={(e) => setForm((f) => ({ ...f, lengthCm: e.target.value }))}
+          onChange={(e) => patchForm({ lengthCm: e.target.value })}
           required
         />
         <Input
@@ -163,7 +200,7 @@ export function AdminShippingBoxesPage() {
           step="0.1"
           min="0.1"
           value={form.widthCm}
-          onChange={(e) => setForm((f) => ({ ...f, widthCm: e.target.value }))}
+          onChange={(e) => patchForm({ widthCm: e.target.value })}
           required
         />
         <Input
@@ -172,7 +209,7 @@ export function AdminShippingBoxesPage() {
           step="0.1"
           min="0.1"
           value={form.heightCm}
-          onChange={(e) => setForm((f) => ({ ...f, heightCm: e.target.value }))}
+          onChange={(e) => patchForm({ heightCm: e.target.value })}
           required
         />
         <Input
@@ -181,7 +218,7 @@ export function AdminShippingBoxesPage() {
           step="0.001"
           min="0"
           value={form.emptyWeightKg}
-          onChange={(e) => setForm((f) => ({ ...f, emptyWeightKg: e.target.value }))}
+          onChange={(e) => patchForm({ emptyWeightKg: e.target.value })}
         />
         <Input
           label="Peso máx. (kg, opcional)"
@@ -189,13 +226,13 @@ export function AdminShippingBoxesPage() {
           step="0.1"
           min="0"
           value={form.maxWeightKg}
-          onChange={(e) => setForm((f) => ({ ...f, maxWeightKg: e.target.value }))}
+          onChange={(e) => patchForm({ maxWeightKg: e.target.value })}
         />
         <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
           <input
             type="checkbox"
             checked={form.active}
-            onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
+            onChange={(e) => patchForm({ active: e.target.checked })}
           />
           Ativa
         </label>
@@ -204,14 +241,7 @@ export function AdminShippingBoxesPage() {
             {editingId ? 'Salvar alterações' : 'Adicionar caixa'}
           </Button>
           {editingId ? (
-            <Button
-              type="button"
-              variant="light"
-              onClick={() => {
-                setEditingId(null)
-                setForm(emptyForm)
-              }}
-            >
+            <Button type="button" variant="light" onClick={clearForm}>
               Cancelar edição
             </Button>
           ) : null}
