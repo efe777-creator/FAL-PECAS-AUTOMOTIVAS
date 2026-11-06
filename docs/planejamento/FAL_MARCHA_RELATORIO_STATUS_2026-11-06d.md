@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ `6c35c7a` (merge **#169**)  
+**HEAD:** `main` @ merge #170 (+ carousel no-half-card em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -33,6 +33,8 @@
 | #167 | O0-B | Origem/expedição: blocker + banner |
 | #168 | O1-F | Regra de senha visível no login + constante única |
 | #169 | O0-C | Meus veículos sem jargão “cadastro mestre” |
+| #170 | docs | Relatório MARCHA consolidado |
+| #171 | Onda 3 | Carrossel Destaques sem cortar card ao meio |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
