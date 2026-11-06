@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #175 (+ home campanhas primeiro em ship)  
+**HEAD:** `main` @ merge #176 (+ home topo design em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -40,6 +40,7 @@
 | #174 | O0-B | Classificação — blocker + banner se form sujo |
 | #175 | O1-C / O0-B | Caixas — blocker + banner se form sujo |
 | #176 | Onda 3 | Home: Campanhas primeiro; sem título “Peças certas” |
+| #177 | Onda 3 | Topo Home redesenhado (banner + faixa clara CTAs) |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
