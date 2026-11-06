@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   adminApplyConversionImport,
@@ -19,6 +20,7 @@ function canImport(role: string | undefined): boolean {
 
 export function AdminSupplierConversionImportPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canImport(user?.role)
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -30,8 +32,17 @@ export function AdminSupplierConversionImportPage() {
   const [delimiter, setDelimiter] = useState<string | null>(null)
   const [preview, setPreview] = useState<ConversionImportPreviewRow[] | null>(null)
   const [importId, setImportId] = useState<string | null>(null)
-  const [report, setReport] = useState<string | null>(null)
   const [showOnlyErrors, setShowOnlyErrors] = useState(false)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
 
   useEffect(() => {
     void (async () => {
@@ -41,12 +52,14 @@ export function AdminSupplierConversionImportPage() {
         setSuppliers(list.filter((s) => s.status === 'active'))
         setError(null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar fornecedores')
+        const msg = e instanceof Error ? e.message : 'Erro ao carregar fornecedores'
+        setError(msg)
+        toast.push(msg, 'error')
       } finally {
         setLoadingSuppliers(false)
       }
     })()
-  }, [])
+  }, [toast])
 
   function clearPreview() {
     setPreview(null)
@@ -57,12 +70,11 @@ export function AdminSupplierConversionImportPage() {
 
   async function onFile(file: File) {
     if (!supplierId) {
-      setError('Selecione o fornecedor antes do arquivo')
+      pushError('Selecione o fornecedor antes do arquivo')
       return
     }
     setBusy(true)
     setError(null)
-    setReport(null)
     clearPreview()
     try {
       setFileName(file.name)
@@ -72,11 +84,11 @@ export function AdminSupplierConversionImportPage() {
       })
       setDelimiter(d)
       if (fileErrors.length) {
-        setError(fileErrors.join(' · '))
+        pushError(fileErrors.join(' · '))
         return
       }
       if (rows.length === 0) {
-        setError('Arquivo sem linhas de dados')
+        pushError('Arquivo sem linhas de dados')
         return
       }
       setPreview(rows)
@@ -88,7 +100,7 @@ export function AdminSupplierConversionImportPage() {
       })
       setImportId(id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha no preview')
+      pushError(err instanceof Error ? err.message : 'Falha no preview')
     } finally {
       setBusy(false)
     }
@@ -113,13 +125,13 @@ export function AdminSupplierConversionImportPage() {
     setError(null)
     try {
       const result = await adminApplyConversionImport(importId)
-      setReport(
+      pushOk(
         `Criadas: ${result.created}. Atualizadas: ${result.updated}. ` +
           `Falhas: ${result.failed}. Ignoradas: ${result.skipped}.`,
       )
       clearPreview()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
     } finally {
       setBusy(false)
     }
@@ -162,7 +174,7 @@ export function AdminSupplierConversionImportPage() {
               onChange={(e) => {
                 setSupplierId(e.target.value)
                 clearPreview()
-                setReport(null)
+                setError(null)
               }}
             >
               <option value="">Selecione…</option>
@@ -196,7 +208,6 @@ export function AdminSupplierConversionImportPage() {
       )}
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {report ? <p className="text-sm text-green-700">{report}</p> : null}
 
       {preview ? (
         <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
