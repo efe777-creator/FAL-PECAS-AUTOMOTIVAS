@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #153 (+ unsaved blocker em ship)  
+**HEAD:** `main` @ merge #154 (+ verify suite em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -87,6 +87,7 @@
 - O1-I: breadcrumbs no shell (`AdminBreadcrumbs`) — VAL `O1I_ADMIN_BREADCRUMBS`  
 - O1-I: limpeza “← Voltar” ad hoc — VAL `O1I_ADMIN_BACK_LINKS`  
 - O0-B: `useBlocker` form produto sujo — VAL `O0B_PRODUCT_UNSAVED_BLOCKER`  
+- Verify: tsc + vitest 363 + build PASS; blocker com guard anti-dup — VAL `VERIFY_SUITE`  
 
 **Próxima MARCHA sugerida (código):** Onda 3/4 gated **ou** residuals O1-B/C/E pontuais.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

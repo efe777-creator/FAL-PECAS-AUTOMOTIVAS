@@ -1,5 +1,5 @@
 import { confirmDialog } from '@/components/common/ConfirmDialog'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useBlocker } from 'react-router-dom'
 
 /**
@@ -16,26 +16,32 @@ export function useUnsavedChangesBlocker(
   },
 ) {
   const blocker = useBlocker(when)
+  const prompting = useRef(false)
+
+  const title = opts?.title ?? 'Alterações não salvas'
+  const message =
+    opts?.message ?? 'Há alterações que ainda não foram salvas. Sair mesmo assim?'
+  const confirmLabel = opts?.confirmLabel ?? 'Sair sem salvar'
+  const cancelLabel = opts?.cancelLabel ?? 'Continuar editando'
 
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
-    let cancelled = false
+    if (blocker.state !== 'blocked' || prompting.current) return
+    prompting.current = true
     void (async () => {
-      const { confirmed } = await confirmDialog({
-        title: opts?.title ?? 'Alterações não salvas',
-        message:
-          opts?.message ??
-          'Há alterações que ainda não foram salvas. Sair mesmo assim?',
-        confirmLabel: opts?.confirmLabel ?? 'Sair sem salvar',
-        cancelLabel: opts?.cancelLabel ?? 'Continuar editando',
-        danger: true,
-      })
-      if (cancelled) return
-      if (confirmed) blocker.proceed()
-      else blocker.reset()
+      try {
+        const { confirmed } = await confirmDialog({
+          title,
+          message,
+          confirmLabel,
+          cancelLabel,
+          danger: true,
+        })
+        if (blocker.state !== 'blocked') return
+        if (confirmed) blocker.proceed()
+        else blocker.reset()
+      } finally {
+        prompting.current = false
+      }
     })()
-    return () => {
-      cancelled = true
-    }
-  }, [blocker, opts?.title, opts?.message, opts?.confirmLabel, opts?.cancelLabel])
+  }, [blocker, title, message, confirmLabel, cancelLabel])
 }
