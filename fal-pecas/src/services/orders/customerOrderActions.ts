@@ -25,10 +25,16 @@ export async function customerCancelUnpaidOrder(
 export async function customerRespondOrderDecision(
   orderId: string,
   decision: 'authorize' | 'reject',
+  reason?: string,
 ): Promise<CustomerDecisionResponse> {
+  const trimmed = reason?.trim() || null
+  if (decision === 'reject' && !trimmed) {
+    throw new Error('Informe o motivo da recusa')
+  }
   const { data, error } = await getSupabase().rpc('customer_respond_order_decision', {
     p_order_id: orderId,
     p_decision: decision,
+    p_reason: trimmed,
   })
   if (error) throw error
   return data as CustomerDecisionResponse
