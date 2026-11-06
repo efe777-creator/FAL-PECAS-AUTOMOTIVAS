@@ -30,7 +30,16 @@ function paymentBadge(o: AdminOrderListRow) {
   if (!o.paymentStatus) return '—'
   const expired =
     o.paymentExpiresAt != null && new Date(o.paymentExpiresAt).getTime() < Date.now()
-  return expired && o.paymentStatus === 'pending' ? 'pending (expirado)' : o.paymentStatus
+  if (expired && o.paymentStatus === 'pending') return 'Pendente (expirado)'
+  const map: Record<string, string> = {
+    pending: 'Pendente',
+    approved: 'Aprovado',
+    rejected: 'Recusado',
+    cancelled: 'Cancelado',
+    refunded: 'Estornado',
+    expired: 'Expirado',
+  }
+  return map[o.paymentStatus] ?? o.paymentStatus
 }
 
 export function waitingPaymentHours(createdAt: string): string {
