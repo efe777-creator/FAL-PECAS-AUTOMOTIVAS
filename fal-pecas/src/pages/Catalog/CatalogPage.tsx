@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
+import { MobileDrawer } from '@/components/navigation/MobileDrawer'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
@@ -87,6 +88,7 @@ export function CatalogPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
 
@@ -335,6 +337,8 @@ export function CatalogPage() {
     },
   ].filter(Boolean) as Array<{ key: string; label: string }>
 
+  const filterChipCount = activeChips.filter((c) => c.key !== 'q').length
+
   const emptyDescription =
     activeChips.length > 0
       ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros ou limpe a busca.`
@@ -389,137 +393,272 @@ export function CatalogPage() {
         </div>
       </form>
 
-      {/* Classificação Categoria → Grupo → Subgrupo + fabricante/ordem */}
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <Select
-          label="Categoria"
-          name="cat-root"
-          placeholder="Todas"
-          value={catPath.categoriaId}
-          options={rootCategoryOptions.map((c) => ({ value: c.value, label: c.label }))}
-          onChange={(e) => setCategoryFacet('categoria', e.target.value)}
-        />
-        <Select
-          label="Grupo"
-          name="cat-grupo"
-          placeholder={catPath.categoriaId ? 'Todos / opcional' : 'Escolha a categoria'}
-          value={catPath.grupoId}
-          options={grupoOptions.map((c) => ({ value: c.value, label: c.label }))}
-          disabled={!catPath.categoriaId || grupoOptions.length === 0}
-          onChange={(e) => setCategoryFacet('grupo', e.target.value)}
-        />
-        <Select
-          label="Subgrupo"
-          name="cat-sub"
-          placeholder={catPath.grupoId ? 'Todos / opcional' : 'Escolha o grupo'}
-          value={catPath.subgrupoId}
-          options={subgrupoOptions.map((c) => ({ value: c.value, label: c.label }))}
-          disabled={!catPath.grupoId || subgrupoOptions.length === 0}
-          onChange={(e) => setCategoryFacet('subgrupo', e.target.value)}
-        />
-        <Select
-          label="Fabricante"
-          name="brand"
-          placeholder="Todos / opcional"
-          value={brand}
-          options={brandOptions}
-          onChange={(e) => patchParams({ brand: e.target.value || null })}
-        />
-        <Select
-          label="Ordenar"
-          name="sort"
-          value={sort}
-          options={SORT_OPTIONS}
-          onChange={(e) =>
-            patchParams({
-              sort: e.target.value === 'relevance' ? null : e.target.value || null,
-            })
-          }
-        />
+      <div className="mt-3 flex lg:hidden">
+        <Button type="button" variant="outline" onClick={() => setFiltersOpen(true)}>
+          {filterChipCount > 0 ? `Filtros (${filterChipCount})` : 'Filtros'}
+        </Button>
       </div>
 
-      <details
-        className="mt-3 rounded-fal border border-fal-line bg-white open:pb-3"
-        open={vehicleFiltersActive || undefined}
-      >
-        <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
-          <span className="inline-flex items-center gap-2">
-            Filtros por veículo
-            {vehicleFiltersActive ? (
-              <span className="rounded-full bg-[#fff8db] px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark">
-                ativos
-              </span>
-            ) : (
-              <span className="font-normal text-fal-muted">opcional</span>
-            )}
-          </span>
-        </summary>
-        <div className="grid grid-cols-1 gap-3 border-t border-fal-line px-3.5 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* Classificação + veículo: inline no desktop; MobileDrawer no mobile */}
+      <div className="mt-3 hidden lg:block">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <Select
-            label="Montadora"
-            name="maker"
-            placeholder="Todas / opcional"
-            value={maker}
-            options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+            label="Categoria"
+            name="cat-root"
+            placeholder="Todas"
+            value={catPath.categoriaId}
+            options={rootCategoryOptions.map((c) => ({ value: c.value, label: c.label }))}
+            onChange={(e) => setCategoryFacet('categoria', e.target.value)}
+          />
+          <Select
+            label="Grupo"
+            name="cat-grupo"
+            placeholder={catPath.categoriaId ? 'Todos / opcional' : 'Escolha a categoria'}
+            value={catPath.grupoId}
+            options={grupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+            disabled={!catPath.categoriaId || grupoOptions.length === 0}
+            onChange={(e) => setCategoryFacet('grupo', e.target.value)}
+          />
+          <Select
+            label="Subgrupo"
+            name="cat-sub"
+            placeholder={catPath.grupoId ? 'Todos / opcional' : 'Escolha o grupo'}
+            value={catPath.subgrupoId}
+            options={subgrupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+            disabled={!catPath.grupoId || subgrupoOptions.length === 0}
+            onChange={(e) => setCategoryFacet('subgrupo', e.target.value)}
+          />
+          <Select
+            label="Fabricante"
+            name="brand"
+            placeholder="Todos / opcional"
+            value={brand}
+            options={brandOptions}
+            onChange={(e) => patchParams({ brand: e.target.value || null })}
+          />
+          <Select
+            label="Ordenar"
+            name="sort"
+            value={sort}
+            options={SORT_OPTIONS}
             onChange={(e) =>
               patchParams({
-                maker: e.target.value || null,
-                model: null,
-                year: null,
-                engine: null,
-                version: null,
+                sort: e.target.value === 'relevance' ? null : e.target.value || null,
               })
             }
-          />
-          <Select
-            label="Modelo"
-            name="model"
-            placeholder="Todos / opcional"
-            value={model}
-            options={modelOptions}
-            disabled={!maker}
-            onChange={(e) =>
-              patchParams({
-                model: e.target.value || null,
-                year: null,
-                engine: null,
-                version: null,
-              })
-            }
-          />
-          <Select
-            label="Ano"
-            name="year"
-            placeholder="Todos / opcional"
-            value={year}
-            options={yearOptions}
-            disabled={!model}
-            onChange={(e) =>
-              patchParams({
-                year: e.target.value || null,
-              })
-            }
-          />
-          <Select
-            label="Motor"
-            name="engine"
-            placeholder="Todos / opcional"
-            value={engine}
-            options={engineOptions}
-            disabled={!model}
-            onChange={(e) => patchParams({ engine: e.target.value || null })}
-          />
-          <Select
-            label="Versão"
-            name="version"
-            placeholder="Todas / opcional"
-            value={version}
-            options={versionOptions}
-            disabled={!model}
-            onChange={(e) => patchParams({ version: e.target.value || null })}
           />
         </div>
-        <div className="mt-3 border-t border-dashed border-[#d8dee3] px-3.5 pt-2.5">
+
+        <details
+          className="mt-3 rounded-fal border border-fal-line bg-white open:pb-3"
+          open={vehicleFiltersActive || undefined}
+        >
+          <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex items-center gap-2">
+              Filtros por veículo
+              {vehicleFiltersActive ? (
+                <span className="rounded-full bg-[#fff8db] px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark">
+                  ativos
+                </span>
+              ) : (
+                <span className="font-normal text-fal-muted">opcional</span>
+              )}
+            </span>
+          </summary>
+          <div className="grid grid-cols-1 gap-3 border-t border-fal-line px-3.5 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <Select
+              label="Montadora"
+              name="maker"
+              placeholder="Todas / opcional"
+              value={maker}
+              options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+              onChange={(e) =>
+                patchParams({
+                  maker: e.target.value || null,
+                  model: null,
+                  year: null,
+                  engine: null,
+                  version: null,
+                })
+              }
+            />
+            <Select
+              label="Modelo"
+              name="model"
+              placeholder="Todos / opcional"
+              value={model}
+              options={modelOptions}
+              disabled={!maker}
+              onChange={(e) =>
+                patchParams({
+                  model: e.target.value || null,
+                  year: null,
+                  engine: null,
+                  version: null,
+                })
+              }
+            />
+            <Select
+              label="Ano"
+              name="year"
+              placeholder="Todos / opcional"
+              value={year}
+              options={yearOptions}
+              disabled={!model}
+              onChange={(e) =>
+                patchParams({
+                  year: e.target.value || null,
+                })
+              }
+            />
+            <Select
+              label="Motor"
+              name="engine"
+              placeholder="Todos / opcional"
+              value={engine}
+              options={engineOptions}
+              disabled={!model}
+              onChange={(e) => patchParams({ engine: e.target.value || null })}
+            />
+            <Select
+              label="Versão"
+              name="version"
+              placeholder="Todas / opcional"
+              value={version}
+              options={versionOptions}
+              disabled={!model}
+              onChange={(e) => patchParams({ version: e.target.value || null })}
+            />
+          </div>
+          <div className="mt-3 border-t border-dashed border-[#d8dee3] px-3.5 pt-2.5">
+            <SavedVehiclesQuickPick
+              onPick={(v) =>
+                patchParams({
+                  maker: v.makerName || null,
+                  model: v.modelName || null,
+                  year: v.year != null ? String(v.year) : null,
+                  engine: v.engine || null,
+                  version: v.versionName || null,
+                })
+              }
+            />
+          </div>
+        </details>
+      </div>
+
+      <MobileDrawer open={filtersOpen} title="Filtros" onClose={() => setFiltersOpen(false)}>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3">
+            <Select
+              label="Categoria"
+              name="cat-root-m"
+              placeholder="Todas"
+              value={catPath.categoriaId}
+              options={rootCategoryOptions.map((c) => ({ value: c.value, label: c.label }))}
+              onChange={(e) => setCategoryFacet('categoria', e.target.value)}
+            />
+            <Select
+              label="Grupo"
+              name="cat-grupo-m"
+              placeholder={catPath.categoriaId ? 'Todos / opcional' : 'Escolha a categoria'}
+              value={catPath.grupoId}
+              options={grupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+              disabled={!catPath.categoriaId || grupoOptions.length === 0}
+              onChange={(e) => setCategoryFacet('grupo', e.target.value)}
+            />
+            <Select
+              label="Subgrupo"
+              name="cat-sub-m"
+              placeholder={catPath.grupoId ? 'Todos / opcional' : 'Escolha o grupo'}
+              value={catPath.subgrupoId}
+              options={subgrupoOptions.map((c) => ({ value: c.value, label: c.label }))}
+              disabled={!catPath.grupoId || subgrupoOptions.length === 0}
+              onChange={(e) => setCategoryFacet('subgrupo', e.target.value)}
+            />
+            <Select
+              label="Fabricante"
+              name="brand-m"
+              placeholder="Todos / opcional"
+              value={brand}
+              options={brandOptions}
+              onChange={(e) => patchParams({ brand: e.target.value || null })}
+            />
+            <Select
+              label="Ordenar"
+              name="sort-m"
+              value={sort}
+              options={SORT_OPTIONS}
+              onChange={(e) =>
+                patchParams({
+                  sort: e.target.value === 'relevance' ? null : e.target.value || null,
+                })
+              }
+            />
+          </div>
+          <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+            Veículo {vehicleFiltersActive ? '(ativos)' : '(opcional)'}
+          </p>
+          <div className="grid grid-cols-1 gap-3">
+            <Select
+              label="Montadora"
+              name="maker-m"
+              placeholder="Todas / opcional"
+              value={maker}
+              options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+              onChange={(e) =>
+                patchParams({
+                  maker: e.target.value || null,
+                  model: null,
+                  year: null,
+                  engine: null,
+                  version: null,
+                })
+              }
+            />
+            <Select
+              label="Modelo"
+              name="model-m"
+              placeholder="Todos / opcional"
+              value={model}
+              options={modelOptions}
+              disabled={!maker}
+              onChange={(e) =>
+                patchParams({
+                  model: e.target.value || null,
+                  year: null,
+                  engine: null,
+                  version: null,
+                })
+              }
+            />
+            <Select
+              label="Ano"
+              name="year-m"
+              placeholder="Todos / opcional"
+              value={year}
+              options={yearOptions}
+              disabled={!model}
+              onChange={(e) => patchParams({ year: e.target.value || null })}
+            />
+            <Select
+              label="Motor"
+              name="engine-m"
+              placeholder="Todos / opcional"
+              value={engine}
+              options={engineOptions}
+              disabled={!model}
+              onChange={(e) => patchParams({ engine: e.target.value || null })}
+            />
+            <Select
+              label="Versão"
+              name="version-m"
+              placeholder="Todas / opcional"
+              value={version}
+              options={versionOptions}
+              disabled={!model}
+              onChange={(e) => patchParams({ version: e.target.value || null })}
+            />
+          </div>
           <SavedVehiclesQuickPick
             onPick={(v) =>
               patchParams({
@@ -531,8 +670,24 @@ export function CatalogPage() {
               })
             }
           />
+          <Button type="button" variant="primary" className="w-full" onClick={() => setFiltersOpen(false)}>
+            Ver resultados
+          </Button>
+          {filterChipCount > 0 ? (
+            <Button
+              type="button"
+              variant="light"
+              className="w-full"
+              onClick={() => {
+                clearFilters()
+                setFiltersOpen(false)
+              }}
+            >
+              Limpar filtros
+            </Button>
+          ) : null}
         </div>
-      </details>
+      </MobileDrawer>
 
       {activeChips.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -550,7 +705,7 @@ export function CatalogPage() {
       ) : null}
 
       <div id="catalog-results" ref={resultsRef} className="mt-4 scroll-mt-20">
-        <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8]/px-1 py-2 sm:bg-fal-bg">
+        <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8] px-1 py-2 sm:bg-fal-bg">
           {!loading && !error ? (
             <p className="m-0 text-sm font-semibold text-fal-navy-dark">
               {products.length === 0

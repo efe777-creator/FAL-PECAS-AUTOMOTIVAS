@@ -41,9 +41,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin produtos: titles no form + wizards de import  
 - Admin titles: residual fechado (preço detalhe, fornecedor, prep IA, placeholder) — 100% `pages/admin/*Page`  
 - Admin pedidos: paginação em áreas e visões (cap 200 deixava de ser só na lista avançada)  
+- Catálogo mobile: filtros em `MobileDrawer` + sticky contagem corrigida (O1-H residual)  
 
 ## Próximo código (opcional)
 
 - Itens do plano mestre ainda P/N + gates humanos (frete/pagamento/ME/sinônimos)  
-- Caps menores se aparecerem em auditoria pontual  
+- Outros residuais O1-H (ScrollRestoration PDP→catálogo, se ainda aberto)  
 
