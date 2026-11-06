@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import {
@@ -34,6 +35,7 @@ function parseYear(raw: string): number | null {
 
 export function AdminApplicationsPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canManage(user?.role)
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -41,8 +43,17 @@ export function AdminApplicationsPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [info, setInfo] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
 
   const [q, setQ] = useState(searchParams.get('q') ?? '')
   const [qDebounced, setQDebounced] = useState(q)
@@ -189,7 +200,9 @@ export function AdminApplicationsPage() {
       setTotal(n)
       setSelected(new Set())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao carregar aplicações')
+      const msg = e instanceof Error ? e.message : 'Falha ao carregar aplicações'
+      setError(msg)
+      toast.push(msg, 'error')
       setRows([])
       setTotal(0)
     } finally {
@@ -243,15 +256,15 @@ export function AdminApplicationsPage() {
     const ys = parseYear(editStart)
     const ye = parseYear(editEnd)
     if (editStart.trim() && ys == null) {
-      setError('Ano início inválido')
+      pushError('Ano início inválido')
       return
     }
     if (editEnd.trim() && ye == null) {
-      setError('Ano fim inválido')
+      pushError('Ano fim inválido')
       return
     }
     if (ys != null && ye != null && ye < ys) {
-      setError('Ano fim menor que ano início')
+      pushError('Ano fim menor que ano início')
       return
     }
     setBusy(true)
@@ -259,10 +272,10 @@ export function AdminApplicationsPage() {
     try {
       await adminUpdateApplicationYears(row.id, { yearStart: ys, yearEnd: ye })
       setEditingId(null)
-      setInfo('Período atualizado.')
+      pushOk('Período atualizado.')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao salvar período')
+      pushError(e instanceof Error ? e.message : 'Falha ao salvar período')
     } finally {
       setBusy(false)
     }
@@ -280,10 +293,10 @@ export function AdminApplicationsPage() {
     setError(null)
     try {
       await adminRemoveApplication(id)
-      setInfo('Aplicação excluída.')
+      pushOk('Aplicação excluída.')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao excluir')
+      pushError(e instanceof Error ? e.message : 'Falha ao excluir')
     } finally {
       setBusy(false)
     }
@@ -302,10 +315,10 @@ export function AdminApplicationsPage() {
     setError(null)
     try {
       const n = await adminRemoveApplicationsBulk([...selected])
-      setInfo(`${n} aplicação(ões) excluída(s).`)
+      pushOk(`${n} aplicação(ões) excluída(s).`)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao excluir seleção')
+      pushError(e instanceof Error ? e.message : 'Falha ao excluir seleção')
     } finally {
       setBusy(false)
     }
@@ -313,39 +326,38 @@ export function AdminApplicationsPage() {
 
   async function onCreate() {
     setError(null)
-    setInfo(null)
     const sku = createSku.trim()
     if (!sku) {
-      setError('Informe o código (SKU) do produto')
+      pushError('Informe o código (SKU) do produto')
       return
     }
     if (!createModelId) {
-      setError('Selecione montadora e modelo')
+      pushError('Selecione montadora e modelo')
       return
     }
     if (matchingCreateVersions.length === 0) {
-      setError('Nenhuma configuração bate com motorização/versão')
+      pushError('Nenhuma configuração bate com motorização/versão')
       return
     }
     const ys = parseYear(createYearStart)
     const ye = parseYear(createYearEnd)
     if (createYearStart.trim() && ys == null) {
-      setError('Ano início inválido')
+      pushError('Ano início inválido')
       return
     }
     if (createYearEnd.trim() && ye == null) {
-      setError('Ano fim inválido')
+      pushError('Ano fim inválido')
       return
     }
     if (ys != null && ye != null && ye < ys) {
-      setError('Ano fim menor que ano início')
+      pushError('Ano fim menor que ano início')
       return
     }
     setBusy(true)
     try {
       const productId = await adminFindProductIdBySku(sku)
       if (!productId) {
-        setError(`Produto não encontrado: ${sku}`)
+        pushError(`Produto não encontrado: ${sku}`)
         return
       }
       const n = await adminAddApplicationsBulk(
@@ -353,14 +365,14 @@ export function AdminApplicationsPage() {
         matchingCreateVersions.map((v) => v.id),
         { yearStart: ys, yearEnd: ye },
       )
-      setInfo(`${n} aplicação(ões) criada(s) para ${sku}.`)
+      pushOk(`${n} aplicação(ões) criada(s) para ${sku}.`)
       setCreateOpen(false)
       setCreateSku('')
       setQ(sku)
       setQDebounced(sku)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao criar aplicação')
+      pushError(e instanceof Error ? e.message : 'Falha ao criar aplicação')
     } finally {
       setBusy(false)
     }
@@ -592,7 +604,6 @@ export function AdminApplicationsPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {info ? <p className="text-sm text-green-700">{info}</p> : null}
 
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
