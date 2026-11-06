@@ -9,9 +9,10 @@ import {
   attachPrimaryProductImages,
   attachProductImageGallery,
 } from '@/services/products/productImages'
+import { listCuratedRelatedProductIds } from '@/services/products/relatedLinksService'
 import {
   RELATED_PRODUCTS_LIMIT,
-  pickRelatedProducts,
+  mergeRelatedProducts,
 } from '@/services/products/relatedProducts'
 import type { Product } from '@/types'
 
@@ -144,19 +145,65 @@ export async function listProductsByCategorySlug(
   return result.items
 }
 
+/** Produtos publicados por IDs (preserva ordem pedida). */
+async function listPublishedProductsByIds(ids: string[]): Promise<Product[]> {
+  if (ids.length === 0) return []
+  assertStoreBackendConfigured()
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
+    const byId = new Map(mockProducts.filter((p) => p.status === 'published').map((p) => [p.id, p]))
+    return ids.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p))
+  }
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(PRODUCT_SELECT)
+    .in('id', ids)
+    .eq('status', 'published')
+  if (error) throw error
+  const mapped = (data ?? []).map((row) => mapProduct(row as Record<string, unknown>))
+  const withApps = await attachCompatibilitySummaries(mapped, {
+    compact: true,
+    maxEntries: 4,
+    maxMakers: null,
+    maxLinesPerMaker: null,
+  })
+  const withImages = await attachPrimaryProductImages(withApps)
+  const priced = await attachResolvedPrices(withImages)
+  const byId = new Map(priced.map((p) => [p.id, p]))
+  return ids.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p))
+}
+
 /**
- * Relacionados na PDP: mesma categoria (slug), excluindo o atual.
- * Sem categoria → []. Sem aleatório / sem “quem viu”.
+ * Relacionados na PDP: curadoria admin primeiro; completa com mesma categoria.
+ * Sem aleatório / sem “quem viu”.
  */
 export async function listRelatedProductsForPdp(
   product: Pick<Product, 'id' | 'categorySlug'>,
   limit = RELATED_PRODUCTS_LIMIT,
 ): Promise<Product[]> {
+  if (!product.id) return []
+
+  let curated: Product[] = []
+  try {
+    const curatedIds = await listCuratedRelatedProductIds(product.id)
+    curated = await listPublishedProductsByIds(curatedIds.slice(0, limit))
+  } catch {
+    curated = []
+  }
+
+  if (curated.length >= limit) {
+    return curated.slice(0, limit)
+  }
+
   const slug = product.categorySlug?.trim()
-  if (!slug || !product.id) return []
-  const poolSize = Math.min(Math.max(limit + 8, limit), 40)
-  const pool = await listProductsByCategorySlug(slug, poolSize)
-  return pickRelatedProducts(pool, { excludeId: product.id, limit })
+  let fallback: Product[] = []
+  if (slug) {
+    const poolSize = Math.min(Math.max(limit + 8, limit), 40)
+    fallback = await listProductsByCategorySlug(slug, poolSize)
+  }
+
+  return mergeRelatedProducts(curated, fallback, { excludeId: product.id, limit })
 }
 
 export async function listPublishedProducts(limit = 40): Promise<Product[]> {

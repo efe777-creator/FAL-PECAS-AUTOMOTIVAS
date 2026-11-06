@@ -1,3 +1,4 @@
+import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
 import { CategoryCascadeSelects } from '@/components/admin/CategoryCascadeSelects'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
@@ -1054,6 +1055,8 @@ export function AdminProductFormPage() {
 
       {productId ? (
         <>
+          <AdminProductRelatedSection productId={productId} />
+
           <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
             <h2 className="font-extrabold text-fal-navy">Referências</h2>
             <div className="flex flex-wrap gap-2">
