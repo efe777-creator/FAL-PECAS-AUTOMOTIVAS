@@ -3,6 +3,7 @@ import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { MIN_PASSWORD_LENGTH, passwordRuleHint } from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -83,8 +84,10 @@ export function LoginPage() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
+                minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                hint={passwordRuleHint()}
                 required
               />
             </div>

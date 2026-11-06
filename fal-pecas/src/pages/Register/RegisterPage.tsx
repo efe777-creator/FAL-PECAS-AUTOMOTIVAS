@@ -6,11 +6,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
+import {
+  MIN_PASSWORD_LENGTH,
+  passwordRuleHint,
+  passwordTooShortMessage,
+} from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-
-const MIN_PASSWORD_LENGTH = 6
 
 export function RegisterPage() {
   useDocumentTitle('Criar conta | FAL Peças Automotivas')
@@ -41,7 +44,7 @@ export function RegisterPage() {
     e.preventDefault()
     setError(null)
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+      setError(passwordTooShortMessage())
       return
     }
     if (password !== password2) {
@@ -198,7 +201,7 @@ export function RegisterPage() {
                 minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                hint={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres.`}
+                hint={passwordRuleHint()}
                 required
               />
               <Input
