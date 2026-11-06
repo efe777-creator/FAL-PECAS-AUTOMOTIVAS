@@ -1,8 +1,10 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
+  ADMIN_INVENTORY_PAGE_SIZE,
   adjustInventory,
   formatInventoryError,
   getStoreInventoryMode,
@@ -22,6 +24,7 @@ import { useEffect, useState } from 'react'
 const MODE_OPTIONS = Object.keys(INVENTORY_MODE_LABELS) as InventoryMode[]
 
 export function AdminInventoryPage() {
+  useDocumentTitle('Estoque | Admin FAL')
   const [mode, setMode] = useState<InventoryMode>('com_estoque')
   const [pendingMode, setPendingMode] = useState<InventoryMode | null>(null)
   const [rows, setRows] = useState<InventoryRow[]>([])
@@ -36,6 +39,8 @@ export function AdminInventoryPage() {
   const [delta, setDelta] = useState('1')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const showPhysicalCols = mode === 'com_estoque' || mode === 'estoque_ficticio'
   const allowAdjust = canAdjust && mode === 'com_estoque'
@@ -46,12 +51,13 @@ export function AdminInventoryPage() {
     try {
       const [m, list, adj, adm] = await Promise.all([
         getStoreInventoryMode(),
-        listInventory(q),
+        listInventory(q, { offset: 0, limit: ADMIN_INVENTORY_PAGE_SIZE }),
         staffCanAdjustInventory(),
         isAdministrador(),
       ])
       setMode(m)
       setRows(list)
+      setHasMore(list.length >= ADMIN_INVENTORY_PAGE_SIZE)
       setCanAdjust(adj)
       setIsAdmin(adm)
       if (selected) {
@@ -67,6 +73,26 @@ export function AdminInventoryPage() {
       setError(formatInventoryError(e, 'Erro ao carregar estoque'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const next = await listInventory(search, {
+        offset: rows.length,
+        limit: ADMIN_INVENTORY_PAGE_SIZE,
+      })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.productId))
+        return [...prev, ...next.filter((r) => !seen.has(r.productId))]
+      })
+      setHasMore(next.length >= ADMIN_INVENTORY_PAGE_SIZE)
+    } catch (e) {
+      setError(formatInventoryError(e, 'Erro ao carregar mais estoque'))
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -157,6 +183,9 @@ export function AdminInventoryPage() {
         <p className="mt-1 text-sm text-fal-muted">
           Centro operacional de estoque da loja. O modo define se a venda usa disponibilidade comercial
           ou saldo físico.
+          {rows.length > 0
+            ? ` · ${rows.length} produto${rows.length === 1 ? '' : 's'} carregado${rows.length === 1 ? '' : 's'}.`
+            : null}
         </p>
       </header>
 
@@ -237,6 +266,12 @@ export function AdminInventoryPage() {
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
+      {hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_INVENTORY_PAGE_SIZE} registros por carga ({rows.length} carregados). Há
+          mais produtos — use “Carregar mais estoque” ao final da lista ou refine a busca.
+        </p>
+      ) : null}
       {loading ? <Loading label="Carregando estoque…" /> : null}
 
       {!loading ? (
@@ -285,6 +320,18 @@ export function AdminInventoryPage() {
                 ))}
               </tbody>
             </table>
+            {hasMore ? (
+              <div className="flex justify-center border-t border-fal-line p-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingMore || busy}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais estoque'}
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
