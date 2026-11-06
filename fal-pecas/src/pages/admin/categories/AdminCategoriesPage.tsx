@@ -1,3 +1,8 @@
+import { CategoriesArchivedMenu } from '@/components/admin/categories/CategoriesArchivedMenu'
+import {
+  CategoryIconThumb,
+  categoryStatusLabel,
+} from '@/components/admin/categories/categoryAdminUi'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -29,23 +34,6 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 type CreateLevel = 1 | 2 | 3
 
-function statusLabel(status: Category['status']): string {
-  if (status === 'archived') return 'Arquivado'
-  if (status === 'published') return 'Publicado'
-  if (status === 'draft') return 'Rascunho'
-  return status ?? '—'
-}
-
-function CategoryIconThumb({ cat }: { cat: Pick<Category, 'slug' | 'name' | 'emoji'> }) {
-  const icon = resolveCategoryIcon(cat)
-  if (icon.type === 'image') {
-    return (
-      <img src={icon.src} alt={icon.alt} className="h-7 w-7 object-contain" loading="lazy" />
-    )
-  }
-  return <span className="text-xl leading-none">{icon.value}</span>
-}
-
 export function AdminCategoriesPage() {
   const [items, setItems] = useState<Category[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -66,9 +54,6 @@ export function AdminCategoriesPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'tree' | 'list'>('list')
   const [levelFilter, setLevelFilter] = useState<0 | 1 | 2 | 3>(0)
-  const [archivedMenuOpen, setArchivedMenuOpen] = useState(false)
-  const [selectedArchived, setSelectedArchived] = useState<Set<string>>(() => new Set())
-  const archivedMenuRef = useRef<HTMLDivElement>(null)
   const [defaultWeightKg, setDefaultWeightKg] = useState('')
   const [defaultLengthCm, setDefaultLengthCm] = useState('')
   const [defaultWidthCm, setDefaultWidthCm] = useState('')
@@ -135,19 +120,6 @@ export function AdminCategoriesPage() {
   /** Lista principal só com ativos; arquivados ficam no menu “Ver arquivados”. */
   const treeItems = useMemo(
     () => items.filter((c) => c.status !== 'archived'),
-    [items],
-  )
-
-  const archivedItems = useMemo(
-    () =>
-      items
-        .filter((c) => c.status === 'archived')
-        .slice()
-        .sort(
-          (a, b) =>
-            categoryPath(items, a.id).localeCompare(categoryPath(items, b.id)) ||
-            a.name.localeCompare(b.name),
-        ),
     [items],
   )
 
@@ -274,24 +246,6 @@ export function AdminCategoriesPage() {
       })
       .sort((a, b) => a.path.localeCompare(b.path) || a.depth - b.depth)
   }, [treeItems, items, levelFilter, searchQ])
-
-  useEffect(() => {
-    if (!archivedMenuOpen) return
-    function onDocClick(e: MouseEvent) {
-      if (!archivedMenuRef.current?.contains(e.target as Node)) {
-        setArchivedMenuOpen(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setArchivedMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDocClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [archivedMenuOpen])
 
   useEffect(() => {
     if (!searchQ) return
@@ -669,7 +623,7 @@ export function AdminCategoriesPage() {
             {categoryPath(treeItems, cat.id)}
           </span>
           <span className="text-xs text-fal-muted">#{cat.sortOrder ?? 0}</span>
-          <span className="text-xs">{statusLabel(cat.status)}</span>
+          <span className="text-xs">{categoryStatusLabel(cat.status)}</span>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -744,79 +698,6 @@ export function AdminCategoriesPage() {
     emoji: emoji || null,
   })
 
-  function toggleArchivedSelect(id: string) {
-    setSelectedArchived((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  async function onPublishSelectedArchived() {
-    const ids = [...selectedArchived]
-    if (!ids.length) return
-    setBusyId('__archived__')
-    setError(null)
-    setInfo(null)
-    try {
-      for (const id of ids) {
-        await adminSetCategoryStatus(id, 'published')
-      }
-      setSelectedArchived(new Set())
-      setArchivedMenuOpen(false)
-      setInfo(`${ids.length} classificação(ões) publicada(s) de novo.`)
-      await reload()
-    } catch (err) {
-      setError(toUserMessage(err, 'Falha ao publicar selecionadas'))
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function onDeleteSelectedArchived() {
-    const ids = [...selectedArchived]
-    if (!ids.length) return
-    const { confirmed } = await confirmDialog({
-      title: 'Excluir arquivadas?',
-      message:
-        `Excluir permanentemente ${ids.length} classificação(ões)?\n\n` +
-        'Só funciona sem filhos e sem produtos. Em caso de vínculo, a exclusão daquela linha falha.',
-      confirmLabel: 'Excluir',
-      danger: true,
-    })
-    if (!confirmed) return
-    setBusyId('__archived__')
-    setError(null)
-    setInfo(null)
-    let ok = 0
-    const fails: string[] = []
-    try {
-      // Filhos antes dos pais
-      const ordered = ids
-        .map((id) => items.find((c) => c.id === id))
-        .filter((c): c is Category => Boolean(c))
-        .sort((a, b) => categoryDepth(items, b.id) - categoryDepth(items, a.id))
-      let working = items
-      for (const cat of ordered) {
-        try {
-          await adminDeleteCategory(cat.id, working)
-          working = working.filter((c) => c.id !== cat.id)
-          ok += 1
-        } catch (err) {
-          fails.push(`${cat.name}: ${toUserMessage(err, 'erro')}`)
-        }
-      }
-      setSelectedArchived(new Set())
-      if (ok) setInfo(`${ok} excluída(s).`)
-      if (fails.length) setError(fails.slice(0, 3).join(' · '))
-      if (!fails.length) setArchivedMenuOpen(false)
-      await reload()
-    } finally {
-      setBusyId(null)
-    }
-  }
-
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold text-fal-navy">Classificação</h1>
@@ -836,70 +717,7 @@ export function AdminCategoriesPage() {
         <span>
           <strong>{levelStats.sub}</strong> subgrupos
         </span>
-        {levelStats.archived > 0 ? (
-          <div className="relative ml-auto" ref={archivedMenuRef}>
-            <button
-              type="button"
-              className="text-xs font-semibold text-fal-muted underline-offset-2 hover:text-fal-navy hover:underline"
-              aria-expanded={archivedMenuOpen}
-              aria-haspopup="menu"
-              onClick={() => setArchivedMenuOpen((o) => !o)}
-            >
-              Ver arquivados ({levelStats.archived})
-            </button>
-            {archivedMenuOpen ? (
-              <div
-                role="menu"
-                className="absolute right-0 z-30 mt-2 w-[min(100vw-2rem,22rem)] rounded-[12px] border border-fal-line bg-white p-3 shadow-lg"
-              >
-                <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-                  Arquivados
-                </p>
-                <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-                  {archivedItems.map((c) => (
-                    <li key={c.id}>
-                      <label className="flex cursor-pointer items-start gap-2 rounded-md px-1 py-1 text-sm hover:bg-fal-bg">
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked={selectedArchived.has(c.id)}
-                          onChange={() => toggleArchivedSelect(c.id)}
-                        />
-                        <span className="min-w-0">
-                          <span className="block truncate font-semibold text-fal-navy">
-                            {c.name}
-                          </span>
-                          <span className="block truncate text-[11px] text-fal-muted">
-                            {categoryLevelLabel(categoryDepth(items, c.id))} ·{' '}
-                            {categoryPath(items, c.id)}
-                          </span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-fal-line pt-3">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={busyId === '__archived__' || selectedArchived.size === 0}
-                    onClick={() => void onPublishSelectedArchived()}
-                  >
-                    Publicar ({selectedArchived.size})
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busyId === '__archived__' || selectedArchived.size === 0}
-                    onClick={() => void onDeleteSelectedArchived()}
-                  >
-                    Excluir
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        <CategoriesArchivedMenu items={items} onChanged={reload} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -1326,14 +1144,9 @@ export function AdminCategoriesPage() {
             <div className="px-3 py-4">
               <EmptyState
                 title="Nenhuma classificação encontrada"
-                description="Ajuste o filtro de nível ou limpe a busca. Arquivados ficam em “Ver arquivados”."
+                description="Ajuste o filtro de nível ou limpe a busca. Arquivados ficam no link “Ver arquivados” do resumo acima."
               >
                 <div className="mt-4 flex justify-center gap-2">
-                  {levelStats.archived > 0 ? (
-                    <Button type="button" variant="light" onClick={() => setArchivedMenuOpen(true)}>
-                      Ver arquivados ({levelStats.archived})
-                    </Button>
-                  ) : null}
                   <Button type="button" onClick={() => startCreate(1)}>
                     + Criar categoria
                   </Button>
@@ -1375,7 +1188,7 @@ export function AdminCategoriesPage() {
                         </span>
                       </td>
                       <td className="px-3 py-2 text-xs text-fal-muted">{path}</td>
-                      <td className="px-3 py-2 text-xs">{statusLabel(cat.status)}</td>
+                      <td className="px-3 py-2 text-xs">{categoryStatusLabel(cat.status)}</td>
                       <td className="px-3 py-2 text-xs">{counts[cat.id] ?? 0}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
@@ -1415,14 +1228,9 @@ export function AdminCategoriesPage() {
           <div className="px-3 py-4">
             <EmptyState
               title="Nenhuma classificação encontrada"
-              description="Limpe a busca. Arquivados ficam em “Ver arquivados”."
+              description="Limpe a busca. Arquivados ficam no link “Ver arquivados” do resumo acima."
             >
               <div className="mt-4 flex justify-center gap-2">
-                {levelStats.archived > 0 ? (
-                  <Button type="button" variant="light" onClick={() => setArchivedMenuOpen(true)}>
-                    Ver arquivados ({levelStats.archived})
-                  </Button>
-                ) : null}
                 <Button type="button" onClick={() => startCreate(1)}>
                   + Criar categoria
                 </Button>
