@@ -3,6 +3,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
@@ -72,6 +73,7 @@ const PENDING_COPY: Record<PendingAction['kind'], { title: string; body: string 
 
 export function AdminOrderDetailPage() {
   const { id = '' } = useParams()
+  const toast = useToast()
   const [order, setOrder] = useState<AdminOrderDetail | null>(null)
   useDocumentTitle(
     order ? `Pedido ${order.id.slice(0, 8)} | Admin FAL` : 'Pedido | Admin FAL',
@@ -81,7 +83,6 @@ export function AdminOrderDetailPage() {
   const [busy, setBusy] = useState(false)
   const [canCancel, setCanCancel] = useState(false)
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
-  const [msg, setMsg] = useState<string | null>(null)
   const [carrier, setCarrier] = useState('')
   const [service, setService] = useState('')
   const [tracking, setTracking] = useState('')
@@ -89,7 +90,17 @@ export function AdminOrderDetailPage() {
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [cancelNote, setCancelNote] = useState('')
 
-  /** Reload silencioso por padrão: só o primeiro load mostra spinner de página inteira. */
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
+
+    /** Reload silencioso por padrão: só o primeiro load mostra spinner de página inteira. */
   async function reload(opts?: { initial?: boolean }) {
     if (opts?.initial) {
       setLoading(true)
@@ -129,7 +140,7 @@ export function AdminOrderDetailPage() {
         setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
     } finally {
       if (opts?.initial) setLoading(false)
     }
@@ -143,7 +154,7 @@ export function AdminOrderDetailPage() {
   async function saveItem(itemId: string) {
     const d = drafts[itemId]
     if (!d?.availability) {
-      setError('Selecione a disponibilidade')
+      pushError('Selecione a disponibilidade')
       return
     }
     setBusy(true)
@@ -155,10 +166,10 @@ export function AdminOrderDetailPage() {
         leadDays: d.availability === 'disponivel_com_prazo' ? Number(d.leadDays) : null,
         staffNote: d.staffNote || null,
       })
-      setMsg('Disponibilidade salva')
+      pushOk('Disponibilidade salva')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao salvar item')
+      pushError(e instanceof Error ? e.message : 'Falha ao salvar item')
     } finally {
       setBusy(false)
     }
@@ -169,11 +180,11 @@ export function AdminOrderDetailPage() {
     setError(null)
     try {
       const r = await adminFinalizeConfirmation(id)
-      setMsg(`Resultado: ${r.result} → ${orderStatusOperatorLabel[r.status] ?? r.status}`)
+      pushOk(`Resultado: ${r.result} → ${orderStatusOperatorLabel[r.status] ?? r.status}`)
       setPending(null)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao finalizar')
+      pushError(e instanceof Error ? e.message : 'Falha ao finalizar')
     } finally {
       setBusy(false)
     }
@@ -182,19 +193,19 @@ export function AdminOrderDetailPage() {
   async function runCancel() {
     const note = cancelNote.trim()
     if (!note) {
-      setError('Informe o motivo do cancelamento.')
+      pushError('Informe o motivo do cancelamento.')
       return
     }
     setBusy(true)
     setError(null)
     try {
       await adminCancelOrder(id, note)
-      setMsg('Pedido cancelado')
+      pushOk('Pedido cancelado')
       setPending(null)
       setCancelNote('')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao cancelar')
+      pushError(e instanceof Error ? e.message : 'Falha ao cancelar')
     } finally {
       setBusy(false)
     }
@@ -207,7 +218,7 @@ export function AdminOrderDetailPage() {
       await adminSetItemSeparated(itemId, separated)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao marcar separação')
+      pushError(e instanceof Error ? e.message : 'Falha ao marcar separação')
     } finally {
       setBusy(false)
     }
@@ -218,11 +229,11 @@ export function AdminOrderDetailPage() {
     setError(null)
     try {
       await adminCompleteSeparation(id)
-      setMsg('Separação concluída')
+      pushOk('Separação concluída')
       setPending(null)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha na separação')
+      pushError(e instanceof Error ? e.message : 'Falha na separação')
     } finally {
       setBusy(false)
     }
@@ -238,11 +249,11 @@ export function AdminOrderDetailPage() {
         service: service || undefined,
         trackingCode: tracking || undefined,
       })
-      setMsg('Pedido expedido')
+      pushOk('Pedido expedido')
       setPending(null)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha na expedição')
+      pushError(e instanceof Error ? e.message : 'Falha na expedição')
     } finally {
       setBusy(false)
     }
@@ -253,11 +264,11 @@ export function AdminOrderDetailPage() {
     setError(null)
     try {
       await adminDeliverOrder(id, proofRef || undefined)
-      setMsg('Pedido entregue')
+      pushOk('Pedido entregue')
       setPending(null)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha na entrega')
+      pushError(e instanceof Error ? e.message : 'Falha na entrega')
     } finally {
       setBusy(false)
     }
@@ -328,10 +339,10 @@ export function AdminOrderDetailPage() {
       for (const it of pendingItems) {
         await adminSetItemSeparated(it.id, true)
       }
-      setMsg(`${pendingItems.length} item(ns) marcado(s) como separado(s).`)
+      pushOk(`${pendingItems.length} item(ns) marcado(s) como separado(s).`)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao marcar separação')
+      pushError(e instanceof Error ? e.message : 'Falha ao marcar separação')
     } finally {
       setBusy(false)
     }
@@ -354,10 +365,10 @@ export function AdminOrderDetailPage() {
           'confirmation_started',
         )
       }
-      setMsg('Análise iniciada')
+      pushOk('Análise iniciada')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao iniciar análise')
+      pushError(e instanceof Error ? e.message : 'Falha ao iniciar análise')
     } finally {
       setBusy(false)
     }
@@ -381,7 +392,6 @@ export function AdminOrderDetailPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
 
       {nextStep ? (
         <section className="rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
@@ -446,13 +456,13 @@ export function AdminOrderDetailPage() {
                   })
                   if (!confirmed) return
                   setBusy(true)
-                  setMsg(null)
+                  setError(null)
                   try {
                     await adminResolveOrderCancellation(current.id, true, reason ?? '')
-                    setMsg('Cancelamento aprovado. Faça o estorno no MP e marque abaixo.')
+                    pushOk('Cancelamento aprovado. Faça o estorno no MP e marque abaixo.')
                     await reload()
                   } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Falha ao aprovar')
+                    pushError(e instanceof Error ? e.message : 'Falha ao aprovar')
                   } finally {
                     setBusy(false)
                   }
@@ -477,13 +487,13 @@ export function AdminOrderDetailPage() {
                   })
                   if (!confirmed || !reason) return
                   setBusy(true)
-                  setMsg(null)
+                  setError(null)
                   try {
                     await adminResolveOrderCancellation(current.id, false, reason)
-                    setMsg('Solicitação recusada. Pedido permanece ativo.')
+                    pushOk('Solicitação recusada. Pedido permanece ativo.')
                     await reload()
                   } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Falha ao recusar')
+                    pushError(e instanceof Error ? e.message : 'Falha ao recusar')
                   } finally {
                     setBusy(false)
                   }
@@ -522,13 +532,13 @@ export function AdminOrderDetailPage() {
                 })
                 if (!confirmed) return
                 setBusy(true)
-                setMsg(null)
+                setError(null)
                 try {
                   await adminMarkPaymentRefunded(current.id, reason ?? '')
-                  setMsg('Pagamento marcado como estornado.')
+                  pushOk('Pagamento marcado como estornado.')
                   await reload()
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : 'Falha ao marcar estorno')
+                  pushError(e instanceof Error ? e.message : 'Falha ao marcar estorno')
                 } finally {
                   setBusy(false)
                 }
@@ -834,8 +844,14 @@ export function AdminOrderDetailPage() {
           onTracking={setTracking}
           onRequestShip={() => setPending({ kind: 'ship' })}
           onReload={() => reload()}
-          onMessage={setMsg}
-          onError={setError}
+          onMessage={(m) => {
+            if (m) pushOk(m)
+            else setError(null)
+          }}
+          onError={(m) => {
+            if (m) pushError(m)
+            else setError(null)
+          }}
         />
       ) : null}
 

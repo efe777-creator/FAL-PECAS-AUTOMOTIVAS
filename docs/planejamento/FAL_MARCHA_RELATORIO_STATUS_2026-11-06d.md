@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #178 (+ 404 search em ship)  
+**HEAD:** `main` @ merge #179 (+ order-detail toast em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -43,6 +43,7 @@
 | #177 | Onda 3 | Topo Home redesenhado (banner + faixa clara CTAs) |
 | #178 | O1-F | Recuperar senha preserva `from` do funil |
 | #179 | O1-H | 404 loja com busca no catálogo |
+| #180 | O1-A | Toast no detalhe do pedido admin |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
@@ -108,6 +109,6 @@
 
 ## 5. VALs recentes (âncoras)
 
-`ONDA3_CAROUSEL_NO_HALF_CARD` · `O0B_HOME_ADMIN_UNSAVED_BLOCKER` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#170 no histórico)
+`O1H_404_SEARCH` · `O1A_ORDER_DETAIL_TOAST` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#179 no histórico)
 
 **Soberana:** `FAL_MARCHA_SOBERANA_PLANO_MESTRE_EXEC_2026-11-06.md`
