@@ -65,7 +65,7 @@ export function HomeBannerCarousel() {
       }}
     >
       <h2 id={labelId} className="sr-only">
-        Destaques da loja
+        Campanhas
       </h2>
       <div
         className={`relative overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white`}

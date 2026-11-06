@@ -14,7 +14,7 @@ export const frenetSandboxProvider: ShippingProvider = {
   async quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
     const cep = digits(req.postalCode)
     if (cep.length !== 8) {
-      throw new Error('CEP inválido para cotação Frenet (sandbox)')
+      throw new Error('CEP inválido para cotação Frenet')
     }
 
     const region = Number(cep[0] ?? '0')
@@ -34,7 +34,7 @@ export const frenetSandboxProvider: ShippingProvider = {
         id: 'frenet:jadlog.package',
         provider: 'frenet',
         serviceCode: 'JADLOG.PACKAGE',
-        label: 'Jadlog Package (via Frenet sandbox)',
+        label: 'Jadlog Package',
         amount: Math.round(jadlog * 100) / 100,
         etaDaysMin: 4 + Math.min(region, 3),
         etaDaysMax: 8 + Math.min(region, 4),
@@ -44,7 +44,7 @@ export const frenetSandboxProvider: ShippingProvider = {
         id: 'frenet:correios.pac',
         provider: 'frenet',
         serviceCode: 'CORREIOS.PAC',
-        label: 'Correios PAC (via Frenet sandbox)',
+        label: 'Correios PAC',
         amount: Math.round(correiosVia * 100) / 100,
         etaDaysMin: 5 + Math.min(region, 4),
         etaDaysMax: 10 + Math.min(region, 4),
@@ -54,7 +54,7 @@ export const frenetSandboxProvider: ShippingProvider = {
         id: 'frenet:total.express',
         provider: 'frenet',
         serviceCode: 'TOTAL.EXPRESS',
-        label: 'Total Express (via Frenet sandbox)',
+        label: 'Total Express',
         amount: Math.round(totalExpress * 100) / 100,
         etaDaysMin: 1 + Math.min(region, 2),
         etaDaysMax: 3 + Math.min(region, 2),

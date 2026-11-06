@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #156 (+ home veículo abaixo destaques em ship)  
+**HEAD:** `main` @ merge #157 (+ ME-C7 leve / copy em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -53,7 +53,7 @@
 | **O1-B** Classificação | P | Relatório + merge A→B; revisão dados eFe antes de massa |
 | **O1-C** Caixas / padrões categoria | P/N | Templates + regra menor caixa; integrar cotação |
 | **O1-D** Frete próprio | P | Smoke `ownq` E2E; tarifas = gate; cutover = gate |
-| **O1-E** Melhor Envio | P | Hub/API_BASE/allowlist finos; etiqueta = gate |
+| **O1-E** Melhor Envio | P | Allowlist finos; configs toggles; etiqueta = gate |
 | **Onda 2** Busca/SEO | P | Facetas classificação; JSON-LD residual se faltar; favoritos em lote |
 | **Onda 3** Home comercial | P/N | Carrosséis/campanhas finos; **cond. pagamento (11/12) = decisão eFe** |
 | **Onda 4** Escala | N | Import imagens SKU; prep IA; relacionados curados |
@@ -90,6 +90,7 @@
 - Verify: tsc + vitest 363 + build PASS; blocker com guard anti-dup — VAL `VERIFY_SUITE`  
 - O0-C: copy retomada MP + disclaimers frete sem VITE_/D-FRETE/sandbox — VAL `O0C_PAYMENT_SHIPPING_COPY`  
 - Onda 3: Buscar pelo carro abaixo de Destaques — VAL `ONDA3_HOME_VEICULO_ABAIXO_DESTAQUES`  
+- O1-E: Configurações de envio (ME-C7 leve) + copy sandbox/auth — VAL `O1E_SHIPPING_SETTINGS_COPY`  
 
-**Próxima MARCHA sugerida (código):** Onda 3/4 gated **ou** residuals O1-B/C/E pontuais.  
+**Próxima MARCHA sugerida (código):** allowlist ME (ME-C5) **ou** Onda 4 import imagens.  
 **Próximo gate eFe:** tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  

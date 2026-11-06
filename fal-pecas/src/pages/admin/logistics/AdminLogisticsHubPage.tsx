@@ -35,8 +35,8 @@ const cards = [
   {
     to: '/admin/logistica/configuracoes',
     title: 'Configurações de envio',
-    desc: 'Regras gerais e validação de medidas.',
-    ready: false,
+    desc: 'Regras atuais da cotação e atalhos para origem, caixas e Melhor Envio.',
+    ready: true,
   },
 ] as const
 

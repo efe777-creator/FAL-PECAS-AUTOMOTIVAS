@@ -238,6 +238,11 @@ const AdminShippingBoxesPage = lazy(() =>
     default: m.AdminShippingBoxesPage,
   })),
 )
+const AdminShippingSettingsPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminShippingSettingsPage').then((m) => ({
+    default: m.AdminShippingSettingsPage,
+  })),
+)
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 )
@@ -329,6 +334,7 @@ export const router = createBrowserRouter([
       { path: 'logistica/frete-proprio', element: <AdminOwnDeliveryPage /> },
       { path: 'logistica/melhor-envio', element: <AdminMelhorEnvioPage /> },
       { path: 'logistica/caixas', element: <AdminShippingBoxesPage /> },
+      { path: 'logistica/configuracoes', element: <AdminShippingSettingsPage /> },
       { path: 'logistica/:slug', element: <AdminLogisticsPlaceholderPage /> },
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },

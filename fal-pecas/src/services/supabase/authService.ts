@@ -5,7 +5,9 @@ import type { Session, User } from '@supabase/supabase-js'
 
 export class AuthNotConfiguredError extends Error {
   constructor() {
-    super('Supabase Auth não configurado. Preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.')
+    super(
+      'Login temporariamente indisponível. Tente novamente mais tarde ou fale com o suporte da loja.',
+    )
     this.name = 'AuthNotConfiguredError'
   }
 }
