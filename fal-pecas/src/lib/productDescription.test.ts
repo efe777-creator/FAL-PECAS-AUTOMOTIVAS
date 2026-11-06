@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DESC_COLLAPSE_CHARS,
   buildCatalogMakerFilterHref,
+  buildPdpCatalogFilterLink,
   joinProductDescription,
   needsDescriptionCollapse,
   truncateDescription,
@@ -31,5 +32,17 @@ describe('productDescription (MARCHA PDP-C)', () => {
     expect(buildCatalogMakerFilterHref(null)).toBe('/catalogo')
     expect(buildCatalogMakerFilterHref('  Chevrolet ')).toBe('/catalogo?maker=Chevrolet')
     expect(buildCatalogMakerFilterHref('A & B')).toBe('/catalogo?maker=A%20%26%20B')
+  })
+
+  it('PDP: uma montadora pré-filtra; várias abrem catálogo limpo', () => {
+    expect(buildPdpCatalogFilterLink(['Chevrolet', 'chevrolet'])).toEqual({
+      href: '/catalogo?maker=Chevrolet',
+      hint: ' — outras peças da montadora Chevrolet',
+    })
+    expect(buildPdpCatalogFilterLink(['Chevrolet', 'Ford']).href).toBe('/catalogo')
+    expect(buildPdpCatalogFilterLink(['Chevrolet', 'Ford']).hint).toBe(
+      ' — outras peças no catálogo',
+    )
+    expect(buildPdpCatalogFilterLink([]).href).toBe('/catalogo')
   })
 })
