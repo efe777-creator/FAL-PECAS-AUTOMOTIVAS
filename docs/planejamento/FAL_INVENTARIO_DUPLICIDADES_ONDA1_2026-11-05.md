@@ -52,7 +52,7 @@
 | Tabela pedidos Hub/Lista/Área | Lista+Área usam `AdminOrdersListPanel`; Hub = cards/resumo | **MANTER** (VAL 2026-11-06; Hub distinto) |
 | “Retirar não pagos 48h” ×3 | Unificado em `adminExpireUnpaidFlow` | **MANTER** (VAL 2026-11-06) |
 | Cascata categoria no form vs `CategoryCascadeSelects` | Form já usa o componente | **MANTER** |
-| Import custo wizard × página fornecedor | 2 fluxos | **CONSOLIDAR** depois |
+| Import custo wizard × página fornecedor | Página fornecedor = wizard `costOnly`+`lockSheetKind`; listas = custo+lista | **MANTER** (VAL 2026-11-06) |
 | CRUD Fabricantes / Montadoras / Fornecedores | Três telas via `AdminNamedEntityCrud` (código opcional) | **MANTER** (VAL 2026-11-06b) |
 | Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
 | Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
