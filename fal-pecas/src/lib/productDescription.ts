@@ -33,3 +33,35 @@ export function buildCatalogMakerFilterHref(maker?: string | null): string {
   if (!m) return '/catalogo'
   return `/catalogo?maker=${encodeURIComponent(m)}`
 }
+
+/**
+ * Atalho PDP → catálogo a partir das apps.
+ * Só pré-filtra `maker` quando há **uma** montadora; com várias, abre o catálogo
+ * sem viés da “primeira” da lista (copy alinhada).
+ */
+export function buildPdpCatalogFilterLink(makers: Array<string | null | undefined>): {
+  href: string
+  hint: string
+} {
+  const unique: string[] = []
+  const seen = new Set<string>()
+  for (const raw of makers) {
+    const m = raw?.trim()
+    if (!m) continue
+    const key = m.toLocaleLowerCase('pt-BR')
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(m)
+  }
+  if (unique.length === 1) {
+    const maker = unique[0]!
+    return {
+      href: buildCatalogMakerFilterHref(maker),
+      hint: ` — outras peças da montadora ${maker}`,
+    }
+  }
+  return {
+    href: '/catalogo',
+    hint: ' — outras peças no catálogo',
+  }
+}

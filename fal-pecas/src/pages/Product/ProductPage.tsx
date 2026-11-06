@@ -54,7 +54,7 @@ import {
   formatStorePriceLabel,
 } from '@/lib/productLabels'
 import {
-  buildCatalogMakerFilterHref,
+  buildPdpCatalogFilterLink,
   joinProductDescription,
   needsDescriptionCollapse,
   truncateDescription,
@@ -329,8 +329,8 @@ export function ProductPage() {
       : fullDescription
   const specRows = buildProductSpecRows(current)
   const waPhone = storeWhatsAppPhone()
-  const catalogFilterHref = buildCatalogMakerFilterHref(
-    current.compatibilityGroups?.[0]?.maker ?? null,
+  const catalogFilter = buildPdpCatalogFilterLink(
+    (current.compatibilityGroups ?? []).map((g) => g.maker),
   )
   const categorySlugForMore =
     categoryPath[categoryPath.length - 1]?.slug || current.categorySlug || null
@@ -578,10 +578,10 @@ export function ProductPage() {
           />
           {current.compatibilityGroups?.length || current.compatibilitySummary ? (
             <p className="mb-0 mt-3 text-sm">
-              <Link to={catalogFilterHref} className="font-semibold text-fal-navy hover:underline">
+              <Link to={catalogFilter.href} className="font-semibold text-fal-navy hover:underline">
                 {FILTRAR_NO_CATALOGO_LABEL}
               </Link>
-              <span className="text-fal-muted"> — outras peças pelo veículo no catálogo</span>
+              <span className="text-fal-muted">{catalogFilter.hint}</span>
             </p>
           ) : null}
         </div>
