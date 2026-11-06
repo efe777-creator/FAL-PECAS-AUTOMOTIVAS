@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { entityStatusLabel } from '@/lib/adminLabels'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
@@ -17,6 +18,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminVehiclesPage() {
+  const toast = useToast()
   const [makers, setMakers] = useState<Manufacturer[]>([])
   const [models, setModels] = useState<VehicleModel[]>([])
   const [versions, setVersions] = useState<VehicleVersion[]>([])
@@ -29,20 +31,31 @@ export function AdminVehiclesPage() {
   const [versionName, setVersionName] = useState('')
   const [editingVersionId, setEditingVersionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
 
   useEffect(() => {
     void (async () => {
       try {
         setMakers(await adminListManufacturers())
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro')
+        const msg = e instanceof Error ? e.message : 'Erro'
+        setError(msg)
+        toast.push(msg, 'error')
       } finally {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     if (!makerId) {
@@ -52,8 +65,12 @@ export function AdminVehiclesPage() {
     }
     void adminListModels(makerId)
       .then(setModels)
-      .catch((e) => setError(String(e)))
-  }, [makerId])
+      .catch((e) => {
+        const msg = String(e)
+        setError(msg)
+        toast.push(msg, 'error')
+      })
+  }, [makerId, toast])
 
   useEffect(() => {
     if (!modelId) {
@@ -62,14 +79,17 @@ export function AdminVehiclesPage() {
     }
     void adminListVersions(modelId)
       .then(setVersions)
-      .catch((e) => setError(String(e)))
-  }, [modelId])
+      .catch((e) => {
+        const msg = String(e)
+        setError(msg)
+        toast.push(msg, 'error')
+      })
+  }, [modelId, toast])
 
   async function saveModel(e: FormEvent) {
     e.preventDefault()
     if (!makerId) return
     setError(null)
-    setMessage(null)
     try {
       await adminUpsertModel({
         id: editingModelId ?? undefined,
@@ -80,9 +100,9 @@ export function AdminVehiclesPage() {
       setModelName('')
       setEditingModelId(null)
       setModels(await adminListModels(makerId))
-      setMessage(editingModelId ? 'Modelo atualizado.' : 'Modelo criado.')
+      pushOk(editingModelId ? 'Modelo atualizado.' : 'Modelo criado.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar modelo')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar modelo')
     }
   }
 
@@ -90,7 +110,6 @@ export function AdminVehiclesPage() {
     e.preventDefault()
     if (!makerId || !modelId) return
     setError(null)
-    setMessage(null)
     try {
       await adminUpsertVersion({
         id: editingVersionId ?? undefined,
@@ -106,9 +125,9 @@ export function AdminVehiclesPage() {
       setVersionName('')
       setEditingVersionId(null)
       setVersions(await adminListVersions(modelId))
-      setMessage(editingVersionId ? 'Configuração atualizada.' : 'Configuração criada.')
+      pushOk(editingVersionId ? 'Configuração atualizada.' : 'Configuração criada.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
     }
   }
 
@@ -158,7 +177,6 @@ export function AdminVehiclesPage() {
         </div>
       </div>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {loading ? <Loading /> : null}
 
       <label className="block max-w-md text-sm">
@@ -248,9 +266,9 @@ export function AdminVehiclesPage() {
                         void adminSetModelStatus(m.id, m.status === 'active' ? 'inactive' : 'active')
                           .then(async () => {
                             setModels(await adminListModels(makerId))
-                            setMessage(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
+                            pushOk(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
                           })
-                          .catch((err) => setError(String(err)))
+                          .catch((err) => pushError(String(err)))
                       }
                     >
                       {m.status === 'active' ? 'Inativar' : 'Ativar'}
@@ -367,9 +385,13 @@ export function AdminVehiclesPage() {
                         void adminSetVersionStatus(v.id, v.status === 'active' ? 'inactive' : 'active')
                           .then(async () => {
                             setVersions(await adminListVersions(modelId))
-                            setMessage(v.status === 'active' ? 'Configuração inativada.' : 'Configuração ativada.')
+                            pushOk(
+                              v.status === 'active'
+                                ? 'Configuração inativada.'
+                                : 'Configuração ativada.',
+                            )
                           })
-                          .catch((err) => setError(String(err)))
+                          .catch((err) => pushError(String(err)))
                       }
                     >
                       {v.status === 'active' ? 'Inativar' : 'Ativar'}
