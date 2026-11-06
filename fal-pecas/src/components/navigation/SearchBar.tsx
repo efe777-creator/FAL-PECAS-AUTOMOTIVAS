@@ -127,12 +127,12 @@ export function SearchBar() {
                     onClick={() => setOpen(false)}
                     onMouseEnter={() => setActiveIndex(idx)}
                   >
-                    <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-fal-line bg-fal-bg">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f8f9fa] p-1">
                       {p.imageUrl ? (
                         <img
                           src={p.imageUrl}
                           alt=""
-                          className="h-full w-full object-contain"
+                          className="max-h-full max-w-full object-contain object-center"
                           loading="lazy"
                         />
                       ) : (

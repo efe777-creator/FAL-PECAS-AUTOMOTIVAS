@@ -1,5 +1,9 @@
 import { ProductImageLightbox } from '@/components/product/ProductImageLightbox'
 import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
+import {
+  ProductMediaFrame,
+  productMediaImgClass,
+} from '@/components/product/ProductMediaFrame'
 import { useEffect, useState } from 'react'
 
 type Props = {
@@ -40,36 +44,41 @@ export function ProductGallery({ images, alt }: Props) {
                 aria-selected={selected}
                 aria-label={`Imagem ${i + 1} de ${urls.length}`}
                 onClick={() => setActive(i)}
-                className={`h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border-2 bg-fal-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-navy ${
+                className={`h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border-2 bg-[#f8f9fa] p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-navy ${
                   selected ? 'border-fal-navy' : 'border-fal-line hover:border-fal-navy/50'
                 }`}
               >
-                <img src={url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                <img
+                  src={url}
+                  alt=""
+                  className={productMediaImgClass}
+                  loading="lazy"
+                />
               </button>
             )
           })}
         </div>
       ) : null}
 
-      <div className="grid min-h-[300px] min-w-0 flex-1 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#e8ecef] to-[#d7dde1] lg:min-h-[480px]">
+      <ProductMediaFrame variant="gallery" className="min-w-0 flex-1">
         {mainSrc ? (
           <button
             type="button"
-            className="group relative grid h-full w-full place-items-center p-2"
+            className="group relative flex h-full min-h-[300px] w-full items-center justify-center lg:min-h-[480px]"
             onClick={() => setLightboxOpen(true)}
             aria-label={`Ampliar imagem de ${alt}`}
           >
             <img
               src={mainSrc}
               alt={alt}
-              className="max-h-[300px] w-full object-contain transition group-hover:scale-[1.02] lg:max-h-[480px]"
+              className={`${productMediaImgClass} max-h-[276px] transition group-hover:scale-[1.02] lg:max-h-[440px]`}
               loading="eager"
             />
           </button>
         ) : (
           <ProductImagePlaceholder />
         )}
-      </div>
+      </ProductMediaFrame>
 
       <ProductImageLightbox
         images={urls}
