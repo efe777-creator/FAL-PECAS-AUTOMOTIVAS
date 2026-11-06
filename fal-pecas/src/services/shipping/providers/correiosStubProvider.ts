@@ -14,7 +14,7 @@ export const correiosSandboxProvider: ShippingProvider = {
   async quote(req: ShippingQuoteRequest): Promise<ShippingQuoteOption[]> {
     const cep = digits(req.postalCode)
     if (cep.length !== 8) {
-      throw new Error('CEP inválido para cotação Correios (sandbox)')
+      throw new Error('CEP inválido para cotação Correios')
     }
 
     const region = Number(cep[0] ?? '0')
@@ -31,7 +31,7 @@ export const correiosSandboxProvider: ShippingProvider = {
         id: 'correios:pac',
         provider: 'correios',
         serviceCode: 'PAC',
-        label: 'Correios PAC (sandbox)',
+        label: 'Correios PAC',
         amount: Math.round(pacBase * 100) / 100,
         etaDaysMin: 5 + Math.min(region, 4),
         etaDaysMax: 10 + Math.min(region, 4),
@@ -41,7 +41,7 @@ export const correiosSandboxProvider: ShippingProvider = {
         id: 'correios:sedex',
         provider: 'correios',
         serviceCode: 'SEDEX',
-        label: 'Correios SEDEX (sandbox)',
+        label: 'Correios SEDEX',
         amount: Math.round(sedexBase * 100) / 100,
         etaDaysMin: 2 + Math.min(region, 2),
         etaDaysMax: 4 + Math.min(region, 3),

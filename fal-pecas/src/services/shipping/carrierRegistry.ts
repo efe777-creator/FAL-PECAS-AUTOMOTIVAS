@@ -53,7 +53,7 @@ export const CARRIER_REGISTRY: readonly CarrierDescriptor[] = [
   },
   {
     id: 'melhorenvio',
-    label: 'Melhor Envio (sandbox)',
+    label: 'Melhor Envio',
     envKey: 'melhorenvio',
     /** sandbox = HTTP real sandbox ME; disclaimer B até D-FRETE C (não confundir com live produção). */
     mode: 'sandbox',

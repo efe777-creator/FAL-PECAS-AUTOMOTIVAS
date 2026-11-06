@@ -36,6 +36,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'frete-proprio': 'Frete próprio',
   'melhor-envio': 'Melhor Envio',
   caixas: 'Caixas',
+  configuracoes: 'Configurações',
   frete: 'Frete',
 }
 
