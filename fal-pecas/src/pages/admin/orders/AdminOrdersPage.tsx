@@ -1,5 +1,4 @@
 import { Button } from '@/components/common/Button'
-import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
@@ -14,10 +13,14 @@ import {
   sumGroupCount,
   type AdminOrderGroupId,
 } from '@/lib/adminOrderOps'
+import {
+  confirmExpireUnpaidIntent,
+  formatExpireUnpaidMessage,
+  runExpireUnpaidOrders,
+} from '@/lib/adminExpireUnpaidFlow'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
-  adminExpireUnpaidOrders,
   adminListOrders,
   adminOrderStatusCounts,
   ADMIN_LIST_PAGE_SIZE,
@@ -162,25 +165,13 @@ export function AdminOrdersPage() {
   }, [rows, groupFilter, search])
 
   async function runExpireUnpaid() {
-    const { confirmed } = await confirmDialog({
-      title: 'Retirar pedidos não pagos?',
-      message:
-        'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?\n\n' +
-        'Histórico permanece. Reserva liberada. Pix (5 min) é independente — não cancela o pedido.',
-      confirmLabel: 'Retirar da fila',
-      danger: true,
-    })
-    if (!confirmed) return
+    if (!(await confirmExpireUnpaidIntent())) return
     setBusyExpire(true)
     setMessage(null)
     setError(null)
     try {
-      const r = await adminExpireUnpaidOrders({ limit: 50, maxAgeHours: 48 })
-      setMessage(
-        r.expired === 0
-          ? 'Nenhum pedido elegível a expirar (TTL 48 h).'
-          : `${r.expired} pedido(s) expirado(s) e reserva liberada.`,
-      )
+      const r = await runExpireUnpaidOrders()
+      setMessage(formatExpireUnpaidMessage(r))
       await reload()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao expirar pedidos')
