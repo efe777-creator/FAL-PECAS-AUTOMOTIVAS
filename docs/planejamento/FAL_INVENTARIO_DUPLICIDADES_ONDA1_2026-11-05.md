@@ -19,7 +19,7 @@
 | `quoteShippingEnvelope` + `carrierRegistry` | Único envelope loja | **MANTER** |
 | `melhorEnvioEdgeProvider` merge own+ME | Canônico híbrido | **MANTER** |
 | `mockShippingProvider` | Default D-FRETE B | **MANTER** até cutover |
-| Volumes ME = max eixos + peso | Sem caixas ainda | **CONSOLIDAR** com O1-C templates |
+| Volumes ME × caixas | `resolvePackingStrategy`: caixa / per_item / 422 se templates não cabem | **MANTER** (VAL 2026-11-06; redeploy Edge) |
 
 ## Preço
 

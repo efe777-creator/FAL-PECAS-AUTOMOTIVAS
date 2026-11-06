@@ -50,3 +50,20 @@ export function pickSmallestFittingBox(
 export function sumItemsWeightKg(items: PackingItem[]): number {
   return items.reduce((n, it) => n + it.weightKg * Math.max(1, it.qty), 0)
 }
+
+export type PackingStrategy =
+  | { mode: 'box_template'; box: PackingBox }
+  | { mode: 'per_item' }
+  | { mode: 'packing_failed' }
+
+/** Espelho de resolvePackingStrategy em src/lib/shippingPacking.ts. */
+export function resolvePackingStrategy(
+  boxes: PackingBox[],
+  items: PackingItem[],
+): PackingStrategy {
+  const active = boxes.filter((b) => b.active)
+  if (!active.length) return { mode: 'per_item' }
+  const box = pickSmallestFittingBox(active, items)
+  if (box) return { mode: 'box_template', box }
+  return { mode: 'packing_failed' }
+}
