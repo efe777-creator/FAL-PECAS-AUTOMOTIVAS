@@ -16,6 +16,7 @@ import {
   formatExpireUnpaidMessage,
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
@@ -27,6 +28,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminOrdersHubPage() {
+  useDocumentTitle('Pedidos | Admin FAL')
   const toast = useToast()
   const [rows, setRows] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})

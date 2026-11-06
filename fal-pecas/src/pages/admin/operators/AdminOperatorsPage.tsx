@@ -5,6 +5,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
   ASSIGNABLE_ROLES,
@@ -17,6 +18,7 @@ import {
 import { useEffect, useState, type FormEvent } from 'react'
 
 export function AdminOperatorsPage() {
+  useDocumentTitle('Operadores | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const isAdmin = user?.role === 'administrador'

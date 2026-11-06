@@ -9,6 +9,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCategoryDefaultMeasures,
@@ -29,6 +30,7 @@ import type { Category } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 export function AdminCategoriesPage() {
+  useDocumentTitle('Classificação | Admin FAL')
   const toast = useToast()
   const [items, setItems] = useState<Category[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})

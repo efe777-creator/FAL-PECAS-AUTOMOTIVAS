@@ -9,6 +9,7 @@ import {
   sumGroupCount,
   visibleStatusesInGroup,
 } from '@/lib/adminOrderOps'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
   adminListOrders,
@@ -71,6 +72,7 @@ function actorClass(kind: ReturnType<typeof adminActorKind>): string {
 }
 
 export function AdminDashboardPage() {
+  useDocumentTitle('Dashboard | Admin FAL')
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<AdminOrderListRow[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)

@@ -1,4 +1,5 @@
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
 import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
 import { adminReportsBundle, staffCanViewReportsF8 } from '@/services/admin/adminReportsService'
@@ -6,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminReportsPage() {
+  useDocumentTitle('Relatórios | Admin FAL')
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [totals, setTotals] = useState({
