@@ -1,5 +1,6 @@
 import { AddressForm, emptyAddressForm } from '@/components/address/AddressForm'
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
@@ -161,10 +162,21 @@ export function AccountAddressesPage() {
                       variant="danger"
                       size="sm"
                       onClick={() => {
-                        if (!window.confirm('Excluir este endereço?')) return
-                        void deleteAddress(a.id)
-                          .then(reload)
-                          .catch((err) => setError(String(err)))
+                        void (async () => {
+                          const { confirmed } = await confirmDialog({
+                            title: 'Excluir endereço?',
+                            message: 'Excluir este endereço?',
+                            confirmLabel: 'Excluir',
+                            danger: true,
+                          })
+                          if (!confirmed) return
+                          try {
+                            await deleteAddress(a.id)
+                            await reload()
+                          } catch (err) {
+                            setError(String(err))
+                          }
+                        })()
                       }}
                     >
                       Excluir

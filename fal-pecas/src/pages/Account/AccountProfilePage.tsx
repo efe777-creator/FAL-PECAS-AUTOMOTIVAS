@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
@@ -141,10 +142,14 @@ export function AccountProfilePage() {
           className="mt-3 rounded-[10px] border border-fal-danger px-4 py-2 text-sm font-bold text-fal-danger hover:bg-red-50 disabled:opacity-50"
           onClick={() => {
             void (async () => {
-              const ok = window.confirm(
-                'Encerrar sua conta?\n\nPedidos antigos continuam no sistema da loja, mas seus dados de cadastro serão anonimizados.',
-              )
-              if (!ok) return
+              const { confirmed } = await confirmDialog({
+                title: 'Encerrar conta?',
+                message:
+                  'Pedidos antigos continuam no sistema da loja, mas seus dados de cadastro serão anonimizados.',
+                confirmLabel: 'Encerrar conta',
+                danger: true,
+              })
+              if (!confirmed) return
               setDeleting(true)
               setError(null)
               try {

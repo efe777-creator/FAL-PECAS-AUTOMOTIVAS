@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
@@ -101,13 +102,14 @@ export function AccountOrderDetailPage() {
 
   async function onCancelUnpaid() {
     if (!order) return
-    if (
-      !window.confirm(
-        'Cancelar este pedido? Os itens voltarão ao carrinho (preços atuais) e a reserva será liberada.',
-      )
-    ) {
-      return
-    }
+    const { confirmed } = await confirmDialog({
+      title: 'Cancelar pedido?',
+      message:
+        'Os itens voltarão ao carrinho (preços atuais) e a reserva será liberada.',
+      confirmLabel: 'Cancelar pedido',
+      danger: true,
+    })
+    if (!confirmed) return
     setActionBusy(true)
     setActionMsg(null)
     try {
@@ -134,15 +136,22 @@ export function AccountOrderDetailPage() {
 
   async function onRespondDecision(decision: 'authorize' | 'reject') {
     if (!order) return
-    const ok =
+    const { confirmed } =
       decision === 'authorize'
-        ? window.confirm(
-            'Autorizar as alterações da loja (itens indisponíveis ou com prazo)? Depois a loja poderá confirmar o pedido.',
-          )
-        : window.confirm(
-            'Recusar as alterações? A loja será avisada e precisará cancelar ou renegociar.',
-          )
-    if (!ok) return
+        ? await confirmDialog({
+            title: 'Autorizar alterações?',
+            message:
+              'Autorizar as alterações da loja (itens indisponíveis ou com prazo)? Depois a loja poderá confirmar o pedido.',
+            confirmLabel: 'Autorizar',
+          })
+        : await confirmDialog({
+            title: 'Recusar alterações?',
+            message:
+              'A loja será avisada e precisará cancelar ou renegociar.',
+            confirmLabel: 'Recusar',
+            danger: true,
+          })
+    if (!confirmed) return
     setActionBusy(true)
     setActionMsg(null)
     try {
@@ -162,15 +171,20 @@ export function AccountOrderDetailPage() {
 
   async function onRequestCancellation() {
     if (!order) return
-    const reason = window.prompt(
-      'Solicitar cancelamento? A loja analisará. Se aprovado, o estorno é feito pela FAL (manual). Motivo (opcional):',
-      '',
-    )
-    if (reason === null) return
+    const { confirmed, reason } = await confirmDialog({
+      title: 'Solicitar cancelamento?',
+      message:
+        'A loja analisará. Se aprovado, o estorno é feito pela FAL (manual).',
+      confirmLabel: 'Solicitar',
+      danger: true,
+      askReason: true,
+      reasonLabel: 'Motivo (opcional)',
+    })
+    if (!confirmed) return
     setActionBusy(true)
     setActionMsg(null)
     try {
-      await requestOrderCancellation(order.id, reason)
+      await requestOrderCancellation(order.id, reason ?? '')
       setActionMsg(
         'Solicitação enviada. Aguarde a análise da loja. O pedido segue no status atual até a resposta.',
       )
