@@ -3,6 +3,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCepMask } from '@/lib/cep'
 import {
@@ -17,6 +18,7 @@ import { useEffect, useState } from 'react'
 
 export function AccountAddressesPage() {
   useDocumentTitle('Endereços | FAL Peças Automotivas')
+  const toast = useToast()
   const { user } = useAuth()
   const [items, setItems] = useState<CustomerAddress[]>([])
   const [mode, setMode] = useState<'list' | 'create' | 'edit'>('list')
@@ -25,7 +27,16 @@ export function AccountAddressesPage() {
   const [initial, setInitial] = useState(emptyAddressForm)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
 
   async function reload() {
     setLoading(true)
@@ -33,7 +44,7 @@ export function AccountAddressesPage() {
       setItems(await listAddresses())
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao listar endereços')
+      pushError(e instanceof Error ? e.message : 'Erro ao listar endereços')
     } finally {
       setLoading(false)
     }
@@ -41,6 +52,7 @@ export function AccountAddressesPage() {
 
   useEffect(() => {
     void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
   function openCreate() {
@@ -52,7 +64,7 @@ export function AccountAddressesPage() {
     })
     setFormKey((k) => k + 1)
     setMode('create')
-    setMessage(null)
+    setError(null)
   }
 
   function startEdit(a: CustomerAddress) {
@@ -72,7 +84,7 @@ export function AccountAddressesPage() {
     })
     setFormKey((k) => k + 1)
     setMode('edit')
-    setMessage(null)
+    setError(null)
   }
 
   function backToList() {
@@ -85,7 +97,6 @@ export function AccountAddressesPage() {
   return (
     <div className="space-y-4">
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
 
       {mode === 'list' ? (
         <>
@@ -152,8 +163,11 @@ export function AccountAddressesPage() {
                         size="sm"
                         onClick={() =>
                           void setDefaultAddress(a.id)
-                            .then(reload)
-                            .catch((err) => setError(String(err)))
+                            .then(async () => {
+                              pushOk('Endereço padrão atualizado.')
+                              await reload()
+                            })
+                            .catch((err) => pushError(String(err)))
                         }
                       >
                         Tornar padrão
@@ -174,9 +188,10 @@ export function AccountAddressesPage() {
                           if (!confirmed) return
                           try {
                             await deleteAddress(a.id)
+                            pushOk('Endereço excluído.')
                             await reload()
                           } catch (err) {
-                            setError(String(err))
+                            pushError(String(err))
                           }
                         })()
                       }}
@@ -206,18 +221,22 @@ export function AccountAddressesPage() {
               onCancel={backToList}
               onSubmit={async (values) => {
                 setError(null)
-                setMessage(null)
-                await upsertAddress({
-                  id: editingId ?? undefined,
-                  ...values,
-                  label: values.label || null,
-                  complement: values.complement || null,
-                  reference: values.reference || null,
-                  district: values.district || null,
-                })
-                setMessage(editingId ? 'Endereço atualizado.' : 'Endereço cadastrado.')
-                backToList()
-                await reload()
+                try {
+                  await upsertAddress({
+                    id: editingId ?? undefined,
+                    ...values,
+                    label: values.label || null,
+                    complement: values.complement || null,
+                    reference: values.reference || null,
+                    district: values.district || null,
+                  })
+                  pushOk(editingId ? 'Endereço atualizado.' : 'Endereço cadastrado.')
+                  backToList()
+                  await reload()
+                } catch (err) {
+                  pushError(err instanceof Error ? err.message : 'Falha ao salvar endereço')
+                  throw err
+                }
               }}
             />
           </div>
