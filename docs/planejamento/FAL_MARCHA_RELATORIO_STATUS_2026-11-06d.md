@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #171 (+ soberana home-admin unsaved em ship)  
+**HEAD:** `main` @ merge #172 (+ media ideal scale em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -36,6 +36,7 @@
 | #170 | docs | Relatório MARCHA consolidado |
 | #171 | Onda 3 | Carrossel Destaques sem cortar card ao meio |
 | #172 | SOBERANA | Runbook + Home admin unsaved; **fernando Netlify STALE** |
+| #173 | Onda 2 | Fotos card escala ideal (não pequenininhas) |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

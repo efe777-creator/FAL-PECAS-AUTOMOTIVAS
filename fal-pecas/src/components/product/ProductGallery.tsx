@@ -3,6 +3,7 @@ import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceh
 import {
   ProductMediaFrame,
   productMediaImgClass,
+  productMediaImgClassGallery,
 } from '@/components/product/ProductMediaFrame'
 import { useEffect, useState } from 'react'
 
@@ -71,7 +72,7 @@ export function ProductGallery({ images, alt }: Props) {
             <img
               src={mainSrc}
               alt={alt}
-              className={`${productMediaImgClass} max-h-[276px] transition group-hover:scale-[1.02] lg:max-h-[440px]`}
+              className={`${productMediaImgClassGallery} max-h-[276px] transition group-hover:scale-[1.08] lg:max-h-[440px]`}
               loading="eager"
             />
           </button>
