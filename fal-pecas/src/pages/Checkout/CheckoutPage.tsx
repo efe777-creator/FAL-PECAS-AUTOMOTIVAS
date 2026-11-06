@@ -37,6 +37,7 @@ import type {
   ShippingQuoteOption,
   SimulatedPaymentMethod,
 } from '@/types'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { showCheckoutEmptyCart } from './checkoutEmptyGuard'
@@ -48,6 +49,7 @@ function money(v: number) {
 }
 
 export function CheckoutPage() {
+  useDocumentTitle('Checkout | FAL Peças Automotivas')
   const { user } = useAuth()
   const { items, subtotal, clear } = useCart()
   const { push } = useToast()

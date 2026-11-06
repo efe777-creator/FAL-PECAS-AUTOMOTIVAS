@@ -4,12 +4,14 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { CartShippingQuoteBlock } from '@/components/cart/CartShippingQuoteBlock'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function CartPage() {
+  useDocumentTitle('Carrinho | FAL Peças Automotivas')
   const { user } = useAuth()
   const { items, itemCount, subtotal, updateQty, removeItem, storageKind, syncPending } =
     useCart()

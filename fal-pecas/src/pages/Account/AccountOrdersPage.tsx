@@ -1,6 +1,7 @@
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDate } from '@/lib/datetime'
 import { customerOrderListCta, orderStatusLabel } from '@/lib/orderLifecycle'
 import { listMyOrders } from '@/services/customers/orderQueryService'
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AccountOrdersPage() {
+  useDocumentTitle('Meus pedidos | FAL Peças Automotivas')
   const [items, setItems] = useState<CustomerOrderSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

@@ -1,7 +1,9 @@
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Container } from '@/components/layout/Container'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function NotFoundPage() {
+  useDocumentTitle('Página não encontrada | FAL Peças Automotivas')
   return (
     <Container className="py-12">
       <div className="mx-auto max-w-lg rounded-fal border border-fal-line bg-white p-8 text-center">

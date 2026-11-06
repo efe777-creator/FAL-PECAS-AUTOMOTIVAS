@@ -2,11 +2,13 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { ProductCard } from '@/components/product/ProductCard'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { listFavoriteProducts } from '@/services/customers/favoriteService'
 import type { Product } from '@/types'
 import { useEffect, useState } from 'react'
 
 export function AccountFavoritesPage() {
+  useDocumentTitle('Favoritos | FAL Peças Automotivas')
   const [items, setItems] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

@@ -27,7 +27,13 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 4. Sinônimos (dados + ligar flag)  
 5. ME etiqueta produção  
 
+## Feito após 06b
+
+- Home: “Buscar pelo carro” logo após o hero  
+- `document.title` no funil e na conta (Onda 2 residual)  
+
 ## Próximo código (opcional)
 
-- Polimento Onda 2/3 residual (titles, home “buscar pelo carro”)  
 - Revalidar paginação admin 100% telas  
+- Polimento SEO/admin titles (se desejado)  
+

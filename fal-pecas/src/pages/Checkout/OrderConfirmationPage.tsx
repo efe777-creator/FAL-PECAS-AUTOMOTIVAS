@@ -1,8 +1,10 @@
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Container } from '@/components/layout/Container'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useParams } from 'react-router-dom'
 
 export function OrderConfirmationPage() {
+  useDocumentTitle('Pedido recebido | FAL Peças Automotivas')
   const { id } = useParams<{ id: string }>()
   const short = id ? id.slice(0, 8) : '—'
 

@@ -23,6 +23,7 @@ import {
   customerRespondOrderDecision,
   requestOrderCancellation,
 } from '@/services/orders/customerOrderActions'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -50,6 +51,11 @@ export function AccountOrderDetailPage() {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const [order, setOrder] = useState<OrderDetail | null>(null)
+  useDocumentTitle(
+    order
+      ? `Pedido #${order.id.slice(0, 8)} | FAL Peças Automotivas`
+      : 'Pedido | FAL Peças Automotivas',
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rebuyBusy, setRebuyBusy] = useState(false)

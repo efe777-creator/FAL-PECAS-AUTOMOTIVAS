@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { isStaffRole } from '@/services/admin/staffService'
 import { listAddresses } from '@/services/customers/addressService'
 import { listMyOrders } from '@/services/customers/orderQueryService'
@@ -15,6 +16,7 @@ const cards = [
 ]
 
 export function AccountHomePage() {
+  useDocumentTitle('Minha conta | FAL Peças Automotivas')
   const { user } = useAuth()
   const isStaff = isStaffRole(user?.role)
   const [stats, setStats] = useState<{ addresses: number; vehicles: number; orders: number } | null>(

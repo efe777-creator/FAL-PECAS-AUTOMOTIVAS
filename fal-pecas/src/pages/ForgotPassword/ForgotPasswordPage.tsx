@@ -2,10 +2,12 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function ForgotPasswordPage() {
+  useDocumentTitle('Recuperar senha | FAL Peças Automotivas')
   const { resetPassword, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)

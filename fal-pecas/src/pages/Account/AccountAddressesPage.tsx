@@ -11,10 +11,12 @@ import {
   setDefaultAddress,
   upsertAddress,
 } from '@/services/customers/addressService'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { CustomerAddress } from '@/types'
 import { useEffect, useState } from 'react'
 
 export function AccountAddressesPage() {
+  useDocumentTitle('Endereços | FAL Peças Automotivas')
   const { user } = useAuth()
   const [items, setItems] = useState<CustomerAddress[]>([])
   const [mode, setMode] = useState<'list' | 'create' | 'edit'>('list')
