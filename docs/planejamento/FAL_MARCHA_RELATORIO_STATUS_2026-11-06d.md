@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #163 (+ compat React keys em ship)  
+**HEAD:** `main` @ merge #163 (+ buy-now qty em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -97,6 +97,7 @@
 - PDP: filtro catálogo sem viés da 1ª montadora — VAL `PDP_CATALOG_FILTER_COPY`  
 - Ano app só-fim → `.../YY` — VAL `VEHICLE_YEAR_END_ONLY`  
 - Compat apps: keys React únicas — VAL `COMPAT_APPS_REACT_KEYS`  
+- O1-G: Comprar agora aplica qtd da PDP — VAL `O1G_BUY_NOW_QTY`  
 
 **Próxima MARCHA sugerida (código):** residuals finos **ou** gates humanos.  
 **Próximo gate eFe:** apply migration reject-reason · tarifas own / D-FRETE C / pagamento prod / ME etiqueta.  
