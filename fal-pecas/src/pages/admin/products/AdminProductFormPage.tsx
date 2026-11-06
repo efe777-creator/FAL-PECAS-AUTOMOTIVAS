@@ -1,3 +1,4 @@
+import { AdminProductApplicationsSection } from '@/components/admin/AdminProductApplicationsSection'
 import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
 import { AdminProductReferencesSection } from '@/components/admin/AdminProductReferencesSection'
 import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
@@ -10,15 +11,10 @@ import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
-import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
-  adminAddApplicationsBulk,
   adminEvaluateReleaseChecklist,
   adminGetProduct,
-  adminListApplications,
   adminReleaseProductToStore,
-  adminRemoveApplication,
-  adminUpdateApplicationYears,
   adminListProductMeasureHistory,
   adminUpsertProduct,
   type ProductMeasureHistoryRow,
@@ -36,7 +32,6 @@ import {
   type ProductListPriceRow,
 } from '@/services/admin/adminPriceListService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
-import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import {
   listOwnVehicleCategories,
   type OwnVehicleCategory,
@@ -44,7 +39,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
-import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import {
   POSICAO_ATOMS,
   composePosicao,
@@ -53,15 +47,12 @@ import {
 } from '@/lib/productPosicaoLado'
 import type {
   Category,
-  Manufacturer,
   MeasureOrigin,
   Product,
   ProductBrand,
   Supplier,
-  VehicleModel,
-  VehicleVersion,
 } from '@/types'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 export function AdminProductFormPage() {
@@ -140,31 +131,13 @@ export function AdminProductFormPage() {
   const [ownVehicles, setOwnVehicles] = useState<OwnVehicleCategory[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [apps, setApps] = useState<unknown[]>([])
-
-  const [makers, setMakers] = useState<Manufacturer[]>([])
-  const [models, setModels] = useState<VehicleModel[]>([])
-  const [versions, setVersions] = useState<VehicleVersion[]>([])
-  const [makerId, setMakerId] = useState('')
-  const [modelId, setModelId] = useState('')
-  /** Vazio = todas as motorizações */
-  const [engineFilter, setEngineFilter] = useState('')
-  /** Vazio = todas as versões (com o filtro de motor) */
-  const [versionNameFilter, setVersionNameFilter] = useState('')
-  const [appYearStart, setAppYearStart] = useState('')
-  const [appYearEnd, setAppYearEnd] = useState('')
-  const [appBusy, setAppBusy] = useState(false)
-  const [editingAppId, setEditingAppId] = useState<string | null>(null)
-  const [editYearStart, setEditYearStart] = useState('')
-  const [editYearEnd, setEditYearEnd] = useState('')
 
   useEffect(() => {
     void (async () => {
-      const [cats, brs, sups, mfrs, lists, vehicles] = await Promise.all([
+      const [cats, brs, sups, lists, vehicles] = await Promise.all([
         adminListCategories(),
         adminListBrands(),
         adminListSuppliers(),
-        adminListManufacturers(),
         adminListPriceLists(),
         listOwnVehicleCategories().catch(() => [] as OwnVehicleCategory[]),
       ])
@@ -179,7 +152,6 @@ export function AdminProductFormPage() {
       setOwnVehicles(vehicles.filter((v) => v.active))
       setBrands(brs.filter((b) => b.status === 'active'))
       setSuppliers(sups.filter((s) => s.status === 'active'))
-      setMakers(mfrs.filter((m) => m.status === 'active'))
       if (isNew) {
         setListRows(
           lists.map((l) => ({
@@ -289,7 +261,6 @@ export function AdminProductFormPage() {
           setOverrideValidFrom('')
           setOverrideValidUntil('')
         }
-        setApps(await adminListApplications(p.id))
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Erro')
       } finally {
@@ -297,104 +268,6 @@ export function AdminProductFormPage() {
       }
     })()
   }, [id, isNew])
-
-  useEffect(() => {
-    if (!makerId) {
-      setModels([])
-      setModelId('')
-      return
-    }
-    void adminListModels(makerId).then(setModels)
-  }, [makerId])
-
-  useEffect(() => {
-    if (!modelId) {
-      setVersions([])
-      setEngineFilter('')
-      setVersionNameFilter('')
-      return
-    }
-    void adminListVersions(modelId).then(setVersions)
-  }, [modelId])
-
-  const engineOptions = useMemo(() => {
-    const set = new Set<string>()
-    for (const v of versions) {
-      const e = (v.engine ?? '').trim()
-      if (e) set.add(e)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions])
-
-  const versionNameOptions = useMemo(() => {
-    const filtered = engineFilter
-      ? versions.filter((v) => (v.engine ?? '').trim() === engineFilter)
-      : versions
-    const set = new Set<string>()
-    for (const v of filtered) {
-      const name = (v.versionName ?? '').trim()
-      if (name) set.add(name)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions, engineFilter])
-
-  const matchingVersions = useMemo(() => {
-    return versions.filter((v) => {
-      if (engineFilter && (v.engine ?? '').trim() !== engineFilter) return false
-      if (versionNameFilter && (v.versionName ?? '').trim() !== versionNameFilter) return false
-      return true
-    })
-  }, [versions, engineFilter, versionNameFilter])
-
-  function parseAppYear(raw: string): number | null {
-    const t = raw.trim()
-    if (!t) return null
-    const n = Number(t)
-    if (!Number.isInteger(n) || n < 1950 || n > 2100) return null
-    return n
-  }
-
-  async function onLinkApplications() {
-    if (!productId || !modelId) return
-    setError(null)
-    setMessage(null)
-    if (matchingVersions.length === 0) {
-      setError('Nenhuma configuração de veículo bate com os filtros. Ajuste motorização/versão.')
-      return
-    }
-    const ys = parseAppYear(appYearStart)
-    const ye = parseAppYear(appYearEnd)
-    if (appYearStart.trim() && ys == null) {
-      setError('Ano início inválido')
-      return
-    }
-    if (appYearEnd.trim() && ye == null) {
-      setError('Ano fim inválido')
-      return
-    }
-    if (ys != null && ye != null && ye < ys) {
-      setError('Ano fim menor que ano início')
-      return
-    }
-    setAppBusy(true)
-    try {
-      const n = await adminAddApplicationsBulk(
-        productId,
-        matchingVersions.map((v) => v.id),
-        { yearStart: ys, yearEnd: ye },
-      )
-      setApps(await adminListApplications(productId))
-      setMessage(
-        n === 1
-          ? '1 aplicação vinculada.'
-          : `${n} aplicações vinculadas (motorização/versão conforme filtros).`,
-      )
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao vincular aplicações')
-    } finally {
-      setAppBusy(false)
-    }
-  }
 
   async function onLiberarNaLoja() {
     if (!productId) return
@@ -1040,239 +913,7 @@ export function AdminProductFormPage() {
         <>
           <AdminProductRelatedSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />
-
-          <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="m-0 font-extrabold text-fal-navy">Aplicações</h2>
-              {productId ? (
-                <Link
-                  className="text-sm font-semibold text-fal-navy underline"
-                  to={`/admin/aplicacoes?productId=${productId}`}
-                >
-                  Abrir gestão de aplicações
-                </Link>
-              ) : null}
-            </div>
-            <p className="text-xs text-fal-muted">
-              Cascata: montadora → modelo → motorização → versão → período. Motorização ou versão
-              vazia = todas as configs que casarem ({matchingVersions.length} elegível
-              {matchingVersions.length === 1 ? '' : 'is'}).
-            </p>
-            <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
-              <select
-                className="rounded-[10px] border border-fal-line px-3 py-2"
-                value={makerId}
-                onChange={(e) => {
-                  setMakerId(e.target.value)
-                  setModelId('')
-                }}
-              >
-                <option value="">Montadora</option>
-                {makers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="rounded-[10px] border border-fal-line px-3 py-2"
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                disabled={!makerId}
-              >
-                <option value="">Modelo</option>
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="rounded-[10px] border border-fal-line px-3 py-2"
-                value={engineFilter}
-                onChange={(e) => {
-                  setEngineFilter(e.target.value)
-                  setVersionNameFilter('')
-                }}
-                disabled={!modelId}
-              >
-                <option value="">Motorização (Todas)</option>
-                {engineOptions.map((e) => (
-                  <option key={e} value={e}>
-                    {e}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="rounded-[10px] border border-fal-line px-3 py-2"
-                value={versionNameFilter}
-                onChange={(e) => setVersionNameFilter(e.target.value)}
-                disabled={!modelId}
-              >
-                <option value="">Versão (Todas)</option>
-                {versionNameOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <Input
-                label="Ano início"
-                inputMode="numeric"
-                value={appYearStart}
-                onChange={(e) => setAppYearStart(e.target.value)}
-                disabled={!modelId}
-              />
-              <Input
-                label="Ano fim"
-                inputMode="numeric"
-                value={appYearEnd}
-                onChange={(e) => setAppYearEnd(e.target.value)}
-                disabled={!modelId}
-                hint="Vazio = vigente"
-              />
-            </div>
-            <Button
-              type="button"
-              disabled={!productId || !modelId || appBusy || matchingVersions.length === 0}
-              onClick={() => void onLinkApplications()}
-            >
-              Vincular {matchingVersions.length > 1 ? `(${matchingVersions.length})` : ''}
-            </Button>
-            <ul className="space-y-1 text-sm">
-              {apps.map((a) => {
-                const row = a as {
-                  id: string
-                  year_start?: number | null
-                  year_end?: number | null
-                  vehicle_versions?: {
-                    year: number | null
-                    engine: string | null
-                    version_name: string | null
-                    manufacturers?: { name: string } | { name: string }[]
-                    models?: { name: string } | { name: string }[]
-                  }
-                }
-                const vv = row.vehicle_versions
-                const maker = Array.isArray(vv?.manufacturers)
-                  ? vv?.manufacturers[0]?.name
-                  : vv?.manufacturers?.name
-                const model = Array.isArray(vv?.models) ? vv?.models[0]?.name : vv?.models?.name
-                const yearLabel = formatVehicleAppYear({
-                  yearStart: row.year_start,
-                  yearEnd: row.year_end,
-                  versionYear: vv?.year,
-                })
-                const isEditing = editingAppId === row.id
-                return (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-fal-line py-1"
-                  >
-                    <span>
-                      {[maker, model, vv?.engine || '—', vv?.version_name || '—', yearLabel]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {isEditing ? (
-                        <>
-                          <input
-                            className="w-20 rounded border border-fal-line px-2 py-1 text-xs"
-                            inputMode="numeric"
-                            placeholder="Início"
-                            value={editYearStart}
-                            onChange={(e) => setEditYearStart(e.target.value)}
-                          />
-                          <input
-                            className="w-20 rounded border border-fal-line px-2 py-1 text-xs"
-                            inputMode="numeric"
-                            placeholder="Fim"
-                            value={editYearEnd}
-                            onChange={(e) => setEditYearEnd(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className="font-semibold text-fal-navy underline"
-                            onClick={() => {
-                              const ys = parseAppYear(editYearStart)
-                              const ye = parseAppYear(editYearEnd)
-                              if (editYearStart.trim() && ys == null) {
-                                setError('Ano início inválido')
-                                return
-                              }
-                              if (editYearEnd.trim() && ye == null) {
-                                setError('Ano fim inválido')
-                                return
-                              }
-                              void adminUpdateApplicationYears(row.id, {
-                                yearStart: ys,
-                                yearEnd: ye,
-                              })
-                                .then(async () => {
-                                  setEditingAppId(null)
-                                  if (productId) setApps(await adminListApplications(productId))
-                                })
-                                .catch((err) => setError(String(err.message ?? err)))
-                            }}
-                          >
-                            Salvar
-                          </button>
-                          <button
-                            type="button"
-                            className="font-semibold text-fal-muted underline"
-                            onClick={() => setEditingAppId(null)}
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="font-semibold text-fal-navy underline"
-                          onClick={() => {
-                            setEditingAppId(row.id)
-                            setEditYearStart(
-                              row.year_start != null ? String(row.year_start) : '',
-                            )
-                            setEditYearEnd(row.year_end != null ? String(row.year_end) : '')
-                          }}
-                        >
-                          Período
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="font-semibold text-fal-danger"
-                        onClick={() => {
-                          void confirmDialog({
-                            title: 'Remover aplicação?',
-                            message: 'O vínculo deste produto com o veículo será removido.',
-                            confirmLabel: 'Remover',
-                            danger: true,
-                          })
-                            .then(async ({ confirmed }) => {
-                              if (!confirmed) return
-                              await adminRemoveApplication(row.id)
-                              if (productId) setApps(await adminListApplications(productId))
-                              toast.push('Aplicação removida.', 'success')
-                            })
-                            .catch((err) => {
-                              const msg = toUserMessage(err, 'Falha ao remover aplicação')
-                              setError(msg)
-                              toast.push(msg, 'error')
-                            })
-                        }}
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-
+          <AdminProductApplicationsSection productId={productId} />
           <AdminProductImagesSection productId={productId} />
         </>
       ) : null}
