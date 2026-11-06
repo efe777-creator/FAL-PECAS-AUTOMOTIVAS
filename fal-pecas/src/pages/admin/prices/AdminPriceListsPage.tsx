@@ -1,3 +1,4 @@
+import { PricingRuleFields } from '@/components/admin/prices/PricingRuleFields'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -512,42 +513,18 @@ export function AdminPriceListsPage() {
               {advancedOpen ? '▾' : '▸'} Avançado — regra de formação
             </button>
             {advancedOpen ? (
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="block text-sm md:col-span-2">
-                  <span className="mb-1 block font-semibold text-fal-navy">Regra de formação</span>
-                  <select
-                    className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
-                    value={pricingMethod}
-                    onChange={(e) => setPricingMethod(e.target.value as PricingMethod)}
-                  >
-                    <option value="fixed">Preço fixo (sem fórmula automática)</option>
-                    <option value="markup_on_cost">Markup sobre custo</option>
-                    <option value="margin_on_sell">Margem sobre venda</option>
-                  </select>
-                </label>
-                {pricingMethod !== 'fixed' ? (
-                  <Input
-                    label={pricingMethod === 'markup_on_cost' ? 'Markup (%)' : 'Margem (%)'}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricingPercent}
-                    onChange={(e) => setPricingPercent(e.target.value)}
-                    required
-                    hint="Regra de formação de venda — não confundir com adicional de custo."
-                  />
-                ) : null}
-                <Input
-                  label="Adicional de custo (%)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={listExtraCostPercent}
-                  onChange={(e) => setListExtraCostPercent(e.target.value)}
-                  hint="CUSTO → este % → base de formação → markup/margem. Paralelo ao adicional em R$ da lista."
+              <div className="mt-3 space-y-3">
+                <PricingRuleFields
+                  method={pricingMethod}
+                  percent={pricingPercent}
+                  extraCostPercent={listExtraCostPercent}
+                  hidePercentWhenFixed
+                  onMethod={setPricingMethod}
+                  onPercent={setPricingPercent}
+                  onExtraCostPercent={setListExtraCostPercent}
                 />
                 {editing ? (
-                  <p className="text-sm text-fal-muted md:col-span-2">
+                  <p className="text-sm text-fal-muted">
                     Preferir a tela completa?{' '}
                     <Link
                       className="font-semibold text-fal-navy underline"
