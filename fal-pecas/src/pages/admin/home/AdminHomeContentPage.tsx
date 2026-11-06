@@ -9,6 +9,7 @@ import {
   type PaymentDisplaySettings,
 } from '@/lib/paymentDisplay'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -80,7 +81,24 @@ export function AdminHomeContentPage() {
   )
   const [savingPayment, setSavingPayment] = useState(false)
   const [uploadingBannerImage, setUploadingBannerImage] = useState(false)
+  const [dirtyBanner, setDirtyBanner] = useState(false)
+  const [dirtyPayment, setDirtyPayment] = useState(false)
   const bannerImageInputRef = useRef<HTMLInputElement>(null)
+
+  const dirty = dirtyBanner || dirtyPayment
+  useUnsavedChangesBlocker(dirty, {
+    message:
+      'Há alterações em campanhas ou condições de pagamento ainda não salvas. Sair mesmo assim?',
+  })
+  useEffect(() => {
+    if (!dirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
 
   const liveBanners = useMemo(() => banners.filter((b) => b.active).length, [banners])
   const liveFeatured = useMemo(() => featured.filter((f) => f.active).length, [featured])
@@ -131,6 +149,7 @@ export function AdminHomeContentPage() {
     try {
       const saved = await adminUpsertPaymentDisplaySettings(payment)
       setPayment(saved)
+      setDirtyPayment(false)
       push(saved.enabled ? 'Condições ativas na loja' : 'Condições salvas (ainda desligadas)', 'success')
     } catch (err) {
       push(toUserMessage(err), 'error')
@@ -155,6 +174,7 @@ export function AdminHomeContentPage() {
       })
       push(form.id ? 'Campanha atualizada' : 'Campanha criada', 'success')
       setForm(emptyBanner())
+      setDirtyBanner(false)
       await reload()
     } catch (err) {
       push(toUserMessage(err), 'error')
@@ -174,7 +194,10 @@ export function AdminHomeContentPage() {
     try {
       await adminDeleteHomeBanner(id)
       push('Campanha removida', 'success')
-      if (form.id === id) setForm(emptyBanner())
+      if (form.id === id) {
+        setForm(emptyBanner())
+        setDirtyBanner(false)
+      }
       await reload()
     } catch (err) {
       push(toUserMessage(err), 'error')
@@ -328,6 +351,16 @@ export function AdminHomeContentPage() {
       </div>
 
       {loading ? <p className="text-sm text-fal-muted">Carregando…</p> : null}
+      {dirty ? (
+        <p
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
+          role="status"
+        >
+          Alterações não salvas
+          {dirtyBanner ? ' (campanha)' : ''}
+          {dirtyPayment ? ' (pagamento)' : ''}. Salve antes de sair do admin.
+        </p>
+      ) : null}
 
       {tab === 'banners' && !loading ? (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -341,23 +374,35 @@ export function AdminHomeContentPage() {
             <Input
               label="Título"
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              onChange={(e) => {
+                setDirtyBanner(true)
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }}
               required
             />
             <Input
               label="Texto de apoio"
               value={form.subtitle}
-              onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))}
+              onChange={(e) => {
+                setDirtyBanner(true)
+                setForm((f) => ({ ...f, subtitle: e.target.value }))
+              }}
             />
             <Input
               label="Texto do botão"
               value={form.ctaLabel}
-              onChange={(e) => setForm((f) => ({ ...f, ctaLabel: e.target.value }))}
+              onChange={(e) => {
+                setDirtyBanner(true)
+                setForm((f) => ({ ...f, ctaLabel: e.target.value }))
+              }}
             />
             <Input
               label="Para onde o botão leva"
               value={form.to}
-              onChange={(e) => setForm((f) => ({ ...f, to: e.target.value }))}
+              onChange={(e) => {
+                setDirtyBanner(true)
+                setForm((f) => ({ ...f, to: e.target.value }))
+              }}
               placeholder="/catalogo?cat=suspensao"
             />
             <div className="space-y-2">
@@ -389,6 +434,7 @@ export function AdminHomeContentPage() {
                     setUploadingBannerImage(true)
                     void adminUploadHomeBannerImage(file)
                       .then((url) => {
+                        setDirtyBanner(true)
                         setForm((f) => ({ ...f, imageSrc: url }))
                         push('Imagem adicionada — salve a campanha', 'success')
                       })
@@ -409,7 +455,10 @@ export function AdminHomeContentPage() {
                     type="button"
                     variant="light"
                     disabled={uploadingBannerImage || saving}
-                    onClick={() => setForm((f) => ({ ...f, imageSrc: '' }))}
+                    onClick={() => {
+                      setDirtyBanner(true)
+                      setForm((f) => ({ ...f, imageSrc: '' }))
+                    }}
                   >
                     Remover
                   </Button>
@@ -418,7 +467,10 @@ export function AdminHomeContentPage() {
               <Input
                 label="URL (opcional — preenchida pelo upload)"
                 value={form.imageSrc ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, imageSrc: e.target.value }))}
+                onChange={(e) => {
+                  setDirtyBanner(true)
+                  setForm((f) => ({ ...f, imageSrc: e.target.value }))
+                }}
                 placeholder="https://… ou /icons/…"
               />
             </div>
@@ -430,18 +482,22 @@ export function AdminHomeContentPage() {
                 { value: 'steel', label: 'Aço' },
                 { value: 'sand', label: 'Areia' },
               ]}
-              onChange={(e) =>
+              onChange={(e) => {
+                setDirtyBanner(true)
                 setForm((f) => ({
                   ...f,
                   tone: e.target.value as AdminHomeBanner['tone'],
                 }))
-              }
+              }}
             />
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={form.active}
-                onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
+                onChange={(e) => {
+                  setDirtyBanner(true)
+                  setForm((f) => ({ ...f, active: e.target.checked }))
+                }}
               />
               Mostrar na loja
             </label>
@@ -450,7 +506,14 @@ export function AdminHomeContentPage() {
                 {saving ? 'Salvando…' : 'Salvar'}
               </Button>
               {form.id ? (
-                <Button type="button" variant="outline" onClick={() => setForm(emptyBanner())}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setForm(emptyBanner())
+                    setDirtyBanner(false)
+                  }}
+                >
                   Limpar formulário
                 </Button>
               ) : null}
@@ -503,7 +566,10 @@ export function AdminHomeContentPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => setForm({ ...b })}
+                      onClick={() => {
+                        setForm({ ...b })
+                        setDirtyBanner(false)
+                      }}
                     >
                       Editar
                     </Button>
@@ -549,7 +615,10 @@ export function AdminHomeContentPage() {
             <input
               type="checkbox"
               checked={payment.enabled}
-              onChange={(e) => setPayment((p) => ({ ...p, enabled: e.target.checked }))}
+              onChange={(e) => {
+                setDirtyPayment(true)
+                setPayment((p) => ({ ...p, enabled: e.target.checked }))
+              }}
             />
             Mostrar na loja
           </label>
@@ -559,12 +628,13 @@ export function AdminHomeContentPage() {
             min={1}
             max={24}
             value={String(payment.maxInstallments)}
-            onChange={(e) =>
+            onChange={(e) => {
+              setDirtyPayment(true)
               setPayment((p) => ({
                 ...p,
                 maxInstallments: Number(e.target.value) || 1,
               }))
-            }
+            }}
           />
           <Input
             label="Parcela mínima (R$)"
@@ -572,18 +642,22 @@ export function AdminHomeContentPage() {
             min={0}
             step="0.01"
             value={String(payment.minInstallmentAmount)}
-            onChange={(e) =>
+            onChange={(e) => {
+              setDirtyPayment(true)
               setPayment((p) => ({
                 ...p,
                 minInstallmentAmount: Number(e.target.value) || 0,
               }))
-            }
+            }}
           />
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={payment.interestFree}
-              onChange={(e) => setPayment((p) => ({ ...p, interestFree: e.target.checked }))}
+              onChange={(e) => {
+                setDirtyPayment(true)
+                setPayment((p) => ({ ...p, interestFree: e.target.checked }))
+              }}
             />
             Texto “sem juros”
           </label>
@@ -591,7 +665,10 @@ export function AdminHomeContentPage() {
             <input
               type="checkbox"
               checked={payment.showOnCards}
-              onChange={(e) => setPayment((p) => ({ ...p, showOnCards: e.target.checked }))}
+              onChange={(e) => {
+                setDirtyPayment(true)
+                setPayment((p) => ({ ...p, showOnCards: e.target.checked }))
+              }}
             />
             Nos cards
           </label>
@@ -599,14 +676,20 @@ export function AdminHomeContentPage() {
             <input
               type="checkbox"
               checked={payment.showOnPdp}
-              onChange={(e) => setPayment((p) => ({ ...p, showOnPdp: e.target.checked }))}
+              onChange={(e) => {
+                setDirtyPayment(true)
+                setPayment((p) => ({ ...p, showOnPdp: e.target.checked }))
+              }}
             />
             Na página do produto
           </label>
           <Input
             label="Rodapé (só PDP, opcional)"
             value={payment.footnote ?? ''}
-            onChange={(e) => setPayment((p) => ({ ...p, footnote: e.target.value }))}
+            onChange={(e) => {
+              setDirtyPayment(true)
+              setPayment((p) => ({ ...p, footnote: e.target.value }))
+            }}
             placeholder="Ex.: sujeito à análise do cartão"
           />
           <p className="m-0 rounded-lg bg-fal-bg px-3 py-2 text-sm">

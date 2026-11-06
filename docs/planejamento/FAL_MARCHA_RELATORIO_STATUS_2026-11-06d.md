@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-06d (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #170 (+ carousel no-half-card em ship)  
+**HEAD:** `main` @ merge #171 (+ soberana home-admin unsaved em ship)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -35,6 +35,7 @@
 | #169 | O0-C | Meus veículos sem jargão “cadastro mestre” |
 | #170 | docs | Relatório MARCHA consolidado |
 | #171 | Onda 3 | Carrossel Destaques sem cortar card ao meio |
+| #172 | SOBERANA | Runbook + Home admin unsaved; **fernando Netlify STALE** |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
@@ -58,7 +59,7 @@
 
 ### A) Gates humanos (bloqueiam produção plena)
 
-1. Publish / créditos Netlify (**fernando**)  
+1. Publish / créditos Netlify (**fernando**) — **STALE:** produção em `#74` / `b7cd113`; tip `main` em `#171`+  
 2. **D-FRETE C** (cutover frete) — só com assinatura eFe  
 3. Mercado Pago **produção**  
 4. Sinônimos (dados + ligar flag)  
@@ -100,4 +101,6 @@
 
 ## 5. VALs recentes (âncoras)
 
-`O1G_BUY_NOW_QTY` · `O1E_ME_UNSAVED_BLOCKER` · `O1D_OWN_UNSAVED_BLOCKER` · `O0B_SHIPPING_ORIGIN_UNSAVED_BLOCKER` · `O1F_LOGIN_PASSWORD_RULE` · `O0C_ACCOUNT_VEHICLES_COPY` · (+ série #150–#163 no histórico do mesmo arquivo)
+`ONDA3_CAROUSEL_NO_HALF_CARD` · `O0B_HOME_ADMIN_UNSAVED_BLOCKER` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#170 no histórico)
+
+**Soberana:** `FAL_MARCHA_SOBERANA_PLANO_MESTRE_EXEC_2026-11-06.md`
