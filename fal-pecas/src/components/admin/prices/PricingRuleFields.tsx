@@ -1,0 +1,71 @@
+import { Input } from '@/components/common/Input'
+import type { PricingMethod } from '@/services/pricing/pricingFormulas'
+
+export function pricingPercentInputLabel(method: PricingMethod): string {
+  if (method === 'markup_on_cost') return 'Markup (%)'
+  if (method === 'margin_on_sell') return 'Margem (%)'
+  return '% (formação)'
+}
+
+type Props = {
+  method: PricingMethod
+  percent: string
+  extraCostPercent: string
+  disabled?: boolean
+  /** Esconde o campo % quando método é fixo (form de criar/editar lista). */
+  hidePercentWhenFixed?: boolean
+  className?: string
+  selectClassName?: string
+  onMethod: (v: PricingMethod) => void
+  onPercent: (v: string) => void
+  onExtraCostPercent: (v: string) => void
+}
+
+/** Campos comuns da regra de formação (lista ×3 UIs). */
+export function PricingRuleFields({
+  method,
+  percent,
+  extraCostPercent,
+  disabled = false,
+  hidePercentWhenFixed = false,
+  className = 'grid gap-3 md:grid-cols-2',
+  selectClassName = 'w-full rounded-[10px] border border-fal-line bg-white px-3 py-2',
+  onMethod,
+  onPercent,
+  onExtraCostPercent,
+}: Props) {
+  const showPercent = !(hidePercentWhenFixed && method === 'fixed')
+  return (
+    <div className={className}>
+      <label className={`block text-sm ${hidePercentWhenFixed ? 'md:col-span-2' : ''}`}>
+        <span className="mb-1 block text-xs font-extrabold text-fal-muted">Regra de formação</span>
+        <select
+          className={selectClassName}
+          value={method}
+          disabled={disabled}
+          onChange={(e) => onMethod(e.target.value as PricingMethod)}
+        >
+          <option value="fixed">Preço fixo (sem fórmula automática)</option>
+          <option value="markup_on_cost">Markup sobre custo</option>
+          <option value="margin_on_sell">Margem sobre venda</option>
+        </select>
+      </label>
+      {showPercent ? (
+        <Input
+          label={pricingPercentInputLabel(method)}
+          value={percent}
+          disabled={disabled || method === 'fixed'}
+          onChange={(e) => onPercent(e.target.value)}
+          hint="Percentual da regra de venda — não é adicional de custo."
+        />
+      ) : null}
+      <Input
+        label="Adicional de custo (%)"
+        value={extraCostPercent}
+        disabled={disabled}
+        onChange={(e) => onExtraCostPercent(e.target.value)}
+        hint="CUSTO → este % → base de formação → markup/margem. Paralelo ao adicional em R$ da lista."
+      />
+    </div>
+  )
+}

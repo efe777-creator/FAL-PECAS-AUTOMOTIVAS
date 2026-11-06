@@ -1,3 +1,4 @@
+import { PricingRuleFields } from '@/components/admin/prices/PricingRuleFields'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { formatMoney, formatMoneyInput } from '@/lib/money'
@@ -66,70 +67,50 @@ export function PriceListFormacaoTab({
           Formação não altera a origem de preço de itens importados/manuais. O adicional em R$ da
           lista permanece informativo e fora do cálculo.
         </p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Regra de formação</span>
-            <select
-              className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-              value={ruleMethod}
-              disabled={busy || !allowed}
-              onChange={(e) => onRuleMethod(e.target.value as PricingMethod)}
-            >
-              <option value="fixed">Preço fixo (sem fórmula automática)</option>
-              <option value="markup_on_cost">Markup sobre custo</option>
-              <option value="margin_on_sell">Margem sobre venda</option>
-            </select>
-          </label>
-          <Input
-            label={
-              ruleMethod === 'markup_on_cost'
-                ? 'Markup (%)'
-                : ruleMethod === 'margin_on_sell'
-                  ? 'Margem (%)'
-                  : '% (formação)'
-            }
-            value={rulePercent}
-            disabled={busy || !allowed || ruleMethod === 'fixed'}
-            onChange={(e) => onRulePercent(e.target.value)}
-            hint="Percentual da regra de venda — não é adicional de custo."
-          />
-          <Input
-            label="Adicional de custo (%)"
-            value={ruleExtraCostPercent}
+        <div className="mt-3 space-y-3">
+          <PricingRuleFields
+            method={ruleMethod}
+            percent={rulePercent}
+            extraCostPercent={ruleExtraCostPercent}
             disabled={busy || !allowed}
-            onChange={(e) => onRuleExtraCostPercent(e.target.value)}
-            hint="Paralelo ao adicional em R$ da lista (informativo)."
+            className="grid gap-3 md:grid-cols-2 lg:grid-cols-3"
+            selectClassName="w-full rounded-[9px] border border-fal-line px-3 py-3"
+            onMethod={onRuleMethod}
+            onPercent={onRulePercent}
+            onExtraCostPercent={onRuleExtraCostPercent}
           />
-          <Input
-            label="Adicional em R$ (informativo)"
-            value={formatMoneyInput(list.listExtraCost)}
-            disabled
-            hint="Não entra no cálculo. Não reinterpretar como %."
-          />
-          <div className="flex flex-wrap items-end gap-2 md:col-span-2">
-            <Button
-              type="button"
-              variant="light"
-              disabled={busy || !allowed}
-              onClick={onSaveRuleKeepPrices}
-            >
-              Salvar margem (manter venda)
-            </Button>
-            <Button
-              type="button"
-              disabled={busy || !allowed || ruleMethod === 'fixed'}
-              onClick={onApplyMarginToSell}
-            >
-              Aplicar margem → atualizar venda
-            </Button>
-            <Link className="pb-3 text-sm font-semibold text-fal-navy underline" to="/admin/precos">
-              Voltar à consulta
-            </Link>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <Input
+              label="Adicional em R$ (informativo)"
+              value={formatMoneyInput(list.listExtraCost)}
+              disabled
+              hint="Não entra no cálculo. Não reinterpretar como %."
+            />
+            <div className="flex flex-wrap items-end gap-2 md:col-span-2">
+              <Button
+                type="button"
+                variant="light"
+                disabled={busy || !allowed}
+                onClick={onSaveRuleKeepPrices}
+              >
+                Salvar margem (manter venda)
+              </Button>
+              <Button
+                type="button"
+                disabled={busy || !allowed || ruleMethod === 'fixed'}
+                onClick={onApplyMarginToSell}
+              >
+                Aplicar margem → atualizar venda
+              </Button>
+              <Link className="pb-3 text-sm font-semibold text-fal-navy underline" to="/admin/precos">
+                Voltar à consulta
+              </Link>
+            </div>
+            <p className="text-xs text-fal-muted md:col-span-2">
+              Salvar margem: só persiste regra/adicional. Aplicar margem: inclui produtos com custo
+              ainda fora da lista e recalcula só itens Calculados (Importado/Manual ficam iguais).
+            </p>
           </div>
-          <p className="text-xs text-fal-muted md:col-span-2">
-            Salvar margem: só persiste regra/adicional. Aplicar margem: inclui produtos com custo
-            ainda fora da lista e recalcula só itens Calculados (Importado/Manual ficam iguais).
-          </p>
         </div>
         {ruleReport ? <p className="mt-2 text-sm text-green-700">{ruleReport}</p> : null}
       </div>

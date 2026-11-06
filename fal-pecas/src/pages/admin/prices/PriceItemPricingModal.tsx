@@ -1,3 +1,4 @@
+import { pricingPercentInputLabel } from '@/components/admin/prices/PricingRuleFields'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { priceOriginLabel } from '@/lib/priceLabels'
@@ -126,8 +127,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
     await onSave({ mode: 'manual_price', price, extraCost })
   }
 
-  const ruleFieldLabel =
-    method === 'markup_on_cost' ? 'Markup (%)' : method === 'margin_on_sell' ? 'Margem (%)' : '% regra'
+  const ruleFieldLabel = pricingPercentInputLabel(method)
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">

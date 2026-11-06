@@ -27,7 +27,7 @@
 |------|--------|------|
 | Resolução SQL / `priceResolutionService` | Canônico | **MANTER** |
 | Espelho `products.price` | Form mostra resolvido + legado | **MANTER** (VAL 2026-11-06) |
-| Formação editável em 3 UIs de preço | Duplicado | **CONSOLIDAR** (Onda 1-I / preços) |
+| Formação editável em 3 UIs de preço | Campos comuns em `PricingRuleFields` | **MANTER** (VAL 2026-11-06; modal item = fluxo distinto) |
 
 ## Busca
 
