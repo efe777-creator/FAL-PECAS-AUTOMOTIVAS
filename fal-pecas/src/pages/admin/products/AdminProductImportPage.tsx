@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   adminApplyCatalogImport,
   adminCreateCatalogImport,
@@ -17,6 +18,7 @@ function canImportCatalog(role: string | undefined): boolean {
 }
 
 export function AdminProductImportPage() {
+  useDocumentTitle('Importar produtos | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canImportCatalog(user?.role)

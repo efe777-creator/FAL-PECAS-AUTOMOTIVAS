@@ -8,6 +8,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
@@ -86,6 +87,13 @@ export function AdminProductFormPage() {
   const [productId, setProductId] = useState<string | null>(isNew ? null : id)
 
   const [name, setName] = useState('')
+  useDocumentTitle(
+    isNew
+      ? 'Novo produto | Admin FAL'
+      : name.trim()
+        ? `${name.trim().slice(0, 48)} | Admin FAL`
+        : 'Editar produto | Admin FAL',
+  )
   const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
