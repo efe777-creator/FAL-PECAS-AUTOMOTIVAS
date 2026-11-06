@@ -21,14 +21,30 @@ function formatAppLine(parts: {
   yearLabel?: string | null
   engine?: string | null
   version?: string | null
-  compact?: boolean
 }): string {
-  if (parts.compact) {
-    return [parts.maker, parts.model, parts.yearLabel].filter(Boolean).join(' ')
-  }
+  // Inclui motor/versão: dedupe alinhado ao bloco completo (senão +N subconta).
   return [parts.maker, parts.model, parts.yearLabel, parts.engine, parts.version]
     .filter(Boolean)
     .join(' ')
+}
+
+/** Chave estável alinhada a `groupCompatibilityApps` (modelo+motor+versão+ano). */
+export function compatibilityAppDedupeKey(parts: {
+  maker?: string | null
+  model?: string | null
+  yearLabel?: string | null
+  engine?: string | null
+  version?: string | null
+}): string {
+  return [
+    parts.maker ?? '',
+    parts.model ?? '',
+    parts.engine ?? '',
+    parts.version ?? '',
+    parts.yearLabel ?? '',
+  ]
+    .join('|')
+    .toLowerCase()
 }
 
 type RawAppRow = {
@@ -164,18 +180,15 @@ function collapseEngine(engine: string): string {
 }
 
 /**
- * Resumo de aplicações por product_id.
- * Deduplica por "Montadora Modelo Ano" no modo compacto (cards).
+ * Monta mapa productId → resumo a partir de linhas já carregadas (testável).
+ * Deduplica como o bloco completo (maker/modelo/motor/versão/ano).
  */
-export async function loadCompatibilitySummaries(
-  productIds: string[],
-  opts?: { compact?: boolean; maxEntries?: number },
-): Promise<Map<string, string>> {
+export function summarizeCompatibilityRows(
+  rows: RawAppRow[],
+  opts?: { maxEntries?: number },
+): Map<string, string> {
   const map = new Map<string, string>()
-  const compact = opts?.compact ?? true
   const maxEntries = opts?.maxEntries ?? 4
-  const rows = await loadRawAppRows(productIds)
-
   const linesByProduct = new Map<string, string[]>()
   const seenByProduct = new Map<string, Set<string>>()
 
@@ -187,13 +200,18 @@ export async function loadCompatibilitySummaries(
           yearLabel: row.yearLabel,
           engine: row.engine,
           version: row.version,
-          compact,
         })
       : [row.model, row.yearLabel].filter(Boolean).join(' ')
     if (!line) continue
 
     const seen = seenByProduct.get(row.productId) ?? new Set<string>()
-    const key = line.toLowerCase()
+    const key = compatibilityAppDedupeKey({
+      maker: row.maker,
+      model: row.model,
+      yearLabel: row.yearLabel,
+      engine: row.engine,
+      version: row.version,
+    })
     if (seen.has(key)) continue
     seen.add(key)
     seenByProduct.set(row.productId, seen)
@@ -211,6 +229,16 @@ export async function loadCompatibilitySummaries(
   }
 
   return map
+}
+
+/** Resumo de aplicações por product_id. */
+export async function loadCompatibilitySummaries(
+  productIds: string[],
+  opts?: { compact?: boolean; maxEntries?: number },
+): Promise<Map<string, string>> {
+  void opts?.compact
+  const rows = await loadRawAppRows(productIds)
+  return summarizeCompatibilityRows(rows, { maxEntries: opts?.maxEntries })
 }
 
 /**
