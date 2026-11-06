@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
   adminApplyApplicationsImport,
@@ -30,6 +31,7 @@ const ACTION_LABEL: Record<ApplicationPreviewRow['action'], string> = {
 type Phase = 'idle' | 'preview' | 'confirm' | 'done'
 
 export function AdminApplicationsImportPage() {
+  useDocumentTitle('Importar aplicações | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canImport(user?.role)

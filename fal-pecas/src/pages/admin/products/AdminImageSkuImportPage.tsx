@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { CODIGO_REFERENCIA_LABEL, SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -13,6 +14,7 @@ import { Link } from 'react-router-dom'
 type Phase = 'idle' | 'preview' | 'running' | 'done'
 
 export function AdminImageSkuImportPage() {
+  useDocumentTitle('Importar imagens | Admin FAL')
   const { push } = useToast()
   const [files, setFiles] = useState<File[]>([])
   const [preview, setPreview] = useState<ImageSkuMatchRow[] | null>(null)

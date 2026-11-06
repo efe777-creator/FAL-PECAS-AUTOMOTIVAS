@@ -38,9 +38,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin hub: `document.title` em todos os itens do menu principal  
 - Admin logística: titles nas subpáginas (origem, frete próprio, ME, caixas, placeholder)  
 - Admin pedidos: titles nas subpáginas (lista, área, visão, detalhe)  
+- Admin produtos: titles no form + wizards de import  
 
 ## Próximo código (opcional)
 
-- Titles em produtos/wizards/fornecedores/preço detalhe/prep IA  
+- Titles residual: preço detalhe, imports fornecedor, prep IA, placeholder  
 - Auditoria residual de caps em listagens menores (se aparecer)  
 
