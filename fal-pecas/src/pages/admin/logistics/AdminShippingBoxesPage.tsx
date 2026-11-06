@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminDeleteShippingBox,
@@ -24,6 +25,7 @@ const emptyForm = {
 }
 
 export function AdminShippingBoxesPage() {
+  const toast = useToast()
   const [rows, setRows] = useState<ShippingBoxTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,13 +33,25 @@ export function AdminShippingBoxesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
+
   async function reload() {
     setLoading(true)
     try {
       setRows(await adminListShippingBoxes())
       setError(null)
     } catch (e) {
-      setError(toUserMessage(e, 'Erro ao carregar caixas'))
+      const msg = toUserMessage(e, 'Erro ao carregar caixas')
+      setError(msg)
+      toast.push(msg, 'error')
     } finally {
       setLoading(false)
     }
@@ -45,6 +59,7 @@ export function AdminShippingBoxesPage() {
 
   useEffect(() => {
     void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- montagem
   }, [])
 
   async function onSubmit(e: FormEvent) {
@@ -63,11 +78,13 @@ export function AdminShippingBoxesPage() {
         active: form.active,
         sortOrder: Number(form.sortOrder) || 0,
       })
+      const wasEdit = Boolean(editingId)
       setForm(emptyForm)
       setEditingId(null)
       await reload()
+      pushOk(wasEdit ? 'Caixa atualizada.' : 'Caixa adicionada.')
     } catch (err) {
-      setError(toUserMessage(err, 'Falha ao salvar caixa'))
+      pushError(toUserMessage(err, 'Falha ao salvar caixa'))
     } finally {
       setBusy(false)
     }
@@ -85,8 +102,9 @@ export function AdminShippingBoxesPage() {
     try {
       await adminDeleteShippingBox(row.id)
       await reload()
+      pushOk(`Caixa "${row.name}" excluída.`)
     } catch (err) {
-      setError(toUserMessage(err, 'Falha ao excluir'))
+      pushError(toUserMessage(err, 'Falha ao excluir'))
     } finally {
       setBusy(false)
     }
@@ -114,8 +132,8 @@ export function AdminShippingBoxesPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Caixas e embalagens</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Modelos usados na cotação de frete. A regra v1 escolhe a menor caixa que comporta o volume
-          e o peso dos itens do carrinho.
+          Modelos usados na cotação Melhor Envio. Com caixas ativas, a regra v1 escolhe a menor que
+          comporta volume e peso; se nenhuma servir, a cotação é recusada (não inventa envelope).
         </p>
       </div>
 
