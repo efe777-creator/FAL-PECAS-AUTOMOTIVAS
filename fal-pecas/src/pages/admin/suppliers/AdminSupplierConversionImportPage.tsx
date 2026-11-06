@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   adminApplyConversionImport,
   adminCreateConversionImport,
@@ -19,6 +20,7 @@ function canImport(role: string | undefined): boolean {
 }
 
 export function AdminSupplierConversionImportPage() {
+  useDocumentTitle('Importar conversões | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canImport(user?.role)

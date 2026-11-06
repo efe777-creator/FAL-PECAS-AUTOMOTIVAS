@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -10,6 +11,7 @@ function canImport(role: string | undefined): boolean {
 
 /** Rota clássica de custo — mesmo assistente das listas, modo só-custo. */
 export function AdminSupplierCostImportPage() {
+  useDocumentTitle('Importar custos | Admin FAL')
   const { user } = useAuth()
   const allowed = canImport(user?.role)
   const [open, setOpen] = useState(true)
