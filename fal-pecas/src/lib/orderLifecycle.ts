@@ -156,6 +156,9 @@ export const orderStatusAdminLabel: Record<string, string> = {
   cancelado: 'Cancelado',
 }
 
+/** Alias canônico — mesmo mapa que `orderStatusAdminLabel` (O1-A). */
+export const orderStatusOperatorLabel = orderStatusAdminLabel
+
 /** Chaves canônicas dos chips de contagem (Dashboard + Pedidos). */
 export const ADMIN_ORDER_COUNTER_KEYS = [
   'aguardando_pagamento',

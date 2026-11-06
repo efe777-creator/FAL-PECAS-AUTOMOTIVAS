@@ -3,7 +3,7 @@
  * Não inventa status — só agrupa e rotula os existentes.
  */
 
-import { adminOrderNextStep } from '@/lib/orderLifecycle'
+import { adminOrderNextStep, orderStatusOperatorLabel } from '@/lib/orderLifecycle'
 
 export type AdminOrderGroupId = 'pagamento' | 'analise' | 'preparacao' | 'expedicao' | 'finalizados'
 
@@ -16,23 +16,7 @@ export type AdminOrderGroup = {
   statuses: readonly string[]
 }
 
-/** Labels claros para o operador (evita jargão ambíguo). */
-export const orderStatusOperatorLabel: Record<string, string> = {
-  pendente: 'Pendente',
-  aguardando_pagamento: 'Aguardando pagamento',
-  pagamento_aprovado: 'Pagamento aprovado (iniciar análise)',
-  recebido: 'Aguardando início da análise',
-  em_analise: 'Em análise pela loja',
-  aguardando_disponibilidade: 'Aguardando disponibilidade (legado)',
-  aguardando_decisao: 'Aguardando resposta do cliente',
-  confirmado: 'Pedido confirmado',
-  em_separacao: 'Em separação',
-  pronto_para_envio: 'Pronto para envio',
-  preparando_envio: 'Preparando envio',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
-}
+export { orderStatusOperatorLabel }
 
 export const ADMIN_ORDER_GROUPS: readonly AdminOrderGroup[] = [
   {

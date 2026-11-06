@@ -55,7 +55,7 @@
 | Import custo wizard × página fornecedor | 2 fluxos | **CONSOLIDAR** depois |
 | CRUD Fabricantes / Montadoras / Fornecedores | Quase iguais | **CONSOLIDAR** genérico depois |
 | Máscaras em `AdminShippingOriginPage` | Duplica `lib/phone`/`document` | **CONSOLIDAR** |
-| Mapas de status pedido (3) | Labels divergentes | **CONSOLIDAR** um mapa PT-BR |
+| Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
 | Toast admin | Agora disponível; páginas ainda usam `<p>` | **CONSOLIDAR** gradualmente |
 
 ## Gate
