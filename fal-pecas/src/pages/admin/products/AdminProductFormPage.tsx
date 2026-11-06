@@ -1,3 +1,5 @@
+import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
+import { AdminProductReferencesSection } from '@/components/admin/AdminProductReferencesSection'
 import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
 import { CategoryCascadeSelects } from '@/components/admin/CategoryCascadeSelects'
 import { Button } from '@/components/common/Button'
@@ -8,26 +10,17 @@ import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
-import {
-  adminDeleteImage,
-  adminListImages,
-  adminSetPrimaryImage,
-  adminUploadImage,
-} from '@/services/admin/adminImageService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminAddApplicationsBulk,
-  adminDeleteReference,
   adminEvaluateReleaseChecklist,
   adminGetProduct,
   adminListApplications,
-  adminListReferences,
   adminReleaseProductToStore,
   adminRemoveApplication,
   adminUpdateApplicationYears,
   adminListProductMeasureHistory,
   adminUpsertProduct,
-  adminUpsertReference,
   type ProductMeasureHistoryRow,
 } from '@/services/admin/adminProductService'
 import {
@@ -50,7 +43,6 @@ import {
 } from '@/services/admin/adminOwnDeliveryService'
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
-import { entityStatusLabel, productReferenceTypeLabel } from '@/lib/adminLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import {
@@ -65,8 +57,6 @@ import type {
   MeasureOrigin,
   Product,
   ProductBrand,
-  ProductImage,
-  ProductReference,
   Supplier,
   VehicleModel,
   VehicleVersion,
@@ -150,12 +140,7 @@ export function AdminProductFormPage() {
   const [ownVehicles, setOwnVehicles] = useState<OwnVehicleCategory[]>([])
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [refs, setRefs] = useState<ProductReference[]>([])
   const [apps, setApps] = useState<unknown[]>([])
-  const [images, setImages] = useState<ProductImage[]>([])
-
-  const [refCode, setRefCode] = useState('')
-  const [refType, setRefType] = useState('manufacturer')
 
   const [makers, setMakers] = useState<Manufacturer[]>([])
   const [models, setModels] = useState<VehicleModel[]>([])
@@ -304,9 +289,7 @@ export function AdminProductFormPage() {
           setOverrideValidFrom('')
           setOverrideValidUntil('')
         }
-        setRefs(await adminListReferences(p.id))
         setApps(await adminListApplications(p.id))
-        setImages(await adminListImages(p.id))
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Erro')
       } finally {
@@ -1056,76 +1039,7 @@ export function AdminProductFormPage() {
       {productId ? (
         <>
           <AdminProductRelatedSection productId={productId} />
-
-          <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-            <h2 className="font-extrabold text-fal-navy">Referências</h2>
-            <div className="flex flex-wrap gap-2">
-              <Input label="Código" value={refCode} onChange={(e) => setRefCode(e.target.value)} />
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold">Tipo</span>
-                <select className="rounded-[10px] border border-fal-line px-3 py-2" value={refType} onChange={(e) => setRefType(e.target.value)}>
-                  <option value="manufacturer">Código do fabricante</option>
-                  <option value="oem">Código OEM (montadora)</option>
-                  <option value="internal">Código interno</option>
-                  <option value="competitor">Código concorrente</option>
-                  <option value="other">Outro</option>
-                </select>
-              </label>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  onClick={() =>
-                    void adminUpsertReference({ productId, code: refCode, type: refType })
-                      .then(async () => {
-                        setRefCode('')
-                        setRefs(await adminListReferences(productId))
-                      })
-                      .catch((e) => setError(String(e.message ?? e)))
-                  }
-                >
-                  Adicionar
-                </Button>
-              </div>
-            </div>
-            <ul className="space-y-1 text-sm">
-              {refs.map((r) => (
-                <li key={r.id ?? r.code} className="flex justify-between border-b border-fal-line py-1">
-                  <span>
-                    <strong>{r.code}</strong> · {productReferenceTypeLabel(r.type)} ·{' '}
-                    {entityStatusLabel(r.status)}
-                  </span>
-                  {r.id ? (
-                    <button
-                      type="button"
-                      className="text-fal-danger font-semibold"
-                      onClick={() => {
-                        const refId = r.id!
-                        void confirmDialog({
-                          title: 'Remover referência?',
-                          message: `A referência "${r.code}" será removida deste produto.`,
-                          confirmLabel: 'Remover',
-                          danger: true,
-                        })
-                          .then(async ({ confirmed }) => {
-                            if (!confirmed) return
-                            await adminDeleteReference(refId)
-                            setRefs(await adminListReferences(productId))
-                            toast.push('Referência removida.', 'success')
-                          })
-                          .catch((err) => {
-                            const msg = toUserMessage(err, 'Falha ao remover referência')
-                            setError(msg)
-                            toast.push(msg, 'error')
-                          })
-                      }}
-                    >
-                      Remover
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </section>
+          <AdminProductReferencesSection productId={productId} />
 
           <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1359,82 +1273,7 @@ export function AdminProductFormPage() {
             </ul>
           </section>
 
-          <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-            <h2 className="font-extrabold text-fal-navy">Imagens</h2>
-            <p className="m-0 text-xs text-fal-muted">
-              Várias de uma vez neste produto · lote por SKU em{' '}
-              <Link className="font-semibold text-fal-navy hover:underline" to="/admin/produtos/importar-imagens">
-                Importar imagens
-              </Link>
-            </p>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => {
-                const list = e.target.files
-                if (!list?.length) return
-                const arr = Array.from(list)
-                e.target.value = ''
-                void (async () => {
-                  try {
-                    for (const file of arr) await adminUploadImage(productId, file)
-                    setImages(await adminListImages(productId))
-                    toast.push(
-                      arr.length === 1 ? 'Imagem enviada.' : `${arr.length} imagens enviadas.`,
-                      'success',
-                    )
-                  } catch (err) {
-                    const msg = toUserMessage(err, 'Falha ao enviar imagem')
-                    setError(msg)
-                    toast.push(msg, 'error')
-                  }
-                })()
-              }}
-            />
-            <div className="grid gap-3 sm:grid-cols-3">
-              {images.map((img) => (
-                <div key={img.id} className="rounded-[10px] border border-fal-line p-2">
-                  <img src={img.publicUrl} alt={img.alt ?? ''} className="h-32 w-full object-contain" />
-                  <div className="mt-2 flex gap-2 text-xs">
-                    {img.isPrimary ? (
-                      <span className="font-bold text-fal-success">Principal</span>
-                    ) : (
-                      <button type="button" className="font-semibold text-fal-auth-link" onClick={() => void adminSetPrimaryImage(productId, img.id).then(async () => setImages(await adminListImages(productId)))}>
-                        Tornar principal
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-danger"
-                      onClick={() => {
-                        void confirmDialog({
-                          title: 'Excluir imagem?',
-                          message: 'A imagem será removida do produto. Esta ação não pode ser desfeita.',
-                          confirmLabel: 'Excluir',
-                          danger: true,
-                        })
-                          .then(async ({ confirmed }) => {
-                            if (!confirmed) return
-                            await adminDeleteImage(img)
-                            setImages(await adminListImages(productId))
-                            toast.push('Imagem excluída.', 'success')
-                          })
-                          .catch((err) => {
-                            const msg = toUserMessage(err, 'Falha ao excluir imagem')
-                            setError(msg)
-                            toast.push(msg, 'error')
-                          })
-                      }}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {!images.length ? <p className="text-sm text-fal-muted">Sem imagem — produto marcado incompleto (cadastro permitido).</p> : null}
-          </section>
+          <AdminProductImagesSection productId={productId} />
         </>
       ) : null}
     </div>

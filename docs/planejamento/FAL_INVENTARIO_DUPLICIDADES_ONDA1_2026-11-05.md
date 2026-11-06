@@ -51,7 +51,7 @@
 |------|--------|------|
 | Tabela pedidos Hub/Lista/Área | 2–3 implementações | **CONSOLIDAR** via `AdminOrdersListPanel` |
 | “Retirar não pagos 48h” ×3 | Unificado em `adminExpireUnpaidFlow` | **MANTER** (VAL 2026-11-06) |
-| Cascata categoria no form vs `CategoryCascadeSelects` | Reimplementada | **CONSOLIDAR** (O1-B) |
+| Cascata categoria no form vs `CategoryCascadeSelects` | Form já usa o componente | **MANTER** |
 | Import custo wizard × página fornecedor | 2 fluxos | **CONSOLIDAR** depois |
 | CRUD Fabricantes / Montadoras / Fornecedores | Quase iguais | **CONSOLIDAR** genérico depois |
 | Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
