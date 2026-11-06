@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymentPanel'
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
@@ -50,6 +51,7 @@ export function AccountOrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
+  const toast = useToast()
   const [order, setOrder] = useState<OrderDetail | null>(null)
   useDocumentTitle(
     order
@@ -59,9 +61,16 @@ export function AccountOrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rebuyBusy, setRebuyBusy] = useState(false)
-  const [rebuyMsg, setRebuyMsg] = useState<string | null>(null)
   const [actionBusy, setActionBusy] = useState(false)
-  const [actionMsg, setActionMsg] = useState<string | null>(null)
+
+  /** Só toast — não usa `error` de carga (senão a página vira ErrorState). */
+  function pushError(message: string) {
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    toast.push(message, 'success')
+  }
 
   const reload = useCallback(async () => {
     if (!id) return
@@ -70,11 +79,13 @@ export function AccountOrderDetailPage() {
       setOrder(await getMyOrderDetail(id))
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar pedido')
+      const message = e instanceof Error ? e.message : 'Erro ao carregar pedido'
+      setError(message)
+      toast.push(message, 'error')
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, toast])
 
   useEffect(() => {
     void reload()
@@ -117,7 +128,6 @@ export function AccountOrderDetailPage() {
     })
     if (!confirmed) return
     setActionBusy(true)
-    setActionMsg(null)
     try {
       await customerCancelUnpaidOrder(order.id)
       const result = await restoreItemsToCart(order)
@@ -130,11 +140,11 @@ export function AccountOrderDetailPage() {
           `Não restaurados: ${result.skipped.map((s) => `${s.sku} (${s.reason})`).join('; ')}`,
         )
       }
-      setActionMsg(parts.join(' '))
+      pushOk(parts.join(' '))
       await reload()
       if (result.products.length) navigate('/carrinho')
     } catch (e) {
-      setActionMsg(e instanceof Error ? e.message : 'Falha ao cancelar')
+      pushError(e instanceof Error ? e.message : 'Falha ao cancelar')
     } finally {
       setActionBusy(false)
     }
@@ -162,17 +172,16 @@ export function AccountOrderDetailPage() {
           })
     if (!confirmed) return
     setActionBusy(true)
-    setActionMsg(null)
     try {
       await customerRespondOrderDecision(order.id, decision, reason)
-      setActionMsg(
+      pushOk(
         decision === 'authorize'
           ? 'Autorização registrada. A loja poderá confirmar o pedido.'
           : 'Recusa registrada. A loja analisará o pedido.',
       )
       await reload()
     } catch (e) {
-      setActionMsg(e instanceof Error ? e.message : 'Falha ao registrar decisão')
+      pushError(e instanceof Error ? e.message : 'Falha ao registrar decisão')
     } finally {
       setActionBusy(false)
     }
@@ -191,15 +200,14 @@ export function AccountOrderDetailPage() {
     })
     if (!confirmed) return
     setActionBusy(true)
-    setActionMsg(null)
     try {
       await requestOrderCancellation(order.id, reason ?? '')
-      setActionMsg(
+      pushOk(
         'Solicitação enviada. Aguarde a análise da loja. O pedido segue no status atual até a resposta.',
       )
       await reload()
     } catch (e) {
-      setActionMsg(e instanceof Error ? e.message : 'Falha ao solicitar cancelamento')
+      pushError(e instanceof Error ? e.message : 'Falha ao solicitar cancelamento')
     } finally {
       setActionBusy(false)
     }
@@ -208,7 +216,6 @@ export function AccountOrderDetailPage() {
   async function onBuyAgain() {
     if (!order) return
     setRebuyBusy(true)
-    setRebuyMsg(null)
     try {
       const result = await buildBuyAgainCart(order.items)
       for (const row of result.products) {
@@ -224,13 +231,13 @@ export function AccountOrderDetailPage() {
         )
       }
       if (!result.products.length) {
-        setRebuyMsg(parts.join(' ') || 'Nenhum item disponível para recompra.')
+        pushError(parts.join(' ') || 'Nenhum item disponível para recompra.')
         return
       }
-      setRebuyMsg(parts.join(' '))
+      pushOk(parts.join(' '))
       navigate('/carrinho')
     } catch (e) {
-      setRebuyMsg(e instanceof Error ? e.message : 'Falha ao montar recompra')
+      pushError(e instanceof Error ? e.message : 'Falha ao montar recompra')
     } finally {
       setRebuyBusy(false)
     }
@@ -339,8 +346,6 @@ export function AccountOrderDetailPage() {
             })()}
           </div>
         </div>
-        {rebuyMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{rebuyMsg}</p> : null}
-        {actionMsg ? <p className="mb-0 mt-2 text-sm text-fal-muted">{actionMsg}</p> : null}
       </div>
 
       {awaitingPayment ? (
