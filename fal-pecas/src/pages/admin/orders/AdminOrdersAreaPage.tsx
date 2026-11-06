@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { useToast } from '@/components/common/Toast'
 import {
   getAdminOrderArea,
   orderMatchesArea,
@@ -29,6 +30,7 @@ function areaIdFromPath(pathname: string): string {
 }
 
 export function AdminOrdersAreaPage() {
+  const toast = useToast()
   const location = useLocation()
   const areaId = areaIdFromPath(location.pathname)
   const area = getAdminOrderArea(areaId)
@@ -36,7 +38,6 @@ export function AdminOrdersAreaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
   const [expTab, setExpTab] = useState<(typeof EXPEDICAO_TABS)[number]['id']>('pronto')
 
@@ -89,8 +90,6 @@ export function AdminOrdersAreaPage() {
         <p className="mt-1 text-xs font-semibold text-fal-navy">Próxima ação típica: {area.primaryCta}</p>
       </div>
 
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
-
       {area.id === 'aguardando-pagamento' ? (
         <Button
           type="button"
@@ -100,13 +99,12 @@ export function AdminOrdersAreaPage() {
             void (async () => {
               if (!(await confirmExpireUnpaidIntent({ detailed: false }))) return
               setBusyExpire(true)
-              setMessage(null)
               try {
                 const r = await runExpireUnpaidOrders()
-                setMessage(formatExpireUnpaidMessage(r))
+                toast.push(formatExpireUnpaidMessage(r), 'success')
                 await reload()
               } catch (e) {
-                setError(e instanceof Error ? e.message : 'Falha ao expirar')
+                toast.push(e instanceof Error ? e.message : 'Falha ao expirar', 'error')
               } finally {
                 setBusyExpire(false)
               }
