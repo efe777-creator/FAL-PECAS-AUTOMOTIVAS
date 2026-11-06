@@ -131,7 +131,7 @@ export function adminMeasureGapOrFilter(gap: AdminMeasureGapFilter): string {
   return `${weight},${dims}`
 }
 
-export async function adminListProducts(params?: {
+export type AdminProductListParams = {
   q?: string
   status?: string
   /** Filtro Situação na listagem admin. */
@@ -146,7 +146,17 @@ export async function adminListProducts(params?: {
   /** Paginação simples (padrão: primeiros 200). */
   offset?: number
   limit?: number
-}): Promise<Product[]> {
+}
+
+export type AdminProductListPage = {
+  items: Product[]
+  /** True se a página bruta do banco veio cheia (antes do filtro client-side sem imagem). */
+  hasMore: boolean
+}
+
+export async function adminListProductsPage(
+  params?: AdminProductListParams,
+): Promise<AdminProductListPage> {
   const pageLimit = params?.limit ?? ADMIN_PRODUCTS_PAGE_SIZE
   const pageOffset = params?.offset ?? 0
   let productIdsByMaker: string[] | null = null
@@ -159,7 +169,7 @@ export async function adminListProducts(params?: {
     productIdsByMaker = [
       ...new Set((compat ?? []).map((r) => String((r as { product_id: string }).product_id))),
     ]
-    if (productIdsByMaker.length === 0) return []
+    if (productIdsByMaker.length === 0) return { items: [], hasMore: false }
   }
 
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
@@ -180,14 +190,21 @@ export async function adminListProducts(params?: {
     .order('id', { ascending: false })
     .range(pageOffset, pageOffset + pageLimit - 1)
   if (error) throw error
-  let list = (data as ProductRow[]).map(mapProduct)
+  const raw = (data as ProductRow[]).map(mapProduct)
+  const hasMore = raw.length >= pageLimit
+  let items = raw
 
   if (params?.withoutImage) {
     const { data: imgs } = await getSupabase().from('product_images').select('product_id')
     const withImg = new Set((imgs ?? []).map((i) => String(i.product_id)))
-    list = list.filter((p) => !withImg.has(p.id) || p.isIncomplete)
+    items = items.filter((p) => !withImg.has(p.id) || p.isIncomplete)
   }
-  return list
+  return { items, hasMore }
+}
+
+export async function adminListProducts(params?: AdminProductListParams): Promise<Product[]> {
+  const { items } = await adminListProductsPage(params)
+  return items
 }
 
 export async function adminGetProduct(id: string): Promise<Product | null> {
