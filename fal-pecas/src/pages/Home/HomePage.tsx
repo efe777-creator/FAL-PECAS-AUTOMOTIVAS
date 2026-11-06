@@ -172,23 +172,6 @@ export function HomePage() {
         </Container>
       </section>
 
-      <section
-        id="veiculo"
-        className="scroll-mt-20 border-b border-fal-line bg-fal-bg py-6 sm:py-8"
-      >
-        <Container>
-          <div className="mb-3 max-w-3xl">
-            <h2 className="m-0 text-lg font-extrabold sm:text-xl">Buscar pelo carro</h2>
-            <p className="mt-1 text-sm text-fal-muted">
-              Informe só o que souber — montadora, modelo, ano ou motor.
-            </p>
-          </div>
-          <div className="max-w-3xl rounded-[12px] border border-fal-line bg-white p-3 shadow-sm sm:p-4">
-            <VehicleSelector />
-          </div>
-        </Container>
-      </section>
-
       <HomeBannerCarousel />
 
       <ProductRailSection
@@ -202,6 +185,23 @@ export function HomePage() {
         emptyTitle="Ainda não há produtos em destaque"
         emptyDescription="Explore o catálogo completo."
       />
+
+      <section
+        id="veiculo"
+        className="scroll-mt-20 border-y border-fal-line bg-fal-bg py-6 sm:py-8"
+      >
+        <Container>
+          <div className="mb-3 max-w-3xl">
+            <h2 className="m-0 text-lg font-extrabold sm:text-xl">Buscar pelo carro</h2>
+            <p className="mt-1 text-sm text-fal-muted">
+              Informe só o que souber — montadora, modelo, ano ou motor.
+            </p>
+          </div>
+          <div className="max-w-3xl rounded-[12px] border border-fal-line bg-white p-3 shadow-sm sm:p-4">
+            <VehicleSelector />
+          </div>
+        </Container>
+      </section>
 
       {!offers.loading && !offers.error && offers.data.length > 0 ? (
         <ProductRailSection
