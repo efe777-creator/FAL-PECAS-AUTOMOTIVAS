@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
   IMPORT_KINDS,
@@ -9,6 +10,7 @@ import {
   importWizardPath,
 } from '@/lib/importLabels'
 import {
+  ADMIN_IMPORTS_PAGE_SIZE,
   adminGetImportRunDetail,
   adminListImports,
   formatImportReportSummary,
@@ -26,12 +28,15 @@ function payloadPreview(payload: Record<string, unknown>): string {
 }
 
 export function AdminImportsPage() {
+  useDocumentTitle('Importações | Admin FAL')
   const [searchParams, setSearchParams] = useSearchParams()
   const kindFromUrl = searchParams.get('kind') ?? ''
   const [rows, setRows] = useState<ImportRunSummary[]>([])
   const [kind, setKind] = useState(kindFromUrl)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [detail, setDetail] = useState<ImportRunDetail | null>(null)
   const [detailBusy, setDetailBusy] = useState(false)
@@ -43,13 +48,14 @@ export function AdminImportsPage() {
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      setRows(
-        await adminListImports({
-          kind: kind || undefined,
-          status: status || undefined,
-          limit: 150,
-        }),
-      )
+      const list = await adminListImports({
+        kind: kind || undefined,
+        status: status || undefined,
+        offset: 0,
+        limit: ADMIN_IMPORTS_PAGE_SIZE,
+      })
+      setRows(list)
+      setHasMore(list.length >= ADMIN_IMPORTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao listar importações')
@@ -61,6 +67,28 @@ export function AdminImportsPage() {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  async function loadMore() {
+    setLoadingMore(true)
+    setError(null)
+    try {
+      const next = await adminListImports({
+        kind: kind || undefined,
+        status: status || undefined,
+        offset: rows.length,
+        limit: ADMIN_IMPORTS_PAGE_SIZE,
+      })
+      setRows((prev) => {
+        const seen = new Set(prev.map((r) => r.id))
+        return [...prev, ...next.filter((r) => !seen.has(r.id))]
+      })
+      setHasMore(next.length >= ADMIN_IMPORTS_PAGE_SIZE)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar mais importações')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   async function openDetail(id: string) {
     setDetailBusy(true)
@@ -81,6 +109,9 @@ export function AdminImportsPage() {
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Histórico unificado de runs (`imports` / `import_items`) — catálogo, aplicações,
             conversões, custos e listas de preços.
+            {rows.length > 0
+              ? ` · ${rows.length} run${rows.length === 1 ? '' : 's'} carregada${rows.length === 1 ? '' : 's'}.`
+              : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -154,6 +185,12 @@ export function AdminImportsPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {hasMore ? (
+        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Exibindo até {ADMIN_IMPORTS_PAGE_SIZE} runs por carga ({rows.length} carregadas). Há mais
+          no histórico — use “Carregar mais importações” ao final da lista ou refine os filtros.
+        </p>
+      ) : null}
       {loading ? <Loading label="Carregando histórico…" /> : null}
 
       {!loading ? (
@@ -235,6 +272,18 @@ export function AdminImportsPage() {
               )}
             </tbody>
           </table>
+          {hasMore ? (
+            <div className="flex justify-center border-t border-fal-line p-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingMore || loading}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais importações'}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -34,9 +34,10 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Admin produtos: paginação visível (banner + Carregar mais; `hasMore` pré-filtro imagem)  
 - Admin estoque: paginação visível (banner + Carregar mais)  
 - Admin aplicações: Carregar mais (total já existia; lote 250 deixava só “refine filtros”)  
+- Admin importações: paginação visível (cap 150 + Carregar mais)  
 
 ## Próximo código (opcional)
 
-- Importações admin (cap 150 silencioso)  
-- Polimento SEO/admin titles (se desejado)  
+- Polimento SEO/admin titles (hub admin residual)  
+- Auditoria residual de caps em listagens menores (se aparecer)  
 
