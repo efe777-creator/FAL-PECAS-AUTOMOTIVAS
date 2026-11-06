@@ -24,6 +24,9 @@ export type AdminApplicationRow = {
   versionYear: number | null
 }
 
+/** Tamanho padrão de página da listagem global de aplicações. */
+export const ADMIN_APPLICATIONS_PAGE_SIZE = 250
+
 export type AdminApplicationListFilter = {
   q?: string
   productId?: string
@@ -122,7 +125,7 @@ async function resolveVersionIds(filter: {
 export async function adminListApplicationsGlobal(
   filter: AdminApplicationListFilter = {},
 ): Promise<{ rows: AdminApplicationRow[]; total: number }> {
-  const limit = Math.min(Math.max(filter.limit ?? 200, 1), 500)
+  const limit = Math.min(Math.max(filter.limit ?? ADMIN_APPLICATIONS_PAGE_SIZE, 1), 500)
   const offset = Math.max(filter.offset ?? 0, 0)
 
   let productIds: string[] | null = null
