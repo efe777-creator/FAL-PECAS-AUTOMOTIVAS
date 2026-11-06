@@ -54,7 +54,7 @@
 | Cascata categoria no form vs `CategoryCascadeSelects` | Reimplementada | **CONSOLIDAR** (O1-B) |
 | Import custo wizard × página fornecedor | 2 fluxos | **CONSOLIDAR** depois |
 | CRUD Fabricantes / Montadoras / Fornecedores | Quase iguais | **CONSOLIDAR** genérico depois |
-| Máscaras em `AdminShippingOriginPage` | Duplica `lib/phone`/`document` | **CONSOLIDAR** |
+| Máscaras em `AdminShippingOriginPage` | Usa `lib/phone` + `formatCpfOrCnpjMask` | **MANTER** (VAL 2026-11-06) |
 | Mapas de status pedido (3) | Cliente ≠ admin; admin≡operador em `orderLifecycle` | **MANTER** (VAL 2026-11-06) |
 | Toast admin | Agora disponível; páginas ainda usam `<p>` | **CONSOLIDAR** gradualmente |
 

@@ -27,6 +27,12 @@ export function formatDocumentMask(kind: 'cpf' | 'cnpj', value: string): string 
   return kind === 'cpf' ? formatCpfMask(value) : formatCnpjMask(value)
 }
 
+/** Máscara dinâmica CPF→CNPJ conforme a quantidade de dígitos (origem ME / cadastro livre). */
+export function formatCpfOrCnpjMask(value: string): string {
+  const d = onlyDigits(value).slice(0, 14)
+  return d.length <= 11 ? formatCpfMask(d) : formatCnpjMask(d)
+}
+
 export function isValidCpf(value: string): boolean {
   const cpf = onlyDigits(value)
   if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false
