@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import {
   CategoryCascadeSelects,
   effectiveCategoryId,
@@ -41,6 +42,7 @@ const EMPTY_CASCADE: CategoryCascadeValue = {
 
 export function AdminProductsPage() {
   useDocumentTitle('Produtos | Admin FAL')
+  const toast = useToast()
   const [items, setItems] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
@@ -54,7 +56,6 @@ export function AdminProductsPage() {
   const [loading, setLoading] = useState(true)
   const [busyBulk, setBusyBulk] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [releasePreflight, setReleasePreflight] = useState<ReleasePreflightRow[] | null>(null)
   const [bulkWeight, setBulkWeight] = useState('')
@@ -67,6 +68,16 @@ export function AdminProductsPage() {
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [nextOffset, setNextOffset] = useState(0)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
+  function pushOk(message: string) {
+    setError(null)
+    toast.push(message, 'success')
+  }
 
   const allPageSelected = items.length > 0 && items.every((p) => selected.has(p.id))
   const somePageSelected = items.some((p) => selected.has(p.id))
@@ -127,7 +138,7 @@ export function AdminProductsPage() {
       setNextOffset(ADMIN_PRODUCTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao listar produtos')
+      pushError(e instanceof Error ? e.message : 'Erro ao listar produtos')
     } finally {
       setLoading(false)
     }
@@ -145,7 +156,7 @@ export function AdminProductsPage() {
       setHasMore(page.hasMore)
       setNextOffset((o) => o + ADMIN_PRODUCTS_PAGE_SIZE)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
     } finally {
       setLoadingMore(false)
     }
@@ -161,7 +172,7 @@ export function AdminProductsPage() {
         setCategories(cats)
         setManufacturers(makers)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar filtros')
+        pushError(e instanceof Error ? e.message : 'Erro ao carregar filtros')
       }
     })()
   }, [])
@@ -217,14 +228,13 @@ export function AdminProductsPage() {
       })
       if (!confirmed) return
     }
-    setMessage(null)
     setError(null)
     try {
       await adminSetProductStatus(p.id, next)
-      setMessage(next === 'archived' ? 'Produto arquivado e removido da loja.' : 'Produto publicado novamente.')
+      pushOk(next === 'archived' ? 'Produto arquivado e removido da loja.' : 'Produto publicado novamente.')
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao alterar status')
+      pushError(e instanceof Error ? e.message : 'Falha ao alterar status')
     }
   }
 
@@ -241,18 +251,17 @@ export function AdminProductsPage() {
       if (!confirmed) return
     }
     setBusyBulk(true)
-    setMessage(null)
     setError(null)
     try {
       await Promise.all(ids.map((id) => adminSetProductStatus(id, next)))
-      setMessage(
+      pushOk(
         next === 'archived'
           ? `${ids.length} produto(s) arquivado(s).`
           : `${ids.length} produto(s) ativado(s) (publicado).`,
       )
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha na ação em massa')
+      pushError(e instanceof Error ? e.message : 'Falha na ação em massa')
     } finally {
       setBusyBulk(false)
     }
@@ -262,18 +271,17 @@ export function AdminProductsPage() {
     const ids = [...selected]
     if (ids.length === 0) return
     setBusyBulk(true)
-    setMessage(null)
     setError(null)
     try {
       const r = await adminSetProductsAvailability(ids, available)
-      setMessage(
+      pushOk(
         available
           ? `${r.updated} produto(s) marcado(s) como disponível.`
           : `${r.updated} produto(s) marcado(s) como indisponível.`,
       )
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao alterar situação')
+      pushError(e instanceof Error ? e.message : 'Falha ao alterar situação')
     } finally {
       setBusyBulk(false)
     }
@@ -283,7 +291,6 @@ export function AdminProductsPage() {
     const ids = [...selected]
     if (ids.length === 0) return
     setBusyBulk(true)
-    setMessage(null)
     setError(null)
     setReleasePreflight(null)
     try {
@@ -292,7 +299,7 @@ export function AdminProductsPage() {
       })
       setReleasePreflight(rows)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha no pré-flight de liberação')
+      pushError(e instanceof Error ? e.message : 'Falha no pré-flight de liberação')
     } finally {
       setBusyBulk(false)
     }
@@ -302,7 +309,7 @@ export function AdminProductsPage() {
     if (!releasePreflight?.length) return
     const eligible = releasePreflight.filter((r) => r.canRelease).map((r) => r.productId)
     if (!eligible.length) {
-      setError('Nenhum produto passou no checklist de liberação.')
+      pushError('Nenhum produto passou no checklist de liberação.')
       return
     }
     const blocked = releasePreflight.length - eligible.length
@@ -317,7 +324,6 @@ export function AdminProductsPage() {
     })
     if (!confirmed) return
     setBusyBulk(true)
-    setMessage(null)
     setError(null)
     try {
       const { released, failed } = await adminReleaseProductsToStore({
@@ -332,11 +338,11 @@ export function AdminProductsPage() {
               .map((f) => f.reason)
               .join('; ')}${failed.length > 3 ? '…' : ''}`
           : ''
-      setMessage(`${released} liberado(s) na loja${failHint}`)
+      pushOk(`${released} liberado(s) na loja${failHint}`)
       setReleasePreflight(null)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
+      pushError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
     } finally {
       setBusyBulk(false)
     }
@@ -347,7 +353,7 @@ export function AdminProductsPage() {
     if (ids.length === 0) return
     const leaf = effectiveCategoryId(bulkCascade)
     if (!leaf) {
-      setError('Escolha ao menos a Categoria na seção Classificação.')
+      pushError('Escolha ao menos a Categoria na seção Classificação.')
       return
     }
     if (!bulkCascade.subgrupoId) {
@@ -360,15 +366,14 @@ export function AdminProductsPage() {
       if (!confirmed) return
     }
     setBusyBulk(true)
-    setMessage(null)
     setError(null)
     try {
       const r = await adminBulkSetProductCategory(ids, leaf)
-      setMessage(`Classificação aplicada a ${r.updated} produto(s).`)
+      pushOk(`Classificação aplicada a ${r.updated} produto(s).`)
       setBulkCascade(EMPTY_CASCADE)
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao aplicar classificação')
+      pushError(e instanceof Error ? e.message : 'Falha ao aplicar classificação')
     } finally {
       setBusyBulk(false)
     }
@@ -376,7 +381,7 @@ export function AdminProductsPage() {
 
   async function applyBulkMeasures() {
     if (selected.size === 0) {
-      setError('Selecione ao menos um produto.')
+      pushError('Selecione ao menos um produto.')
       return
     }
     const patch: {
@@ -390,7 +395,7 @@ export function AdminProductsPage() {
     if (bulkWidth.trim()) patch.widthCm = Number(bulkWidth)
     if (bulkLength.trim()) patch.lengthCm = Number(bulkLength)
     if (Object.keys(patch).length === 0) {
-      setError('Informe ao menos uma medida para aplicar.')
+      pushError('Informe ao menos uma medida para aplicar.')
       return
     }
     if (bulkMode === 'overwrite_manual') {
@@ -410,14 +415,14 @@ export function AdminProductsPage() {
         patch,
         mode: bulkMode,
       })
-      setMessage(
+      pushOk(
         `Medidas globais: ${r.updatedFieldRows} atualização(ões) de campo · modo ${
           bulkMode === 'skip_manual' ? 'respeitar Manual' : 'sobrescrever Manual'
         }.`,
       )
       await reload()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao aplicar medidas')
+      pushError(e instanceof Error ? e.message : 'Falha ao aplicar medidas')
     } finally {
       setBusyMeasures(false)
     }
@@ -812,7 +817,6 @@ export function AdminProductsPage() {
       ) : null}
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {message ? <p className="text-sm font-semibold text-fal-navy">{message}</p> : null}
       {hasMore ? (
         <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
           Exibindo até {ADMIN_PRODUCTS_PAGE_SIZE} registros por carga ({items.length} carregados).
