@@ -92,7 +92,11 @@ export function LoginPage() {
               />
             </div>
             <div className="mt-4 flex items-center justify-end gap-2 text-[13px]">
-              <Link to="/recuperar-senha" className="font-bold text-fal-auth-link">
+              <Link
+                to="/recuperar-senha"
+                state={fromState ? { from: fromState } : undefined}
+                className="font-bold text-fal-auth-link"
+              >
                 Esqueci minha senha
               </Link>
             </div>
