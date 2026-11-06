@@ -3,6 +3,10 @@ import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
 import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
 import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
+import {
+  ProductMediaFrame,
+  productMediaImgClass,
+} from '@/components/product/ProductMediaFrame'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
@@ -95,24 +99,24 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <div className="mb-1 grid h-[120px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-gradient-to-br from-[#edf0f2] to-[#dfe4e8] sm:h-[168px]">
+      <ProductMediaFrame variant="card" className="mb-1 shrink-0">
         {product.imageUrl ? (
           <Link
             to={productHref}
-            className="group relative grid h-full w-full place-items-center"
+            className="group relative flex h-full w-full items-center justify-center"
             aria-label={`Ver ${displayName}`}
           >
             <img
               src={product.imageUrl}
               alt={displayName}
-              className="h-full w-full object-contain transition group-hover:scale-[1.03]"
+              className={`${productMediaImgClass} transition group-hover:scale-[1.03]`}
               loading="lazy"
             />
           </Link>
         ) : (
           <ProductImagePlaceholder className="scale-75" />
         )}
-      </div>
+      </ProductMediaFrame>
 
       <Link to={productHref} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <h3

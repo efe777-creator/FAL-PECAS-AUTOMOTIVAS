@@ -58,14 +58,14 @@ export function CartPage() {
               >
                 <Link
                   to={productHref}
-                  className="grid h-[75px] place-items-center overflow-hidden rounded-[9px] bg-[#e9edef] text-3xl no-underline"
+                  className="flex h-[75px] items-center justify-center overflow-hidden rounded-[9px] bg-[#f8f9fa] p-1.5 text-3xl no-underline"
                   aria-label={`Abrir produto ${item.name}`}
                 >
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
                       alt=""
-                      className="h-full w-full object-contain"
+                      className="max-h-full max-w-full object-contain object-center"
                       loading="lazy"
                     />
                   ) : (
