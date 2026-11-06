@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatDateTime } from '@/lib/datetime'
@@ -30,6 +31,7 @@ type Phase = 'idle' | 'preview' | 'confirm' | 'done'
 
 export function AdminApplicationsImportPage() {
   const { user } = useAuth()
+  const toast = useToast()
   const allowed = canImport(user?.role)
 
   const [busy, setBusy] = useState(false)
@@ -43,6 +45,11 @@ export function AdminApplicationsImportPage() {
   const [report, setReport] = useState<ApplicationsImportApplyResult | null>(null)
   const [appliedAt, setAppliedAt] = useState<string | null>(null)
 
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
   async function onFile(file: File) {
     setBusy(true)
     setError(null)
@@ -55,11 +62,11 @@ export function AdminApplicationsImportPage() {
       const { rows, delimiter: d, fileErrors } = await adminPreviewApplicationsImport(file)
       setDelimiter(d)
       if (fileErrors.length) {
-        setError(fileErrors.join(' · '))
+        pushError(fileErrors.join(' · '))
         return
       }
       if (rows.length === 0) {
-        setError('Arquivo sem linhas de dados')
+        pushError('Arquivo sem linhas de dados')
         return
       }
       const id = await adminCreateApplicationsImport({
@@ -71,7 +78,7 @@ export function AdminApplicationsImportPage() {
       setPreview(rows)
       setPhase('preview')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
+      pushError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
     } finally {
       setBusy(false)
     }
@@ -86,8 +93,12 @@ export function AdminApplicationsImportPage() {
       setReport(result)
       setAppliedAt(new Date().toISOString())
       setPhase('done')
+      toast.push(
+        `Importação aplicada: ${result.created_applications} criadas, ${result.updated_applications} atualizadas.`,
+        'success',
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
       setPhase('preview')
     } finally {
       setBusy(false)
