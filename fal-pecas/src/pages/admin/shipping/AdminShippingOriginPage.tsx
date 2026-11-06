@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import { formatCepMask, isCompleteCep, normalizeCep } from '@/lib/cep'
 import { formatCpfOrCnpjMask } from '@/lib/document'
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AdminShippingOriginPage() {
+  const toast = useToast()
   const [id, setId] = useState<string | undefined>()
   const [internalName, setInternalName] = useState('Origem principal')
   const [senderName, setSenderName] = useState('')
@@ -31,9 +33,18 @@ export function AdminShippingOriginPage() {
   const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [cepMessage, setCepMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [ok, setOk] = useState<string | null>(null)
   const consultedCep = useRef('')
   const requestId = useRef(0)
+
+  function pushError(msg: string) {
+    setError(msg)
+    toast.push(msg, 'error')
+  }
+
+  function pushOk(msg: string) {
+    setError(null)
+    toast.push(msg, 'success')
+  }
 
   useEffect(() => {
     void (async () => {
@@ -61,12 +72,14 @@ export function AdminShippingOriginPage() {
           }
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar origem')
+        const msg = e instanceof Error ? e.message : 'Erro ao carregar origem'
+        setError(msg)
+        toast.push(msg, 'error')
       } finally {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     const digits = normalizeCep(postalCode)
@@ -109,7 +122,6 @@ export function AdminShippingOriginPage() {
     e.preventDefault()
     setSaving(true)
     setError(null)
-    setOk(null)
     try {
       if (!isCompleteCep(postalCode)) {
         throw new Error('Informe um CEP válido com 8 dígitos.')
@@ -138,9 +150,9 @@ export function AdminShippingOriginPage() {
         state,
       })
       setId(saved.id)
-      setOk('Origem e remetente salvos.')
+      pushOk('Origem e remetente salvos.')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar')
     } finally {
       setSaving(false)
     }
@@ -273,7 +285,6 @@ export function AdminShippingOriginPage() {
           onChange={(e) => setComplement(e.target.value)}
         />
         {error ? <p className="text-sm text-red-600 sm:col-span-2">{error}</p> : null}
-        {ok ? <p className="text-sm text-green-700 sm:col-span-2">{ok}</p> : null}
         <div className="sm:col-span-2">
           <Button type="submit" disabled={saving}>
             {saving ? 'Salvando…' : 'Salvar origem'}
