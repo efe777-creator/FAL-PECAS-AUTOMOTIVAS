@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import {
@@ -61,11 +62,15 @@ export function AdminOrdersHubPage() {
   const recent = useMemo(() => rows.slice(0, 6), [rows])
 
   async function runExpireUnpaid() {
-    const ok = window.confirm(
-      'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?\n\n' +
+    const { confirmed } = await confirmDialog({
+      title: 'Retirar pedidos não pagos?',
+      message:
+        'Retirar da fila (cancelar) pedidos com mais de 48 h sem pagamento aprovado?\n\n' +
         'Histórico permanece como cancelado. Reserva liberada. Expiração do Pix (5 min) é independente.',
-    )
-    if (!ok) return
+      confirmLabel: 'Retirar da fila',
+      danger: true,
+    })
+    if (!confirmed) return
     setBusyExpire(true)
     setMessage(null)
     setError(null)

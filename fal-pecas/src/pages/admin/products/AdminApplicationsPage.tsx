@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -268,7 +269,13 @@ export function AdminApplicationsPage() {
   }
 
   async function onDeleteOne(id: string) {
-    if (!window.confirm('Excluir esta aplicação?')) return
+    const { confirmed } = await confirmDialog({
+      title: 'Excluir aplicação?',
+      message: 'Excluir esta aplicação?',
+      confirmLabel: 'Excluir',
+      danger: true,
+    })
+    if (!confirmed) return
     setBusy(true)
     setError(null)
     try {
@@ -284,7 +291,13 @@ export function AdminApplicationsPage() {
 
   async function onDeleteSelected() {
     if (!selected.size) return
-    if (!window.confirm(`Excluir ${selected.size} aplicação(ões)?`)) return
+    const { confirmed } = await confirmDialog({
+      title: 'Excluir aplicações?',
+      message: `Excluir ${selected.size} aplicação(ões)?`,
+      confirmLabel: 'Excluir',
+      danger: true,
+    })
+    if (!confirmed) return
     setBusy(true)
     setError(null)
     try {

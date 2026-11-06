@@ -181,9 +181,13 @@ export function AdminPriceListsPage() {
 
   async function onToggleStatus(list: PriceListOverviewRow) {
     const next: PriceListStatus = list.status === 'active' ? 'inactive' : 'active'
-    if (!window.confirm(`Deseja ${next === 'active' ? 'ativar' : 'inativar'} a lista "${list.name}"?`)) {
-      return
-    }
+    const { confirmed } = await confirmDialog({
+      title: `${next === 'active' ? 'Ativar' : 'Inativar'} lista?`,
+      message: `Deseja ${next === 'active' ? 'ativar' : 'inativar'} a lista "${list.name}"?`,
+      confirmLabel: next === 'active' ? 'Ativar' : 'Inativar',
+      danger: next === 'inactive',
+    })
+    if (!confirmed) return
     setBusy(true)
     setError(null)
     setMenuOpenId(null)
@@ -211,13 +215,12 @@ export function AdminPriceListsPage() {
   }
 
   async function onDuplicate(list: PriceListOverviewRow) {
-    if (
-      !window.confirm(
-        `Duplicar a lista "${list.name}"?\n\nItens e origem de preço serão copiados. Nenhum recálculo será executado.`,
-      )
-    ) {
-      return
-    }
+    const { confirmed } = await confirmDialog({
+      title: 'Duplicar lista?',
+      message: `Duplicar a lista "${list.name}"?\n\nItens e origem de preço serão copiados. Nenhum recálculo será executado.`,
+      confirmLabel: 'Duplicar',
+    })
+    if (!confirmed) return
     setBusy(true)
     setError(null)
     setMenuOpenId(null)

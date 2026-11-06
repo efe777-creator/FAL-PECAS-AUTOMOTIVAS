@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatMoney } from '@/lib/money'
 import {
@@ -99,12 +100,15 @@ export function AdminSupplierCostImportPage() {
     const valid = preview?.filter((r) => r.ok).length ?? 0
     if (valid === 0) return
     const supplierName = suppliers.find((s) => s.id === supplierId)?.name ?? 'fornecedor'
-    const ok = window.confirm(
-      `Atualizar custo de ${valid} item(ns) em "${supplierName}"?\n\n` +
+    const { confirmed } = await confirmDialog({
+      title: 'Atualizar custos?',
+      message:
+        `Atualizar custo de ${valid} item(ns) em "${supplierName}"?\n\n` +
         `Somente vínculos já convertidos. Sem conversão = erro (não cria produto).\n` +
         `Preços de venda NÃO são recalculados nesta etapa.`,
-    )
-    if (!ok) return
+      confirmLabel: 'Atualizar',
+    })
+    if (!confirmed) return
 
     setBusy(true)
     setError(null)
