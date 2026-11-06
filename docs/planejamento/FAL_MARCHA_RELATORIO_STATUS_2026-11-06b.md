@@ -45,6 +45,7 @@ Sem itens **CONSOLIDAR** abertos. Tudo **MANTER** / **NÃO TOCAR**.
 - Catálogo ↔ PDP: restaura scroll ao voltar (`ScrollToTop` ignora POP + sessionStorage)  
 - Meus pedidos: cards mobile + CTA botão (Continuar pagamento / Responder loja)  
 - Lightbox PDP acima da MobileNav (`z-[280]`) — fecha residual O1-H de empilhamento  
+- Carrinho: recota frete ao mudar qty com CEP válido + mensagem se zero opções (O1-D)  
 
 ## Próximo código (opcional)
 
