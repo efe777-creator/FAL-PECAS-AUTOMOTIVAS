@@ -180,7 +180,11 @@ export function AdminOrderDetailPage() {
   }
 
   async function runCancel() {
-    const note = cancelNote.trim() || 'Cancelamento administrativo'
+    const note = cancelNote.trim()
+    if (!note) {
+      setError('Informe o motivo do cancelamento.')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -382,34 +386,6 @@ export function AdminOrderDetailPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {msg ? <p className="text-sm text-green-700">{msg}</p> : null}
 
-      <section className="rounded-[14px] border border-fal-line bg-white px-4 py-3">
-        <h2 className="m-0 text-base font-extrabold text-fal-navy">5. Histórico / linha do tempo</h2>
-        <ol className="mb-0 mt-3 list-none space-y-2 p-0">
-          {timeline.map((step) => (
-            <li key={step.id} className="flex items-center gap-2 text-sm">
-              <span
-                className={
-                  step.state === 'done'
-                    ? 'font-extrabold text-fal-success'
-                    : step.state === 'current'
-                      ? 'font-extrabold text-fal-navy'
-                      : 'text-fal-muted'
-                }
-              >
-                {step.state === 'done' ? '✓' : step.state === 'current' ? '●' : '○'}
-              </span>
-              <span
-                className={
-                  step.state === 'todo' ? 'text-fal-muted' : 'font-semibold text-fal-ink'
-                }
-              >
-                {step.label}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
       {nextStep ? (
         <section className="rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
           <h2 className="m-0 text-base font-extrabold text-fal-navy">
@@ -567,39 +543,6 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
-      {pending ? (
-        <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">
-            {PENDING_COPY[pending.kind].title}
-          </h2>
-          <p className="mt-1 mb-3 text-sm text-fal-muted">{PENDING_COPY[pending.kind].body}</p>
-          {pending.kind === 'cancel' ? (
-            <Input
-              label="Motivo do cancelamento"
-              value={cancelNote}
-              onChange={(e) => setCancelNote(e.target.value)}
-              placeholder="Ex.: item indisponível / pedido duplicado"
-            />
-          ) : null}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" disabled={busy} onClick={() => confirmPending()}>
-              Confirmar
-            </Button>
-            <Button
-              type="button"
-              variant="light"
-              disabled={busy}
-              onClick={() => {
-                setPending(null)
-                setCancelNote('')
-              }}
-            >
-              Voltar
-            </Button>
-          </div>
-        </section>
-      ) : null}
-
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">1. Identificação do pedido e cliente</h2>
         <p className="mb-0 mt-2 text-sm">
@@ -654,11 +597,17 @@ export function AdminOrderDetailPage() {
       </section>
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">
-          3. Produtos e quantidades
-          {inAnalysis || inSeparation ? ' · 4. Conferência' : ''}
-          {inSeparation ? ' · 6. Separação' : ''}
-        </h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">3. Produtos e quantidades</h2>
+        {inAnalysis ? (
+          <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
+            Conferência de disponibilidade (marque cada item e salve)
+          </p>
+        ) : null}
+        {inSeparation ? (
+          <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
+            Separação — marque os itens separados ({separatedCount}/{order.items.length})
+          </p>
+        ) : null}
         <div className="mt-3 space-y-4">
           {order.items.map((it) => {
             const d = drafts[it.id] ?? { availability: '', leadDays: '', staffNote: '' }
@@ -834,6 +783,47 @@ export function AdminOrderDetailPage() {
         ) : null}
       </div>
 
+      {pending ? (
+        <section
+          className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4"
+          aria-live="polite"
+        >
+          <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+            {PENDING_COPY[pending.kind].title}
+          </h2>
+          <p className="mt-1 mb-3 text-sm text-fal-muted">{PENDING_COPY[pending.kind].body}</p>
+          {pending.kind === 'cancel' ? (
+            <Input
+              label="Motivo do cancelamento (obrigatório)"
+              value={cancelNote}
+              onChange={(e) => setCancelNote(e.target.value)}
+              placeholder="Ex.: item indisponível / pedido duplicado"
+              required
+            />
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={busy || (pending.kind === 'cancel' && !cancelNote.trim())}
+              onClick={() => confirmPending()}
+            >
+              Confirmar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy}
+              onClick={() => {
+                setPending(null)
+                setCancelNote('')
+              }}
+            >
+              Voltar
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       {order.status === 'pronto_para_envio' || order.status === 'preparando_envio' ? (
         <MeExpeditionPanel
           order={order}
@@ -852,9 +842,37 @@ export function AdminOrderDetailPage() {
         />
       ) : null}
 
+      <section className="rounded-[14px] border border-fal-line bg-white px-4 py-3">
+        <h2 className="m-0 text-base font-extrabold text-fal-navy">4. Linha do tempo</h2>
+        <ol className="mb-0 mt-3 list-none space-y-2 p-0">
+          {timeline.map((step) => (
+            <li key={step.id} className="flex items-center gap-2 text-sm">
+              <span
+                className={
+                  step.state === 'done'
+                    ? 'font-extrabold text-fal-success'
+                    : step.state === 'current'
+                      ? 'font-extrabold text-fal-navy'
+                      : 'text-fal-muted'
+                }
+              >
+                {step.state === 'done' ? '✓' : step.state === 'current' ? '●' : '○'}
+              </span>
+              <span
+                className={
+                  step.state === 'todo' ? 'text-fal-muted' : 'font-semibold text-fal-ink'
+                }
+              >
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {order.status === 'enviado' || order.status === 'entregue' ? (
         <section className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">7. Expedição e entrega</h2>
+          <h2 className="m-0 text-lg font-extrabold text-fal-navy">5. Expedição e entrega</h2>
           <p className="mt-1 text-sm text-fal-muted">
             Etiqueta:{' '}
             {meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))}
@@ -887,7 +905,7 @@ export function AdminOrderDetailPage() {
       ) : null}
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">8. Observações e registros operacionais</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">6. Observações e registros operacionais</h2>
         <ul className="mt-2 mb-0 list-none space-y-2 p-0">
           {order.events.length === 0 ? (
             <li className="text-sm text-fal-muted">Sem eventos.</li>
