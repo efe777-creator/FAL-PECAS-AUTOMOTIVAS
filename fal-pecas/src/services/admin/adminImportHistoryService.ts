@@ -25,12 +25,16 @@ export type ImportRunDetail = ImportRunSummary & {
   }>
 }
 
+/** Tamanho padrão de página do histórico unificado de importações. */
+export const ADMIN_IMPORTS_PAGE_SIZE = 150
+
 export type ListImportsInput = {
   kind?: string
   status?: string
   priceListId?: string
   supplierId?: string
   limit?: number
+  offset?: number
 }
 
 function summarizeItems(
@@ -52,13 +56,15 @@ export async function adminListImports(
   filters: ListImportsInput = {},
 ): Promise<ImportRunSummary[]> {
   const sb = getSupabase()
+  const limit = filters.limit ?? ADMIN_IMPORTS_PAGE_SIZE
+  const offset = filters.offset ?? 0
   let q = sb
     .from('imports')
     .select(
       'id, kind, filename, status, created_at, created_by, report, price_list_id, supplier_id',
     )
     .order('created_at', { ascending: false })
-    .limit(filters.limit ?? 100)
+    .range(offset, offset + limit - 1)
 
   if (filters.kind) q = q.eq('kind', filters.kind)
   if (filters.status) q = q.eq('status', filters.status)
