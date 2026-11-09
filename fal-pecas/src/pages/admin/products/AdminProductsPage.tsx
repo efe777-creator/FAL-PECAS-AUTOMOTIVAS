@@ -299,7 +299,7 @@ export function AdminProductsPage() {
       })
       setReleasePreflight(rows)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha no checklist de liberação')
+      pushError(e instanceof Error ? e.message : 'Falha ao verificar liberação na loja')
     } finally {
       setBusyBulk(false)
     }
@@ -309,17 +309,17 @@ export function AdminProductsPage() {
     if (!releasePreflight?.length) return
     const eligible = releasePreflight.filter((r) => r.canRelease).map((r) => r.productId)
     if (!eligible.length) {
-      pushError('Nenhum produto passou no checklist de liberação.')
+      pushError('Nenhum produto está pronto para liberar na loja.')
       return
     }
     const blocked = releasePreflight.length - eligible.length
     const { confirmed } = await confirmDialog({
       title: 'Liberar na loja?',
       message:
-        `Liberar ${eligible.length} produto(s) que passaram no checklist?\n` +
+        `Liberar ${eligible.length} produto(s) prontos?\n` +
         (blocked > 0 ? `${blocked} bloqueado(s) serão ignorados.\n` : '') +
-        '\nExige: nome, código ref., categoria, preço resolvido > 0, publicação.\n' +
-        'Avisos (app/imagem) não bloqueiam.',
+        '\nExige: nome, código de referência, categoria, preço na loja maior que zero e publicação.\n' +
+        'Avisos (aplicação/imagem) não bloqueiam.',
       confirmLabel: 'Liberar',
     })
     if (!confirmed) return
@@ -676,7 +676,7 @@ export function AdminProductsPage() {
           <div>
             <h3 className="m-0 text-base font-extrabold text-fal-navy">Situação</h3>
             <p className="mt-1 text-xs text-fal-muted">
-              Status comercial e disponibilidade na loja. Liberar usa o checklist de publicação.
+              Status comercial e disponibilidade na loja. Liberar verifica nome, preço e publicação.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -686,7 +686,7 @@ export function AdminProductsPage() {
               disabled={panelDisabled}
               onClick={() => void bulkLiberarNaLoja()}
             >
-              Liberar na loja (checklist)
+              Liberar na loja
             </Button>
             <Button
               type="button"

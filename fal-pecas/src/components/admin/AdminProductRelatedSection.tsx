@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
+import { productStatusLabel } from '@/lib/adminLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminAddProductRelated,
@@ -130,7 +131,9 @@ export function AdminProductRelatedSection({ productId }: Props) {
       ) : null}
 
       {rows.length === 0 ? (
-        <p className="m-0 text-sm text-fal-muted">Nenhum relacionado curado — fallback por categoria.</p>
+        <p className="m-0 text-sm text-fal-muted">
+          Nenhum relacionado escolhido — a loja sugere pela mesma classificação.
+        </p>
       ) : (
         <ul className="m-0 list-none space-y-1 p-0 text-sm">
           {rows.map((row, index) => (
@@ -140,7 +143,7 @@ export function AdminProductRelatedSection({ productId }: Props) {
             >
               <span>
                 <strong>{row.commercialRef}</strong> · {row.name}
-                <span className="text-fal-muted"> · {row.status}</span>
+                <span className="text-fal-muted"> · {productStatusLabel(row.status)}</span>
               </span>
               <span className="flex flex-wrap gap-2">
                 <button
