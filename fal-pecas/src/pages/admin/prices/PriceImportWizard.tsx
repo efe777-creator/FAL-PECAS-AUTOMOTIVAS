@@ -102,7 +102,7 @@ export function PriceImportWizard({
     setResultMsg(message)
     toast.push(message, 'success')
   }
-  const [profileName, setProfileName] = useState('HF — Lista de preços')
+  const [profileName, setProfileName] = useState('Lista de preços')
   const [detectedProfile, setDetectedProfile] = useState<SavedImportProfile | null>(null)
   const [savedProfiles, setSavedProfiles] = useState<SavedImportProfile[]>([])
 

@@ -22,7 +22,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   novo: 'Novo',
   importar: 'Importar',
   'importar-aplicacoes': 'Importar aplicações',
-  'importar-hf': 'Importar HF',
+  'importar-hf': 'Importar arquivo completo',
   'importar-imagens': 'Importar imagens',
   'importar-conversoes': 'Importar conversões',
   'importar-custos': 'Importar custos',
