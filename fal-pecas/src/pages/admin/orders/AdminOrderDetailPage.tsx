@@ -5,6 +5,8 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { openSeparationList } from '@/lib/adminOrderPrint'
+import { summarizeOrderMargin, type OrderMarginSummary } from '@/lib/orderMarginSummary'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
@@ -44,7 +46,8 @@ import {
   type AdminOrderDetail,
   type OrderItemAvailability,
 } from '@/services/admin/adminOrderService'
-import { useEffect, useState } from 'react'
+import { loadProductBaseCosts } from '@/services/admin/adminPriceListService'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 type Draft = {
@@ -101,6 +104,10 @@ export function AdminOrderDetailPage() {
   const [proofRef, setProofRef] = useState('')
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [cancelNote, setCancelNote] = useState('')
+  const [costByProduct, setCostByProduct] = useState<Map<string, { baseCost: number }>>(
+    () => new Map(),
+  )
+  const [marginBusy, setMarginBusy] = useState(false)
 
   function pushError(message: string) {
     setError(message)
@@ -162,6 +169,53 @@ export function AdminOrderDetailPage() {
     if (id) void reload({ initial: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  useEffect(() => {
+    if (!order?.items.length) {
+      setCostByProduct(new Map())
+      return
+    }
+    const productIds = order.items
+      .map((it) => it.productId)
+      .filter((pid): pid is string => Boolean(pid))
+    if (!productIds.length) {
+      setCostByProduct(new Map())
+      return
+    }
+    let cancelled = false
+    setMarginBusy(true)
+    void loadProductBaseCosts(productIds)
+      .then((map) => {
+        if (cancelled) return
+        const next = new Map<string, { baseCost: number }>()
+        for (const [pid, info] of map) {
+          next.set(pid, { baseCost: info.baseCost })
+        }
+        setCostByProduct(next)
+      })
+      .catch(() => {
+        if (!cancelled) setCostByProduct(new Map())
+      })
+      .finally(() => {
+        if (!cancelled) setMarginBusy(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [order])
+
+  const marginSummary: OrderMarginSummary | null = useMemo(() => {
+    if (!order?.items.length) return null
+    return summarizeOrderMargin(
+      order.items.map((it) => ({
+        id: it.id,
+        productId: it.productId,
+        unitPrice: it.unitPrice,
+        quantity: it.quantity,
+      })),
+      costByProduct,
+    )
+  }, [order, costByProduct])
 
   async function saveItem(itemId: string) {
     const d = drafts[itemId]
@@ -594,6 +648,38 @@ export function AdminOrderDetailPage() {
           Subtotal {formatMoney(order.subtotal)} · Frete cobrado {formatMoney(order.shippingAmount)}{' '}
           · Total {formatMoney(order.total)}
         </p>
+        {marginSummary ? (
+          <div className="mt-3 rounded-[12px] border border-fal-yellow-dark/40 bg-fal-yellow/10 px-3 py-3">
+            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Rentabilidade estimada (itens)</h3>
+            {marginBusy ? (
+              <p className="mb-0 mt-1 text-xs text-fal-muted">Carregando custos…</p>
+            ) : (
+              <>
+                <p className="mb-0 mt-2 text-sm">
+                  Receita itens {formatMoney(marginSummary.revenueItems)}
+                  {marginSummary.costItems != null ? (
+                    <>
+                      {' '}
+                      · CMV est. {formatMoney(marginSummary.costItems)} · Lucro bruto{' '}
+                      {formatMoney(marginSummary.profitItems ?? 0)}
+                      {marginSummary.marginPercent != null
+                        ? ` · Margem ${marginSummary.marginPercent}%`
+                        : ''}
+                    </>
+                  ) : (
+                    <> · Sem custo cadastrado nos itens</>
+                  )}
+                </p>
+                <p className="mb-0 mt-1 text-xs text-fal-muted">
+                  Custo atual do cadastro (não congelado na venda). Frete e taxas fora do CMV.
+                  {marginSummary.itemsMissingCost > 0
+                    ? ` ${marginSummary.itemsMissingCost} item(ns) sem custo.`
+                    : ''}
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
@@ -636,9 +722,18 @@ export function AdminOrderDetailPage() {
             Separação — marque os itens separados ({separatedCount}/{order.items.length})
           </p>
         ) : null}
+        {order.inventoryModeAtOrder === 'com_estoque' ? (
+          <p className="mb-0 mt-1 text-xs text-fal-muted">
+            Pedido em modo com estoque — saldos físicos abaixo (quando cadastrados).
+          </p>
+        ) : null}
         <div className="mt-3 space-y-4">
           {order.items.map((it) => {
             const d = drafts[it.id] ?? { availability: '', leadDays: '', staffNote: '' }
+            const showInv =
+              order.inventoryModeAtOrder === 'com_estoque' &&
+              (it.quantityOnHand != null || it.quantityReserved != null)
+            const lineMargin = marginSummary?.lines.find((l) => l.itemId === it.id)
             return (
               <div key={it.id} className="rounded-[12px] border border-fal-line p-3">
                 <div className="flex flex-wrap justify-between gap-2">
@@ -648,6 +743,23 @@ export function AdminOrderDetailPage() {
                       {SKU_FAL_LABEL} {it.sku} · qtd {it.quantity} ·{' '}
                       {formatMoney(it.unitPrice)}
                     </div>
+                    {lineMargin && !marginBusy ? (
+                      <div className="mt-1 text-xs text-fal-muted">
+                        {lineMargin.missingCost
+                          ? 'Custo: não cadastrado'
+                          : `Custo unit. ${formatMoney(lineMargin.unitCost ?? 0)} · margem ${
+                              lineMargin.marginPercent != null
+                                ? `${lineMargin.marginPercent}%`
+                                : '—'
+                            }`}
+                      </div>
+                    ) : null}
+                    {showInv ? (
+                      <div className="mt-1 text-xs font-semibold text-fal-navy">
+                        Estoque: on hand {it.quantityOnHand ?? '—'} · reservado{' '}
+                        {it.quantityReserved ?? '—'} · pedido pede {it.quantity}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="text-sm font-semibold">
                     {formatMoney(it.unitPrice * it.quantity)}
@@ -768,6 +880,21 @@ export function AdminOrderDetailPage() {
         ) : null}
         {inSeparation ? (
           <>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy || pending != null}
+              onClick={() => {
+                if (!openSeparationList(order)) {
+                  toast.push(
+                    'Não foi possível abrir a lista de separação. Libere pop-ups para este site.',
+                    'error',
+                  )
+                }
+              }}
+            >
+              Imprimir lista de separação
+            </Button>
             <Button
               type="button"
               variant="light"

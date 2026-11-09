@@ -25,6 +25,7 @@ export function RegisterPage() {
   const fromState = (location.state as { from?: string } | null)?.from
   // Veio do funil (carrinho/checkout) → volta para lá; senão área da conta.
   const from = fromState ?? '/conta'
+  const fromCheckout = Boolean(fromState?.includes('/checkout'))
   const loginState = fromState ? { from: fromState } : undefined
 
   const [firstName, setFirstName] = useState('')
@@ -63,8 +64,8 @@ export function RegisterPage() {
       return
     }
     const cpfDigits = onlyDigits(cpf)
-    if (!isValidCpf(cpfDigits)) {
-      pushError('CPF inválido. Confira os 11 dígitos.')
+    if (cpfDigits && !isValidCpf(cpfDigits)) {
+      pushError('CPF inválido. Confira os 11 dígitos ou deixe em branco.')
       return
     }
     const phoneDigits = phone.trim() ? normalizePhone(phone) : ''
@@ -81,11 +82,16 @@ export function RegisterPage() {
         lastName,
         username: username || undefined,
         phone: phoneDigits || undefined,
-        cpf: cpfDigits,
+        cpf: cpfDigits || undefined,
       })
       if (!result.session) {
         setNeedsEmailConfirm(true)
-        toast.push('Conta criada. Confirme seu e-mail para entrar.', 'info')
+        toast.push(
+          fromCheckout
+            ? 'Conta criada. Confirme o e-mail e entre para finalizar a compra.'
+            : 'Conta criada. Confirme seu e-mail para entrar.',
+          'info',
+        )
         return
       }
       navigate(from, { replace: true })
@@ -103,10 +109,11 @@ export function RegisterPage() {
           <h1 className="mt-0 text-[28px] font-black">Confirme seu e-mail</h1>
           <p className="text-fal-muted">
             Enviamos um link de confirmação para <strong>{email}</strong>. Abra o e-mail, confirme
-            o cadastro e depois entre na sua conta.
+            o cadastro e depois entre na sua conta
+            {fromCheckout ? ' para retomar o checkout' : ''}.
           </p>
           <ButtonLink to="/login" state={loginState} variant="primary" className="mt-2">
-            Ir para o login
+            {fromCheckout ? 'Entrar e finalizar compra' : 'Ir para o login'}
           </ButtonLink>
         </div>
       </Container>
@@ -118,11 +125,12 @@ export function RegisterPage() {
       <div className="mx-auto grid max-w-[1050px] grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="py-4 lg:py-10">
           <h1 className="mt-0 text-[36px] leading-tight font-black lg:text-[44px]">
-            Crie sua conta FAL
+            {fromCheckout ? 'Quase lá — crie sua conta' : 'Crie sua conta FAL'}
           </h1>
           <p className="text-[17px] text-fal-muted">
-            Crie sua conta com nome, e-mail, CPF e senha. Você já pode navegar na loja; confirme o
-            e-mail quando receber a mensagem.
+            {fromCheckout
+              ? 'Nome, e-mail e senha bastam para continuar. CPF/CNPJ você informa no checkout, na hora do pagamento.'
+              : 'Nome, e-mail e senha bastam. CPF e telefone são opcionais agora — o checkout pede o documento na compra.'}
           </p>
           {!isConfigured ? (
             <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
@@ -175,17 +183,21 @@ export function RegisterPage() {
                 />
               </div>
               <Input
-                label="CPF"
+                label="CPF (opcional)"
                 name="cpf"
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="000.000.000-00"
                 value={cpf}
                 onChange={(e) => setCpf(formatCpfMask(e.target.value))}
-                required
+                hint={
+                  fromCheckout
+                    ? 'Pode deixar em branco — pediremos no checkout.'
+                    : 'Opcional. Também pode informar no checkout.'
+                }
               />
               <Input
-                label="Telefone / WhatsApp"
+                label="Telefone / WhatsApp (opcional)"
                 name="phone"
                 inputMode="tel"
                 autoComplete="tel"
@@ -246,7 +258,11 @@ export function RegisterPage() {
               </p>
             ) : null}
             <Button type="submit" variant="primary" fullWidth className="mt-4" disabled={submitting}>
-              {submitting ? 'Criando…' : 'Criar conta'}
+              {submitting
+                ? 'Criando…'
+                : fromCheckout
+                  ? 'Criar conta e continuar'
+                  : 'Criar conta'}
             </Button>
           </form>
         </div>

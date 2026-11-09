@@ -8,8 +8,10 @@ import {
   canPurchaseLabel,
   meLabelState,
   meLabelStateLabel,
+  meLastErrorLabel,
   parseMeMeta,
 } from '@/lib/melhorEnvioLabelState'
+import { openRomaneio } from '@/lib/adminOrderPrint'
 import { formatMoney } from '@/lib/money'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 import {
@@ -35,61 +37,6 @@ type Props = {
   onReload: () => Promise<void>
   onMessage: (msg: string | null) => void
   onError: (msg: string | null) => void
-}
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-/** Abre o romaneio via Blob URL. Retorna false se o popup foi bloqueado. */
-function openRomaneio(order: AdminOrderDetail): boolean {
-  const addr = order.addressSnapshot
-  const addrLine = addr
-    ? [
-        addr.street,
-        addr.number,
-        addr.complement,
-        addr.district,
-        addr.city,
-        addr.state,
-        addr.cep ?? addr.zip,
-      ]
-        .filter(Boolean)
-        .join(', ')
-    : '—'
-  const itemsHtml = order.items
-    .map(
-      (it) =>
-        `<tr><td>${escapeHtml(it.sku)}</td><td>${escapeHtml(it.nameSnapshot)}</td><td>${escapeHtml(it.quantity)}</td></tr>`,
-    )
-    .join('')
-  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Romaneio ${escapeHtml(order.id.slice(0, 8))}</title>
-    <style>body{font-family:system-ui;padding:24px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px;text-align:left}</style>
-    </head><body>
-    <h1>Romaneio interno FAL</h1>
-    <p><strong>Pedido:</strong> ${escapeHtml(order.id)}<br/>
-    <strong>Cliente:</strong> ${escapeHtml(order.customerName ?? '—')}<br/>
-    <strong>Endereço:</strong> ${escapeHtml(addrLine)}<br/>
-    <strong>Frete cobrado:</strong> R$ ${order.shippingAmount.toFixed(2)}</p>
-    <table><thead><tr><th>Código</th><th>Produto</th><th>Qtd</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-    <p style="margin-top:24px;font-size:12px;color:#666">Etiqueta Melhor Envio é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
-    <script>window.print()</script></body></html>`
-  // Sem 'noopener': com noopener o window.open retorna null e não dá para escrever no popup.
-  // Blob URL evita document.write e funciona com o script de impressão.
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const w = window.open(url, '_blank', 'width=800,height=900')
-  if (!w) {
-    URL.revokeObjectURL(url)
-    return false
-  }
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-  return true
 }
 
 export function MeExpeditionPanel({
@@ -179,7 +126,7 @@ export function MeExpeditionPanel({
         ) : null}
         {me.last_error ? (
           <p className="mt-1 mb-0 text-xs text-red-600">
-            Último erro Melhor Envio: {me.last_error}
+            Último erro Melhor Envio: {meLastErrorLabel(me.last_error)}
           </p>
         ) : null}
         {divergenceMsg ? (

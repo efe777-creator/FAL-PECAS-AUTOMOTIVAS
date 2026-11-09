@@ -32,6 +32,7 @@ describe('sitemapXml', () => {
       'https://loja.example/veiculo',
       'https://loja.example/termos',
       'https://loja.example/privacidade',
+      'https://loja.example/trocas-devolucoes',
       'https://loja.example/produto/sk1',
     ])
     const xml = buildSitemapXml(entries)

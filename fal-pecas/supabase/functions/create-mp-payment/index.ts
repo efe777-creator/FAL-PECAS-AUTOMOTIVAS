@@ -131,6 +131,30 @@ Deno.serve(async (req) => {
       existing = null
     }
 
+    // Troca Pix ↔ cartão: cancela pending do outro canal (não reutilizar QR Pix no Brick).
+    if (existing?.provider_payment_id) {
+      const existingIsPix = String(existing.method ?? 'pix') === 'pix'
+      const wantsPix = !card
+      if (existingIsPix !== wantsPix) {
+        await admin
+          .from('payments')
+          .update({
+            status: 'cancelled',
+            cancelled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            metadata: {
+              ...((existing.metadata ?? {}) as Record<string, unknown>),
+              cancelled_reason: 'method_switch',
+              from_method: existing.method ?? 'pix',
+              to_method: internalMethod,
+            },
+          })
+          .eq('id', existing.id)
+          .eq('status', 'pending')
+        existing = null
+      }
+    }
+
     if (existing?.provider_payment_id) {
       let full = existing
 

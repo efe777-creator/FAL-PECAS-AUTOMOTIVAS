@@ -317,6 +317,10 @@ export function AdminProductApplicationsSection({ productId }: Props) {
                           setError('Ano fim inválido')
                           return
                         }
+                        if (ys != null && ye != null && ye < ys) {
+                          setError('Ano fim menor que ano início')
+                          return
+                        }
                         void adminUpdateApplicationYears(row.id, {
                           yearStart: ys,
                           yearEnd: ye,

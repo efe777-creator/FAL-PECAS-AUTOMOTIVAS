@@ -22,7 +22,11 @@ export interface CreateMpFlowDeps {
   ) => Promise<{ id: string; status: string; total: number } | null>
   findPendingPayment: (
     orderId: string,
-  ) => Promise<{ id: string; provider_payment_id: string | null } | null>
+  ) => Promise<{
+    id: string
+    provider_payment_id: string | null
+    method?: string | null
+  } | null>
   updatePayment: (id: string, patch: Record<string, unknown>) => Promise<void>
   insertPayment: (row: Record<string, unknown>) => Promise<string>
   findProfileName: (userId: string) => Promise<string | null>
@@ -77,17 +81,33 @@ export async function executeCreateMpPayment(
     return { httpStatus: 422, body: { error: 'invalid_order_total' } }
   }
 
-  const existing = await deps.findPendingPayment(orderId)
+  let existing = await deps.findPendingPayment(orderId)
   if (existing?.provider_payment_id) {
-    return {
-      httpStatus: 200,
-      body: {
-        paymentId: existing.id,
-        providerPaymentId: existing.provider_payment_id,
-        status: 'pending',
-        reused: true,
-        orderApproved: false,
-      },
+    const existingIsPix = (existing.method ?? 'pix') === 'pix'
+    const wantsPix = !card
+    // Troca Pix ↔ cartão: não reutilizar cobrança do outro canal.
+    if (existingIsPix !== wantsPix) {
+      await deps.updatePayment(existing.id, {
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        metadata: {
+          cancelled_reason: 'method_switch',
+          from_method: existing.method ?? 'pix',
+          to_method: internalMethod,
+        },
+      })
+      existing = null
+    } else {
+      return {
+        httpStatus: 200,
+        body: {
+          paymentId: existing.id,
+          providerPaymentId: existing.provider_payment_id,
+          status: 'pending',
+          reused: true,
+          orderApproved: false,
+        },
+      }
     }
   }
 

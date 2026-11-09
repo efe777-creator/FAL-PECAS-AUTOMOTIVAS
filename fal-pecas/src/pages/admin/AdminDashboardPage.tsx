@@ -13,12 +13,18 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { canAccessAdminPath } from '@/lib/adminNavAccess'
 import { formatDateTime } from '@/lib/datetime'
+import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminListOrders,
   adminOrderStatusCounts,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
+import {
+  adminBasicTotals,
+  staffCanViewReportsF8,
+  type AdminBasicTotals,
+} from '@/services/admin/adminReportsService'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -79,6 +85,7 @@ export function AdminDashboardPage() {
   const { user } = useAuth()
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<AdminOrderListRow[]>([])
+  const [totals, setTotals] = useState<AdminBasicTotals | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -97,14 +104,28 @@ export function AdminDashboardPage() {
     void (async () => {
       setLoading(true)
       try {
-        const [c, list] = await Promise.all([adminOrderStatusCounts(), adminListOrders(null)])
+        const [c, list, canReports] = await Promise.all([
+          adminOrderStatusCounts(),
+          adminListOrders(null),
+          staffCanViewReportsF8().catch(() => false),
+        ])
         setCounts(c)
         setOrders(list)
+        if (canReports) {
+          try {
+            setTotals(await adminBasicTotals())
+          } catch {
+            setTotals(null)
+          }
+        } else {
+          setTotals(null)
+        }
         setLoadError(null)
       } catch (e) {
         setLoadError(toUserMessage(e, 'Falha ao carregar pedidos'))
         setCounts({})
         setOrders([])
+        setTotals(null)
       } finally {
         setLoading(false)
       }
@@ -140,6 +161,60 @@ export function AdminDashboardPage() {
       </header>
 
       {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
+
+      <section className="space-y-2" aria-label="Indicadores operacionais">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+            Indicadores (034)
+          </h2>
+          {canAccessAdminPath('/admin/relatorios', user?.role) ? (
+            <Link
+              to="/admin/relatorios"
+              className="text-xs font-semibold text-fal-navy underline-offset-2 hover:underline"
+            >
+              Relatórios completos →
+            </Link>
+          ) : null}
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <Kpi
+            label="Aguardando pagamento"
+            value={loading ? '…' : String(counts['aguardando_pagamento'] ?? 0)}
+            to="/admin/pedidos/lista?status=aguardando_pagamento"
+          />
+          <Kpi
+            label="Ação da equipe"
+            value={loading ? '…' : String(teamCount)}
+            to="/admin/pedidos"
+          />
+          <Kpi
+            label="Ação do cliente"
+            value={loading ? '…' : String(customerCount)}
+            to="/admin/pedidos"
+          />
+          <Kpi
+            label="Em aberto"
+            value={loading ? '…' : String(totals?.ordersOpen ?? '—')}
+            to="/admin/relatorios"
+          />
+          <Kpi
+            label="Entregues"
+            value={loading ? '…' : String(totals?.ordersDelivered ?? '—')}
+            to="/admin/relatorios"
+          />
+          <Kpi
+            label="Receita entregue"
+            value={
+              loading
+                ? '…'
+                : totals
+                  ? formatMoney(totals.revenueDelivered)
+                  : '—'
+            }
+            to="/admin/relatorios"
+          />
+        </div>
+      </section>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -292,5 +367,17 @@ export function AdminDashboardPage() {
         </section>
       ))}
     </div>
+  )
+}
+
+function Kpi({ label, value, to }: { label: string; value: string; to: string }) {
+  return (
+    <Link
+      to={to}
+      className="rounded-[12px] border border-fal-line bg-white px-3 py-3 shadow-sm transition hover:border-fal-yellow"
+    >
+      <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">{label}</div>
+      <div className="mt-1 text-xl font-extrabold tabular-nums text-fal-navy">{value}</div>
+    </Link>
   )
 }

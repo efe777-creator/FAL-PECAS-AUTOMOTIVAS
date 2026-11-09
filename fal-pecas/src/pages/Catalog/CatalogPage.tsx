@@ -406,10 +406,13 @@ export function CatalogPage() {
 
   const filterChipCount = activeChips.filter((c) => c.key !== 'q').length
 
-  const emptyDescription =
-    activeChips.length > 0
-      ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros ou limpe a busca.`
-      : 'Ajuste a busca ou os filtros para ver outros resultados.'
+  const onlyQueryChip =
+    activeChips.length === 1 && activeChips[0]?.key === 'q' ? activeChips[0].label : null
+  const emptyDescription = onlyQueryChip
+    ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
+    : activeChips.length > 0
+      ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
+      : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
 
   function removeChip(key: string) {
     if (key === 'maker') {

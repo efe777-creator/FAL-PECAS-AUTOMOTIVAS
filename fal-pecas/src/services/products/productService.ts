@@ -98,21 +98,26 @@ async function hydratePublishedByIds(ids: string[]): Promise<Product[]> {
 }
 
 /**
- * Destaques da home (IMP-12 / Onda 3):
- * 1) curadoria store_home_featured_products se houver
- * 2) senão published recentes, preferindo disponíveis
+ * Destaques da home (MVP / AJUSTE-021+022):
+ * 1) curadoria store_home_featured_products na ordem manual
+ * 2) completa vagas com published elegíveis (disponíveis primeiro)
+ * 3) sem duplicar — promoção não remove curadoria
  */
 export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
+  const { mergeFeaturedHybrid } = await import('@/lib/homeSections')
   const { listCuratedFeaturedProductIds } = await import('@/services/home/homeContentService')
+  const cap = Math.max(1, limit)
   const curatedIds = await listCuratedFeaturedProductIds()
-  if (curatedIds.length) {
-    const curated = await hydratePublishedByIds(curatedIds.slice(0, Math.max(limit, 1) * 2))
-    if (curated.length) return curated.slice(0, limit)
-  }
-  const pool = await listPublishedProducts(Math.max(limit * 2, 12))
+  const curated = curatedIds.length
+    ? await hydratePublishedByIds(curatedIds.slice(0, Math.max(cap * 2, cap)))
+    : []
+
+  if (curated.length >= cap) return curated.slice(0, cap)
+
+  const pool = await listPublishedProducts(Math.max(cap * 3, 24))
   const available = pool.filter((p) => p.available !== false)
   const rest = pool.filter((p) => p.available === false)
-  return [...available, ...rest].slice(0, limit)
+  return mergeFeaturedHybrid(curated, [...available, ...rest], cap)
 }
 
 /**

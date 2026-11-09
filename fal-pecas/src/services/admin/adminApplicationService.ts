@@ -3,6 +3,7 @@ import { adminFindProductIdBySku } from '@/services/admin/adminPriceListService'
 import {
   adminAddApplicationsBulk,
   adminRemoveApplication,
+  adminUpdateApplicationVehicleVersion,
   adminUpdateApplicationYears,
 } from '@/services/admin/adminProductService'
 
@@ -171,7 +172,13 @@ export async function adminListApplicationsGlobal(
   return { rows, total: count ?? rows.length }
 }
 
-export { adminFindProductIdBySku, adminAddApplicationsBulk, adminRemoveApplication, adminUpdateApplicationYears }
+export {
+  adminFindProductIdBySku,
+  adminAddApplicationsBulk,
+  adminRemoveApplication,
+  adminUpdateApplicationYears,
+  adminUpdateApplicationVehicleVersion,
+}
 
 export async function adminRemoveApplicationsBulk(ids: string[]): Promise<number> {
   const unique = [...new Set(ids.filter(Boolean))]

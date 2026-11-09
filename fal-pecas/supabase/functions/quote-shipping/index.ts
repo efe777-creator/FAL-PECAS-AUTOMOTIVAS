@@ -638,6 +638,7 @@ Deno.serve(async (req) => {
             etaDaysMax: o.eta_days_max,
             metadata: {
               ephemeral: true,
+              selectable: false,
               volumes,
               warning: 'shipping_quotes_unavailable',
               service_id: o.service_id,

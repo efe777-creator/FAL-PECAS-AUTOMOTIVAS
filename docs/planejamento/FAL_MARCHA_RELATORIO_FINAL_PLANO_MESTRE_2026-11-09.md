@@ -96,3 +96,14 @@ Tip: `6c8ff62` (#247).
 Espelho eFe permanece a referência de validação até o Publish.
 
 **Assinatura:** Relatório FINAL plano mestre · MARCHA 2026-11-09 · tip `#247`.
+
+---
+
+## Continuação (pós-plano mestre)
+
+A fila de evolução até **venda real (MVP)** passou a ser governada por:
+
+→ **[FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)**  
+→ **[FAL_AUDITORIA_PRONTIDAO_MVP_2026-11-09.md](./FAL_AUDITORIA_PRONTIDAO_MVP_2026-11-09.md)**  
+
+Gates humanos da §2 deste relatório foram **absorvidos** nos gates G1–G8 / AJUSTE do plano MVP (não são fila separada).

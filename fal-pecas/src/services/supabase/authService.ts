@@ -1,3 +1,4 @@
+import { LEGAL_VERSIONS } from '@/lib/legalVersions'
 import { normalizePhone } from '@/lib/phone'
 import { getSupabase, isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { UserProfile } from '@/types'
@@ -84,6 +85,9 @@ export async function signUp(params: {
         username: params.username ?? null,
         phone,
         cpf,
+        terms_version: LEGAL_VERSIONS.terms,
+        privacy_version: LEGAL_VERSIONS.privacy,
+        terms_accepted_at: new Date().toISOString(),
       },
     },
   })

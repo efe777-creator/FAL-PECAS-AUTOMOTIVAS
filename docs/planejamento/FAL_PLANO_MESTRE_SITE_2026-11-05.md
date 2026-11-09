@@ -2,8 +2,9 @@
 
 **Data:** 2026-11-05  
 **Tipo:** plano canônico de execução (matriz 29 + auditoria UX loja/admin)  
-**Status:** CÓDIGO ENCERRADO (2026-11-09) — tip `main` #247; produção plena = gates humanos  
+**Status:** CÓDIGO ENCERRADO (2026-11-09) — tip `main` #247; produção plena = Programa MVP G1–G8  
 **Relatório final:** [FAL_MARCHA_RELATORIO_FINAL_PLANO_MESTRE_2026-11-09.md](./FAL_MARCHA_RELATORIO_FINAL_PLANO_MESTRE_2026-11-09.md)  
+**Plano vigente pós-código:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
 **Fonte:** plano aprovado (Opção A ampliada)  
 **Backlog:** [FAL_BACKLOG_POS_ALPHA_2026-11-04.md](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)
 

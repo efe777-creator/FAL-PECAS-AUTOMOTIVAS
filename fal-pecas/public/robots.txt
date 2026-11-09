@@ -13,5 +13,6 @@ Disallow: /redefinir-senha
 
 Allow: /termos
 Allow: /privacidade
+Allow: /trocas-devolucoes
 
 Sitemap: https://fal-pecas-automotivas.netlify.app/sitemap.xml

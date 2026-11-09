@@ -1,11 +1,13 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
+import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
+import { resolveInstallmentCount } from '@/lib/paymentDisplay'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Props {
   orderId: string
@@ -43,6 +45,11 @@ export function MercadoPagoCardBrickPanel({
   onApproved,
   onError,
 }: Props) {
+  const paymentDisplay = usePaymentDisplay()
+  const maxInstallments = useMemo(() => {
+    if (!paymentDisplay?.enabled) return 12
+    return Math.min(12, resolveInstallmentCount(amount, paymentDisplay))
+  }, [amount, paymentDisplay])
   const [ready, setReady] = useState(false)
   const [brickReady, setBrickReady] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -205,17 +212,23 @@ export function MercadoPagoCardBrickPanel({
         <p className="text-xs text-fal-muted">Montando campos seguros do Mercado Pago…</p>
       ) : null}
       <CardPayment
-        key={`${orderId}-${brickKey}`}
+        key={`${orderId}-${brickKey}-${maxInstallments}`}
         initialization={{ amount: amountNum }}
         customization={{
           paymentMethods: {
-            maxInstallments: 12,
+            maxInstallments,
           },
         }}
         onSubmit={handleSubmit}
         onReady={handleBrickReady}
         onError={handleBrickError}
       />
+      {paymentDisplay?.enabled && paymentDisplay.interestFree ? (
+        <p className="m-0 text-xs text-fal-muted">
+          Parcelas no cartão conforme regras do Mercado Pago e da conta FAL. A vitrine indica
+          condições comerciais; o valor cobrado é o total do pedido.
+        </p>
+      ) : null}
       {!brickReady ? (
         <button
           type="button"

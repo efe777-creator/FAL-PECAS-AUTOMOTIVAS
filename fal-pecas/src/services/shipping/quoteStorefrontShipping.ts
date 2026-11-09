@@ -20,6 +20,8 @@ export function selectableShippingOptions(
 ): ShippingQuoteOption[] {
   return options.filter((o) => {
     if (o.metadata && o.metadata.selectable === false) return false
+    if (o.metadata?.ephemeral === true) return false
+    if (o.id.startsWith('meq:ephemeral:')) return false
     if (o.id === 'own:needs_number' || o.serviceCode === 'needs_number') return false
     if (o.id === 'own:manual_review' || o.serviceCode === 'manual_review') return false
     if (o.provider === 'mock' && o.metadata?.kind === 'mock_table') return false

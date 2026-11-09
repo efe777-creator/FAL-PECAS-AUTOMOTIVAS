@@ -167,7 +167,11 @@ describe('executeCreateMpPayment — casos A–I', () => {
     const res = await executeCreateMpPayment(
       { orderId: 'ord-1' },
       baseDeps({
-        findPendingPayment: async () => ({ id: 'pay-old', provider_payment_id: 'mp-1' }),
+        findPendingPayment: async () => ({
+          id: 'pay-old',
+          provider_payment_id: 'mp-1',
+          method: 'pix',
+        }),
         fetchMp,
         insertPayment,
       }),
@@ -176,6 +180,39 @@ describe('executeCreateMpPayment — casos A–I', () => {
     expect(res.body.reused).toBe(true)
     expect(fetchMp).not.toHaveBeenCalled()
     expect(insertPayment).not.toHaveBeenCalled()
+  })
+
+  it('H2: pending Pix + pedido cartão → cancela e cria novo', async () => {
+    const updates: Record<string, unknown>[] = []
+    const fetchMp = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 88, status: 'pending', payment_method_id: 'visa' }),
+    }))
+    const res = await executeCreateMpPayment(
+      {
+        orderId: 'ord-1',
+        token: 'tok',
+        paymentMethodId: 'visa',
+        installments: 3,
+      },
+      baseDeps({
+        findPendingPayment: async () => ({
+          id: 'pay-pix',
+          provider_payment_id: 'mp-pix',
+          method: 'pix',
+        }),
+        updatePayment: async (_id, patch) => {
+          updates.push(patch)
+        },
+        insertPayment: async () => 'pay-card',
+        fetchMp,
+      }),
+    )
+    expect(res.body.reused).not.toBe(true)
+    expect(updates.some((u) => u.status === 'cancelled')).toBe(true)
+    expect(fetchMp).toHaveBeenCalled()
+    expect(res.httpStatus).toBe(201)
   })
 
   it('I: X-Idempotency-Key estável fal-pay-{paymentId}', async () => {

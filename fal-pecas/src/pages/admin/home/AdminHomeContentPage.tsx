@@ -10,6 +10,7 @@ import {
 } from '@/lib/paymentDisplay'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
+import { ADMIN_FEATURED_MAX } from '@/lib/homeSections'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -37,7 +38,7 @@ import { Link } from 'react-router-dom'
 
 type Tab = 'banners' | 'featured' | 'payment'
 
-const MAX_FEATURED = 12
+const MAX_FEATURED = ADMIN_FEATURED_MAX
 
 const emptyPayment = (): Omit<PaymentDisplaySettings, 'id'> => ({
   enabled: false,

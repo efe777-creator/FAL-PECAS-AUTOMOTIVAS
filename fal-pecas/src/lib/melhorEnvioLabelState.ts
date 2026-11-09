@@ -85,6 +85,26 @@ export function meLabelStateLabel(state: MeLabelState): string {
   }
 }
 
+/** Traduz códigos técnicos comuns do ME para PT operacional (AJUSTE-014). */
+export function meLastErrorLabel(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null
+  const key = raw.trim()
+  const map: Record<string, string> = {
+    origin_or_dest_postal_missing:
+      'CEP de origem ou destino ausente — confira origem da loja e endereço do pedido.',
+    origin_postal_missing: 'CEP de origem da loja ausente — configure em Logística.',
+    dest_postal_missing: 'CEP de destino ausente no endereço do pedido.',
+    volumes_missing: 'Medidas/peso do volume ausentes — informe na conferência do pacote.',
+    service_unavailable: 'Serviço Melhor Envio indisponível no momento.',
+    token_invalid: 'Token Melhor Envio inválido ou expirado — reconecte no admin.',
+    insufficient_balance: 'Saldo insuficiente na carteira Melhor Envio.',
+    divergence_blocked: 'Compra bloqueada: valor da etiqueta diverge do frete cobrado.',
+  }
+  if (map[key]) return map[key]
+  if (map[key.toLowerCase()]) return map[key.toLowerCase()]
+  return key
+}
+
 /** Compra/geração de etiqueta NÃO implica ship_order. */
 export function canPurchaseLabel(orderStatus: string, labelState: MeLabelState): boolean {
   if (orderStatus !== 'pronto_para_envio' && orderStatus !== 'preparando_envio') return false

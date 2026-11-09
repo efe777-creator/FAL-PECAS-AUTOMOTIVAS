@@ -347,6 +347,12 @@ export function AccountOrderDetailPage() {
                 </a>
               )
             })()}
+            <Link
+              to="/trocas-devolucoes"
+              className="inline-flex items-center rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-bold text-fal-navy hover:bg-fal-bg"
+            >
+              Trocas e devoluções
+            </Link>
           </div>
         </div>
       </div>
