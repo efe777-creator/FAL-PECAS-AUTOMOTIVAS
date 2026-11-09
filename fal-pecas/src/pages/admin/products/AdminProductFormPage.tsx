@@ -515,7 +515,7 @@ export function AdminProductFormPage() {
             label="SKU FAL"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
-            hint="Identificador técnico (import/matching). Se vazio, usa o Código referência."
+            hint="Código interno para importações. Se vazio, usa o Código referência."
           />
           <fieldset className="text-sm md:col-span-2">
             <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
