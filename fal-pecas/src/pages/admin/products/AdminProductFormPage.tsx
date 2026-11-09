@@ -866,7 +866,7 @@ export function AdminProductFormPage() {
           <p className="m-0 self-center text-xs text-fal-muted">
             Origem da capacidade:{' '}
             <strong>
-              {polOrigin === 'manual' ? 'preenchimento manual' : 'padrão da classificação'}
+              {polOrigin === 'manual' ? 'deste produto' : 'padrão da classificação'}
             </strong>
           </p>
         </div>
