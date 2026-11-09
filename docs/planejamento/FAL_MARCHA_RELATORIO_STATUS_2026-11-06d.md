@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA preços toUserMessage (#217)  
+**HEAD:** `main` @ tip MARCHA loja toUserMessage (#218)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -78,6 +78,7 @@
 | #215 | O1-A | Pedidos admin: toUserMessage |
 | #216 | O1-A | Produtos admin: toUserMessage |
 | #217 | O1-A | Preços admin: toUserMessage |
+| #218 | O1-F | Loja: catálogo/PDP/checkout/frete/pagamento toUserMessage |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

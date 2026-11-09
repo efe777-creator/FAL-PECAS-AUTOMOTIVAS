@@ -38,6 +38,7 @@ import type {
   SimulatedPaymentMethod,
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { showCheckoutEmptyCart } from './checkoutEmptyGuard'
@@ -201,7 +202,7 @@ export function CheckoutPage() {
       }
       setError(null)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
+      pushError(toUserMessage(e, 'Erro ao carregar endereços'))
     } finally {
       setLoadingAddrs(false)
     }
@@ -281,7 +282,7 @@ export function CheckoutPage() {
       setShippingOptions([])
       setShippingOptionId('')
       setShippingDisclaimer(null)
-      pushError(e instanceof Error ? e.message : 'Erro ao cotar frete')
+      pushError(toUserMessage(e, 'Erro ao cotar frete'))
     } finally {
       setQuoting(false)
     }
@@ -396,7 +397,7 @@ export function CheckoutPage() {
       }
       navigate(`/pedido/${pay.orderId ?? placed.orderId}/confirmacao`)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao finalizar pedido')
+      pushError(toUserMessage(e, 'Erro ao finalizar pedido'))
     } finally {
       setSubmitting(false)
     }

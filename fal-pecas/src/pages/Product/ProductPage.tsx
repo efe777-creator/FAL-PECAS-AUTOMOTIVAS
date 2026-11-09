@@ -24,6 +24,7 @@ import {
   isStoreBackendUnavailableError,
 } from '@/lib/storeBackend'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { Product } from '@/types'
@@ -157,7 +158,7 @@ export function ProductPage() {
           setBackendDown(true)
           setLoadError(err.message)
         } else {
-          setLoadError(err instanceof Error ? err.message : 'Erro ao carregar o produto')
+          setLoadError(toUserMessage(err, 'Erro ao carregar o produto'))
         }
       } finally {
         if (active) setLoading(false)
@@ -288,7 +289,7 @@ export function ProductPage() {
                   setBackendDown(true)
                   setLoadError(err.message)
                 } else {
-                  setLoadError(err instanceof Error ? err.message : 'Erro ao carregar o produto')
+                  setLoadError(toUserMessage(err, 'Erro ao carregar o produto'))
                 }
               } finally {
                 setLoading(false)
@@ -353,7 +354,7 @@ export function ProductPage() {
       const next = await toggle(current.id)
       push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
     } catch (err) {
-      push(err instanceof Error ? err.message : 'Erro ao favoritar', 'error')
+      push(toUserMessage(err, 'Erro ao favoritar'), 'error')
     }
   }
 

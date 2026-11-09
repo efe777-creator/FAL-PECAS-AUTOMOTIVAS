@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import {
   formatCountdown,
@@ -91,7 +92,7 @@ export function MercadoPagoPixPanel({
           setLocalExpired(true)
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Erro ao consultar pagamento')
+        if (!cancelled) setError(toUserMessage(e, 'Erro ao consultar pagamento'))
       }
     }
 

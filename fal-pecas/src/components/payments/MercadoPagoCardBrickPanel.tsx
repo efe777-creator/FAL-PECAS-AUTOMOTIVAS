@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
@@ -68,7 +69,7 @@ export function MercadoPagoCardBrickPanel({
       ensureMpInit(publicKey)
       setReady(true)
     } catch (e) {
-      onErrorRef.current(e instanceof Error ? e.message : 'Falha ao iniciar o pagamento')
+      onErrorRef.current(toUserMessage(e, 'Falha ao iniciar o pagamento'))
     }
   }, [publicKey])
 
@@ -127,7 +128,7 @@ export function MercadoPagoCardBrickPanel({
         setPaymentId(res.paymentId)
         setStatus(res.status)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Falha ao criar pagamento com cartão'
+        const msg = toUserMessage(e, 'Falha ao criar pagamento com cartão')
         onErrorRef.current(msg)
         remountBrick()
         throw e

@@ -12,6 +12,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/components/common/Toast'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { productHref as productPath } from '@/lib/productHref'
 import {
   ADICIONAR_AO_CARRINHO_LABEL,
@@ -54,7 +55,7 @@ export function ProductCard({ product }: { product: Product }) {
       const next = await toggle(product.id)
       push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
     } catch (err) {
-      push(err instanceof Error ? err.message : 'Erro ao favoritar', 'error')
+      push(toUserMessage(err, 'Erro ao favoritar'), 'error')
     }
   }
 
