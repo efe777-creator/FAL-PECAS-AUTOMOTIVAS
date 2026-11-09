@@ -60,3 +60,28 @@ Próxima MARCHA técnica (se C): (N/A — opção B)
 
 **Aceite comercial frete α:** Opção **B** assinada.  
 **Live (C) / Melhor Envio:** somente com nova assinatura + MARCHA + secrets.
+
+---
+
+## Addendum — Opção C (prep local · go-live conta nova)
+
+**Data:** 2026-11-09  
+**Assinatura:** eFe  
+**Estado:** **ASSINADO — Opção C (preparação)** · produção **ainda não ativada**
+
+```text
+Opção escolhida: C (prep)
+Data: 2026-11-09
+Assinatura: eFe
+Decisão:
+  Autorizar caminho técnico de frete/pagamento em produção (ME live + MP prod)
+  no código e documentação, para publicação em conta nova com crédito.
+  NÃO aplicar secrets de produção nem deploy nesta MARCHA.
+  Ativação = momento das variáveis na conta nova + smoke G3/G4.
+Mensagem ao cliente (quando VITE_SHIPPING_ME_ENV=production + ME API prod):
+  Sem disclaimer de homologação; cotação/etiqueta tratadas como operação real.
+Runtime até lá:
+  Default continua sandbox (MELHOR_ENVIO_API_BASE omitido; VITE_SHIPPING_ME_ENV ≠ production).
+```
+
+**Handoff:** [FAL_MARCHA_OPS_MP_ME_CONTA_NOVA_HANDOFF_2026-11-09.md](./FAL_MARCHA_OPS_MP_ME_CONTA_NOVA_HANDOFF_2026-11-09.md)

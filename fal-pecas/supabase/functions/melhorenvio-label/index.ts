@@ -1,10 +1,11 @@
 /**
- * FAL — melhorenvio-label (Sandbox)
+ * FAL — melhorenvio-label
  *
  * Máquina idempotente: quote → prepare (cart) → purchase → generate → print / tracking / status.
  * NÃO chama ship_order / deliver_order.
  * Só opera pedidos em pronto_para_envio | preparando_envio.
- * Secrets: MELHOR_ENVIO_TOKEN, MELHOR_ENVIO_USER_AGENT. Sem token → dry_run local (não é produção).
+ * Secrets: MELHOR_ENVIO_TOKEN, MELHOR_ENVIO_USER_AGENT, MELHOR_ENVIO_API_BASE.
+ * Sem token → dry_run local. Ambiente = meRuntimeMode() (sandbox default / live se API prod).
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
@@ -14,6 +15,7 @@ import {
   labelStateOf,
   meAuthHeaders,
   meApiBase,
+  meRuntimeMode,
   mergeMeMeta,
   parseMeMeta,
   type MeLabelState,
@@ -113,12 +115,14 @@ Deno.serve(async (req) => {
       .eq('order_id', orderId)
       .limit(1)
     let shipment = Array.isArray(shipRows) ? shipRows[0] : null
+    const meMode = meRuntimeMode()
+    const sandbox = meMode === 'sandbox'
     if (!shipment) {
       const { data: inserted } = await admin
         .from('shipments')
         .insert({
           order_id: orderId,
-          provider: 'melhorenvio_sandbox',
+          provider: sandbox ? 'melhorenvio_sandbox' : 'melhorenvio',
           status: 'pending',
           amount: Number(order.shipping_amount ?? 0),
           metadata: { me: { label_state: 'none' } },
@@ -133,7 +137,6 @@ Deno.serve(async (req) => {
     const state = labelStateOf(meta)
     const charged = Number(order.shipping_amount ?? 0)
     const dryRun = !meToken
-    const sandbox = true
     const addrSnap = (order.address_snapshot ?? {}) as Record<string, unknown>
     const destPostal = String(addrSnap.postal_code ?? addrSnap.cep ?? addrSnap.zip ?? '')
       .replace(/\D/g, '')

@@ -55,14 +55,14 @@ export const CARRIER_REGISTRY: readonly CarrierDescriptor[] = [
     id: 'melhorenvio',
     label: 'Melhor Envio',
     envKey: 'melhorenvio',
-    /** sandbox = HTTP real sandbox ME; disclaimer B até D-FRETE C (não confundir com live produção). */
+    /** Mode efetivo via resolveShippingMeEnvMode() / getCarrierByEnvKey (VITE_SHIPPING_ME_ENV). */
     mode: 'sandbox',
     quoteRuntime: 'edge',
     capabilities: ['quote', 'eta', 'tracking', 'multi_carrier'],
     enabled: true,
     placeOrderReady: true,
     notes:
-      'HTTP sandbox via quote-shipping + meq: no place_order. Opt-in VITE_SHIPPING_PROVIDER=melhorenvio. Etiqueta = Expedição manual.',
+      'HTTP via quote-shipping + meq: no place_order. VITE_SHIPPING_PROVIDER=melhorenvio. VITE_SHIPPING_ME_ENV=production → live. Etiqueta = Expedição.',
     createProvider: () => melhorEnvioEdgeProvider,
   },
   {
@@ -109,11 +109,34 @@ export function listCarriers(opts?: { includeDisabled?: boolean }): CarrierDescr
   return CARRIER_REGISTRY.filter((c) => c.enabled)
 }
 
+/**
+ * Ambiente ME na UI/build. Edge usa MELHOR_ENVIO_API_BASE (deve casar).
+ * production|prod|live → live; default → sandbox.
+ */
+export function resolveShippingMeEnvMode(
+  raw: string | undefined = import.meta.env.VITE_SHIPPING_ME_ENV as string | undefined,
+): Extract<CarrierRuntimeMode, 'sandbox' | 'live'> {
+  const key = (raw ?? '').trim().toLowerCase()
+  if (key === 'production' || key === 'prod' || key === 'live') return 'live'
+  return 'sandbox'
+}
+
 export function getCarrierByEnvKey(envKey: string | undefined | null): CarrierDescriptor {
   const key = (envKey ?? 'mock').toLowerCase().trim() || 'mock'
   const found = CARRIER_REGISTRY.find((c) => c.envKey === key)
-  if (found) return found
-  return CARRIER_REGISTRY[0]!
+  if (!found) return CARRIER_REGISTRY[0]!
+  if (found.id === 'melhorenvio') {
+    const mode = resolveShippingMeEnvMode()
+    return {
+      ...found,
+      mode,
+      notes:
+        mode === 'live'
+          ? 'HTTP Melhor Envio produção via quote-shipping + meq:. Etiqueta = Expedição.'
+          : found.notes,
+    }
+  }
+  return found
 }
 
 export function resolveCarrierProvider(envKey?: string | null): ShippingProvider {

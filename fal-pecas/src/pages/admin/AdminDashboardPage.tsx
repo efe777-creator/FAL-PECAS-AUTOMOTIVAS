@@ -57,6 +57,11 @@ const sections: { title: string; cards: DashCard[] }[] = [
     cards: [
       { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos, movimentos e modo da loja' },
       { to: '/admin/logistica', title: 'Logística', desc: 'Origem, frete próprio, Melhor Envio, configs' },
+      {
+        to: '/admin/pagamentos',
+        title: 'Pagamentos',
+        desc: 'Motor FAL, Mercado Pago, métodos e webhooks',
+      },
       { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais mínimos' },
       {
         to: '/admin/operadores',

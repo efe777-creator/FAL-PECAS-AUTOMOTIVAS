@@ -5,6 +5,7 @@ import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
+import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
 import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import type { Product } from '@/types'
@@ -77,7 +78,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         setEnvelope({
           status: 'invalid_cep',
           providerId: 'melhorenvio',
-          mode: 'sandbox',
+          mode: resolveShippingMeEnvMode(),
           options: [],
           quotedAt: new Date().toISOString(),
           requestFingerprint: digits,
@@ -116,7 +117,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
       setEnvelope({
         status: 'provider_error',
         providerId: 'melhorenvio',
-        mode: 'sandbox',
+        mode: resolveShippingMeEnvMode(),
         options: [],
         quotedAt: new Date().toISOString(),
         requestFingerprint: cep,

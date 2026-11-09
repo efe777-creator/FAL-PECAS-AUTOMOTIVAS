@@ -35,6 +35,7 @@ const PATH_ROLES: Record<string, UserRole[]> = {
   '/admin/clientes': SALES,
   '/admin/estoque': STOCK,
   '/admin/logistica': CATALOG_OPS,
+  '/admin/pagamentos': MGMT,
   '/admin/relatorios': MGMT,
   '/admin/operadores': ['administrador'],
 }

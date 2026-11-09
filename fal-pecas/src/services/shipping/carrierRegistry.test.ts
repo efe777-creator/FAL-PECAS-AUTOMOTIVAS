@@ -4,6 +4,7 @@ import {
   getCarrierByEnvKey,
   listCarriers,
   resolveCarrierProvider,
+  resolveShippingMeEnvMode,
 } from '@/services/shipping/carrierRegistry'
 import {
   buildOkEnvelope,
@@ -45,12 +46,27 @@ describe('carrierRegistry', () => {
     expect(ready).toContain('melhorenvio')
   })
 
-  it('resolve melhorenvio edge sandbox', () => {
+  it('resolve melhorenvio edge sandbox (default ME env)', () => {
+    expect(resolveShippingMeEnvMode(undefined)).toBe('sandbox')
+    expect(resolveShippingMeEnvMode('sandbox')).toBe('sandbox')
     expect(getCarrierByEnvKey('melhorenvio').quoteRuntime).toBe('edge')
     expect(getCarrierByEnvKey('melhorenvio').mode).toBe('sandbox')
     expect(commercialShippingDisclaimer(getCarrierByEnvKey('melhorenvio'))).toMatch(
       /ambiente de teste/i,
     )
+  })
+
+  it('resolveShippingMeEnvMode production → live sem disclaimer', () => {
+    expect(resolveShippingMeEnvMode('production')).toBe('live')
+    expect(resolveShippingMeEnvMode('prod')).toBe('live')
+    expect(resolveShippingMeEnvMode('live')).toBe('live')
+    // getCarrierByEnvKey lê import.meta.env; sem production no vitest default = sandbox
+    const liveDesc = {
+      ...getCarrierByEnvKey('melhorenvio'),
+      mode: 'live' as const,
+      placeOrderReady: true,
+    }
+    expect(commercialShippingDisclaimer(liveDesc)).toBeNull()
   })
 
   it('resolve env desconhecido para mock', () => {

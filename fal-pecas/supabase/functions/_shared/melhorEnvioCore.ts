@@ -11,6 +11,21 @@ export function meApiBase(): string {
   return ME_SANDBOX_BASE
 }
 
+/** live = API produção ME; sandbox = default ou base com sandbox. */
+export function meRuntimeMode(base?: string): 'live' | 'sandbox' {
+  const b = (base ?? meApiBase()).replace(/\/$/, '').toLowerCase()
+  if (b === ME_PROD_BASE.toLowerCase() || b === 'https://www.melhorenvio.com.br') return 'live'
+  if (b.includes('sandbox')) return 'sandbox'
+  // Base custom explícita sem "sandbox" → tratar como live (token deve casar).
+  const raw = (typeof Deno !== 'undefined' ? Deno.env.get('MELHOR_ENVIO_API_BASE') : null) ?? ''
+  if (raw.trim() && !b.includes('sandbox')) return 'live'
+  return 'sandbox'
+}
+
+export function meIsProduction(base?: string): boolean {
+  return meRuntimeMode(base) === 'live'
+}
+
 export type MeLabelState =
   | 'none'
   | 'quoted'

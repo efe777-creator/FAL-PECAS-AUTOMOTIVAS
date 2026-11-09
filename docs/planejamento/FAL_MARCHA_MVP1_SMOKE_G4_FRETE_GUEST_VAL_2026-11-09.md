@@ -25,10 +25,9 @@ Carrinho guest → **Consultar frete** falhava com `Edge Function returned a non
 | Opções ME (SEDEX, Jadlog) + Entrega FAL | PASS |
 | Frete selecionável no total | PASS |
 
-## Ainda pendente (G3 humano)
+## Atualização G3 (mesmo dia)
 
-- Login → checkout → Pix/cartão + webhook
-- place_order com `meq:` persistido
-- Admin etiqueta
+- Agente: checkout → **Gerar cobrança Pix** PASS — [SMOKE_G3](./FAL_MARCHA_MVP1_SMOKE_G3_PIX_VAL_2026-11-09.md)
+- Ainda humano: pagar Pix + webhook approve · cartão · admin etiqueta
 
 **Assinatura:** VAL G4 frete guest PASS · 2026-11-09.

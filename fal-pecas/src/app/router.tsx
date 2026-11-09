@@ -241,6 +241,31 @@ const AdminShippingSettingsPage = lazy(() =>
     default: m.AdminShippingSettingsPage,
   })),
 )
+const AdminPaymentsHubPage = lazy(() =>
+  import('@/pages/admin/payments/AdminPaymentsHubPage').then((m) => ({
+    default: m.AdminPaymentsHubPage,
+  })),
+)
+const AdminPaymentProvidersPage = lazy(() =>
+  import('@/pages/admin/payments/AdminPaymentProvidersPage').then((m) => ({
+    default: m.AdminPaymentProvidersPage,
+  })),
+)
+const AdminPaymentMethodsPage = lazy(() =>
+  import('@/pages/admin/payments/AdminPaymentMethodsPage').then((m) => ({
+    default: m.AdminPaymentMethodsPage,
+  })),
+)
+const AdminMercadoPagoPage = lazy(() =>
+  import('@/pages/admin/payments/AdminMercadoPagoPage').then((m) => ({
+    default: m.AdminMercadoPagoPage,
+  })),
+)
+const AdminPaymentWebhooksPage = lazy(() =>
+  import('@/pages/admin/payments/AdminPaymentWebhooksPage').then((m) => ({
+    default: m.AdminPaymentWebhooksPage,
+  })),
+)
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 )
@@ -342,6 +367,11 @@ export const router = createBrowserRouter([
         ),
       },
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
+      { path: 'pagamentos', element: <AdminPaymentsHubPage /> },
+      { path: 'pagamentos/provedores', element: <AdminPaymentProvidersPage /> },
+      { path: 'pagamentos/metodos', element: <AdminPaymentMethodsPage /> },
+      { path: 'pagamentos/metodos/mercado-pago', element: <AdminMercadoPagoPage /> },
+      { path: 'pagamentos/webhooks', element: <AdminPaymentWebhooksPage /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
       { path: 'operadores', element: <AdminOperatorsPage /> },
       {

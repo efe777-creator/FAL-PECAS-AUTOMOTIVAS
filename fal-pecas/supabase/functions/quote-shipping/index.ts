@@ -8,7 +8,7 @@
  * Secrets ME: MELHOR_ENVIO_TOKEN, MELHOR_ENVIO_USER_AGENT (nunca VITE_).
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-import { meApiBase } from '../_shared/melhorEnvioCore.ts'
+import { meApiBase, meRuntimeMode } from '../_shared/melhorEnvioCore.ts'
 import {
   resolvePackingStrategy,
   sumItemsWeightKg,
@@ -136,10 +136,11 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+      const meMode = meRuntimeMode()
       return json(200, {
         status: 'ok',
         providerId: 'melhorenvio',
-        mode: 'sandbox',
+        mode: meMode,
         apiBase: meApiBase(),
         tokenConfigured: meToken.length > 0,
         userAgentConfigured: meUa.length > 0,
@@ -153,7 +154,9 @@ Deno.serve(async (req) => {
         lastQuotePostal: lastQuote?.postal_code ?? null,
         quotedAt: quotedAtEarly,
         disclaimer:
-          'Cotação Melhor Envio sob D-FRETE B (sandbox). Etiqueta só na Expedição.',
+          meMode === 'live'
+            ? 'Melhor Envio em produção. Etiqueta na Expedição.'
+            : 'Cotação Melhor Envio em ambiente de teste. Etiqueta só na Expedição.',
       })
     }
 
@@ -621,13 +624,19 @@ Deno.serve(async (req) => {
         .select('id')
         .single()
 
+      const meMode = meRuntimeMode()
+      const meDisclaimer =
+        meMode === 'live'
+          ? undefined
+          : 'Cotação Melhor Envio em ambiente de teste. Confirme o frete no checkout.'
+
       if (quoteErr || !quoteRow) {
         // Tabela pode não existir ainda — devolve opções sem persistência (place_order meq falhará até migration)
         console.error('shipping_quotes_insert_failed', quoteErr?.message)
         return json(200, {
           status: 'ok',
           providerId: 'melhorenvio',
-          mode: 'live',
+          mode: meMode,
           options: optionsPayload.map((o) => ({
             id: `meq:ephemeral:${o.service_id}`,
             provider: 'melhorenvio',
@@ -656,8 +665,7 @@ Deno.serve(async (req) => {
           message: quoteErr
             ? 'Cotação ME ok, mas shipping_quotes indisponível (aplique migration).'
             : undefined,
-          disclaimer:
-            'Cotação Melhor Envio sandbox. Não é frete de produção até D-FRETE C.',
+          disclaimer: meDisclaimer,
         })
       }
 
@@ -688,13 +696,12 @@ Deno.serve(async (req) => {
       return json(200, {
         status: 'ok',
         providerId: 'melhorenvio',
-        mode: 'live',
+        mode: meMode,
         options,
         quotedAt,
         expiresAt,
         requestFingerprint: fp,
-        disclaimer:
-          'Cotação Melhor Envio sandbox. Não é frete de produção até D-FRETE C.',
+        disclaimer: meDisclaimer,
       })
     }
 

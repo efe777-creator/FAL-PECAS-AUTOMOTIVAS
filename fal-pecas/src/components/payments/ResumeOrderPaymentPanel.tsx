@@ -8,7 +8,7 @@ import {
   PIX_PAYMENT_TTL_MINUTES,
   UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
-import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
+import { createFalPayment } from '@/services/payments/engine'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import type { OrderDetail } from '@/types'
 import { useCallback, useState } from 'react'
@@ -73,7 +73,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     setBusy(true)
     setError(null)
     try {
-      const mp = await createMercadoPagoPayment(order.id)
+      const mp = await createFalPayment({ orderId: order.id, method: 'pix' })
       if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
         throw new Error('Cobrança sem QR Pix. Tente novamente em instantes.')
       }

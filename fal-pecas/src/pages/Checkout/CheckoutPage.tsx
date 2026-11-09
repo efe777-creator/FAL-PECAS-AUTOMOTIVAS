@@ -19,7 +19,7 @@ import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { listAddresses, upsertAddress } from '@/services/customers/addressService'
-import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
+import { createFalPayment } from '@/services/payments/engine'
 import {
   confirmSimulatedPayment,
   isMercadoPagoCheckoutEnabled,
@@ -369,7 +369,7 @@ export function CheckoutPage() {
           push('Pedido criado — informe o cartão', 'success')
           return
         }
-        const mp = await createMercadoPagoPayment(placed.orderId)
+        const mp = await createFalPayment({ orderId: placed.orderId, method: 'pix' })
         if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
           throw new Error(
             'Não foi possível gerar o Pix. Tente novamente ou escolha cartão.',

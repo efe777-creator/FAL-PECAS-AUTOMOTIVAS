@@ -28,6 +28,14 @@ describe('canAccessAdminPath', () => {
     expect(canAccessAdminPath('/admin/pedidos/lista', 'atendimento')).toBe(true)
     expect(canAccessAdminPath('/admin/produtos/novo', 'estoque')).toBe(true)
   })
+
+  it('pagamentos: gerente/admin sim, atendimento não', () => {
+    expect(canAccessAdminPath('/admin/pagamentos', 'gerente')).toBe(true)
+    expect(canAccessAdminPath('/admin/pagamentos/metodos/mercado-pago', 'administrador')).toBe(
+      true,
+    )
+    expect(canAccessAdminPath('/admin/pagamentos', 'atendimento')).toBe(false)
+  })
 })
 
 describe('filterAdminNavLinks', () => {

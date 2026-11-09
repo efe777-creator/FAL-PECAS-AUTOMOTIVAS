@@ -21,6 +21,7 @@ import {
   mePurchaseLabel,
   meQuoteLabel,
 } from '@/services/admin/melhorEnvioAdminService'
+import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
 import { useMemo, useState } from 'react'
 
 type Props = {
@@ -178,7 +179,9 @@ export function MeExpeditionPanel({
             void confirmDialog({
               title: 'Comprar etiqueta?',
               message:
-                'Confirmar compra da etiqueta no Melhor Envio (ambiente de testes)?\n\nIsto NÃO marca o pedido como enviado.',
+                resolveShippingMeEnvMode() === 'live'
+                  ? 'Confirmar compra da etiqueta no Melhor Envio (produção)?\n\nIsto NÃO marca o pedido como enviado.'
+                  : 'Confirmar compra da etiqueta no Melhor Envio (ambiente de testes)?\n\nIsto NÃO marca o pedido como enviado.',
               confirmLabel: 'Comprar etiqueta',
             })
               .then(({ confirmed }) => {

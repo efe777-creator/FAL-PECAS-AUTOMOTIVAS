@@ -4,7 +4,7 @@ import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { resolveInstallmentCount } from '@/lib/paymentDisplay'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
-import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
+import { createFalPayment } from '@/services/payments/engine'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -124,13 +124,21 @@ export function MercadoPagoCardBrickPanel({
       setSubmitting(true)
       setRejectReason(null)
       try {
-        const res = await createMercadoPagoPayment(orderId, {
-          token: formData.token,
-          paymentMethodId: formData.payment_method_id,
-          installments: Number(formData.installments) || 1,
-          issuerId: formData.issuer_id != null ? String(formData.issuer_id) : undefined,
-          paymentTypeId:
-            formData.payment_type_id ?? formData.payment_method_type ?? 'credit_card',
+        const paymentType =
+          formData.payment_type_id ?? formData.payment_method_type ?? 'credit_card'
+        const method = String(paymentType).toLowerCase().includes('debit')
+          ? 'debit_card'
+          : 'credit_card'
+        const res = await createFalPayment({
+          orderId,
+          method,
+          card: {
+            token: formData.token,
+            paymentMethodId: formData.payment_method_id,
+            installments: Number(formData.installments) || 1,
+            issuerId: formData.issuer_id != null ? String(formData.issuer_id) : undefined,
+            paymentTypeId: paymentType,
+          },
         })
         setPaymentId(res.paymentId)
         setStatus(res.status)
