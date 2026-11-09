@@ -130,9 +130,9 @@ export function AdminProductImportPage() {
               <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo de cadastro</h2>
               <p className="mt-1 text-sm text-fal-muted">
                 Envie CSV ou Excel com código referência, nome, categoria, grupo (e opcionalmente
-                subgrupo, posição, lado e descrições). SKUs repetidos no arquivo são consolidados
-                em um produto. Produtos novos entram como rascunho e indisponíveis; a reimportação
-                atualiza o cadastro sem alterar preço nem estoque.
+                subgrupo, posição, lado e descrições). Códigos repetidos no arquivo são
+                consolidados em um produto. Produtos novos entram como rascunho e indisponíveis; a
+                reimportação atualiza o cadastro sem alterar preço nem estoque.
               </p>
               <input
                 ref={fileInputRef}

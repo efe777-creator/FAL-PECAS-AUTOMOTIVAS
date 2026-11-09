@@ -76,7 +76,7 @@ function openRomaneio(order: AdminOrderDetail): boolean {
     <strong>Cliente:</strong> ${escapeHtml(order.customerName ?? '—')}<br/>
     <strong>Endereço:</strong> ${escapeHtml(addrLine)}<br/>
     <strong>Frete cobrado:</strong> R$ ${order.shippingAmount.toFixed(2)}</p>
-    <table><thead><tr><th>SKU</th><th>Produto</th><th>Qtd</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+    <table><thead><tr><th>Código</th><th>Produto</th><th>Qtd</th></tr></thead><tbody>${itemsHtml}</tbody></table>
     <p style="margin-top:24px;font-size:12px;color:#666">Etiqueta Melhor Envio é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
     <script>window.print()</script></body></html>`
   // Sem 'noopener': com noopener o window.open retorna null e não dá para escrever no popup.

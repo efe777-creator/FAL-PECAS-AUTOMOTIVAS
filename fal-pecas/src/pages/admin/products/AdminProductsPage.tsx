@@ -483,7 +483,7 @@ export function AdminProductsPage() {
             label="Buscar"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Nome, código ou SKU"
+            placeholder="Nome, código referência ou código interno"
           />
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
