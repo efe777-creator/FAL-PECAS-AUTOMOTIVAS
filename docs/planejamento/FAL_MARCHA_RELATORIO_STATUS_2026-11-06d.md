@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA copy frete/SKU (#220)  
+**HEAD:** `main` @ tip MARCHA copy POL (#221)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -81,6 +81,7 @@
 | #218 | O1-F | Loja: catálogo/PDP/checkout/frete/pagamento toUserMessage |
 | #219 | O1-F / O0-C | Hooks catálogo + envelope frete + import imagens |
 | #220 | O0-C / O1-D | Copy frete loja, SKU interno e POL |
+| #221 | O0-C / O1-D | UI capacidade sem jargão POL |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

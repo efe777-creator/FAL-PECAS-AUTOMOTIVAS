@@ -805,7 +805,7 @@ export function AdminProductFormPage() {
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Input
-            label="Capacidade unitária (POL)"
+            label="Capacidade unitária"
             type="number"
             step="0.01"
             min="0"
@@ -839,7 +839,7 @@ export function AdminProductFormPage() {
               <option value="">—</option>
               {ownVehicles.map((v) => (
                 <option key={v.id} value={v.code}>
-                  {v.label} (até {v.capacityPol} POL)
+                  {v.label} (até {v.capacityPol})
                 </option>
               ))}
             </select>
@@ -871,7 +871,7 @@ export function AdminProductFormPage() {
         </div>
         <h2 className="pt-2 font-extrabold text-fal-navy">Medidas físicas (opcional)</h2>
         <p className="m-0 text-xs text-fal-muted">
-          Peso e dimensões para cotação de frete. Independente da capacidade (POL) do frete próprio.
+          Peso e dimensões para cotação de frete. Independente da capacidade do frete próprio.
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(

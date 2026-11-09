@@ -52,7 +52,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
 
   return (
     <div className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
-      <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Capacidade POL dos produtos</h2>
+      <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Capacidade dos produtos</h2>
       <p className="m-0 text-sm text-fal-muted">
         É o mesmo valor do cadastro do produto — altere aqui ou em{' '}
         <Link to="/admin/produtos" className="font-semibold text-fal-navy">
@@ -85,7 +85,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
             checked={prodMissingPol}
             onChange={(e) => setProdMissingPol(e.target.checked)}
           />
-          Só sem capacidade POL
+          Só sem capacidade
         </label>
         <Button type="button" onClick={() => void reloadProducts()} disabled={prodLoading}>
           {prodLoading ? 'Buscando…' : 'Filtrar'}
@@ -100,7 +100,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
             <thead>
               <tr className="border-b border-fal-line text-left text-xs text-fal-muted">
                 <th className="px-2 py-2">Produto</th>
-                <th className="px-2 py-2">Capacidade POL</th>
+                <th className="px-2 py-2">Capacidade</th>
                 <th className="px-2 py-2">Porte</th>
                 <th className="px-2 py-2">Veículo mínimo</th>
                 <th className="px-2 py-2">Frete FAL</th>
