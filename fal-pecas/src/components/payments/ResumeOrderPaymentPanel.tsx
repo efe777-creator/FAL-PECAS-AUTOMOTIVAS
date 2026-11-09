@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
 import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   isPaymentExpired,
   PIX_PAYMENT_TTL_MINUTES,
@@ -84,7 +85,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         expiresAt: mp.expiresAt ?? null,
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao gerar Pix')
+      setError(toUserMessage(e, 'Falha ao gerar Pix'))
     } finally {
       setBusy(false)
     }

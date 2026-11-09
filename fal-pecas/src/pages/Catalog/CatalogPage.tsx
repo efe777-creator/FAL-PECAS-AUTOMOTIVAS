@@ -11,6 +11,7 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   catalogScrollSearchKey,
   readCatalogScroll,
@@ -236,7 +237,7 @@ export function CatalogPage() {
       } catch (e) {
         if (id === requestId.current) {
           pushCatalogError(
-            e instanceof Error ? e.message : 'Erro ao carregar o catálogo',
+            toUserMessage(e, 'Erro ao carregar o catálogo'),
             'page',
           )
         }
@@ -377,7 +378,7 @@ export function CatalogPage() {
       })
     } catch (e) {
       pushCatalogError(
-        e instanceof Error ? e.message : 'Erro ao carregar mais produtos',
+        toUserMessage(e, 'Erro ao carregar mais produtos'),
         'more',
       )
     } finally {

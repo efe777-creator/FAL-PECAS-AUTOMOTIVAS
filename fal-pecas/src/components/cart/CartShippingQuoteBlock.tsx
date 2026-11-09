@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { ShippingOptionBrand } from '@/components/shipping/ShippingOptionBrand'
 import { formatMoney } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
@@ -118,7 +119,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           options: [],
           quotedAt: new Date().toISOString(),
           requestFingerprint: cep,
-          message: e instanceof Error ? e.message : 'Não foi possível consultar a entrega.',
+          message: toUserMessage(e, 'Não foi possível consultar a entrega.'),
         })
         setSelectedId('')
       } finally {

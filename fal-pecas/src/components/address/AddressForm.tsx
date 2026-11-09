@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   formatCepMask,
   isCompleteCep,
@@ -195,7 +196,7 @@ export function AddressForm({
         state: form.state.trim().toUpperCase().slice(0, 2),
       })
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar endereço')
+      pushError(toUserMessage(err, 'Falha ao salvar endereço'))
     } finally {
       setSaving(false)
     }
