@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   isPriceListItemPriced,
+  PRICE_LIST_LAYERS_HINT,
+  PRICE_ORIGIN_VS_METHOD_HINT,
   priceListItemPricingStateLabel,
   priceOriginLabel,
 } from '@/lib/priceLabels'
@@ -23,5 +25,12 @@ describe('priceLabels (DIV-001 B)', () => {
     expect(priceOriginLabel('calculated')).toBe('Calculado')
     expect(priceOriginLabel('imported')).toBe('Importado')
     expect(priceOriginLabel('manual')).toBe('Manual')
+  })
+
+  it('hints admin sem símbolo ≠', () => {
+    expect(PRICE_LIST_LAYERS_HINT).not.toMatch(/≠/)
+    expect(PRICE_ORIGIN_VS_METHOD_HINT).not.toMatch(/≠/)
+    expect(PRICE_LIST_LAYERS_HINT).toMatch(/não é o mesmo que/i)
+    expect(PRICE_ORIGIN_VS_METHOD_HINT).toMatch(/não é o método/i)
   })
 })

@@ -636,7 +636,7 @@ export function AdminProductFormPage() {
               {available ? 'Disponível' : 'Indisponível'}
             </strong>
             {status !== 'published' ? (
-              <span className="ml-2 text-xs text-fal-yellow-dark">(status ≠ publicado)</span>
+              <span className="ml-2 text-xs text-fal-yellow-dark">(ainda não publicado)</span>
             ) : null}
           </p>
           {!isNew && productId ? (

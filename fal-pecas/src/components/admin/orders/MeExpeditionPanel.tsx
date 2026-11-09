@@ -162,7 +162,8 @@ export function MeExpeditionPanel({
       <div>
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">7. Expedição e entrega</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Etiqueta Melhor Envio ≠ postagem física ≠ entrega ao cliente. Frete cobrado do cliente:{' '}
+          Etiqueta Melhor Envio, postagem física e entrega ao cliente são passos separados. Frete
+          cobrado do cliente:{' '}
           <strong>{formatMoney(order.shippingAmount)}</strong>.
         </p>
         <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">

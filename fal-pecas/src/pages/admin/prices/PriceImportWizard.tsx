@@ -326,7 +326,7 @@ export function PriceImportWizard({
           `Custos "${selectedSupplier?.name ?? ''}": atualizados ${result.updated}` +
             (result.created ? ` · criados ${result.created}` : '') +
             `. Falhas: ${result.failed}. Ignorados: ${result.skipped}. ` +
-            `Preços de venda NÃO foram recalculados.`,
+            `Preços de venda não foram recalculados.`,
         )
         setStep(9)
         onApplied?.()
