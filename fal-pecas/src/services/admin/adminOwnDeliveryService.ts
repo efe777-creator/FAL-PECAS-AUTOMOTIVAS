@@ -125,11 +125,17 @@ export async function upsertOwnDeliverySettings(input: {
     }
   }
   if (input.pricingMode === 'flat') {
-    if (!input.rates.length) throw new Error('Informe ao menos uma modalidade na tabela flat.')
+    if (!input.rates.length) {
+      throw new Error('Informe ao menos uma opção na tabela de preço fixo.')
+    }
     for (const rate of input.rates) {
-      if (!rate.id.startsWith('own:')) throw new Error(`ID da modalidade deve começar com own: (${rate.id})`)
-      if (!rate.label.trim()) throw new Error('Label da modalidade obrigatório.')
-      if (!(rate.amount >= 0)) throw new Error('Valor da modalidade inválido.')
+      if (!rate.id.startsWith('own:')) {
+        throw new Error(
+          `Código da opção deve começar com own: (${rate.id}). Ative “Mostrar detalhes técnicos” se precisar conferir.`,
+        )
+      }
+      if (!rate.label.trim()) throw new Error('Nome da opção na loja é obrigatório.')
+      if (!(rate.amount >= 0)) throw new Error('Valor da opção inválido.')
     }
   }
   if (input.maxDistanceKm != null && !(input.maxDistanceKm > 0)) {

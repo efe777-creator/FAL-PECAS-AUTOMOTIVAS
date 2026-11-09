@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA packing parity audit (#238)  
+**HEAD:** `main` @ tip MARCHA validação own flat PT (#239)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -99,6 +99,7 @@
 | #236 | O0-C / O1-C | Medidas: origem “deste produto” |
 | #237 | O0-C / O1-C | Medidas: residual “manuais” na UI |
 | #238 | O1-C | Audit parity packing loja ↔ Edge |
+| #239 | O0-C / O1-D | Frete próprio: validação flat em PT |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
