@@ -335,7 +335,7 @@ export function PriceListQuickAdjustPanel({
       })
       setAddSku('')
       setAddPrice('')
-      pushOk(`Item ${sku} adicionado à lista ${selectedList?.name ?? ''} com origem Manual.`)
+      pushOk(`Item ${sku} adicionado à lista ${selectedList?.name ?? ''} com preço manual.`)
       await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: true }))
       focusAddSku()
     } catch (err) {

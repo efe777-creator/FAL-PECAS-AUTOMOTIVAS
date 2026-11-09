@@ -218,11 +218,6 @@ const AdminLogisticsHubPage = lazy(() =>
     default: m.AdminLogisticsHubPage,
   })),
 )
-const AdminLogisticsPlaceholderPage = lazy(() =>
-  import('@/pages/admin/logistics/AdminLogisticsPlaceholderPage').then((m) => ({
-    default: m.AdminLogisticsPlaceholderPage,
-  })),
-)
 const AdminOwnDeliveryPage = lazy(() =>
   import('@/pages/admin/logistics/AdminOwnDeliveryPage').then((m) => ({
     default: m.AdminOwnDeliveryPage,
@@ -335,7 +330,14 @@ export const router = createBrowserRouter([
       { path: 'logistica/melhor-envio', element: <AdminMelhorEnvioPage /> },
       { path: 'logistica/caixas', element: <AdminShippingBoxesPage /> },
       { path: 'logistica/configuracoes', element: <AdminShippingSettingsPage /> },
-      { path: 'logistica/:slug', element: <AdminLogisticsPlaceholderPage /> },
+      {
+        path: 'logistica/:slug',
+        element: (
+          <Suspend>
+            <AdminNotFoundPage />
+          </Suspend>
+        ),
+      },
       { path: 'frete', element: <Navigate to="/admin/logistica/origem" replace /> },
       { path: 'relatorios', element: <AdminReportsPage /> },
       { path: 'operadores', element: <AdminOperatorsPage /> },

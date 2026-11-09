@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { useToast } from '@/components/common/Toast'
 import { priceOriginLabel } from '@/lib/priceLabels'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
@@ -42,11 +43,17 @@ function parseNonNeg(raw: string): number | null {
 }
 
 export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave }: Props) {
+  const toast = useToast()
   const [editMode, setEditMode] = useState<PricingEditMode>('apply_list_rule')
   const [rulePct, setRulePct] = useState('')
   const [priceStr, setPriceStr] = useState('')
   const [extraCostStr, setExtraCostStr] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   useEffect(() => {
     if (!open || !item || !list) return
@@ -87,44 +94,48 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
     setError(null)
     const extraCost = parseNonNeg(extraCostStr)
     if (extraCost == null) {
-      setError('Custo adicional inválido')
+      pushError('Custo adicional inválido')
       return
     }
-    if (editMode === 'apply_list_rule') {
-      if (method === 'fixed') {
-        setError('Lista em modo fixo — use preço manual')
+    try {
+      if (editMode === 'apply_list_rule') {
+        if (method === 'fixed') {
+          pushError('Lista em modo fixo — use preço manual')
+          return
+        }
+        if (costTotal == null) {
+          pushError('Sem custo — não é possível aplicar a regra')
+          return
+        }
+        await onSave({ mode: 'apply_list_rule', extraCost })
         return
       }
-      if (costTotal == null) {
-        setError('Sem custo — não é possível aplicar a regra')
+      if (editMode === 'edit_rule_percent') {
+        const pct = Number(String(rulePct).replace(',', '.'))
+        if (!Number.isFinite(pct) || pct < 0) {
+          pushError('Percentual inválido')
+          return
+        }
+        if (method === 'margin_on_sell' && pct >= 100) {
+          pushError('Margem deve ser menor que 100%')
+          return
+        }
+        if (costTotal == null || preview.price == null) {
+          pushError('Não foi possível calcular o preço')
+          return
+        }
+        await onSave({ mode: 'edit_rule_percent', percent: pct, price: preview.price, extraCost })
         return
       }
-      await onSave({ mode: 'apply_list_rule', extraCost })
-      return
+      const price = parseMoneyBr(priceStr)
+      if (price == null || price < 0) {
+        pushError('Preço inválido')
+        return
+      }
+      await onSave({ mode: 'manual_price', price, extraCost })
+    } catch (err) {
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
     }
-    if (editMode === 'edit_rule_percent') {
-      const pct = Number(String(rulePct).replace(',', '.'))
-      if (!Number.isFinite(pct) || pct < 0) {
-        setError('Percentual inválido')
-        return
-      }
-      if (method === 'margin_on_sell' && pct >= 100) {
-        setError('Margem deve ser menor que 100%')
-        return
-      }
-      if (costTotal == null || preview.price == null) {
-        setError('Não foi possível calcular o preço')
-        return
-      }
-      await onSave({ mode: 'edit_rule_percent', percent: pct, price: preview.price, extraCost })
-      return
-    }
-    const price = parseMoneyBr(priceStr)
-    if (price == null || price < 0) {
-      setError('Preço inválido')
-      return
-    }
-    await onSave({ mode: 'manual_price', price, extraCost })
   }
 
   const ruleFieldLabel = pricingPercentInputLabel(method)

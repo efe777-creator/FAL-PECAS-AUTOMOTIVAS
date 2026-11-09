@@ -29,7 +29,7 @@ const cards = [
   {
     to: '/admin/categorias#medidas-padrao',
     title: 'Medidas por classificação',
-    desc: 'Peso e dimensões padrão por categoria/grupo/subgrupo; apply respeitando Manual.',
+    desc: 'Peso e dimensões padrão por categoria/grupo/subgrupo; apply respeita medidas manuais do produto.',
     ready: true,
   },
   {

@@ -257,3 +257,14 @@ export const orderEventLabel: Record<string, string> = {
   status_changed: 'Atualização do pedido',
   item_separated: 'Item marcado na separação',
 }
+
+/** Visibilidade do evento na UI admin (O0-C — sem inglês cru). */
+export function orderEventVisibilityLabel(visibility: string | null | undefined): string {
+  const key = String(visibility ?? '')
+    .trim()
+    .toLowerCase()
+  if (key === 'customer') return 'visível ao cliente'
+  if (key === 'internal') return 'interno'
+  if (!key) return '—'
+  return key
+}

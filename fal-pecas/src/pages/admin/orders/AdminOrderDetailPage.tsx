@@ -8,6 +8,11 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
+  paymentMethodLabel,
+  paymentProviderLabel,
+  paymentStatusLabel,
+} from '@/lib/paymentLabels'
+import {
   adminActorBadgeLabel,
   adminActorKind,
   adminNextActionLabel,
@@ -15,7 +20,11 @@ import {
   projectAdminOrderTimeline,
 } from '@/lib/adminOrderOps'
 import { meLabelStateLabel, meLabelState } from '@/lib/melhorEnvioLabelState'
-import { adminOrderNextStep, orderEventLabel } from '@/lib/orderLifecycle'
+import {
+  adminOrderNextStep,
+  orderEventLabel,
+  orderEventVisibilityLabel,
+} from '@/lib/orderLifecycle'
 import {
   adminAdvanceOrder,
   adminCancelOrder,
@@ -452,14 +461,16 @@ export function AdminOrderDetailPage() {
                     confirmLabel: 'Aprovar',
                     askReason: true,
                     reasonLabel: 'Nota (opcional)',
-                    reasonPlaceholder: 'Ex.: estorno será feito no painel MP',
+                    reasonPlaceholder: 'Ex.: estorno será feito no painel do provedor',
                   })
                   if (!confirmed) return
                   setBusy(true)
                   setError(null)
                   try {
                     await adminResolveOrderCancellation(current.id, true, reason ?? '')
-                    pushOk('Cancelamento aprovado. Faça o estorno no MP e marque abaixo.')
+                    pushOk(
+                      'Cancelamento aprovado. Faça o estorno no Mercado Pago e marque abaixo.',
+                    )
                     await reload()
                   } catch (e) {
                     pushError(e instanceof Error ? e.message : 'Falha ao aprovar')
@@ -583,22 +594,27 @@ export function AdminOrderDetailPage() {
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">2. Situação do pagamento</h2>
         <p className="mt-2 mb-0 text-sm">
-          Status: {order.payment?.status ?? order.paymentRef ?? '—'} (
-          {order.payment?.provider ?? '—'})
-          {order.payment?.method ? ` · ${order.payment.method}` : ''}
+          Status:{' '}
+          {paymentStatusLabel(order.payment?.status ?? order.paymentRef)} (
+          {paymentProviderLabel(order.payment?.provider)})
+          {order.payment?.method ? ` · ${paymentMethodLabel(order.payment.method)}` : ''}
         </p>
         {order.payment?.expiresAt ? (
           <p className="mt-1 mb-0 text-xs text-fal-muted">
             Expira: {new Date(order.payment.expiresAt).toLocaleString('pt-BR')}
-            {order.payment.externalRef ? ` · Ref MP: ${order.payment.externalRef}` : ''}
+            {order.payment.externalRef
+              ? ` · Código da cobrança: ${order.payment.externalRef}`
+              : ''}
           </p>
         ) : order.payment?.externalRef ? (
-          <p className="mt-1 mb-0 text-xs text-fal-muted">Ref MP: {order.payment.externalRef}</p>
+          <p className="mt-1 mb-0 text-xs text-fal-muted">
+            Código da cobrança: {order.payment.externalRef}
+          </p>
         ) : null}
         {order.status === 'aguardando_pagamento' ? (
           <p className="mt-2 mb-0 text-xs text-fal-muted">
-            Aprovação somente pelo gateway. Admin não confirma pagamento manualmente. Cliente retoma
-            Pix vale 5 min (gera novo se expirar). Pedido sai da fila se não pago em 48 h.
+            Aprovação só pelo provedor de pagamento — o painel não confirma pagamento manualmente.
+            Pix do cliente vale 5 min (gera novo se expirar). Pedido sai da fila se não pago em 48 h.
           </p>
         ) : null}
       </section>
@@ -934,7 +950,7 @@ export function AdminOrderDetailPage() {
                     {orderEventLabel[e.eventType] ?? e.eventType}
                   </span>{' '}
                   <span className="text-xs text-fal-muted">
-                    ({e.visibility}) · {formatDateTime(e.createdAt)}
+                    ({orderEventVisibilityLabel(e.visibility)}) · {formatDateTime(e.createdAt)}
                   </span>
                   {reason ? (
                     <span className="mt-1 block text-sm text-fal-ink">Motivo: {reason}</span>

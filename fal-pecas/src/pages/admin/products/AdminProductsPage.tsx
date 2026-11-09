@@ -299,7 +299,7 @@ export function AdminProductsPage() {
       })
       setReleasePreflight(rows)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha no pré-flight de liberação')
+      pushError(e instanceof Error ? e.message : 'Falha no checklist de liberação')
     } finally {
       setBusyBulk(false)
     }
@@ -401,7 +401,7 @@ export function AdminProductsPage() {
     if (bulkMode === 'overwrite_manual') {
       const { confirmed } = await confirmDialog({
         title: 'Sobrescrever medidas manuais?',
-        message: `Sobrescrever também campos Manual em ${selected.size} produto(s)? Eles passam a Global.`,
+        message: `Sobrescrever também medidas manuais em ${selected.size} produto(s)? Elas passam a ser tratadas como padrão global.`,
         confirmLabel: 'Sobrescrever',
         danger: true,
       })
@@ -417,7 +417,9 @@ export function AdminProductsPage() {
       })
       pushOk(
         `Medidas globais: ${r.updatedFieldRows} atualização(ões) de campo · modo ${
-          bulkMode === 'skip_manual' ? 'respeitar Manual' : 'sobrescrever Manual'
+          bulkMode === 'skip_manual'
+            ? 'respeitar medidas manuais'
+            : 'sobrescrever medidas manuais'
         }.`,
       )
       await reload()
@@ -586,7 +588,7 @@ export function AdminProductsPage() {
             <p className="mt-1 text-sm text-fal-muted">
               {hasSelection
                 ? `${selected.size} selecionado(s).`
-                : 'Pré-flight em andamento.'}
+                : 'Checklist de liberação em andamento.'}
             </p>
           </div>
           {hasSelection ? (
@@ -605,10 +607,11 @@ export function AdminProductsPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h3 className="m-0 text-base font-extrabold text-fal-navy">
-                  Pré-flight Liberar
+                  Checklist para liberar
                 </h3>
                 <p className="mt-1 text-sm text-fal-muted">
-                  Hard bloqueia; aplicação/imagem são avisos. Só quem passa hard será liberado.
+                  Bloqueios graves impedem a liberação. Falta de aplicação ou imagem é só aviso. Só
+                  os elegíveis serão liberados.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -749,7 +752,8 @@ export function AdminProductsPage() {
           <div>
             <h3 className="m-0 text-base font-extrabold text-fal-navy">Medidas logísticas</h3>
             <p className="mt-1 text-xs text-fal-muted">
-              Campos vazios neste painel não são alterados. Padrão: não sobrescreve Manual.
+              Campos vazios neste painel não são alterados. Padrão: não sobrescreve medidas
+              manuais do produto.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -799,8 +803,8 @@ export function AdminProductsPage() {
                 disabled={panelDisabled}
                 onChange={(e) => setBulkMode(e.target.value as ApplyGlobalMeasuresMode)}
               >
-                <option value="skip_manual">Respeitar Manual (só Global)</option>
-                <option value="overwrite_manual">Sobrescrever Manual também</option>
+                <option value="skip_manual">Respeitar medidas manuais</option>
+                <option value="overwrite_manual">Sobrescrever medidas manuais também</option>
               </select>
             </label>
             <Button
