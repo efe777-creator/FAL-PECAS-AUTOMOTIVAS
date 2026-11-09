@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #199 (fila local 09/11 ship sequencial #197–#199)  
+**HEAD:** `main` @ merge #200  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -62,6 +62,7 @@
 | #197 | O1-F / O1-H | Toast auth + endereço + catálogo |
 | #198 | O0-C / O1-D/F | Checkout toast/copy + frete loja |
 | #199 | O0-C / O1-A/I | Labels pagamento, modal preço, 404 logística, copy lote |
+| #200 | O0-C / O1-C | Copy medidas padrão classificação (sem Manual/O1-C) |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
