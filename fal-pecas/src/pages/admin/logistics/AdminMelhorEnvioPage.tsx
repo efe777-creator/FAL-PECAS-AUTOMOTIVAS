@@ -162,11 +162,11 @@ export function AdminMelhorEnvioPage() {
         {status ? (
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-fal-muted">Ambiente API</dt>
+              <dt className="text-fal-muted">Ambiente da integração</dt>
               <dd className="m-0 font-semibold text-fal-ink break-all">{status.apiBase || '—'}</dd>
             </div>
             <div>
-              <dt className="text-fal-muted">Token Edge</dt>
+              <dt className="text-fal-muted">Token de acesso</dt>
               <dd className="m-0 font-semibold text-fal-ink">
                 {status.tokenConfigured ? 'Configurado' : 'Ausente'}
               </dd>
@@ -187,7 +187,7 @@ export function AdminMelhorEnvioPage() {
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-fal-muted">Última cotação ME</dt>
+              <dt className="text-fal-muted">Última cotação Melhor Envio</dt>
               <dd className="m-0 font-semibold text-fal-ink">
                 {formatWhen(status.lastQuoteAt)}
                 {status.lastQuotePostal ? ` · CEP ${status.lastQuotePostal}` : ''}
@@ -196,10 +196,12 @@ export function AdminMelhorEnvioPage() {
           </dl>
         ) : (
           <p className="mb-0 mt-2 text-sm text-fal-muted">
-            Status Edge indisponível (secrets/rede). O catálogo local ainda pode ser editado.
+            Não foi possível carregar o status da integração agora. O catálogo local ainda pode ser
+            editado.
           </p>
         )}
-        {status?.disclaimer ? (
+        {status?.disclaimer &&
+        !/D-FRETE|VITE_|webhook|mock|sandbox|Edge|secret/i.test(status.disclaimer) ? (
           <p className="mb-0 mt-3 text-xs font-semibold text-fal-muted">{status.disclaimer}</p>
         ) : null}
       </section>
@@ -261,7 +263,7 @@ export function AdminMelhorEnvioPage() {
                   <div className="font-extrabold text-fal-navy">
                     {r.companyName || 'Transportadora'} · {r.serviceName || `ID ${r.serviceId}`}
                   </div>
-                  <div className="text-xs text-fal-muted">service_id {r.serviceId}</div>
+                  <div className="text-xs text-fal-muted">Código do serviço {r.serviceId}</div>
                 </div>
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-72">
@@ -290,7 +292,8 @@ export function AdminMelhorEnvioPage() {
         </ul>
         {!rows.length ? (
           <p className="mb-0 mt-3 text-sm text-fal-muted">
-            Catálogo vazio. Aplique a migration e clique em Atualizar catálogo.
+            Catálogo vazio. Clique em Atualizar catálogo. Se continuar vazio, confira a conexão da
+            integração.
           </p>
         ) : null}
       </section>

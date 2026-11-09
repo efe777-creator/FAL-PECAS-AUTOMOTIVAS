@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ `a1a5755` (busca/sinônimos copy)  
+**HEAD:** `main` @ tip MARCHA ME admin copy (#205)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -65,6 +65,7 @@
 | #200 | O0-C / O1-C | Copy medidas padrão classificação (sem Manual/O1-C) |
 | #202 | O0-C | Form produto: copy medidas/POL sem jargão |
 | a1a5755 | O0-C | Admin busca: copy sinônimos (sem prep IA) |
+| #205 | O0-C / O1-E | Melhor Envio admin: copy sem jargão Edge/migration |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
