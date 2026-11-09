@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { MIN_PASSWORD_LENGTH, passwordRuleHint } from '@/lib/authPassword'
@@ -11,6 +12,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 export function LoginPage() {
   useDocumentTitle('Entrar | FAL Peças Automotivas')
   const { signIn, user, loading, isConfigured } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
@@ -20,6 +22,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   if (!loading && user) return <Navigate to={from} replace />
 
@@ -31,7 +38,7 @@ export function LoginPage() {
       await signIn(email, password)
       navigate(from, { replace: true })
     } catch (err) {
-      setError(toUserMessage(err, 'Não foi possível entrar. Tente novamente.'))
+      pushError(toUserMessage(err, 'Não foi possível entrar. Tente novamente.'))
     } finally {
       setSubmitting(false)
     }

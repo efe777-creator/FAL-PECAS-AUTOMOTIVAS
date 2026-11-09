@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
+import { useToast } from '@/components/common/Toast'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
@@ -20,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom'
 export function ResetPasswordPage() {
   useDocumentTitle('Redefinir senha | FAL Peças Automotivas')
   const { updatePassword, isConfigured } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
   const [password, setPassword] = useState('')
@@ -27,6 +29,11 @@ export function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -54,21 +61,22 @@ export function ResetPasswordPage() {
     e.preventDefault()
     setError(null)
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(passwordTooShortMessage())
+      pushError(passwordTooShortMessage())
       return
     }
     if (password !== confirm) {
-      setError('As senhas não coincidem.')
+      pushError('As senhas não coincidem.')
       return
     }
     setSubmitting(true)
     try {
       await updatePassword(password)
       setSuccess(true)
+      toast.push('Senha atualizada. Redirecionando para o login…', 'success')
       window.setTimeout(() => navigate('/login', { replace: true }), 1800)
     } catch (err) {
-      if (err instanceof AuthNotConfiguredError) setError(err.message)
-      else setError(toUserMessage(err, 'Não foi possível redefinir a senha.'))
+      if (err instanceof AuthNotConfiguredError) pushError(err.message)
+      else pushError(toUserMessage(err, 'Não foi possível redefinir a senha.'))
     } finally {
       setSubmitting(false)
     }

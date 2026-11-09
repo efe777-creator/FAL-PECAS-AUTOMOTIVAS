@@ -234,7 +234,7 @@ export function AccountAddressesPage() {
                   backToList()
                   await reload()
                 } catch (err) {
-                  pushError(err instanceof Error ? err.message : 'Falha ao salvar endereço')
+                  // AddressForm já emite toast + inline; só propaga para o catch do form
                   throw err
                 }
               }}

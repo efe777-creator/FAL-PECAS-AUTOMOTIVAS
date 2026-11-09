@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { useToast } from '@/components/common/Toast'
 import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import {
   formatCepMask,
@@ -52,6 +53,7 @@ export function AddressForm({
   onCancel,
   onSubmit,
 }: Props) {
+  const toast = useToast()
   const initialCep = normalizeCep(initial?.postalCode ?? '')
   const [form, setForm] = useState<AddressFormValues>({
     ...emptyAddressForm,
@@ -67,6 +69,11 @@ export function AddressForm({
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
   const consultedCep = useRef(initialCep.length === 8 ? initialCep : '')
   const requestId = useRef(0)
   const numberRef = useRef<HTMLInputElement>(null)
@@ -153,31 +160,31 @@ export function AddressForm({
     e.preventDefault()
     setError(null)
     if (!isCompleteCep(form.postalCode)) {
-      setError('Informe um CEP válido com 8 dígitos.')
+      pushError('Informe um CEP válido com 8 dígitos.')
       return
     }
     if (!form.street.trim()) {
-      setError('Endereço (logradouro) é obrigatório.')
+      pushError('Endereço (logradouro) é obrigatório.')
       return
     }
     if (!form.number.trim()) {
-      setError('Número é obrigatório.')
+      pushError('Número é obrigatório.')
       return
     }
     if (!form.district.trim()) {
-      setError('Bairro é obrigatório.')
+      pushError('Bairro é obrigatório.')
       return
     }
     if (!form.city.trim()) {
-      setError('Cidade é obrigatória.')
+      pushError('Cidade é obrigatória.')
       return
     }
     if (!form.state.trim() || form.state.length !== 2) {
-      setError('Selecione o estado (UF).')
+      pushError('Selecione o estado (UF).')
       return
     }
     if (!form.recipient.trim()) {
-      setError('Informe o destinatário.')
+      pushError('Informe o destinatário.')
       return
     }
     setSaving(true)
@@ -188,7 +195,7 @@ export function AddressForm({
         state: form.state.trim().toUpperCase().slice(0, 2),
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao salvar endereço')
+      pushError(err instanceof Error ? err.message : 'Falha ao salvar endereço')
     } finally {
       setSaving(false)
     }
