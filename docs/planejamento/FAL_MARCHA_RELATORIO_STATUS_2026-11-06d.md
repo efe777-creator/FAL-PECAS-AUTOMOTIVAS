@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #202  
+**HEAD:** `main` @ merge #204  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -64,6 +64,7 @@
 | #199 | O0-C / O1-A/I | Labels pagamento, modal preço, 404 logística, copy lote |
 | #200 | O0-C / O1-C | Copy medidas padrão classificação (sem Manual/O1-C) |
 | #202 | O0-C | Form produto: copy medidas/POL sem jargão |
+| #204 | O0-C | Admin busca: copy sinônimos (sem prep IA) |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

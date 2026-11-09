@@ -17,7 +17,7 @@ import {
 import { useEffect, useState, type FormEvent } from 'react'
 
 export function AdminSearchPrepPage() {
-  useDocumentTitle('Busca — prep IA | Admin FAL')
+  useDocumentTitle('Busca e sinônimos | Admin FAL')
   const { push } = useToast()
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<SearchPrepSettings | null>(null)
@@ -78,7 +78,7 @@ export function AdminSearchPrepPage() {
       setTerm('')
       setExpandsTo('')
       setSynonyms(await adminListSearchSynonyms())
-      push('Sinônimo salvo — rode o rebuild para atualizar documentos', 'success')
+      push('Sinônimo salvo — atualize os documentos de busca para aplicar', 'success')
     } catch (err) {
       push(toUserMessage(err), 'error')
     } finally {
@@ -101,10 +101,10 @@ export function AdminSearchPrepPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Busca — prep IA</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Busca e sinônimos</h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-          Prepara o catálogo para busca melhor (e IA depois): documento unificado + sinônimos.
-          Sem modelo vetorial nesta etapa.
+          Melhora o que o cliente encontra no catálogo: texto de busca unificado por produto e
+          sinônimos (ex.: “shock” → “amortecedor”).
         </p>
       </div>
 
@@ -125,8 +125,8 @@ export function AdminSearchPrepPage() {
           <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
             <h2 className="m-0 text-lg font-bold text-fal-navy">Expansão na digitação</h2>
             <p className="m-0 text-sm text-fal-muted">
-              Se ligado, “shock” vira “amortecedor” antes da RPC. Mesmo com off, os apelidos já
-              entram no documento após o rebuild.
+              Se ligado, o termo digitado é expandido antes da busca (ex.: “shock” →
+              “amortecedor”). Mesmo desligado, os apelidos já entram no documento após atualizar.
             </p>
             <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
               <input
@@ -135,7 +135,7 @@ export function AdminSearchPrepPage() {
                 disabled={busy}
                 onChange={(e) => void onToggleExpansion(e.target.checked)}
               />
-              Expandir sinônimos na query
+              Expandir sinônimos na busca do cliente
             </label>
           </div>
 
@@ -162,7 +162,7 @@ export function AdminSearchPrepPage() {
                 <thead className="border-b border-fal-line text-xs uppercase text-fal-muted">
                   <tr>
                     <th className="px-2 py-2">Termo</th>
-                    <th className="px-2 py-2">Expande para</th>
+                    <th className="px-2 py-2">Busca como</th>
                     <th className="px-2 py-2">Ativo</th>
                     <th className="px-2 py-2" />
                   </tr>

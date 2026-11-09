@@ -31,7 +31,7 @@ const sections: { title: string; cards: DashCard[] }[] = [
       { to: '/admin/precos', title: 'Preços', desc: 'Listas comerciais e importação' },
       { to: '/admin/categorias', title: 'Categorias', desc: 'Árvore comercial' },
       { to: '/admin/home', title: 'Home da loja', desc: 'Campanhas e destaques' },
-      { to: '/admin/busca', title: 'Busca (prep IA)', desc: 'Documento, sinônimos e rebuild' },
+      { to: '/admin/busca', title: 'Busca e sinônimos', desc: 'Documento unificado e sinônimos' },
       { to: '/admin/montadoras', title: 'Montadoras', desc: 'Cadastro de montadoras' },
       { to: '/admin/veiculos', title: 'Veículos', desc: 'Modelos e configurações' },
       { to: '/admin/fabricantes', title: 'Fabricantes', desc: 'Fabricante de peça' },
