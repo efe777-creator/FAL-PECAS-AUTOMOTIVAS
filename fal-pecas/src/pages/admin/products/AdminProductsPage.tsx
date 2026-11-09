@@ -29,6 +29,7 @@ import {
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import type { Category, Manufacturer, Product } from '@/types'
 import { useEffect, useState } from 'react'
@@ -138,7 +139,7 @@ export function AdminProductsPage() {
       setNextOffset(ADMIN_PRODUCTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao listar produtos')
+      pushError(toUserMessage(e, 'Erro ao listar produtos'))
     } finally {
       setLoading(false)
     }
@@ -156,7 +157,7 @@ export function AdminProductsPage() {
       setHasMore(page.hasMore)
       setNextOffset((o) => o + ADMIN_PRODUCTS_PAGE_SIZE)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+      pushError(toUserMessage(e, 'Erro ao carregar mais produtos'))
     } finally {
       setLoadingMore(false)
     }
@@ -172,7 +173,7 @@ export function AdminProductsPage() {
         setCategories(cats)
         setManufacturers(makers)
       } catch (e) {
-        pushError(e instanceof Error ? e.message : 'Erro ao carregar filtros')
+        pushError(toUserMessage(e, 'Erro ao carregar filtros'))
       }
     })()
   }, [])
@@ -234,7 +235,7 @@ export function AdminProductsPage() {
       pushOk(next === 'archived' ? 'Produto arquivado e removido da loja.' : 'Produto publicado novamente.')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao alterar status')
+      pushError(toUserMessage(e, 'Falha ao alterar status'))
     }
   }
 
@@ -261,7 +262,7 @@ export function AdminProductsPage() {
       )
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha na ação em massa')
+      pushError(toUserMessage(e, 'Falha na ação em massa'))
     } finally {
       setBusyBulk(false)
     }
@@ -281,7 +282,7 @@ export function AdminProductsPage() {
       )
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao alterar situação')
+      pushError(toUserMessage(e, 'Falha ao alterar situação'))
     } finally {
       setBusyBulk(false)
     }
@@ -299,7 +300,7 @@ export function AdminProductsPage() {
       })
       setReleasePreflight(rows)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao verificar liberação na loja')
+      pushError(toUserMessage(e, 'Falha ao verificar liberação na loja'))
     } finally {
       setBusyBulk(false)
     }
@@ -342,7 +343,7 @@ export function AdminProductsPage() {
       setReleasePreflight(null)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao liberar na loja')
+      pushError(toUserMessage(e, 'Falha ao liberar na loja'))
     } finally {
       setBusyBulk(false)
     }
@@ -373,7 +374,7 @@ export function AdminProductsPage() {
       setBulkCascade(EMPTY_CASCADE)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao aplicar classificação')
+      pushError(toUserMessage(e, 'Falha ao aplicar classificação'))
     } finally {
       setBusyBulk(false)
     }
@@ -424,7 +425,7 @@ export function AdminProductsPage() {
       )
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao aplicar medidas')
+      pushError(toUserMessage(e, 'Falha ao aplicar medidas'))
     } finally {
       setBusyMeasures(false)
     }

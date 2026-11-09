@@ -3,6 +3,7 @@ import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import {
   adminApplyApplicationsImport,
@@ -80,7 +81,7 @@ export function AdminApplicationsImportPage() {
       setPreview(rows)
       setPhase('preview')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
+      pushError(toUserMessage(err, 'Falha ao ler arquivo'))
     } finally {
       setBusy(false)
     }
@@ -100,7 +101,7 @@ export function AdminApplicationsImportPage() {
         'success',
       )
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(toUserMessage(err, 'Falha ao aplicar importação'))
       setPhase('preview')
     } finally {
       setBusy(false)

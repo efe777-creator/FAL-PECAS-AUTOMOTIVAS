@@ -209,7 +209,7 @@ export function AdminProductFormPage() {
         setMeasureHistoryErr(null)
       } catch (e) {
         setMeasureHistory([])
-        setMeasureHistoryErr(e instanceof Error ? e.message : 'Falha ao carregar histórico')
+        setMeasureHistoryErr(toUserMessage(e, 'Falha ao carregar histórico'))
       }
     })()
   }, [productId])
@@ -314,7 +314,7 @@ export function AdminProductFormPage() {
           setOverrideValidUntil('')
         }
       } catch (e) {
-        pushError(e instanceof Error ? e.message : 'Erro')
+        pushError(toUserMessage(e, 'Erro ao carregar produto'))
       } finally {
         setLoading(false)
       }
@@ -369,7 +369,7 @@ export function AdminProductFormPage() {
           : 'Produto liberado na loja.') + warnMsg,
       )
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao liberar na loja')
+      pushError(toUserMessage(err, 'Falha ao liberar na loja'))
     } finally {
       setReleasing(false)
     }
