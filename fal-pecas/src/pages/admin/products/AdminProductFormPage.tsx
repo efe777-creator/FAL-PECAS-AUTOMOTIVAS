@@ -31,6 +31,7 @@ import {
   PRICE_LIST_PROMO_ID,
   adminListPriceLists,
   adminListProductListPrices,
+  priceListStatusLabel,
   type ProductListPriceRow,
 } from '@/services/admin/adminPriceListService'
 import { adminListSuppliers } from '@/services/admin/adminSupplierService'
@@ -702,7 +703,7 @@ export function AdminProductFormPage() {
                     {resolvedStore.priceSource === 'override'
                       ? 'via preço avulso'
                       : resolvedStore.priceSource === 'default'
-                        ? 'via fallback padrão'
+                        ? 'via preço padrão'
                         : `via lista ${resolvedStore.priceListSlug || '—'}`}
                   </span>
                 </p>
@@ -710,9 +711,9 @@ export function AdminProductFormPage() {
                 <p className="mt-1 m-0 text-xs text-fal-muted">Calculando…</p>
               )}
               <p className="mt-1 mb-0 text-[11px] text-fal-muted">
-                Espelho legado <code>products.price</code>: {formatMoney(mirrorPrice)}
-                {mirrorPromo != null ? ` · promo ${formatMoney(mirrorPromo)}` : ''} — não é o valor
-                canônico da vitrine.
+                Valor antigo no cadastro do produto: {formatMoney(mirrorPrice)}
+                {mirrorPromo != null ? ` · promo ${formatMoney(mirrorPromo)}` : ''} — a loja usa o
+                preço das listas acima (ou o avulso), não este espelho.
               </p>
             </div>
           ) : null}
@@ -728,7 +729,7 @@ export function AdminProductFormPage() {
                   <div>
                     <span className="font-semibold text-fal-navy">{row.listName}</span>
                     <span className="ml-2 text-xs text-fal-muted">
-                      {row.status}
+                      {priceListStatusLabel(row.status)}
                       {row.isDefault ? ' · padrão' : ''}
                       {row.priceListId === PRICE_LIST_BASE_ID ? ' · Base' : ''}
                     </span>
