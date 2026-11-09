@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCostImport,
   adminCreateCostImport,
@@ -199,7 +200,7 @@ export function PriceImportWizard({
       setDetectedProfile(detected)
       setStep(6)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha no preview')
+      pushError(toUserMessage(e, 'Falha no preview'))
     } finally {
       setBusy(false)
     }
@@ -244,7 +245,7 @@ export function PriceImportWizard({
       setCostImportId(id)
       setStep(6)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha no preview de custo')
+      pushError(toUserMessage(e, 'Falha no preview de custo'))
     } finally {
       setBusy(false)
     }
@@ -285,7 +286,7 @@ export function PriceImportWizard({
       setStep(9)
       onApplied?.()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao aplicar importação')
+      pushError(toUserMessage(e, 'Falha ao aplicar importação'))
       setStep(7)
     } finally {
       setBusy(false)
@@ -373,7 +374,7 @@ export function PriceImportWizard({
       setStep(9)
       onApplied?.()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao aplicar custos')
+      pushError(toUserMessage(e, 'Falha ao aplicar custos'))
       setStep(7)
     } finally {
       setBusy(false)
