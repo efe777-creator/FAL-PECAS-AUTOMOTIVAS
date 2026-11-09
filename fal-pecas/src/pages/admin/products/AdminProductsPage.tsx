@@ -401,8 +401,8 @@ export function AdminProductsPage() {
     }
     if (bulkMode === 'overwrite_manual') {
       const { confirmed } = await confirmDialog({
-        title: 'Sobrescrever medidas manuais?',
-        message: `Sobrescrever também medidas manuais em ${selected.size} produto(s)? Elas passam a ser tratadas como padrão global.`,
+        title: 'Sobrescrever medidas deste produto?',
+        message: `Sobrescrever também medidas definidas neste produto em ${selected.size} item(ns)? Elas passam a ser tratadas como padrão da classificação.`,
         confirmLabel: 'Sobrescrever',
         danger: true,
       })
@@ -754,7 +754,7 @@ export function AdminProductsPage() {
             <h3 className="m-0 text-base font-extrabold text-fal-navy">Medidas logísticas</h3>
             <p className="mt-1 text-xs text-fal-muted">
               Campos vazios neste painel não são alterados. Padrão: não sobrescreve medidas
-              manuais do produto.
+              deste produto.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
