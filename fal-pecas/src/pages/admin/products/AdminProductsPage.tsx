@@ -419,8 +419,8 @@ export function AdminProductsPage() {
       pushOk(
         `Medidas globais: ${r.updatedFieldRows} atualização(ões) de campo · modo ${
           bulkMode === 'skip_manual'
-            ? 'respeitar medidas manuais'
-            : 'sobrescrever medidas manuais'
+            ? 'respeitar medidas deste produto'
+            : 'sobrescrever medidas deste produto'
         }.`,
       )
       await reload()
@@ -797,15 +797,15 @@ export function AdminProductsPage() {
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <label className="block min-w-[220px] text-sm">
-              <span className="mb-1 block font-semibold text-fal-navy">Tratar manuais</span>
+              <span className="mb-1 block font-semibold text-fal-navy">Medidas deste produto</span>
               <select
                 className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
                 value={bulkMode}
                 disabled={panelDisabled}
                 onChange={(e) => setBulkMode(e.target.value as ApplyGlobalMeasuresMode)}
               >
-                <option value="skip_manual">Respeitar medidas manuais</option>
-                <option value="overwrite_manual">Sobrescrever medidas manuais também</option>
+                <option value="skip_manual">Respeitar medidas deste produto</option>
+                <option value="overwrite_manual">Sobrescrever medidas deste produto também</option>
               </select>
             </label>
             <Button

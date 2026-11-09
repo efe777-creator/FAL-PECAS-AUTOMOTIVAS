@@ -802,7 +802,7 @@ export function AdminProductFormPage() {
           <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-navy">
             Logística → Frete próprio → Produtos
           </Link>
-          . Sem duplicar cadastro. Ao editar aqui, a origem passa a ser preenchimento manual.
+          . Sem duplicar cadastro. Ao editar aqui, a origem passa a ser deste produto.
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Input
@@ -930,7 +930,7 @@ export function AdminProductFormPage() {
                   value={f.origin}
                   onChange={(e) => f.setOrigin(e.target.value as MeasureOrigin)}
                 >
-                  <option value="manual">Manual do produto</option>
+                  <option value="manual">Deste produto</option>
                   <option value="global">Padrão da classificação</option>
                 </select>
               </label>
@@ -942,7 +942,8 @@ export function AdminProductFormPage() {
           <div className="rounded-[10px] border border-fal-line bg-[#f7f9fc] p-3">
             <h3 className="m-0 text-sm font-extrabold text-fal-navy">Histórico de medidas</h3>
             <p className="mt-1 mb-2 text-xs text-fal-muted">
-              Alterações de peso, dimensões e capacidade (manual ou em lote). Máx. 30 recentes.
+              Alterações de peso, dimensões e capacidade (deste produto ou em lote). Máx. 30
+              recentes.
             </p>
             {measureHistoryErr ? (
               <p className="m-0 text-xs text-red-700">{measureHistoryErr}</p>
@@ -961,7 +962,7 @@ export function AdminProductFormPage() {
                             ? 'Sistema'
                             : h.source === 'seed'
                               ? 'Carga inicial'
-                              : 'Manual'}
+                              : 'Deste produto'}
                       </span>
                     </div>
                     <ul className="mt-1 mb-0 list-disc pl-4 text-fal-muted">
@@ -975,7 +976,11 @@ export function AdminProductFormPage() {
                           max_weight_kg: 'Peso máx. (kg)',
                         }
                         const originLabel = (o?: string) =>
-                          o === 'manual' ? 'manual' : o === 'global' ? 'padrão' : o || '—'
+                          o === 'manual'
+                            ? 'deste produto'
+                            : o === 'global'
+                              ? 'padrão'
+                              : o || '—'
                         return (
                           <li key={field}>
                             {fieldLabel[field] ?? field}: {String(delta.old ?? '—')} →{' '}

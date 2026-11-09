@@ -474,8 +474,8 @@ export function AdminCategoriesPage() {
       title: 'Aplicar medidas padrão',
       message:
         `Aplicar peso/dimensões padrão de "${editing.name}" aos produtos desta classificação e subárvore? ` +
-        'Medidas manuais do produto não serão alteradas.',
-      confirmLabel: 'Aplicar (respeitar medidas manuais)',
+        'Medidas definidas neste produto não serão alteradas.',
+      confirmLabel: 'Aplicar (respeitar medidas deste produto)',
     })
     if (!confirmed) return
     setBusyApplyMeasures(true)
