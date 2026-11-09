@@ -26,6 +26,7 @@ import {
   requestOrderCancellation,
 } from '@/services/orders/customerOrderActions'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -80,7 +81,7 @@ export function AccountOrderDetailPage() {
       setOrder(await getMyOrderDetail(id))
       setError(null)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erro ao carregar pedido'
+      const message = toUserMessage(e, 'Erro ao carregar pedido')
       setError(message)
       toast.push(message, 'error')
     } finally {
@@ -145,7 +146,7 @@ export function AccountOrderDetailPage() {
       await reload()
       if (result.products.length) navigate('/carrinho')
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao cancelar')
+      pushError(toUserMessage(e, 'Falha ao cancelar'))
     } finally {
       setActionBusy(false)
     }
@@ -182,7 +183,7 @@ export function AccountOrderDetailPage() {
       )
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao registrar decisão')
+      pushError(toUserMessage(e, 'Falha ao registrar decisão'))
     } finally {
       setActionBusy(false)
     }
@@ -208,7 +209,7 @@ export function AccountOrderDetailPage() {
       )
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao solicitar cancelamento')
+      pushError(toUserMessage(e, 'Falha ao solicitar cancelamento'))
     } finally {
       setActionBusy(false)
     }
@@ -238,7 +239,7 @@ export function AccountOrderDetailPage() {
       pushOk(parts.join(' '))
       navigate('/carrinho')
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao montar recompra')
+      pushError(toUserMessage(e, 'Falha ao montar recompra'))
     } finally {
       setRebuyBusy(false)
     }
