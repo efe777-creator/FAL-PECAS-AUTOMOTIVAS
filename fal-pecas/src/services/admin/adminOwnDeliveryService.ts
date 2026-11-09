@@ -205,10 +205,10 @@ export async function upsertOwnVehicleCategory(input: {
   sortOrder: number
   active: boolean
 }): Promise<OwnVehicleCategory> {
-  if (!input.label.trim()) throw new Error('Nome da modalidade obrigatório.')
-  if (!(input.capacityPol > 0)) throw new Error('Capacidade POL inválida.')
+  if (!input.label.trim()) throw new Error('Nome do veículo obrigatório.')
+  if (!(input.capacityPol > 0)) throw new Error('Capacidade inválida.')
   if (input.maxDistanceKm != null && !(input.maxDistanceKm > 0)) {
-    throw new Error('Km máximo inválido.')
+    throw new Error('Distância máxima inválida.')
   }
   const code = (input.code?.trim() || slugCode(input.label) || `veiculo_${Date.now()}`).slice(0, 40)
   const payload = {

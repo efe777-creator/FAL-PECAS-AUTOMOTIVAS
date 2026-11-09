@@ -815,7 +815,7 @@ export function AdminProductFormPage() {
               setPolUnit(e.target.value)
               setPolOrigin('manual')
             }}
-            hint="Unidade de volume/carga usada na cotação por modalidade"
+            hint="Unidade de volume/carga usada na cotação por veículo"
           />
           <label className="block text-sm">
             <span className="mb-1 block font-semibold text-fal-navy">Porte logístico</span>
@@ -851,8 +851,8 @@ export function AdminProductFormPage() {
             onChange={(e) => setCompatibleCodes(e.target.value)}
             hint={
               ownVehicles.length
-                ? `Modalidades: ${ownVehicles.map((v) => v.code).join(', ')}`
-                : 'Cadastre modalidades em Frete próprio → Veículos'
+                ? `Veículos: ${ownVehicles.map((v) => v.code).join(', ')}`
+                : 'Cadastre veículos em Frete próprio → Veículos'
             }
           />
           <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
