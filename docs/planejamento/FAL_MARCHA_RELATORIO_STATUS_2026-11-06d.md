@@ -1,8 +1,8 @@
 # Relatório MARCHA — o que fizemos / onde estamos / o que falta
 
-**Data:** 2026-11-06d (atualizado)  
+**Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #194  
+**HEAD:** `main` @ merge #194 (+ tip MARCHA Pix PT em andamento)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -58,6 +58,7 @@
 | #192 | O1-A / O0-C | Form produto: toast liberar + copy |
 | #193 | O1-A | Ajuste rápido de preços: toast |
 | #194 | O1-A / O0-C | Assistente importação preços: toast + copy |
+| #195+ | O0-C / funil | Pix: toast copiar + `paymentStatusLabel` PT-BR |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
@@ -123,6 +124,6 @@
 
 ## 5. VALs recentes (âncoras)
 
-`O1A_PRICE_QUICK_ADJUST_TOAST` · `O1A_PRICE_IMPORT_WIZARD_TOAST` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#193 no histórico)
+`O0C_PIX_COPY_STATUS_PT` · `O1A_PRICE_QUICK_ADJUST_TOAST` · `O1A_PRICE_IMPORT_WIZARD_TOAST` · `SOBERANA_PLANO_MESTRE_2026-11-06` · (+ série #150–#194)
 
 **Soberana:** `FAL_MARCHA_SOBERANA_PLANO_MESTRE_EXEC_2026-11-06.md`
