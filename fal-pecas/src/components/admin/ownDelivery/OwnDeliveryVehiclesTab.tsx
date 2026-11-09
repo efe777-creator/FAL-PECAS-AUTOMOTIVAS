@@ -216,7 +216,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
                 setNewLabel('')
                 setNewPol('12')
                 setNewMaxKm('')
-                onOk('Nova modalidade criada.')
+                onOk('Novo veículo criado.')
                 await reload()
               } catch (err) {
                 onError(toUserMessage(err, 'Falha ao criar'))
