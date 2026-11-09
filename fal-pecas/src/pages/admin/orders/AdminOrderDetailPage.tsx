@@ -8,6 +8,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import {
   paymentMethodLabel,
   paymentProviderLabel,
@@ -644,7 +645,8 @@ export function AdminOrderDetailPage() {
                   <div>
                     <div className="font-extrabold text-fal-navy">{it.nameSnapshot}</div>
                     <div className="text-xs text-fal-muted">
-                      SKU {it.sku} · qtd {it.quantity} · {formatMoney(it.unitPrice)}
+                      {SKU_FAL_LABEL} {it.sku} · qtd {it.quantity} ·{' '}
+                      {formatMoney(it.unitPrice)}
                     </div>
                   </div>
                   <div className="text-sm font-semibold">

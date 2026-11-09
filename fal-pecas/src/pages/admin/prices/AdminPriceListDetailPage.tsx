@@ -15,6 +15,7 @@ import {
   PRICE_ORIGIN_VS_METHOD_HINT,
   priceOriginLabel,
 } from '@/lib/priceLabels'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
 import {
@@ -400,7 +401,7 @@ export function AdminPriceListDetailPage() {
     setError(null)
     try {
       const productId = await adminFindProductIdBySku(sku)
-      if (!productId) throw new Error(`SKU não encontrado: ${sku}`)
+      if (!productId) throw new Error(`${SKU_FAL_LABEL} não encontrado: ${sku}`)
       const priceNum = parseMoneyBr(price)
       if (priceNum == null || priceNum < 0) throw new Error('Preço inválido')
       await adminUpsertPriceListItem({

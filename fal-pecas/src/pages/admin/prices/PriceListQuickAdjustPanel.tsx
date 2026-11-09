@@ -5,6 +5,7 @@ import { useToast } from '@/components/common/Toast'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { PRICE_LIST_LAYERS_HINT, priceOriginLabel } from '@/lib/priceLabels'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import {
   PriceItemPricingModal,
   type PricingEditResult,
@@ -299,7 +300,7 @@ export function PriceListQuickAdjustPanel({
 
     const sku = addSku.trim()
     if (!sku) {
-      pushError('Informe o código (SKU)')
+      pushError(`Informe o ${SKU_FAL_LABEL.toLowerCase()}`)
       focusAddSku()
       return
     }
@@ -591,7 +592,7 @@ export function PriceListQuickAdjustPanel({
         >
           <Input
             ref={addSkuInputRef}
-            label="Código (SKU)"
+            label={SKU_FAL_LABEL}
             value={addSku}
             onChange={(e) => setAddSku(e.target.value)}
             disabled={!allowed || addBusy || loadingItems}

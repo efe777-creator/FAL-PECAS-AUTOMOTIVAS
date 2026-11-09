@@ -5,7 +5,7 @@ import {
   priceListItemPricingStateLabel,
   priceOriginLabel,
 } from '@/lib/priceLabels'
-import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
+import { CODIGO_REFERENCIA_LABEL, SKU_FAL_LABEL } from '@/lib/productLabels'
 import { formatMoney } from '@/lib/money'
 import {
   pricingMethodLabel,
@@ -27,7 +27,7 @@ function pendingLabels(item: PriceListItem): string[] {
   const labels: string[] = []
   if (item.baseCost == null) labels.push('Sem custo')
   if (!isPriceListItemPriced(item.price)) labels.push(priceListItemPricingStateLabel(item.price))
-  if (item.hasOverride) labels.push('Override avulso')
+  if (item.hasOverride) labels.push('Ajuste avulso')
   if (item.priceOrigin === 'calculated' && item.baseCost == null) labels.push('Pendente recálculo')
   return labels
 }
@@ -158,7 +158,7 @@ export function PriceListProductsTab({
         <div className="text-sm text-fal-muted md:col-span-4">
           Adicionar item com origem <strong>{priceOriginLabel('manual')}</strong>.
         </div>
-        <Input label="Código (SKU)" value={sku} onChange={(e) => onSku(e.target.value)} required />
+        <Input label={SKU_FAL_LABEL} value={sku} onChange={(e) => onSku(e.target.value)} required />
         <Input
           label="Preço"
           inputMode="decimal"
