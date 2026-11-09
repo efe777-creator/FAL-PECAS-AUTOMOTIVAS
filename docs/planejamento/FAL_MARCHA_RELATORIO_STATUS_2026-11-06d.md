@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA status produto frete próprio PT (#225)  
+**HEAD:** `main` @ tip MARCHA status envio conta PT (#226)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -86,6 +86,7 @@
 | #223 | O0-C | Import preços: status da lista em PT-BR |
 | #224 | O0-C | Histórico import da lista: status PT + copy |
 | #225 | O0-C | Frete próprio: status do produto em PT-BR |
+| #226 | O0-C | Conta: status de envio em PT-BR |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
