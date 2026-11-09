@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { orderStatusOperatorLabel } from '@/lib/adminOrderOps'
 import {
+  orderConfirmationResultLabel,
   orderEventVisibilityLabel,
   orderStatusAdminLabel,
   orderStatusLabel,
@@ -23,5 +24,13 @@ describe('order status labels (O1-A)', () => {
     expect(orderEventVisibilityLabel('customer')).toBe('visível ao cliente')
     expect(orderEventVisibilityLabel('internal')).toBe('interno')
     expect(orderEventVisibilityLabel(null)).toBe('—')
+  })
+
+  it('resultado da finalização da confirmação em PT-BR', () => {
+    expect(orderConfirmationResultLabel('confirmado')).toBe('Confirmado')
+    expect(orderConfirmationResultLabel('nao_atendivel')).toContain('Não atendível')
+    expect(orderConfirmationResultLabel('com_ressalva')).toContain('ressalva')
+    expect(orderConfirmationResultLabel('autorizado_com_prazo')).toContain('prazo')
+    expect(orderConfirmationResultLabel(null)).toBe('—')
   })
 })
