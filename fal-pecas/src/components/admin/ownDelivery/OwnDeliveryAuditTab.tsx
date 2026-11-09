@@ -1,5 +1,6 @@
 import { listOwnAdminAudit } from '@/services/admin/adminOwnDeliveryService'
 import { useEffect, useState } from 'react'
+import { toUserMessage } from '@/lib/toUserMessage'
 
 type Props = {
   onError?: (msg: string) => void
@@ -14,7 +15,7 @@ export function OwnDeliveryAuditTab({ onError }: Props) {
     void listOwnAdminAudit()
       .then(setRows)
       .catch((e) => {
-        const msg = e instanceof Error ? e.message : 'Falha ao carregar histórico'
+        const msg = toUserMessage(e, 'Falha ao carregar histórico')
         setError(msg)
         onError?.(msg)
       })

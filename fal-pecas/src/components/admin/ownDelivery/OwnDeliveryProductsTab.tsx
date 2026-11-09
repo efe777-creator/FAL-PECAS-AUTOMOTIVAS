@@ -8,6 +8,7 @@ import {
 } from '@/services/admin/adminOwnDeliveryService'
 import type { Product } from '@/types'
 import { useEffect, useState } from 'react'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { Link } from 'react-router-dom'
 
 type Props = {
@@ -37,7 +38,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
       for (const p of rows) drafts[p.id] = p.polUnit != null ? String(p.polUnit) : ''
       setDraftPol(drafts)
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Erro ao listar produtos')
+      onError(toUserMessage(e, 'Erro ao listar produtos'))
     } finally {
       setProdLoading(false)
     }
@@ -190,7 +191,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
                               await reloadProducts()
                             } catch (err) {
                               onError(
-                                err instanceof Error ? err.message : 'Falha ao salvar capacidade',
+                                toUserMessage(err, 'Falha ao salvar capacidade'),
                               )
                             }
                           })()

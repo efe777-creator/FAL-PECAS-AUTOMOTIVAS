@@ -1,5 +1,6 @@
 import { listOwnManualReviews } from '@/services/admin/adminOwnDeliveryService'
 import { useEffect, useState } from 'react'
+import { toUserMessage } from '@/lib/toUserMessage'
 
 type Props = {
   onError?: (msg: string) => void
@@ -14,7 +15,7 @@ export function OwnDeliveryManualTab({ onError }: Props) {
     void listOwnManualReviews()
       .then(setRows)
       .catch((e) => {
-        const msg = e instanceof Error ? e.message : 'Falha ao carregar análise manual'
+        const msg = toUserMessage(e, 'Falha ao carregar análise manual')
         setError(msg)
         onError?.(msg)
       })

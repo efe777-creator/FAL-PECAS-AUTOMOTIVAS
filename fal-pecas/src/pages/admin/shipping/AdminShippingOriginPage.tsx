@@ -8,6 +8,7 @@ import { BRAZILIAN_STATES } from '@/lib/brazilianStates'
 import { formatCepMask, isCompleteCep, normalizeCep } from '@/lib/cep'
 import { formatCpfOrCnpjMask } from '@/lib/document'
 import { formatPhoneMask } from '@/lib/phone'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   getStoreShippingOrigin,
   upsertStoreShippingOrigin,
@@ -92,7 +93,7 @@ export function AdminShippingOriginPage() {
           }
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Erro ao carregar origem'
+        const msg = toUserMessage(e, 'Erro ao carregar origem')
         setError(msg)
         toast.push(msg, 'error')
       } finally {
@@ -173,7 +174,7 @@ export function AdminShippingOriginPage() {
       setDirty(false)
       pushOk('Origem e remetente salvos.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar')
+      pushError(toUserMessage(err, 'Falha ao salvar'))
     } finally {
       setSaving(false)
     }

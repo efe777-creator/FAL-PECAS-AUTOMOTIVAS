@@ -5,6 +5,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   fetchMeAdminStatus,
   listMeShippingServices,
@@ -48,7 +49,7 @@ export function AdminMelhorEnvioPage() {
       setRows(list.map((r) => ({ ...r })))
       setStatus(st)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao carregar Melhor Envio'
+      const msg = toUserMessage(e, 'Falha ao carregar Melhor Envio')
       setErr(msg)
       toast.push(msg, 'error')
     } finally {
@@ -100,7 +101,7 @@ export function AdminMelhorEnvioPage() {
       )
       await load()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao salvar'
+      const msg = toUserMessage(e, 'Falha ao salvar')
       setErr(msg)
       toast.push(msg, 'error')
     } finally {
@@ -137,7 +138,7 @@ export function AdminMelhorEnvioPage() {
       )
       await load()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao atualizar catálogo'
+      const msg = toUserMessage(e, 'Falha ao atualizar catálogo')
       setErr(msg)
       toast.push(msg, 'error')
     } finally {
