@@ -6,6 +6,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCepMask } from '@/lib/cep'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   deleteAddress,
   listAddresses,
@@ -44,7 +45,7 @@ export function AccountAddressesPage() {
       setItems(await listAddresses())
       setError(null)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao listar endereços')
+      pushError(toUserMessage(e, 'Erro ao listar endereços'))
     } finally {
       setLoading(false)
     }
@@ -167,7 +168,9 @@ export function AccountAddressesPage() {
                               pushOk('Endereço padrão atualizado.')
                               await reload()
                             })
-                            .catch((err) => pushError(String(err)))
+                            .catch((err) =>
+                              pushError(toUserMessage(err, 'Falha ao definir endereço padrão')),
+                            )
                         }
                       >
                         Tornar padrão
@@ -191,7 +194,7 @@ export function AccountAddressesPage() {
                             pushOk('Endereço excluído.')
                             await reload()
                           } catch (err) {
-                            pushError(String(err))
+                            pushError(toUserMessage(err, 'Falha ao excluir endereço'))
                           }
                         })()
                       }}

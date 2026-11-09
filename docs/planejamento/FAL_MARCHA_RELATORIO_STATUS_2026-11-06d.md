@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA liberar/fallback/veículos (#210)  
+**HEAD:** `main` @ tip MARCHA conta/formação/home (#211)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -71,6 +71,7 @@
 | #208 | O0-C | Import preços + home campanhas + medidas + filtro pedidos |
 | #209 | O0-C | Listas: copy origem/margem + Liberar na loja |
 | #210 | O0-C / O1-A | Liberar sem checklist; fallback; veículos toast |
+| #211 | O0-C / O1-F | Conta toasts; formação/home/placeholder copy |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

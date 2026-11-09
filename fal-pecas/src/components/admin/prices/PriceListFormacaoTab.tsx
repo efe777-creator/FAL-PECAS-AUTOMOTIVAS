@@ -59,8 +59,8 @@ export function PriceListFormacaoTab({
       <div className="rounded-[14px] border border-fal-line bg-white p-4">
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">Regra de formação</h2>
         <p className="mt-1 text-sm text-fal-muted">
-          Fluxo: CUSTO → adicional de custo (%) → base → markup/margem ou preço fixo → preço final.
-          Formação não altera a origem de preço de itens importados/manuais. O adicional em R$ da
+          Fluxo: custo → adicional de custo (%) → base → regra da lista (ou preço fixo) → preço
+          final. A formação não altera itens com origem Importado ou Manual. O adicional em R$ da
           lista permanece informativo e fora do cálculo.
         </p>
         <div className="mt-3 space-y-3">
