@@ -595,7 +595,7 @@ export function AdminHomeContentPage() {
             ))}
             {!banners.length ? (
               <p className="text-sm text-fal-muted">
-                Nenhuma campanha — a Home usa o fallback estático até você criar uma.
+                Nenhuma campanha — a Home mostra o conteúdo padrão até você criar uma.
               </p>
             ) : null}
           </div>
