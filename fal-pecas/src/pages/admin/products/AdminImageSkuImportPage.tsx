@@ -163,8 +163,8 @@ export function AdminImageSkuImportPage() {
       {counts && preview ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="m-0 text-sm text-fal-ink">
-            Prévia: <strong>{counts.ok}</strong> ok · <strong>{counts.skip}</strong> pular ·{' '}
-            <strong>{counts.error}</strong> erro
+            Prévia: <strong>{counts.ok}</strong> prontas · <strong>{counts.skip}</strong> a
+            pular · <strong>{counts.error}</strong> com erro
           </p>
           {phase === 'preview' ? (
             <Button
@@ -178,7 +178,8 @@ export function AdminImageSkuImportPage() {
           ) : null}
           {report && phase === 'done' ? (
             <p className="m-0 text-sm font-semibold text-fal-navy">
-              Resultado: {report.ok} ok · {report.skip} pulada(s) · {report.error} erro(s)
+              Resultado: {report.ok} enviada(s) · {report.skip} pulada(s) · {report.error}{' '}
+              erro(s)
             </p>
           ) : null}
         </div>
