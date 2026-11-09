@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ merge #194 (+ tip MARCHA Pix PT em andamento)  
+**HEAD:** `main` @ merge #195  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
