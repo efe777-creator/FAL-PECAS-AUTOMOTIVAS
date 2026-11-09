@@ -609,7 +609,7 @@ export function AdminHomeContentPage() {
         >
           <h2 className="m-0 text-lg font-bold text-fal-navy">Condições nos cards e PDP</h2>
           <p className="m-0 text-sm text-fal-muted">
-            Isto é só comunicação na vitrine. O checkout continua com o gateway (Pix/cartão).
+            Isto é só comunicação na vitrine. O checkout continua com Pix/cartão do provedor.
           </p>
           <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
             <input

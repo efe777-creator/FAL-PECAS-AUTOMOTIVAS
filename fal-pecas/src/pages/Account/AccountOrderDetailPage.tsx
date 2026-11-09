@@ -8,6 +8,7 @@ import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymen
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
+import { paymentProviderLabel, paymentStatusLabel } from '@/lib/paymentLabels'
 import {
   buildOrderWhatsAppMessage,
   storeWhatsAppPhone,
@@ -490,7 +491,7 @@ export function AccountOrderDetailPage() {
 
       {addr ? (
         <div className="rounded-fal border border-fal-line bg-white p-5 text-sm">
-          <h3 className="mt-0 text-base font-extrabold">Endereço (snapshot)</h3>
+          <h3 className="mt-0 text-base font-extrabold">Endereço de entrega</h3>
           <p className="m-0">
             {String(addr.recipient ?? '')}
             <br />
@@ -509,13 +510,14 @@ export function AccountOrderDetailPage() {
           <h3 className="mt-0 text-base font-extrabold">Pagamento</h3>
           {order.payment ? (
             <p className="m-0">
-              {order.payment.provider} · {order.payment.status}
+              {paymentProviderLabel(order.payment.provider)} ·{' '}
+              {paymentStatusLabel(order.payment.status)}
               <br />
               {order.payment.amount != null ? money(order.payment.amount) : null}
               {order.payment.externalRef ? (
                 <>
                   <br />
-                  Ref: {order.payment.externalRef}
+                  Código da cobrança: {order.payment.externalRef}
                 </>
               ) : null}
             </p>

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { paymentStatusLabel } from './paymentLabels'
+import {
+  paymentMethodLabel,
+  paymentProviderLabel,
+  paymentStatusLabel,
+} from './paymentLabels'
 
 describe('paymentStatusLabel', () => {
   it('traduz status conhecidos para PT-BR', () => {
@@ -15,5 +19,21 @@ describe('paymentStatusLabel', () => {
     expect(paymentStatusLabel('EXPIRED')).toBe('expirado')
     expect(paymentStatusLabel(null)).toBe('—')
     expect(paymentStatusLabel('')).toBe('—')
+  })
+})
+
+describe('paymentProviderLabel', () => {
+  it('traduz provedores conhecidos', () => {
+    expect(paymentProviderLabel('mercadopago')).toBe('Mercado Pago')
+    expect(paymentProviderLabel('simulated')).toBe('Demonstração')
+    expect(paymentProviderLabel(null)).toBe('—')
+  })
+})
+
+describe('paymentMethodLabel', () => {
+  it('traduz meios conhecidos', () => {
+    expect(paymentMethodLabel('pix')).toBe('Pix')
+    expect(paymentMethodLabel('credit_card')).toBe('Cartão')
+    expect(paymentMethodLabel('pix_simulated')).toBe('Pix (demonstração)')
   })
 })

@@ -15,7 +15,7 @@ const LINKS = [
   {
     to: '/admin/categorias#medidas-padrao',
     title: 'Medidas por classificação',
-    desc: 'Padrões de peso/dimensão por categoria; apply respeita origem Manual.',
+    desc: 'Padrões de peso/dimensão por categoria; apply respeita medidas manuais do produto.',
   },
   {
     to: '/admin/logistica/melhor-envio',
