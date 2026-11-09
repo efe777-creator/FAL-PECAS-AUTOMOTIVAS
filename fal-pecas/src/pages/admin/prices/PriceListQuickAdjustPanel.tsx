@@ -3,6 +3,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { formatMoney, parseMoneyBr } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { PRICE_LIST_LAYERS_HINT, priceOriginLabel } from '@/lib/priceLabels'
 import {
   PriceItemPricingModal,
@@ -164,7 +165,7 @@ export function PriceListQuickAdjustPanel({
       } catch (e) {
         if (cancelled || gen !== loadGenRef.current) return
         setItems([])
-        const message = e instanceof Error ? e.message : 'Falha ao carregar itens da lista'
+        const message = toUserMessage(e, 'Falha ao carregar itens da lista')
         setError(message)
         toast.push(message, 'error')
       } finally {
@@ -231,7 +232,7 @@ export function PriceListQuickAdjustPanel({
       onItemsChanged?.()
     } catch (e) {
       if (gen !== loadGenRef.current) return
-      pushError(e instanceof Error ? e.message : 'Falha ao recarregar itens')
+      pushError(toUserMessage(e, 'Falha ao recarregar itens'))
     }
   }
 
@@ -285,7 +286,7 @@ export function PriceListQuickAdjustPanel({
       pushOk(`Precificação atualizada na lista ${selectedList.name}.`)
       await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: addOpen }))
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
+      pushError(toUserMessage(err, 'Falha ao salvar precificação'))
     } finally {
       setRowBusy(null)
     }
@@ -339,7 +340,7 @@ export function PriceListQuickAdjustPanel({
       await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: true }))
       focusAddSku()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao adicionar item')
+      pushError(toUserMessage(err, 'Falha ao adicionar item'))
     } finally {
       setAddBusy(false)
     }

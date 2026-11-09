@@ -8,6 +8,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import {
   PRICE_LIST_LAYERS_HINT,
@@ -275,7 +276,7 @@ export function AdminPriceListDetailPage() {
         setCfgValidUntil(isoToDatetimeLocal(l.validUntil))
       }
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(toUserMessage(e, 'Erro ao carregar'))
     } finally {
       setLoading(false)
     }
@@ -414,7 +415,7 @@ export function AdminPriceListDetailPage() {
       await reload()
       pushOk('Item salvo na lista.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar item')
+      pushError(toUserMessage(err, 'Falha ao salvar item'))
     }
   }
 
@@ -454,7 +455,7 @@ export function AdminPriceListDetailPage() {
         setRuleExtraCostPercent(String(l.listExtraCostPercent ?? 0))
       }
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao recarregar')
+      pushError(toUserMessage(e, 'Erro ao recarregar'))
     }
   }
 
@@ -490,7 +491,7 @@ export function AdminPriceListDetailPage() {
       await withWindowScrollPreserved(() => reloadQuiet())
       pushOk('Precificação atualizada.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
+      pushError(toUserMessage(err, 'Falha ao salvar precificação'))
     } finally {
       setRowBusy(null)
     }
@@ -514,7 +515,7 @@ export function AdminPriceListDetailPage() {
       await withWindowScrollPreserved(() => reloadQuiet())
       pushOk('Item removido da lista.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao remover')
+      pushError(toUserMessage(err, 'Falha ao remover'))
     } finally {
       setRowBusy(null)
     }
@@ -541,7 +542,7 @@ export function AdminPriceListDetailPage() {
       await reload()
       pushOk(`${real.length} item(ns) removido(s).`)
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha na remoção em massa')
+      pushError(toUserMessage(err, 'Falha na remoção em massa'))
     } finally {
       setBusy(false)
     }
@@ -580,7 +581,7 @@ export function AdminPriceListDetailPage() {
       await reload()
       pushOk(`Regra aplicada em ${selectedItems.length} item(ns).`)
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha no recálculo da seleção')
+      pushError(toUserMessage(err, 'Falha no recálculo da seleção'))
     } finally {
       setBusy(false)
     }
@@ -629,7 +630,7 @@ export function AdminPriceListDetailPage() {
       await reload()
       pushOk(`Preço manual definido em ${selectedItems.length} item(ns).`)
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao alterar preços')
+      pushError(toUserMessage(err, 'Falha ao alterar preços'))
     } finally {
       setBusy(false)
     }
@@ -683,7 +684,7 @@ export function AdminPriceListDetailPage() {
       pushOk(msg)
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar regra')
+      pushError(toUserMessage(err, 'Falha ao salvar regra'))
     } finally {
       setBusy(false)
     }
@@ -737,7 +738,7 @@ export function AdminPriceListDetailPage() {
       pushOk(applyMsg)
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao aplicar margem')
+      pushError(toUserMessage(err, 'Falha ao aplicar margem'))
     } finally {
       setBusy(false)
     }
@@ -773,7 +774,7 @@ export function AdminPriceListDetailPage() {
       setAdjustValue('')
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha no ajuste global')
+      pushError(toUserMessage(err, 'Falha no ajuste global'))
     } finally {
       setBusy(false)
     }
@@ -800,7 +801,7 @@ export function AdminPriceListDetailPage() {
       pushOk('Configuração salva.')
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
+      pushError(toUserMessage(err, 'Falha ao salvar configuração'))
     } finally {
       setBusy(false)
     }
@@ -810,7 +811,7 @@ export function AdminPriceListDetailPage() {
     try {
       setImportDetail(await adminGetImportDetail(importId))
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao abrir importação')
+      pushError(toUserMessage(err, 'Falha ao abrir importação'))
     }
   }
 

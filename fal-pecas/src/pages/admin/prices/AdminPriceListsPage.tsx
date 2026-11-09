@@ -7,6 +7,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
@@ -91,7 +92,7 @@ export function AdminPriceListsPage() {
     try {
       setOverview(await adminGetPriceListsOverview())
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar listas')
+      pushError(toUserMessage(e, 'Erro ao carregar listas'))
     } finally {
       setLoading(false)
     }
@@ -103,7 +104,7 @@ export function AdminPriceListsPage() {
     try {
       setOverview(await adminGetPriceListsOverview())
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar listas')
+      pushError(toUserMessage(e, 'Erro ao carregar listas'))
     }
   }
 
@@ -194,7 +195,7 @@ export function AdminPriceListsPage() {
         pushOk('Lista salva.')
       }
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar lista')
+      pushError(toUserMessage(err, 'Falha ao salvar lista'))
     } finally {
       setBusy(false)
     }
@@ -230,7 +231,7 @@ export function AdminPriceListsPage() {
       await reloadOverviewQuiet()
       pushOk(next === 'active' ? 'Lista ativada.' : 'Lista inativada.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao alterar status')
+      pushError(toUserMessage(err, 'Falha ao alterar status'))
     } finally {
       setBusy(false)
     }
@@ -251,7 +252,7 @@ export function AdminPriceListsPage() {
       await reloadOverviewQuiet()
       pushOk(`Lista "${list.name}" duplicada.`)
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao duplicar lista')
+      pushError(toUserMessage(err, 'Falha ao duplicar lista'))
     } finally {
       setBusy(false)
     }
@@ -287,7 +288,7 @@ export function AdminPriceListsPage() {
       await reloadOverviewQuiet()
       pushOk('Lista excluída.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao excluir lista')
+      pushError(toUserMessage(err, 'Falha ao excluir lista'))
     } finally {
       setBusy(false)
     }

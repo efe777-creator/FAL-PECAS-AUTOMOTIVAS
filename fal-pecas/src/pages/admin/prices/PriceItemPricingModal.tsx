@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { priceOriginLabel } from '@/lib/priceLabels'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import type { PriceList, PriceListItem } from '@/services/admin/adminPriceListService'
@@ -134,7 +135,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
       }
       await onSave({ mode: 'manual_price', price, extraCost })
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar precificação')
+      pushError(toUserMessage(err, 'Falha ao salvar precificação'))
     }
   }
 
