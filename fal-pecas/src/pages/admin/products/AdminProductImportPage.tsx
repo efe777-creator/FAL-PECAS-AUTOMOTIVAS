@@ -111,7 +111,7 @@ export function AdminProductImportPage() {
             Aplicações →
           </Link>
           <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
-            Arquivo HF completo →
+            Arquivo completo →
           </Link>
           <Link to="/admin/importacoes" className="text-fal-navy">
             Histórico →

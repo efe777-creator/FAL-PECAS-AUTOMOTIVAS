@@ -450,10 +450,10 @@ export function AdminProductsPage() {
               Aplicações
             </Link>
             <Link className="hover:underline" to="/admin/produtos/importar-aplicacoes">
-              Importar apps
+              Importar aplicações
             </Link>
             <Link className="hover:underline" to="/admin/produtos/importar-hf">
-              Importar HF
+              Importar arquivo completo
             </Link>
             <Link className="hover:underline" to="/admin/produtos/importar-imagens">
               Importar imagens

@@ -20,7 +20,7 @@ function canImport(role: string | undefined): boolean {
 }
 
 export function AdminHfBundleImportPage() {
-  useDocumentTitle('Importar HF | Admin FAL')
+  useDocumentTitle('Importar arquivo completo | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
   const allowed = canImport(user?.role)
@@ -90,7 +90,7 @@ export function AdminHfBundleImportPage() {
       } else {
         const apps = r.applications
         toast.push(
-          `HF aplicado: ${r.products.created + r.products.updated} produto(s)` +
+          `Importação aplicada: ${r.products.created + r.products.updated} produto(s)` +
             (apps
               ? `, ${apps.created_applications + apps.updated_applications} aplicação(ões)`
               : '') +
@@ -111,8 +111,8 @@ export function AdminHfBundleImportPage() {
 
   return (
     <PageShell
-      title="Importar arquivo HF (produto + aplicações)"
-      description="Uma planilha completa: o sistema separa 1 cadastro por código referência e uma aplicação por linha. Produtos são gravados antes das aplicações."
+      title="Importar arquivo completo (produto + aplicações)"
+      description="Uma planilha com produto e aplicação na mesma linha: o sistema separa 1 cadastro por código referência e uma aplicação por linha. Produtos são gravados antes das aplicações."
       actions={
         <Link to="/admin/produtos/importar" className="text-sm font-semibold text-fal-navy">
           Só produtos →

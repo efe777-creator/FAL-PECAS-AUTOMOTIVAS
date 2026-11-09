@@ -140,7 +140,7 @@ export function AdminApplicationsImportPage() {
             Cadastro de produtos →
           </Link>
           <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
-            Arquivo HF completo →
+            Arquivo completo →
           </Link>
         </div>
       }
