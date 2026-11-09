@@ -7,7 +7,8 @@ export const CODIGO_REFERENCIA_LABEL = 'Código referência'
 /** Rótulo vitrine (D1) — mesmo valor; copy do card/PDP. */
 export const REFERENCIA_LABEL = 'Referência'
 
-export const SKU_FAL_LABEL = 'SKU FAL'
+/** Código interno FAL (import / matching) — não confundir com Código referência. */
+export const SKU_FAL_LABEL = 'Código interno'
 
 /** Fabricante da peça (`product_brands`) — vitrine card/PDP. */
 export const FABRICANTE_LABEL = 'Fabricante'

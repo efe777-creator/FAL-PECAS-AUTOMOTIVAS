@@ -168,7 +168,7 @@ export async function adminPreviewConversionImport(input: {
     if (lineErrors.length === 0) {
       productId = skuMap.get(sku) ?? null
       if (!productId) {
-        lineErrors.push('Produto não encontrado (SKU FAL inexistente)')
+        lineErrors.push('Produto não encontrado (código interno inexistente)')
       } else {
         const bySku = existing.bySupplierSku.has(supplierSku)
         const byProduct = existing.byProductId.has(productId)

@@ -42,6 +42,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import {
   POSICAO_ATOMS,
   composePosicao,
@@ -512,7 +513,7 @@ export function AdminProductFormPage() {
             hint="Código comercial exibido na loja e no admin."
           />
           <Input
-            label="SKU FAL"
+            label={SKU_FAL_LABEL}
             value={sku}
             onChange={(e) => setSku(e.target.value)}
             hint="Código interno para importações. Se vazio, usa o Código referência."

@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyConversionImport,
@@ -117,7 +118,7 @@ export function AdminSupplierConversionImportPage() {
       title: 'Confirmar conversões?',
       message:
         `Confirmar ${valid} conversão(ões) para "${supplierName}"?\n\n` +
-        `SKU FAL inexistente não cria produto.\n` +
+        `${SKU_FAL_LABEL} inexistente não cria produto.\n` +
         `Linhas com erro serão ignoradas.`,
       confirmLabel: 'Confirmar',
     })
@@ -189,7 +190,8 @@ export function AdminSupplierConversionImportPage() {
           <div>
             <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo</h2>
             <p className="mt-1 text-sm text-fal-muted">
-              Upsert por código do fornecedor. SKU FAL inexistente = erro (sem criar produto).
+              Atualiza pelo código do fornecedor. {SKU_FAL_LABEL} inexistente = erro (sem criar
+              produto).
             </p>
             <input
               className="mt-3 block w-full text-sm"
@@ -233,7 +235,7 @@ export function AdminSupplierConversionImportPage() {
               <thead>
                 <tr className="bg-fal-bg text-left">
                   <th className="px-2 py-1">Linha</th>
-                  <th className="px-2 py-1">SKU FAL</th>
+                  <th className="px-2 py-1">{SKU_FAL_LABEL}</th>
                   <th className="px-2 py-1">Cód. fornecedor</th>
                   <th className="px-2 py-1">Ação</th>
                   <th className="px-2 py-1">Erros / avisos</th>

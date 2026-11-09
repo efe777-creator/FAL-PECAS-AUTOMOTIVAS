@@ -226,7 +226,7 @@ export async function adminPreviewCostImport(input: {
         } else if (falPrincipal && falBySku) {
           const hit = falBySku.get(supplierSku)
           if (!hit) {
-            lineErrors.push('SKU FAL não encontrado (FAL Principal)')
+            lineErrors.push('Código interno não encontrado (FAL Principal)')
           } else {
             productId = hit.productId
             productSku = hit.productSku
