@@ -466,7 +466,7 @@ export async function adminDeleteCategory(id: string, all?: Category[]): Promise
 
 /**
  * Aplica `default_*` da classificação aos produtos do nó + subárvore.
- * Default: `skip_manual` (não sobrescreve medidas manuais).
+ * Default: `skip_manual` (não sobrescreve medidas deste produto).
  */
 export async function adminApplyCategoryDefaultMeasures(opts: {
   categoryId: string
