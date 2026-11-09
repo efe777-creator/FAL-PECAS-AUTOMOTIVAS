@@ -25,11 +25,11 @@ export function priceOriginLabel(origin: PriceOriginCode | string): string {
 
 /** Separação de camadas — copy curto para admin. */
 export const PRICE_LIST_LAYERS_HINT =
-  'Lista Ativa/Inativa ≠ item Com preço/Sem preço ≠ produto disponível na loja.'
+  'Lista Ativa/Inativa não é o mesmo que item Com preço/Sem preço, nem que produto disponível na loja.'
 
 /** Prioridade da lista: desempate real em resolve_product_price (não remover). */
 export const PRICE_LIST_PRIORITY_HINT =
   'Prioridade da lista: desempate do preço na loja (maior vence entre listas públicas ativas).'
 
 export const PRICE_ORIGIN_VS_METHOD_HINT =
-  'Origem do item (Calculado / Importado / Manual) ≠ método de formação da lista (Margem / Markup / Fixo).'
+  'Origem do item (Calculado / Importado / Manual) não é o método de formação da lista (Margem / Markup / Fixo).'

@@ -681,7 +681,7 @@ export function AdminPriceListDetailPage() {
     setError(null)
     try {
       const extraMsg = await persistRuleOnly()
-      const msg = `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda NÃO foram alterados.${extraMsg}`
+      const msg = `Regra salva (${pricingMethodLabel(ruleMethod)} ${rulePercent}%). Preços de venda não foram alterados.${extraMsg}`
       pushOk(msg)
       await reload()
     } catch (err) {

@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA liberar checklist PT (#245)  
+**HEAD:** `main` @ tip MARCHA hints preço/ME sem ≠ (#247)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -106,6 +106,7 @@
 | #243 | O0-C | Aplicações/estoque/relacionados sem SKU |
 | #244 | O0-C | Conta + import imagens/mensagens sem SKU |
 | #245 | O0-C / D-LIBERAR | Checklist liberar: copy PT (sem SKU/published/PVC) |
+| #247 | O0-C | Hints preço/ME/produto sem ≠; toasts “não foram…” |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
