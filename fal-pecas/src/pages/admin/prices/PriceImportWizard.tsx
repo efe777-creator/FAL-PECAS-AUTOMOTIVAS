@@ -21,6 +21,7 @@ import {
   adminPreviewPriceImport,
   adminRecalculatePriceListItems,
   adminSyncProductsOntoPriceList,
+  priceListStatusLabel,
   type ImportPreviewRow,
   type PriceListOverviewRow,
 } from '@/services/admin/adminPriceListService'
@@ -715,7 +716,7 @@ export function PriceImportWizard({
                   <option value="">Selecione…</option>
                   {lists.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.name} ({l.status})
+                      {l.name} ({priceListStatusLabel(l.status)})
                     </option>
                   ))}
                 </select>
