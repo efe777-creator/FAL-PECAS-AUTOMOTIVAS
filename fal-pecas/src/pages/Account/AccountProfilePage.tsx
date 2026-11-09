@@ -13,6 +13,7 @@ import {
 } from '@/lib/document'
 import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { requestAccountDeletion } from '@/services/customers/accountDeletionService'
 import { getCustomerProfile, updateCustomerProfile } from '@/services/customers/customerService'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -54,7 +55,7 @@ export function AccountProfilePage() {
         setCnpj(profile.cnpj ? formatCnpjMask(profile.cnpj) : '')
         setError(null)
       } catch (e) {
-        pushError(e instanceof Error ? e.message : 'Erro ao carregar perfil')
+        pushError(toUserMessage(e, 'Erro ao carregar perfil'))
       } finally {
         setLoading(false)
       }
@@ -100,7 +101,7 @@ export function AccountProfilePage() {
       await refreshUser()
       pushOk('Dados salvos com sucesso.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar')
+      pushError(toUserMessage(err, 'Falha ao salvar'))
     } finally {
       setSaving(false)
     }
@@ -171,7 +172,7 @@ export function AccountProfilePage() {
                 navigate('/', { replace: true })
               } catch (err) {
                 pushError(
-                  err instanceof Error ? err.message : 'Não foi possível encerrar a conta',
+                  toUserMessage(err, 'Não foi possível encerrar a conta'),
                 )
               } finally {
                 setDeleting(false)

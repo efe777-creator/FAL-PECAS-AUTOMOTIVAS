@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDate } from '@/lib/datetime'
 import { customerOrderListCta, orderStatusLabel } from '@/lib/orderLifecycle'
 import { listMyOrders } from '@/services/customers/orderQueryService'
@@ -37,7 +38,7 @@ export function AccountOrdersPage() {
         setItems(await listMyOrders())
         setError(null)
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Erro ao carregar pedidos'
+        const message = toUserMessage(e, 'Erro ao carregar pedidos')
         setError(message)
         toast.push(message, 'error')
       } finally {

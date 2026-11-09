@@ -4,6 +4,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { entityStatusLabel } from '@/lib/adminLabels'
+import { toUserMessage } from '@/lib/toUserMessage'
 import type { EntityStatus } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 
@@ -72,7 +73,7 @@ export function AdminNamedEntityCrud({
       setItems(await list())
       setError(null)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : `Erro ao carregar ${entityLabel}s`)
+      pushError(toUserMessage(e, `Erro ao carregar ${entityLabel}s`))
     } finally {
       setLoading(false)
     }
@@ -126,7 +127,7 @@ export function AdminNamedEntityCrud({
       await reload()
       toast.push(editing ? `${entityLabel} atualizado(a).` : `${entityLabel} criado(a).`, 'success')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : `Falha ao salvar ${entityLabel}`)
+      pushError(toUserMessage(err, `Falha ao salvar ${entityLabel}`))
     }
   }
 
@@ -140,7 +141,7 @@ export function AdminNamedEntityCrud({
         'success',
       )
     } catch (err) {
-      pushError(err instanceof Error ? err.message : `Falha ao alterar status`)
+      pushError(toUserMessage(err, 'Falha ao alterar status'))
     }
   }
 

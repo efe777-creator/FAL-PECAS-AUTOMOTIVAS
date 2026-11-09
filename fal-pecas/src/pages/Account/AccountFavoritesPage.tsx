@@ -4,6 +4,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { ProductCard } from '@/components/product/ProductCard'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { listFavoriteProducts } from '@/services/customers/favoriteService'
 import type { Product } from '@/types'
 import { useEffect, useState } from 'react'
@@ -22,7 +23,7 @@ export function AccountFavoritesPage() {
         setItems(await listFavoriteProducts())
         setError(null)
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Erro ao carregar favoritos'
+        const message = toUserMessage(e, 'Erro ao carregar favoritos')
         setError(message)
         toast.push(message, 'error')
       } finally {
