@@ -52,7 +52,7 @@ export async function quoteStorefrontShippingEnvelope(
         status: 'missing_logistics',
         req,
         message:
-          'Este produto ainda não tem peso/dimensões suficientes para cotar frete. A loja não exibe estimativa inventada.',
+          'Este produto ainda não tem peso ou medidas suficientes para cotar a entrega.',
         disclaimer: null,
       }),
     }
@@ -80,7 +80,7 @@ export async function quoteStorefrontShippingEnvelope(
         req,
         message: needsAddressNumber
           ? 'Informe o número do endereço para cotar a entrega FAL nesta região. Sem opções de transportadora para este CEP no momento.'
-          : 'Nenhuma opção de frete real disponível para este CEP no momento.',
+          : 'Nenhuma opção de entrega disponível para este CEP no momento.',
         disclaimer: null,
       }),
     }
@@ -95,8 +95,7 @@ export async function quoteStorefrontShippingEnvelope(
       mode: env.mode,
       options: sorted,
       req,
-      disclaimer:
-        'Cotação Melhor Envio e/ou frete próprio FAL quando houver cobertura. Confirme no checkout.',
+      disclaimer: 'Valores estimados de entrega. Confirme o frete no checkout.',
     }),
   }
 }

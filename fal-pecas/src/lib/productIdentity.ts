@@ -22,7 +22,7 @@ export function resolveProductIdentity(input: {
   const sku = normalizeSku(input.sku)
 
   if (!commercialRef && !sku) {
-    throw new Error('Informe o Código referência (ou o SKU técnico).')
+    throw new Error('Informe o Código referência (ou o código interno).')
   }
 
   // Se um estiver vazio, espelha o outro (ainda permitem divergir quando ambos preenchidos).

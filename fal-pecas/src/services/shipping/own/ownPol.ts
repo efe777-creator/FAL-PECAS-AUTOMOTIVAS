@@ -28,7 +28,7 @@ export function computePolTotal(
         ok: false,
         status: 'incomplete',
         productId: item.productId,
-        message: 'Perfil logístico ausente',
+        message: 'Produto sem capacidade de entrega cadastrada',
       }
     }
     if (!profile.ownDeliveryAllowed) {
@@ -44,7 +44,7 @@ export function computePolTotal(
         ok: false,
         status: 'incomplete',
         productId: item.productId,
-        message: 'POL unitário ausente',
+        message: 'Capacidade por unidade ausente',
       }
     }
     polTotal += qty * Number(profile.polUnit)
