@@ -19,6 +19,7 @@ import {
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -209,7 +210,7 @@ export function AdminApplicationsPage() {
       setTotal(n)
       setSelected(new Set())
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao carregar aplicações'
+      const msg = toUserMessage(e, 'Falha ao carregar aplicações')
       setError(msg)
       toast.push(msg, 'error')
       setRows([])
@@ -230,7 +231,7 @@ export function AdminApplicationsPage() {
       })
       setTotal(n)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao carregar mais aplicações'
+      const msg = toUserMessage(e, 'Falha ao carregar mais aplicações')
       setError(msg)
       toast.push(msg, 'error')
     } finally {
@@ -305,7 +306,7 @@ export function AdminApplicationsPage() {
       pushOk('Período atualizado.')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao salvar período')
+      pushError(toUserMessage(e, 'Falha ao salvar período'))
     } finally {
       setBusy(false)
     }
@@ -326,7 +327,7 @@ export function AdminApplicationsPage() {
       pushOk('Aplicação excluída.')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao excluir')
+      pushError(toUserMessage(e, 'Falha ao excluir'))
     } finally {
       setBusy(false)
     }
@@ -348,7 +349,7 @@ export function AdminApplicationsPage() {
       pushOk(`${n} aplicação(ões) excluída(s).`)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao excluir seleção')
+      pushError(toUserMessage(e, 'Falha ao excluir seleção'))
     } finally {
       setBusy(false)
     }
@@ -402,7 +403,7 @@ export function AdminApplicationsPage() {
       setQDebounced(sku)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao criar aplicação')
+      pushError(toUserMessage(e, 'Falha ao criar aplicação'))
     } finally {
       setBusy(false)
     }

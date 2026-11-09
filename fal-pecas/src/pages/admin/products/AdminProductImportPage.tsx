@@ -3,6 +3,7 @@ import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCatalogImport,
   adminCreateCatalogImport,
@@ -67,7 +68,7 @@ export function AdminProductImportPage() {
       setPreview(rows)
       setPhase('preview')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha no preview')
+      pushError(toUserMessage(err, 'Falha no preview'))
     } finally {
       setBusy(false)
     }
@@ -86,7 +87,7 @@ export function AdminProductImportPage() {
       setPhase('done')
       toast.push(msg, 'success')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(toUserMessage(err, 'Falha ao aplicar importação'))
       setPhase('preview')
     } finally {
       setBusy(false)

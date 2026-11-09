@@ -3,6 +3,7 @@ import { useToast } from '@/components/common/Toast'
 import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyHfBundleImport,
   adminCreateHfBundleImports,
@@ -67,7 +68,7 @@ export function AdminHfBundleImportPage() {
       setApplicationImportId(ids.applicationImportId)
       setPhase('preview')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao ler arquivo')
+      pushError(toUserMessage(err, 'Falha ao ler arquivo'))
     } finally {
       setBusy(false)
     }
@@ -98,7 +99,7 @@ export function AdminHfBundleImportPage() {
         )
       }
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao aplicar')
+      pushError(toUserMessage(err, 'Falha ao aplicar'))
       setPhase('preview')
     } finally {
       setBusy(false)
