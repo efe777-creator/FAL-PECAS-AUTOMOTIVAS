@@ -108,7 +108,7 @@ export function AdminProductRelatedSection({ productId }: Props) {
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[220px] flex-1">
           <Input
-            label="SKU, referência ou nome"
+            label="Código, referência ou nome"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {

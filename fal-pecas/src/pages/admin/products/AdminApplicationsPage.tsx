@@ -19,6 +19,7 @@ import {
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
@@ -359,7 +360,7 @@ export function AdminApplicationsPage() {
     setError(null)
     const sku = createSku.trim()
     if (!sku) {
-      pushError('Informe o código (SKU) do produto')
+      pushError(`Informe o ${SKU_FAL_LABEL.toLowerCase()} do produto`)
       return
     }
     if (!createModelId) {
@@ -448,7 +449,7 @@ export function AdminApplicationsPage() {
           </p>
           <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
             <Input
-              label="Código (SKU)"
+              label={SKU_FAL_LABEL}
               value={createSku}
               onChange={(e) => setCreateSku(e.target.value)}
               placeholder="Código do produto"
