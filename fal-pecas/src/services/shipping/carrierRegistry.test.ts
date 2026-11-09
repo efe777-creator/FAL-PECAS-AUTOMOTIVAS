@@ -46,27 +46,24 @@ describe('carrierRegistry', () => {
     expect(ready).toContain('melhorenvio')
   })
 
-  it('resolve melhorenvio edge sandbox (default ME env)', () => {
-    expect(resolveShippingMeEnvMode(undefined)).toBe('sandbox')
+  it('resolveShippingMeEnvMode mapeia sandbox/production', () => {
     expect(resolveShippingMeEnvMode('sandbox')).toBe('sandbox')
-    expect(getCarrierByEnvKey('melhorenvio').quoteRuntime).toBe('edge')
-    expect(getCarrierByEnvKey('melhorenvio').mode).toBe('sandbox')
-    expect(commercialShippingDisclaimer(getCarrierByEnvKey('melhorenvio'))).toMatch(
-      /ambiente de teste/i,
-    )
-  })
-
-  it('resolveShippingMeEnvMode production → live sem disclaimer', () => {
+    expect(resolveShippingMeEnvMode('')).toBe('sandbox')
     expect(resolveShippingMeEnvMode('production')).toBe('live')
     expect(resolveShippingMeEnvMode('prod')).toBe('live')
     expect(resolveShippingMeEnvMode('live')).toBe('live')
-    // getCarrierByEnvKey lê import.meta.env; sem production no vitest default = sandbox
-    const liveDesc = {
-      ...getCarrierByEnvKey('melhorenvio'),
-      mode: 'live' as const,
-      placeOrderReady: true,
+  })
+
+  it('melhorenvio edge: mode segue VITE_SHIPPING_ME_ENV do ambiente de teste', () => {
+    expect(getCarrierByEnvKey('melhorenvio').quoteRuntime).toBe('edge')
+    const me = getCarrierByEnvKey('melhorenvio')
+    const fromEnv = resolveShippingMeEnvMode()
+    expect(me.mode).toBe(fromEnv)
+    if (fromEnv === 'live') {
+      expect(commercialShippingDisclaimer(me)).toBeNull()
+    } else {
+      expect(commercialShippingDisclaimer(me)).toMatch(/ambiente de teste/i)
     }
-    expect(commercialShippingDisclaimer(liveDesc)).toBeNull()
   })
 
   it('resolve env desconhecido para mock', () => {

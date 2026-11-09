@@ -1,60 +1,49 @@
 # Handoff — Espelho eFe como loja de teste comercial
 
-**Data:** 2026-11-09 · ~15h05  
+**Data:** 2026-11-09 · atualizado ~15h55  
 **URL:** https://fal-pecas-automotivas-efe.netlify.app  
-**Deploy:** `6af20af88329cdbba9ef62fd` ready · Edges MP/ME redeployed (wtbp)  
-**Commit:** `07dbb76` (motor pagamentos + admin + ME env-driven)
+**Projeto Supabase:** `wtbpwuiayednvlhvuhbh`  
+**Commit código motor:** `07dbb76` (+ docs/testes posteriores)
 
 ---
 
-## O que já está no eFe
+## O que já está no eFe (verificado)
 
 | Item | Status |
 |------|--------|
-| Build publicado | PASS |
-| `VITE_SUPABASE_*` | Configurado (você) |
+| Build publicado | PASS (deploys upload; último ready ~18:42Z) |
+| `VITE_SUPABASE_*` | Configurado |
 | `VITE_PAYMENT_PROVIDER=mercadopago` | Configurado |
-| `VITE_MP_PUBLIC_KEY` | **TEST-…** (homolog) — colocado para o Brick/Pix funcionar |
+| `VITE_MP_PUBLIC_KEY` | `APP_USR-…` produção (UUID ~44 chars — Public Key prod) |
+| `VITE_MP_ENV` | `production` |
 | `VITE_SHIPPING_PROVIDER=melhorenvio` | Configurado |
-| `VITE_SHIPPING_ME_ENV` | `sandbox` (até token ME produção) |
+| `VITE_SHIPPING_ME_ENV` | `production` |
+| Edge `MP_ACCESS_TOKEN` / `MP_ENV=production` | Presentes |
+| Edge `MELHOR_ENVIO_TOKEN` + `MELHOR_ENVIO_API_BASE` prod | Presentes |
+| Cotação frete | **live** (SEDEX/Jadlog + FAL) |
+| Pix create produção | **PASS** — pedido `4a1e1249-34c8-45e8-b1b4-6b56b8912206` · R$ 63,35 |
 | Admin Pagamentos | `/admin/pagamentos` · Métodos → Mercado Pago |
-| Edges | `create-mp-payment`, `quote-shipping`, `melhorenvio-label` |
+
+VAL: `FAL_MARCHA_VERIFICACAO_COMERCIAL_EFE_VAL_2026-11-09.md`
 
 ---
 
-## Para “comprar de verdade” + frete contratável
+## Ainda pendente (humano / ops)
 
-Hoje ainda é **homolog MP (TEST)** + **ME sandbox** (default Edge). Dinheiro/etiqueta reais exigem:
-
-### Netlify eFe (build)
-
-1. Trocar `VITE_MP_PUBLIC_KEY` → `APP-…` (produção)  
-2. `VITE_SHIPPING_ME_ENV=production`  
-3. Redeploy eFe
-
-### Supabase secrets (wtbp Edge)
-
-1. `MP_ACCESS_TOKEN` = `APP_USR…` produção (casar com Public Key)  
-2. `MP_ENV=production`  
-3. `MP_WEBHOOK_SECRET` do app prod + URL webhook no painel MP  
-4. `MELHOR_ENVIO_TOKEN` produção  
-5. `MELHOR_ENVIO_API_BASE=https://melhorenvio.com.br`  
-6. Redeploy Edges
-
-Webhook:
-
-```
-https://wtbpwuiayednvlhvuhbh.supabase.co/functions/v1/mercado-pago-webhook
-```
+1. **Pagar** o Pix de verificação e confirmar webhook → `approved`  
+2. Smoke **cartão** Brick (aprovado/recusado)  
+3. Admin staff: hub pagamentos / status MP  
+4. Expedição: etiqueta ME produção (cobra saldo ME)  
+5. Webhook URL no painel MP (se ainda não):  
+   `https://wtbpwuiayednvlhvuhbh.supabase.co/functions/v1/mercado-pago-webhook`  
+6. Fernando prod: bloqueado por crédito Netlify
 
 ---
 
-## Fluxo de teste comercial (quando vars prod estiverem)
+## Fluxo de teste comercial
 
 1. Catálogo → carrinho → cotar frete CEP real → checkout  
 2. Pix ou cartão → webhook approve  
-3. Admin Expedição → preparar/comprar etiqueta ME (produção cobra saldo ME)
+3. Admin Expedição → preparar/comprar etiqueta ME
 
-Até lá: smoke com TEST/sandbox no mesmo URL eFe.
-
-**Assinatura:** eFe espelho comercial prep · 2026-11-09.
+**Assinatura:** eFe comercial operacional (create Pix + frete live) · webhook approve ainda humano · 2026-11-09.
