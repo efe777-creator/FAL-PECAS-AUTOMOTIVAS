@@ -131,7 +131,7 @@ export function AdminMelhorEnvioPage() {
       }
       const edge = await syncMeCatalogFromEdge()
       toast.push(
-        `Catálogo atualizado: ${edge.upserted} via ME` +
+        `Catálogo atualizado: ${edge.upserted} via Melhor Envio` +
           (fromQuotes ? ` · ${fromQuotes} das cotações recentes` : '') +
           '. Novos entram desligados — ligue os que devem aparecer no site.',
         'success',
