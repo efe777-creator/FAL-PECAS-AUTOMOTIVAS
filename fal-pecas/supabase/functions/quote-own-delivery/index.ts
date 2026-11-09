@@ -64,8 +64,9 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
-    const { data: userData, error: userErr } = await userClient.auth.getUser()
-    if (userErr || !userData.user) return json(401, { error: 'unauthorized' })
+    // Guest pode cotar frete próprio no carrinho (JWT anon). customer_id opcional.
+    const { data: userData } = await userClient.auth.getUser()
+    const user = userData.user
 
     const admin = createClient(supabaseUrl, serviceKey)
     const body = await req.json()
@@ -344,11 +345,9 @@ Deno.serve(async (req) => {
     const etaMin = Number(settings.eta_days_min) || 1
     const etaMax = Number(settings.eta_days_max) || 3
 
-    const { data: customer } = await admin
-      .from('customers')
-      .select('id')
-      .eq('profile_id', userData.user.id)
-      .maybeSingle()
+    const { data: customer } = user?.id
+      ? await admin.from('customers').select('id').eq('profile_id', user.id).maybeSingle()
+      : { data: null }
 
     const option = {
       vehicle_code: chosen.code,

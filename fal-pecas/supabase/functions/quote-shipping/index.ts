@@ -91,11 +91,11 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     })
+    // Cotação de vitrine/carrinho guest: JWT anon basta. Sessão de usuário é opcional
+    // (customer_id na shipping_quotes). Ações staff exigem user + is_staff.
     const {
       data: { user },
-      error: userErr,
     } = await userClient.auth.getUser()
-    if (userErr || !user) return json(401, { error: 'unauthorized' })
 
     let body: Record<string, unknown>
     try {
@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
 
     /** Status integração ME (staff) — sem expor secrets. */
     if (action === 'me_admin_status') {
+      if (!user) return json(401, { error: 'unauthorized' })
       const { data: staffOk } = await userClient.rpc('is_staff')
       if (!staffOk) return json(403, { error: 'staff_required' })
       if (!serviceKey) return json(500, { error: 'supabase_service_role_missing' })
@@ -161,6 +162,7 @@ Deno.serve(async (req) => {
      * (novos entram enabled=false; existentes atualizam nome/logo).
      */
     if (action === 'me_sync_catalog') {
+      if (!user) return json(401, { error: 'unauthorized' })
       const { data: staffOk } = await userClient.rpc('is_staff')
       if (!staffOk) return json(403, { error: 'staff_required' })
       const meToken = (Deno.env.get('MELHOR_ENVIO_TOKEN') ?? '')
@@ -502,11 +504,9 @@ Deno.serve(async (req) => {
         })
       }
 
-      const { data: cust } = await admin
-        .from('customers')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle()
+      const { data: cust } = user?.id
+        ? await admin.from('customers').select('id').eq('profile_id', user.id).maybeSingle()
+        : { data: null }
 
       const fp = fingerprint({
         postalCode,
