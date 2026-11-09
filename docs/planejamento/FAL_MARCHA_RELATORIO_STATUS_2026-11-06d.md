@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA copy preços/img/ME pedido (#206)  
+**HEAD:** `main` @ tip MARCHA copy preço form produto (#207)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -67,6 +67,7 @@
 | a1a5755 | O0-C | Admin busca: copy sinônimos (sem prep IA) |
 | #205 | O0-C / O1-E | Melhor Envio admin: copy sem jargão Edge/migration |
 | #206 | O0-C | Formação preços + import imagens SKU + serviço ME no pedido |
+| #207 | O0-C | Form produto: copy bloco preços (sem products.price / status EN) |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
