@@ -6,6 +6,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
 import {
   IMPORT_KINDS,
+  importItemResultLabel,
   importKindLabel,
   importStatusLabel,
   importWizardPath,
@@ -324,7 +325,7 @@ export function AdminImportsPage() {
                 <tr className="bg-fal-bg text-left text-fal-muted">
                   <th className="px-2 py-1">Linha</th>
                   <th className="px-2 py-1">Resultado</th>
-                  <th className="px-2 py-1">Payload</th>
+                  <th className="px-2 py-1">Dados</th>
                   <th className="px-2 py-1">Erros</th>
                 </tr>
               </thead>
@@ -332,7 +333,7 @@ export function AdminImportsPage() {
                 {detail.items.slice(0, 200).map((it) => (
                   <tr key={it.id} className="border-b border-fal-line/50">
                     <td className="px-2 py-1">{it.lineNumber ?? '—'}</td>
-                    <td className="px-2 py-1">{it.result ?? '—'}</td>
+                    <td className="px-2 py-1">{importItemResultLabel(it.result)}</td>
                     <td className="px-2 py-1 font-mono">{payloadPreview(it.payload)}</td>
                     <td className="px-2 py-1 text-red-600">{it.errors.join('; ') || '—'}</td>
                   </tr>

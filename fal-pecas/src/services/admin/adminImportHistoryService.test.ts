@@ -9,7 +9,7 @@ describe('formatImportReportSummary', () => {
 
   it('campos comuns', () => {
     expect(formatImportReportSummary({ created: 1, updated: 99, skipped: 1, failed: 0 })).toBe(
-      'created: 1 · updated: 99 · skipped: 1 · failed: 0',
+      'Criados: 1 · Atualizados: 99 · Ignorados: 1 · Falhas: 0',
     )
   })
 })

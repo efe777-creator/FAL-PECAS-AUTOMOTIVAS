@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
+import { importItemResultLabel } from '@/lib/importLabels'
 import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -791,7 +792,7 @@ export function PriceImportWizard({
                         {r.cost != null ? formatMoney(r.cost) : '—'}
                       </td>
                       <td className="px-2 py-1">
-                        {r.ok ? 'ok' : r.errors.join('; ')}
+                        {r.ok ? importItemResultLabel('ok') : r.errors.join('; ')}
                       </td>
                     </tr>
                   ))}

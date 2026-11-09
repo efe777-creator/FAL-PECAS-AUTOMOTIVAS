@@ -155,6 +155,16 @@ export async function adminGetImportRunDetail(
   }
 }
 
+const IMPORT_REPORT_KEY_LABEL: Record<string, string> = {
+  created: 'Criados',
+  updated: 'Atualizados',
+  skipped: 'Ignorados',
+  failed: 'Falhas',
+  invalid: 'Inválidos',
+  valid: 'Válidos',
+  total: 'Total',
+}
+
 /** Resumo legível do JSON `report` (campos comuns dos applies). */
 export function formatImportReportSummary(
   report: Record<string, unknown> | null,
@@ -171,7 +181,9 @@ export function formatImportReportSummary(
     'total',
   ] as const) {
     const v = report[key]
-    if (typeof v === 'number') parts.push(`${key}: ${v}`)
+    if (typeof v === 'number') {
+      parts.push(`${IMPORT_REPORT_KEY_LABEL[key] ?? key}: ${v}`)
+    }
   }
   return parts.length ? parts.join(' · ') : '—'
 }
