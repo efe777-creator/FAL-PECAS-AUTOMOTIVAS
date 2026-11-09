@@ -113,8 +113,8 @@ export function PriceListFormacaoTab({
       <div className="rounded-[14px] border border-fal-line bg-white p-4">
         <h2 className="text-lg font-extrabold text-fal-navy">Ajuste global (lista inteira)</h2>
         <p className="mt-1 text-sm text-fal-muted">
-          RPC adjust_price_list_items — distinto da seleção em massa da aba Produtos. Aplica só à
-          lista <strong>{list.name}</strong>. Ex.:{' '}
+          Ajuste de todos os preços desta lista — distinto da seleção em massa na aba Produtos.
+          Aplica só à lista <strong>{list.name}</strong>. Ex.:{' '}
           {items[0] ? formatMoney(computeAdjustedPrice(items[0].price, 'percent', 10)) : '—'}
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-4">
