@@ -480,8 +480,8 @@ export function AdminCategoriesPage() {
       title: 'Aplicar medidas padrão',
       message:
         `Aplicar peso/dimensões padrão de "${editing.name}" aos produtos desta classificação e subárvore? ` +
-        'Medidas marcadas como Manual no produto não serão alteradas.',
-      confirmLabel: 'Aplicar (respeitar Manual)',
+        'Medidas manuais do produto não serão alteradas.',
+      confirmLabel: 'Aplicar (respeitar medidas manuais)',
     })
     if (!confirmed) return
     setBusyApplyMeasures(true)
@@ -512,7 +512,7 @@ export function AdminCategoriesPage() {
       pushOk(
         r.productCount === 0
           ? 'Nenhum produto nesta classificação/subárvore.'
-          : `Padrão aplicado: ${r.productCount} produto(s) no escopo · ${r.updatedFieldRows} campo(s) atualizado(s) (origem Global).`,
+          : `Padrão aplicado: ${r.productCount} produto(s) no escopo · ${r.updatedFieldRows} campo(s) atualizado(s) (medida padrão da classificação).`,
       )
     } catch (err) {
       pushError(toUserMessage(err, 'Falha ao aplicar medidas padrão'))

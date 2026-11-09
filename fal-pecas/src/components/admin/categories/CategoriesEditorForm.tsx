@@ -352,8 +352,9 @@ export function CategoriesEditorForm({
         <div>
           <h3 className="m-0 text-sm font-extrabold text-fal-navy">Medidas padrão (frete)</h3>
           <p className="mb-0 mt-1 text-[13px] text-fal-muted">
-            Fallback O1-C quando o produto não tem medida própria. Salve a classificação e, se
-            quiser, aplique aos produtos da subárvore respeitando origem Manual.
+            Usado na cotação de frete quando o produto ainda não tem medida própria. Salve a
+            classificação e, se quiser, aplique aos produtos da subárvore — medidas manuais do
+            produto não são alteradas.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -390,7 +391,9 @@ export function CategoriesEditorForm({
             disabled={busyApplyMeasures}
             onClick={() => void onApplyDefaultMeasures()}
           >
-            {busyApplyMeasures ? 'Aplicando…' : 'Aplicar padrão aos produtos (respeitar Manual)'}
+            {busyApplyMeasures
+              ? 'Aplicando…'
+              : 'Aplicar padrão aos produtos (respeitar medidas manuais)'}
           </Button>
         ) : (
           <p className="m-0 text-[13px] text-fal-muted">
