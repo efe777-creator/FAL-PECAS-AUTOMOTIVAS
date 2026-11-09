@@ -5,6 +5,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { entityStatusLabel } from '@/lib/adminLabels'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminListModels,
@@ -50,7 +51,7 @@ export function AdminVehiclesPage() {
       try {
         setMakers(await adminListManufacturers())
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Erro'
+        const msg = toUserMessage(e, 'Erro ao carregar montadoras')
         setError(msg)
         toast.push(msg, 'error')
       } finally {
@@ -68,7 +69,7 @@ export function AdminVehiclesPage() {
     void adminListModels(makerId)
       .then(setModels)
       .catch((e) => {
-        const msg = String(e)
+        const msg = toUserMessage(e, 'Erro ao carregar modelos')
         setError(msg)
         toast.push(msg, 'error')
       })
@@ -82,7 +83,7 @@ export function AdminVehiclesPage() {
     void adminListVersions(modelId)
       .then(setVersions)
       .catch((e) => {
-        const msg = String(e)
+        const msg = toUserMessage(e, 'Erro ao carregar configurações')
         setError(msg)
         toast.push(msg, 'error')
       })
@@ -104,7 +105,7 @@ export function AdminVehiclesPage() {
       setModels(await adminListModels(makerId))
       pushOk(editingModelId ? 'Modelo atualizado.' : 'Modelo criado.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar modelo')
+      pushError(toUserMessage(err, 'Falha ao salvar modelo'))
     }
   }
 
@@ -129,7 +130,7 @@ export function AdminVehiclesPage() {
       setVersions(await adminListVersions(modelId))
       pushOk(editingVersionId ? 'Configuração atualizada.' : 'Configuração criada.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar configuração')
+      pushError(toUserMessage(err, 'Falha ao salvar configuração'))
     }
   }
 
@@ -270,7 +271,7 @@ export function AdminVehiclesPage() {
                             setModels(await adminListModels(makerId))
                             pushOk(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
                           })
-                          .catch((err) => pushError(String(err)))
+                          .catch((err) => pushError(toUserMessage(err, 'Falha ao atualizar status')))
                       }
                     >
                       {m.status === 'active' ? 'Inativar' : 'Ativar'}
@@ -393,7 +394,7 @@ export function AdminVehiclesPage() {
                                 : 'Configuração ativada.',
                             )
                           })
-                          .catch((err) => pushError(String(err)))
+                          .catch((err) => pushError(toUserMessage(err, 'Falha ao atualizar status')))
                       }
                     >
                       {v.status === 'active' ? 'Inativar' : 'Ativar'}

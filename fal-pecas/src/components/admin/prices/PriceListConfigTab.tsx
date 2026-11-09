@@ -111,7 +111,7 @@ export function PriceListConfigTab({
           checked={cfgDefault}
           onChange={(e) => onCfgDefault(e.target.checked)}
         />
-        Lista padrão (fallback)
+        Lista padrão da loja
       </label>
       <p className="text-xs text-fal-muted md:col-span-2">
         {PRICE_LIST_LAYERS_HINT} Formação (método/%) edita-se na aba Formação —{' '}

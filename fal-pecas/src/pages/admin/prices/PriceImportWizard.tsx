@@ -357,7 +357,7 @@ export function PriceImportWizard({
         }
       } else if (costSellAction === 'keep_sell') {
         sellMsg =
-          'Preços de venda mantidos; indicadores (markup/margem) atualizam na tela ao recarregar.'
+          'Preços de venda mantidos; indicadores da regra da lista atualizam na tela ao recarregar.'
       }
 
       setProgress({ done: costValid, total: costValid })
@@ -849,7 +849,7 @@ export function PriceImportWizard({
                     <span>
                       <strong>Atualizar preço pela regra da lista</strong>
                       <span className="block text-xs text-fal-muted">
-                        Novo custo + markup/margem da lista → novo preço (não altera preços manuais)
+                        Novo custo + regra da lista → novo preço (não altera preços manuais)
                       </span>
                     </span>
                   </label>
@@ -863,7 +863,7 @@ export function PriceImportWizard({
                     <span>
                       <strong>Manter preço e recalcular indicadores</strong>
                       <span className="block text-xs text-fal-muted">
-                        Preço igual; markup/margem efetivos mudam na tela
+                        Preço igual; indicadores da regra da lista mudam na tela
                       </span>
                     </span>
                   </label>
