@@ -118,13 +118,7 @@ export function AdminCategoriesPage() {
       )
       setExpanded(withKids)
     } catch (e) {
-      const msg =
-        e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string'
-          ? (e as { message: string }).message
-          : e instanceof Error
-            ? e.message
-            : 'Erro ao carregar categorias'
-      pushError(msg)
+      pushError(toUserMessage(e, 'Erro ao carregar categorias'))
     } finally {
       setLoading(false)
     }
@@ -468,7 +462,7 @@ export function AdminCategoriesPage() {
       await reload()
       pushOk('Classificação salva.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar')
+      pushError(toUserMessage(err, 'Falha ao salvar'))
     }
   }
 
@@ -548,7 +542,7 @@ export function AdminCategoriesPage() {
       await reload()
       pushOk(cat.status === 'archived' ? 'Publicado novamente.' : 'Arquivado.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao alterar status')
+      pushError(toUserMessage(err, 'Falha ao alterar status'))
     } finally {
       setBusyId(null)
     }
@@ -572,7 +566,7 @@ export function AdminCategoriesPage() {
       await reload()
       pushOk('Classificação excluída.')
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao excluir')
+      pushError(toUserMessage(err, 'Falha ao excluir'))
     } finally {
       setBusyId(null)
     }
@@ -589,7 +583,7 @@ export function AdminCategoriesPage() {
       )
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao reordenar')
+      pushError(toUserMessage(err, 'Falha ao reordenar'))
     } finally {
       setBusyId(null)
     }

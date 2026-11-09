@@ -3,6 +3,7 @@ import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
 import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { adminReportsBundle, staffCanViewReportsF8 } from '@/services/admin/adminReportsService'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -34,7 +35,7 @@ export function AdminReportsPage() {
         setTotals(bundle.totals)
         setError(null)
       } catch (e) {
-        const message = e instanceof Error ? e.message : 'Erro ao carregar relatórios'
+        const message = toUserMessage(e, 'Erro ao carregar relatórios')
         setError(message)
         toast.push(message, 'error')
       } finally {

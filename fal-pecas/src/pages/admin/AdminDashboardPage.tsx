@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { canAccessAdminPath } from '@/lib/adminNavAccess'
 import { formatDateTime } from '@/lib/datetime'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminListOrders,
   adminOrderStatusCounts,
@@ -101,7 +102,7 @@ export function AdminDashboardPage() {
         setOrders(list)
         setLoadError(null)
       } catch (e) {
-        setLoadError(e instanceof Error ? e.message : 'Falha ao carregar pedidos')
+        setLoadError(toUserMessage(e, 'Falha ao carregar pedidos'))
         setCounts({})
         setOrders([])
       } finally {
