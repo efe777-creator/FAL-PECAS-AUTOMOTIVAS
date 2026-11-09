@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA copy POL (#221)  
+**HEAD:** `main` @ tip MARCHA código interno (#222)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -82,6 +82,7 @@
 | #219 | O1-F / O0-C | Hooks catálogo + envelope frete + import imagens |
 | #220 | O0-C / O1-D | Copy frete loja, SKU interno e POL |
 | #221 | O0-C / O1-D | UI capacidade sem jargão POL |
+| #222 | O0-C | SKU FAL → Código interno na UI |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

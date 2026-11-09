@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
+import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyCostImport,
@@ -726,7 +727,7 @@ export function PriceImportWizard({
                 <>
                   {' '}
                   <strong className="text-fal-navy">
-                    FAL Principal ({FAL_PRINCIPAL_SUPPLIER_CODE}): código = SKU FAL
+                    FAL Principal ({FAL_PRINCIPAL_SUPPLIER_CODE}): código = {SKU_FAL_LABEL}
                   </strong>{' '}
                   — sem conversão.
                 </>
