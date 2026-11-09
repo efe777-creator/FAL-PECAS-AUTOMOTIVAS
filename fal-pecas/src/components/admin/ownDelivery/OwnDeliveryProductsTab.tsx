@@ -1,6 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { productStatusLabel } from '@/lib/adminLabels'
 import {
   listProductsForOwnPol,
   saveProductPol,
@@ -113,7 +114,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
                   <td className="px-2 py-2">
                     <div className="font-semibold text-fal-navy">{p.name}</div>
                     <div className="text-xs text-fal-muted">
-                      {p.commercialRef || p.sku} · {p.status}
+                      {p.commercialRef || p.sku} · {productStatusLabel(p.status)}
                     </div>
                   </td>
                   <td className="px-2 py-2">
