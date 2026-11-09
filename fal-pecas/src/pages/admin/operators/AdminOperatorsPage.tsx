@@ -7,6 +7,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   ASSIGNABLE_ROLES,
   adminDeactivateOperator,
@@ -38,7 +39,7 @@ export function AdminOperatorsPage() {
       setRows(await adminSearchUsers(q))
     } catch (err) {
       setRows([])
-      const msg = err instanceof Error ? err.message : 'Erro ao carregar operadores'
+      const msg = toUserMessage(err, 'Erro ao carregar operadores')
       setLoadError(msg)
       toast.push(msg, 'error')
     } finally {
@@ -88,7 +89,7 @@ export function AdminOperatorsPage() {
       )
       toast.push(`Acesso atualizado: ${row.email ?? row.id}`, 'success')
     } catch (err) {
-      toast.push(err instanceof Error ? err.message : 'Erro ao alterar acesso', 'error')
+      toast.push(toUserMessage(err, 'Erro ao alterar acesso'), 'error')
     } finally {
       setSavingId(null)
     }
@@ -121,7 +122,7 @@ export function AdminOperatorsPage() {
       toast.push(`Acesso desativado: ${row.email ?? row.id}`, 'success')
       if (!query.trim()) await load('')
     } catch (err) {
-      toast.push(err instanceof Error ? err.message : 'Erro ao desativar', 'error')
+      toast.push(toUserMessage(err, 'Erro ao desativar'), 'error')
     } finally {
       setSavingId(null)
     }

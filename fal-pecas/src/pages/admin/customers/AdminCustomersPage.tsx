@@ -1,6 +1,5 @@
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
-import { toUserMessage } from '@/lib/toUserMessage'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
@@ -9,6 +8,7 @@ import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import { formatPhoneMask } from '@/lib/phone'
 import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminGetCustomer,
   adminListCustomers,
@@ -67,7 +67,7 @@ export function AdminCustomersPage() {
         setRows(list)
         setHasMore(list.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
       } catch (e) {
-        pushError(e instanceof Error ? e.message : 'Erro ao carregar clientes')
+        pushError(toUserMessage(e, 'Erro ao carregar clientes'))
       } finally {
         setLoading(false)
       }
@@ -108,7 +108,7 @@ export function AdminCustomersPage() {
       setDetail(d)
     } catch (e) {
       setDetail(null)
-      pushError(e instanceof Error ? e.message : 'Erro ao abrir cliente')
+      pushError(toUserMessage(e, 'Erro ao abrir cliente'))
     } finally {
       setDetailLoading(false)
     }

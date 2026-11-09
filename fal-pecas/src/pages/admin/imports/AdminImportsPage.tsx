@@ -10,6 +10,7 @@ import {
   importStatusLabel,
   importWizardPath,
 } from '@/lib/importLabels'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   ADMIN_IMPORTS_PAGE_SIZE,
   adminGetImportRunDetail,
@@ -65,7 +66,7 @@ export function AdminImportsPage() {
       setHasMore(list.length >= ADMIN_IMPORTS_PAGE_SIZE)
       setError(null)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erro ao listar importações'
+      const message = toUserMessage(e, 'Erro ao listar importações')
       setError(message)
       toast.push(message, 'error')
     } finally {
@@ -94,7 +95,7 @@ export function AdminImportsPage() {
       })
       setHasMore(next.length >= ADMIN_IMPORTS_PAGE_SIZE)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar mais importações')
+      pushError(toUserMessage(e, 'Erro ao carregar mais importações'))
     } finally {
       setLoadingMore(false)
     }
@@ -105,7 +106,7 @@ export function AdminImportsPage() {
     try {
       setDetail(await adminGetImportRunDetail(id))
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar detalhes')
+      pushError(toUserMessage(e, 'Erro ao carregar detalhes'))
     } finally {
       setDetailBusy(false)
     }

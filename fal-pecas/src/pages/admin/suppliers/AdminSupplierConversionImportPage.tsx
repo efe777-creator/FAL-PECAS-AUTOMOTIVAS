@@ -3,6 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyConversionImport,
   adminCreateConversionImport,
@@ -53,7 +54,7 @@ export function AdminSupplierConversionImportPage() {
         setSuppliers(list.filter((s) => s.status === 'active'))
         setError(null)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Erro ao carregar fornecedores'
+        const msg = toUserMessage(e, 'Erro ao carregar fornecedores')
         setError(msg)
         toast.push(msg, 'error')
       } finally {
@@ -101,7 +102,7 @@ export function AdminSupplierConversionImportPage() {
       })
       setImportId(id)
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha no preview')
+      pushError(toUserMessage(err, 'Falha no preview'))
     } finally {
       setBusy(false)
     }
@@ -132,7 +133,7 @@ export function AdminSupplierConversionImportPage() {
       )
       clearPreview()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao aplicar importação')
+      pushError(toUserMessage(err, 'Falha ao aplicar importação'))
     } finally {
       setBusy(false)
     }
