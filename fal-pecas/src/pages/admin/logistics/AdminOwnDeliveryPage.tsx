@@ -42,7 +42,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
   { id: 'geral', label: 'Gerais', hint: 'Ligar frete e cobertura' },
   { id: 'veiculos', label: 'Veículos', hint: 'Tipos de entrega' },
   { id: 'tarifas', label: 'Tarifas', hint: 'Preços por veículo' },
-  { id: 'produtos', label: 'Produtos', hint: 'Capacidade POL' },
+  { id: 'produtos', label: 'Produtos', hint: 'Capacidade dos produtos' },
   { id: 'manual', label: 'Análise manual', hint: 'Casos especiais' },
   { id: 'historico', label: 'Histórico', hint: 'Alterações recentes' },
 ]
