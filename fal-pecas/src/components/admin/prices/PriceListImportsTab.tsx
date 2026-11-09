@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { formatDateTime } from '@/lib/datetime'
+import { importStatusLabel } from '@/lib/importLabels'
 import type {
   PriceListImportDetail,
   PriceListImportSummary,
@@ -30,7 +31,7 @@ export function PriceListImportsTab({
           <div>
             <h2 className="m-0 text-lg font-extrabold text-fal-navy">Histórico de importações</h2>
             <p className="mt-1 text-sm text-fal-muted">
-              Runs desta lista (kind=price_list). Histórico de todos os kinds:{' '}
+              Importações desta lista de preços. Histórico geral:{' '}
               <Link className="font-semibold text-fal-navy underline" to="/admin/importacoes">
                 Importações
               </Link>
@@ -65,7 +66,7 @@ export function PriceListImportsTab({
                   <tr key={imp.id} className="border-b border-fal-line/70">
                     <td className="px-3 py-2 text-xs">{formatDateTime(imp.createdAt)}</td>
                     <td className="px-3 py-2">{imp.filename}</td>
-                    <td className="px-3 py-2">{imp.status}</td>
+                    <td className="px-3 py-2">{importStatusLabel(imp.status)}</td>
                     <td className="px-3 py-2 text-right">{imp.totalItems}</td>
                     <td className="px-3 py-2 text-right">{imp.errorItems}</td>
                     <td className="px-3 py-2">
@@ -88,7 +89,7 @@ export function PriceListImportsTab({
         <div className="rounded-[14px] border border-fal-line bg-white p-4">
           <h3 className="m-0 font-extrabold text-fal-navy">{importDetail.filename}</h3>
           <p className="text-sm text-fal-muted">
-            {importDetail.status} · {formatDateTime(importDetail.createdAt)} ·{' '}
+            {importStatusLabel(importDetail.status)} · {formatDateTime(importDetail.createdAt)} ·{' '}
             {importDetail.totalItems} itens
           </p>
           <div className="mt-2 max-h-64 overflow-auto text-xs">
