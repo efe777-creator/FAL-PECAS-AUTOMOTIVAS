@@ -268,3 +268,20 @@ export function orderEventVisibilityLabel(visibility: string | null | undefined)
   if (!key) return '—'
   return key
 }
+
+/**
+ * Resultado de `finalize_order_confirmation` (toast / eventos admin).
+ * Valores canônicos do SQL — sem snake_case cru na UI.
+ */
+export function orderConfirmationResultLabel(result: string | null | undefined): string {
+  const key = String(result ?? '')
+    .trim()
+    .toLowerCase()
+  if (!key) return '—'
+  if (key === 'confirmado') return 'Confirmado'
+  if (key === 'nao_atendivel') return 'Não atendível — pedir autorização'
+  if (key === 'com_ressalva') return 'Com ressalva (prazo) — pedir autorização'
+  if (key === 'autorizado_com_indisponivel') return 'Autorizado com item indisponível'
+  if (key === 'autorizado_com_prazo') return 'Autorizado com prazo'
+  return result ?? '—'
+}

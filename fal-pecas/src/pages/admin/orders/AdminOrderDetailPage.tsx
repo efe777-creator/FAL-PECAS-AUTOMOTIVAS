@@ -23,6 +23,7 @@ import {
 import { meLabelStateLabel, meLabelState } from '@/lib/melhorEnvioLabelState'
 import {
   adminOrderNextStep,
+  orderConfirmationResultLabel,
   orderEventLabel,
   orderEventVisibilityLabel,
 } from '@/lib/orderLifecycle'
@@ -190,7 +191,9 @@ export function AdminOrderDetailPage() {
     setError(null)
     try {
       const r = await adminFinalizeConfirmation(id)
-      pushOk(`Resultado: ${r.result} → ${orderStatusOperatorLabel[r.status] ?? r.status}`)
+      pushOk(
+        `Resultado: ${orderConfirmationResultLabel(r.result)} → ${orderStatusOperatorLabel[r.status] ?? r.status}`,
+      )
       setPending(null)
       await reload()
     } catch (e) {
