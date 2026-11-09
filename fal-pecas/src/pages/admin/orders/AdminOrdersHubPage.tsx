@@ -17,6 +17,7 @@ import {
   runExpireUnpaidOrders,
 } from '@/lib/adminExpireUnpaidFlow'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
@@ -44,7 +45,7 @@ export function AdminOrdersHubPage() {
       setRows(list)
       setCounts(c)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
+      setError(toUserMessage(e, 'Erro ao carregar pedidos'))
     } finally {
       setLoading(false)
     }
@@ -75,7 +76,7 @@ export function AdminOrdersHubPage() {
       toast.push(formatExpireUnpaidMessage(r), 'success')
       await reload()
     } catch (e) {
-      toast.push(e instanceof Error ? e.message : 'Falha ao expirar pedidos', 'error')
+      toast.push(toUserMessage(e, 'Falha ao expirar pedidos'), 'error')
     } finally {
       setBusyExpire(false)
     }

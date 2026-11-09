@@ -141,7 +141,7 @@ export function MeExpeditionPanel({
       }
       await onReload()
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Falha Melhor Envio')
+      onError(toUserMessage(e, 'Falha no Melhor Envio'))
     } finally {
       setMeBusy(false)
     }

@@ -40,7 +40,7 @@ export function AdminOrdersViewPage() {
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(toUserMessage(e, 'Erro ao carregar'))
     } finally {
       setLoading(false)
     }

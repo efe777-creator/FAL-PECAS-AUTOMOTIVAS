@@ -87,7 +87,7 @@ export function AdminOrdersPage() {
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
       setCounts(c)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar pedidos')
+      setError(toUserMessage(e, 'Erro ao carregar pedidos'))
     } finally {
       setLoading(false)
     }
@@ -136,7 +136,7 @@ export function AdminOrdersPage() {
       toast.push(formatExpireUnpaidMessage(r), 'success')
       await reload()
     } catch (e) {
-      toast.push(e instanceof Error ? e.message : 'Falha ao expirar pedidos', 'error')
+      toast.push(toUserMessage(e, 'Falha ao expirar pedidos'), 'error')
     } finally {
       setBusyExpire(false)
     }
