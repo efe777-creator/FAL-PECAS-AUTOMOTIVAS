@@ -1,5 +1,6 @@
 import { isLikelyImageFile, skuKeyFromImageFilename } from '@/lib/skuFromImageFilename'
 import { getSupabase } from '@/lib/supabase'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { adminUploadImage } from '@/services/admin/adminImageService'
 
 export type ImageSkuMatchStatus = 'ok' | 'skip' | 'error'
@@ -200,7 +201,7 @@ export async function adminApplyImageSkuImport(
       ok += 1
     } catch (err) {
       row.status = 'error'
-      row.message = err instanceof Error ? err.message : 'Falha no upload'
+      row.message = toUserMessage(err, 'Falha no upload')
       error += 1
     }
     done += 1

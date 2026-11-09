@@ -60,7 +60,7 @@ export function OwnDeliveryAuditTab({ onError }: Props) {
             checked={showTech}
             onChange={(e) => setShowTech(e.target.checked)}
           />
-          Ver JSON técnico
+          Ver detalhes técnicos
         </label>
       ) : null}
     </div>
