@@ -2,7 +2,8 @@
 
 **Data:** 2026-11-05  
 **Tipo:** plano canônico de execução (matriz 29 + auditoria UX loja/admin)  
-**Status:** EM EXECUÇÃO (Onda 0 + grande parte Onda 1 no código — ver VAL)  
+**Status:** CÓDIGO ENCERRADO (2026-11-09) — tip `main` #247; produção plena = gates humanos  
+**Relatório final:** [FAL_MARCHA_RELATORIO_FINAL_PLANO_MESTRE_2026-11-09.md](./FAL_MARCHA_RELATORIO_FINAL_PLANO_MESTRE_2026-11-09.md)  
 **Fonte:** plano aprovado (Opção A ampliada)  
 **Backlog:** [FAL_BACKLOG_POS_ALPHA_2026-11-04.md](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)
 
@@ -66,35 +67,35 @@ Legenda: **I** implementado · **P** parcial · **C** corrigir/revalidar · **N*
 
 | # | Item | Status | Falta / onda |
 |---|------|--------|--------------|
-| 01 | Frete próprio | P | Tarifas eFe, E2E `ownq`, cutover gated — O1-D |
-| 23 | Prévia frete | P | Falha silenciosa sem medidas; copy técnica; carrinho sem nº — O1-D |
-| 24 | Melhor Envio | P | M7, hub stub, allowlist, API_BASE — O1-E |
-| 29 | Frete integrado | P | Caixas N; padrões por categoria N — O1-C |
-| 02 | Cadastro produtos | I | Feedback de salvar ausente, sem aviso de não salvo — O0-B |
-| 03 | Árvore classificação | P | Merge + duplicidades — O1-B |
-| 04 | Org. admin | P (era I) | Painel de lote sempre visível, 6 botões no topo — O1-I |
-| 05 | Classif. produtos | I | Cascata sem arquivadas; form reimplementa cascata — O1-B |
-| 20 | Integridade classif. | P | Relatório + merge — O1-B |
-| 17 | Import imagens SKU | N | Onda 4 |
-| 26 | Relacionados | I | Curadoria = futuro |
-| 27 | Imagens cards | I | Clique na imagem abre lightbox em vez do produto — O1-G |
-| 21 | Ano ini/fim | I | `vv.year` residual — O1-A |
-| 14 | Filtros catálogo | P (era I) | Mobile empilha filtros sem drawer — O1-H |
-| 15 | Busca itens | P (era I) | Sem teclado/combobox, sem “ver todos” — Onda 2 |
-| 16 | Filtros admin | P (era I) | Só “Sem imagem” recarrega; Enter não busca; limite 200 — O1-I |
-| 22 | Evolução busca | P | Facetas + IA — Ondas 2/4 |
-| 06 | Home | P | “Buscar pelo carro” escondido no fim; copy interna — Onda 3 |
-| 07 | Carrossel imagens | N | Onda 3 |
-| 08 | Carrossel produtos | N | Onda 3 |
-| 09 | Destaques personalizados | P | Onda 3 |
-| 10 | Admin destaques | N | Onda 3 |
-| 11 | Cond. pag. nos cards | N | Onda 3 (depende de 12) |
-| 12 | Cond. pagamento | N | Decisão comercial eFe — Onda 3 |
-| 13 | Cards / CTAs | P | Comprar agora + Adicionar — O1-G |
-| 25 | Admin pedidos | P (era I) | Limite 200, reload apaga tela, romaneio quebrado, 3 implementações do expirar — O0-B / O1-I |
-| 28 | Checkout auth/CPF | C | CPF re-pedido; `from` perdido no cadastro — O1-F |
-| 18 | Notif. carrinho | C | Toast fora do router recarrega a página e pode perder item — O0-D / O1-F |
-| 19 | Duplicidade funções | P | Inventário inclui UI admin — O1-A |
+| 01 | Frete próprio | P | Código hub OK; tarifas eFe + cutover C = gate — O1-D |
+| 23 | Prévia frete | I | PDP/carrinho com mensagem sem opção; recota — residual fino se finding |
+| 24 | Melhor Envio | P | Hub OK sob B; etiqueta M7 prod = gate — O1-E |
+| 29 | Frete integrado | P | Caixas + packing no código; padrões categoria finos / ops eFe — O1-C |
+| 02 | Cadastro produtos | I | Toast + blocker O0-B entregues |
+| 03 | Árvore classificação | P | Merge no código; massa = revisão eFe — O1-B |
+| 04 | Org. admin | I | Lote só com seleção; nav/breadcrumbs O1-I |
+| 05 | Classif. produtos | I | Cascata publicada; form alinhado |
+| 20 | Integridade classif. | P | Painel + merge; massa = eFe — O1-B |
+| 17 | Import imagens SKU | P | Página + matching no código; robustez escala = Onda 4 |
+| 26 | Relacionados | I | Curadoria em escala = futuro |
+| 27 | Imagens cards | I | Card → PDP; lightbox só PDP — O1-G |
+| 21 | Ano ini/fim | I | — |
+| 14 | Filtros catálogo | I | Drawer mobile — O1-H |
+| 15 | Busca itens | I | Combobox / ver todos — Onda 2 |
+| 16 | Filtros admin | I | Form Enter + paginação — O1-I |
+| 22 | Evolução busca | P | Facetas OK; prep IA = Onda 4 / gate sinônimos |
+| 06 | Home | I | Veículo/topo/campanhas — Onda 3 |
+| 07 | Carrossel imagens | I | Onda 3 |
+| 08 | Carrossel produtos | I | Onda 3 |
+| 09 | Destaques personalizados | I | Onda 3 |
+| 10 | Admin destaques | I | Onda 3 |
+| 11 | Cond. pag. nos cards | P | UI admin existe; ligar = decisão eFe (12) |
+| 12 | Cond. pagamento | P | Admin existe; decisão comercial eFe |
+| 13 | Cards / CTAs | I | Comprar agora + Adicionar — O1-G |
+| 25 | Admin pedidos | I | Paginação + reload silencioso + romaneio — O0-B / O1-I |
+| 28 | Checkout auth/CPF | I | CPF readonly + `from` — O1-F |
+| 18 | Notif. carrinho | I | Toast no router + desfazer — O0-D / O1-F |
+| 19 | Duplicidade funções | I | Inventário O1-A + consolidação UX |
 
 Reclassificações (I para P) vieram da auditoria de usabilidade: o recurso existe, mas com defeito de uso.
 
