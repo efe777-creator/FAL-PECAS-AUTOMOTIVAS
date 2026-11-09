@@ -2,20 +2,21 @@
 
 **Data:** 2026-11-09 · ~14h25  
 **Auth:** eFe — manter deploy · próximo passo = smoke  
-**URL:** https://fal-pecas-automotivas-efe.netlify.app  
+**URL eFe:** https://fal-pecas-automotivas-efe.netlify.app  
+**Preview fernando (#249):** https://deploy-preview-249--fal-pecas-automotivas.netlify.app/  
 **Deploy fernando prod:** mantido bloqueado (crédito) — OK por decisão eFe
 
 ---
 
 ## Smoke automatizado (UI)
 
-| # | Cenário | Resultado |
-|---|---------|-----------|
-| 1 | Home: Campanhas → Buscar pelo carro → Destaques | **PASS** |
-| 2 | Banner cookies (Aceitar) | **PASS** |
-| 3 | `/trocas-devolucoes` + versão 2026-11-09 | **PASS** |
-| 4 | Footer link Trocas | **PASS** |
-| 5 | Add produto → carrinho guest CTAs (criar conta + entrar) + hint CPF | **PASS** |
+| # | Cenário | eFe | Preview #249 |
+|---|---------|-----|--------------|
+| 1 | Home: Campanhas → Buscar pelo carro → Destaques | **PASS** | **PASS** |
+| 2 | Banner cookies | **PASS** | Visível (HUD Netlify interceptou clique) |
+| 3 | `/trocas-devolucoes` + versão | **PASS** | Link footer OK |
+| 4 | Footer Trocas | **PASS** | **PASS** |
+| 5 | Carrinho guest CTAs | **PASS** | (só eFe nesta rodada) |
 
 ## Smoke humano ainda pendente (credenciais)
 

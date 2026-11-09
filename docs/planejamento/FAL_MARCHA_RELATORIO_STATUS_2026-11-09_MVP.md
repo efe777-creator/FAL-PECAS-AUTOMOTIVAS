@@ -24,5 +24,5 @@ Relatório final do plano mestre de código (ainda válido como histórico):
 | Handoff deploy | **[FAL_MARCHA_MVP1_DEPLOY_PREP_HANDOFF_2026-11-09.md](./FAL_MARCHA_MVP1_DEPLOY_PREP_HANDOFF_2026-11-09.md)** |
 | Última VAL | **[SMOKE_EFE](./FAL_MARCHA_MVP1_SMOKE_EFE_VAL_2026-11-09.md)** UI PASS |
 | Espelho eFe | https://fal-pecas-automotivas-efe.netlify.app · live |
-| Loja fernando prod | Mantida bloqueada (crédito) |
+| Loja fernando | Prod bloqueada (crédito) · preview OK: https://deploy-preview-249--fal-pecas-automotivas.netlify.app/ |
 | Próxima ação | Smoke **G3/G4** humano (MP + frete) no eFe |
