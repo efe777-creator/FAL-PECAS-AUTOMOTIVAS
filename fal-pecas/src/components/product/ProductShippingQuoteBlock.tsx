@@ -59,7 +59,9 @@ export function ProductShippingQuoteBlock({ product }: Props) {
   if (!ready) {
     return (
       <div className="mt-4 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm text-fal-muted">
-        Frete: complete peso e medidas do produto no cadastro para cotar nesta página.
+        Frete indisponível para este produto no momento. Você ainda pode adicionar ao carrinho e
+        finalizar a compra — o valor da entrega será confirmado no checkout ou pelo nosso
+        atendimento.
       </div>
     )
   }
@@ -133,7 +135,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         Entrega e frete
       </h2>
       <p className="mb-3 mt-1 text-sm text-fal-muted">
-        Informe o CEP para cotar Melhor Envio e, se cobrir sua região, frete próprio FAL.
+        Informe o CEP para ver opções de entrega na sua região.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
@@ -178,7 +180,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         Nº do endereço libera cotação de frete próprio (quando disponível na região).
       </p>
 
-      {envelope?.disclaimer ? (
+      {envelope?.disclaimer && !/D-FRETE|VITE_|mock|sandbox|webhook/i.test(envelope.disclaimer) ? (
         <p className="mb-0 mt-3 text-xs font-semibold text-fal-muted">{envelope.disclaimer}</p>
       ) : null}
 
@@ -196,8 +198,9 @@ export function ProductShippingQuoteBlock({ product }: Props) {
 
       {envelope?.status === 'ok' && envelope.options.length === 0 ? (
         <p className="mb-0 mt-3 text-sm text-fal-muted" role="status">
-          {envelope.message ??
-            'Nenhuma opção de entrega para este CEP. Confira as medidas do produto ou tente outro CEP.'}
+          {envelope.message && !/medida|cadastro|packing|D-FRETE/i.test(envelope.message)
+            ? envelope.message
+            : 'Nenhuma opção de entrega para este CEP no momento. Tente outro CEP ou fale conosco.'}
         </p>
       ) : null}
 
