@@ -1,3 +1,4 @@
+import { toUserMessage } from '@/lib/toUserMessage'
 import { listCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import {
@@ -37,7 +38,7 @@ export function useCategories() {
           setState({
             data: [],
             loading: false,
-            error: e instanceof Error ? e.message : 'Erro ao carregar categorias',
+            error: toUserMessage(e, 'Erro ao carregar categorias'),
           })
       }
     })()
@@ -67,7 +68,7 @@ export function useFeaturedProducts(limit = 8) {
           setState({
             data: [],
             loading: false,
-            error: e instanceof Error ? e.message : 'Erro ao carregar produtos',
+            error: toUserMessage(e, 'Erro ao carregar produtos'),
           })
       }
     })()
@@ -97,7 +98,7 @@ export function usePromoHighlightProducts(limit = 8) {
           setState({
             data: [],
             loading: false,
-            error: e instanceof Error ? e.message : 'Erro ao carregar ofertas',
+            error: toUserMessage(e, 'Erro ao carregar ofertas'),
           })
       }
     })()
@@ -147,7 +148,7 @@ export function useCategoryProducts(slugs: string[], limit = 8) {
           setState({
             data: [],
             loading: false,
-            error: e instanceof Error ? e.message : 'Erro ao carregar linha',
+            error: toUserMessage(e, 'Erro ao carregar produtos da categoria'),
           })
       }
     })()
@@ -177,7 +178,7 @@ export function useVehicleOptions() {
           setState({
             data: null,
             loading: false,
-            error: e instanceof Error ? e.message : 'Erro ao carregar veículos',
+            error: toUserMessage(e, 'Erro ao carregar veículos'),
           })
       }
     })()
@@ -214,7 +215,7 @@ export function useProductSearch(query: string) {
             setState({
               data: [],
               loading: false,
-              error: e instanceof Error ? e.message : 'Erro na busca',
+              error: toUserMessage(e, 'Erro na busca'),
             })
         }
       })()

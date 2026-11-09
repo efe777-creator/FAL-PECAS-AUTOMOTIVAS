@@ -10,6 +10,7 @@ import {
   type ShippingQuoteEnvelope,
   type ShippingQuoteStatus,
 } from '@/services/shipping/shippingQuoteContract'
+import { toUserMessage } from '@/lib/toUserMessage'
 import type { ShippingQuoteRequest } from '@/types'
 
 function classifyError(message: string): Exclude<ShippingQuoteStatus, 'ok'> {
@@ -54,7 +55,7 @@ export async function quoteShippingEnvelope(
         status: 'missing_logistics',
         req,
         message:
-          'Dados logísticos incompletos (peso/dimensões). Cotação Melhor Envio/live indisponível sem inventar valores.',
+          'Faltam peso ou medidas do produto. Não foi possível cotar a entrega sem inventar valores.',
         disclaimer,
       })
     }
@@ -81,7 +82,7 @@ export async function quoteShippingEnvelope(
       disclaimer,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Erro ao cotar frete'
+    const message = toUserMessage(e, 'Erro ao cotar frete')
     return buildErrorEnvelope({
       providerId: desc.id,
       mode: desc.mode,
