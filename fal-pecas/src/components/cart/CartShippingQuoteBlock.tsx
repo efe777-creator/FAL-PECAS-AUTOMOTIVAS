@@ -189,7 +189,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         </Button>
       </div>
 
-      {envelope?.disclaimer ? (
+      {envelope?.disclaimer && !/D-FRETE|VITE_|mock|sandbox|webhook/i.test(envelope.disclaimer) ? (
         <p className="mb-0 mt-2 text-[11px] font-semibold text-fal-muted">{envelope.disclaimer}</p>
       ) : null}
 
@@ -207,8 +207,9 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
 
       {envelope?.status === 'ok' && envelope.options.length === 0 ? (
         <p className="mb-0 mt-2 text-xs text-fal-muted" role="status">
-          {envelope.message ??
-            'Nenhuma opção de entrega para este CEP e itens. Confira medidas dos produtos ou tente outro CEP.'}
+          {envelope.message && !/medida|cadastro|packing|D-FRETE/i.test(envelope.message)
+            ? envelope.message
+            : 'Nenhuma opção de entrega para este CEP e estes itens no momento. Tente outro CEP ou fale conosco.'}
         </p>
       ) : null}
 

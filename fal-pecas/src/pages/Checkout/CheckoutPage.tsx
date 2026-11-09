@@ -89,6 +89,11 @@ export function CheckoutPage() {
     expiresAt?: string | null
   } | null>(null)
 
+  function pushError(message: string) {
+    setError(message)
+    push(message, 'error')
+  }
+
   function goToStepIndex(next: number) {
     setStep(next)
     setMaxReachedStep((m) => Math.max(m, next))
@@ -120,12 +125,12 @@ export function CheckoutPage() {
     }
     // Avançar: só até maxReached+1 e com pré-requisitos
     if (target > maxReachedStep + 1) {
-      setError('Conclua as etapas anteriores antes de avançar')
+      pushError('Conclua as etapas anteriores antes de avançar')
       return
     }
     const err = stepPrereqError(target)
     if (err) {
-      if (err !== '__doc__') setError(err)
+      if (err !== '__doc__') pushError(err)
       return
     }
     if (target === 2) await loadQuotes(true)
@@ -140,13 +145,10 @@ export function CheckoutPage() {
     [navigate, push],
   )
 
-  const onMpError = useCallback(
-    (msg: string) => {
-      setError(msg)
-      push(msg, 'error')
-    },
-    [push],
-  )
+  const onMpError = useCallback((msg: string) => {
+    setError(msg)
+    push(msg, 'error')
+  }, [push])
 
   /** Erro do checkout: scroll + foco no alerta (acessível). */
   useEffect(() => {
@@ -199,7 +201,7 @@ export function CheckoutPage() {
       }
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
+      pushError(e instanceof Error ? e.message : 'Erro ao carregar endereços')
     } finally {
       setLoadingAddrs(false)
     }
@@ -262,7 +264,7 @@ export function CheckoutPage() {
         quoteKeyRef.current = key
         setShippingOptions([])
         setShippingOptionId('')
-        setError(env.message ?? 'Erro ao cotar frete')
+        pushError(env.message ?? 'Erro ao cotar frete')
         return
       }
       const opts = env.options
@@ -279,7 +281,7 @@ export function CheckoutPage() {
       setShippingOptions([])
       setShippingOptionId('')
       setShippingDisclaimer(null)
-      setError(e instanceof Error ? e.message : 'Erro ao cotar frete')
+      pushError(e instanceof Error ? e.message : 'Erro ao cotar frete')
     } finally {
       setQuoting(false)
     }
@@ -297,11 +299,11 @@ export function CheckoutPage() {
     const digits = onlyDigits(docValue)
     if (docKind === 'cpf') {
       if (!isValidCpf(digits)) {
-        setError('Informe um CPF válido para finalizar a compra')
+        pushError('Informe um CPF válido para finalizar a compra')
         return false
       }
     } else if (!isValidCnpj(digits)) {
-      setError('Informe um CNPJ válido para finalizar a compra')
+      pushError('Informe um CNPJ válido para finalizar a compra')
       return false
     }
     return true
@@ -314,9 +316,7 @@ export function CheckoutPage() {
   async function finalize(outcome: 'approve' | 'fail') {
     if (!validateDoc() || !addressId || !shippingOptionId) return
     if (!carrierDesc.placeOrderReady) {
-      setError(
-        'Entrega indisponível no momento. Tente novamente mais tarde.',
-      )
+      pushError('Entrega indisponível no momento. Tente novamente mais tarde.')
       return
     }
     setSubmitting(true)
@@ -390,13 +390,13 @@ export function CheckoutPage() {
       clear()
       clearShippingQuoteHandoff()
       if (outcome === 'approve') {
-        push('Pagamento simulado aprovado — pedido confirmado', 'success')
+        push('Pagamento aprovado — pedido confirmado', 'success')
       } else {
-        push('Pagamento simulado recusado — pedido cancelado', 'error')
+        push('Pagamento não aprovado — pedido cancelado', 'error')
       }
       navigate(`/pedido/${pay.orderId ?? placed.orderId}/confirmacao`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao finalizar pedido')
+      pushError(e instanceof Error ? e.message : 'Erro ao finalizar pedido')
     } finally {
       setSubmitting(false)
     }
@@ -675,10 +675,10 @@ export function CheckoutPage() {
             <div className="space-y-4">
               {mpEnabled ? (
                 <>
-                  <h2 className="mt-0 text-lg font-extrabold">Pagamento — Mercado Pago</h2>
+                  <h2 className="mt-0 text-lg font-extrabold">Pagamento</h2>
                   <p className="text-sm text-fal-muted">
-                    Pix ou cartão. A confirmação do pagamento é feita automaticamente pelo Mercado
-                    Pago — esta tela pode levar alguns instantes para atualizar.
+                    Escolha Pix ou cartão. A confirmação pode levar alguns instantes para aparecer
+                    nesta tela.
                   </p>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                     <input
@@ -701,10 +701,10 @@ export function CheckoutPage() {
                 </>
               ) : (
                 <>
-                  <h2 className="mt-0 text-lg font-extrabold">Pagamento (simulado)</h2>
+                  <h2 className="mt-0 text-lg font-extrabold">Pagamento</h2>
                   <p className="text-sm text-fal-muted">
-                    Pagamento em modo demonstração (sem cobrança real). Para Pix e cartão reais,
-                    configure o provedor Mercado Pago no ambiente da loja.
+                    Cobrança real indisponível no momento. Você pode concluir em modo demonstração
+                    (sem cobrança) ou voltar mais tarde.
                   </p>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                     <input
@@ -713,7 +713,7 @@ export function CheckoutPage() {
                       checked={paymentMethod === 'pix_simulated'}
                       onChange={() => setPaymentMethod('pix_simulated')}
                     />
-                    <span className="text-sm font-semibold">Pix simulado</span>
+                    <span className="text-sm font-semibold">Pix (demonstração)</span>
                   </label>
                   <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                     <input
@@ -722,7 +722,7 @@ export function CheckoutPage() {
                       checked={paymentMethod === 'card_simulated'}
                       onChange={() => setPaymentMethod('card_simulated')}
                     />
-                    <span className="text-sm font-semibold">Cartão simulado</span>
+                    <span className="text-sm font-semibold">Cartão (demonstração)</span>
                   </label>
                 </>
               )}
@@ -778,8 +778,8 @@ export function CheckoutPage() {
                           ? 'Cartão (Mercado Pago)'
                           : 'Pix (Mercado Pago)'
                         : paymentMethod === 'pix_simulated'
-                          ? 'Pix simulado'
-                          : 'Cartão simulado'}
+                          ? 'Pix (demonstração)'
+                          : 'Cartão (demonstração)'}
                     </p>
                   </div>
                   <ul className="m-0 list-none space-y-2 border-t border-fal-line p-0 pt-3">
