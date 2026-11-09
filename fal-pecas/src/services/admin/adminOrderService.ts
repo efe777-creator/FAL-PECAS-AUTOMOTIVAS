@@ -28,6 +28,9 @@ export type AdminOrderItem = {
   leadDays: number | null
   staffNote: string | null
   separated?: boolean
+  /** Snapshot de estoque do SKU (quando modo com_estoque). */
+  quantityOnHand?: number | null
+  quantityReserved?: number | null
 }
 
 export type AdminOrderDetail = {
@@ -47,6 +50,8 @@ export type AdminOrderDetail = {
   cancellationRequest: 'pending' | 'approved' | 'rejected' | null
   cancellationReason: string | null
   cancellationResolveNote: string | null
+  /** Modo de estoque congelado no place_order. */
+  inventoryModeAtOrder?: string | null
   items: AdminOrderItem[]
   events: {
     id: string
@@ -151,9 +156,12 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     .select(
       `
       id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id, customer_decision,
-      cancellation_request, cancellation_reason, cancellation_resolve_note,
+      cancellation_request, cancellation_reason, cancellation_resolve_note, inventory_mode_at_order,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
-      order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated ),
+      order_items (
+        id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated,
+        products ( inventory ( quantity_on_hand, quantity_reserved ) )
+      ),
       order_events ( id, event_type, payload, visibility, created_at ),
       payments ( id, provider, status, amount, external_ref, expires_at, method ),
       shipments ( id, provider, status, amount, tracking_code, metadata, carrier, service, shipped_at, delivered_at, proof_ref )
@@ -214,18 +222,30 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     cancellationReason: r.cancellation_reason != null ? String(r.cancellation_reason) : null,
     cancellationResolveNote:
       r.cancellation_resolve_note != null ? String(r.cancellation_resolve_note) : null,
-    items: items.map((i: Record<string, unknown>) => ({
-      id: String(i.id),
-      productId: i.product_id != null ? String(i.product_id) : null,
-      sku: String(i.sku),
-      nameSnapshot: String(i.name_snapshot),
-      unitPrice: Number(i.unit_price),
-      quantity: Number(i.quantity),
-      availability: (i.availability as OrderItemAvailability | null) ?? null,
-      leadDays: i.lead_days != null ? Number(i.lead_days) : null,
-      staffNote: i.staff_note != null ? String(i.staff_note) : null,
-      separated: i.separated === true,
-    })),
+    inventoryModeAtOrder:
+      r.inventory_mode_at_order != null ? String(r.inventory_mode_at_order) : null,
+    items: items.map((i: Record<string, unknown>) => {
+      const prod = i.products as Record<string, unknown> | Record<string, unknown>[] | null
+      const p = (Array.isArray(prod) ? prod[0] : prod) ?? null
+      const invRaw = p?.inventory as Record<string, unknown> | Record<string, unknown>[] | null
+      const inv = (Array.isArray(invRaw) ? invRaw[0] : invRaw) ?? null
+      return {
+        id: String(i.id),
+        productId: i.product_id != null ? String(i.product_id) : null,
+        sku: String(i.sku),
+        nameSnapshot: String(i.name_snapshot),
+        unitPrice: Number(i.unit_price),
+        quantity: Number(i.quantity),
+        availability: (i.availability as OrderItemAvailability | null) ?? null,
+        leadDays: i.lead_days != null ? Number(i.lead_days) : null,
+        staffNote: i.staff_note != null ? String(i.staff_note) : null,
+        separated: i.separated === true,
+        quantityOnHand:
+          inv?.quantity_on_hand != null ? Number(inv.quantity_on_hand) : null,
+        quantityReserved:
+          inv?.quantity_reserved != null ? Number(inv.quantity_reserved) : null,
+      }
+    }),
     events: events
       .map((e: Record<string, unknown>) => ({
         id: String(e.id),

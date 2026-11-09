@@ -112,6 +112,12 @@ export function Footer() {
           >
             Política de privacidade
           </Link>
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/trocas-devolucoes"
+          >
+            Trocas e devoluções
+          </Link>
         </div>
       </Container>
     </footer>

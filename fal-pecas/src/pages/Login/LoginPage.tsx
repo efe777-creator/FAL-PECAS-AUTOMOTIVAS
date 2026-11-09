@@ -17,6 +17,7 @@ export function LoginPage() {
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
   const from = fromState ?? '/conta'
+  const fromCheckout = Boolean(fromState?.includes('/checkout'))
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,10 +50,12 @@ export function LoginPage() {
       <div className="mx-auto grid max-w-[1050px] grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
         <div className="py-4 lg:py-10">
           <h1 className="mt-0 text-[36px] leading-tight font-black lg:text-[44px]">
-            Bem-vindo à FAL
+            {fromCheckout ? 'Entre para finalizar' : 'Bem-vindo à FAL'}
           </h1>
           <p className="text-[17px] text-fal-muted">
-            Acesse sua conta para acompanhar pedidos, endereços e favoritos.
+            {fromCheckout
+              ? 'Seu carrinho está salvo. Entre na conta ou abra a aba Criar conta grátis para continuar o checkout.'
+              : 'Acesse sua conta para acompanhar pedidos, endereços e favoritos.'}
           </p>
           {!isConfigured ? (
             <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">

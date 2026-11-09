@@ -48,6 +48,27 @@ describe('selectableShippingOptions', () => {
     expect(out.map((o) => o.id)).toEqual(['meq:1', 'ownq:moto', 'mock:pickup'])
   })
 
+  it('bloqueia meq ephemeral (014)', () => {
+    const opts: ShippingQuoteOption[] = [
+      {
+        id: 'meq:ephemeral:99',
+        provider: 'melhorenvio',
+        serviceCode: '99',
+        label: 'PAC',
+        amount: 15,
+        metadata: { ephemeral: true },
+      },
+      {
+        id: 'meq:ok',
+        provider: 'melhorenvio',
+        serviceCode: '1',
+        label: 'Jadlog',
+        amount: 20,
+      },
+    ]
+    expect(selectableShippingOptions(opts).map((o) => o.id)).toEqual(['meq:ok'])
+  })
+
   it('ordem preço crescente na seleção (contrato vitrine)', () => {
     const opts: ShippingQuoteOption[] = [
       { id: 'a', provider: 'melhorenvio', serviceCode: '2', label: 'SEDEX', amount: 40 },

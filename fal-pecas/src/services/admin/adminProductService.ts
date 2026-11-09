@@ -703,6 +703,28 @@ export async function adminUpdateApplicationYears(
   if (error) throw error
 }
 
+/**
+ * Troca a configuração veicular da aplicação sem apagar o vínculo
+ * (AJUSTE-002 — evita delete + recreate).
+ */
+export async function adminUpdateApplicationVehicleVersion(
+  id: string,
+  vehicleVersionId: string,
+): Promise<void> {
+  const nextId = vehicleVersionId.trim()
+  if (!nextId) throw new Error('Selecione a configuração do veículo')
+  const { error } = await getSupabase()
+    .from('product_vehicle_compatibility')
+    .update({ vehicle_version_id: nextId })
+    .eq('id', id)
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('Este produto já possui aplicação para essa configuração veicular')
+    }
+    throw error
+  }
+}
+
 export async function adminRemoveApplication(id: string) {
   const { error } = await getSupabase().from('product_vehicle_compatibility').delete().eq('id', id)
   if (error) throw error

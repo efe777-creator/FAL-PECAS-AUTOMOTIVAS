@@ -36,6 +36,18 @@ function edgeErrorMessage(data: unknown, fallback: string): string {
       console.error('[mp] create-mp-payment: access token ausente no Edge')
       return 'Pagamento indisponível no momento. Tente novamente mais tarde.'
     }
+    if (code === 'payer_document_required') {
+      return 'Informe CPF ou CNPJ na conta para pagar com Pix.'
+    }
+    if (code === 'order_not_awaiting_payment') {
+      return 'Este pedido não está aguardando pagamento.'
+    }
+    if (code === 'payer_email_required') {
+      return 'E-mail da conta é necessário para concluir o pagamento.'
+    }
+    if (code === 'invalid_order_total') {
+      return 'Total do pedido inválido para pagamento.'
+    }
     if (code) {
       return row.detail ? `${code}: ${row.detail}` : code
     }

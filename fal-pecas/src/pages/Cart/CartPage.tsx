@@ -190,15 +190,29 @@ export function CartPage() {
             <span>Total</span>
             <span>{formatMoney(subtotal + (shippingAmount ?? 0))}</span>
           </div>
-          <Link
-            to={user ? '/checkout' : '/login'}
-            state={user ? undefined : { from: '/checkout' }}
-            className="mt-4 block"
-          >
-            <Button variant="primary" fullWidth>
-              {user ? 'Finalizar compra' : 'Entrar para finalizar'}
-            </Button>
-          </Link>
+          {user ? (
+            <Link to="/checkout" className="mt-4 block">
+              <Button variant="primary" fullWidth>
+                Finalizar compra
+              </Button>
+            </Link>
+          ) : (
+            <div className="mt-4 space-y-2">
+              <Link to="/cadastro" state={{ from: '/checkout' }} className="block">
+                <Button variant="primary" fullWidth>
+                  Criar conta e continuar
+                </Button>
+              </Link>
+              <Link to="/login" state={{ from: '/checkout' }} className="block">
+                <Button variant="light" fullWidth>
+                  Já tenho conta — entrar
+                </Button>
+              </Link>
+              <p className="m-0 text-xs text-fal-muted">
+                Conta rápida: nome, e-mail e senha. CPF/CNPJ entram no checkout.
+              </p>
+            </div>
+          )}
           <p className="mt-3 text-xs text-fal-muted">
             Cotação do conjunto no carrinho; o checkout revalida frete e pagamento.
           </p>

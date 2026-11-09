@@ -10,7 +10,7 @@ export function SearchBar() {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const { data, loading } = useProductSearch(query)
+  const { data, loading, error } = useProductSearch(query)
   const navigate = useNavigate()
   const wrapRef = useRef<HTMLDivElement>(null)
   const listId = useId()
@@ -19,7 +19,14 @@ export function SearchBar() {
   const qTrim = query.trim()
   const showPanel = open && Boolean(qTrim)
   /** Sugestões + rodapé “Ver todos” quando há resultados (ou só o link vazio). */
-  const optionCount = suggestions.length ? suggestions.length + 1 : qTrim && !loading ? 1 : 0
+  const optionCount =
+    error || loading
+      ? 0
+      : suggestions.length
+        ? suggestions.length + 1
+        : qTrim
+          ? 1
+          : 0
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -109,6 +116,19 @@ export function SearchBar() {
         >
           {loading ? (
             <div className="px-4 py-3 text-sm text-fal-muted">Buscando…</div>
+          ) : error ? (
+            <div className="px-4 py-3 text-sm text-fal-danger" role="alert">
+              {error}
+              <div className="mt-2">
+                <Link
+                  to={`/catalogo?q=${encodeURIComponent(qTrim)}`}
+                  className="font-semibold text-fal-navy no-underline underline-offset-2 hover:underline"
+                  onClick={() => setOpen(false)}
+                >
+                  Tentar no catálogo
+                </Link>
+              </div>
+            </div>
           ) : suggestions.length ? (
             <>
               {suggestions.map((p, idx) => {

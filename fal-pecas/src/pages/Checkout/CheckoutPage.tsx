@@ -80,6 +80,7 @@ export function CheckoutPage() {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [mpAwaiting, setMpAwaiting] = useState<{
     channel: 'pix' | 'card'
     orderId: string
@@ -316,6 +317,10 @@ export function CheckoutPage() {
 
   async function finalize(outcome: 'approve' | 'fail') {
     if (!validateDoc() || !addressId || !shippingOptionId) return
+    if (!termsAccepted) {
+      pushError('Aceite os termos e a política de privacidade para finalizar.')
+      return
+    }
     if (!carrierDesc.placeOrderReady) {
       pushError('Entrega indisponível no momento. Tente novamente mais tarde.')
       return
@@ -793,10 +798,39 @@ export function CheckoutPage() {
                       </li>
                     ))}
                   </ul>
+                  <label className="mt-3 flex items-start gap-2 text-sm text-fal-ink">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                    />
+                    <span>
+                      Li e aceito os{' '}
+                      <Link to="/termos" className="font-semibold text-fal-navy hover:underline">
+                        termos de uso
+                      </Link>
+                      , a{' '}
+                      <Link
+                        to="/privacidade"
+                        className="font-semibold text-fal-navy hover:underline"
+                      >
+                        política de privacidade
+                      </Link>{' '}
+                      e a política de{' '}
+                      <Link
+                        to="/trocas-devolucoes"
+                        className="font-semibold text-fal-navy hover:underline"
+                      >
+                        trocas e devoluções
+                      </Link>
+                      .
+                    </span>
+                  </label>
                   {mpEnabled ? (
                     <Button
                       variant="primary"
-                      disabled={submitting}
+                      disabled={submitting || !termsAccepted}
                       onClick={() => void finalize('approve')}
                     >
                       {submitting
@@ -809,14 +843,14 @@ export function CheckoutPage() {
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         variant="primary"
-                        disabled={submitting}
+                        disabled={submitting || !termsAccepted}
                         onClick={() => void finalize('approve')}
                       >
                         {submitting ? 'Processando…' : 'Simular pagamento aprovado'}
                       </Button>
                       <Button
                         variant="light"
-                        disabled={submitting}
+                        disabled={submitting || !termsAccepted}
                         onClick={() => void finalize('fail')}
                       >
                         Simular pagamento recusado

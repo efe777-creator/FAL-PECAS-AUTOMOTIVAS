@@ -13,6 +13,7 @@ import {
   adminListApplicationsGlobal,
   adminRemoveApplication,
   adminRemoveApplicationsBulk,
+  adminUpdateApplicationVehicleVersion,
   adminUpdateApplicationYears,
   type AdminApplicationRow,
 } from '@/services/admin/adminApplicationService'
@@ -77,6 +78,14 @@ export function AdminApplicationsPage() {
   const [editStart, setEditStart] = useState('')
   const [editEnd, setEditEnd] = useState('')
 
+  const [swappingId, setSwappingId] = useState<string | null>(null)
+  const [swapMakerId, setSwapMakerId] = useState('')
+  const [swapModelId, setSwapModelId] = useState('')
+  const [swapEngine, setSwapEngine] = useState('')
+  const [swapVersion, setSwapVersion] = useState('')
+  const [swapModels, setSwapModels] = useState<VehicleModel[]>([])
+  const [swapVersions, setSwapVersions] = useState<VehicleVersion[]>([])
+
   const [createOpen, setCreateOpen] = useState(false)
   const [createSku, setCreateSku] = useState('')
   const [createMakerId, setCreateMakerId] = useState('')
@@ -137,6 +146,25 @@ export function AdminApplicationsPage() {
     void adminListVersions(createModelId).then(setCreateVersions)
   }, [createModelId])
 
+  useEffect(() => {
+    if (!swapMakerId) {
+      setSwapModels([])
+      setSwapModelId('')
+      return
+    }
+    void adminListModels(swapMakerId).then(setSwapModels)
+  }, [swapMakerId])
+
+  useEffect(() => {
+    if (!swapModelId) {
+      setSwapVersions([])
+      setSwapEngine('')
+      setSwapVersion('')
+      return
+    }
+    void adminListVersions(swapModelId).then(setSwapVersions)
+  }, [swapModelId])
+
   const engineOptions = useMemo(() => {
     const set = new Set<string>()
     for (const v of versions) {
@@ -186,6 +214,35 @@ export function AdminApplicationsPage() {
       return true
     })
   }, [createVersions, createEngine, createVersion])
+
+  const swapEngineOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const v of swapVersions) {
+      const e = (v.engine ?? '').trim()
+      if (e) set.add(e)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [swapVersions])
+
+  const swapVersionOptions = useMemo(() => {
+    const filtered = swapEngine
+      ? swapVersions.filter((v) => (v.engine ?? '').trim() === swapEngine)
+      : swapVersions
+    const set = new Set<string>()
+    for (const v of filtered) {
+      const name = (v.versionName ?? '').trim()
+      if (name) set.add(name)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [swapVersions, swapEngine])
+
+  const matchingSwapVersions = useMemo(() => {
+    return swapVersions.filter((v) => {
+      if (swapEngine && (v.engine ?? '').trim() !== swapEngine) return false
+      if (swapVersion && (v.versionName ?? '').trim() !== swapVersion) return false
+      return true
+    })
+  }, [swapVersions, swapEngine, swapVersion])
 
   const productIdFilter = searchParams.get('productId') || ''
 
@@ -308,6 +365,47 @@ export function AdminApplicationsPage() {
       await reload()
     } catch (e) {
       pushError(toUserMessage(e, 'Falha ao salvar período'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function beginSwap(row: AdminApplicationRow) {
+    setEditingId(null)
+    setSwappingId(row.id)
+    setSwapMakerId(row.makerId ?? '')
+    setSwapModelId(row.modelId ?? '')
+    setSwapEngine((row.engine ?? '').trim())
+    setSwapVersion((row.versionName ?? '').trim())
+  }
+
+  async function onSaveSwap(row: AdminApplicationRow) {
+    if (!swapModelId) {
+      pushError('Selecione montadora e modelo')
+      return
+    }
+    if (matchingSwapVersions.length === 0) {
+      pushError('Nenhuma configuração bate com motorização/versão')
+      return
+    }
+    if (matchingSwapVersions.length > 1 && (!swapEngine || !swapVersion)) {
+      pushError('Refine motorização e versão até restar uma configuração')
+      return
+    }
+    const nextVersionId = matchingSwapVersions[0]!.id
+    if (nextVersionId === row.vehicleVersionId) {
+      pushError('Selecione uma configuração diferente da atual')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await adminUpdateApplicationVehicleVersion(row.id, nextVersionId)
+      setSwappingId(null)
+      pushOk('Configuração veicular atualizada.')
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao trocar configuração'))
     } finally {
       setBusy(false)
     }
@@ -711,6 +809,7 @@ export function AdminApplicationsPage() {
                       versionYear: row.versionYear,
                     }) ?? '—'
                   const isEditing = editingId === row.id
+                  const isSwapping = swappingId === row.id
                   return (
                     <tr key={row.id} className="border-b border-fal-line/70">
                       <td className="px-3 py-2">
@@ -730,10 +829,83 @@ export function AdminApplicationsPage() {
                         </Link>
                         <div className="text-xs text-fal-muted">{row.productName}</div>
                       </td>
-                      <td className="px-3 py-2">{row.makerName ?? '—'}</td>
-                      <td className="px-3 py-2">{row.modelName ?? '—'}</td>
-                      <td className="px-3 py-2">{row.engine || '—'}</td>
-                      <td className="px-3 py-2">{row.versionName || '—'}</td>
+                      {isSwapping ? (
+                        <td className="px-3 py-2" colSpan={4}>
+                          <div className="flex flex-wrap gap-2">
+                            <select
+                              className="rounded border border-fal-line px-2 py-1 text-xs"
+                              value={swapMakerId}
+                              onChange={(e) => {
+                                setSwapMakerId(e.target.value)
+                                setSwapModelId('')
+                              }}
+                              aria-label="Nova montadora"
+                            >
+                              <option value="">Montadora</option>
+                              {makers.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.name}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="rounded border border-fal-line px-2 py-1 text-xs"
+                              value={swapModelId}
+                              onChange={(e) => setSwapModelId(e.target.value)}
+                              disabled={!swapMakerId}
+                              aria-label="Novo modelo"
+                            >
+                              <option value="">Modelo</option>
+                              {swapModels.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.name}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="rounded border border-fal-line px-2 py-1 text-xs"
+                              value={swapEngine}
+                              onChange={(e) => {
+                                setSwapEngine(e.target.value)
+                                setSwapVersion('')
+                              }}
+                              disabled={!swapModelId}
+                              aria-label="Nova motorização"
+                            >
+                              <option value="">Motor</option>
+                              {swapEngineOptions.map((e) => (
+                                <option key={e} value={e}>
+                                  {e}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="rounded border border-fal-line px-2 py-1 text-xs"
+                              value={swapVersion}
+                              onChange={(e) => setSwapVersion(e.target.value)}
+                              disabled={!swapModelId}
+                              aria-label="Nova versão"
+                            >
+                              <option value="">Versão</option>
+                              {swapVersionOptions.map((v) => (
+                                <option key={v} value={v}>
+                                  {v}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="self-center text-[11px] text-fal-muted">
+                              {matchingSwapVersions.length} config.
+                            </span>
+                          </div>
+                        </td>
+                      ) : (
+                        <>
+                          <td className="px-3 py-2">{row.makerName ?? '—'}</td>
+                          <td className="px-3 py-2">{row.modelName ?? '—'}</td>
+                          <td className="px-3 py-2">{row.engine || '—'}</td>
+                          <td className="px-3 py-2">{row.versionName || '—'}</td>
+                        </>
+                      )}
                       <td className="px-3 py-2">
                         {isEditing ? (
                           <div className="flex flex-wrap items-center gap-1">
@@ -759,7 +931,25 @@ export function AdminApplicationsPage() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
-                          {isEditing ? (
+                          {isSwapping ? (
+                            <>
+                              <button
+                                type="button"
+                                className="font-semibold text-fal-navy underline disabled:opacity-50"
+                                disabled={busy}
+                                onClick={() => void onSaveSwap(row)}
+                              >
+                                Salvar veículo
+                              </button>
+                              <button
+                                type="button"
+                                className="font-semibold text-fal-muted underline"
+                                onClick={() => setSwappingId(null)}
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : isEditing ? (
                             <>
                               <button
                                 type="button"
@@ -778,17 +968,27 @@ export function AdminApplicationsPage() {
                               </button>
                             </>
                           ) : (
-                            <button
-                              type="button"
-                              className="font-semibold text-fal-navy underline"
-                              onClick={() => {
-                                setEditingId(row.id)
-                                setEditStart(row.yearStart != null ? String(row.yearStart) : '')
-                                setEditEnd(row.yearEnd != null ? String(row.yearEnd) : '')
-                              }}
-                            >
-                              Editar
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="font-semibold text-fal-navy underline"
+                                onClick={() => {
+                                  setSwappingId(null)
+                                  setEditingId(row.id)
+                                  setEditStart(row.yearStart != null ? String(row.yearStart) : '')
+                                  setEditEnd(row.yearEnd != null ? String(row.yearEnd) : '')
+                                }}
+                              >
+                                Período
+                              </button>
+                              <button
+                                type="button"
+                                className="font-semibold text-fal-navy underline"
+                                onClick={() => beginSwap(row)}
+                              >
+                                Trocar veículo
+                              </button>
+                            </>
                           )}
                           <button
                             type="button"

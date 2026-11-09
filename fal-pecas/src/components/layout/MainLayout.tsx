@@ -1,5 +1,6 @@
 import { Footer } from '@/components/layout/Footer'
 import { Topbar } from '@/components/layout/Topbar'
+import { CookieConsentBanner } from '@/components/legal/CookieConsentBanner'
 import { Header } from '@/components/navigation/Header'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
@@ -15,6 +16,7 @@ export function MainLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CookieConsentBanner />
       <MobileNav />
     </div>
   )

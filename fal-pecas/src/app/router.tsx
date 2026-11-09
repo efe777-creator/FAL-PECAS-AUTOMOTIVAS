@@ -73,6 +73,9 @@ const TermsPage = lazy(() =>
 const PrivacyPage = lazy(() =>
   import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.PrivacyPage })),
 )
+const ReturnsPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.ReturnsPage })),
+)
 
 const AdminDashboardPage = lazy(() =>
   import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
@@ -404,6 +407,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspend>
             <PrivacyPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'trocas-devolucoes',
+        element: (
+          <Suspend>
+            <ReturnsPage />
           </Suspend>
         ),
       },
