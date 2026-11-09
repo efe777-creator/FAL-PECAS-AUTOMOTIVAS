@@ -93,7 +93,9 @@ export function AdminImageSkuImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Importar imagens por SKU</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">
+          Importar imagens por código
+        </h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
           Selecione várias fotos. O nome do arquivo deve ser o {SKU_FAL_LABEL} ou o{' '}
           {CODIGO_REFERENCIA_LABEL} (ex.: <code className="text-fal-ink">BRD5605.jpg</code>,{' '}

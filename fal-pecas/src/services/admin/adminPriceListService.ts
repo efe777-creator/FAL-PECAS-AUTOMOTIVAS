@@ -1554,14 +1554,14 @@ export async function adminPreviewPriceImport(input: {
     const warnings: string[] = []
 
     if (lineErrors.length === 0) {
-      if (!sku) lineErrors.push('SKU vazio')
+      if (!sku) lineErrors.push('Código vazio')
       if (price == null || Number.isNaN(price)) lineErrors.push('Preço inválido')
       else if (price < 0) lineErrors.push('Preço negativo')
 
       if (sku && lineErrors.length === 0) {
         productId = skuToProduct.get(sku) ?? null
         if (!productId) {
-          lineErrors.push('SKU não encontrado')
+          lineErrors.push('Código não encontrado')
         } else {
           const cur = currentByProduct.get(productId)
           if (cur) {

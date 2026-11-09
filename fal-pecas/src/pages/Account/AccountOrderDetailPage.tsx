@@ -463,7 +463,7 @@ export function AccountOrderDetailPage() {
               <span>
                 {i.quantity}× {i.nameSnapshot}
                 <span className="block text-xs text-fal-muted">
-                  SKU {i.sku}
+                  Código {i.sku}
                   {i.availability
                     ? ` · ${availabilityLabel(i.availability)}${
                         i.leadDays != null ? ` (${i.leadDays}d)` : ''
