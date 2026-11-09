@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   IMPORT_KINDS,
+  importItemResultLabel,
   importKindLabel,
   importStatusLabel,
   importWizardPath,
@@ -19,6 +20,15 @@ describe('importLabels (IMP-06)', () => {
     expect(importStatusLabel('done')).toBe('Concluída')
     expect(importStatusLabel('preview')).toBe('Pré-visualização')
     expect(importStatusLabel('failed')).toBe('Falhou')
+  })
+
+  it('resultado de linha', () => {
+    expect(importItemResultLabel('ok')).toBe('OK')
+    expect(importItemResultLabel('created')).toBe('Criado')
+    expect(importItemResultLabel('updated')).toBe('Atualizado')
+    expect(importItemResultLabel('skipped')).toBe('Ignorado')
+    expect(importItemResultLabel('error')).toBe('Erro')
+    expect(importItemResultLabel(null)).toBe('—')
   })
 
   it('wizards mapeados', () => {

@@ -29,6 +29,22 @@ export function importStatusLabel(status: string): string {
   return status
 }
 
+/** Resultado de linha do run (import_items.result / preview). */
+export function importItemResultLabel(result: string | null | undefined): string {
+  const key = String(result ?? '')
+    .trim()
+    .toLowerCase()
+  if (!key) return '—'
+  if (key === 'ok') return 'OK'
+  if (key === 'created') return 'Criado'
+  if (key === 'updated') return 'Atualizado'
+  if (key === 'skipped' || key === 'skip') return 'Ignorado'
+  if (key === 'error' || key === 'failed') return 'Erro'
+  if (key === 'invalid') return 'Inválido'
+  if (key === 'valid') return 'Válido'
+  return result ?? '—'
+}
+
 /** Rota do wizard para nova importação do kind (se existir). */
 export function importWizardPath(kind: string): string | null {
   if (kind === 'catalog') return '/admin/produtos/importar'

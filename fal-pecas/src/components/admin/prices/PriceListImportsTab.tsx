@@ -1,6 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { formatDateTime } from '@/lib/datetime'
-import { importStatusLabel } from '@/lib/importLabels'
+import { importItemResultLabel, importStatusLabel } from '@/lib/importLabels'
 import type {
   PriceListImportDetail,
   PriceListImportSummary,
@@ -98,7 +98,7 @@ export function PriceListImportsTab({
                 <tr className="bg-fal-bg text-left">
                   <th className="px-2 py-1">Linha</th>
                   <th className="px-2 py-1">Resultado</th>
-                  <th className="px-2 py-1">Payload</th>
+                  <th className="px-2 py-1">Dados</th>
                   <th className="px-2 py-1">Erros</th>
                 </tr>
               </thead>
@@ -106,7 +106,7 @@ export function PriceListImportsTab({
                 {importDetail.items.slice(0, 100).map((it) => (
                   <tr key={it.id}>
                     <td className="px-2 py-1">{it.lineNumber ?? '—'}</td>
-                    <td className="px-2 py-1">{it.result ?? '—'}</td>
+                    <td className="px-2 py-1">{importItemResultLabel(it.result)}</td>
                     <td className="px-2 py-1 font-mono">
                       {String(it.payload.sku ?? '')} {String(it.payload.price ?? '')}
                     </td>
