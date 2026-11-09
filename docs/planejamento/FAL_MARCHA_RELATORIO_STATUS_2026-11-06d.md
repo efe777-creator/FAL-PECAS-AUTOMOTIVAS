@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA conta toUserMessage (#212)  
+**HEAD:** `main` @ tip MARCHA frete toUserMessage (#213)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -73,6 +73,7 @@
 | #210 | O0-C / O1-A | Liberar sem checklist; fallback; veículos toast |
 | #211 | O0-C / O1-F | Conta toasts; formação/home/placeholder copy |
 | #212 | O1-F / O1-A | Conta + CRUD nomes: toUserMessage |
+| #213 | O1-D/E / O1-A | Frete/logística: toUserMessage |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

@@ -11,6 +11,7 @@ import {
   type OwnVehicleTariff,
 } from '@/services/admin/adminOwnDeliveryService'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toUserMessage } from '@/lib/toUserMessage'
 
 type Props = {
   onOk: (msg: string) => void
@@ -32,7 +33,7 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
   }, [])
 
   useEffect(() => {
-    void reload().catch((e) => onError(e instanceof Error ? e.message : 'Falha ao carregar tarifas'))
+    void reload().catch((e) => onError(toUserMessage(e, 'Falha ao carregar tarifas')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -84,7 +85,7 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
                       onOk(`Preço de “${c.label}” atualizado.`)
                       await reload()
                     } catch (err) {
-                      onError(err instanceof Error ? err.message : 'Falha ao salvar preço')
+                      onError(toUserMessage(err, 'Falha ao salvar preço'))
                     }
                   })()
                 }}
@@ -131,7 +132,7 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
                           onOk('Preço removido.')
                           await reload()
                         } catch (err) {
-                          onError(err instanceof Error ? err.message : 'Falha')
+                          onError(toUserMessage(err, 'Falha ao excluir tarifa'))
                         }
                       })()
                     }}
@@ -163,7 +164,7 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
                       onOk(`Preço de “${c.label}” cadastrado.`)
                       await reload()
                     } catch (err) {
-                      onError(err instanceof Error ? err.message : 'Falha')
+                      onError(toUserMessage(err, 'Falha ao criar tarifa'))
                     }
                   })()
                 }}

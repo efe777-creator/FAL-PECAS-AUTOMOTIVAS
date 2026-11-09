@@ -12,6 +12,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   getOwnDeliverySettings,
   listOwnVehicleCategories,
@@ -120,7 +121,7 @@ export function AdminOwnDeliveryPage() {
         }
         setCategories(cats)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Erro ao carregar frete próprio'
+        const msg = toUserMessage(e, 'Erro ao carregar frete próprio')
         setOk(null)
         setError(msg)
         toast.push(msg, 'error')
@@ -156,7 +157,7 @@ export function AdminOwnDeliveryPage() {
         `Salvo. Frete ${saved.enabled ? 'ativo' : 'desligado'} · cálculo ${pricingModeLabel(saved.pricingMode)}.`,
       )
     } catch (err) {
-      reportError(err instanceof Error ? err.message : 'Falha ao salvar')
+      reportError(toUserMessage(err, 'Falha ao salvar'))
     } finally {
       setSaving(false)
     }

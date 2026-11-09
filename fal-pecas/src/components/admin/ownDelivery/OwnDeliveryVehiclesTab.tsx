@@ -11,6 +11,7 @@ import {
   type OwnVehicleTariff,
 } from '@/services/admin/adminOwnDeliveryService'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toUserMessage } from '@/lib/toUserMessage'
 
 type Props = {
   onOk: (msg: string) => void
@@ -41,7 +42,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
   }, [])
 
   useEffect(() => {
-    void reload().catch((e) => onError(e instanceof Error ? e.message : 'Falha ao carregar veículos'))
+    void reload().catch((e) => onError(toUserMessage(e, 'Falha ao carregar veículos')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -88,7 +89,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
                     onOk(`“${newLabelSaved}” atualizado.`)
                     await reload()
                   } catch (err) {
-                    onError(err instanceof Error ? err.message : 'Falha ao salvar veículo')
+                    onError(toUserMessage(err, 'Falha ao salvar veículo'))
                   }
                 })()
               }}
@@ -175,7 +176,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
                         onOk(`“${c.label}” excluído.`)
                         await reload()
                       } catch (err) {
-                        onError(err instanceof Error ? err.message : 'Falha ao excluir')
+                        onError(toUserMessage(err, 'Falha ao excluir'))
                       }
                     })()
                   }}
@@ -218,7 +219,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
                 onOk('Nova modalidade criada.')
                 await reload()
               } catch (err) {
-                onError(err instanceof Error ? err.message : 'Falha ao criar')
+                onError(toUserMessage(err, 'Falha ao criar'))
               }
             })()
           }}
