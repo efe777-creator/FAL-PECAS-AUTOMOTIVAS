@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
+import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
@@ -18,6 +19,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 export function RegisterPage() {
   useDocumentTitle('Criar conta | FAL Peças Automotivas')
   const { signUp, user, loading, isConfigured } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
@@ -38,31 +40,36 @@ export function RegisterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false)
 
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
   if (!loading && user) return <Navigate to={from} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(passwordTooShortMessage())
+      pushError(passwordTooShortMessage())
       return
     }
     if (password !== password2) {
-      setError('As senhas não coincidem.')
+      pushError('As senhas não coincidem.')
       return
     }
     if (!terms) {
-      setError('Aceite os termos para continuar.')
+      pushError('Aceite os termos para continuar.')
       return
     }
     const cpfDigits = onlyDigits(cpf)
     if (!isValidCpf(cpfDigits)) {
-      setError('CPF inválido. Confira os 11 dígitos.')
+      pushError('CPF inválido. Confira os 11 dígitos.')
       return
     }
     const phoneDigits = phone.trim() ? normalizePhone(phone) : ''
     if (phoneDigits && !isValidPhone(phoneDigits)) {
-      setError('Telefone inválido. Use DDD + número (10 ou 11 dígitos).')
+      pushError('Telefone inválido. Use DDD + número (10 ou 11 dígitos).')
       return
     }
     setSubmitting(true)
@@ -78,11 +85,12 @@ export function RegisterPage() {
       })
       if (!result.session) {
         setNeedsEmailConfirm(true)
+        toast.push('Conta criada. Confirme seu e-mail para entrar.', 'info')
         return
       }
       navigate(from, { replace: true })
     } catch (err) {
-      setError(toUserMessage(err, 'Não foi possível criar a conta. Tente novamente.'))
+      pushError(toUserMessage(err, 'Não foi possível criar a conta. Tente novamente.'))
     } finally {
       setSubmitting(false)
     }

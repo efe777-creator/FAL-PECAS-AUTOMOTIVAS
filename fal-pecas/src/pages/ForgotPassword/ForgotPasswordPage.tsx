@@ -1,14 +1,17 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Container } from '@/components/layout/Container'
+import { useToast } from '@/components/common/Toast'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 export function ForgotPasswordPage() {
   useDocumentTitle('Recuperar senha | FAL Peças Automotivas')
   const { resetPassword, isConfigured } = useAuth()
+  const toast = useToast()
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
   const loginState = fromState ? { from: fromState } : undefined
@@ -18,6 +21,11 @@ export function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  function pushError(message: string) {
+    setError(message)
+    toast.push(message, 'error')
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -26,10 +34,10 @@ export function ForgotPasswordPage() {
     try {
       await resetPassword(email)
       setSuccess(true)
+      toast.push('Se o e-mail existir, você receberá as instruções em breve.', 'success')
     } catch (err) {
-      if (err instanceof AuthNotConfiguredError) setError(err.message)
-      else if (err instanceof Error) setError(err.message)
-      else setError('Não foi possível enviar o e-mail.')
+      if (err instanceof AuthNotConfiguredError) pushError(err.message)
+      else pushError(toUserMessage(err, 'Não foi possível enviar o e-mail.'))
     } finally {
       setSubmitting(false)
     }

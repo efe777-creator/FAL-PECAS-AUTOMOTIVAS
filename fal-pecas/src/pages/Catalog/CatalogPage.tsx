@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
+import { useToast } from '@/components/common/Toast'
 import { MobileDrawer } from '@/components/navigation/MobileDrawer'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
@@ -69,6 +70,7 @@ function parsePage(value: string | null): number {
 }
 
 export function CatalogPage() {
+  const toast = useToast()
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const navType = useNavigationType()
@@ -99,6 +101,12 @@ export function CatalogPage() {
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
   const scrollRestoredRef = useRef(false)
+
+  function pushCatalogError(message: string, kind: 'page' | 'more') {
+    if (kind === 'page') setError(message)
+    else setLoadMoreError(message)
+    toast.push(message, 'error')
+  }
 
   const vehicleFiltersActive = Boolean(maker || model || year || engine || version)
 
@@ -226,8 +234,12 @@ export function CatalogPage() {
         setHasMore(last.hasMore)
         setLoadedPage(targetPage)
       } catch (e) {
-        if (id === requestId.current)
-          setError(e instanceof Error ? e.message : 'Erro ao carregar o catálogo')
+        if (id === requestId.current) {
+          pushCatalogError(
+            e instanceof Error ? e.message : 'Erro ao carregar o catálogo',
+            'page',
+          )
+        }
       } finally {
         if (id === requestId.current) setLoading(false)
       }
@@ -364,7 +376,10 @@ export function CatalogPage() {
         if (Math.abs(window.scrollY - keepY) > 1) window.scrollTo(0, keepY)
       })
     } catch (e) {
-      setLoadMoreError(e instanceof Error ? e.message : 'Erro ao carregar mais produtos')
+      pushCatalogError(
+        e instanceof Error ? e.message : 'Erro ao carregar mais produtos',
+        'more',
+      )
     } finally {
       setLoadingMore(false)
     }
