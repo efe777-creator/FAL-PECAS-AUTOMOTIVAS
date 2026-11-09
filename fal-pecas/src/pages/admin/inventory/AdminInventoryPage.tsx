@@ -288,7 +288,7 @@ export function AdminInventoryPage() {
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
-                  <th className="px-3 py-2">SKU</th>
+                  <th className="px-3 py-2">Código</th>
                   <th className="px-3 py-2">Produto</th>
                   {mode === 'sem_estoque' ? <th className="px-3 py-2">Saldo</th> : null}
                   {showPhysicalCols ? (
