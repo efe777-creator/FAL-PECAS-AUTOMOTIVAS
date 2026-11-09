@@ -22,7 +22,7 @@ Relatório final do plano mestre de código (ainda válido como histórico):
 | Código Pacote MVP-1 | **ENCERRADO** (8 fatias VAL + hardening 014) |
 | Relatório posição | **[FAL_MARCHA_RELATORIO_POSICAO_MVP1_2026-11-09.md](./FAL_MARCHA_RELATORIO_POSICAO_MVP1_2026-11-09.md)** |
 | Handoff deploy | **[FAL_MARCHA_MVP1_DEPLOY_PREP_HANDOFF_2026-11-09.md](./FAL_MARCHA_MVP1_DEPLOY_PREP_HANDOFF_2026-11-09.md)** |
-| Última VAL | **[DEPLOY](./FAL_MARCHA_MVP1_DEPLOY_VAL_2026-11-09.md)** — PR #249 · Edges OK · eFe live |
-| Espelho eFe | https://fal-pecas-automotivas-efe.netlify.app |
-| Loja fernando prod | **Bloqueada** (crédito Netlify) |
-| Próxima ação | Smoke no eFe · liberar crédito fernando · smoke ME/MP |
+| Última VAL | **[SMOKE_EFE](./FAL_MARCHA_MVP1_SMOKE_EFE_VAL_2026-11-09.md)** UI PASS |
+| Espelho eFe | https://fal-pecas-automotivas-efe.netlify.app · live |
+| Loja fernando prod | Mantida bloqueada (crédito) |
+| Próxima ação | Smoke **G3/G4** humano (MP + frete) no eFe |

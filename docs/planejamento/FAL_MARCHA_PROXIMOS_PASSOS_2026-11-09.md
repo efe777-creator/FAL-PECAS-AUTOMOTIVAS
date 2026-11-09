@@ -6,15 +6,23 @@
 
 ---
 
+## Feito
+
+| # | Passo | Status |
+|---|--------|--------|
+| 1 | Deploy código + Edges | DONE (PR #249) |
+| 2 | Netlify eFe live | DONE |
+| 3 | Fernando prod | Mantido bloqueado (crédito) — decisão eFe |
+| 4 | Smoke UI eFe | DONE — [SMOKE_EFE](./FAL_MARCHA_MVP1_SMOKE_EFE_VAL_2026-11-09.md) |
+
 ## Agora (bola humana / eFe)
 
 | # | Passo | Como |
 |---|--------|------|
-| 1 | **Autorizar deploy** no fim do dia | Comando: `MARCHA DEPLOY` |
-| 2 | Commit/PR do acumulado MVP-1 | Sem `.cursor/`, `.temp`, secrets |
-| 3 | Redeploy Edges | `create-mp-payment` + `quote-shipping` |
-| 4 | Build Netlify | Preferir espelho eFe antes da loja fernando |
-| 5 | Smoke mínimo | Home · guest→conta · cookies/trocas · frete · Pix↔cartão · separação/margem/KPIs |
+| 1 | Smoke **G3** pagamento TEST no eFe | Pix + cartão + troca método + webhook |
+| 2 | Smoke **G4** frete | Cotar ME/próprio → pedido → (etiqueta se credenciais) |
+| 3 | Smoke admin | Separação A4 · margem pedido · KPIs dashboard |
+| 4 | Quando crédito OK | Redeploy produção fernando (opcional) |
 
 ### Credenciais a conferir antes do smoke
 
