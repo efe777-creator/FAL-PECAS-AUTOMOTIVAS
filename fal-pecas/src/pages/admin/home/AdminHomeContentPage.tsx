@@ -314,11 +314,11 @@ export function AdminHomeContentPage() {
           {' · '}
           <strong>
             {liveFeatured
-              ? `${liveFeatured} destaque${liveFeatured === 1 ? '' : 's'} curado${liveFeatured === 1 ? '' : 's'}`
+              ? `${liveFeatured} destaque${liveFeatured === 1 ? '' : 's'} escolhido${liveFeatured === 1 ? '' : 's'}`
               : 'destaques automáticos'}
           </strong>
           {' · '}
-          <strong>pagamento {payment.enabled ? 'ligado' : 'off'}</strong>
+          <strong>pagamento {payment.enabled ? 'ligado' : 'desligado'}</strong>
           {' · '}
           <Link to="/" className="font-semibold text-fal-navy hover:underline" target="_blank">
             Abrir Home
@@ -775,7 +775,8 @@ export function AdminHomeContentPage() {
 
           {!featured.length ? (
             <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
-              Fila vazia → a Home monta Destaques sozinha. Inclua produtos acima para curadoria.
+              Fila vazia — a Home monta Destaques sozinha. Inclua produtos acima para escolher a
+              ordem.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-fal border border-fal-line bg-white">

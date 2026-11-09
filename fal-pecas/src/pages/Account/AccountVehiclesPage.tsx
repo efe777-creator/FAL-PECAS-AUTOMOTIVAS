@@ -14,6 +14,7 @@ import {
 } from '@/services/customers/customerVehicleService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
@@ -51,7 +52,7 @@ export function AccountVehiclesPage() {
       setTree(options)
       setError(null)
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar veículos')
+      pushError(toUserMessage(e, 'Erro ao carregar veículos'))
     } finally {
       setLoading(false)
     }
@@ -120,7 +121,7 @@ export function AccountVehiclesPage() {
       pushOk('Veículo salvo.')
       await reload()
     } catch (err) {
-      pushError(err instanceof Error ? err.message : 'Falha ao salvar veículo')
+      pushError(toUserMessage(err, 'Falha ao salvar veículo'))
     }
   }
 
@@ -235,7 +236,9 @@ export function AccountVehiclesPage() {
                           pushOk('Veículo principal atualizado.')
                           await reload()
                         })
-                        .catch((err) => pushError(String(err)))
+                        .catch((err) =>
+                          pushError(toUserMessage(err, 'Falha ao definir veículo principal')),
+                        )
                     }
                   >
                     Tornar principal
@@ -259,7 +262,7 @@ export function AccountVehiclesPage() {
                         pushOk('Veículo removido.')
                         await reload()
                       } catch (err) {
-                        pushError(String(err))
+                        pushError(toUserMessage(err, 'Falha ao remover veículo'))
                       }
                     })()
                   }}

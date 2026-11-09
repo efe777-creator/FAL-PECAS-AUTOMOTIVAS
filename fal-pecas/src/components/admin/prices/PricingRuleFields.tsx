@@ -63,7 +63,7 @@ export function PricingRuleFields({
         value={extraCostPercent}
         disabled={disabled}
         onChange={(e) => onExtraCostPercent(e.target.value)}
-        hint="CUSTO → este % → base de formação → markup/margem. Paralelo ao adicional em R$ da lista."
+        hint="Custo → este % → base de formação → regra da lista. Paralelo ao adicional em R$ da lista."
       />
     </div>
   )
