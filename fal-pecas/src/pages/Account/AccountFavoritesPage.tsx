@@ -69,7 +69,7 @@ export function AccountFavoritesPage() {
           <ul className="mt-2 mb-0 list-disc pl-5 text-sm text-fal-muted">
             {archived.map((p) => (
               <li key={p.id}>
-                {p.name} · SKU {p.sku}
+                {p.name} · Código {p.sku}
               </li>
             ))}
           </ul>

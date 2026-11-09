@@ -233,7 +233,7 @@ export async function adminPreviewCostImport(input: {
             oldCost = hit.cost
             action = hit.hasLink ? 'update' : 'create'
             if (!hit.hasLink) {
-              warnings.push('Vínculo FAL será criado (código = SKU)')
+              warnings.push('Vínculo FAL será criado (código = código interno)')
             }
           }
         } else {

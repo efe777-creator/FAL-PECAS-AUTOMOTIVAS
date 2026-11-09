@@ -115,7 +115,8 @@ export function AdminSearchPrepPage() {
           <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
             <h2 className="m-0 text-lg font-bold text-fal-navy">Documento de busca</h2>
             <p className="m-0 text-sm text-fal-muted">
-              Inclui nome, SKU, código referência, marca, categoria, refs e apelidos dos sinônimos.
+              Inclui nome, código interno, código referência, marca, categoria, refs e apelidos dos
+              sinônimos.
             </p>
             <Button type="button" variant="primary" disabled={rebuildBusy} onClick={() => void onRebuild()}>
               {rebuildBusy ? 'Atualizando…' : 'Reconstruir documentos agora'}

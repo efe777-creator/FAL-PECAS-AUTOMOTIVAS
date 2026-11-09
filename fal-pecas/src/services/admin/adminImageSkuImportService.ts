@@ -98,7 +98,7 @@ export async function adminPreviewImageSkuImport(
         productId: null,
         productLabel: null,
         status: 'error',
-        message: 'Nome sem SKU reconhecível',
+        message: 'Nome sem código reconhecível',
       })
       continue
     }
@@ -121,7 +121,7 @@ export async function adminPreviewImageSkuImport(
     const hits = productMap.get(norm(row.key)) ?? []
     if (hits.length === 0) {
       row.status = 'error'
-      row.message = 'SKU/código não encontrado'
+      row.message = 'Código não encontrado'
       continue
     }
     if (hits.length > 1) {
