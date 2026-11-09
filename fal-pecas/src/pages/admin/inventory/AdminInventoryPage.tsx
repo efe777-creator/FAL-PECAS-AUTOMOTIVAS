@@ -266,7 +266,7 @@ export function AdminInventoryPage() {
           label="Buscar"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="SKU ou nome"
+          placeholder="Código ou nome"
         />
         <Button type="button" variant="light" onClick={() => void reload(search)} disabled={loading || busy}>
           Filtrar

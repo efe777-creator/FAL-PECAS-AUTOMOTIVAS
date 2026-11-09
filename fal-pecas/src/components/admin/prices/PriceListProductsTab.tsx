@@ -264,7 +264,7 @@ export function PriceListProductsTab({
               checked={filterWithOverride}
               onChange={(e) => onFilterWithOverride(e.target.checked)}
             />
-            Com override
+            Com ajuste avulso
           </label>
           {filtersActive ? (
             <button

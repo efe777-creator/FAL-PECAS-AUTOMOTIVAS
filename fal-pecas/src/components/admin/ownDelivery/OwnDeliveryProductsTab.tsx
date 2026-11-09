@@ -63,7 +63,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
       </p>
       <div className="flex flex-wrap items-end gap-2">
         <Input
-          label="Busca (nome / SKU / ref)"
+          label="Busca (nome / código / ref)"
           value={prodQ}
           onChange={(e) => setProdQ(e.target.value)}
         />

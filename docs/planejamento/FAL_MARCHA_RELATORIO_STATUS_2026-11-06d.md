@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA residual SKU/POL (#241)  
+**HEAD:** `main` @ tip MARCHA buscas sem SKU (#242)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -102,6 +102,7 @@
 | #239 | O0-C / O1-D | Frete próprio: validação flat em PT |
 | #240 | O0-C / O1-D | Frete próprio: sem POL/modalidade na UI |
 | #241 | O0-C | Residual SKU/POL preços + pedido + frete |
+| #242 | O0-C | Buscas/placeholders sem SKU + override PT |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 

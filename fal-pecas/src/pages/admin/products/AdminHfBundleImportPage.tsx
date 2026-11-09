@@ -158,7 +158,7 @@ export function AdminHfBundleImportPage() {
                   <table className="min-w-full text-left text-xs">
                     <thead className="border-b border-fal-line text-fal-muted uppercase">
                       <tr>
-                        <th className="px-2 py-1">SKU</th>
+                        <th className="px-2 py-1">Código</th>
                         <th className="px-2 py-1">Nome</th>
                         <th className="px-2 py-1">Posição</th>
                         <th className="px-2 py-1">Lado</th>

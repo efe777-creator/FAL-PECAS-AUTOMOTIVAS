@@ -712,7 +712,7 @@ export function AdminHomeContentPage() {
                 label={`Incluir na fila (máx. ${MAX_FEATURED})`}
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Nome, SKU ou referência"
+                placeholder="Nome, código ou referência"
               />
             </div>
             <Button type="submit" variant="primary" disabled={searching}>

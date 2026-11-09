@@ -546,7 +546,7 @@ export function AdminApplicationsPage() {
       <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4">
         <div className="min-w-[180px] flex-1">
           <Input
-            label="Buscar (SKU / nome / veículo)"
+            label="Buscar (código / nome / veículo)"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Código ou montadora…"
