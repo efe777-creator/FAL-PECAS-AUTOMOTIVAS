@@ -173,11 +173,13 @@ export function MeExpeditionPanel({
         {me.protocol ? (
           <p className="mt-1 mb-0 text-xs text-fal-muted">
             Protocolo: {me.protocol}
-            {me.tracking ? ` · Rastreio ME: ${me.tracking}` : ''}
+            {me.tracking ? ` · Rastreio Melhor Envio: ${me.tracking}` : ''}
           </p>
         ) : null}
         {me.last_error ? (
-          <p className="mt-1 mb-0 text-xs text-red-600">Último erro ME: {me.last_error}</p>
+          <p className="mt-1 mb-0 text-xs text-red-600">
+            Último erro Melhor Envio: {me.last_error}
+          </p>
         ) : null}
         {divergenceMsg ? (
           <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
@@ -219,7 +221,7 @@ export function MeExpeditionPanel({
           disabled={busy || meBusy || alreadyPurchased(labelState)}
           onClick={() => void runMe(() => mePrepareLabel(order.id))}
         >
-          Preparar carrinho ME
+          Preparar carrinho Melhor Envio
         </Button>
         <Button
           type="button"
@@ -228,7 +230,7 @@ export function MeExpeditionPanel({
             void confirmDialog({
               title: 'Comprar etiqueta?',
               message:
-                'Confirmar compra da etiqueta no Melhor Envio Sandbox?\n\nIsto NÃO marca o pedido como enviado.',
+                'Confirmar compra da etiqueta no Melhor Envio (ambiente de testes)?\n\nIsto NÃO marca o pedido como enviado.',
               confirmLabel: 'Comprar etiqueta',
             })
               .then(({ confirmed }) => {
