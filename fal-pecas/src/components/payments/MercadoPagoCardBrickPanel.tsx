@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
+import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { createMercadoPagoPayment } from '@/services/payments/mpCreatePaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
@@ -28,23 +29,6 @@ function ensureMpInit(publicKey: string) {
   if (mpInitedKey === publicKey) return
   initMercadoPago(publicKey, { locale: 'pt-BR' })
   mpInitedKey = publicKey
-}
-
-function paymentStatusPt(status: string): string {
-  switch (status) {
-    case 'approved':
-      return 'aprovado'
-    case 'rejected':
-      return 'recusado'
-    case 'cancelled':
-      return 'cancelado'
-    case 'pending':
-      return 'pendente'
-    case 'in_process':
-      return 'em análise'
-    default:
-      return status
-  }
 }
 
 /**
@@ -189,7 +173,7 @@ export function MercadoPagoCardBrickPanel({
         <p className="text-sm text-fal-muted">
           Pagamento enviado. Estamos confirmando com o banco — isso pode levar alguns segundos.
         </p>
-        <p className="text-xs text-fal-muted">Status: {paymentStatusPt(status)}</p>
+        <p className="text-xs text-fal-muted">Status: {paymentStatusLabel(status)}</p>
         <Loading label="Aguardando confirmação…" />
       </div>
     )

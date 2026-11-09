@@ -1,6 +1,8 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
+import { useToast } from '@/components/common/Toast'
 import { formatMoney } from '@/lib/money'
+import { paymentStatusLabel } from '@/lib/paymentLabels'
 import {
   formatCountdown,
   isPaymentExpired,
@@ -34,6 +36,7 @@ export function MercadoPagoPixPanel({
   initialExpiresAt,
   onExpired,
 }: Props) {
+  const toast = useToast()
   const [row, setRow] = useState<OwnPaymentRow | null>(() =>
     initialPixQrCode || initialPixQrCodeBase64
       ? {
@@ -128,13 +131,19 @@ export function MercadoPagoPixPanel({
         ta.style.left = '-9999px'
         document.body.appendChild(ta)
         ta.select()
-        document.execCommand('copy')
+        const ok = document.execCommand('copy')
         document.body.removeChild(ta)
+        if (!ok) throw new Error('copy failed')
       }
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+      toast.push('Código Pix copiado.', 'success')
     } catch {
-      /* fallback: usuário pode selecionar o código manualmente */
+      setError('Não foi possível copiar automaticamente. Selecione o código e copie manualmente.')
+      toast.push(
+        'Não foi possível copiar. Selecione o código Pix e copie manualmente.',
+        'error',
+      )
     }
   }
 
@@ -181,7 +190,9 @@ export function MercadoPagoPixPanel({
             </p>
           ) : null}
           {row.status === 'rejected' || row.status === 'cancelled' ? (
-            <p className="text-sm text-fal-danger">Pagamento não aprovado ({row.status}).</p>
+            <p className="text-sm text-fal-danger">
+              Pagamento não aprovado ({paymentStatusLabel(row.status)}).
+            </p>
           ) : null}
           {!expired && imgSrc ? (
             <img
@@ -209,8 +220,8 @@ export function MercadoPagoPixPanel({
             </p>
           ) : null}
           <p className="text-xs text-fal-muted">
-            Status: {expired ? 'expired' : row.status}
-            {row.providerStatus ? ` (MP: ${row.providerStatus})` : ''} · Pedido {orderId.slice(0, 8)}…
+            Status: {paymentStatusLabel(expired ? 'expired' : row.status)} · Pedido{' '}
+            {orderId.slice(0, 8)}…
           </p>
         </>
       ) : null}
