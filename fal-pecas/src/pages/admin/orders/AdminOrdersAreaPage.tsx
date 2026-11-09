@@ -55,7 +55,7 @@ export function AdminOrdersAreaPage() {
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar')
+      setError(toUserMessage(e, 'Erro ao carregar'))
     } finally {
       setLoading(false)
     }
@@ -128,7 +128,7 @@ export function AdminOrdersAreaPage() {
                 toast.push(formatExpireUnpaidMessage(r), 'success')
                 await reload()
               } catch (e) {
-                toast.push(e instanceof Error ? e.message : 'Falha ao expirar', 'error')
+                toast.push(toUserMessage(e, 'Falha ao expirar'), 'error')
               } finally {
                 setBusyExpire(false)
               }

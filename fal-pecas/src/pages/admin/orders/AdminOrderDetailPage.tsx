@@ -5,6 +5,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import {
@@ -149,7 +150,7 @@ export function AdminOrderDetailPage() {
         setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')
       }
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Erro ao carregar')
+      pushError(toUserMessage(e, 'Erro ao carregar'))
     } finally {
       if (opts?.initial) setLoading(false)
     }
@@ -178,7 +179,7 @@ export function AdminOrderDetailPage() {
       pushOk('Disponibilidade salva')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao salvar item')
+      pushError(toUserMessage(e, 'Falha ao salvar item'))
     } finally {
       setBusy(false)
     }
@@ -193,7 +194,7 @@ export function AdminOrderDetailPage() {
       setPending(null)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao finalizar')
+      pushError(toUserMessage(e, 'Falha ao finalizar'))
     } finally {
       setBusy(false)
     }
@@ -214,7 +215,7 @@ export function AdminOrderDetailPage() {
       setCancelNote('')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao cancelar')
+      pushError(toUserMessage(e, 'Falha ao cancelar'))
     } finally {
       setBusy(false)
     }
@@ -227,7 +228,7 @@ export function AdminOrderDetailPage() {
       await adminSetItemSeparated(itemId, separated)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao marcar separação')
+      pushError(toUserMessage(e, 'Falha ao marcar separação'))
     } finally {
       setBusy(false)
     }
@@ -242,7 +243,7 @@ export function AdminOrderDetailPage() {
       setPending(null)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha na separação')
+      pushError(toUserMessage(e, 'Falha na separação'))
     } finally {
       setBusy(false)
     }
@@ -262,7 +263,7 @@ export function AdminOrderDetailPage() {
       setPending(null)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha na expedição')
+      pushError(toUserMessage(e, 'Falha na expedição'))
     } finally {
       setBusy(false)
     }
@@ -277,7 +278,7 @@ export function AdminOrderDetailPage() {
       setPending(null)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha na entrega')
+      pushError(toUserMessage(e, 'Falha na entrega'))
     } finally {
       setBusy(false)
     }
@@ -351,7 +352,7 @@ export function AdminOrderDetailPage() {
       pushOk(`${pendingItems.length} item(ns) marcado(s) como separado(s).`)
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao marcar separação')
+      pushError(toUserMessage(e, 'Falha ao marcar separação'))
     } finally {
       setBusy(false)
     }
@@ -377,7 +378,7 @@ export function AdminOrderDetailPage() {
       pushOk('Análise iniciada')
       await reload()
     } catch (e) {
-      pushError(e instanceof Error ? e.message : 'Falha ao iniciar análise')
+      pushError(toUserMessage(e, 'Falha ao iniciar análise'))
     } finally {
       setBusy(false)
     }
@@ -473,7 +474,7 @@ export function AdminOrderDetailPage() {
                     )
                     await reload()
                   } catch (e) {
-                    pushError(e instanceof Error ? e.message : 'Falha ao aprovar')
+                    pushError(toUserMessage(e, 'Falha ao aprovar'))
                   } finally {
                     setBusy(false)
                   }
@@ -504,7 +505,7 @@ export function AdminOrderDetailPage() {
                     pushOk('Solicitação recusada. Pedido permanece ativo.')
                     await reload()
                   } catch (e) {
-                    pushError(e instanceof Error ? e.message : 'Falha ao recusar')
+                    pushError(toUserMessage(e, 'Falha ao recusar'))
                   } finally {
                     setBusy(false)
                   }
@@ -549,7 +550,7 @@ export function AdminOrderDetailPage() {
                   pushOk('Pagamento marcado como estornado.')
                   await reload()
                 } catch (e) {
-                  pushError(e instanceof Error ? e.message : 'Falha ao marcar estorno')
+                  pushError(toUserMessage(e, 'Falha ao marcar estorno'))
                 } finally {
                   setBusy(false)
                 }
