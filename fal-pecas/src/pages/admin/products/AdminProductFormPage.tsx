@@ -668,7 +668,7 @@ export function AdminProductFormPage() {
                 checked={available}
                 onChange={(e) => setAvailable(e.target.checked)}
               />
-              Disponível na loja (após criar, use Liberar com checklist)
+              Disponível na loja (após criar, use Liberar na loja)
             </label>
           )}
         </div>

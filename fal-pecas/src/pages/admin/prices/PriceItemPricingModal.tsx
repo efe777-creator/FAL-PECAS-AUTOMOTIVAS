@@ -223,7 +223,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
             <span>
               <strong>Alterar preço manualmente</strong>
               <span className="mt-0.5 block text-xs text-fal-muted">
-                Origem {priceOriginLabel('manual')} — markup/margem passam a ser consequência
+                Origem {priceOriginLabel('manual')} — markup e margem passam a ser só referência
               </span>
             </span>
           </label>
