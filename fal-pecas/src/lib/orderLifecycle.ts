@@ -145,7 +145,7 @@ export const orderStatusAdminLabel: Record<string, string> = {
   pagamento_aprovado: 'Pagamento aprovado (iniciar análise)',
   recebido: 'Aguardando início da análise',
   em_analise: 'Em análise pela loja',
-  aguardando_disponibilidade: 'Aguardando disponibilidade (legado)',
+  aguardando_disponibilidade: 'Aguardando disponibilidade',
   aguardando_decisao: 'Aguardando resposta do cliente',
   confirmado: 'Pedido confirmado',
   em_separacao: 'Em separação',

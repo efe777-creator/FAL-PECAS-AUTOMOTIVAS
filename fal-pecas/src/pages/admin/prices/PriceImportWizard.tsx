@@ -348,7 +348,7 @@ export function PriceImportWizard({
         })
         sellMsg =
           `Preços pela regra da lista atualizados: ${applied.updated}. ` +
-          `Manuais preservados: ${applied.skippedManual}; importados preservados: ${applied.skippedImported}` +
+          `Preços manuais preservados: ${applied.skippedManual}; preços de planilha preservados: ${applied.skippedImported}` +
           (applied.skippedNoCost > 0 ? `; sem custo: ${applied.skippedNoCost}` : '') +
           '.'
         if (applied.skippedNoCost > 0 && applied.updated === 0) {
@@ -367,7 +367,7 @@ export function PriceImportWizard({
           `. Falhas: ${result.failed}. ` +
           `Lista "${selectedList?.name ?? ''}": incluídos ${sync.created}; ` +
           `já na lista ${sync.alreadyOnList}; ` +
-          `manual preservado ${sync.skippedManual}; importado preservado ${sync.skippedImported}. ` +
+          `preço manual preservado ${sync.skippedManual}; preço de planilha preservado ${sync.skippedImported}. ` +
           sellMsg,
       )
       setStep(9)
@@ -440,7 +440,7 @@ export function PriceImportWizard({
               <span>
                 <strong className="text-fal-navy">Preço de venda</strong>
                 <span className="mt-1 block text-sm text-fal-muted">
-                  Atualiza o preço comercial na lista escolhida (price_list_items).
+                  Atualiza o preço comercial na lista de preços escolhida.
                 </span>
               </span>
             </label>
@@ -455,7 +455,7 @@ export function PriceImportWizard({
                 <strong className="text-fal-navy">Custo do fornecedor</strong>
                 <span className="mt-1 block text-sm text-fal-muted">
                   Atualiza o custo e inclui os produtos na lista escolhida (venda 0 até aplicar
-                  margem). Não sobrescreve preços imported/manual.
+                  margem). Não sobrescreve preços manuais nem os já importados por planilha.
                 </span>
               </span>
             </label>

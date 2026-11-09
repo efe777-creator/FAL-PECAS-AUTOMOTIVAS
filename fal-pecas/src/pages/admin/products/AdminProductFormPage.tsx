@@ -953,18 +953,38 @@ export function AdminProductFormPage() {
                   <li key={h.id} className="rounded-md border border-fal-line bg-white px-2 py-1.5">
                     <div className="flex flex-wrap justify-between gap-2 font-semibold text-fal-navy">
                       <span>{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
-                      <span className="uppercase tracking-wide text-fal-muted">{h.source}</span>
+                      <span className="tracking-wide text-fal-muted">
+                        {h.source === 'bulk'
+                          ? 'Em lote'
+                          : h.source === 'system'
+                            ? 'Sistema'
+                            : h.source === 'seed'
+                              ? 'Carga inicial'
+                              : 'Manual'}
+                      </span>
                     </div>
                     <ul className="mt-1 mb-0 list-disc pl-4 text-fal-muted">
-                      {Object.entries(h.changes).map(([field, delta]) => (
-                        <li key={field}>
-                          <code>{field}</code>: {String(delta.old ?? '—')} →{' '}
-                          {String(delta.new ?? '—')}
-                          {delta.old_origin || delta.new_origin
-                            ? ` (${delta.old_origin ?? '—'}→${delta.new_origin ?? '—'})`
-                            : ''}
-                        </li>
-                      ))}
+                      {Object.entries(h.changes).map(([field, delta]) => {
+                        const fieldLabel: Record<string, string> = {
+                          weight_kg: 'Peso (kg)',
+                          length_cm: 'Comprimento (cm)',
+                          width_cm: 'Largura (cm)',
+                          height_cm: 'Altura (cm)',
+                          volume_cm3: 'Volume (cm³)',
+                          max_weight_kg: 'Peso máx. (kg)',
+                        }
+                        const originLabel = (o?: string) =>
+                          o === 'manual' ? 'manual' : o === 'global' ? 'padrão' : o || '—'
+                        return (
+                          <li key={field}>
+                            {fieldLabel[field] ?? field}: {String(delta.old ?? '—')} →{' '}
+                            {String(delta.new ?? '—')}
+                            {delta.old_origin || delta.new_origin
+                              ? ` (${originLabel(delta.old_origin)}→${originLabel(delta.new_origin)})`
+                              : ''}
+                          </li>
+                        )
+                      })}
                     </ul>
                   </li>
                 ))}

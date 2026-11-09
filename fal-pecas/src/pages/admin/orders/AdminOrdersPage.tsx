@@ -29,7 +29,7 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'pagamento_aprovado', label: 'Pagamento aprovado' },
   { value: 'recebido', label: 'Aguardando início da análise' },
   { value: 'em_analise', label: 'Em análise pela loja' },
-  { value: 'aguardando_disponibilidade', label: 'Disponibilidade (legado)' },
+  { value: 'aguardando_disponibilidade', label: 'Aguardando disponibilidade' },
   { value: 'aguardando_decisao', label: 'Aguardando resposta do cliente' },
   { value: 'confirmado', label: 'Confirmados' },
   { value: 'em_separacao', label: 'Em separação' },
