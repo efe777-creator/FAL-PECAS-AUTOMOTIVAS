@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import { paymentProviderLabel, paymentStatusLabel } from '@/lib/paymentLabels'
+import { shipmentStatusLabel } from '@/lib/shippingLabels'
 import {
   buildOrderWhatsAppMessage,
   storeWhatsAppPhone,
@@ -531,7 +532,7 @@ export function AccountOrderDetailPage() {
           {order.shipment ? (
             <p className="m-0">
               {String(order.shipment.metadata?.label ?? order.shipment.provider)} ·{' '}
-              {order.shipment.status}
+              {shipmentStatusLabel(order.shipment.status)}
               <br />
               {order.shipment.amount != null ? money(order.shipment.amount) : null}
               {order.shipment.trackingCode ? (
