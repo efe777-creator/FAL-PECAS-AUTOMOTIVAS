@@ -794,17 +794,17 @@ export function AdminProductFormPage() {
           ) : null}
         </div>
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Frete próprio — POL e veículo</h2>
+        <h2 className="pt-2 font-extrabold text-fal-navy">Frete próprio — capacidade e veículo</h2>
         <p className="m-0 text-xs text-fal-muted">
           Mesmo campo usado em{' '}
           <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-navy">
             Logística → Frete próprio → Produtos
           </Link>
-          . Sem duplicar cadastro. Editar marca origem <strong>Manual</strong>.
+          . Sem duplicar cadastro. Ao editar aqui, a origem passa a ser preenchimento manual.
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Input
-            label="POL unitário (capacidade de carga)"
+            label="Capacidade unitária (POL)"
             type="number"
             step="0.01"
             min="0"
@@ -862,12 +862,15 @@ export function AdminProductFormPage() {
             Permite frete próprio FAL
           </label>
           <p className="m-0 self-center text-xs text-fal-muted">
-            Origem POL: <strong>{polOrigin === 'manual' ? 'Manual' : 'Global'}</strong>
+            Origem da capacidade:{' '}
+            <strong>
+              {polOrigin === 'manual' ? 'preenchimento manual' : 'padrão da classificação'}
+            </strong>
           </p>
         </div>
         <h2 className="pt-2 font-extrabold text-fal-navy">Medidas físicas (opcional)</h2>
         <p className="m-0 text-xs text-fal-muted">
-          Peso e dimensões para ME/transportadoras. Independente do POL do frete próprio.
+          Peso e dimensões para cotação de frete. Independente da capacidade (POL) do frete próprio.
         </p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {(
@@ -925,8 +928,8 @@ export function AdminProductFormPage() {
                   value={f.origin}
                   onChange={(e) => f.setOrigin(e.target.value as MeasureOrigin)}
                 >
-                  <option value="manual">Manual</option>
-                  <option value="global">Global</option>
+                  <option value="manual">Manual do produto</option>
+                  <option value="global">Padrão da classificação</option>
                 </select>
               </label>
             </div>
@@ -937,7 +940,7 @@ export function AdminProductFormPage() {
           <div className="rounded-[10px] border border-fal-line bg-[#f7f9fc] p-3">
             <h3 className="m-0 text-sm font-extrabold text-fal-navy">Histórico de medidas</h3>
             <p className="mt-1 mb-2 text-xs text-fal-muted">
-              Alterações de peso/dims/POL (manual ou bulk). Máx. 30 recentes.
+              Alterações de peso, dimensões e capacidade (manual ou em lote). Máx. 30 recentes.
             </p>
             {measureHistoryErr ? (
               <p className="m-0 text-xs text-red-700">{measureHistoryErr}</p>
