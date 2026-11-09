@@ -252,8 +252,8 @@ export function AdminApplicationsImportPage() {
                 <div>
                   <p className="m-0 text-fal-muted">Produtos (referência)</p>
                   <ul className="mt-1 list-disc pl-5">
-                    <li>Já cadastrados (ok): {summary.productExisting}</li>
-                    <li>Não cadastrados (erro): {summary.productMissing}</li>
+                    <li>Já cadastrados: {summary.productExisting}</li>
+                    <li>Não cadastrados: {summary.productMissing}</li>
                   </ul>
                 </div>
                 <div>
