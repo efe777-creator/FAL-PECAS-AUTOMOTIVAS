@@ -553,7 +553,7 @@ export function AdminPriceListDetailPage() {
       title: 'Aplicar regra de formação?',
       message:
         `Incluir (se necessário) e calcular venda pela regra em ${selectedItems.length} item(ns)?\n` +
-        `Origem ${priceOriginLabel('calculated')}. Importado/manual na seleção serão convertidos para calculado.`,
+        `Origem ${priceOriginLabel('calculated')}. Itens ${priceOriginLabel('imported')} ou ${priceOriginLabel('manual')} na seleção passam a ${priceOriginLabel('calculated')}.`,
       confirmLabel: 'Aplicar',
     })
     if (!okRule) return
@@ -720,8 +720,8 @@ export function AdminPriceListDetailPage() {
           `Aplicar margem → atualizar preço de venda?\n` +
           `Novos na lista (com custo): ${sync.created}\n` +
           `Atualizar ${priceOriginLabel('calculated')}: ${dry.wouldUpdate}\n` +
-          `Manual: ${dry.skippedManual} · Importado: ${dry.skippedImported} · Sem custo: ${dry.skippedNoCost}\n` +
-          `Importado/manual NÃO mudam.`,
+          `${priceOriginLabel('manual')}: ${dry.skippedManual} · ${priceOriginLabel('imported')}: ${dry.skippedImported} · Sem custo: ${dry.skippedNoCost}\n` +
+          `${priceOriginLabel('imported')} e ${priceOriginLabel('manual')} não mudam o preço de venda.`,
         confirmLabel: 'Aplicar',
       })
       if (!okMargin) {
@@ -733,7 +733,7 @@ export function AdminPriceListDetailPage() {
       const applied = await adminRecalculatePriceListItems({ priceListId: id, dryRun: false })
       const applyMsg =
         `Margem aplicada. Venda atualizada: ${applied.updated}. ` +
-        `Incluídos na lista: ${sync.created}. Manual: ${applied.skippedManual}; importado: ${applied.skippedImported}.${extraMsg}`
+        `Incluídos na lista: ${sync.created}. ${priceOriginLabel('manual')}: ${applied.skippedManual}; ${priceOriginLabel('imported')}: ${applied.skippedImported}.${extraMsg}`
       pushOk(applyMsg)
       await reload()
     } catch (err) {

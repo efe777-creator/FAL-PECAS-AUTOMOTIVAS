@@ -29,7 +29,7 @@ export const PRICE_LIST_LAYERS_HINT =
 
 /** Prioridade da lista: desempate real em resolve_product_price (não remover). */
 export const PRICE_LIST_PRIORITY_HINT =
-  'Prioridade da lista: desempate na resolução de preço (maior vence entre listas públicas ativas).'
+  'Prioridade da lista: desempate do preço na loja (maior vence entre listas públicas ativas).'
 
 export const PRICE_ORIGIN_VS_METHOD_HINT =
   'Origem do item (Calculado / Importado / Manual) ≠ método de formação da lista (Margem / Markup / Fixo).'
