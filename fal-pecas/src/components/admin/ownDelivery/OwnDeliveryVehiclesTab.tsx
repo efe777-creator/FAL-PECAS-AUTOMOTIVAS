@@ -60,7 +60,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
       <section className="rounded-[14px] border border-fal-line bg-white p-4">
         <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Tipos de veículo</h2>
         <p className="m-0 mb-3 text-sm text-fal-muted">
-          Cada tipo define quanto carrega (POL) e até quantos km atende. Inclua ou remova conforme a
+          Cada tipo define quanto carrega e até quantos km atende. Inclua ou remova conforme a
           frota.
         </p>
         <div className="space-y-3">
@@ -123,7 +123,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
               </label>
               <Input
                 name="capacity"
-                label="Capacidade (POL)"
+                label="Capacidade"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -245,7 +245,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
             </select>
           </label>
           <Input
-            label="Capacidade (POL)"
+            label="Capacidade"
             type="number"
             value={newPol}
             onChange={(e) => setNewPol(e.target.value)}
