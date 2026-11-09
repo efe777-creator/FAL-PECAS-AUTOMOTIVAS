@@ -628,7 +628,7 @@ export function AdminProductFormPage() {
           <p className="m-0 text-sm font-extrabold text-fal-navy">Disponibilidade na loja</p>
           <p className="mt-1 text-xs text-fal-muted">
             Importação de custo/preço não libera o produto. Use{' '}
-            <strong>Liberar na loja</strong> quando status, preço e confirmação estiverem ok.
+            <strong>Liberar na loja</strong> quando status, preço e confirmação estiverem prontos.
           </p>
           <p className="mt-2 text-sm">
             Situação:{' '}

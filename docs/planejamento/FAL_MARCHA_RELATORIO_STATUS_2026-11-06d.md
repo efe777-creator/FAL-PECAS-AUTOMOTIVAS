@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-09 (atualizado)  
 **Plano:** `FAL_PLANO_MESTRE_SITE_2026-11-05.md`  
-**HEAD:** `main` @ tip MARCHA toast catálogo ME (#232)  
+**HEAD:** `main` @ tip MARCHA liberar + serviço ME copy (#233)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
 
 ---
@@ -93,6 +93,7 @@
 | #230 | O0-C / O1-E | Expedição ME: Sandbox → ambiente de testes |
 | #231 | O0-C | Import aplicações: resumo sem (ok)/(erro) |
 | #232 | O0-C / O1-E | Melhor Envio: toast catálogo sem “via ME” |
+| #233 | O0-C | Liberar produto + código do serviço ME |
 
 ### 2.2 Continuidade #122–#163 (resumo)
 
