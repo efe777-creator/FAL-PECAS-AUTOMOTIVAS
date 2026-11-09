@@ -437,7 +437,8 @@ export function AdminProductsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Arquivar tira da loja (fica no banco). Status ≠ disponibilidade.
+            Arquivar remove da loja (continua no cadastro). Publicação e disponibilidade são coisas
+            diferentes.
             {items.length > 0
               ? ` · ${items.length} carregado${items.length === 1 ? '' : 's'}.`
               : null}

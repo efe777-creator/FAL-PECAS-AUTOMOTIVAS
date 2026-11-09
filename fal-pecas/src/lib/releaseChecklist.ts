@@ -61,7 +61,7 @@ export function evaluateReleaseChecklist(
     label: 'Código referência',
     level: 'hard',
     ok: refOk,
-    detail: refOk ? ref : 'Código referência / SKU ausente',
+    detail: refOk ? ref : 'Código referência / código interno ausente',
   })
 
   const catOk = Boolean(input.categoryId?.trim())
@@ -76,12 +76,12 @@ export function evaluateReleaseChecklist(
   const priceOk = input.resolvedPrice != null && input.resolvedPrice > 0
   checks.push({
     code: 'price',
-    label: 'Preço resolvido',
+    label: 'Preço na loja',
     level: 'hard',
     ok: priceOk,
     detail: priceOk
       ? `R$ ${Number(input.resolvedPrice).toFixed(2)}`
-      : 'Sem preço resolvido > 0 (override/lista pública/default)',
+      : 'Sem preço na loja maior que zero (ajuste avulso, lista pública ou lista padrão)',
   })
 
   const publishOk =
@@ -93,9 +93,9 @@ export function evaluateReleaseChecklist(
     ok: publishOk,
     detail: publishOk
       ? input.status === 'published'
-        ? 'Já published'
+        ? 'Já publicado'
         : 'Será publicado neste passo'
-      : 'Status ≠ published (marque publicar neste passo)',
+      : 'Produto ainda não publicado (marque publicar neste passo)',
   })
 
   checks.push({
@@ -103,7 +103,7 @@ export function evaluateReleaseChecklist(
     label: 'Aplicação veículo',
     level: 'soft',
     ok: input.hasApplication,
-    detail: input.hasApplication ? undefined : 'Sem aplicação PVC (aviso)',
+    detail: input.hasApplication ? undefined : 'Sem aplicação em veículo (aviso)',
   })
 
   checks.push({
