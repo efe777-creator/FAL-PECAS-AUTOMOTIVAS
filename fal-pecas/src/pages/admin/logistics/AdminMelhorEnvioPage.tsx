@@ -262,7 +262,8 @@ export function AdminMelhorEnvioPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-extrabold text-fal-navy">
-                    {r.companyName || 'Transportadora'} · {r.serviceName || `ID ${r.serviceId}`}
+                    {r.companyName || 'Transportadora'} ·{' '}
+                    {r.serviceName || `código ${r.serviceId}`}
                   </div>
                   <div className="text-xs text-fal-muted">Código do serviço {r.serviceId}</div>
                 </div>
