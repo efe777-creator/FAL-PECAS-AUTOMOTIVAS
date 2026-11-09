@@ -143,7 +143,7 @@ export function AdminOrderDetailPage() {
         setService((prev) =>
           prev ||
           d.shipment?.service ||
-          (me?.service_id != null ? `ME #${me.service_id}` : '') ||
+          (me?.service_id != null ? `Melhor Envio · serviço ${me.service_id}` : '') ||
           '',
         )
         setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')

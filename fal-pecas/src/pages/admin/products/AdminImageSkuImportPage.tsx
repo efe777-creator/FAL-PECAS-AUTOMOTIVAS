@@ -190,7 +190,7 @@ export function AdminImageSkuImportPage() {
             <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
               <tr>
                 <th className="px-3 py-2 font-bold">Arquivo</th>
-                <th className="px-3 py-2 font-bold">Chave</th>
+                <th className="px-3 py-2 font-bold">Código</th>
                 <th className="px-3 py-2 font-bold">Produto</th>
                 <th className="px-3 py-2 font-bold">Status</th>
                 <th className="px-3 py-2 font-bold">Obs.</th>
@@ -223,7 +223,11 @@ export function AdminImageSkuImportPage() {
                             : 'font-bold text-fal-danger'
                       }
                     >
-                      {row.status}
+                      {row.status === 'ok'
+                        ? 'Pronto'
+                        : row.status === 'skip'
+                          ? 'Pular'
+                          : 'Erro'}
                     </span>
                   </td>
                   <td className="max-w-[16rem] truncate px-3 py-2 text-fal-muted">{row.message}</td>
