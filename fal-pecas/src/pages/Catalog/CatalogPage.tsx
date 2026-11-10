@@ -105,6 +105,8 @@ export function CatalogPage() {
   const [brands, setBrands] = useState<ProductBrand[]>([])
   const [vehicleTree, setVehicleTree] = useState<VehicleOptionTree | null>(null)
   const [loading, setLoading] = useState(true)
+  /** Atualização de filtro com grade já na tela — sem trocar por Loading. */
+  const [refreshing, setRefreshing] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
@@ -114,6 +116,8 @@ export function CatalogPage() {
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
   const scrollRestoredRef = useRef(false)
+  const productsRef = useRef<Product[]>([])
+  productsRef.current = products
 
   function pushCatalogError(message: string, kind: 'page' | 'more') {
     if (kind === 'page') setError(message)
@@ -202,19 +206,29 @@ export function CatalogPage() {
     [q, cat, brand, maker, model, year, engine, version, sort],
   )
 
-  /** Filtro/busca/ordenação: vai aos resultados. “Carregar mais” (só page) não mexe. */
+  /**
+   * Filtro/busca/ordenação: mantém a posição da página (não scrollIntoView).
+   * “Carregar mais” (só page) não entra aqui.
+   */
   useEffect(() => {
     if (navType === 'POP') return
-    resultsRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior })
+    const y = window.scrollY
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y)
+      })
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando filtros mudam
   }, [searchArgs])
 
   useEffect(() => {
     const id = ++requestId.current
     const targetPage = urlPage
+    const soft = productsRef.current.length > 0
     void (async () => {
-      setLoading(true)
       setError(null)
+      if (soft) setRefreshing(true)
+      else setLoading(true)
       try {
         const first = await searchCatalog({
           ...searchArgs,
@@ -254,7 +268,10 @@ export function CatalogPage() {
           )
         }
       } finally {
-        if (id === requestId.current) setLoading(false)
+        if (id === requestId.current) {
+          setLoading(false)
+          setRefreshing(false)
+        }
       }
     })()
     // urlPage lido no momento em que searchArgs muda (filtros resetam page; deep-link na 1ª carga).
@@ -843,6 +860,7 @@ export function CatalogPage() {
         <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8] px-1 py-2 sm:bg-fal-bg">
           {!loading && !error ? (
             <p className="m-0 text-sm font-semibold text-fal-navy-dark">
+              {refreshing ? 'Atualizando… · ' : ''}
               {products.length === 0
                 ? 'Nenhum produto neste filtro'
                 : `${total} produto${total === 1 ? '' : 's'}${
@@ -854,7 +872,7 @@ export function CatalogPage() {
           )}
         </div>
 
-        {loading ? <Loading /> : null}
+        {loading && products.length === 0 ? <Loading /> : null}
         {error ? <ErrorState message={error} /> : null}
         {!loading && !error && products.length === 0 ? (
           <EmptyState
@@ -883,9 +901,14 @@ export function CatalogPage() {
             ) : null}
           </EmptyState>
         ) : null}
-        {!loading && !error && products.length > 0 ? (
+        {!error && products.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-[18px] lg:grid-cols-4">
+            <div
+              className={[
+                'grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-[18px] lg:grid-cols-4',
+                refreshing ? 'opacity-70 transition-opacity' : '',
+              ].join(' ')}
+            >
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

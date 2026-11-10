@@ -60,16 +60,22 @@ export function useFeaturedProducts(limit = 8) {
   useEffect(() => {
     let active = true
     void (async () => {
+      // Mantém lista anterior visível ao só mudar o limit — evita “reload” visual.
+      setState((prev) => ({
+        ...prev,
+        loading: prev.data.length === 0,
+        error: null,
+      }))
       try {
         const data = await listFeaturedProducts(limit)
         if (active) setState({ data, loading: false, error: null })
       } catch (e) {
         if (active)
-          setState({
-            data: [],
+          setState((prev) => ({
+            data: prev.data,
             loading: false,
             error: toUserMessage(e, 'Erro ao carregar produtos'),
-          })
+          }))
       }
     })()
     return () => {

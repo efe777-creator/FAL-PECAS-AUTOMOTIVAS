@@ -285,9 +285,7 @@ export async function filterProductIdsByVehicle(filter: {
     `,
     )
 
-  if (engine) appsQuery = appsQuery.eq('vehicle_versions.engine', engine)
-  if (version) appsQuery = appsQuery.eq('vehicle_versions.version_name', version)
-
+  // Não filtrar engine/version no PostgREST: vazio na VV = coringa (espelha search_products).
   const { data: apps, error: aErr } = await appsQuery
   if (aErr) throw aErr
 
@@ -310,6 +308,10 @@ export async function filterProductIdsByVehicle(filter: {
     const modelName = asNamed(v.models)?.name
     if (maker && makerName?.toLowerCase() !== maker.toLowerCase()) continue
     if (model && modelName?.toLowerCase() !== model.toLowerCase()) continue
+    const vvEngine = (v.engine ?? '').trim()
+    const vvVersion = (v.version_name ?? '').trim()
+    if (engine && vvEngine && vvEngine.toLowerCase() !== engine.toLowerCase()) continue
+    if (version && vvVersion && vvVersion.toLowerCase() !== version.toLowerCase()) continue
     if (
       yearNum != null &&
       !yearMatchesVehicleApp(
