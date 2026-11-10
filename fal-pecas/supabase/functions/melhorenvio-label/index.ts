@@ -15,7 +15,9 @@ import {
   labelStateOf,
   meAuthHeaders,
   meApiBase,
+  meFromDocumentFields,
   meRuntimeMode,
+  meToDocument,
   mergeMeMeta,
   parseMeMeta,
   type MeLabelState,
@@ -252,11 +254,13 @@ Deno.serve(async (req) => {
         labelAmount,
         serviceAvailable: true,
       })
+      const prevVol = parseMeMeta(meta).volumes
       await persist({
         label_state: 'quoted',
         quoted_amount: labelAmount,
         label_amount: labelAmount,
-        volumes,
+        // Não apagar volumes do packing snapshot se a calculate não devolver packages.
+        volumes: volumes ?? prevVol ?? null,
         divergence,
         dry_run: dryRun,
         last_error: null,
@@ -268,7 +272,9 @@ Deno.serve(async (req) => {
         divergence,
         message: dryRun
           ? 'Cotação dry-run (MELHOR_ENVIO_TOKEN ausente). Sandbox real exige secret.'
-          : 'Cotação sandbox ok.',
+          : sandbox
+            ? 'Cotação Melhor Envio (sandbox) ok.'
+            : 'Cotação Melhor Envio (produção) ok.',
         sandbox,
         dryRun,
       })
@@ -316,11 +322,8 @@ Deno.serve(async (req) => {
             })
           }
           const vol = (me.volumes ?? {}) as Record<string, unknown>
-          const doc = String(originRow.document ?? '').replace(/\D/g, '')
-          const fromDoc =
-            doc.length === 14
-              ? { company_document: doc }
-              : { document: doc || '00000000000' }
+          const fromDoc = meFromDocumentFields(String(originRow.document ?? ''))
+          const toDoc = meToDocument(String(addrSnap.document ?? addrSnap.cpf ?? ''))
           const cartBody = {
             service: serviceId,
             from: {
@@ -339,9 +342,9 @@ Deno.serve(async (req) => {
             },
             to: {
               name: String(addrSnap.recipient ?? 'Destinatario'),
-              phone: '11999999999',
+              phone: String(addrSnap.phone ?? '11999999999').replace(/\D/g, '') || '11999999999',
               email: 'cliente@falpecas.local',
-              document: '00000000000',
+              document: toDoc,
               address: String(addrSnap.street ?? ''),
               number: String(addrSnap.number ?? ''),
               complement: String(addrSnap.complement ?? ''),
