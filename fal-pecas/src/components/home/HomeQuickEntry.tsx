@@ -1,40 +1,85 @@
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Container } from '@/components/layout/Container'
+import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
+
+export type HomeShelfPanel = 'featured' | 'categories' | 'vehicles'
+
+type HomeQuickEntryProps = {
+  activePanel: HomeShelfPanel
+  onOpenCategories: () => void
+  onOpenVehicles: () => void
+}
+
+const shortcutBtn =
+  'inline-flex min-h-11 w-full items-center justify-center rounded-fal border px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy'
+
+function menuBtnClass(active: boolean) {
+  return [
+    shortcutBtn,
+    active
+      ? 'border-fal-navy bg-fal-navy text-white hover:brightness-110'
+      : 'border-fal-navy/20 bg-white text-fal-navy hover:border-fal-navy/45 hover:bg-white',
+  ].join(' ')
+}
 
 /**
- * Faixa clara de entrada após o hero de campanhas.
- * Sem segundo “hero” navy — só marca + ações (não compete com o banner).
+ * Entrada unificada: placa + 3 atalhos. Categorias e Meus veículos trocam a vitrine (sem sair da Home).
  */
-export function HomeQuickEntry() {
+export function HomeQuickEntry({
+  activePanel,
+  onOpenCategories,
+  onOpenVehicles,
+}: HomeQuickEntryProps) {
   return (
-    <section className="border-b border-fal-line bg-fal-bg">
-      <Container className="py-5 sm:py-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          <div className="min-w-0 max-w-xl">
-            <h1 className="m-0 text-[22px] font-black leading-tight tracking-tight text-fal-navy sm:text-[26px]">
-              FAL Peças Automotivas
+    <section
+      id="veiculo"
+      className="scroll-mt-20 border-b border-fal-line bg-fal-bg"
+      aria-labelledby="home-entry-heading"
+    >
+      <Container className="py-5 sm:py-7">
+        <div className="mx-auto flex max-w-xl flex-col items-stretch gap-5">
+          <header className="text-center">
+            <h1
+              id="home-entry-heading"
+              className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-fal-navy sm:text-[26px]"
+            >
+              Encontre a peça certa
             </h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-fal-muted sm:text-[15px]">
-              Encontre a peça no catálogo ou filtre pelo seu veículo.
+            <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-fal-muted sm:text-[15px]">
+              Comece pela placa do veículo — ou use os atalhos abaixo.
             </p>
+          </header>
+
+          <div className="w-full">
+            <VehiclePlateSearch returnPath="/" />
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <ButtonLink to="/catalogo" variant="primary">
+
+          <nav
+            aria-label="Atalhos de navegação"
+            className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3"
+          >
+            <ButtonLink to="/catalogo" variant="outline" className="w-full justify-center">
               Buscar peça
             </ButtonLink>
-            <a
-              href="#veiculo"
-              className="inline-flex min-h-11 items-center justify-center rounded-fal border border-fal-navy/25 bg-white px-4 text-sm font-bold text-fal-navy no-underline transition hover:border-fal-navy/50 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+            <button
+              type="button"
+              aria-pressed={activePanel === 'categories'}
+              aria-controls="home-vitrine"
+              className={menuBtnClass(activePanel === 'categories')}
+              onClick={onOpenCategories}
             >
-              Buscar pelo carro
-            </a>
-            <a
-              href="#categorias"
-              className="inline-flex min-h-11 items-center justify-center px-2 text-sm font-semibold text-fal-navy/80 underline-offset-4 hover:text-fal-navy hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+              Ver categorias
+            </button>
+            <button
+              type="button"
+              aria-pressed={activePanel === 'vehicles'}
+              aria-controls="home-vitrine"
+              className={menuBtnClass(activePanel === 'vehicles')}
+              onClick={onOpenVehicles}
             >
-              Categorias
-            </a>
-          </div>
+              Meus veículos
+            </button>
+          </nav>
         </div>
       </Container>
     </section>

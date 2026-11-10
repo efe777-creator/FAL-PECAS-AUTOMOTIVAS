@@ -369,12 +369,15 @@ export function ProductPage() {
     )
   }
 
-  /** Garante a quantidade escolhida no carrinho e vai a /carrinho (O1-G). */
+  /**
+   * Garante a quantidade no carrinho e vai ao checkout.
+   * Modalidade de frete já escolhida na PDP segue via handoff de sessão.
+   */
   function onBuyNow() {
     if (current.available === false) return
     if (inCart) updateQty(current.id, qty)
     else addItem(current, qty)
-    navigate('/carrinho')
+    navigate('/checkout')
   }
 
   function goBack() {

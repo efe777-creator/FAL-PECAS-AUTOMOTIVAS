@@ -3,6 +3,7 @@ import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBack
 import { expandYearsForSelector } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { VehicleFilter, VehicleOptionTree } from '@/types'
+import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 
 function relationName(value: unknown): string | undefined {
   if (!value) return undefined
@@ -15,6 +16,8 @@ function relationName(value: unknown): string | undefined {
 
 /**
  * Opções de veículo a partir de manufacturers / models / vehicle_versions.
+ * Anos/motores/versões vêm de **vehicle_versions active** (cadastro mestre).
+ * PVC só enriquece anos de aplicação — não limita o seletor.
  * Mock só com VITE_ALLOW_CATALOG_MOCKS=true em DEV (IMP-19 U1).
  */
 export async function getVehicleOptions(): Promise<VehicleOptionTree> {
@@ -49,10 +52,11 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
       .from('vehicle_versions')
       .select('year, engine, version_name, model_id, manufacturers(name), models(name)')
       .eq('status', 'active'),
-    // Anos oficiais da aplicação (PVC), não só vehicle_versions.year
     supabase
       .from('product_vehicle_compatibility')
-      .select('year_start, year_end, vehicle_versions!inner(year, models!inner(name))')
+      .select(
+        'year_start, year_end, vehicle_versions!inner(year, manufacturers(name), models!inner(name))',
+      )
       .limit(5000),
   ])
 
@@ -82,15 +86,17 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
   }
 
   for (const v of versions ?? []) {
+    const makerName = relationName(v.manufacturers)
     const modelName = relationName(v.models)
-    if (!modelName) continue
+    if (!makerName || !modelName) continue
+    const mk = vehicleModelKey(makerName, modelName)
 
     if (v.year != null) {
-      yearNumsByModel[modelName] ??= new Set()
-      yearNumsByModel[modelName].add(Number(v.year))
+      yearNumsByModel[mk] ??= new Set()
+      yearNumsByModel[mk].add(Number(v.year))
 
       if (v.engine) {
-        const key = `${modelName}|${v.year}`
+        const key = vehicleModelYearKey(makerName, modelName, v.year)
         enginesByModelYear[key] ??= []
         const engine = String(v.engine)
         if (!enginesByModelYear[key].includes(engine)) {
@@ -100,18 +106,18 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
     }
 
     if (v.engine) {
-      enginesByModel[modelName] ??= []
+      enginesByModel[mk] ??= []
       const engine = String(v.engine)
-      if (!enginesByModel[modelName].includes(engine)) {
-        enginesByModel[modelName].push(engine)
+      if (!enginesByModel[mk].includes(engine)) {
+        enginesByModel[mk].push(engine)
       }
     }
 
     if (v.version_name) {
-      versionsByModel[modelName] ??= []
+      versionsByModel[mk] ??= []
       const vn = String(v.version_name)
-      if (!versionsByModel[modelName].includes(vn)) {
-        versionsByModel[modelName].push(vn)
+      if (!versionsByModel[mk].includes(vn)) {
+        versionsByModel[mk].push(vn)
       }
     }
   }
@@ -119,22 +125,24 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
   for (const row of pvcRows ?? []) {
     const rawVv = row.vehicle_versions as unknown
     const vv = (Array.isArray(rawVv) ? rawVv[0] : rawVv) as
-      | { year?: number | null; models?: unknown }
+      | { year?: number | null; models?: unknown; manufacturers?: unknown }
       | null
+    const makerName = relationName(vv?.manufacturers)
     const modelName = relationName(vv?.models)
-    if (!modelName) continue
+    if (!makerName || !modelName) continue
+    const mk = vehicleModelKey(makerName, modelName)
     const expanded = expandYearsForSelector(
       row.year_start == null ? null : Number(row.year_start),
       row.year_end == null ? null : Number(row.year_end),
       vv?.year ?? null,
     )
     if (!expanded.length) continue
-    yearNumsByModel[modelName] ??= new Set()
-    for (const y of expanded) yearNumsByModel[modelName].add(y)
+    yearNumsByModel[mk] ??= new Set()
+    for (const y of expanded) yearNumsByModel[mk].add(y)
   }
 
-  for (const [modelName, years] of Object.entries(yearNumsByModel)) {
-    yearsByModel[modelName] = [...years]
+  for (const [mk, years] of Object.entries(yearNumsByModel)) {
+    yearsByModel[mk] = [...years]
       .sort((a, b) => b - a)
       .map(String)
   }
@@ -167,3 +175,5 @@ export function buildVehicleQuery(filter: VehicleFilter): URLSearchParams {
   }
   return params
 }
+
+export { vehicleModelKey, vehicleModelYearKey }

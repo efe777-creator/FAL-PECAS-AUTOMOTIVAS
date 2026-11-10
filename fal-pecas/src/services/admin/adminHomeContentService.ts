@@ -1,9 +1,21 @@
 import { getSupabase } from '@/lib/supabase'
 import type { HomeBanner } from '@/data/homeBanners'
+import {
+  FEATURED_DISPLAY_LIMIT_MAX,
+  FEATURED_DISPLAY_LIMIT_MIN,
+  HOME_FEATURED_LIMIT_DEFAULT,
+} from '@/lib/homeSections'
 
 export type AdminHomeBanner = HomeBanner & {
   sortOrder: number
   active: boolean
+  startsAt: string | null
+  endsAt: string | null
+}
+
+export type AdminHomeSettings = {
+  id: string
+  featuredDisplayLimit: number
 }
 
 export type AdminFeaturedRow = {
@@ -25,9 +37,23 @@ type BannerRow = {
   cta_label: string
   href: string
   image_src: string | null
+  image_src_mobile: string | null
   tone: string
   sort_order: number
   active: boolean
+  starts_at: string | null
+  ends_at: string | null
+}
+
+const BANNER_SELECT =
+  'id, title, subtitle, cta_label, href, image_src, image_src_mobile, tone, sort_order, active, starts_at, ends_at'
+
+function emptyToNullIso(value: string | null | undefined): string | null {
+  const t = value?.trim()
+  if (!t) return null
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) throw new Error('Data de vigência inválida.')
+  return d.toISOString()
 }
 
 function mapBanner(row: BannerRow): AdminHomeBanner {
@@ -38,16 +64,19 @@ function mapBanner(row: BannerRow): AdminHomeBanner {
     ctaLabel: row.cta_label || 'Ver catálogo',
     to: row.href || '/catalogo',
     imageSrc: row.image_src ?? undefined,
+    imageSrcMobile: row.image_src_mobile ?? undefined,
     tone: row.tone === 'steel' || row.tone === 'sand' ? row.tone : 'navy',
     sortOrder: row.sort_order,
     active: row.active,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
   }
 }
 
 export async function adminListHomeBanners(): Promise<AdminHomeBanner[]> {
   const { data, error } = await getSupabase()
     .from('store_home_banners')
-    .select('id, title, subtitle, cta_label, href, image_src, tone, sort_order, active')
+    .select(BANNER_SELECT)
     .order('sort_order', { ascending: true })
   if (error) throw error
   return ((data ?? []) as BannerRow[]).map(mapBanner)
@@ -56,15 +85,23 @@ export async function adminListHomeBanners(): Promise<AdminHomeBanner[]> {
 export async function adminUpsertHomeBanner(
   input: Omit<AdminHomeBanner, 'id'> & { id?: string },
 ): Promise<AdminHomeBanner> {
+  const startsAt = emptyToNullIso(input.startsAt)
+  const endsAt = emptyToNullIso(input.endsAt)
+  if (startsAt && endsAt && new Date(endsAt) < new Date(startsAt)) {
+    throw new Error('O encerramento da campanha deve ser depois do início.')
+  }
   const payload = {
     title: input.title.trim(),
     subtitle: input.subtitle.trim(),
     cta_label: input.ctaLabel.trim() || 'Ver catálogo',
     href: input.to.trim() || '/catalogo',
     image_src: input.imageSrc?.trim() || null,
+    image_src_mobile: input.imageSrcMobile?.trim() || null,
     tone: input.tone,
     sort_order: input.sortOrder,
     active: input.active,
+    starts_at: startsAt,
+    ends_at: endsAt,
     updated_at: new Date().toISOString(),
   }
   if (!payload.title) throw new Error('Informe o título do banner.')
@@ -74,7 +111,7 @@ export async function adminUpsertHomeBanner(
       .from('store_home_banners')
       .update(payload)
       .eq('id', input.id)
-      .select('id, title, subtitle, cta_label, href, image_src, tone, sort_order, active')
+      .select(BANNER_SELECT)
       .single()
     if (error) throw error
     return mapBanner(data as BannerRow)
@@ -83,10 +120,62 @@ export async function adminUpsertHomeBanner(
   const { data, error } = await getSupabase()
     .from('store_home_banners')
     .insert(payload)
-    .select('id, title, subtitle, cta_label, href, image_src, tone, sort_order, active')
+    .select(BANNER_SELECT)
     .single()
   if (error) throw error
   return mapBanner(data as BannerRow)
+}
+
+export async function adminGetHomeSettings(): Promise<AdminHomeSettings> {
+  const { data, error } = await getSupabase()
+    .from('store_home_settings')
+    .select('id, featured_display_limit')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) {
+    return { id: '', featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT }
+  }
+  const row = data as { id: string; featured_display_limit: number }
+  return {
+    id: row.id,
+    featuredDisplayLimit: Math.min(
+      FEATURED_DISPLAY_LIMIT_MAX,
+      Math.max(FEATURED_DISPLAY_LIMIT_MIN, Math.floor(Number(row.featured_display_limit) || HOME_FEATURED_LIMIT_DEFAULT)),
+    ),
+  }
+}
+
+export async function adminUpsertHomeSettings(
+  input: Omit<AdminHomeSettings, 'id'> & { id?: string },
+): Promise<AdminHomeSettings> {
+  const limit = Math.min(
+    FEATURED_DISPLAY_LIMIT_MAX,
+    Math.max(FEATURED_DISPLAY_LIMIT_MIN, Math.floor(Number(input.featuredDisplayLimit) || HOME_FEATURED_LIMIT_DEFAULT)),
+  )
+  const payload = {
+    featured_display_limit: limit,
+    updated_at: new Date().toISOString(),
+  }
+  if (input.id) {
+    const { data, error } = await getSupabase()
+      .from('store_home_settings')
+      .update(payload)
+      .eq('id', input.id)
+      .select('id, featured_display_limit')
+      .single()
+    if (error) throw error
+    const row = data as { id: string; featured_display_limit: number }
+    return { id: row.id, featuredDisplayLimit: row.featured_display_limit }
+  }
+  const { data, error } = await getSupabase()
+    .from('store_home_settings')
+    .insert(payload)
+    .select('id, featured_display_limit')
+    .single()
+  if (error) throw error
+  const row = data as { id: string; featured_display_limit: number }
+  return { id: row.id, featuredDisplayLimit: row.featured_display_limit }
 }
 
 export async function adminDeleteHomeBanner(id: string): Promise<void> {

@@ -63,6 +63,12 @@ export async function listSavedVehicles(): Promise<CustomerSavedVehicle[]> {
     .map(mapVehicle)
 }
 
+/**
+ * Resolve version_id exigido pela garagem.
+ * Política 028: sem version_id não salvamos automaticamente —
+ * retorna null para a UI pedir correção (versão/motor/ano).
+ * Match sempre por montadora + modelo (evita colisão de homônimos).
+ */
 export async function resolveVersionId(input: {
   maker: string
   model: string
@@ -97,7 +103,7 @@ export async function resolveVersionId(input: {
       model?.toLowerCase() === input.model.toLowerCase()
     )
   })
-  if (!match) return null
+  if (!match?.id) return null
   return {
     versionId: String(match.id),
     manufacturerId: String(match.manufacturer_id),

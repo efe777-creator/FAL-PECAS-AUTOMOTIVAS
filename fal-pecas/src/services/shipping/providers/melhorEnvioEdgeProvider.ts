@@ -1,5 +1,6 @@
 import { invokeQuoteShippingEdge } from '@/services/shipping/edgeQuoteClient'
 import { resolveOwnQuoteOptions } from '@/services/shipping/own/ownQuoteOptions'
+import { withStorePickupOption } from '@/services/shipping/storePickupOption'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 type EdgeEnvelope = {
@@ -41,6 +42,6 @@ export const melhorEnvioEdgeProvider: ShippingProvider = {
       throw new Error(data.message || `Cotação ME: ${data.status}`)
     }
     const meOpts = Array.isArray(data.options) ? data.options : []
-    return [...own, ...meOpts]
+    return withStorePickupOption([...own, ...meOpts])
   },
 }

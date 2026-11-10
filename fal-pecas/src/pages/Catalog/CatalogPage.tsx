@@ -9,6 +9,9 @@ import { useToast } from '@/components/common/Toast'
 import { MobileDrawer } from '@/components/navigation/MobileDrawer'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
+import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
+import { selectOptionsWithValue } from '@/services/plates/reconcileVehicleFilter'
+import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 import { listActiveBrands } from '@/services/brands/brandService'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
@@ -22,7 +25,14 @@ import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
-import type { Category, Product, ProductBrand, ProductSearchSort, VehicleOptionTree } from '@/types'
+import type {
+  Category,
+  Product,
+  ProductBrand,
+  ProductSearchSort,
+  VehicleFilter,
+  VehicleOptionTree,
+} from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router-dom'
 
@@ -99,6 +109,8 @@ export function CatalogPage() {
   const [error, setError] = useState<string | null>(null)
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  /** Painel de veículo aberto por padrão (placa + selects). */
+  const [vehicleDetailsOpen, setVehicleDetailsOpen] = useState(true)
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
   const scrollRestoredRef = useRef(false)
@@ -249,30 +261,49 @@ export function CatalogPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMore não deve refetch
   }, [searchArgs])
 
-  const modelOptions = useMemo(() => {
-    if (!vehicleTree || !maker) return []
-    return (vehicleTree.modelsByMaker[maker] ?? []).map((m) => ({ value: m, label: m }))
+  const makerOptions = useMemo(() => {
+    const base = (vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))
+    return selectOptionsWithValue(base, maker || undefined)
   }, [vehicleTree, maker])
 
+  const modelOptions = useMemo(() => {
+    if (!vehicleTree || !maker) return selectOptionsWithValue([], model || undefined)
+    const base = (vehicleTree.modelsByMaker[maker] ?? []).map((m) => ({ value: m, label: m }))
+    return selectOptionsWithValue(base, model || undefined)
+  }, [vehicleTree, maker, model])
+
   const yearOptions = useMemo(() => {
-    if (!vehicleTree || !model) return []
-    return (vehicleTree.yearsByModel[model] ?? []).map((y) => ({ value: y, label: y }))
-  }, [vehicleTree, model])
+    if (!vehicleTree || !maker || !model) return selectOptionsWithValue([], year || undefined)
+    const key = vehicleModelKey(maker, model)
+    const base = (vehicleTree.yearsByModel[key] ?? []).map((y) => ({ value: y, label: y }))
+    return selectOptionsWithValue(base, year || undefined)
+  }, [vehicleTree, maker, model, year])
 
   const engineOptions = useMemo(() => {
-    if (!vehicleTree || !model) return []
+    if (!vehicleTree || !maker || !model) return selectOptionsWithValue([], engine || undefined)
+    let base: Array<{ value: string; label: string }> = []
     if (year) {
-      const key = `${model}|${year}`
+      const key = vehicleModelYearKey(maker, model, year)
       const byYear = vehicleTree.enginesByModelYear[key] ?? []
-      if (byYear.length) return byYear.map((e) => ({ value: e, label: e }))
+      if (byYear.length) base = byYear.map((e) => ({ value: e, label: e }))
     }
-    return (vehicleTree.enginesByModel[model] ?? []).map((e) => ({ value: e, label: e }))
-  }, [vehicleTree, model, year])
+    if (!base.length) {
+      base = (vehicleTree.enginesByModel[vehicleModelKey(maker, model)] ?? []).map((e) => ({
+        value: e,
+        label: e,
+      }))
+    }
+    return selectOptionsWithValue(base, engine || undefined)
+  }, [vehicleTree, maker, model, year, engine])
 
   const versionOptions = useMemo(() => {
-    if (!vehicleTree || !model) return []
-    return (vehicleTree.versionsByModel[model] ?? []).map((v) => ({ value: v, label: v }))
-  }, [vehicleTree, model])
+    if (!vehicleTree || !maker || !model) return selectOptionsWithValue([], version || undefined)
+    const base = (vehicleTree.versionsByModel[vehicleModelKey(maker, model)] ?? []).map((v) => ({
+      value: v,
+      label: v,
+    }))
+    return selectOptionsWithValue(base, version || undefined)
+  }, [vehicleTree, maker, model, version])
 
   const brandOptions = useMemo(
     () => brands.map((b) => ({ value: b.name, label: b.name })),
@@ -343,6 +374,22 @@ export function CatalogPage() {
     setParams(draft, { replace: true })
   }
 
+  /** Placa / garagem: grava filtros e atualiza árvore (anos PVC expandidos). */
+  async function applyVehicleFilter(filter: VehicleFilter) {
+    patchParams({
+      maker: filter.maker ?? null,
+      model: filter.model ?? null,
+      year: filter.year ?? null,
+      engine: filter.engine ?? null,
+      version: filter.version ?? null,
+    })
+    try {
+      setVehicleTree(await getVehicleOptions())
+    } catch {
+      /* árvore atual segue; listagem já usa os params */
+    }
+  }
+
   function applySearch(e?: FormEvent) {
     e?.preventDefault()
     patchParams({ q: searchDraft.trim() || null })
@@ -408,11 +455,13 @@ export function CatalogPage() {
 
   const onlyQueryChip =
     activeChips.length === 1 && activeChips[0]?.key === 'q' ? activeChips[0].label : null
-  const emptyDescription = onlyQueryChip
-    ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
-    : activeChips.length > 0
-      ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
-      : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
+  const emptyDescription = vehicleFiltersActive && !onlyQueryChip
+    ? 'Identificamos o veículo, mas ainda não temos peças compatíveis cadastradas.'
+    : onlyQueryChip
+      ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
+      : activeChips.length > 0
+        ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
+        : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
 
   function removeChip(key: string) {
     if (key === 'maker') {
@@ -521,7 +570,8 @@ export function CatalogPage() {
 
         <details
           className="mt-3 rounded-fal border border-fal-line bg-white open:pb-3"
-          open={vehicleFiltersActive || undefined}
+          open={vehicleDetailsOpen || vehicleFiltersActive}
+          onToggle={(e) => setVehicleDetailsOpen((e.target as HTMLDetailsElement).open)}
         >
           <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
             <span className="inline-flex items-center gap-2">
@@ -531,17 +581,24 @@ export function CatalogPage() {
                   ativos
                 </span>
               ) : (
-                <span className="font-normal text-fal-muted">opcional</span>
+                <span className="font-normal text-fal-muted">placa ou manual</span>
               )}
             </span>
           </summary>
+          <div className="border-t border-fal-line px-3.5 pt-3">
+            <VehiclePlateSearch
+              compact
+              returnPath={`${location.pathname}${location.search}`}
+              onApplyFilters={(filter) => void applyVehicleFilter(filter)}
+            />
+          </div>
           <div className="grid grid-cols-1 gap-3 border-t border-fal-line px-3.5 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <Select
               label="Montadora"
               name="maker"
               placeholder="Todas / opcional"
               value={maker}
-              options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+              options={makerOptions}
               onChange={(e) =>
                 patchParams({
                   maker: e.target.value || null,
@@ -603,12 +660,12 @@ export function CatalogPage() {
           <div className="mt-3 border-t border-dashed border-[#d8dee3] px-3.5 pt-2.5">
             <SavedVehiclesQuickPick
               onPick={(v) =>
-                patchParams({
-                  maker: v.makerName || null,
-                  model: v.modelName || null,
-                  year: v.year != null ? String(v.year) : null,
-                  engine: v.engine || null,
-                  version: v.versionName || null,
+                void applyVehicleFilter({
+                  maker: v.makerName || undefined,
+                  model: v.modelName || undefined,
+                  year: v.year != null ? String(v.year) : undefined,
+                  engine: v.engine || undefined,
+                  version: v.versionName || undefined,
                 })
               }
             />
@@ -668,13 +725,21 @@ export function CatalogPage() {
           <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
             Veículo {vehicleFiltersActive ? '(ativos)' : '(opcional)'}
           </p>
+          <VehiclePlateSearch
+            compact
+            returnPath={`${location.pathname}${location.search}`}
+            onApplyFilters={(filter) => {
+              void applyVehicleFilter(filter)
+              setFiltersOpen(false)
+            }}
+          />
           <div className="grid grid-cols-1 gap-3">
             <Select
               label="Montadora"
               name="maker-m"
               placeholder="Todas / opcional"
               value={maker}
-              options={(vehicleTree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+              options={makerOptions}
               onChange={(e) =>
                 patchParams({
                   maker: e.target.value || null,
@@ -731,12 +796,12 @@ export function CatalogPage() {
           </div>
           <SavedVehiclesQuickPick
             onPick={(v) =>
-              patchParams({
-                maker: v.makerName || null,
-                model: v.modelName || null,
-                year: v.year != null ? String(v.year) : null,
-                engine: v.engine || null,
-                version: v.versionName || null,
+              void applyVehicleFilter({
+                maker: v.makerName || undefined,
+                model: v.modelName || undefined,
+                year: v.year != null ? String(v.year) : undefined,
+                engine: v.engine || undefined,
+                version: v.versionName || undefined,
               })
             }
           />
@@ -793,7 +858,11 @@ export function CatalogPage() {
         {error ? <ErrorState message={error} /> : null}
         {!loading && !error && products.length === 0 ? (
           <EmptyState
-            title="Nenhum produto encontrado"
+            title={
+              vehicleFiltersActive
+                ? 'Sem peças para este veículo'
+                : 'Nenhum produto encontrado'
+            }
             description={emptyDescription}
             actionLabel={activeChips.length ? 'Limpar filtros' : undefined}
             actionTo={activeChips.length ? '/catalogo' : undefined}

@@ -3,7 +3,7 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
-import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
+import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminAddApplicationsBulk,
@@ -31,14 +31,6 @@ type AppRow = {
     manufacturers?: { name: string } | { name: string }[]
     models?: { name: string } | { name: string }[]
   }
-}
-
-function parseAppYear(raw: string): number | null {
-  const t = raw.trim()
-  if (!t) return null
-  const n = Number(t)
-  if (!Number.isInteger(n) || n < 1950 || n > 2100) return null
-  return n
 }
 
 export function AdminProductApplicationsSection({ productId }: Props) {
@@ -128,18 +120,9 @@ export function AdminProductApplicationsSection({ productId }: Props) {
       setError('Nenhuma configuração de veículo bate com os filtros. Ajuste motorização/versão.')
       return
     }
-    const ys = parseAppYear(appYearStart)
-    const ye = parseAppYear(appYearEnd)
-    if (appYearStart.trim() && ys == null) {
-      setError('Ano início inválido')
-      return
-    }
-    if (appYearEnd.trim() && ye == null) {
-      setError('Ano fim inválido')
-      return
-    }
-    if (ys != null && ye != null && ye < ys) {
-      setError('Ano fim menor que ano início')
+    const period = validatePvcYearInputs(appYearStart, appYearEnd)
+    if (!period.ok) {
+      setError(period.message)
       return
     }
     setAppBusy(true)
@@ -147,7 +130,7 @@ export function AdminProductApplicationsSection({ productId }: Props) {
       const n = await adminAddApplicationsBulk(
         productId,
         matchingVersions.map((v) => v.id),
-        { yearStart: ys, yearEnd: ye },
+        { yearStart: period.yearStart, yearEnd: period.yearEnd },
       )
       await reload()
       toast.push(
@@ -241,19 +224,19 @@ export function AdminProductApplicationsSection({ productId }: Props) {
           ))}
         </select>
         <Input
-          label="Ano início"
+          label="Ano inicial *"
           inputMode="numeric"
           value={appYearStart}
           onChange={(e) => setAppYearStart(e.target.value)}
           disabled={!modelId}
         />
         <Input
-          label="Ano fim"
+          label="Ano final"
           inputMode="numeric"
           value={appYearEnd}
           onChange={(e) => setAppYearEnd(e.target.value)}
           disabled={!modelId}
-          hint="Vazio = vigente"
+          hint="Em branco = vigente até o ano atual"
         />
       </div>
       <Button
@@ -307,23 +290,14 @@ export function AdminProductApplicationsSection({ productId }: Props) {
                       type="button"
                       className="font-semibold text-fal-navy underline"
                       onClick={() => {
-                        const ys = parseAppYear(editYearStart)
-                        const ye = parseAppYear(editYearEnd)
-                        if (editYearStart.trim() && ys == null) {
-                          setError('Ano início inválido')
-                          return
-                        }
-                        if (editYearEnd.trim() && ye == null) {
-                          setError('Ano fim inválido')
-                          return
-                        }
-                        if (ys != null && ye != null && ye < ys) {
-                          setError('Ano fim menor que ano início')
+                        const period = validatePvcYearInputs(editYearStart, editYearEnd)
+                        if (!period.ok) {
+                          setError(period.message)
                           return
                         }
                         void adminUpdateApplicationYears(row.id, {
-                          yearStart: ys,
-                          yearEnd: ye,
+                          yearStart: period.yearStart,
+                          yearEnd: period.yearEnd,
                         })
                           .then(async () => {
                             setEditingAppId(null)

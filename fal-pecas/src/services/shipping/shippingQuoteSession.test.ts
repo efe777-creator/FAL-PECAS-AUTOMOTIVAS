@@ -1,54 +1,113 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   clearShippingQuoteHandoff,
   loadShippingQuoteHandoff,
+  matchPreferredShippingOption,
+  preferenceKindFromOption,
   saveShippingQuoteHandoff,
 } from '@/services/shipping/shippingQuoteSession'
+import { createStorePickupOption, STORE_PICKUP_OPTION_ID } from '@/services/shipping/storePickupOption'
+import type { ShippingQuoteOption } from '@/types'
 
-function installMemorySessionStorage() {
-  const store = new Map<string, string>()
-  const api = {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => {
-      store.set(k, v)
-    },
-    removeItem: (k: string) => {
-      store.delete(k)
-    },
-    clear: () => store.clear(),
-    key: (i: number) => [...store.keys()][i] ?? null,
-    get length() {
-      return store.size
-    },
-  }
-  Object.defineProperty(globalThis, 'sessionStorage', {
-    value: api,
-    configurable: true,
-    writable: true,
-  })
-}
+const memory = new Map<string, string>()
 
 beforeEach(() => {
-  installMemorySessionStorage()
-})
-
-afterEach(() => {
+  memory.clear()
   clearShippingQuoteHandoff()
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    configurable: true,
+    value: {
+      getItem: (k: string) => memory.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        memory.set(k, v)
+      },
+      removeItem: (k: string) => {
+        memory.delete(k)
+      },
+    },
+  })
 })
 
 describe('shippingQuoteSession', () => {
-  it('salva e carrega handoff de CEP', () => {
-    saveShippingQuoteHandoff({ postalCode: '01310-100', preferredOptionId: 'mock:economic' })
+  it('salva pickup sem CEP e carrega', () => {
+    saveShippingQuoteHandoff({ option: createStorePickupOption() })
     const h = loadShippingQuoteHandoff()
-    expect(h?.postalCode).toBe('01310100')
-    expect(h?.preferredOptionId).toBe('mock:economic')
+    expect(h?.preferredKind).toBe('pickup')
+    expect(h?.preferredOptionId).toBe(STORE_PICKUP_OPTION_ID)
   })
 
-  it('rejeita CEP inválido no load', () => {
-    sessionStorage.setItem(
-      'fal.shippingQuoteHandoff.v1',
-      JSON.stringify({ postalCode: '123', savedAt: new Date().toISOString() }),
-    )
+  it('exige CEP para carrier', () => {
+    saveShippingQuoteHandoff({
+      option: {
+        id: 'meq:1',
+        provider: 'melhorenvio',
+        serviceCode: '1',
+        label: 'SEDEX',
+        amount: 15,
+      },
+    })
     expect(loadShippingQuoteHandoff()).toBeNull()
+
+    saveShippingQuoteHandoff({
+      postalCode: '01310-100',
+      option: {
+        id: 'meq:1',
+        provider: 'melhorenvio',
+        serviceCode: '1',
+        label: 'SEDEX',
+        amount: 15,
+      },
+    })
+    expect(loadShippingQuoteHandoff()?.preferredOptionId).toBe('meq:1')
+  })
+
+  it('match: id exato → pickup → serviceCode → label (ownq efêmero)', () => {
+    const opts: ShippingQuoteOption[] = [
+      {
+        id: 'ownq:aaaa-bbbb:moto',
+        provider: 'own',
+        serviceCode: 'moto',
+        label: 'Entrega FAL (Motocicleta)',
+        amount: 40,
+      },
+      createStorePickupOption(),
+      {
+        id: 'meq:sedex',
+        provider: 'melhorenvio',
+        serviceCode: '2',
+        label: 'Correios — SEDEX',
+        amount: 15,
+      },
+    ]
+
+    expect(
+      matchPreferredShippingOption(opts, {
+        preferredOptionId: 'meq:sedex',
+        preferredKind: 'carrier',
+        savedAt: new Date().toISOString(),
+        postalCode: '01310100',
+      })?.id,
+    ).toBe('meq:sedex')
+
+    expect(
+      matchPreferredShippingOption(opts, {
+        preferredKind: 'pickup',
+        preferredOptionId: STORE_PICKUP_OPTION_ID,
+        savedAt: new Date().toISOString(),
+      })?.id,
+    ).toBe(STORE_PICKUP_OPTION_ID)
+
+    expect(
+      matchPreferredShippingOption(opts, {
+        preferredOptionId: 'ownq:OLD-UUID:moto',
+        preferredKind: 'own',
+        preferredServiceCode: 'moto',
+        preferredLabel: 'Entrega FAL (Motocicleta)',
+        postalCode: '01310100',
+        savedAt: new Date().toISOString(),
+      })?.id,
+    ).toBe('ownq:aaaa-bbbb:moto')
+
+    expect(preferenceKindFromOption(opts[0]!)).toBe('own')
   })
 })

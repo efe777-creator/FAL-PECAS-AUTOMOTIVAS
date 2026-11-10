@@ -8,6 +8,8 @@ export type HomeBanner = {
   to: string
   /** Ícone/imagem opcional em /public */
   imageSrc?: string
+  /** Arte opcional para mobile; fallback = imageSrc */
+  imageSrcMobile?: string
   tone: 'navy' | 'steel' | 'sand'
 }
 
