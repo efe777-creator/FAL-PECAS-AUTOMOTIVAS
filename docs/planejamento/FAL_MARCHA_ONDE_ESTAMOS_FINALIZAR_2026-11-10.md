@@ -19,10 +19,10 @@ Fontes cruzadas: relatório CONCLUSÃO 10/11 · FINAL plano mestre 09/11 · stat
 | **Pacote MVP-1 no `main` + Edges** | **ENCERRADO** (#249 + pagamentos/ME) |
 | **Espelho eFe comercial** | **LIVE** — frete ME + Pix create smoke PASS |
 | **Produção fernando / venda plena (G8)** | **NÃO** — crédito Netlify + gates humanos |
-| **Working tree local (10/11)** | **Grande acumulado NÃO commitado** (Home, placa, V3 anos, frete retirada…) |
+| **Working tree local** | **Limpo** (#250–#253 shipados; só lixo `.cursor`/`.temp`) |
 
-**Leitura:** para “finalizar” no sentido de **código do plano**, já está fechado.  
-Para **abrir venda real**, falta bola humana + publicar o que está no working tree + gates G1–G8.
+**Leitura:** código do plano **ENCERRADO e publicado no eFe**.  
+Para **abrir venda real**, falta só bola humana (gates G1–G8 / crédito fernando) — ver relatório de conclusão §5.
 
 ---
 
