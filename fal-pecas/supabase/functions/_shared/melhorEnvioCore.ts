@@ -166,3 +166,57 @@ export function meAuthHeaders(token: string, userAgent: string): Record<string, 
     'User-Agent': userAgent,
   }
 }
+
+function onlyDigits(v: string): string {
+  return v.replace(/\D/g, '')
+}
+
+function mod11Check(digits: number[], weights: number[]): number {
+  const sum = digits.reduce((acc, d, i) => acc + d * weights[i]!, 0)
+  const mod = sum % 11
+  return mod < 2 ? 0 : 11 - mod
+}
+
+/** CPF matematicamente válido (não prova existência na Receita). */
+export function isValidCpf(raw: string): boolean {
+  const cpf = onlyDigits(raw)
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false
+  const nums = cpf.split('').map((c) => Number(c))
+  const d1 = mod11Check(nums.slice(0, 9), [10, 9, 8, 7, 6, 5, 4, 3, 2])
+  if (d1 !== nums[9]) return false
+  const d2 = mod11Check(nums.slice(0, 10), [11, 10, 9, 8, 7, 6, 5, 4, 3, 2])
+  return d2 === nums[10]
+}
+
+/** CNPJ matematicamente válido. */
+export function isValidCnpj(raw: string): boolean {
+  const cnpj = onlyDigits(raw)
+  if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false
+  const nums = cnpj.split('').map((c) => Number(c))
+  const d1 = mod11Check(nums.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+  if (d1 !== nums[12]) return false
+  const d2 = mod11Check(nums.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+  return d2 === nums[13]
+}
+
+/** Fallbacks distintos — ME rejeita CPF remetente == destinatário. */
+export const ME_FALLBACK_FROM_CPF = '39053344705'
+export const ME_FALLBACK_TO_CPF = '52998224725'
+
+/**
+ * Campos de documento ME para remetente.
+ * CNPJ inválido na origem → envia CPF (envio não comercial) em vez de company_document.
+ */
+export function meFromDocumentFields(rawDocument: string | null | undefined): Record<string, string> {
+  const doc = onlyDigits(String(rawDocument ?? ''))
+  if (doc.length === 14 && isValidCnpj(doc)) return { company_document: doc }
+  if (doc.length === 11 && isValidCpf(doc)) return { document: doc }
+  return { document: ME_FALLBACK_FROM_CPF }
+}
+
+export function meToDocument(rawDocument: string | null | undefined): string {
+  const doc = onlyDigits(String(rawDocument ?? ''))
+  if (doc.length === 11 && isValidCpf(doc) && doc !== ME_FALLBACK_FROM_CPF) return doc
+  if (doc.length === 14 && isValidCnpj(doc)) return doc
+  return ME_FALLBACK_TO_CPF
+}
