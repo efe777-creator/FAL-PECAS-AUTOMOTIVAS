@@ -3,9 +3,10 @@
 **Data:** 2026-11-10  
 **Auth:** eFe — `VAMOS CONCLUIR O PLANO, MARCHA`  
 **Plano:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
-**Matriz:** [FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md](./FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md)  
+**Matriz:** [FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md](./FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md) *(reconciliada 10/11)*  
+**Reconciliação:** [FAL_AUDITORIA_RECONCILIACAO_PLANO_MVP_2026-11-10.md](./FAL_AUDITORIA_RECONCILIACAO_PLANO_MVP_2026-11-10.md)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
-**Tip referência:** `main` `e7b91f9` (#253 Mobile UX + docs) · tip série #249–#252  
+**Tip referência:** `main` `6dcd06a` · série #249–#254  
 **Deploy eFe:** `6af3728aa529d6e05f777cab` → https://fal-pecas-automotivas-efe.netlify.app
 
 ---
