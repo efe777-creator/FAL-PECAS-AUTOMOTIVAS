@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 const cards = [
   { to: '/conta/perfil', title: 'Perfil', desc: 'Nome, telefone e documentos' },
   { to: '/conta/enderecos', title: 'Endereços', desc: 'Casa, trabalho e outros' },
-  { to: '/conta/veiculos', title: 'Meus veículos', desc: 'Veículos salvos para busca' },
+  { to: '/conta/veiculos', title: 'Meus carros', desc: 'Garagem e consulta por veículo' },
   { to: '/conta/favoritos', title: 'Favoritos', desc: 'Produtos que você marcou' },
   { to: '/conta/pedidos', title: 'Meus pedidos', desc: 'Consulta de pedidos' },
 ]

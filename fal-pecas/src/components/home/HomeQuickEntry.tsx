@@ -77,7 +77,7 @@ export function HomeQuickEntry({
               className={menuBtnClass(activePanel === 'vehicles')}
               onClick={onOpenVehicles}
             >
-              Meus veículos
+              Meus carros
             </button>
           </nav>
         </div>

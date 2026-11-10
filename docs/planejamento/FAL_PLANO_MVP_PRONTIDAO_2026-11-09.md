@@ -1,8 +1,8 @@
 # FAL — Plano canônico: Prontidão MVP + ajustes 001–034
 
-**Data:** 2026-11-09  
-**Status:** PLANEJAMENTO CONSOLIDADO (MARCHA docs) — sem autorização automática de código  
-**Auth:** eFe — MARCHA executar e concluir planejamento  
+**Data:** 2026-11-09 · **atualizado 2026-11-10**  
+**Status:** CÓDIGO DO PLANO **ENCERRADO** — ver [relatório de conclusão](./FAL_MARCHA_RELATORIO_CONCLUSAO_PLANO_MVP_2026-11-10.md) · G8 / venda plena = gates humanos  
+**Auth:** eFe — MARCHA concluir plano  
 **Substitui como fila de evolução:** gates soltos do relatório mestre 2026-11-09 (absorvidos em G1–G8 / AJUSTE)  
 **Plano mestre código anterior:** [FAL_PLANO_MESTRE_SITE_2026-11-05.md](./FAL_PLANO_MESTRE_SITE_2026-11-05.md) (código MARCHA encerrado; este doc governa o caminho até venda real)
 

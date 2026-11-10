@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export function AccountVehiclesPage() {
-  useDocumentTitle('Meus veículos | FAL Peças Automotivas')
+  useDocumentTitle('Meus carros | FAL Peças Automotivas')
   const toast = useToast()
   const [items, setItems] = useState<CustomerSavedVehicle[]>([])
   const [tree, setTree] = useState<VehicleOptionTree | null>(null)
@@ -138,11 +138,25 @@ export function AccountVehiclesPage() {
   return (
     <div className="space-y-4">
       <div className="rounded-fal border border-fal-line bg-white p-5">
-        <h2 className="mt-0 text-xl font-extrabold">Meus veículos</h2>
+        <h2 className="mt-0 text-xl font-extrabold">Meus carros</h2>
         <p className="text-sm text-fal-muted">
-          Salve o carro da sua garagem para filtrar o catálogo mais rápido. Escolha montadora e
-          modelo entre as opções disponíveis.
+          Garagem da conta: salve veículos para filtrar o catálogo mais rápido. Também pode
+          consultar por placa ou montadora/modelo.
         </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Link
+            to="/veiculo"
+            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-bg px-4 text-sm font-bold text-fal-navy hover:border-fal-navy"
+          >
+            Buscar por placa / veículo
+          </Link>
+          <Link
+            to="/catalogo"
+            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-white px-4 text-sm font-bold text-fal-navy hover:border-fal-navy"
+          >
+            Abrir catálogo
+          </Link>
+        </div>
         {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 
         <form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">

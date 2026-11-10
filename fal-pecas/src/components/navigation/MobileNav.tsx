@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'min-w-[44px] text-center text-[10px]',
+    'min-h-11 min-w-[44px] flex-1 px-0.5 text-center text-[10px] leading-tight',
     isActive ? 'font-extrabold text-fal-navy-dark' : 'text-fal-navy',
   ].join(' ')
 
@@ -16,25 +16,33 @@ export function MobileNav() {
       aria-label="Navegação mobile"
     >
       <NavLink to="/" end className={linkClass}>
-        <b className="block text-[18px]">⌂</b>
+        <b className="block text-[18px]" aria-hidden>
+          ⌂
+        </b>
         Início
       </NavLink>
       <NavLink to="/catalogo" className={linkClass}>
-        <b className="block text-[18px]">⌕</b>
+        <b className="block text-[18px]" aria-hidden>
+          ⌕
+        </b>
         Buscar
       </NavLink>
-      <NavLink to="/veiculo" className={linkClass}>
-        <b className="block text-[18px]">🚗</b>
-        Veículo
+      <NavLink to="/conta/veiculos" className={linkClass}>
+        <b className="block text-[18px]" aria-hidden>
+          🚗
+        </b>
+        Meus carros
       </NavLink>
       <NavLink to="/carrinho" className={linkClass}>
-        <b className="block text-[18px]">
+        <b className="block text-[18px]" aria-hidden>
           🛒{itemCount > 0 ? ` ${itemCount}` : ''}
         </b>
         Carrinho
       </NavLink>
       <NavLink to="/conta" className={linkClass}>
-        <b className="block text-[18px]">👤</b>
+        <b className="block text-[18px]" aria-hidden>
+          👤
+        </b>
         Conta
       </NavLink>
     </nav>

@@ -835,7 +835,82 @@ export function AdminProductsPage() {
       ) : null}
       {loading ? <Loading /> : null}
 
-      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+      {items.length === 0 && !loading ? (
+        <EmptyState
+          title="Nenhum produto encontrado"
+          description="Ajuste os filtros ou cadastre um novo produto."
+          actionLabel="Novo produto"
+          actionTo="/admin/produtos/novo"
+        />
+      ) : null}
+
+      {/* Mobile: cards (não só tabela encolhida) */}
+      <div className="space-y-3 md:hidden">
+        {items.map((p) => (
+          <article
+            key={p.id}
+            className="rounded-[14px] border border-fal-line bg-white p-3 shadow-sm"
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-5 w-5"
+                checked={selected.has(p.id)}
+                onChange={() => toggleRow(p.id)}
+                aria-label={`Selecionar ${p.commercialRef ?? p.sku}`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="m-0 font-mono text-xs text-fal-muted">{p.commercialRef ?? p.sku}</p>
+                <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-navy">
+                  {p.name}
+                  {p.isIncomplete ? (
+                    <span className="ml-2 text-xs font-bold text-fal-yellow-dark">INCOMPLETO</span>
+                  ) : null}
+                </p>
+                <p className="m-0 text-xs text-fal-muted">
+                  {productStatusLabel(p.status)} ·{' '}
+                  {p.available ? (
+                    <span className="font-semibold text-emerald-800">Disponível</span>
+                  ) : (
+                    'Indisponível'
+                  )}
+                </p>
+                <p className="mb-0 mt-1 text-sm font-bold">
+                  {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                    to={`/admin/produtos/${p.id}`}
+                  >
+                    Editar
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-muted"
+                    onClick={() => void toggleArchive(p)}
+                  >
+                    {p.status === 'archived' ? 'Publicar' : 'Arquivar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+        {hasMore ? (
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            disabled={loadingMore || loading}
+            onClick={() => void loadMore()}
+          >
+            {loadingMore ? 'Carregando…' : 'Carregar mais produtos'}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
@@ -860,18 +935,6 @@ export function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 && !loading ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-4">
-                  <EmptyState
-                    title="Nenhum produto encontrado"
-                    description="Ajuste os filtros ou cadastre um novo produto."
-                    actionLabel="Novo produto"
-                    actionTo="/admin/produtos/novo"
-                  />
-                </td>
-              </tr>
-            ) : null}
             {items.map((p) => (
               <tr key={p.id} className="border-t border-fal-line">
                 <td className="px-3 py-2">
