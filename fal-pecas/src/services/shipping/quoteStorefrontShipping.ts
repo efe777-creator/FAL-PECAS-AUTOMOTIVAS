@@ -6,6 +6,7 @@ import {
   type ShippingQuoteEnvelope,
 } from '@/services/shipping/shippingQuoteContract'
 import { getCarrierByEnvKey } from '@/services/shipping/carrierRegistry'
+import { ensureCustomerShippingOptions } from '@/services/shipping/storePickupOption'
 import type { ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 export type StorefrontQuoteResult = {
@@ -70,7 +71,7 @@ export async function quoteStorefrontShippingEnvelope(
     }
   }
 
-  const selectable = selectableShippingOptions(env.options)
+  const selectable = selectableShippingOptions(ensureCustomerShippingOptions(env.options))
 
   if (!selectable.length) {
     return {
@@ -88,14 +89,12 @@ export async function quoteStorefrontShippingEnvelope(
     }
   }
 
-  const sorted = [...selectable].sort((a, b) => a.amount - b.amount)
-
   return {
     needsAddressNumber,
     envelope: buildOkEnvelope({
       providerId: env.providerId,
       mode: env.mode,
-      options: sorted,
+      options: selectable,
       req,
       disclaimer: 'Valores estimados de entrega. Confirme o frete no checkout.',
     }),

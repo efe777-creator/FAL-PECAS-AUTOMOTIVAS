@@ -5,7 +5,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
+import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import {
   ADMIN_APPLICATIONS_PAGE_SIZE,
   adminAddApplicationsBulk,
@@ -28,14 +28,6 @@ import { Link, useSearchParams } from 'react-router-dom'
 
 function canManage(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
-}
-
-function parseYear(raw: string): number | null {
-  const t = raw.trim()
-  if (!t) return null
-  const n = Number(t)
-  if (!Number.isInteger(n) || n < 1950 || n > 2100) return null
-  return n
 }
 
 export function AdminApplicationsPage() {
@@ -342,24 +334,18 @@ export function AdminApplicationsPage() {
   }
 
   async function onSavePeriod(row: AdminApplicationRow) {
-    const ys = parseYear(editStart)
-    const ye = parseYear(editEnd)
-    if (editStart.trim() && ys == null) {
-      pushError('Ano início inválido')
-      return
-    }
-    if (editEnd.trim() && ye == null) {
-      pushError('Ano fim inválido')
-      return
-    }
-    if (ys != null && ye != null && ye < ys) {
-      pushError('Ano fim menor que ano início')
+    const period = validatePvcYearInputs(editStart, editEnd)
+    if (!period.ok) {
+      pushError(period.message)
       return
     }
     setBusy(true)
     setError(null)
     try {
-      await adminUpdateApplicationYears(row.id, { yearStart: ys, yearEnd: ye })
+      await adminUpdateApplicationYears(row.id, {
+        yearStart: period.yearStart,
+        yearEnd: period.yearEnd,
+      })
       setEditingId(null)
       pushOk('Período atualizado.')
       await reload()
@@ -469,18 +455,9 @@ export function AdminApplicationsPage() {
       pushError('Nenhuma configuração bate com motorização/versão')
       return
     }
-    const ys = parseYear(createYearStart)
-    const ye = parseYear(createYearEnd)
-    if (createYearStart.trim() && ys == null) {
-      pushError('Ano início inválido')
-      return
-    }
-    if (createYearEnd.trim() && ye == null) {
-      pushError('Ano fim inválido')
-      return
-    }
-    if (ys != null && ye != null && ye < ys) {
-      pushError('Ano fim menor que ano início')
+    const period = validatePvcYearInputs(createYearStart, createYearEnd)
+    if (!period.ok) {
+      pushError(period.message)
       return
     }
     setBusy(true)
@@ -493,7 +470,7 @@ export function AdminApplicationsPage() {
       const n = await adminAddApplicationsBulk(
         productId,
         matchingCreateVersions.map((v) => v.id),
-        { yearStart: ys, yearEnd: ye },
+        { yearStart: period.yearStart, yearEnd: period.yearEnd },
       )
       pushOk(`${n} aplicação(ões) criada(s) para ${sku}.`)
       setCreateOpen(false)
@@ -523,7 +500,8 @@ export function AdminApplicationsPage() {
           <h1 className="text-2xl font-extrabold text-fal-navy">Aplicações</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Controle as compatibilidades produto × veículo (incluindo as da importação): criar,
-            editar período e excluir.
+            editar período e excluir. Ano inicial obrigatório; ano final em branco = vigente até o
+            ano atual (ex.: 17/... ou 20/26).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -619,17 +597,17 @@ export function AdminApplicationsPage() {
               </select>
             </label>
             <Input
-              label="Ano início"
+              label="Ano inicial *"
               inputMode="numeric"
               value={createYearStart}
               onChange={(e) => setCreateYearStart(e.target.value)}
             />
             <Input
-              label="Ano fim"
+              label="Ano final"
               inputMode="numeric"
               value={createYearEnd}
               onChange={(e) => setCreateYearEnd(e.target.value)}
-              hint="Vazio = vigente"
+              hint="Em branco = vigente até o ano atual"
             />
           </div>
           <Button

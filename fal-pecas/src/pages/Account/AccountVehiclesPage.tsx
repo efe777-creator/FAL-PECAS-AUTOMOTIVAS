@@ -13,6 +13,7 @@ import {
   setPrimaryVehicle,
 } from '@/services/customers/customerVehicleService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
+import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, VehicleOptionTree } from '@/types'
@@ -69,23 +70,32 @@ export function AccountVehiclesPage() {
   }, [tree, maker])
 
   const yearOptions = useMemo(() => {
-    if (!tree || !model) return []
-    return (tree.yearsByModel[model] ?? []).map((y) => ({ value: y, label: y }))
-  }, [tree, model])
+    if (!tree || !maker || !model) return []
+    return (tree.yearsByModel[vehicleModelKey(maker, model)] ?? []).map((y) => ({
+      value: y,
+      label: y,
+    }))
+  }, [tree, maker, model])
 
   const engineOptions = useMemo(() => {
-    if (!tree || !model) return []
+    if (!tree || !maker || !model) return []
     if (year) {
-      const byYear = tree.enginesByModelYear[`${model}|${year}`] ?? []
+      const byYear = tree.enginesByModelYear[vehicleModelYearKey(maker, model, year)] ?? []
       if (byYear.length) return byYear.map((e) => ({ value: e, label: e }))
     }
-    return (tree.enginesByModel[model] ?? []).map((e) => ({ value: e, label: e }))
-  }, [tree, model, year])
+    return (tree.enginesByModel[vehicleModelKey(maker, model)] ?? []).map((e) => ({
+      value: e,
+      label: e,
+    }))
+  }, [tree, maker, model, year])
 
   const versionOptions = useMemo(() => {
-    if (!tree || !model) return []
-    return (tree.versionsByModel[model] ?? []).map((v) => ({ value: v, label: v }))
-  }, [tree, model])
+    if (!tree || !maker || !model) return []
+    return (tree.versionsByModel[vehicleModelKey(maker, model)] ?? []).map((v) => ({
+      value: v,
+      label: v,
+    }))
+  }, [tree, maker, model])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

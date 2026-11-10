@@ -10,7 +10,12 @@ import {
 } from '@/lib/paymentDisplay'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
-import { ADMIN_FEATURED_MAX } from '@/lib/homeSections'
+import {
+  ADMIN_FEATURED_MAX,
+  FEATURED_DISPLAY_LIMIT_MAX,
+  FEATURED_DISPLAY_LIMIT_MIN,
+  HOME_FEATURED_LIMIT_DEFAULT,
+} from '@/lib/homeSections'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -20,6 +25,7 @@ import {
 import {
   adminAddFeaturedProduct,
   adminDeleteHomeBanner,
+  adminGetHomeSettings,
   adminListFeaturedProducts,
   adminListHomeBanners,
   adminRemoveFeaturedProduct,
@@ -28,9 +34,11 @@ import {
   adminUpdateFeaturedProduct,
   adminUploadHomeBannerImage,
   adminUpsertHomeBanner,
+  adminUpsertHomeSettings,
   HOME_BANNER_IMAGE_IDEAL,
   type AdminFeaturedRow,
   type AdminHomeBanner,
+  type AdminHomeSettings,
 } from '@/services/admin/adminHomeContentService'
 import { adminListProducts } from '@/services/admin/adminProductService'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
@@ -56,10 +64,22 @@ const emptyBanner = (): Omit<AdminHomeBanner, 'id'> => ({
   ctaLabel: 'Ver catálogo',
   to: '/catalogo',
   imageSrc: '',
+  imageSrcMobile: '',
   tone: 'navy',
   sortOrder: 100,
   active: true,
+  startsAt: null,
+  endsAt: null,
 })
+
+/** ISO → valor de input datetime-local. */
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export function AdminHomeContentPage() {
   useDocumentTitle('Home da loja | Admin FAL')
@@ -84,12 +104,19 @@ export function AdminHomeContentPage() {
   const [uploadingBannerImage, setUploadingBannerImage] = useState(false)
   const [dirtyBanner, setDirtyBanner] = useState(false)
   const [dirtyPayment, setDirtyPayment] = useState(false)
+  const [dirtySettings, setDirtySettings] = useState(false)
+  const [homeSettings, setHomeSettings] = useState<AdminHomeSettings>({
+    id: '',
+    featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+  })
+  const [savingSettings, setSavingSettings] = useState(false)
   const bannerImageInputRef = useRef<HTMLInputElement>(null)
+  const bannerMobileImageInputRef = useRef<HTMLInputElement>(null)
 
-  const dirty = dirtyBanner || dirtyPayment
+  const dirty = dirtyBanner || dirtyPayment || dirtySettings
   useUnsavedChangesBlocker(dirty, {
     message:
-      'Há alterações em campanhas ou condições de pagamento ainda não salvas. Sair mesmo assim?',
+      'Há alterações em campanhas, destaques ou condições de pagamento ainda não salvas. Sair mesmo assim?',
   })
   useEffect(() => {
     if (!dirty) return
@@ -128,19 +155,40 @@ export function AdminHomeContentPage() {
   async function reload() {
     setLoading(true)
     try {
-      const [b, f, pay] = await Promise.all([
+      const [b, f, pay, settings] = await Promise.all([
         adminListHomeBanners(),
         adminListFeaturedProducts(),
         adminGetPaymentDisplaySettings(),
+        adminGetHomeSettings().catch(() => ({
+          id: '',
+          featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+        })),
       ])
       setBanners(b)
       setFeatured(f)
       if (pay) setPayment(pay)
       else setPayment(emptyPayment())
+      setHomeSettings(settings)
+      setDirtySettings(false)
     } catch (err) {
       push(toUserMessage(err), 'error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function onSaveHomeSettings(e: FormEvent) {
+    e.preventDefault()
+    setSavingSettings(true)
+    try {
+      const saved = await adminUpsertHomeSettings(homeSettings)
+      setHomeSettings(saved)
+      setDirtySettings(false)
+      push(`Home exibirá até ${saved.featuredDisplayLimit} destaques`, 'success')
+    } catch (err) {
+      push(toUserMessage(err), 'error')
+    } finally {
+      setSavingSettings(false)
     }
   }
 
@@ -292,11 +340,11 @@ export function AdminHomeContentPage() {
         <ul className="mt-2 mb-0 list-disc space-y-1 pl-5 text-fal-muted">
           <li>
             <strong className="text-fal-ink">Campanhas</strong> = slides do carrossel (título + botão
-            para o catálogo). Só os <em>ativos</em> aparecem.
+            para o catálogo). Só os <em>ativos</em> e dentro da vigência aparecem.
           </li>
           <li>
-            <strong className="text-fal-ink">Destaques</strong> = produtos que você escolhe. Se a
-            fila estiver vazia, a loja monta sozinha com publicados.
+            <strong className="text-fal-ink">Destaques</strong> = produtos que você escolhe. Você
+            define quantos a Home mostra. Se a fila estiver vazia, a loja completa sozinha.
           </li>
           <li>
             <strong className="text-fal-ink">Ofertas</strong> = automáticas (preço promocional). Não
@@ -359,6 +407,7 @@ export function AdminHomeContentPage() {
         >
           Alterações não salvas
           {dirtyBanner ? ' (campanha)' : ''}
+          {dirtySettings ? ' (quantidade de destaques)' : ''}
           {dirtyPayment ? ' (pagamento)' : ''}. Salve antes de sair do admin.
         </p>
       ) : null}
@@ -466,7 +515,7 @@ export function AdminHomeContentPage() {
                 ) : null}
               </div>
               <Input
-                label="URL (opcional — preenchida pelo upload)"
+                label="URL desktop (opcional — preenchida pelo upload)"
                 value={form.imageSrc ?? ''}
                 onChange={(e) => {
                   setDirtyBanner(true)
@@ -474,7 +523,93 @@ export function AdminHomeContentPage() {
                 }}
                 placeholder="https://… ou /icons/…"
               />
+              <p className="m-0 pt-2 text-xs font-extrabold text-fal-muted">
+                Imagem mobile (opcional)
+              </p>
+              <p className="m-0 text-[13px] text-fal-muted">
+                Se vazia, a loja usa a imagem desktop. Ideal: arte vertical ou crop 16:9 estreito.
+              </p>
+              {form.imageSrcMobile ? (
+                <div className="aspect-[16/9] w-full max-w-xs overflow-hidden rounded-xl border border-fal-line bg-fal-bg">
+                  <img src={form.imageSrcMobile} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={bannerMobileImageInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!file) return
+                    setUploadingBannerImage(true)
+                    void adminUploadHomeBannerImage(file)
+                      .then((url) => {
+                        setDirtyBanner(true)
+                        setForm((f) => ({ ...f, imageSrcMobile: url }))
+                        push('Imagem mobile adicionada — salve a campanha', 'success')
+                      })
+                      .catch((err) => push(toUserMessage(err, 'Falha no upload'), 'error'))
+                      .finally(() => setUploadingBannerImage(false))
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploadingBannerImage || saving}
+                  onClick={() => bannerMobileImageInputRef.current?.click()}
+                >
+                  {uploadingBannerImage ? 'Enviando…' : 'Imagem mobile'}
+                </Button>
+                {form.imageSrcMobile ? (
+                  <Button
+                    type="button"
+                    variant="light"
+                    disabled={uploadingBannerImage || saving}
+                    onClick={() => {
+                      setDirtyBanner(true)
+                      setForm((f) => ({ ...f, imageSrcMobile: '' }))
+                    }}
+                  >
+                    Remover mobile
+                  </Button>
+                ) : null}
+              </div>
+              <Input
+                label="URL mobile (opcional)"
+                value={form.imageSrcMobile ?? ''}
+                onChange={(e) => {
+                  setDirtyBanner(true)
+                  setForm((f) => ({ ...f, imageSrcMobile: e.target.value }))
+                }}
+                placeholder="https://…"
+              />
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Início da vigência (opcional)"
+                type="datetime-local"
+                value={toDatetimeLocalValue(form.startsAt)}
+                onChange={(e) => {
+                  setDirtyBanner(true)
+                  setForm((f) => ({ ...f, startsAt: e.target.value || null }))
+                }}
+              />
+              <Input
+                label="Fim da vigência (opcional)"
+                type="datetime-local"
+                value={toDatetimeLocalValue(form.endsAt)}
+                onChange={(e) => {
+                  setDirtyBanner(true)
+                  setForm((f) => ({ ...f, endsAt: e.target.value || null }))
+                }}
+              />
+            </div>
+            <p className="m-0 text-[12px] text-fal-muted">
+              Vazio = começa já / não encerra. Campanhas fora do período não aparecem na loja.
+            </p>
             <Select
               label="Cor do slide"
               value={form.tone}
@@ -537,7 +672,12 @@ export function AdminHomeContentPage() {
                     <p className="m-0 font-bold text-fal-navy">{b.title}</p>
                     <p className="mt-1 text-sm text-fal-muted">{b.subtitle || '—'}</p>
                     <p className="mt-1 text-xs text-fal-muted">
-                      {b.active ? 'Na loja' : 'Desligada'} · {b.to}
+                      {b.active ? 'Ativa' : 'Desligada'}
+                      {b.startsAt || b.endsAt
+                        ? ` · vigência ${b.startsAt ? toDatetimeLocalValue(b.startsAt) : '…'} → ${b.endsAt ? toDatetimeLocalValue(b.endsAt) : '…'}`
+                        : ' · sem vigência'}
+                      {' · '}
+                      {b.to}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col gap-2">
@@ -704,6 +844,34 @@ export function AdminHomeContentPage() {
 
       {tab === 'featured' && !loading ? (
         <div className="space-y-3">
+          <form
+            onSubmit={(e) => void onSaveHomeSettings(e)}
+            className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-white p-3"
+          >
+            <div className="min-w-[180px]">
+              <Input
+                label="Quantidade na Home"
+                type="number"
+                min={FEATURED_DISPLAY_LIMIT_MIN}
+                max={FEATURED_DISPLAY_LIMIT_MAX}
+                value={String(homeSettings.featuredDisplayLimit)}
+                onChange={(e) => {
+                  setDirtySettings(true)
+                  setHomeSettings((s) => ({
+                    ...s,
+                    featuredDisplayLimit: Number(e.target.value) || HOME_FEATURED_LIMIT_DEFAULT,
+                  }))
+                }}
+              />
+            </div>
+            <p className="mb-2 max-w-md text-[13px] text-fal-muted">
+              Quantos produtos a faixa Destaques mostra na loja (1–{FEATURED_DISPLAY_LIMIT_MAX}). A
+              fila curada pode ter até {MAX_FEATURED} itens.
+            </p>
+            <Button type="submit" variant="primary" disabled={savingSettings}>
+              {savingSettings ? 'Salvando…' : 'Salvar quantidade'}
+            </Button>
+          </form>
           <form
             onSubmit={(e) => void onSearchProducts(e)}
             className="flex flex-wrap items-end gap-2 rounded-fal border border-fal-line bg-white p-3"

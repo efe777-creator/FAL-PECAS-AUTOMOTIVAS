@@ -89,18 +89,22 @@ export function HomeBannerCarousel() {
       <div
         className={`relative overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white`}
       >
-        {current.imageSrc ? (
-          <img
-            key={current.id}
-            src={current.imageSrc}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
-            loading="eager"
-          />
+        {current.imageSrc || current.imageSrcMobile ? (
+          <picture key={current.id}>
+            {current.imageSrcMobile ? (
+              <source media="(max-width: 639px)" srcSet={current.imageSrcMobile} />
+            ) : null}
+            <img
+              src={current.imageSrc || current.imageSrcMobile}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
+              loading="eager"
+            />
+          </picture>
         ) : null}
         <div
           className={`absolute inset-0 ${
-            current.imageSrc
+            current.imageSrc || current.imageSrcMobile
               ? 'bg-gradient-to-r from-black/80 via-black/50 to-black/15'
               : ''
           }`}

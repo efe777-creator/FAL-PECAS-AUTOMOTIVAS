@@ -2,6 +2,12 @@
  * Período de aplicação (PVC): year_start / year_end é a fonte de verdade.
  * vehicle_versions.year é legado / opcional.
  * Formatação visual (MARCHA UI): YY/YY · YY/... · .../YY — sem alterar PVC.
+ *
+ * Regra única (filtro, match e SQL):
+ *   AnoFinalEfetivo = yearEnd ?? anoCivilAtual
+ *   compatível ⇔ yearStart <= ano <= AnoFinalEfetivo (quando há período PVC)
+ * Match/SQL tratam year_end nulo como aberto (sem teto no “hoje”);
+ * o seletor limita a expansão ao ano civil atual (sem anos futuros).
  */
 
 /** @deprecated Preferir formato `.../YY` via formatVehicleAppYear. */
@@ -15,6 +21,17 @@ function isValidYear(n: number): boolean {
 export function toYy(year: number): string | null {
   if (!isValidYear(year)) return null
   return String(year % 100).padStart(2, '0')
+}
+
+/**
+ * Fim efetivo do período para UI/expansão de filtros.
+ * year_end preenchido = encerra naquele ano; vazio = vigente até o ano civil atual.
+ */
+export function effectiveYearEnd(
+  yearEnd: number | null | undefined,
+  nowYear: number = new Date().getFullYear(),
+): number {
+  return yearEnd != null ? yearEnd : nowYear
 }
 
 /**
@@ -54,6 +71,38 @@ export function formatVehicleAppYear(input: {
   return null
 }
 
+/**
+ * Valida inputs de período PVC no admin.
+ * Ano inicial obrigatório; ano final opcional (vazio = vigente até o ano atual).
+ */
+export function validatePvcYearInputs(
+  startRaw: string,
+  endRaw: string,
+):
+  | { ok: true; yearStart: number; yearEnd: number | null }
+  | { ok: false; message: string } {
+  const s = startRaw.trim()
+  const e = endRaw.trim()
+  if (!s) {
+    return { ok: false, message: 'Ano inicial é obrigatório' }
+  }
+  const yearStart = Number(s)
+  if (!Number.isInteger(yearStart) || !isValidYear(yearStart)) {
+    return { ok: false, message: 'Ano início inválido' }
+  }
+  if (!e) {
+    return { ok: true, yearStart, yearEnd: null }
+  }
+  const yearEnd = Number(e)
+  if (!Number.isInteger(yearEnd) || !isValidYear(yearEnd)) {
+    return { ok: false, message: 'Ano fim inválido' }
+  }
+  if (yearEnd < yearStart) {
+    return { ok: false, message: 'Ano fim menor que ano início' }
+  }
+  return { ok: true, yearStart, yearEnd }
+}
+
 /** Ano escolhido no filtro cabe no período da aplicação? */
 export function yearMatchesVehicleApp(
   year: number,
@@ -71,28 +120,40 @@ export function yearMatchesVehicleApp(
   return versionYear != null && versionYear === year
 }
 
-/** Anos discretos para popular o seletor a partir de um período. */
+function pushYearSpan(out: Set<number>, lo: number, hi: number, maxSpan: number) {
+  if (hi < lo) return
+  if (hi - lo <= maxSpan) {
+    for (let y = lo; y <= hi; y += 1) out.add(y)
+  } else {
+    out.add(lo)
+    out.add(hi)
+  }
+}
+
+/**
+ * Anos discretos para popular o seletor a partir de um período PVC.
+ * Aberto (yearEnd null): yearStart … anoCivilAtual (sem inventar futuros).
+ */
 export function expandYearsForSelector(
   yearStart: number | null | undefined,
   yearEnd: number | null | undefined,
   versionYear: number | null | undefined = null,
   maxSpan = 40,
+  nowYear: number = new Date().getFullYear(),
 ): number[] {
   const out = new Set<number>()
   if (versionYear != null) out.add(versionYear)
+
   if (yearStart != null && yearEnd != null) {
     const lo = Math.min(yearStart, yearEnd)
     const hi = Math.max(yearStart, yearEnd)
-    if (hi - lo <= maxSpan) {
-      for (let y = lo; y <= hi; y += 1) out.add(y)
-    } else {
-      out.add(lo)
-      out.add(hi)
-    }
+    pushYearSpan(out, lo, hi, maxSpan)
   } else if (yearStart != null) {
-    out.add(yearStart)
+    const hi = effectiveYearEnd(null, nowYear)
+    pushYearSpan(out, yearStart, hi, maxSpan)
   } else if (yearEnd != null) {
     out.add(yearEnd)
   }
+
   return [...out].sort((a, b) => b - a)
 }

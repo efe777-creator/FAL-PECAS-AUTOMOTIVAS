@@ -49,9 +49,36 @@
 
 ---
 
-## Fora da fila agora (Evolução 1)
+## Home experiência — Onda 1 + UX entrada (atualizado 2026-11-10 tarde)
 
-Guest checkout total · placa 028 plena · wallets 019/020 · snapshot de custo · BI pleno · kits.
+| Passo | Status |
+|-------|--------|
+| Auditoria + spec + pacotes 2–4 | DONE — [RELATÓRIO](./FAL_MARCHA_RELATORIO_HOME_EXPERIENCIA_2026-11-10.md) |
+| Código Onda 1 (ordem, trust, vigência, qtd destaques) | DONE (working tree) — [VAL](./FAL_MARCHA_HOME_ONDA1_VAL_2026-11-10.md) |
+| UX: entrada unificada + menus Categorias/Meus veículos na vitrine | DONE (working tree) |
+| SQL Home `vigencia` + settings / publish / smoke | PENDENTE eFe |
+| Onda 2 (catálogo/PDP/025) | FORA — aguarda autorização · [PACOTES](./FAL_MARCHA_HOME_ONDAS_2_4_PACOTES_2026-11-10.md) |
+
+## Evolução 1 — placa 028 (atualizado 2026-11-10)
+
+| Passo | Status |
+|-------|--------|
+| Código PoC mock + scaffold apiplacas | DONE (working tree) — [VAL](./FAL_MARCHA_BUSCA_POR_PLACA_EVO1_VAL_2026-11-10.md) |
+| PR / SQL `cached_plates` / Edge `plate-lookup` / smoke eFe | PENDENTE eFe — [HANDOFF](./FAL_MARCHA_HOME_OPS_PLACA_HANDOFF_2026-11-10.md) |
+| API real (apiplacas ou similar) | FORA — Evolução 2/3 · sem saldo sem autorização |
+
+## V3 — intervalo PVC anos da aplicação (2026-11-10)
+
+| Passo | Status |
+|-------|--------|
+| `expandYearsForSelector` + regra única (`17/...` / `20/26`) | DONE (working tree) — [VAL](./FAL_MARCHA_V3_PVC_YEAR_RANGE_VAL_2026-11-10.md) |
+| Admin apps (ano inicial obrigatório) + admin veículos sem montadora | DONE |
+| Smoke eFe catálogo/admin | PENDENTE eFe |
+| PR / publish | PENDENTE autorização |
+
+## Fora da fila agora (resto Evolução)
+
+Guest checkout total · placa 028 **produção plena** (Evo 3+) · wallets 019/020 · snapshot de custo · BI pleno · kits.
 
 ---
 

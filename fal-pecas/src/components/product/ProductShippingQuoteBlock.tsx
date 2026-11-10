@@ -1,6 +1,8 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { ShippingOptionBrand } from '@/components/shipping/ShippingOptionBrand'
+import { SavedAddressQuoteSelect } from '@/components/shipping/SavedAddressQuoteSelect'
+import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
+import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
@@ -8,7 +10,13 @@ import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginServ
 import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
 import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
-import type { Product } from '@/types'
+import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
+import {
+  createStorePickupOption,
+  isStorePickupOption,
+  STORE_PICKUP_OPTION_ID,
+} from '@/services/shipping/storePickupOption'
+import type { CustomerAddress, Product, ShippingQuoteOption, StoreShippingOrigin } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 
 type Props = {
@@ -34,21 +42,44 @@ function productQuoteReady(product: Product): boolean {
   )
 }
 
+function etaLabel(o: ShippingQuoteOption): string {
+  if (isStorePickupOption(o)) return 'Retirada'
+  if (o.etaDaysMin != null && o.etaDaysMax != null) {
+    return `${o.etaDaysMin}–${o.etaDaysMax} d`
+  }
+  if (o.etaDaysMin != null || o.etaDaysMax != null) {
+    return `${o.etaDaysMin ?? o.etaDaysMax} d`
+  }
+  return ''
+}
+
+/**
+ * Cotação leve na PDP: CEP manual ou endereço salvo no perfil.
+ * Número/complemento extras confirmam no checkout (endereço salvo já traz o nº para cotar).
+ */
 export function ProductShippingQuoteBlock({ product }: Props) {
   const [cep, setCep] = useState('')
-  const [number, setNumber] = useState('')
+  const [savedAddressId, setSavedAddressId] = useState('')
+  const [savedAddress, setSavedAddress] = useState<CustomerAddress | null>(null)
   const [loading, setLoading] = useState(false)
   const [envelope, setEnvelope] = useState<ShippingQuoteEnvelope | null>(null)
-  const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
-  const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
+  const [selectedId, setSelectedId] = useState(STORE_PICKUP_OPTION_ID)
+  const [origin, setOrigin] = useState<StoreShippingOrigin | null>(null)
+  const [ownConfirmLater, setOwnConfirmLater] = useState(false)
 
   const ready = useMemo(() => productQuoteReady(product), [product])
+  const pickupOnly = useMemo(() => [createStorePickupOption()], [])
+
+  const displayOptions = useMemo(() => {
+    if (envelope?.status === 'ok' && envelope.options.length) return envelope.options
+    return pickupOnly
+  }, [envelope, pickupOnly])
 
   useEffect(() => {
     let active = true
     void getStoreShippingOrigin()
       .then((o) => {
-        if (active) setOriginPostalCode(o?.postalCode)
+        if (active) setOrigin(o)
       })
       .catch(() => {
         /* origem opcional na PDP */
@@ -58,47 +89,68 @@ export function ProductShippingQuoteBlock({ product }: Props) {
     }
   }, [])
 
-  if (!ready) {
-    return (
-      <div className="mt-4 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm text-fal-muted">
-        Frete indisponível para este produto no momento. Você ainda pode adicionar ao carrinho e
-        finalizar a compra — o valor da entrega será confirmado no checkout ou pelo nosso
-        atendimento.
-      </div>
-    )
-  }
+  useEffect(() => {
+    const opt = displayOptions.find((o) => o.id === selectedId) ?? displayOptions[0]
+    if (!opt) return
+    if (opt.id !== selectedId) setSelectedId(opt.id)
+    const digits = cep.replace(/\D/g, '')
+    saveShippingQuoteHandoff({
+      postalCode: digits.length === 8 ? digits : undefined,
+      preferredAddressId: savedAddressId || undefined,
+      option: opt,
+    })
+  }, [selectedId, displayOptions, cep, savedAddressId])
 
-  async function onConsultar() {
+  async function runQuoteFor(
+    postalDigits: string,
+    addrHint?: {
+      state?: string
+      city?: string
+      street?: string
+      district?: string | null
+      number?: string
+    },
+  ) {
+    if (!ready) return
     setLoading(true)
     setEnvelope(null)
-    setHintNeedsNumber(false)
+    setOwnConfirmLater(false)
     try {
-      const digits = cep.replace(/\D/g, '')
-      if (digits.length !== 8) {
+      if (postalDigits.length !== 8) {
         setEnvelope({
           status: 'invalid_cep',
           providerId: 'melhorenvio',
           mode: resolveShippingMeEnvMode(),
           options: [],
           quotedAt: new Date().toISOString(),
-          requestFingerprint: digits,
+          requestFingerprint: postalDigits,
           message: 'Informe um CEP válido com 8 dígitos.',
         })
         return
       }
 
-      const addr = await viaCepProvider.lookupByCep(digits)
+      const via = addrHint?.city
+        ? {
+            cep: postalDigits,
+            state: addrHint.state ?? '',
+            city: addrHint.city,
+            street: addrHint.street ?? '',
+            district: addrHint.district ?? undefined,
+          }
+        : await viaCepProvider.lookupByCep(postalDigits)
+
       const price = product.price ?? 0
       const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
-        postalCode: addr.cep,
-        state: addr.state,
-        city: addr.city,
-        street: addr.street,
-        district: addr.district,
-        number: number.trim() || undefined,
+        postalCode: via.cep,
+        state: via.state,
+        city: via.city,
+        street: via.street || addrHint?.street,
+        district: via.district ?? addrHint?.district ?? undefined,
+        // Nº só se veio de endereço salvo — CEP avulso confirma no checkout.
+        number: addrHint?.number?.trim() || undefined,
         subtotal: price,
         itemCount: 1,
-        originPostalCode,
+        originPostalCode: origin?.postalCode,
         items: [
           {
             productId: product.id,
@@ -111,8 +163,12 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         ],
         totalWeightKg: product.weightKg ?? undefined,
       })
-      setHintNeedsNumber(needsAddressNumber)
+      setOwnConfirmLater(needsAddressNumber)
       setEnvelope(env)
+      if (env.status === 'ok' && env.options.length) {
+        const keep = env.options.find((o) => o.id === selectedId) ?? env.options[0]
+        if (keep) setSelectedId(keep.id)
+      }
     } catch (e) {
       setEnvelope({
         status: 'provider_error',
@@ -120,13 +176,47 @@ export function ProductShippingQuoteBlock({ product }: Props) {
         mode: resolveShippingMeEnvMode(),
         options: [],
         quotedAt: new Date().toISOString(),
-        requestFingerprint: cep,
+        requestFingerprint: postalDigits,
         message: toUserMessage(e, 'Não foi possível consultar a entrega.'),
       })
     } finally {
       setLoading(false)
     }
   }
+
+  function onConsultar() {
+    void runQuoteFor(cep.replace(/\D/g, ''), savedAddress
+      ? {
+          state: savedAddress.state,
+          city: savedAddress.city,
+          street: savedAddress.street,
+          district: savedAddress.district,
+          number: savedAddress.number,
+        }
+      : undefined)
+  }
+
+  function onSavedAddress(address: CustomerAddress | null) {
+    if (!address) {
+      setSavedAddressId('')
+      setSavedAddress(null)
+      return
+    }
+    setSavedAddressId(address.id)
+    setSavedAddress(address)
+    const digits = address.postalCode.replace(/\D/g, '')
+    setCep(formatCepMask(digits))
+    void runQuoteFor(digits, {
+      state: address.state,
+      city: address.city,
+      street: address.street,
+      district: address.district,
+      number: address.number,
+    })
+  }
+
+  const selected = displayOptions.find((o) => o.id === selectedId)
+  const showPickupNotice = selected ? isStorePickupOption(selected) : false
 
   return (
     <section
@@ -136,104 +226,97 @@ export function ProductShippingQuoteBlock({ product }: Props) {
       <h2 id="pdp-entrega-frete-title" className="m-0 text-base font-extrabold text-fal-navy">
         Entrega e frete
       </h2>
-      <p className="mb-3 mt-1 text-sm text-fal-muted">
-        Informe o CEP para ver opções de entrega na sua região.
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div className="min-w-0 flex-1">
-          <Input
-            label="CEP"
-            name="pdp-shipping-cep"
-            inputMode="numeric"
-            autoComplete="postal-code"
-            placeholder="00000-000"
-            value={cep}
-            onChange={(e) => setCep(formatCepInput(e.target.value))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void onConsultar()
-              }
-            }}
-          />
-        </div>
-        <div className="w-full sm:w-28">
-          <Input
-            label="Nº"
-            name="pdp-shipping-number"
-            inputMode="text"
-            autoComplete="address-line2"
-            placeholder="123"
-            value={number}
-            onChange={(e) => setNumber(e.target.value.slice(0, 20))}
-          />
-        </div>
-        <Button
-          type="button"
-          variant="light"
-          disabled={loading}
-          onClick={() => void onConsultar()}
-          className="sm:mb-0.5"
-        >
-          {loading ? 'Consultando…' : 'Consultar'}
-        </Button>
-      </div>
-      <p className="mb-0 mt-1 text-xs text-fal-muted">
-        Nº do endereço libera cotação de frete próprio (quando disponível na região).
+      <p className="mb-2 mt-1 text-xs text-fal-muted">
+        Use um endereço do perfil ou consulte por CEP. A modalidade segue no checkout com
+        “Comprar agora”.
       </p>
 
-      {envelope?.disclaimer && !/D-FRETE|VITE_|mock|sandbox|webhook/i.test(envelope.disclaimer) ? (
-        <p className="mb-0 mt-3 text-xs font-semibold text-fal-muted">{envelope.disclaimer}</p>
-      ) : null}
+      <SavedAddressQuoteSelect
+        valueId={savedAddressId}
+        name="pdp-saved-address"
+        onSelect={onSavedAddress}
+      />
 
-      {hintNeedsNumber ? (
-        <p className="mb-0 mt-2 text-xs text-amber-800">
-          Preencha o número e consulte de novo para incluir entrega FAL nesta região.
+      <ul className="m-0 mb-3 list-none space-y-1.5 p-0">
+        {displayOptions.map((o) => (
+          <li key={o.id}>
+            <label className="flex cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-fal-line bg-white px-2.5 py-1.5 text-xs">
+              <span className="flex min-w-0 items-center gap-2">
+                <input
+                  type="radio"
+                  name="pdp-ship-opt"
+                  checked={selectedId === o.id}
+                  onChange={() => setSelectedId(o.id)}
+                />
+                <span className="truncate font-semibold text-fal-ink">{o.label}</span>
+                {etaLabel(o) ? (
+                  <span className="shrink-0 text-fal-muted">{etaLabel(o)}</span>
+                ) : null}
+              </span>
+              <strong className="shrink-0 text-fal-navy">{formatMoney(o.amount)}</strong>
+            </label>
+          </li>
+        ))}
+      </ul>
+
+      {showPickupNotice ? <StorePickupNotice origin={origin} compact /> : null}
+
+      {ready ? (
+        <>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="CEP"
+                name="pdp-shipping-cep"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                placeholder="00000-000"
+                value={cep}
+                onChange={(e) => {
+                  setSavedAddressId('')
+                  setSavedAddress(null)
+                  setCep(formatCepInput(e.target.value))
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    onConsultar()
+                  }
+                }}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              disabled={loading}
+              onClick={onConsultar}
+              className="sm:mb-0.5"
+            >
+              {loading ? '…' : 'Consultar fretes'}
+            </Button>
+          </div>
+          <p className="mb-0 mt-1 text-[11px] text-fal-muted">
+            CEP avulso não pede número aqui — no checkout você confirma nº e complemento.
+          </p>
+        </>
+      ) : (
+        <p className="mb-0 mt-2 text-xs text-fal-muted">
+          Frete por transportadora indisponível neste produto no momento. Você pode retirar na loja
+          ou confirmar a entrega no checkout.
+        </p>
+      )}
+
+      {ownConfirmLater ? (
+        <p className="mb-0 mt-2 text-xs text-fal-muted">
+          Entrega FAL (própria), se disponível, confirma no checkout com o número do endereço.
         </p>
       ) : null}
 
       {envelope && envelope.status !== 'ok' ? (
-        <p className="mb-0 mt-3 text-sm text-fal-danger" role="alert">
+        <p className="mb-0 mt-2 text-xs text-fal-danger" role="alert">
           {envelope.message ?? 'Consulta de entrega indisponível no momento.'}
         </p>
-      ) : null}
-
-      {envelope?.status === 'ok' && envelope.options.length === 0 ? (
-        <p className="mb-0 mt-3 text-sm text-fal-muted" role="status">
-          {envelope.message && !/medida|cadastro|packing|D-FRETE/i.test(envelope.message)
-            ? envelope.message
-            : 'Nenhuma opção de entrega para este CEP no momento. Tente outro CEP ou fale conosco.'}
-        </p>
-      ) : null}
-
-      {envelope?.status === 'ok' && envelope.options.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          <p className="m-0 text-sm font-bold text-fal-ink">Opções disponíveis</p>
-          <ul className="m-0 list-none space-y-2 p-0">
-            {envelope.options.map((o) => (
-              <li
-                key={o.id}
-                className="rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm"
-              >
-                <ShippingOptionBrand option={o} />
-                <div className="mt-0.5 text-fal-ink">
-                  Frete: <strong>{formatMoney(o.amount)}</strong>
-                </div>
-                {o.etaDaysMin != null || o.etaDaysMax != null ? (
-                  <div className="text-xs text-fal-muted">
-                    Prazo estimado:{' '}
-                    {o.etaDaysMin != null && o.etaDaysMax != null
-                      ? `${o.etaDaysMin}–${o.etaDaysMax} dias úteis`
-                      : `${o.etaDaysMin ?? o.etaDaysMax} dias úteis`}{' '}
-                    (estimativa)
-                  </div>
-                ) : (
-                  <div className="text-xs text-fal-muted">Prazo estimado: conforme cotação</div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
       ) : null}
     </section>
   )

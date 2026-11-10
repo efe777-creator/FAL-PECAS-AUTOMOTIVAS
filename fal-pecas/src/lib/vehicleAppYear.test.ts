@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   YEAR_NO_START_LABEL,
+  effectiveYearEnd,
   expandYearsForSelector,
   formatVehicleAppYear,
   toYy,
+  validatePvcYearInputs,
   yearMatchesVehicleApp,
 } from '@/lib/vehicleAppYear'
 
@@ -41,6 +43,30 @@ describe('vehicleAppYear (MARCHA UI)', () => {
     expect(formatVehicleAppYear({ yearStart: 2000, yearEnd: 9999 })).toBeNull()
   })
 
+  it('effectiveYearEnd — preenchido ou ano civil atual', () => {
+    expect(effectiveYearEnd(2022, 2026)).toBe(2022)
+    expect(effectiveYearEnd(null, 2026)).toBe(2026)
+    expect(effectiveYearEnd(undefined, 2026)).toBe(2026)
+  })
+
+  it('validatePvcYearInputs — início obrigatório, fim opcional', () => {
+    expect(validatePvcYearInputs('', '')).toEqual({
+      ok: false,
+      message: 'Ano inicial é obrigatório',
+    })
+    expect(validatePvcYearInputs('2017', '')).toEqual({
+      ok: true,
+      yearStart: 2017,
+      yearEnd: null,
+    })
+    expect(validatePvcYearInputs('2020', '2026')).toEqual({
+      ok: true,
+      yearStart: 2020,
+      yearEnd: 2026,
+    })
+    expect(validatePvcYearInputs('2020', '2019').ok).toBe(false)
+  })
+
   it('yearMatchesVehicleApp — alinhado ao SQL (inalterado)', () => {
     expect(yearMatchesVehicleApp(2000, 1997, null)).toBe(true)
     expect(yearMatchesVehicleApp(1996, 1997, null)).toBe(false)
@@ -50,8 +76,31 @@ describe('vehicleAppYear (MARCHA UI)', () => {
     expect(yearMatchesVehicleApp(2012, null, null, null)).toBe(false)
   })
 
-  it('expandYearsForSelector', () => {
+  it('expandYearsForSelector — intervalo fechado 20/26', () => {
+    expect(expandYearsForSelector(2020, 2026, null, 40, 2026)).toEqual([
+      2026, 2025, 2024, 2023, 2022, 2021, 2020,
+    ])
+  })
+
+  it('expandYearsForSelector — aberto 17/... até ano atual', () => {
+    expect(expandYearsForSelector(2017, null, null, 40, 2026)).toEqual([
+      2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017,
+    ])
+  })
+
+  it('expandYearsForSelector — aberto não inventa anos futuros', () => {
+    expect(expandYearsForSelector(2020, null, null, 40, 2024)).toEqual([
+      2024, 2023, 2022, 2021, 2020,
+    ])
+  })
+
+  it('expandYearsForSelector — intervalo curto fechado', () => {
     expect(expandYearsForSelector(2000, 2002)).toEqual([2002, 2001, 2000])
-    expect(expandYearsForSelector(1997, null)).toEqual([1997])
+  })
+
+  it('expandYearsForSelector — 2010–2015 não inclui 2016', () => {
+    const years = expandYearsForSelector(2010, 2015, null, 40, 2026)
+    expect(years).toEqual([2015, 2014, 2013, 2012, 2011, 2010])
+    expect(years).not.toContain(2016)
   })
 })

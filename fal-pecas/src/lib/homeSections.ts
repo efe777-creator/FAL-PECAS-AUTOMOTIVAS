@@ -1,10 +1,17 @@
 /** Regras de composição das grades da Home (MVP / Onda 3 Comercial). */
 
-/** Quantidade exibida na Home (até existir setting no banco). */
-export const HOME_FEATURED_LIMIT = 16
+/** Fallback se `store_home_settings` indisponível. */
+export const HOME_FEATURED_LIMIT_DEFAULT = 16
 
-/** Teto de curadoria no admin (sem hard cap fixo de 12). */
+/** @deprecated Use HOME_FEATURED_LIMIT_DEFAULT ou getFeaturedDisplayLimit(). */
+export const HOME_FEATURED_LIMIT = HOME_FEATURED_LIMIT_DEFAULT
+
+/** Teto de curadoria no admin (fila de produtos). */
 export const ADMIN_FEATURED_MAX = 24
+
+/** Limites do setting featured_display_limit. */
+export const FEATURED_DISPLAY_LIMIT_MIN = 1
+export const FEATURED_DISPLAY_LIMIT_MAX = 48
 
 /** Ofertas têm prioridade: remove da lista de destaques o que já aparece em ofertas. */
 export function excludeProductsById<T extends { id: string }>(

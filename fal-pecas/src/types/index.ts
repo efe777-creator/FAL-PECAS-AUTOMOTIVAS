@@ -498,10 +498,13 @@ export interface ProductSearchResult {
 export interface VehicleOptionTree {
   makers: string[]
   modelsByMaker: Record<string, string[]>
+  /** Chave: `maker|model`. */
   yearsByModel: Record<string, string[]>
+  /** Chave: `maker|model|year`. */
   enginesByModelYear: Record<string, string[]>
-  /** Motores por modelo (inclui configs com year NULL). */
+  /** Chave: `maker|model` (inclui configs com year NULL). */
   enginesByModel: Record<string, string[]>
+  /** Chave: `maker|model`. */
   versionsByModel: Record<string, string[]>
 }
 

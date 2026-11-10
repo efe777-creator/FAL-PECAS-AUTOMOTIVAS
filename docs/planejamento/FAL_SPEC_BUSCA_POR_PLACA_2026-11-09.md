@@ -1,16 +1,17 @@
 # FAL — Planejamento consolidado: Busca por placa
 
-**Data:** 2026-11-09  
-**Status:** Planejamento consolidado — decisões oficiais travadas  
+**Data:** 2026-11-09 (atualizado 2026-11-10)  
+**Status:** Evolução 1 (PoC mock) em implementação — decisões oficiais travadas  
 **Plano canônico:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
 **AJUSTE:** **028**  
-**Home:** posição abaixo da campanha e antes dos destaques ([spec Home](./FAL_SPEC_HOME_EXPERIENCIA_COMPRA_2026-11-09.md))
+**Home:** abaixo da campanha e antes dos destaques ([spec Home](./FAL_SPEC_HOME_EXPERIENCIA_COMPRA_2026-11-09.md))  
+**Catálogo:** busca por placa também disponível (entrada compacta)
 
 ---
 
 ## 1. Fluxo principal
 
-1. Informar a placa (Home e, opcionalmente, catálogo).  
+1. Informar a placa (Home e Catálogo).  
 2. Consultar provedor → montadora, modelo, ano, versão, motor (só o disponível).  
 3. Preencher filtros existentes **para conferência** (ainda **sem** aplicar busca).  
 4. Cliente confirma ou corrige.  
@@ -24,11 +25,11 @@
 - Aceitar → `customerVehicleService` / `customer_vehicles`.  
 - Recusar → continua sem exigir cadastro.  
 - Autenticado → salva na conta.  
-- Não autenticado → autenticar **somente** para salvar; preservar a busca.
+- Não autenticado → autenticar **somente** para salvar; preservar a busca (`state.from` / pending garage).
 
 ## 3. Decisão oficial B — Falha
 
-Falha / indisponível / não encontrada / incompleta / ambígua:
+Falha / indisponível / não encontrada / incompleta / ambígua / fora do cadastro FAL:
 
 1. Mensagem simples.  
 2. **Abrir seleção manual imediatamente** (`VehicleSelector` / filtros existentes).  
@@ -42,36 +43,48 @@ Falha / indisponível / não encontrada / incompleta / ambígua:
 |-----------|------|
 | Filtros | `VehicleFilter` + estado catálogo |
 | Opções veículo | `fal-pecas/src/services/vehicles/vehicleService.ts` |
-| Busca produtos | search/RPC catálogo existente |
+| Busca produtos | `searchService` / RPC catálogo |
 | Garagem | `fal-pecas/src/services/customers/customerVehicleService.ts` |
 | Resultados | `CatalogPage.tsx` |
-| Manual/conferência | `VehicleSelector.tsx` |
+| Manual/conferência | `VehicleSelector.tsx` + `VehiclePlateConfirmation.tsx` |
+| Entrada placa | `VehiclePlateSearch.tsx` |
+| Consulta | Edge `plate-lookup` + `plateLookupService.ts` |
 
 ## 5. Obrigatórios técnicos
 
-- Mapear externo → IDs internos FAL; colisões de modelos homônimos.  
+- Mapear externo → IDs internos FAL; chaves compostas `maker|model` (colisões de homônimos).  
 - Não inventar versão/motor/ano ausentes.  
 - Identificação ≠ garantia de compatibilidade da peça.  
-- Consulta **no servidor**; cache, rate limit, erros, LGPD.  
-- Testar placas antiga/Mercosul e **dois grupos** de veículos.
+- Consulta **no servidor** (Edge); cache `cached_plates`, rate limit, erros, LGPD.  
+- Mock disponível (`PLATE_PROVIDER=mock`) para PoC/teste.  
+- Provedor comercial: [API Placas](https://apiplacas.com.br/) — `GET https://wdapi2.com.br/v3/basico/{placa}` (~R$ 0,03). Secrets Edge: `APIPLACAS_TOKEN` + `PLATE_PROVIDER=apiplacas`. Sem chassi/Renavam.  
+- Testar placas antiga/Mercosul e **dois clusters** de veículos do inventário FAL.
 
-## 6. Etapas de implementação
+### Inventário VAL — dois clusters (operacional)
 
-| # | Entrega | Nota MVP |
-|---|---------|----------|
-| 1 | Preparar cadastro veículos/apps (liga 002) | MVP |
-| 2 | PoC fonte **gratuita** | MVP-lite |
-| 3 | Serviço independente do provedor (Edge) | MVP se PoC ok |
-| 4 | UI placa + conferência | Com 029 |
-| 5 | Integração filtros pós-confirmação | Sim |
-| 6 | Pergunta garagem | Sim |
-| 7 | Testes | Antes de liberar |
-| 8 | Lançamento gradual | Pós-VAL |
+Sem taxonomia formal de “grupo” no schema. Critério VAL desta onda:
 
-**MVP-lite:** se PoC atrasar, Home usa `VehicleSelector` no slot da placa (G1 não bloqueia).
+| Cluster | Montadora | Modelo de referência | Notas |
+|---------|-----------|----------------------|--------|
+| A — passeio popular | Volkswagen | Gol | Fixture completa / Mercosul |
+| B — passeio/SUV | Chevrolet | Onix | Fixture completa / antiga + motor |
 
-## 7. Critérios de pronto (VAL 028)
+Campo opcional `vehicleGroup` no contrato para classificação futura.
 
-Consulta ok; filtros só pós-confirmação; correção permitida; manual imediato na falha; garagem só com pergunta; 2 grupos; compatibilidade pela base FAL; mobile; credenciais protegidas.
+## 6. Etapas / ondas
+
+| # | Entrega | Nota |
+|---|---------|------|
+| 1 | Evolução 1 — PoC mock + fluxo ponta a ponta + scaffold apiplacas | Em curso |
+| 2 | Evolução 2 — Seleção/avaliação API (apiplacas + alternativas) | Pós-PoC |
+| 3 | Evolução 3 — Adapter real no Edge | Com autorização de saldo |
+| 4 | Homologação | Testes + segurança |
+| 5 | Lançamento gradual | Monitoramento |
+
+**MVP-lite legado:** Home usava só `VehicleSelector` no slot da placa; Evolução 1 substitui pelo fluxo de placa + fallback manual.
+
+## 7. Critérios de pronto (VAL 028 / Evolução 1)
+
+Consulta mock ok; filtros só pós-confirmação; correção permitida; manual imediato na falha; garagem só com pergunta; 2 clusters; compatibilidade pela base FAL; mobile; credenciais só no servidor; adapter comercial plugável e **desligado**.
 
 **Diretriz:** a placa reduz esforço, não cria obstáculo.

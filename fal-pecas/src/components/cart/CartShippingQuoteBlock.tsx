@@ -1,6 +1,8 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
-import { ShippingOptionBrand } from '@/components/shipping/ShippingOptionBrand'
+import { SavedAddressQuoteSelect } from '@/components/shipping/SavedAddressQuoteSelect'
+import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
+import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
@@ -10,7 +12,12 @@ import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
 import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
 import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
-import type { CartItem } from '@/types'
+import {
+  createStorePickupOption,
+  isStorePickupOption,
+  STORE_PICKUP_OPTION_ID,
+} from '@/services/shipping/storePickupOption'
+import type { CartItem, CustomerAddress, StoreShippingOrigin } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type Props = {
@@ -27,17 +34,25 @@ function formatCepInput(raw: string): string {
 
 /**
  * Cotação do **conjunto** do carrinho (não soma fretes unitários).
- * Invalida e recota ao mudar itens/qty quando o CEP já está completo.
+ * Sempre oferece retirada R$ 0; demais opções após consultar CEP.
  */
 export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange }: Props) {
   const [cep, setCep] = useState('')
   const [number, setNumber] = useState('')
+  const [savedAddressId, setSavedAddressId] = useState('')
   const [loading, setLoading] = useState(false)
   const [envelope, setEnvelope] = useState<ShippingQuoteEnvelope | null>(null)
-  const [selectedId, setSelectedId] = useState('')
-  const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
+  const [selectedId, setSelectedId] = useState(STORE_PICKUP_OPTION_ID)
+  const [origin, setOrigin] = useState<StoreShippingOrigin | null>(null)
   const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
   const quoteGen = useRef(0)
+
+  const pickupOnly = useMemo(() => [createStorePickupOption()], [])
+
+  const displayOptions = useMemo(() => {
+    if (envelope?.status === 'ok' && envelope.options.length) return envelope.options
+    return pickupOnly
+  }, [envelope, pickupOnly])
 
   const cartKey = useMemo(
     () =>
@@ -52,7 +67,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     let active = true
     void getStoreShippingOrigin()
       .then((o) => {
-        if (active) setOriginPostalCode(o?.postalCode)
+        if (active) setOrigin(o)
       })
       .catch(() => undefined)
     return () => {
@@ -61,13 +76,21 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   }, [])
 
   const runQuote = useCallback(
-    async (opts?: { silentClear?: boolean }) => {
-      const digits = cep.replace(/\D/g, '')
+    async (opts?: {
+      silentClear?: boolean
+      postalCode?: string
+      number?: string
+      street?: string
+      district?: string | null
+      city?: string
+      state?: string
+    }) => {
+      const digits = (opts?.postalCode ?? cep).replace(/\D/g, '')
+      const numberUse = (opts?.number ?? number).trim()
       const gen = ++quoteGen.current
       setLoading(true)
       if (!opts?.silentClear) {
         setEnvelope(null)
-        setSelectedId('')
         setHintNeedsNumber(false)
       }
       try {
@@ -84,7 +107,16 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           })
           return
         }
-        const addr = await viaCepProvider.lookupByCep(digits)
+        const addr =
+          opts?.city && opts?.state
+            ? {
+                cep: digits,
+                state: opts.state,
+                city: opts.city,
+                street: opts.street ?? '',
+                district: opts.district ?? undefined,
+              }
+            : await viaCepProvider.lookupByCep(digits)
         const logistics = await loadCartLogistics(
           items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
         )
@@ -92,12 +124,12 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           postalCode: addr.cep,
           state: addr.state,
           city: addr.city,
-          street: addr.street,
-          district: addr.district,
-          number: number.trim() || undefined,
+          street: addr.street || opts?.street,
+          district: addr.district ?? opts?.district ?? undefined,
+          number: numberUse || undefined,
           subtotal,
           itemCount: items.reduce((n, i) => n + i.quantity, 0),
-          originPostalCode,
+          originPostalCode: origin?.postalCode,
           items: logistics,
           totalWeightKg:
             logistics.reduce((acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1), 0) ||
@@ -106,10 +138,10 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         if (gen !== quoteGen.current) return
         setHintNeedsNumber(needsAddressNumber)
         setEnvelope(env)
-        if (env.status === 'ok' && env.options[0]) {
-          setSelectedId(env.options[0].id)
-        } else {
-          setSelectedId('')
+        if (env.status === 'ok' && env.options.length) {
+          const keep =
+            env.options.find((o) => o.id === selectedId) ?? env.options[0]
+          if (keep) setSelectedId(keep.id)
         }
       } catch (e) {
         if (gen !== quoteGen.current) return
@@ -119,21 +151,18 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           mode: resolveShippingMeEnvMode(),
           options: [],
           quotedAt: new Date().toISOString(),
-          requestFingerprint: cep,
+          requestFingerprint: digits,
           message: toUserMessage(e, 'Não foi possível consultar a entrega.'),
         })
-        setSelectedId('')
       } finally {
         if (gen === quoteGen.current) setLoading(false)
       }
     },
-    [cep, number, items, subtotal, originPostalCode],
+    [cep, number, items, subtotal, origin?.postalCode, selectedId],
   )
 
-  // Mudança de carrinho: limpa e recota se CEP completo (O1-D).
   useEffect(() => {
     setEnvelope(null)
-    setSelectedId('')
     onShippingAmountChange?.(null, null)
     const digits = cep.replace(/\D/g, '')
     if (digits.length !== 8 || items.length === 0) return
@@ -142,26 +171,82 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   }, [cartKey])
 
   useEffect(() => {
-    if (!envelope || envelope.status !== 'ok') {
+    const opt = displayOptions.find((o) => o.id === selectedId) ?? displayOptions[0]
+    if (!opt) {
       onShippingAmountChange?.(null, null)
       return
     }
-    const opt = envelope.options.find((o) => o.id === selectedId) ?? envelope.options[0]
-    if (opt) {
-      onShippingAmountChange?.(opt.amount, opt.label)
-      const digits = cep.replace(/\D/g, '')
-      if (digits.length === 8) {
-        saveShippingQuoteHandoff({ postalCode: digits, preferredOptionId: opt.id })
-      }
-    } else {
-      onShippingAmountChange?.(null, null)
+    onShippingAmountChange?.(opt.amount, opt.label)
+    const digits = cep.replace(/\D/g, '')
+    saveShippingQuoteHandoff({
+      postalCode: digits.length === 8 ? digits : undefined,
+      preferredAddressId: savedAddressId || undefined,
+      option: opt,
+    })
+  }, [displayOptions, selectedId, onShippingAmountChange, cep, savedAddressId])
+
+  function onSavedAddress(address: CustomerAddress | null) {
+    if (!address) {
+      setSavedAddressId('')
+      return
     }
-  }, [envelope, selectedId, onShippingAmountChange, cep])
+    setSavedAddressId(address.id)
+    const digits = address.postalCode.replace(/\D/g, '')
+    setCep(formatCepMask(digits))
+    setNumber(address.number)
+    void runQuote({
+      postalCode: digits,
+      number: address.number,
+      street: address.street,
+      district: address.district,
+      city: address.city,
+      state: address.state,
+    })
+  }
+
+  const selected = displayOptions.find((o) => o.id === selectedId)
+  const showPickupNotice = selected ? isStorePickupOption(selected) : false
 
   return (
     <div className="mb-3 border-b border-fal-line pb-3">
       <p className="m-0 mb-2 text-sm font-extrabold text-fal-navy">Entrega e frete</p>
-      <div className="flex flex-col gap-2">
+
+      <SavedAddressQuoteSelect
+        valueId={savedAddressId}
+        name="cart-saved-address"
+        onSelect={onSavedAddress}
+      />
+
+      <div className="mb-2 space-y-1.5">
+        {displayOptions.map((o) => (
+          <label
+            key={o.id}
+            className="flex cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-fal-line bg-fal-bg px-2 py-1.5 text-xs"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <input
+                type="radio"
+                name="cart-ship-opt"
+                checked={selectedId === o.id}
+                onChange={() => setSelectedId(o.id)}
+              />
+              <span className="truncate font-semibold text-fal-ink">{o.label}</span>
+            </span>
+            <span className="shrink-0 text-fal-ink">
+              {formatMoney(o.amount)}
+              {o.etaDaysMin != null && o.etaDaysMax != null && !isStorePickupOption(o)
+                ? ` · ${o.etaDaysMin}–${o.etaDaysMax} d`
+                : isStorePickupOption(o)
+                  ? ' · Retirada'
+                  : ''}
+            </span>
+          </label>
+        ))}
+      </div>
+
+      {showPickupNotice ? <StorePickupNotice origin={origin} compact /> : null}
+
+      <div className="mt-2 flex flex-col gap-2">
         <Input
           label="CEP de destino"
           name="cart-shipping-cep"
@@ -169,7 +254,10 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           autoComplete="postal-code"
           placeholder="00000-000"
           value={cep}
-          onChange={(e) => setCep(formatCepInput(e.target.value))}
+          onChange={(e) => {
+            setSavedAddressId('')
+            setCep(formatCepInput(e.target.value))
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
@@ -184,10 +272,13 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           autoComplete="address-line2"
           placeholder="123"
           value={number}
-          onChange={(e) => setNumber(e.target.value.slice(0, 20))}
+          onChange={(e) => {
+            setSavedAddressId('')
+            setNumber(e.target.value.slice(0, 20))
+          }}
         />
         <Button type="button" variant="light" size="sm" disabled={loading} onClick={() => void runQuote()}>
-          {loading ? 'Consultando…' : 'Consultar frete'}
+          {loading ? 'Consultando…' : 'Consultar fretes'}
         </Button>
       </div>
 
@@ -206,39 +297,6 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
           {envelope.message ?? 'Consulta indisponível.'}
         </p>
       ) : null}
-
-      {envelope?.status === 'ok' && envelope.options.length === 0 ? (
-        <p className="mb-0 mt-2 text-xs text-fal-muted" role="status">
-          {envelope.message && !/medida|cadastro|packing|D-FRETE/i.test(envelope.message)
-            ? envelope.message
-            : 'Nenhuma opção de entrega para este CEP e estes itens no momento. Tente outro CEP ou fale conosco.'}
-        </p>
-      ) : null}
-
-      {envelope?.status === 'ok'
-        ? envelope.options.map((o) => (
-            <label
-              key={o.id}
-              className="mt-2 flex cursor-pointer gap-2 rounded-[8px] border border-fal-line bg-fal-bg px-2 py-2 text-xs"
-            >
-              <input
-                type="radio"
-                name="cart-ship-opt"
-                checked={selectedId === o.id}
-                onChange={() => setSelectedId(o.id)}
-              />
-              <span className="min-w-0 flex-1">
-                <ShippingOptionBrand option={o} />
-                <span className="mt-0.5 block text-fal-ink">
-                  {formatMoney(o.amount)}
-                  {o.etaDaysMin != null && o.etaDaysMax != null
-                    ? ` · ${o.etaDaysMin}–${o.etaDaysMax} dias (est.)`
-                    : ''}
-                </span>
-              </span>
-            </label>
-          ))
-        : null}
     </div>
   )
 }

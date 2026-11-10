@@ -17,6 +17,7 @@ import {
 import { AddressForm } from '@/components/address/AddressForm'
 import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
+import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { listAddresses, upsertAddress } from '@/services/customers/addressService'
 import { createFalPayment } from '@/services/payments/engine'
@@ -31,11 +32,18 @@ import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope
 import {
   loadShippingQuoteHandoff,
   clearShippingQuoteHandoff,
+  matchPreferredShippingOption,
+  type ShippingQuoteHandoff,
 } from '@/services/shipping/shippingQuoteSession'
+import {
+  ensureCustomerShippingOptions,
+  isStorePickupOption,
+} from '@/services/shipping/storePickupOption'
 import type {
   CustomerAddress,
   ShippingQuoteOption,
   SimulatedPaymentMethod,
+  StoreShippingOrigin,
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
@@ -64,6 +72,7 @@ export function CheckoutPage() {
   const [addressId, setAddressId] = useState<string>('')
   const [showNewAddress, setShowNewAddress] = useState(false)
   const [originPostalCode, setOriginPostalCode] = useState<string | undefined>()
+  const [storeOrigin, setStoreOrigin] = useState<StoreShippingOrigin | null>(null)
   const [shippingOptions, setShippingOptions] = useState<ShippingQuoteOption[]>([])
   const [shippingOptionId, setShippingOptionId] = useState('')
   const [shippingDisclaimer, setShippingDisclaimer] = useState<string | null>(null)
@@ -74,7 +83,7 @@ export function CheckoutPage() {
   const [idempotencyKey] = useState(() => crypto.randomUUID())
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
-  const preferredShipOptRef = useRef<string | undefined>(undefined)
+  const preferredHandoffRef = useRef<ShippingQuoteHandoff | null>(null)
   const errorRef = useRef<HTMLParagraphElement>(null)
   const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
@@ -210,10 +219,18 @@ export function CheckoutPage() {
   }
 
   useEffect(() => {
-    void reloadAddresses()
+    const handoff = loadShippingQuoteHandoff()
+    preferredHandoffRef.current = handoff
+    void reloadAddresses(handoff?.preferredAddressId)
     void getStoreShippingOrigin()
-      .then((o) => setOriginPostalCode(o?.postalCode))
-      .catch(() => setOriginPostalCode(undefined))
+      .then((o) => {
+        setStoreOrigin(o)
+        setOriginPostalCode(o?.postalCode)
+      })
+      .catch(() => {
+        setStoreOrigin(null)
+        setOriginPostalCode(undefined)
+      })
   }, [])
 
   const selectedAddress = useMemo(
@@ -243,8 +260,8 @@ export function CheckoutPage() {
     setQuoting(true)
     setError(null)
     try {
-      if (!preferredShipOptRef.current) {
-        preferredShipOptRef.current = loadShippingQuoteHandoff()?.preferredOptionId
+      if (!preferredHandoffRef.current) {
+        preferredHandoffRef.current = loadShippingQuoteHandoff()
       }
       const logistics = await loadCartLogistics(
         items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -269,14 +286,14 @@ export function CheckoutPage() {
         pushError(env.message ?? 'Erro ao cotar frete')
         return
       }
-      const opts = env.options
+      const opts = ensureCustomerShippingOptions(env.options)
       const selectable = opts.filter((o) => o.metadata?.selectable !== false)
       quoteKeyRef.current = key
-      setShippingOptions(opts)
-      const preferred = preferredShipOptRef.current
+      setShippingOptions(selectable)
+      const matched = matchPreferredShippingOption(selectable, preferredHandoffRef.current)
       setShippingOptionId((prev) => {
         if (prev && selectable.some((o) => o.id === prev)) return prev
-        if (preferred && selectable.some((o) => o.id === preferred)) return preferred
+        if (matched) return matched.id
         return selectable[0]?.id ?? ''
       })
     } catch (e) {
@@ -653,7 +670,7 @@ export function CheckoutPage() {
                             <strong>{o.label}</strong>
                             {o.etaDaysMin != null ? (
                               <span className="block text-fal-muted">
-                                {o.etaDaysMin === 0
+                                {isStorePickupOption(o) || o.etaDaysMin === 0
                                   ? 'Disponível para retirada'
                                   : `${o.etaDaysMin}–${o.etaDaysMax} dias úteis`}
                               </span>
@@ -667,6 +684,9 @@ export function CheckoutPage() {
                   })}
                 </ul>
               )}
+              {selectedShipping && isStorePickupOption(selectedShipping) ? (
+                <StorePickupNotice origin={storeOrigin} />
+              ) : null}
               <button
                 type="button"
                 className="text-sm font-semibold text-fal-navy underline"

@@ -1,4 +1,5 @@
 import { resolveOwnQuoteOptions } from '@/services/shipping/own/ownQuoteOptions'
+import { createStorePickupOption } from '@/services/shipping/storePickupOption'
 import type { ShippingProvider, ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 function regionSurcharge(postalCode: string): number {
@@ -39,16 +40,7 @@ export const mockShippingProvider: ShippingProvider = {
         etaDaysMax: 4,
         metadata: { kind: 'carrier_ready' },
       },
-      {
-        id: 'mock:pickup',
-        provider: 'mock',
-        serviceCode: 'pickup',
-        label: 'Retirada na loja',
-        amount: 0,
-        etaDaysMin: 0,
-        etaDaysMax: 1,
-        metadata: { kind: 'pickup' },
-      },
+      createStorePickupOption(),
     )
 
     return options

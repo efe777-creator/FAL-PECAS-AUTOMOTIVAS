@@ -33,9 +33,11 @@ export function Select({
           .join(' ')}
         {...props}
       >
-        {placeholder ? <option value="">{placeholder}</option> : null}
+        {placeholder && !options.some((o) => o.value === '') ? (
+          <option value="">{placeholder}</option>
+        ) : null}
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
+          <option key={`${opt.value}::${opt.label}`} value={opt.value}>
             {opt.label}
           </option>
         ))}

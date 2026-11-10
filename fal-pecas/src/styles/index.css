@@ -74,6 +74,14 @@ select {
   font: inherit;
 }
 
+/** Tipografia da “placa” — não herda Inter do input global. */
+input.fal-plate-input {
+  font-family: Oswald, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 button {
   cursor: pointer;
 }
