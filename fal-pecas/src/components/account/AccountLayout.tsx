@@ -8,14 +8,14 @@ const links = [
   { to: '/conta', label: 'Início', end: true },
   { to: '/conta/perfil', label: 'Perfil' },
   { to: '/conta/enderecos', label: 'Endereços' },
-  { to: '/conta/veiculos', label: 'Meus veículos' },
+  { to: '/conta/veiculos', label: 'Meus carros' },
   { to: '/conta/favoritos', label: 'Favoritos' },
   { to: '/conta/pedidos', label: 'Meus pedidos' },
 ]
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
-    'whitespace-nowrap rounded-full border px-3 py-2 text-sm transition lg:block lg:rounded-none lg:border-0 lg:border-b lg:border-fal-line lg:px-3 lg:py-3',
+    'inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-3 py-2 text-sm transition lg:flex lg:rounded-none lg:border-0 lg:border-b lg:border-fal-line lg:px-3 lg:py-3',
     isActive
       ? 'border-fal-navy bg-fal-navy font-extrabold text-white lg:bg-[#f7f8f9] lg:text-fal-navy'
       : 'border-fal-line bg-white text-fal-navy hover:bg-[#f7f8f9] lg:font-normal',

@@ -33,7 +33,7 @@ export function SavedVehiclesQuickPick({
         <Link to="/login" state={{ from: '/catalogo' }} className="font-semibold text-fal-navy underline-offset-2 hover:underline">
           Entrar
         </Link>{' '}
-        para usar Meus veículos
+        para usar Meus carros
       </p>
     )
   }
@@ -42,7 +42,7 @@ export function SavedVehiclesQuickPick({
     return (
       <p className="m-0 text-xs text-fal-muted">
         <Link to="/conta/veiculos" className="font-semibold text-fal-navy underline-offset-2 hover:underline">
-          Meus veículos
+          Meus carros
         </Link>
         {' — '}
         salve um carro na conta para filtrar peças rapidamente.
@@ -66,7 +66,7 @@ export function SavedVehiclesQuickPick({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold text-fal-muted">Meus veículos:</span>
+      <span className="text-xs font-semibold text-fal-muted">Meus carros:</span>
       {items.map((v) => {
         const label =
           v.nickname ||

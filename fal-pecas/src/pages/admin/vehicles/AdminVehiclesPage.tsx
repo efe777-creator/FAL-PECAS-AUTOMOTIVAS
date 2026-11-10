@@ -381,7 +381,67 @@ export function AdminVehiclesPage() {
         ) : null}
       </form>
 
-      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+      {pageModels.length === 0 ? (
+        <EmptyState
+          title={models.length === 0 ? 'Nenhum veículo cadastrado' : 'Nenhum resultado'}
+          description={
+            models.length === 0
+              ? 'Cadastre o primeiro modelo acima.'
+              : 'Ajuste busca ou filtros para ver modelos.'
+          }
+        />
+      ) : null}
+
+      <div className="space-y-3 md:hidden">
+        {pageModels.map((m) => (
+          <article
+            key={m.id}
+            className={[
+              'rounded-[14px] border border-fal-line bg-white p-3 shadow-sm',
+              modelId === m.id ? 'border-fal-yellow bg-[#fff8db]' : '',
+            ].join(' ')}
+          >
+            <p className="m-0 text-xs text-fal-muted">{makerNameById.get(m.manufacturerId) ?? '—'}</p>
+            <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-navy">{m.name}</p>
+            <p className="m-0 text-xs text-fal-muted">{entityStatusLabel(m.status)}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                onClick={() => startEditModel(m)}
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-muted"
+                onClick={() =>
+                  void adminSetModelStatus(m.id, m.status === 'active' ? 'inactive' : 'active')
+                    .then(async () => {
+                      await reloadModels()
+                      pushOk(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
+                    })
+                    .catch((err) => pushError(toUserMessage(err, 'Falha ao atualizar status')))
+                }
+              >
+                {m.status === 'active' ? 'Inativar' : 'Ativar'}
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-navy"
+                onClick={() => {
+                  setModelId(m.id)
+                  setMakerId(m.manufacturerId)
+                }}
+              >
+                Ver configs
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
@@ -392,67 +452,52 @@ export function AdminVehiclesPage() {
             </tr>
           </thead>
           <tbody>
-            {pageModels.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-3 py-4">
-                  <EmptyState
-                    title={models.length === 0 ? 'Nenhum veículo cadastrado' : 'Nenhum resultado'}
-                    description={
-                      models.length === 0
-                        ? 'Cadastre o primeiro modelo acima.'
-                        : 'Ajuste busca ou filtros para ver modelos.'
+            {pageModels.map((m) => (
+              <tr
+                key={m.id}
+                className={[
+                  'border-t border-fal-line',
+                  modelId === m.id ? 'bg-[#fff8db]' : '',
+                ].join(' ')}
+              >
+                <td className="px-3 py-2">{makerNameById.get(m.manufacturerId) ?? '—'}</td>
+                <td className="px-3 py-2 font-semibold">{m.name}</td>
+                <td className="px-3 py-2">{entityStatusLabel(m.status)}</td>
+                <td className="px-3 py-2 space-x-2">
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-auth-link"
+                    onClick={() => startEditModel(m)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-muted"
+                    onClick={() =>
+                      void adminSetModelStatus(m.id, m.status === 'active' ? 'inactive' : 'active')
+                        .then(async () => {
+                          await reloadModels()
+                          pushOk(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
+                        })
+                        .catch((err) => pushError(toUserMessage(err, 'Falha ao atualizar status')))
                     }
-                  />
+                  >
+                    {m.status === 'active' ? 'Inativar' : 'Ativar'}
+                  </button>
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-navy"
+                    onClick={() => {
+                      setModelId(m.id)
+                      setMakerId(m.manufacturerId)
+                    }}
+                  >
+                    Ver configs
+                  </button>
                 </td>
               </tr>
-            ) : (
-              pageModels.map((m) => (
-                <tr
-                  key={m.id}
-                  className={[
-                    'border-t border-fal-line',
-                    modelId === m.id ? 'bg-[#fff8db]' : '',
-                  ].join(' ')}
-                >
-                  <td className="px-3 py-2">{makerNameById.get(m.manufacturerId) ?? '—'}</td>
-                  <td className="px-3 py-2 font-semibold">{m.name}</td>
-                  <td className="px-3 py-2">{entityStatusLabel(m.status)}</td>
-                  <td className="px-3 py-2 space-x-2">
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-auth-link"
-                      onClick={() => startEditModel(m)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-muted"
-                      onClick={() =>
-                        void adminSetModelStatus(m.id, m.status === 'active' ? 'inactive' : 'active')
-                          .then(async () => {
-                            await reloadModels()
-                            pushOk(m.status === 'active' ? 'Modelo inativado.' : 'Modelo ativado.')
-                          })
-                          .catch((err) => pushError(toUserMessage(err, 'Falha ao atualizar status')))
-                      }
-                    >
-                      {m.status === 'active' ? 'Inativar' : 'Ativar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-navy"
-                      onClick={() => {
-                        setModelId(m.id)
-                        setMakerId(m.manufacturerId)
-                      }}
-                    >
-                      Ver configs
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
@@ -549,7 +594,61 @@ export function AdminVehiclesPage() {
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+      {filteredVersions.length === 0 ? (
+        <EmptyState
+          title={modelId ? 'Nenhuma configuração neste modelo' : 'Selecione um modelo'}
+          description={
+            modelId
+              ? 'Crie ano/motor/versão para vincular aplicações.'
+              : 'Escolha o modelo na lista acima para listar configurações.'
+          }
+        />
+      ) : null}
+
+      <div className="space-y-3 md:hidden">
+        {filteredVersions.map((v) => (
+          <article
+            key={v.id}
+            className="rounded-[14px] border border-fal-line bg-white p-3 shadow-sm"
+          >
+            <p className="m-0 text-sm font-extrabold text-fal-navy">
+              {v.year ?? '—'} · {v.engine ?? '—'} · {v.versionName ?? '—'}
+            </p>
+            <p className="mb-0 mt-1 text-xs text-fal-muted">{entityStatusLabel(v.status)}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                onClick={() => startEditVersion(v)}
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-muted"
+                onClick={() =>
+                  void adminSetVersionStatus(v.id, v.status === 'active' ? 'inactive' : 'active')
+                    .then(async () => {
+                      setVersions(await adminListVersions(modelId))
+                      pushOk(
+                        v.status === 'active'
+                          ? 'Configuração inativada.'
+                          : 'Configuração ativada.',
+                      )
+                    })
+                    .catch((err) =>
+                      pushError(toUserMessage(err, 'Falha ao atualizar status')),
+                    )
+                }
+              >
+                {v.status === 'active' ? 'Inativar' : 'Ativar'}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
@@ -561,63 +660,46 @@ export function AdminVehiclesPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredVersions.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-3 py-4">
-                  <EmptyState
-                    title={
-                      modelId ? 'Nenhuma configuração neste modelo' : 'Selecione um modelo'
+            {filteredVersions.map((v) => (
+              <tr key={v.id} className="border-t border-fal-line">
+                <td className="px-3 py-2">{v.year ?? '—'}</td>
+                <td className="px-3 py-2">{v.engine ?? '—'}</td>
+                <td className="px-3 py-2">{v.versionName ?? '—'}</td>
+                <td className="px-3 py-2">{entityStatusLabel(v.status)}</td>
+                <td className="px-3 py-2 space-x-2">
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-auth-link"
+                    onClick={() => startEditVersion(v)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-muted"
+                    onClick={() =>
+                      void adminSetVersionStatus(
+                        v.id,
+                        v.status === 'active' ? 'inactive' : 'active',
+                      )
+                        .then(async () => {
+                          setVersions(await adminListVersions(modelId))
+                          pushOk(
+                            v.status === 'active'
+                              ? 'Configuração inativada.'
+                              : 'Configuração ativada.',
+                          )
+                        })
+                        .catch((err) =>
+                          pushError(toUserMessage(err, 'Falha ao atualizar status')),
+                        )
                     }
-                    description={
-                      modelId
-                        ? 'Crie ano/motor/versão para vincular aplicações.'
-                        : 'Escolha o modelo na lista acima para listar configurações.'
-                    }
-                  />
+                  >
+                    {v.status === 'active' ? 'Inativar' : 'Ativar'}
+                  </button>
                 </td>
               </tr>
-            ) : (
-              filteredVersions.map((v) => (
-                <tr key={v.id} className="border-t border-fal-line">
-                  <td className="px-3 py-2">{v.year ?? '—'}</td>
-                  <td className="px-3 py-2">{v.engine ?? '—'}</td>
-                  <td className="px-3 py-2">{v.versionName ?? '—'}</td>
-                  <td className="px-3 py-2">{entityStatusLabel(v.status)}</td>
-                  <td className="px-3 py-2 space-x-2">
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-auth-link"
-                      onClick={() => startEditVersion(v)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="font-semibold text-fal-muted"
-                      onClick={() =>
-                        void adminSetVersionStatus(
-                          v.id,
-                          v.status === 'active' ? 'inactive' : 'active',
-                        )
-                          .then(async () => {
-                            setVersions(await adminListVersions(modelId))
-                            pushOk(
-                              v.status === 'active'
-                                ? 'Configuração inativada.'
-                                : 'Configuração ativada.',
-                            )
-                          })
-                          .catch((err) =>
-                            pushError(toUserMessage(err, 'Falha ao atualizar status')),
-                          )
-                      }
-                    >
-                      {v.status === 'active' ? 'Inativar' : 'Ativar'}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>

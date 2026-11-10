@@ -50,7 +50,7 @@ export function HomeVehiclesPanel() {
     <div id="garagem">
       <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Meus veículos</h2>
+          <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Meus carros</h2>
           <p className="mt-1 text-sm text-fal-muted">
             Escolha um carro salvo para filtrar peças compatíveis.
           </p>

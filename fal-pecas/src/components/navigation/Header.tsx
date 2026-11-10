@@ -29,7 +29,7 @@ export function Header() {
           </div>
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center rounded-[10px] border border-fal-line bg-white text-lg lg:hidden"
+            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-[10px] border border-fal-line bg-white text-lg lg:hidden"
             aria-label="Abrir menu"
             onClick={() => setMenuOpen(true)}
           >
@@ -56,11 +56,11 @@ export function Header() {
             Catálogo / buscar peça
           </Link>
           <Link
-            to="/veiculo"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-bg"
+            to="/conta/veiculos"
+            className="min-h-11 rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-bg"
             onClick={() => setMenuOpen(false)}
           >
-            Buscar pelo carro
+            Meus carros
           </Link>
           <Link
             to="/carrinho"

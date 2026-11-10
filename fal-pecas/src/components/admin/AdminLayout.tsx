@@ -36,7 +36,7 @@ const opsLinks = [
 
 function linkClass({ isActive }: { isActive: boolean }) {
   return [
-    'block rounded-lg px-3 py-2 text-sm font-semibold transition',
+    'flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold transition',
     isActive ? 'bg-fal-yellow text-fal-navy-dark' : 'text-white/85 hover:bg-white/10',
   ].join(' ')
 }
@@ -170,7 +170,7 @@ export function AdminLayout() {
           </div>
           <button
             type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
             aria-label="Fechar menu"
             onClick={closeNav}
           >
@@ -229,7 +229,7 @@ export function AdminLayout() {
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-fal-line bg-white px-4 py-3 lg:hidden">
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-navy"
+            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-navy"
             aria-label="Abrir menu"
             aria-expanded={navOpen}
             aria-controls="admin-sidebar"

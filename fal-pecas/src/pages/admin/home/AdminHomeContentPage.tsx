@@ -948,7 +948,94 @@ export function AdminHomeContentPage() {
               ordem.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-fal border border-fal-line bg-white">
+            <>
+            {!featuredFiltered.length ? (
+              <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-3 text-sm text-fal-muted">
+                Nenhum item com esse filtro.
+              </p>
+            ) : null}
+
+            <div className="space-y-3 md:hidden">
+              {featuredFiltered.map((row) => {
+                const index = featured.findIndex((f) => f.productId === row.productId)
+                return (
+                  <article
+                    key={row.productId}
+                    className={`rounded-[14px] border border-fal-line bg-white p-3 shadow-sm ${row.active ? '' : 'bg-fal-bg/60'}`}
+                  >
+                    <p className="m-0 text-xs text-fal-muted">
+                      #{index + 1} · {row.commercialRef}
+                    </p>
+                    <Link
+                      className="mt-0.5 block text-sm font-extrabold text-fal-navy"
+                      to={`/admin/produtos/${row.productId}`}
+                    >
+                      {row.name}
+                    </Link>
+                    <p className="mb-0 mt-1 text-xs text-fal-muted">
+                      {row.categoryName ?? '—'} · {productStatusLabel(row.status)}
+                      {row.available ? '' : ' · indisp.'} ·{' '}
+                      {row.active ? (
+                        <span className="font-semibold text-emerald-800">Home ligado</span>
+                      ) : (
+                        'Home off'
+                      )}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={index <= 0}
+                        onClick={() => void onMoveFeatured(index, -1)}
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={index < 0 || index >= featured.length - 1}
+                        onClick={() => void onMoveFeatured(index, 1)}
+                      >
+                        ↓
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          void adminUpdateFeaturedProduct(row.productId, {
+                            active: !row.active,
+                          })
+                            .then(() => reload())
+                            .catch((err) => push(toUserMessage(err), 'error'))
+                        }
+                      >
+                        {row.active ? 'Desligar' : 'Ligar'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          void adminRemoveFeaturedProduct(row.productId)
+                            .then(() => {
+                              push('Removido dos Destaques', 'success')
+                              return reload()
+                            })
+                            .catch((err) => push(toUserMessage(err), 'error'))
+                        }
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-white md:block">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-fal-bg text-fal-muted">
                   <tr>
@@ -1054,10 +1141,8 @@ export function AdminHomeContentPage() {
                   })}
                 </tbody>
               </table>
-              {!featuredFiltered.length ? (
-                <p className="p-3 text-sm text-fal-muted">Nenhum item com esse filtro.</p>
-              ) : null}
             </div>
+            </>
           )}
         </div>
       ) : null}
