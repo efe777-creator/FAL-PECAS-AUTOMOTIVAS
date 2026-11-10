@@ -2,11 +2,12 @@
 
 **Data:** 2026-11-10  
 **Auth:** eFe — `MARCHA VER ONDE ESTAMOS OQUE FALTA PARA FINALIZAR`  
-**Tip `origin/main` (última sync vista):** ~`331a1bb` / série MVP-1 + #249  
-**Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
+**Tip `origin/main` (última sync):** `e7b91f9` / #249–#253  
+**Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app · deploy `6af3728aa529d6e05f777cab`  
 **Prod fernando:** https://fal-pecas-automotivas.netlify.app — **bloqueada (crédito Netlify)**  
+**Conclusão código:** [FAL_MARCHA_RELATORIO_CONCLUSAO_PLANO_MVP_2026-11-10.md](./FAL_MARCHA_RELATORIO_CONCLUSAO_PLANO_MVP_2026-11-10.md)
 
-Fontes cruzadas: relatório FINAL plano mestre 09/11 · status comercial eFe 09/11 · próximos passos 09/11 (atualizado 10/11) · specs Home/Placa · working tree local.
+Fontes cruzadas: relatório CONCLUSÃO 10/11 · FINAL plano mestre 09/11 · status comercial eFe · specs Home/Placa.
 
 ---
 

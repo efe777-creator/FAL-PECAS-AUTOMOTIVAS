@@ -5,7 +5,8 @@
 **Plano:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
 **Matriz:** [FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md](./FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md)  
 **Espelho eFe:** https://fal-pecas-automotivas-efe.netlify.app  
-**Tip referência:** `main` pós #249–#252 + ship Mobile UX desta MARCHA
+**Tip referência:** `main` `e7b91f9` (#253 Mobile UX + docs) · tip série #249–#252  
+**Deploy eFe:** `6af3728aa529d6e05f777cab` → https://fal-pecas-automotivas-efe.netlify.app
 
 ---
 
