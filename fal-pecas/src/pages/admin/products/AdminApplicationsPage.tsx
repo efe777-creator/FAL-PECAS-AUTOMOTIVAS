@@ -501,7 +501,8 @@ export function AdminApplicationsPage() {
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Controle as compatibilidades produto × veículo (incluindo as da importação): criar,
             editar período e excluir. Ano inicial obrigatório; ano final em branco = vigente até o
-            ano atual (ex.: 17/... ou 20/26).
+            ano atual. Motor/versão em branco na config = serve para todas no catálogo; preenchido =
+            só aquela (vale para qualquer montadora/modelo).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -520,8 +521,9 @@ export function AdminApplicationsPage() {
         <div className="space-y-3 rounded-[14px] border border-fal-yellow-dark bg-white p-4 ring-2 ring-fal-yellow/30">
           <h2 className="m-0 text-lg font-extrabold text-fal-navy">Nova aplicação</h2>
           <p className="m-0 text-xs text-fal-muted">
-            Motorização ou versão vazia = todas as configs elegíveis (
-            {matchingCreateVersions.length}).
+            Motorização/versão vazia no vínculo = todas as configs elegíveis agora (
+            {matchingCreateVersions.length}). Na pesquisa: campo vazio na config = coringa; preenchido
+            = só aquela.
           </p>
           <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
             <Input

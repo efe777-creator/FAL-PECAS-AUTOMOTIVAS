@@ -20,7 +20,14 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { excludeProductsById, HOME_FEATURED_LIMIT_DEFAULT } from '@/lib/homeSections'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { getFeaturedDisplayLimit } from '@/services/home/homeContentService'
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 import { Link } from 'react-router-dom'
 import type { Product } from '@/types'
 
@@ -83,12 +90,30 @@ function ProductRailSection({
   )
 }
 
+/** Troca painel sem pular o scroll da página. */
+function useStableShelfToggle(setShelfPanel: Dispatch<SetStateAction<HomeShelfPanel>>) {
+  return useCallback(
+    (panel: Exclude<HomeShelfPanel, 'featured'>) => {
+      const y = typeof window !== 'undefined' ? window.scrollY : 0
+      setShelfPanel((prev) => (prev === panel ? 'featured' : panel))
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (typeof window === 'undefined') return
+          if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y)
+        })
+      })
+    },
+    [setShelfPanel],
+  )
+}
+
 export function HomePage() {
   const categories = useCategories()
   const [featuredLimit, setFeaturedLimit] = useState(HOME_FEATURED_LIMIT_DEFAULT)
   const [shelfPanel, setShelfPanel] = useState<HomeShelfPanel>('featured')
   const featured = useFeaturedProducts(featuredLimit)
   const offers = usePromoHighlightProducts(8)
+  const toggleShelf = useStableShelfToggle(setShelfPanel)
   useDocumentTitle('FAL Peças Automotivas')
 
   useEffect(() => {
@@ -152,13 +177,9 @@ export function HomePage() {
     [featured.data, offers.data],
   )
 
-  function toggleShelf(panel: Exclude<HomeShelfPanel, 'featured'>) {
-    setShelfPanel((prev) => (prev === panel ? 'featured' : panel))
-  }
-
   /**
-   * Ordem: Campanhas → Entrada (3 botões) → Vitrine → Ofertas → Confiança.
-   * Categorias e Meus veículos trocam o painel abaixo (menu), sem sair da Home.
+   * Ordem: Campanhas → Entrada → Vitrine (painéis montados, só um visível) → Ofertas → Confiança.
+   * Painéis ficam montados para não “recarregar” nem colapsar altura a cada clique.
    */
   return (
     <>
@@ -172,72 +193,75 @@ export function HomePage() {
       <section
         id="home-vitrine"
         className="border-b border-fal-line bg-white py-6 sm:py-8"
-        aria-live="polite"
       >
         <Container>
-          {shelfPanel === 'featured' ? (
-            <div>
-              <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Destaques</h2>
-                  <p className="mt-1 text-sm text-fal-muted">Seleção da loja — deslize para ver mais</p>
-                </div>
-                <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
-                  Ver catálogo →
-                </Link>
+          <div
+            className={shelfPanel === 'featured' ? undefined : 'hidden'}
+            aria-hidden={shelfPanel !== 'featured'}
+          >
+            <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Destaques</h2>
+                <p className="mt-1 text-sm text-fal-muted">Seleção da loja — deslize para ver mais</p>
               </div>
-              {featured.loading || offers.loading ? <Loading /> : null}
-              {featured.error ? <ErrorState message={featured.error} /> : null}
-              {!featured.loading &&
-              !offers.loading &&
-              !featured.error &&
-              featuredWithoutOffers.length === 0 ? (
-                <EmptyState
-                  title="Ainda não há produtos em destaque"
-                  description="Explore o catálogo completo."
-                  actionLabel="Ver catálogo"
-                  actionTo="/catalogo"
-                />
-              ) : null}
-              {!featured.loading &&
-              !offers.loading &&
-              !featured.error &&
-              featuredWithoutOffers.length > 0 ? (
-                <ProductCarousel products={featuredWithoutOffers} label="Destaques" />
-              ) : null}
+              <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
+                Ver catálogo →
+              </Link>
             </div>
-          ) : null}
+            {featured.loading && featuredWithoutOffers.length === 0 ? <Loading /> : null}
+            {featured.error ? <ErrorState message={featured.error} /> : null}
+            {!featured.loading &&
+            !featured.error &&
+            featuredWithoutOffers.length === 0 ? (
+              <EmptyState
+                title="Ainda não há produtos em destaque"
+                description="Explore o catálogo completo."
+                actionLabel="Ver catálogo"
+                actionTo="/catalogo"
+              />
+            ) : null}
+            {featuredWithoutOffers.length > 0 ? (
+              <ProductCarousel products={featuredWithoutOffers} label="Destaques" />
+            ) : null}
+          </div>
 
-          {shelfPanel === 'categories' ? (
-            <div id="categorias">
-              <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Categorias</h2>
-                  <p className="mt-1 text-sm text-fal-muted">Navegue por sistema automotivo</p>
-                </div>
-                <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
-                  Ver todas →
-                </Link>
+          <div
+            id="categorias"
+            className={shelfPanel === 'categories' ? undefined : 'hidden'}
+            aria-hidden={shelfPanel !== 'categories'}
+          >
+            <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Categorias</h2>
+                <p className="mt-1 text-sm text-fal-muted">Navegue por sistema automotivo</p>
               </div>
-              {categories.loading ? <Loading /> : null}
-              {categories.error ? <ErrorState message={categories.error} /> : null}
-              {!categories.loading && !categories.error && categories.data.length === 0 ? (
-                <EmptyState
-                  title="Nenhuma categoria publicada"
-                  description="Em breve novas categorias."
-                />
-              ) : null}
-              {!categories.loading && categories.data.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-                  {categories.data.map((c) => (
-                    <CategoryCard key={c.id} category={c} />
-                  ))}
-                </div>
-              ) : null}
+              <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
+                Ver todas →
+              </Link>
             </div>
-          ) : null}
+            {categories.loading ? <Loading /> : null}
+            {categories.error ? <ErrorState message={categories.error} /> : null}
+            {!categories.loading && !categories.error && categories.data.length === 0 ? (
+              <EmptyState
+                title="Nenhuma categoria publicada"
+                description="Em breve novas categorias."
+              />
+            ) : null}
+            {!categories.loading && categories.data.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+                {categories.data.map((c) => (
+                  <CategoryCard key={c.id} category={c} />
+                ))}
+              </div>
+            ) : null}
+          </div>
 
-          {shelfPanel === 'vehicles' ? <HomeVehiclesPanel /> : null}
+          <div
+            className={shelfPanel === 'vehicles' ? undefined : 'hidden'}
+            aria-hidden={shelfPanel !== 'vehicles'}
+          >
+            <HomeVehiclesPanel />
+          </div>
         </Container>
       </section>
 

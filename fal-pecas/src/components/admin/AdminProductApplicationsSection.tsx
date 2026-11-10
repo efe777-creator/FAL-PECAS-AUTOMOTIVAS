@@ -160,9 +160,10 @@ export function AdminProductApplicationsSection({ productId }: Props) {
         </Link>
       </div>
       <p className="text-xs text-fal-muted">
-        Cascata: montadora → modelo → motorização → versão → período. Motorização ou versão vazia =
-        todas as configs que casarem ({matchingVersions.length} elegível
-        {matchingVersions.length === 1 ? '' : 'is'}).
+        Cascata: montadora → modelo → motorização → versão → período. Na busca do cliente: motor ou
+        versão em branco na config = serve para todas; se cadastrado (ex.: Unique / 1.0) = só aquela.
+        Vincular agora: {matchingVersions.length} config elegível
+        {matchingVersions.length === 1 ? '' : 'is'}.
       </p>
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}
       <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
