@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { interpretSearchQuery } from './interpretSearchQuery'
 
 const catalog = [
-  { maker: 'Hyundai', model: 'HB20' },
+  { maker: 'Hyundai', model: 'HB20', versions: ['Unique'] },
   { maker: 'Fiat', model: 'Palio' },
 ]
 
@@ -54,12 +54,20 @@ describe('interpretSearchQuery', () => {
     expect(i.vehicle.version).toBeUndefined()
   })
 
-  it('HB20 One 2015 → version One', () => {
+  it('HB20 One 2015 → não aplica version ausente no cadastro', () => {
     const i = interpretSearchQuery('HB20 One 2015', catalog)
     expect(i.vehicle.model).toBe('HB20')
     expect(i.vehicle.year).toBe('2015')
-    expect(i.vehicle.version?.toLowerCase()).toBe('one')
+    expect(i.vehicle.version).toBeUndefined()
+    expect(i.needsClarification).toBe(true)
+    expect(i.clarification).toBe('version')
     expect(i.productQuery).toBeNull()
+  })
+
+  it('HB20 Unique 2015 → version Unique do cadastro', () => {
+    const i = interpretSearchQuery('HB20 Unique 2015', catalog)
+    expect(i.vehicle.version).toBe('Unique')
+    expect(i.needsClarification).toBe(false)
   })
 
   it('Nakata PVI1032 → prioriza código (não perde SKU)', () => {

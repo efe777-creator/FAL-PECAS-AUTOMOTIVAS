@@ -18,7 +18,12 @@ export type SearchIntent = {
   confidence: 'high' | 'medium' | 'low'
 }
 
-export type VehicleCatalogEntry = { maker: string; model: string }
+export type VehicleCatalogEntry = {
+  maker: string
+  model: string
+  /** version_name ativos do modelo (se vazio, versão só por allowlist genérica). */
+  versions?: string[]
+}
 
 const YEAR_RE = /^(19|20)\d{2}$/
 const ENGINE_RE = /^\d\.\d$/
@@ -208,16 +213,49 @@ export function interpretSearchQuery(
     }
   }
 
+  let needsClarification = false
+  let clarification: SearchIntent['clarification']
+
   if (vehicle.model) {
+    const modelEntry = catalog.find(
+      (c) =>
+        normalizeEntityMatchKey(c.model) === normalizeEntityMatchKey(vehicle.model!) &&
+        (!vehicle.maker ||
+          normalizeEntityMatchKey(c.maker) === normalizeEntityMatchKey(vehicle.maker)),
+    )
+    const knownVersions = (modelEntry?.versions ?? []).map((v) => normalizeEntityMatchKey(v))
+
     for (let i = 0; i < tokens.length; i += 1) {
       if (used.has(i)) continue
       const t = tokens[i]!
       if (YEAR_RE.test(t) || ENGINE_RE.test(t) || CODE_RE.test(t)) continue
       if (isLikelyProductWord(t)) continue
-      if (!VERSION_WORDS.has(normalizeEntityMatchKey(t))) continue
-      vehicle.version = t
-      used.add(i)
-      break
+      const key = normalizeEntityMatchKey(t)
+      const inAllowlist = VERSION_WORDS.has(key)
+      const inCatalog = knownVersions.includes(key)
+
+      if (knownVersions.length > 0) {
+        if (inCatalog) {
+          const canon = modelEntry!.versions!.find((v) => normalizeEntityMatchKey(v) === key)
+          vehicle.version = canon ?? t
+          used.add(i)
+          break
+        }
+        if (inAllowlist) {
+          // Ex.: "One" na allowlist mas cadastro só tem "Unique"
+          used.add(i)
+          needsClarification = true
+          clarification = 'version'
+          break
+        }
+        continue
+      }
+
+      if (inAllowlist) {
+        vehicle.version = t
+        used.add(i)
+        break
+      }
     }
   }
 
@@ -244,9 +282,7 @@ export function interpretSearchQuery(
   if (vehicle.model && vehicle.year) confidence = 'high'
   else if (vehicle.model || codeHint) confidence = 'medium'
 
-  let needsClarification = false
-  let clarification: SearchIntent['clarification']
-  if (vehicle.model && !vehicle.year && !vehicle.engine && !productQuery) {
+  if (!needsClarification && vehicle.model && !vehicle.year && !vehicle.engine && !productQuery) {
     needsClarification = true
     clarification = 'year'
   }

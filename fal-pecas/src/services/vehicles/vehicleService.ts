@@ -179,16 +179,39 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     return entries
   }
 
-  const { data, error } = await supabase
-    .from('models')
-    .select('name, status, manufacturers!inner(name, status)')
-    .eq('status', 'active')
-    .order('name')
-  if (error) throw error
+  const [modelsRes, versionsRes] = await Promise.all([
+    supabase
+      .from('models')
+      .select('name, status, manufacturers!inner(name, status)')
+      .eq('status', 'active')
+      .order('name'),
+    supabase
+      .from('vehicle_versions')
+      .select('version_name, status, models!inner(name), manufacturers!inner(name)')
+      .eq('status', 'active')
+      .not('version_name', 'is', null),
+  ])
+  if (modelsRes.error) throw modelsRes.error
+
+  const versionsByKey = new Map<string, Set<string>>()
+  for (const row of versionsRes.data ?? []) {
+    const rawMaker = row.manufacturers as
+      | { name?: string }
+      | { name?: string }[]
+      | null
+    const rawModel = row.models as { name?: string } | { name?: string }[] | null
+    const makerObj = Array.isArray(rawMaker) ? rawMaker[0] : rawMaker
+    const modelObj = Array.isArray(rawModel) ? rawModel[0] : rawModel
+    const vn = String(row.version_name ?? '').trim()
+    if (!makerObj?.name || !modelObj?.name || !vn) continue
+    const key = `${makerObj.name.toLowerCase()}|${modelObj.name.toLowerCase()}`
+    if (!versionsByKey.has(key)) versionsByKey.set(key, new Set())
+    versionsByKey.get(key)!.add(vn)
+  }
 
   const entries: VehicleCatalogEntry[] = []
   const seen = new Set<string>()
-  for (const row of data ?? []) {
+  for (const row of modelsRes.data ?? []) {
     const rawMaker = row.manufacturers as
       | { name?: string; status?: string }
       | { name?: string; status?: string }[]
@@ -201,7 +224,8 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     const key = `${maker.toLowerCase()}|${model.toLowerCase()}`
     if (seen.has(key)) continue
     seen.add(key)
-    entries.push({ maker, model })
+    const versions = [...(versionsByKey.get(key) ?? [])]
+    entries.push({ maker, model, versions: versions.length ? versions : undefined })
   }
   vehicleCatalogCache = { at: now, entries }
   return entries
