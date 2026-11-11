@@ -393,6 +393,59 @@ export function CatalogPage() {
     setParams(draft, { replace: true })
   }
 
+  /** Texto livre → URL canônica (mesmos params do seletor YMM). */
+  async function applyInterpretedQuery(raw: string) {
+    const catalog = await listVehicleCatalogEntries()
+    const intent = interpretSearchQuery(raw, catalog)
+    const { catalogParams } = buildCatalogSearchParams(intent)
+    patchParams({
+      q: catalogParams.q ?? null,
+      maker: catalogParams.maker ?? null,
+      model: catalogParams.model ?? null,
+      year: catalogParams.year ?? null,
+      engine: catalogParams.engine ?? null,
+      version: catalogParams.version ?? null,
+    })
+  }
+
+  /** Deep-link `?q=HB20 2015` sem vehicle → reescreve URL canônica. */
+  useEffect(() => {
+    const raw = q.trim()
+    if (!raw) return
+    if (maker || model || year || engine || version) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const catalog = await listVehicleCatalogEntries()
+        if (cancelled) return
+        const intent = interpretSearchQuery(raw, catalog)
+        const { catalogParams } = buildCatalogSearchParams(intent)
+        const hasVehicle =
+          Boolean(catalogParams.maker) ||
+          Boolean(catalogParams.model) ||
+          Boolean(catalogParams.year) ||
+          Boolean(catalogParams.engine) ||
+          Boolean(catalogParams.version)
+        if (!hasVehicle) return
+        if (cancelled) return
+        patchParams({
+          q: catalogParams.q ?? null,
+          maker: catalogParams.maker ?? null,
+          model: catalogParams.model ?? null,
+          year: catalogParams.year ?? null,
+          engine: catalogParams.engine ?? null,
+          version: catalogParams.version ?? null,
+        })
+      } catch {
+        /* searchCatalog ainda interpreta no fetch */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só deep-link q-only
+  }, [q, maker, model, year, engine, version])
+
   /** Placa / garagem: grava filtros e atualiza árvore (anos PVC expandidos). */
   async function applyVehicleFilter(filter: VehicleFilter) {
     patchParams({
@@ -417,17 +470,7 @@ export function CatalogPage() {
       return
     }
     try {
-      const catalog = await listVehicleCatalogEntries()
-      const intent = interpretSearchQuery(raw, catalog)
-      const { catalogParams } = buildCatalogSearchParams(intent)
-      patchParams({
-        q: catalogParams.q ?? null,
-        maker: catalogParams.maker ?? null,
-        model: catalogParams.model ?? null,
-        year: catalogParams.year ?? null,
-        engine: catalogParams.engine ?? null,
-        version: catalogParams.version ?? null,
-      })
+      await applyInterpretedQuery(raw)
     } catch {
       patchParams({ q: raw })
     }

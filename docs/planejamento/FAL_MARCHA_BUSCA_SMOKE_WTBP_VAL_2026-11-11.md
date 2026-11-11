@@ -13,6 +13,7 @@
 | Hotfix: migration compat removia `customer_can_see_product` (inexistente no wtbp) | PASS |
 | Front: `searchCatalog` não reenvia `q` bruto após interpretar veículo | SHIP |
 | Front: `listVehicleCatalogEntries` sem filtro nested `manufacturers.status` | SHIP |
+| Front: deep-link `?q=` → URL canônica maker/model/year | SHIP |
 
 ## Smoke
 

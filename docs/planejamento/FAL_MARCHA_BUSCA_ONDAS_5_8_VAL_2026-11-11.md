@@ -1,40 +1,47 @@
 # VAL — Ondas 5–8 (prep, IA stub, homologação, publish)
 
-**Data:** 2026-11-11
+**Data:** 2026-11-11 (atualizado pós-smoke wtbp)  
+**Projeto prod Netlify:** `wtbpwuiayednvlhvuhbh`  
+**Nota:** MCP `owllmfcpbodqmoerdfxx` ≠ site publicado.
 
 ## Onda 5 — Busca tradicional avançada
 
 | Item | Status |
 |------|--------|
-| search_synonyms / store_search_prep | **Não aplicados** — dependem de drift maior (`commercial_ref`, rebuild doc). Evitado para não ampliar risco. |
-| Refs / Nakata | Cobertos pela RPC refs LIKE; teste E2E Nakata PVI1032 ainda `nao_executado` |
-| pg_trgm | Adiado (49 SKUs) |
+| search_synonyms / store_search_prep | **Adiado** — evitar drift amplo sem OK eFe |
+| Refs / códigos (TDI2116 via RPC) | **PASS** SQL wtbp |
+| terminal + YMM HB20 2015 | **PASS** SQL → TDI2116/TDI2117 (2) |
+| HB20 2015 1.0 (engine wildcard) | **PASS** SQL → 3 SKUs |
+| pg_trgm | Adiado |
 
 ## Onda 6 — IA
 
 | Item | Status |
 |------|--------|
-| Contrato `interpretNaturalLanguage` | Criado — fallback determinístico obrigatório |
-| Edge LLM | **Não** — só após Ondas 1–3 em produção + orçamento eFe |
+| Contrato `interpretNaturalLanguage` | Criado — fallback determinístico |
+| Edge LLM | **Não** — gate eFe / orçamento |
 | Regra | IA não inventa PVC/preço/estoque |
 
 ## Onda 7 — Homologação
 
-Ver matriz CSV atualizada + VAL Onda 1/2/3/4.  
-Vitest parser: 8/8 PASS.
+| Caso | Resultado |
+|------|-----------|
+| Seletor HYUNDAI/HB20/2015 | PASS 3 (BRD2109, TDI*, preços) |
+| Texto `?q=HB20 2015` | PASS 3 (= seletor) |
+| Código TDI2116 | PASS SQL |
+| Vitest parser | 8/8 PASS |
 
 ## Onda 8 — Publicação
 
 | Item | Status |
 |------|--------|
-| RPC search_products (year-range) | **Aplicada** em `owllmfcpbodqmoerdfxx` |
-| Front (parser + SearchBar) | Código no repo — **deploy Netlify pendente** (sem commit automático) |
-| Rollback RPC | Restaurar def pré-patch (sessão MCP / backup note) |
-| Monitor zero-result | Pendente ops pós-deploy |
+| RPC year-range + commercial_ref + wildcard | **Aplicada em wtbp** (`20261110160000`) |
+| Front interpretador + limpeza `q` | Deploy `6af493b6` + tip `e02b01b` |
+| URL canônica deep-link `?q=` | SHIP nesta MARCHA (CatalogPage) |
+| Monitor zero-result | Pendente ops contínuo |
 
-## Próximos pedidos ao eFe
+## STOP / próximo (fora P0)
 
-1. Deploy front.
-2. Confirmar BRD2109 + preços TDI*.
-3. Autorizar migrations `commercial_ref` + search_prep.
-4. Orçamento IA.
+1. Autorizar search_prep / sinônimos em wtbp.
+2. Orçamento IA (P2).
+3. Matriz homologação completa (placa/garagem já no mesmo motor — Onda 4).
