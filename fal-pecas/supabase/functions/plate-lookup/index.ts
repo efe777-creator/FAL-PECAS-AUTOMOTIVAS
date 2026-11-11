@@ -149,8 +149,19 @@ Deno.serve(async (req) => {
       .select('payload, expires_at, provider')
       .eq('plate', plate)
       .maybeSingle()
-    if (cached?.payload && cached.expires_at && new Date(cached.expires_at).getTime() > Date.now()) {
-      const payload = cached.payload as Record<string, unknown>
+    const cacheProvider = String(cached?.provider ?? '').toLowerCase()
+    const activeProvider = provider.source
+    const payloadPreview = cached?.payload as Record<string, unknown> | undefined
+    const payloadSource = String(payloadPreview?.source ?? cacheProvider).toLowerCase()
+    // Não reutilizar cache de outro provedor (ex.: mock → apiplacas).
+    const cacheUsable =
+      Boolean(cached?.payload) &&
+      Boolean(cached?.expires_at) &&
+      new Date(String(cached!.expires_at)).getTime() > Date.now() &&
+      cacheProvider === activeProvider &&
+      payloadSource !== 'mock'
+    if (cacheUsable && payloadPreview) {
+      const payload = payloadPreview
       const cacheOk =
         payload.status === 'found' ||
         payload.status === 'incomplete' ||
@@ -190,10 +201,10 @@ Deno.serve(async (req) => {
           await sb.from('cached_plates').upsert(
             {
               plate,
-              provider: String(payload.source ?? 'apiplacas'),
+              provider: activeProvider,
               status: 'found',
               payload: refreshed,
-              expires_at: cached.expires_at,
+              expires_at: cached!.expires_at,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'plate' },
