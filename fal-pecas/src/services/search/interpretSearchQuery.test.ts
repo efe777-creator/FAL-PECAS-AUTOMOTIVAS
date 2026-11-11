@@ -75,4 +75,12 @@ describe('interpretSearchQuery', () => {
     expect(i.codeHint).toBe('PVI1032')
     expect(i.productQuery).toBe('PVI1032')
   })
+
+  it('NL preciso de um pivo para o palio 2010 → só pivo + veículo', () => {
+    const i = interpretSearchQuery('preciso de um pivo para o palio 2010', catalog)
+    expect(i.productQuery?.toLowerCase()).toBe('pivo')
+    expect(i.vehicle.model).toBe('Palio')
+    expect(i.vehicle.maker).toBe('Fiat')
+    expect(i.vehicle.year).toBe('2010')
+  })
 })

@@ -57,6 +57,60 @@ const PRODUCT_WORDS = new Set(
   ].map((w) => normalizeEntityMatchKey(w)),
 )
 
+/** Stopwords PT — NL “preciso de um pivô para o…” não pode virar p_q. */
+const STOP_WORDS = new Set(
+  [
+    'preciso',
+    'precisa',
+    'quero',
+    'queria',
+    'busco',
+    'procurando',
+    'tem',
+    'voce',
+    'você',
+    'me',
+    'um',
+    'uma',
+    'uns',
+    'umas',
+    'o',
+    'a',
+    'os',
+    'as',
+    'de',
+    'do',
+    'da',
+    'dos',
+    'das',
+    'para',
+    'pro',
+    'pra',
+    'no',
+    'na',
+    'nos',
+    'nas',
+    'em',
+    'com',
+    'por',
+    'meu',
+    'minha',
+    'seu',
+    'sua',
+    'esse',
+    'essa',
+    'este',
+    'esta',
+    'algo',
+    'algum',
+    'alguma',
+    'peça',
+    'peca',
+    'peças',
+    'pecas',
+  ].map((w) => normalizeEntityMatchKey(w)),
+)
+
 /** Versões de acabamento conhecidas — NÃO confundir com nome de peça (ex.: ponteira). */
 const VERSION_WORDS = new Set(
   [
@@ -266,14 +320,26 @@ export function interpretSearchQuery(
       normalizeEntityMatchKey(w),
     ),
   )
+  const leftoverClean = leftover.filter((t) => {
+    const k = normalizeEntityMatchKey(t)
+    if (STOP_WORDS.has(k)) return false
+    if (BRAND_WORDS.has(k) && !codeHint) return true
+    if (BRAND_WORDS.has(k) && codeHint) return false
+    return true
+  })
+  const leftoverProducts = leftoverClean.filter((t) => isLikelyProductWord(t))
+
   let productQuery: string | null
   if (codeHint) {
-    const extra = leftover.filter(
-      (t) => isLikelyProductWord(t) && !BRAND_WORDS.has(normalizeEntityMatchKey(t)),
+    const extra = leftoverProducts.filter(
+      (t) => !BRAND_WORDS.has(normalizeEntityMatchKey(t)),
     )
     productQuery = extra.length ? `${codeHint} ${extra.join(' ')}` : codeHint
-  } else if (leftover.length) {
-    productQuery = leftover.join(' ')
+  } else if (leftoverProducts.length) {
+    // Preferir só peças conhecidas (evita “preciso de um pivo para o” no p_q)
+    productQuery = leftoverProducts.join(' ')
+  } else if (leftoverClean.length) {
+    productQuery = leftoverClean.join(' ')
   } else {
     productQuery = null
   }
