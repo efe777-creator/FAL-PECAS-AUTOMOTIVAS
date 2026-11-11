@@ -1,7 +1,7 @@
 /**
  * Período de aplicação (PVC): year_start / year_end é a fonte de verdade.
  * vehicle_versions.year é legado / opcional.
- * Formatação visual (MARCHA UI): YYYY–YYYY · YYYY–atual · até YYYY — sem alterar PVC.
+ * Formatação visual (card/apps): YY/YY · YY/... · .../YY — sem alterar PVC.
  *
  * Regra única (filtro, match e SQL):
  *   AnoFinalEfetivo = yearEnd ?? anoCivilAtual
@@ -35,7 +35,7 @@ export function effectiveYearEnd(
 }
 
 /**
- * Label de apresentação do período (legível: 2012–atual).
+ * Label de apresentação do período no card (ex.: 12/...).
  * Não modifica dados de origem; filtros usam yearMatchesVehicleApp (ints).
  */
 export function formatVehicleAppYear(input: {
@@ -48,20 +48,24 @@ export function formatVehicleAppYear(input: {
 
   if (start != null && end != null) {
     if (!isValidYear(start) || !isValidYear(end)) return null
-    if (start === end) return String(start)
-    return `${start}–${end}`
+    const a = toYy(start)
+    const b = toYy(end)
+    if (a == null || b == null) return null
+    if (start === end) return a
+    return `${a}/${b}`
   }
   if (start != null && end == null) {
     if (!isValidYear(start)) return null
-    return `${start}–atual`
+    const a = toYy(start)
+    return a == null ? null : `${a}/...`
   }
   if (start == null && end != null) {
     if (!isValidYear(end)) return null
-    return `até ${end}`
+    const b = toYy(end)
+    return b == null ? null : `.../${b}`
   }
   if (input.versionYear != null) {
-    if (!isValidYear(input.versionYear)) return null
-    return String(input.versionYear)
+    return toYy(input.versionYear)
   }
   return null
 }
