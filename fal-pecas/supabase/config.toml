@@ -4,6 +4,9 @@
 [functions.create-mp-payment]
 verify_jwt = true
 
+[functions.sync-mp-payment]
+verify_jwt = true
+
 # Webhook MP não envia JWT do Supabase — validamos x-signature internamente.
 [functions.mercado-pago-webhook]
 verify_jwt = false

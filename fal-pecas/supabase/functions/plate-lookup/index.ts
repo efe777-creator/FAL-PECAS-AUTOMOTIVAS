@@ -17,7 +17,7 @@ import { mockPlateProvider } from '../_shared/mockPlateProvider.ts'
 import { createApiPlacasPlateProvider } from '../_shared/apiPlacasPlateProvider.ts'
 import { resolveVehicleAgainstCatalog } from '../_shared/vehicleResolver.ts'
 import { vehicleCanonicalUpsert } from '../_shared/vehicleCanonicalUpsert.ts'
-import { splitApiModelo } from '../_shared/splitApiModelo.ts'
+import { sanitizeEngine, splitApiModelo } from '../_shared/splitApiModelo.ts'
 
 /** Corrige modelo composto em cache antigo / feeds que misturam motor+versão no modelo. */
 function enrichFromCompositeModelo(input: {
@@ -28,12 +28,17 @@ function enrichFromCompositeModelo(input: {
   version?: string | null
 }) {
   const split = splitApiModelo(input.model)
+  const engine =
+    sanitizeEngine(split.engine) ??
+    sanitizeEngine(input.engine) ??
+    null
+  const version = (split.version ?? input.version?.trim()) || null
   return {
     maker: input.maker,
     model: split.model ?? input.model,
     year: input.year ?? null,
-    engine: input.engine?.trim() ? input.engine : split.engine,
-    version: input.version?.trim() ? input.version : split.version,
+    engine,
+    version,
   }
 }
 

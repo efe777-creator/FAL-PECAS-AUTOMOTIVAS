@@ -20,6 +20,7 @@ function baseDeps(over: Partial<CreateMpFlowDeps> = {}): CreateMpFlowDeps {
     updatePayment: async () => {},
     insertPayment: async () => 'pay-new',
     findProfileName: async () => 'Joao Silva',
+    confirmPayment: async () => {},
     fetchMp: async () => ({
       ok: true,
       status: 201,
@@ -137,28 +138,70 @@ describe('executeCreateMpPayment — casos A–I', () => {
     expect(updates.some((u) => u.status === 'approved')).toBe(false)
   })
 
-  it('G: MP approved → provider_status registered, order NÃO aprovado', async () => {
+  it('G: MP approved síncrono → confirmPayment + orderApproved', async () => {
     const updates: Record<string, unknown>[] = []
+    const confirmPayment = vi.fn(async () => {})
     const res = await executeCreateMpPayment(
       { orderId: 'ord-1' },
       baseDeps({
         updatePayment: async (_id, patch) => {
           updates.push(patch)
         },
+        confirmPayment,
         fetchMp: async () => ({
           ok: true,
           status: 201,
-          json: async () => ({ id: 77, status: 'approved', payment_method_id: 'pix' }),
+          json: async () => ({ id: 77, status: 'approved', payment_method_id: 'visa' }),
         }),
       }),
     )
     expect(res.httpStatus).toBe(201)
-    expect(res.body.status).toBe('pending')
+    expect(res.body.status).toBe('approved')
     expect(res.body.providerStatus).toBe('approved')
+    expect(res.body.orderApproved).toBe(true)
+    expect(confirmPayment).toHaveBeenCalledWith('pay-new')
+    expect(updates.some((u) => u.provider_status === 'approved')).toBe(true)
+  })
+
+  it('G2: MP rejected síncrono (cartão) → status rejected sem confirm', async () => {
+    const updates: Record<string, unknown>[] = []
+    const confirmPayment = vi.fn(async () => {})
+    const res = await executeCreateMpPayment(
+      {
+        orderId: 'ord-1',
+        token: 'tok',
+        paymentMethodId: 'visa',
+        installments: 1,
+      },
+      baseDeps({
+        updatePayment: async (_id, patch) => {
+          updates.push(patch)
+        },
+        confirmPayment,
+        fetchMp: async () => ({
+          ok: true,
+          status: 201,
+          json: async () => ({ id: 78, status: 'rejected', payment_method_id: 'visa' }),
+        }),
+      }),
+    )
+    expect(res.httpStatus).toBe(201)
+    expect(res.body.status).toBe('rejected')
     expect(res.body.orderApproved).toBe(false)
-    const last = updates[updates.length - 1]
-    expect(last?.status).toBe('pending')
-    expect(last?.provider_status).toBe('approved')
+    expect(confirmPayment).not.toHaveBeenCalled()
+    expect(updates.some((u) => u.status === 'rejected')).toBe(true)
+  })
+
+  it('G3: MP pending (Pix aguardando) → pending sem confirm', async () => {
+    const confirmPayment = vi.fn(async () => {})
+    const res = await executeCreateMpPayment(
+      { orderId: 'ord-1' },
+      baseDeps({ confirmPayment }),
+    )
+    expect(res.httpStatus).toBe(201)
+    expect(res.body.status).toBe('pending')
+    expect(res.body.orderApproved).toBe(false)
+    expect(confirmPayment).not.toHaveBeenCalled()
   })
 
   it('H: pending com provider_payment_id → reutiliza', async () => {

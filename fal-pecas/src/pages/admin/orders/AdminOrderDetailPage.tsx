@@ -1,4 +1,8 @@
 import { MeExpeditionPanel } from '@/components/admin/orders/MeExpeditionPanel'
+import { OrderOccurrencesPanel } from '@/components/admin/orders/OrderOccurrencesPanel'
+import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
+import { OrderPackingPanel } from '@/components/admin/orders/OrderPackingPanel'
+import { OwnShipPanel } from '@/components/admin/orders/OwnShipPanel'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
@@ -24,6 +28,8 @@ import {
   projectAdminOrderTimeline,
 } from '@/lib/adminOrderOps'
 import { meLabelStateLabel, meLabelState } from '@/lib/melhorEnvioLabelState'
+import { consumeOrdersReturnPath } from '@/lib/adminOrdersNav'
+import { orderShippingKind, orderUsesMelhorEnvio } from '@/lib/orderShippingKind'
 import {
   adminOrderNextStep,
   orderConfirmationResultLabel,
@@ -442,24 +448,36 @@ export function AdminOrderDetailPage() {
     }
   }
 
+  const returnPath = consumeOrdersReturnPath('/admin/pedidos')
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">
-          Pedido {order.id.slice(0, 8)}…
-        </h1>
-        <p className="text-sm text-fal-muted">
-          {formatDateTime(order.createdAt)} ·{' '}
-          {orderStatusOperatorLabel[order.status] ?? order.status}
-        </p>
-        <p className="mt-1 mb-0">
-          <span className="rounded-md bg-fal-bg px-2 py-0.5 text-xs font-bold text-fal-navy">
-            {adminActorBadgeLabel(actor)}
-          </span>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">
+            Pedido {order.id.slice(0, 8)}…
+          </h1>
+          <p className="text-sm text-fal-muted">
+            {formatDateTime(order.createdAt)} ·{' '}
+            {orderStatusOperatorLabel[order.status] ?? order.status}
+          </p>
+          <p className="mt-1 mb-0">
+            <span className="rounded-md bg-fal-bg px-2 py-0.5 text-xs font-bold text-fal-navy">
+              {adminActorBadgeLabel(actor)}
+            </span>
+          </p>
+        </div>
+        <Link
+          to={returnPath}
+          className="inline-flex items-center rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy no-underline"
+        >
+          ← Voltar à fila
+        </Link>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      <OrderOpsWizardNav order={order} />
 
       {nextStep ? (
         <section className="rounded-[14px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-4 py-3">
@@ -504,75 +522,120 @@ export function AdminOrderDetailPage() {
           <p className="mt-1 mb-2 text-sm text-fal-muted">
             Motivo do cliente: {current.cancellationReason?.trim() || '—'}
           </p>
-          <p className="mt-0 mb-3 text-xs text-fal-muted">
-            Estorno <strong>manual</strong> no Mercado Pago após aprovar. Depois use
-            “Marcar estorno feito”.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                void (async () => {
-                  const { confirmed, reason } = await confirmDialog({
-                    title: 'Aprovar cancelamento?',
-                    message: 'O pedido será cancelado. Estorno no Mercado Pago continua manual.',
-                    confirmLabel: 'Aprovar',
-                    askReason: true,
-                    reasonLabel: 'Nota (opcional)',
-                    reasonPlaceholder: 'Ex.: estorno será feito no painel do provedor',
-                  })
-                  if (!confirmed) return
-                  setBusy(true)
-                  setError(null)
-                  try {
-                    await adminResolveOrderCancellation(current.id, true, reason ?? '')
-                    pushOk(
-                      'Cancelamento aprovado. Faça o estorno no Mercado Pago e marque abaixo.',
-                    )
-                    await reload()
-                  } catch (e) {
-                    pushError(toUserMessage(e, 'Falha ao aprovar'))
-                  } finally {
-                    setBusy(false)
-                  }
-                })()
-              }}
-            >
-              Aprovar cancelamento
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => {
-                void (async () => {
-                  const { confirmed, reason } = await confirmDialog({
-                    title: 'Recusar solicitação?',
-                    message: 'O pedido permanece ativo. Informe o motivo da recusa.',
-                    confirmLabel: 'Recusar',
-                    danger: true,
-                    requireReason: true,
-                    reasonLabel: 'Motivo',
-                  })
-                  if (!confirmed || !reason) return
-                  setBusy(true)
-                  setError(null)
-                  try {
-                    await adminResolveOrderCancellation(current.id, false, reason)
-                    pushOk('Solicitação recusada. Pedido permanece ativo.')
-                    await reload()
-                  } catch (e) {
-                    pushError(toUserMessage(e, 'Falha ao recusar'))
-                  } finally {
-                    setBusy(false)
-                  }
-                })()
-              }}
-            >
-              Recusar solicitação
-            </Button>
-          </div>
+          {current.status === 'enviado' || current.status === 'entregue' ? (
+            <>
+              <p className="mt-0 mb-3 text-sm text-amber-950">
+                Pedido já despachado/entregue — <strong>não use cancelamento comercial</strong>.
+                Trate como ocorrência / pós-venda (devolução ≠ cancel). Estorno, se couber, é
+                processo separado.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  void (async () => {
+                    const { confirmed, reason } = await confirmDialog({
+                      title: 'Recusar solicitação?',
+                      message:
+                        'Recusar o cancelamento comercial. Oriente o cliente ao fluxo de pós-venda.',
+                      confirmLabel: 'Recusar',
+                      danger: true,
+                      requireReason: true,
+                      reasonLabel: 'Motivo',
+                    })
+                    if (!confirmed || !reason) return
+                    setBusy(true)
+                    setError(null)
+                    try {
+                      await adminResolveOrderCancellation(current.id, false, reason)
+                      pushOk('Solicitação recusada. Use pós-venda se necessário.')
+                      await reload()
+                    } catch (e) {
+                      pushError(toUserMessage(e, 'Falha ao recusar'))
+                    } finally {
+                      setBusy(false)
+                    }
+                  })()
+                }}
+              >
+                Recusar (manter pedido / pós-venda)
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="mt-0 mb-3 text-xs text-fal-muted">
+                Estorno <strong>manual</strong> no Mercado Pago após aprovar. Depois use
+                “Marcar estorno feito”.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    void (async () => {
+                      const { confirmed, reason } = await confirmDialog({
+                        title: 'Aprovar cancelamento?',
+                        message:
+                          'O pedido será cancelado. Estorno no Mercado Pago continua manual.',
+                        confirmLabel: 'Aprovar',
+                        askReason: true,
+                        reasonLabel: 'Nota (opcional)',
+                        reasonPlaceholder: 'Ex.: estorno será feito no painel do provedor',
+                      })
+                      if (!confirmed) return
+                      setBusy(true)
+                      setError(null)
+                      try {
+                        await adminResolveOrderCancellation(current.id, true, reason ?? '')
+                        pushOk(
+                          'Cancelamento aprovado. Faça o estorno no Mercado Pago e marque abaixo.',
+                        )
+                        await reload()
+                      } catch (e) {
+                        pushError(toUserMessage(e, 'Falha ao aprovar'))
+                      } finally {
+                        setBusy(false)
+                      }
+                    })()
+                  }}
+                >
+                  Aprovar cancelamento
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    void (async () => {
+                      const { confirmed, reason } = await confirmDialog({
+                        title: 'Recusar solicitação?',
+                        message: 'O pedido permanece ativo. Informe o motivo da recusa.',
+                        confirmLabel: 'Recusar',
+                        danger: true,
+                        requireReason: true,
+                        reasonLabel: 'Motivo',
+                      })
+                      if (!confirmed || !reason) return
+                      setBusy(true)
+                      setError(null)
+                      try {
+                        await adminResolveOrderCancellation(current.id, false, reason)
+                        pushOk('Solicitação recusada. Pedido permanece ativo.')
+                        await reload()
+                      } catch (e) {
+                        pushError(toUserMessage(e, 'Falha ao recusar'))
+                      } finally {
+                        setBusy(false)
+                      }
+                    })()
+                  }}
+                >
+                  Recusar solicitação
+                </Button>
+              </div>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -710,7 +773,10 @@ export function AdminOrderDetailPage() {
         ) : null}
       </section>
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4">
+      <section
+        id="ops-conferencia"
+        className="scroll-mt-20 rounded-[14px] border border-fal-line bg-white p-4"
+      >
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">3. Produtos e quantidades</h2>
         {inAnalysis ? (
           <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
@@ -719,7 +785,8 @@ export function AdminOrderDetailPage() {
         ) : null}
         {inSeparation ? (
           <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
-            Separação — marque os itens separados ({separatedCount}/{order.items.length})
+            Separação física integral por linha ({separatedCount}/{order.items.length}). Item
+            marcado = qty total conferida.
           </p>
         ) : null}
         {order.inventoryModeAtOrder === 'com_estoque' ? (
@@ -880,6 +947,17 @@ export function AdminOrderDetailPage() {
         ) : null}
         {inSeparation ? (
           <>
+            {!allSeparated ? (
+              <p className="w-full rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                Separação incompleta ({separatedCount}/{order.items.length}). Não conclua ainda.
+                Qty parcial na linha (ex.: 4 de 5) → abra ocorrência de divergência/falta
+                (multi-envio não suportado).
+              </p>
+            ) : (
+              <p className="w-full rounded-[10px] border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-950">
+                Todos os itens marcados — pode concluir a separação.
+              </p>
+            )}
             <Button
               type="button"
               variant="light"
@@ -908,6 +986,7 @@ export function AdminOrderDetailPage() {
               disabled={busy || pending != null || !allSeparated}
               onClick={() => setPending({ kind: 'separate' })}
               title={!allSeparated ? 'Separe todos os itens antes de concluir' : undefined}
+              aria-disabled={!allSeparated}
             >
               Concluir separação e enviar para expedição
             </Button>
@@ -980,28 +1059,74 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
+      {['confirmado', 'em_separacao', 'pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'].includes(
+        order.status,
+      ) ? (
+        <div id="ops-volumes" className="scroll-mt-20">
+          <OrderPackingPanel
+            order={order}
+            busy={busy}
+            onBusy={setBusy}
+            onReload={reload}
+            onOk={pushOk}
+            onError={pushError}
+          />
+        </div>
+      ) : null}
+
+      <OrderOccurrencesPanel
+        order={order}
+        busy={busy}
+        onBusy={setBusy}
+        onReload={reload}
+        onOk={pushOk}
+        onError={pushError}
+      />
+
       {order.status === 'pronto_para_envio' || order.status === 'preparando_envio' ? (
-        <MeExpeditionPanel
-          order={order}
-          busy={busy}
-          pendingShip={pending != null}
-          carrier={carrier}
-          service={service}
-          tracking={tracking}
-          onCarrier={setCarrier}
-          onService={setService}
-          onTracking={setTracking}
-          onRequestShip={() => setPending({ kind: 'ship' })}
-          onReload={() => reload()}
-          onMessage={(m) => {
-            if (m) pushOk(m)
-            else setError(null)
-          }}
-          onError={(m) => {
-            if (m) pushError(m)
-            else setError(null)
-          }}
-        />
+        <div id="ops-expedicao" className="scroll-mt-20 space-y-4">
+        {orderUsesMelhorEnvio(order) ? (
+          <MeExpeditionPanel
+            order={order}
+            busy={busy}
+            pendingShip={pending != null}
+            carrier={carrier}
+            service={service}
+            tracking={tracking}
+            onCarrier={setCarrier}
+            onService={setService}
+            onTracking={setTracking}
+            onRequestShip={() => setPending({ kind: 'ship' })}
+            onReload={() => reload()}
+            onMessage={(m) => {
+              if (m) pushOk(m)
+              else setError(null)
+            }}
+            onError={(m) => {
+              if (m) pushError(m)
+              else setError(null)
+            }}
+          />
+        ) : (
+          <OwnShipPanel
+            order={order}
+            kind={orderShippingKind(order) === 'own' ? 'own' : 'mock'}
+            busy={busy}
+            pendingShip={pending != null}
+            carrier={carrier}
+            service={service}
+            tracking={tracking}
+            onCarrier={setCarrier}
+            onService={setService}
+            onTracking={setTracking}
+            onRequestShip={() => setPending({ kind: 'ship' })}
+            onError={(m) => {
+              if (m) pushError(m)
+              else setError(null)
+            }}
+          />
+        )}
+        </div>
       ) : null}
 
       <section className="rounded-[14px] border border-fal-line bg-white px-4 py-3">
@@ -1033,7 +1158,10 @@ export function AdminOrderDetailPage() {
       </section>
 
       {order.status === 'enviado' || order.status === 'entregue' ? (
-        <section className="rounded-[14px] border border-fal-line bg-white p-4">
+        <section
+          id="ops-expedicao"
+          className="scroll-mt-20 rounded-[14px] border border-fal-line bg-white p-4"
+        >
           <h2 className="m-0 text-lg font-extrabold text-fal-navy">5. Expedição e entrega</h2>
           <p className="mt-1 text-sm text-fal-muted">
             Etiqueta:{' '}

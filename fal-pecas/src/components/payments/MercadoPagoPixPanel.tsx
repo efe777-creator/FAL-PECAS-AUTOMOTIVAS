@@ -12,7 +12,8 @@ import {
   UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
 import { getOwnPayment, type OwnPaymentRow } from '@/services/payments/ownPaymentService'
-import { useEffect, useState } from 'react'
+import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   paymentId: string
@@ -64,14 +65,35 @@ export function MercadoPagoPixPanel({
     isPaymentExpired(initialExpiresAt ?? null),
   )
 
+  const syncTickRef = useRef(0)
+
   useEffect(() => {
     let cancelled = false
     let timer: ReturnType<typeof setInterval> | undefined
+    syncTickRef.current = 0
 
     async function tick() {
       try {
-        const p = await getOwnPayment(paymentId)
+        let p = await getOwnPayment(paymentId)
         if (cancelled) return
+
+        // A cada ~8s: consulta MP se webhook não promoveu (pending).
+        syncTickRef.current += 1
+        if (p?.status === 'pending' && syncTickRef.current % 2 === 0) {
+          try {
+            const sync = await syncMercadoPagoPayment(paymentId)
+            if (sync.status === 'approved' || sync.orderApproved) {
+              onApproved(sync.orderId || p.orderId || orderId)
+              return
+            }
+            if (sync.status && sync.status !== p.status) {
+              p = (await getOwnPayment(paymentId)) ?? p
+            }
+          } catch {
+            /* sync best-effort */
+          }
+        }
+
         if (p) {
           setRow((prev) => ({
             ...p,

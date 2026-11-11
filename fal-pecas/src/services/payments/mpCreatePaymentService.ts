@@ -3,7 +3,7 @@ import { getSupabase } from '@/lib/supabase'
 export interface CreateMercadoPagoPaymentResult {
   paymentId: string
   providerPaymentId?: string
-  status: 'pending'
+  status: string
   orderId?: string
   amount?: number
   method?: string
@@ -12,7 +12,7 @@ export interface CreateMercadoPagoPaymentResult {
   paymentUrl?: string | null
   expiresAt?: string | null
   reused?: boolean
-  orderApproved?: false
+  orderApproved?: boolean
   providerStatus?: string
 }
 

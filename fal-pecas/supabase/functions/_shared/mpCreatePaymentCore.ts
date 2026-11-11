@@ -119,7 +119,7 @@ export function buildIdempotencyKey(paymentId: string, attempt = 1): string {
 }
 
 /** TTL da cobrança Pix (QR). O pedido permanece até 48 h para nova tentativa. */
-export const PIX_PAYMENT_TTL_MINUTES = 5
+export const PIX_PAYMENT_TTL_MINUTES = 30
 
 /** Pedido sem pagamento aprovado é cancelado/retirado da fila operacional após este prazo. */
 export const UNPAID_ORDER_TTL_HOURS = 48

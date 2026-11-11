@@ -1,10 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
-import {
-  getAdminOrderArea,
-  orderMatchesArea,
-  type AdminOrderAreaId,
-} from '@/lib/adminOrderOps'
+import { getAdminOrderArea } from '@/lib/adminOrderOps'
 import {
   confirmExpireUnpaidIntent,
   formatExpireUnpaidMessage,
@@ -47,11 +43,30 @@ export function AdminOrdersAreaPage() {
   const [busyExpire, setBusyExpire] = useState(false)
   const [expTab, setExpTab] = useState<(typeof EXPEDICAO_TABS)[number]['id']>('pronto')
 
+  const serverStatuses = useMemo(() => {
+    if (!area) return [] as readonly string[]
+    if (area.id === 'expedicao') {
+      const tab = EXPEDICAO_TABS.find((t) => t.id === expTab) ?? EXPEDICAO_TABS[0]
+      return tab.statuses
+    }
+    return area.statuses
+  }, [area, expTab])
+
   async function reload() {
+    if (!area || serverStatuses.length === 0) {
+      setRows([])
+      setHasMore(false)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const list = await adminListOrders(null, { offset: 0, limit: ADMIN_LIST_PAGE_SIZE })
+      const list = await adminListOrders(null, {
+        offset: 0,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        statuses: serverStatuses,
+      })
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
@@ -68,6 +83,7 @@ export function AdminOrdersAreaPage() {
       const next = await adminListOrders(null, {
         offset: rows.length,
         limit: ADMIN_LIST_PAGE_SIZE,
+        statuses: serverStatuses,
       })
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id))
@@ -83,17 +99,10 @@ export function AdminOrdersAreaPage() {
 
   useEffect(() => {
     void reload()
-  }, [areaId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaId, expTab, serverStatuses])
 
-  const filtered = useMemo(() => {
-    if (!area) return []
-    let base = rows.filter((o) => orderMatchesArea(o.status, area.id as AdminOrderAreaId))
-    if (area.id === 'expedicao') {
-      const tab = EXPEDICAO_TABS.find((t) => t.id === expTab) ?? EXPEDICAO_TABS[0]
-      base = base.filter((o) => (tab.statuses as readonly string[]).includes(o.status))
-    }
-    return filterOrdersBySearch(base, search)
-  }, [rows, area, search, expTab])
+  const filtered = useMemo(() => filterOrdersBySearch(rows, search), [rows, search])
 
   if (!area) {
     return (
@@ -160,9 +169,8 @@ export function AdminOrdersAreaPage() {
       ) : null}
 
       {!loading && !error && hasMore ? (
-        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Exibindo até {ADMIN_LIST_PAGE_SIZE} pedidos por carga ({rows.length} carregados). A fila
-          filtra o que já veio do servidor — use “Carregar mais pedidos” se faltar volume.
+        <p className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm text-fal-muted">
+          Fila server-side · {rows.length} carregados · use “Carregar mais” para a próxima página.
         </p>
       ) : null}
 

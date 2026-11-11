@@ -62,6 +62,7 @@ export const mercadoPagoAdapter: FalPaymentAdapter = {
       expiresAt: raw.expiresAt ?? null,
       reused: raw.reused,
       orderId: raw.orderId ?? input.orderId,
+      orderApproved: raw.orderApproved === true,
     }
   },
 }

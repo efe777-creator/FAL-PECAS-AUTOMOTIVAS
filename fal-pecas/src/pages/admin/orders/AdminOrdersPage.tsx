@@ -2,7 +2,6 @@ import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
 import {
   ADMIN_ORDER_GROUPS,
-  orderMatchesGroup,
   sumGroupCount,
   type AdminOrderGroupId,
 } from '@/lib/adminOrderOps'
@@ -75,12 +74,21 @@ export function AdminOrdersPage() {
     syncParams('', value)
   }
 
+  const listStatuses = useMemo(() => {
+    if (statusFilter) return null
+    if (!groupFilter) return null
+    const g = ADMIN_ORDER_GROUPS.find((x) => x.id === groupFilter)
+    return g?.statuses ?? null
+  }, [statusFilter, groupFilter])
+
   async function reload() {
     setLoading(true)
     setError(null)
     try {
       const [list, c] = await Promise.all([
-        adminListOrders(statusFilter || null),
+        adminListOrders(statusFilter || null, {
+          statuses: listStatuses,
+        }),
         adminOrderStatusCounts(),
       ])
       setRows(list)
@@ -96,7 +104,10 @@ export function AdminOrdersPage() {
   async function loadMore() {
     setLoadingMore(true)
     try {
-      const next = await adminListOrders(statusFilter || null, { offset: rows.length })
+      const next = await adminListOrders(statusFilter || null, {
+        offset: rows.length,
+        statuses: listStatuses,
+      })
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id))
         return [...prev, ...next.filter((r) => !seen.has(r.id))]
@@ -112,7 +123,7 @@ export function AdminOrdersPage() {
   useEffect(() => {
     void reload()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+  }, [statusFilter, groupFilter, listStatuses])
 
   useEffect(() => {
     const s = searchParams.get('status') ?? ''
@@ -121,12 +132,7 @@ export function AdminOrdersPage() {
     setGroupFilter(s ? '' : g)
   }, [searchParams])
 
-  const byGroup = useMemo(
-    () => rows.filter((o) => orderMatchesGroup(o.status, groupFilter)),
-    [rows, groupFilter],
-  )
-
-  const visible = useMemo(() => filterOrdersBySearch(byGroup, search), [byGroup, search])
+  const visible = useMemo(() => filterOrdersBySearch(rows, search), [rows, search])
 
   async function runExpireUnpaid() {
     if (!(await confirmExpireUnpaidIntent())) return

@@ -1,5 +1,6 @@
 // F9-B/C/D — create-mp-payment
-// Amount = orders.total. Pix ou cartão (token Brick). Não aprova pedido.
+// Amount = orders.total. Pix ou cartão (token Brick).
+// Terminal síncrono do MP → mesma decisão do webhook (RPC / set_terminal).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   buildIdempotencyKey,
@@ -10,6 +11,10 @@ import {
   pixDateOfExpiration,
   resolveInternalMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
+import {
+  decideWebhookTransition,
+  mapMpProviderStatusToInternal,
+} from '../_shared/mpWebhookCore.ts'
 
 const MP_API = 'https://api.mercadopago.com/v1/payments'
 
@@ -350,7 +355,7 @@ Deno.serve(async (req) => {
         metadata: {
           mp_create: { id: fields.provider_payment_id, status: fields.provider_status },
           mp_attempt: mpAttempt,
-          pix_ttl_minutes: internalMethod === 'pix' ? 5 : undefined,
+          pix_ttl_minutes: internalMethod === 'pix' ? 30 : undefined,
         },
       })
       .eq('id', paymentId)
@@ -359,10 +364,57 @@ Deno.serve(async (req) => {
       return json(500, { error: 'payment_update_failed', detail: updErr.message })
     }
 
+    const incoming = mapMpProviderStatusToInternal(fields.provider_status)
+    const transition = decideWebhookTransition({
+      currentPaymentStatus: 'pending',
+      incomingInternal: incoming,
+    })
+
+    let finalStatus: string = 'pending'
+    let orderApproved = false
+
+    if (transition.action === 'approve') {
+      const { error: confirmErr } = await admin.rpc('confirm_mercadopago_payment', {
+        p_payment_id: paymentId,
+      })
+      if (confirmErr) {
+        console.error('create_sync_approve_failed', {
+          paymentId,
+          msg: confirmErr.message,
+        })
+        return json(500, {
+          error: 'approve_failed',
+          detail: confirmErr.message,
+          paymentId,
+          providerPaymentId: fields.provider_payment_id,
+          status: 'pending',
+          providerStatus: fields.provider_status,
+          orderApproved: false,
+        })
+      }
+      await admin
+        .from('payments')
+        .update({ provider_status: fields.provider_status })
+        .eq('id', paymentId)
+      finalStatus = 'approved'
+      orderApproved = true
+    } else if (transition.action === 'set_terminal') {
+      await admin
+        .from('payments')
+        .update({
+          status: incoming,
+          provider_status: fields.provider_status,
+          ...(incoming === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
+        })
+        .eq('id', paymentId)
+        .eq('status', 'pending')
+      finalStatus = incoming
+    }
+
     return json(201, {
       paymentId,
       providerPaymentId: fields.provider_payment_id,
-      status: 'pending',
+      status: finalStatus,
       providerStatus: fields.provider_status,
       orderId,
       amount,
@@ -372,7 +424,7 @@ Deno.serve(async (req) => {
       paymentUrl: fields.payment_url,
       expiresAt,
       reused: false,
-      orderApproved: false,
+      orderApproved,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'unknown_error'

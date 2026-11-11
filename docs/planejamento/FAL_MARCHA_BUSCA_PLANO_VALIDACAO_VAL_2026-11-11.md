@@ -1,50 +1,67 @@
 # VAL — Teste e validação do plano (matriz T01–T16)
 
 **Data:** 2026-11-11  
-**Auth:** eFe — `MARCHA TESTE E VALIDAÇÃO DO PLANO , CORREÇÕES`  
-**Deploy validação:** `6af498a2` (tip `d02ba15`) + tip correção T05 a publicar
+**Auth:** eFe — revisão nomes (Intens→Intense) + revalidação  
+**Projeto Edge/SQL:** `wtbpwuiayednvlhvuhbh`
 
-## Vitest
+## Vitest (esta rodada)
 
-**27+ PASS** (parser/params/expand/year) · após T05: **12 PASS** nos arquivos search re-rodados.
+**55 PASS** — `src/services/search` + `src/services/plates` (incl. Intense alias, reconcile Intens→Intense).
 
-## SQL wtbp
-
-| # | Caso | Resultado |
-|---|------|-----------|
-| T02 | HB20 2015 | **PASS** 3 (BRD+TDI*) |
-| T03 | + engine 1.0 | **PASS** 3 (PVC tem 1.0) |
-| T06 | terminal + YMM | **PASS** 2 TDI |
-| T07 | pivo | **PASS** 13 |
-| T08 | pivo Palio 2010 | **PASS** PVI1032 |
-| T09 | TDI2116 | **PASS** |
-| T10 | PVI1032 | **PASS** |
-| Prep | synonym on | **PASS** |
-| Monitor | `search_zero_results` | **PASS** tabela existe |
-
-## Site (pós `6af498a2`)
+## SQL / RPC
 
 | # | Caso | Resultado |
 |---|------|-----------|
-| T02 | `?q=HB20 2015` | **PASS** (sessões anteriores + deploy) |
-| T06/ponteira | | **PASS** 2 TDI |
-| T10 | `Nakata PVI1032` | **PASS** 1× PVI1032 · label `1997–atual` |
-| T05 | `HB20 One 2015` | **FALHOU** → URL `version=One` + 3 SKUs (wildcard null) |
-| T16 | IA off | **PASS** (flag off; busca OK) |
+| T02 | HB20 2015 | **PASS** BRD2109, TDI2116, TDI2117 |
+| T03 | HB20 2015 + engine 1.0 | **PASS** 3 SKUs |
+| — | HB20 2019 / 1.0 / Unique | **PASS** BRD2109, TDI2116, TDI2117 |
+| — | Kwid 2017 / 1.0 / Intense | **PASS** TDI0653 (wildcard version null no PVC) |
+| — | Cross Fox 2007 / 1.6 | **PASS** BRD5115 |
+| — | terminal + HB20 2015 | **PASS** TDI2116, TDI2117 |
+| — | código TDI2117 | **PASS** |
+| — | Clio (qualquer filtro) | **PASS empty** — PVC Clio = 0 (cadastro, não parser) |
+| — | Ka 1999 | **PASS empty** — PVC Ka só 2008+; reconhecimento da placa OK |
+| — | Ka sem ano | **PASS** 6 SKUs (2008/2014) |
 
-## Correção T05 (esta MARCHA)
+## Placa — cache frio = quente (obrigatório)
 
-- Cadastro HB20 só tem versão **Unique** (não One).
-- Parser agora: versão só se existir no catálogo do modelo; senão `needsClarification=version` **sem** poluir URL.
-- `listVehicleCatalogEntries` carrega `versions[]` de `vehicle_versions`.
+Cache apagado antes do smoke; 1ª consulta = API; 2ª = re-canonicalização do cache. Campos frio ≡ quente.
 
-## Pendente (não bloqueia P0)
+| Placa | Cold (maker/model/year/engine/version) | cold=warm |
+|-------|----------------------------------------|-----------|
+| BBL2429 | Renault / **Kwid** / 2017 / 1.0 / **Intense** | **PASS** |
+| FRW0E37 | Hyundai / HB20 / 2019 / 1.0 / Unique | **PASS** |
+| AYX5145 | Renault / Clio / 2014 / 1.0 / Expression | **PASS** |
+| INT8C36 | Volkswagen / Cross Fox / 2007 / 1.6 / — | **PASS** |
+| CRH6444 | Ford / Ka / 1999 / 1.0 / — | **PASS** |
+| QWE1A23 | Yamaha / XTZ150 Crosser S / 2020 / — / — | **PASS** (sem motor 0.1) |
 
-- T14/T15 smoke E2E placa com token API
-- UI de clarificação de versão (hoje só não aplica filtro errado)
-- Admin listar `search_zero_results`
-- Ligar LLM (`VITE_SEARCH_NL_LLM=1` + provider)
+`PLATE_FAILS=0` · modelos fantasmas (`%Intens%` / `%10MT%` / `%EXP%` no nome) = 0.
+
+### Correções já em produção (reconhecimento)
+
+- Parser `10MT`/`16AT` + trim; `sanitizeEngine` rejeita &lt; 0.8 L.
+- Alias comercial: API `INTENS` → **Intense** (não “Intens”).
+- DENATRAN `CLIO EXP1016VH` → Clio / 1.0 / Expression.
+- Edge `plate-lookup` sempre re-canonicaliza cache identificável.
+- VV canônico: Kwid Intense, HB20 Unique, Clio Expression, Ka 1999, Cross Fox.
+- Reconcile do filtro: prefixo `Intens` → option `Intense` do cadastro.
+
+## Site / texto (baseline + T05)
+
+| # | Caso | Resultado |
+|---|------|-----------|
+| T02 | `HB20 2015` | **PASS** (RPC + unit) |
+| T05 | `HB20 One` | **PASS** unit (sem poluir version) |
+| T16 | IA off | **PASS** |
+
+## Pendente (não bloqueia)
+
+- UI clarificação de versão no catálogo
+- Admin `search_zero_results`
+- LLM off
+- Import PVC Clio / Ka anos antigos (dados mestres)
 
 ## Assinatura
 
-Validação plano · correção T05 · 2026-11-11
+Revisão nomes · INTENS→Intense · frio=quente BBL Intense · 55 vitest · Edge redeploy · 2026-11-11

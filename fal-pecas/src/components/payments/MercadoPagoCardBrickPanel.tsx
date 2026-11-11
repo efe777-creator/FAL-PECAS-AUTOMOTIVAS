@@ -5,6 +5,7 @@ import { resolveInstallmentCount } from '@/lib/paymentDisplay'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { createFalPayment } from '@/services/payments/engine'
+import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -36,7 +37,8 @@ function ensureMpInit(publicKey: string) {
 
 /**
  * Card Payment Brick. Dados do cartão ficam no iframe do Mercado Pago.
- * Create payment no backend; approve só via webhook (poll status).
+ * Create no backend; terminal síncrono do MP já vem na resposta.
+ * Poll cobre casos async / webhook (ex.: in_process → approved).
  */
 export function MercadoPagoCardBrickPanel({
   orderId,
@@ -80,11 +82,25 @@ export function MercadoPagoCardBrickPanel({
     }
   }, [publicKey])
 
+  const syncTickRef = useRef(0)
+
   useEffect(() => {
     if (!paymentId) return
+    syncTickRef.current = 0
     async function tick() {
       try {
-        const p = await getOwnPayment(paymentId!)
+        let p = await getOwnPayment(paymentId!)
+        if (!p) return
+        syncTickRef.current += 1
+        if (p.status === 'pending' && syncTickRef.current % 2 === 0) {
+          try {
+            const sync = await syncMercadoPagoPayment(paymentId!)
+            if (sync.status) p = { ...p, status: sync.status }
+            else p = (await getOwnPayment(paymentId!)) ?? p
+          } catch {
+            /* sync best-effort */
+          }
+        }
         if (!p) return
         setStatus(p.status)
         if (p.status === 'approved') {
@@ -140,8 +156,22 @@ export function MercadoPagoCardBrickPanel({
             paymentTypeId: paymentType,
           },
         })
-        setPaymentId(res.paymentId)
         setStatus(res.status)
+        if (res.status === 'approved' || res.orderApproved) {
+          onApprovedRef.current(res.orderId || orderId)
+          return
+        }
+        if (res.status === 'rejected' || res.status === 'cancelled') {
+          const msg =
+            res.status === 'rejected'
+              ? 'Pagamento recusado. Verifique os dados do cartão ou use outro meio.'
+              : 'Pagamento cancelado. Você pode tentar novamente.'
+          setRejectReason(msg)
+          onErrorRef.current(msg)
+          remountBrick()
+          return
+        }
+        setPaymentId(res.paymentId)
       } catch (e) {
         const msg = toUserMessage(e, 'Falha ao criar pagamento com cartão')
         onErrorRef.current(msg)

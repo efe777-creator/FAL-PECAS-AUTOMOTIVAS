@@ -59,11 +59,12 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   })
   const [cardReady, setCardReady] = useState(initialChannel === 'card')
 
-  const expired =
+  const orderPaymentExpired =
     isPaymentExpired(payment?.expiresAt) ||
     payment?.status === 'expired' ||
     payment?.status === 'rejected'
-  const needsNewPix = channel === 'pix' && (!pixSession || expired)
+  // Sessão nova (generatePix) prevalece: não ficar preso no expired do payment antigo do pedido.
+  const needsNewPix = channel === 'pix' && !pixSession
 
   const onApproved = useCallback(() => {
     onPaid()
@@ -144,9 +145,9 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         needsNewPix ? (
           <div className="space-y-2">
             <p className="m-0 text-sm text-fal-muted">
-              {expired
+              {orderPaymentExpired
                 ? 'Cobrança Pix expirada. Gere um novo QR ou pague com cartão — o pedido continua ativo.'
-                : 'Gere a cobrança Pix deste pedido (válida por 5 minutos).'}
+                : `Gere a cobrança Pix deste pedido (válida por ${PIX_PAYMENT_TTL_MINUTES} minutos).`}
             </p>
             <Button type="button" variant="primary" disabled={busy} onClick={() => void generatePix()}>
               {busy ? 'Gerando…' : 'Gerar novo Pix'}

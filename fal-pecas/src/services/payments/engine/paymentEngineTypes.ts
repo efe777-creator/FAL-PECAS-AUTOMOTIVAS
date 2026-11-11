@@ -35,6 +35,8 @@ export interface FalCreatePaymentResult {
   expiresAt?: string | null
   reused?: boolean
   orderId?: string
+  /** True quando create já promoveu o pedido (MP approved síncrono). */
+  orderApproved?: boolean
   metadata?: Record<string, unknown>
 }
 

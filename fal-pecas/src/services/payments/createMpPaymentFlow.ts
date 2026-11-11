@@ -1,6 +1,7 @@
 /**
  * Fluxo create-mp-payment testável (deps injetáveis) — F9-B/C/D.
- * Não aprova pedido; não chama transition_order_status.
+ * Pending/Pix async: webhook. Terminal síncrono do MP (cartão approved/rejected):
+ * aplica a mesma decisão do webhook (confirm RPC / set_terminal).
  */
 import {
   buildIdempotencyKey,
@@ -9,6 +10,10 @@ import {
   parseCreateMpPaymentClientBody,
   resolveInternalMethod,
 } from '@/services/payments/mpCreatePaymentCore'
+import {
+  decideWebhookTransition,
+  mapMpProviderStatusToInternal,
+} from '@/services/payments/mpWebhookCore'
 
 const MP_API = 'https://api.mercadopago.com/v1/payments'
 
@@ -30,6 +35,8 @@ export interface CreateMpFlowDeps {
   updatePayment: (id: string, patch: Record<string, unknown>) => Promise<void>
   insertPayment: (row: Record<string, unknown>) => Promise<string>
   findProfileName: (userId: string) => Promise<string | null>
+  /** RPC confirm_mercadopago_payment — só quando MP já devolve approved. */
+  confirmPayment: (paymentId: string) => Promise<void>
   fetchMp: (url: string, init: RequestInit) => Promise<{
     ok: boolean
     status: number
@@ -198,19 +205,41 @@ export async function executeCreateMpPayment(
     },
   })
 
+  const incoming = mapMpProviderStatusToInternal(fields.provider_status)
+  const transition = decideWebhookTransition({
+    currentPaymentStatus: 'pending',
+    incomingInternal: incoming,
+  })
+
+  let finalStatus: string = 'pending'
+  let orderApproved = false
+
+  if (transition.action === 'approve') {
+    await deps.confirmPayment(paymentId)
+    finalStatus = 'approved'
+    orderApproved = true
+  } else if (transition.action === 'set_terminal') {
+    await deps.updatePayment(paymentId, {
+      status: incoming,
+      provider_status: fields.provider_status,
+      ...(incoming === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
+    })
+    finalStatus = incoming
+  }
+
   return {
     httpStatus: 201,
     body: {
       paymentId,
       providerPaymentId: fields.provider_payment_id,
-      status: 'pending',
+      status: finalStatus,
       providerStatus: fields.provider_status,
       orderId,
       amount,
       method: internalMethod,
       pixQrCode: fields.pix_qr_code,
       reused: false,
-      orderApproved: false,
+      orderApproved,
       idempotencyKey,
     },
   }

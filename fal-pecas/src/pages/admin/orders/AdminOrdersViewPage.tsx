@@ -32,11 +32,35 @@ export function AdminOrdersViewPage() {
     toast.push(message, 'error')
   }
 
+  const listOpts = useMemo(() => {
+    if (!view || view.placeholder) return null
+    if (view.id === 'solicitacoes-cancelamento') {
+      return { cancellationRequest: 'pending' as const }
+    }
+    if (view.id === 'problemas') {
+      return { problems: true as const }
+    }
+    if (view.statuses && view.statuses.length > 0) {
+      return { statuses: view.statuses }
+    }
+    return {}
+  }, [view])
+
   async function reload() {
+    if (!view || view.placeholder || listOpts == null) {
+      setRows([])
+      setHasMore(false)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const list = await adminListOrders(null, { offset: 0, limit: ADMIN_LIST_PAGE_SIZE })
+      const list = await adminListOrders(null, {
+        offset: 0,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        ...listOpts,
+      })
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
@@ -47,12 +71,14 @@ export function AdminOrdersViewPage() {
   }
 
   async function loadMore() {
+    if (listOpts == null) return
     setLoadingMore(true)
     setError(null)
     try {
       const next = await adminListOrders(null, {
         offset: rows.length,
         limit: ADMIN_LIST_PAGE_SIZE,
+        ...listOpts,
       })
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id))
@@ -68,15 +94,13 @@ export function AdminOrdersViewPage() {
 
   useEffect(() => {
     void reload()
-  }, [viewId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewId, listOpts])
 
   const filtered = useMemo(() => {
-    if (!view) return []
-    if (view.placeholder) return []
+    if (!view || view.placeholder) return []
     let base = rows
-    if (view.id === 'solicitacoes-cancelamento') {
-      base = rows.filter((o) => o.cancellationRequest === 'pending')
-    } else if (view.id === 'problemas') {
+    if (view.id === 'problemas') {
       base = rows.filter((o) =>
         orderMatchesProblemsView({
           status: o.status,
@@ -84,9 +108,6 @@ export function AdminOrdersViewPage() {
           paymentStatus: o.paymentStatus,
         }),
       )
-    } else if (view.statuses) {
-      const set = new Set(view.statuses)
-      base = rows.filter((o) => set.has(o.status))
     }
     return filterOrdersBySearch(base, search)
   }, [rows, view, search])
@@ -116,9 +137,8 @@ export function AdminOrdersViewPage() {
       ) : (
         <>
           {!loading && !error && hasMore ? (
-            <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              Exibindo até {ADMIN_LIST_PAGE_SIZE} pedidos por carga ({rows.length} carregados). A
-              visão filtra o que já veio do servidor — use “Carregar mais pedidos” se faltar volume.
+            <p className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm text-fal-muted">
+              Fila server-side · {rows.length} carregados · use “Carregar mais” para a próxima página.
             </p>
           ) : null}
           <AdminOrdersListPanel

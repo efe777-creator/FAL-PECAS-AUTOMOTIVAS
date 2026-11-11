@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPlateModelName, splitApiModelo } from './splitApiModelo'
+import { formatPlateModelName, sanitizeEngine, splitApiModelo } from './splitApiModelo'
 
 describe('splitApiModelo', () => {
   it('separa HB20 1.0M UNIQUE → modelo / motor / versão', () => {
@@ -93,6 +93,38 @@ describe('splitApiModelo', () => {
       engine: '1.4',
       version: 'ELX',
     })
+  })
+
+  it('KWID INTENS 10MT → Kwid / 1.0 / Intense (nome comercial)', () => {
+    expect(splitApiModelo('KWID INTENS 10MT')).toEqual({
+      model: 'Kwid',
+      engine: '1.0',
+      version: 'Intense',
+    })
+  })
+
+  it('INTENSE explícito permanece Intense', () => {
+    expect(splitApiModelo('KWID INTENSE 1.0')).toEqual({
+      model: 'Kwid',
+      engine: '1.0',
+      version: 'Intense',
+    })
+  })
+
+  it('não inventa motor em XTZ150 Crosser S', () => {
+    expect(splitApiModelo('XTZ150 Crosser S')).toEqual({
+      model: 'XTZ150 Crosser S',
+      engine: null,
+      version: null,
+    })
+  })
+})
+
+describe('sanitizeEngine', () => {
+  it('rejeita 0.1 e aceita 1.0 / 10MT', () => {
+    expect(sanitizeEngine('0.1')).toBeNull()
+    expect(sanitizeEngine('1.0')).toBe('1.0')
+    expect(sanitizeEngine('10MT')).toBe('1.0')
   })
 })
 

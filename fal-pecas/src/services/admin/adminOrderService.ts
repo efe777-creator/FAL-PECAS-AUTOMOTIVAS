@@ -87,9 +87,24 @@ export type AdminOrderDetail = {
 /** Tamanho padrão de página das listas admin (limite histórico de 200). */
 export const ADMIN_LIST_PAGE_SIZE = 200
 
+/** Filtros server-side (CP-CEN-040) — filas não dependem dos N pedidos mais recentes. */
+export type AdminListOrdersOpts = {
+  offset?: number
+  limit?: number
+  /** Preferir isto a `filterStatus` quando a fila tem vários status. */
+  statuses?: readonly string[] | null
+  cancellationRequest?: 'pending' | 'approved' | 'rejected' | null
+  customerDecision?: 'pending' | 'authorized' | 'rejected' | null
+  /**
+   * Visão "problemas": decisão rejected OU aguardando_pagamento
+   * (pagamento failed/rejected ainda refinado no cliente sobre este subconjunto).
+   */
+  problems?: boolean
+}
+
 export async function adminListOrders(
   filterStatus?: string | null,
-  opts?: { offset?: number; limit?: number },
+  opts?: AdminListOrdersOpts,
 ): Promise<AdminOrderListRow[]> {
   const limit = opts?.limit ?? ADMIN_LIST_PAGE_SIZE
   const offset = opts?.offset ?? 0
@@ -108,7 +123,22 @@ export async function adminListOrders(
     .order('id', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (filterStatus) q = q.eq('status', filterStatus)
+  if (opts?.problems) {
+    q = q.or(
+      'and(status.eq.aguardando_decisao,customer_decision.eq.rejected),status.eq.aguardando_pagamento',
+    )
+  } else if (opts?.statuses && opts.statuses.length > 0) {
+    q = q.in('status', [...opts.statuses])
+  } else if (filterStatus) {
+    q = q.eq('status', filterStatus)
+  }
+
+  if (opts?.cancellationRequest) {
+    q = q.eq('cancellation_request', opts.cancellationRequest)
+  }
+  if (opts?.customerDecision) {
+    q = q.eq('customer_decision', opts.customerDecision)
+  }
 
   const { data, error } = await q
   if (error) throw error
@@ -331,6 +361,55 @@ export async function adminOrderStatusCounts(): Promise<Record<string, number>> 
   return out
 }
 
+/** CP-CEN-011 — indicadores ops + financeiros (fórmulas V2). */
+export type AdminCentralIndicators = {
+  currency: string
+  operational: {
+    ordersCreated: number
+    awaitingDecision: number
+    cancelled: number
+    cancellationPending: number
+    byStatus: Record<string, number>
+  }
+  financial: {
+    captured: number
+    refunded: number
+    netReceived: number
+    grossSold: number
+    cancelledAmount: number
+    pendingPayment: number
+  }
+}
+
+export async function adminCentralIndicators(): Promise<AdminCentralIndicators> {
+  const { data, error } = await getSupabase().rpc('admin_central_indicators')
+  if (error) throw error
+  const raw = (data ?? {}) as Record<string, unknown>
+  const ops = (raw.operational ?? {}) as Record<string, unknown>
+  const fin = (raw.financial ?? {}) as Record<string, unknown>
+  const byStatusRaw = (ops.by_status ?? {}) as Record<string, number>
+  const byStatus: Record<string, number> = {}
+  for (const [k, v] of Object.entries(byStatusRaw)) byStatus[k] = Number(v)
+  return {
+    currency: String(raw.currency ?? 'BRL'),
+    operational: {
+      ordersCreated: Number(ops.orders_created ?? 0),
+      awaitingDecision: Number(ops.awaiting_decision ?? 0),
+      cancelled: Number(ops.cancelled ?? 0),
+      cancellationPending: Number(ops.cancellation_pending ?? 0),
+      byStatus,
+    },
+    financial: {
+      captured: Number(fin.captured ?? 0),
+      refunded: Number(fin.refunded ?? 0),
+      netReceived: Number(fin.net_received ?? 0),
+      grossSold: Number(fin.gross_sold ?? 0),
+      cancelledAmount: Number(fin.cancelled_amount ?? 0),
+      pendingPayment: Number(fin.pending_payment ?? 0),
+    },
+  }
+}
+
 export async function adminSetItemAvailability(input: {
   orderItemId: string
   availability: OrderItemAvailability
@@ -456,4 +535,42 @@ export async function adminMarkPaymentRefunded(
   })
   if (error) throw error
   return data as { order_id: string; payment_status: string }
+}
+
+/** CP-EMB-01 — volumes neutros em shipments.metadata.packing */
+export async function adminSetOrderPacking(
+  orderId: string,
+  volumes: unknown[],
+): Promise<{ order_id: string; shipment_id: string }> {
+  const { data, error } = await getSupabase().rpc('admin_set_order_packing', {
+    p_order_id: orderId,
+    p_volumes: volumes,
+  })
+  if (error) throw error
+  return data as { order_id: string; shipment_id: string }
+}
+
+/** CP-EVT-01 — abrir / atualizar / resolver ocorrência */
+export async function adminOccurrenceAction(input: {
+  orderId: string
+  action: 'open' | 'update' | 'resolve'
+  occurrenceId?: string | null
+  tipo?: string | null
+  gravidade?: 'baixa' | 'media' | 'alta' | null
+  note?: string | null
+  solucao?: string | null
+  visibility?: 'internal' | 'customer'
+}): Promise<{ occurrence_id: string; event_type: string }> {
+  const { data, error } = await getSupabase().rpc('admin_occurrence_action', {
+    p_order_id: input.orderId,
+    p_action: input.action,
+    p_occurrence_id: input.occurrenceId ?? null,
+    p_tipo: input.tipo ?? null,
+    p_gravidade: input.gravidade ?? 'media',
+    p_note: input.note ?? null,
+    p_solucao: input.solucao ?? null,
+    p_visibility: input.visibility ?? 'internal',
+  })
+  if (error) throw error
+  return data as { occurrence_id: string; event_type: string }
 }

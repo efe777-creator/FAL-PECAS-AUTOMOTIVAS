@@ -7,7 +7,7 @@
  * Nunca VITE_ / nunca no frontend.
  */
 import type { PlateLookupProvider, PlateProviderRaw } from './plateProvider.ts'
-import { splitApiModelo } from './splitApiModelo.ts'
+import { sanitizeEngine, splitApiModelo } from './splitApiModelo.ts'
 
 const DEFAULT_BASE = 'https://wdapi2.com.br/v3'
 
@@ -134,16 +134,18 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
   // /basico frequentemente devolve modelo composto ("HB20 1.0M UNIQUE") — separar.
   const split = splitApiModelo(asString(dados.modelo))
   const model = split.model
-  const engine =
-    asString(dados.motor) ??
-    asString(dados.motorizacao) ??
-    asString(dados.cilindrada) ??
-    split.engine
+  // Prefere motor extraído do modelo composto; API às vezes manda lixo (ex.: 0.1).
+  const engine = sanitizeEngine(
+    split.engine ??
+      asString(dados.motor) ??
+      asString(dados.motorizacao) ??
+      asString(dados.cilindrada),
+  )
   const version =
+    split.version ??
     asString(dados.versao) ??
     asString(dados.versão) ??
-    asString(dados.version) ??
-    split.version
+    asString(dados.version)
   const year =
     extractYear(dados.ano) ??
     extractYear(dados.anoModelo) ??

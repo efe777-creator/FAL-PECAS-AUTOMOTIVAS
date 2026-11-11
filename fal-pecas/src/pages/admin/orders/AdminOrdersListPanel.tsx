@@ -8,10 +8,11 @@ import {
   adminNextActionLabel,
   orderStatusOperatorLabel,
 } from '@/lib/adminOrderOps'
+import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 function actorClass(kind: ReturnType<typeof adminActorKind>): string {
   switch (kind) {
@@ -78,6 +79,11 @@ export function AdminOrdersListPanel({
   showWaitingTime,
   showItemCount,
 }: Props) {
+  const location = useLocation()
+  function rememberReturn() {
+    rememberOrdersReturnPath(`${location.pathname}${location.search}`)
+  }
+
   return (
     <div className="space-y-3">
       <div className="max-w-md">
@@ -145,6 +151,7 @@ export function AdminOrdersListPanel({
                   ) : null}
                   <Link
                     to={`/admin/pedidos/${o.id}`}
+                    onClick={rememberReturn}
                     className="mt-3 inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
                   >
                     Abrir pedido
@@ -211,6 +218,7 @@ export function AdminOrdersListPanel({
                       <td className="px-3 py-2">
                         <Link
                           to={`/admin/pedidos/${o.id}`}
+                          onClick={rememberReturn}
                           className="text-sm font-semibold text-fal-navy underline"
                         >
                           Abrir

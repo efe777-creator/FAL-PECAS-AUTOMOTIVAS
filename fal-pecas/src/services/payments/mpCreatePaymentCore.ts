@@ -119,7 +119,7 @@ export function buildIdempotencyKey(paymentId: string, attempt = 1): string {
 }
 
 /** TTL da cobrança Pix (QR). O pedido permanece até 48 h para nova tentativa. */
-export const PIX_PAYMENT_TTL_MINUTES = 5
+export const PIX_PAYMENT_TTL_MINUTES = 30
 
 /** Pedido sem pagamento aprovado é cancelado/retirado da fila operacional após este prazo. */
 export const UNPAID_ORDER_TTL_HOURS = 48
@@ -180,7 +180,7 @@ export function buildMpPaymentBody(input: BuildMpPaymentBodyInput): Record<strin
     body.installments = input.installments ?? 1
     if (input.issuerId) body.issuer_id = Number(input.issuerId) || input.issuerId
   } else if (input.paymentMethodId === 'pix') {
-    // Cobrança Pix: 5 minutos. Pedido segue válido por UNPAID_ORDER_TTL_HOURS.
+    // Cobrança Pix: TTL FAL. Pedido segue válido por UNPAID_ORDER_TTL_HOURS.
     body.date_of_expiration = pixDateOfExpiration()
   }
 
@@ -203,8 +203,9 @@ export interface MpPaymentApiResponse {
 }
 
 /**
- * Mapeia resposta MP → colunas FAL.
- * status interno SEMPRE pending na create (approve = webhook F9-C).
+ * Mapeia resposta MP → colunas FAL (gravação inicial).
+ * status interno começa pending; create flow/Edge promove terminal síncrono
+ * (approved/rejected) ou deixa pending para webhook (Pix async).
  */
 export function mapMpResponseToPaymentFields(mp: MpPaymentApiResponse): {
   provider_payment_id: string

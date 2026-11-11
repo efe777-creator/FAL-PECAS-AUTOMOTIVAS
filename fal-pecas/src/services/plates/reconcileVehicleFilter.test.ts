@@ -39,6 +39,22 @@ describe('reconcileVehicleFilter', () => {
     expect(r.model).toBe('Cross Fox')
     expect(r.year).toBe('2007')
   })
+
+  it('INTENS da API alinha para Intense do cadastro', () => {
+    const renaultTree: VehicleOptionTree = {
+      ...tree,
+      makers: ['Renault'],
+      modelsByMaker: { Renault: ['Kwid'] },
+      yearsByModel: { 'Renault|Kwid': ['2017'] },
+      enginesByModel: { 'Renault|Kwid': ['1.0'] },
+      versionsByModel: { 'Renault|Kwid': ['Intense', 'Zen', 'Life'] },
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Renault', model: 'Kwid', year: '2017', engine: '1.0', version: 'Intens' },
+      renaultTree,
+    )
+    expect(r.version).toBe('Intense')
+  })
 })
 
 describe('selectOptionsWithValue', () => {

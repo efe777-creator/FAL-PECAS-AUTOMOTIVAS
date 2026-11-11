@@ -1,5 +1,10 @@
 /**
- * Espelho Edge de src/services/plates/splitApiModelo.ts
+ * A consulta `/basico` da API Placas costuma devolver `modelo` composto:
+ * - Espaçado: "HB20 1.0M UNIQUE"
+ * - DENATRAN compacto: "CLIO EXP1016VH"
+ * - Linha + trim + motor colado: "KWID INTENS 10MT"
+ *
+ * Extrai evidência do texto — sem inventar quando não há padrão.
  */
 
 export type SplitApiModeloResult = {
@@ -8,7 +13,15 @@ export type SplitApiModeloResult = {
   version: string | null
 }
 
+/** Token de motorização decimal: 1.0, 1.0m, 2.0T, 1.4TSI */
 const ENGINE_TOKEN = /^\d+\.\d+[a-zA-Z]{0,4}$/i
+
+/** Motor DENATRAN sem ponto + câmbio: 10MT, 16AT, 20CVT */
+const ENGINE_GEAR = /^(\d{2})(MT|AT|CVT|M|A)?$/i
+
+/**
+ * Código DENATRAN colado: EXP1016VH, AUTH1216V, ELX1418V
+ */
 const DENATRAN_COMPACT = /^([A-Za-z]{2,8})(\d{2})(?:(\d{1,2})V)?([A-Za-z]{0,8})$/i
 
 const TRIM_ALIASES: Record<string, string> = {
@@ -45,9 +58,13 @@ const TRIM_ALIASES: Record<string, string> = {
   LIMITED: 'Limited',
   CONNECT: 'Connect',
   INTENSE: 'Intense',
+  /** API/DENATRAN trunca Intense → INTENS */
+  INTENS: 'Intense',
+  OUTSIDER: 'Outsider',
   ZEN: 'Zen',
   LIFE: 'Life',
   ICONIC: 'Iconic',
+  CROSSER: 'Crosser',
 }
 
 function expandTrim(abbr: string): string {
@@ -64,6 +81,30 @@ function normalizeEngineToken(raw: string): string {
   const suf = (m[2] ?? '').trim()
   if (!suf || /^[mMaA]$/.test(suf)) return base
   return `${base}${suf.toUpperCase()}`
+}
+
+/** Motor automotivo plausível (L); rejeita lixo tipo 0.1 da API. */
+export function sanitizeEngine(raw: string | null | undefined): string | null {
+  if (raw == null) return null
+  const t = String(raw).trim()
+  if (!t) return null
+  const gear = parseEngineGearToken(t)
+  if (gear) return gear
+  const m = t.match(/^(\d+\.\d+)/)
+  if (!m) return null
+  const n = Number(m[1])
+  if (!Number.isFinite(n) || n < 0.8 || n > 7.0) return null
+  return normalizeEngineToken(t)
+}
+
+function parseEngineGearToken(token: string): string | null {
+  const m = token.match(ENGINE_GEAR)
+  if (!m) return null
+  const digits = m[1]!
+  const engine = `${digits[0]}.${digits[1]}`
+  const n = Number(engine)
+  if (!Number.isFinite(n) || n < 0.8 || n > 7.0) return null
+  return engine
 }
 
 function titleVersion(tokens: string[]): string | null {
@@ -106,10 +147,28 @@ export function parseDenatranCompactToken(
   const abbr = m[1]!
   const engDigits = m[2]!
   if (!/[A-Za-z]/.test(abbr)) return null
-  const engine = `${engDigits[0]}.${engDigits[1]}`
-  const n = Number(engine)
-  if (!Number.isFinite(n) || n < 0.8 || n > 7.0) return null
+  const engine = sanitizeEngine(`${engDigits[0]}.${engDigits[1]}`)
+  if (!engine) return null
   return { version: expandTrim(abbr), engine }
+}
+
+/**
+ * Se sobrou "Modelo Trim", separa trim conhecido.
+ */
+function peelTrailingTrim(modelTokens: string[]): {
+  model: string
+  version: string | null
+} {
+  if (modelTokens.length >= 2) {
+    const last = modelTokens[modelTokens.length - 1]!.toUpperCase()
+    if (TRIM_ALIASES[last]) {
+      return {
+        model: formatPlateModelName(modelTokens.slice(0, -1).join(' ')),
+        version: TRIM_ALIASES[last]!,
+      }
+    }
+  }
+  return { model: formatPlateModelName(modelTokens.join(' ')), version: null }
 }
 
 export function splitApiModelo(rawModelo: string | null | undefined): SplitApiModeloResult {
@@ -136,25 +195,43 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return { model: formatPlateModelName(only), engine: null, version: null }
   }
 
+  // 1) Motor decimal explícito: "HB20 1.0M UNIQUE"
   const engineIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t))
   if (engineIdx >= 1) {
+    const engine = sanitizeEngine(normalizeEngineToken(tokens[engineIdx]!))
+    const peeled = peelTrailingTrim(tokens.slice(0, engineIdx))
+    const after = titleVersion(tokens.slice(engineIdx + 1))
     return {
-      model: formatPlateModelName(tokens.slice(0, engineIdx).join(' ')),
-      engine: normalizeEngineToken(tokens[engineIdx]!),
-      version: titleVersion(tokens.slice(engineIdx + 1)),
+      model: peeled.model,
+      engine,
+      version: after ?? peeled.version,
     }
   }
 
+  // 2) Último token 10MT / 16AT: "KWID INTENS 10MT"
   const last = tokens[tokens.length - 1]!
+  const gearEngine = parseEngineGearToken(last)
+  if (gearEngine) {
+    const peeled = peelTrailingTrim(tokens.slice(0, -1))
+    return {
+      model: peeled.model,
+      engine: gearEngine,
+      version: peeled.version,
+    }
+  }
+
+  // 3) Último token DENATRAN compacto: "CLIO EXP1016VH"
   const compact = parseDenatranCompactToken(last)
   if (compact) {
+    const peeled = peelTrailingTrim(tokens.slice(0, -1))
     return {
-      model: formatPlateModelName(tokens.slice(0, -1).join(' ')),
+      model: peeled.model,
       engine: compact.engine,
-      version: compact.version,
+      version: compact.version ?? peeled.version,
     }
   }
 
+  // 4) Segundo token é só trim conhecido: "HB20 UNIQUE"
   if (tokens.length === 2) {
     const maybeTrim = tokens[1]!.toUpperCase()
     if (TRIM_ALIASES[maybeTrim]) {
@@ -163,6 +240,15 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
         engine: null,
         version: TRIM_ALIASES[maybeTrim]!,
       }
+    }
+  }
+
+  // 5) Trim no fim sem motor: "XTZ150 CROSSER S" → modelo XTZ150, versão Crosser S?
+  // Só peela se o penúltimo/último forem trims conhecidos de uma palavra.
+  if (tokens.length >= 2) {
+    const peeled = peelTrailingTrim(tokens)
+    if (peeled.version) {
+      return { model: peeled.model, engine: null, version: peeled.version }
     }
   }
 
