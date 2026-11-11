@@ -5,7 +5,7 @@
  * Provedor: Groq (grátis) via GROQ_API_KEY; sem key → intent=null (cliente usa determinístico).
  * Nunca inventa PVC / preço / estoque.
  *
- * Secrets: GROQ_API_KEY (opcional) · GROQ_MODEL (opcional, default llama-3.3-70b-versatile)
+ * Secrets: GROQ_API_KEY (opcional) · GROQ_MODEL (opcional, default openai/gpt-oss-20b)
  * Front: VITE_SEARCH_NL_LLM=1
  */
 const corsHeaders: Record<string, string> = {
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
 
     const groqKey = (Deno.env.get('GROQ_API_KEY') ?? '').trim()
     const model =
-      (Deno.env.get('GROQ_MODEL') ?? '').trim() || 'llama-3.3-70b-versatile'
+      (Deno.env.get('GROQ_MODEL') ?? '').trim() || 'openai/gpt-oss-20b'
 
     if (!groqKey) {
       return json(200, {

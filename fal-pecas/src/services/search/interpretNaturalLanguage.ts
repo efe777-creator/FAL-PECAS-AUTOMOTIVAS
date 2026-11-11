@@ -4,6 +4,7 @@
  * LLM: Edge `interpret-search-nl` só com VITE_SEARCH_NL_LLM=1.
  * Nunca inventa PVC / preço / estoque.
  */
+import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import {
   interpretSearchQuery,
@@ -26,7 +27,8 @@ function llmEnabledByEnv(): boolean {
   }
 }
 
-function mergeIntent(
+/** Exportado para Vitest — merge LLM + cadastro (versão só se existir). */
+export function mergeSearchIntent(
   base: SearchIntent,
   partial: Partial<SearchIntent> | null | undefined,
   catalog: VehicleCatalogEntry[],
@@ -36,23 +38,44 @@ function mergeIntent(
     ...base.vehicle,
     ...(partial.vehicle ?? {}),
   }
+  let needsClarification = partial.needsClarification ?? base.needsClarification
+  let clarification = partial.clarification ?? base.clarification
+
   // Revalida model contra catálogo se LLM inventou grafia
+  let modelEntry: VehicleCatalogEntry | undefined
   if (vehicle.model && catalog.length) {
-    const key = vehicle.model.trim().toLowerCase()
-    const hit = catalog.find((c) => c.model.toLowerCase() === key)
-    if (hit) {
-      vehicle.model = hit.model
-      vehicle.maker = vehicle.maker || hit.maker
+    const key = normalizeEntityMatchKey(vehicle.model)
+    modelEntry = catalog.find((c) => normalizeEntityMatchKey(c.model) === key)
+    if (modelEntry) {
+      vehicle.model = modelEntry.model
+      vehicle.maker = vehicle.maker || modelEntry.maker
     }
   }
+
+  // Versão do LLM só se cadastrada no modelo (T05 One vs Unique)
+  if (vehicle.version?.trim() && modelEntry?.versions?.length) {
+    const vKey = normalizeEntityMatchKey(vehicle.version)
+    const canon = modelEntry.versions.find((v) => normalizeEntityMatchKey(v) === vKey)
+    if (canon) {
+      vehicle.version = canon
+    } else {
+      delete vehicle.version
+      needsClarification = true
+      clarification = 'version'
+    }
+  } else if (vehicle.version?.trim() && modelEntry && !(modelEntry.versions?.length)) {
+    // Modelo sem lista de versões: mantém só se determinístico já tinha
+    if (!base.vehicle.version) delete vehicle.version
+  }
+
   return {
     ...base,
     productQuery:
       partial.productQuery !== undefined ? partial.productQuery : base.productQuery,
     vehicle,
     codeHint: partial.codeHint ?? base.codeHint,
-    needsClarification: partial.needsClarification ?? base.needsClarification,
-    clarification: partial.clarification ?? base.clarification,
+    needsClarification,
+    clarification,
     confidence: partial.confidence ?? base.confidence,
   }
 }
@@ -83,7 +106,7 @@ export async function interpretNaturalLanguage(
       body: { q: raw },
     })
     if (error || !data || data.intent == null) return deterministic
-    return mergeIntent(deterministic, data.intent as Partial<SearchIntent>, catalog)
+    return mergeSearchIntent(deterministic, data.intent as Partial<SearchIntent>, catalog)
   } catch {
     return deterministic
   }
