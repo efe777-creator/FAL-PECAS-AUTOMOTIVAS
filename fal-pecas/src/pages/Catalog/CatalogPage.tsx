@@ -25,6 +25,7 @@ import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
 import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
+import type { SearchIntent } from '@/services/search/interpretSearchQuery'
 import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions, listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import type {
@@ -115,6 +116,8 @@ export function CatalogPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   /** Painel de veículo aberto por padrão (placa + selects). */
   const [vehicleDetailsOpen, setVehicleDetailsOpen] = useState(true)
+  /** Clarificação do interpretador (ex.: versão não cadastrada). */
+  const [searchHint, setSearchHint] = useState<string | null>(null)
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
   const scrollRestoredRef = useRef(false)
@@ -393,11 +396,26 @@ export function CatalogPage() {
     setParams(draft, { replace: true })
   }
 
+  function hintFromIntent(intent: SearchIntent): string | null {
+    if (!intent.needsClarification) return null
+    if (intent.clarification === 'version') {
+      return 'Não encontramos essa versão no cadastro deste modelo. Mostrando peças por modelo/ano — refine pelo filtro Versão se precisar.'
+    }
+    if (intent.clarification === 'year') {
+      return 'Informe o ano do veículo para refinar a busca.'
+    }
+    if (intent.clarification === 'engine') {
+      return 'Informe o motor (ex.: 1.0) para refinar a busca.'
+    }
+    return null
+  }
+
   /** Texto livre → URL canônica (mesmos params do seletor YMM). */
   async function applyInterpretedQuery(raw: string) {
     const catalog = await listVehicleCatalogEntries()
     const intent = await interpretNaturalLanguage(raw, { catalog })
     const { catalogParams } = buildCatalogSearchParams(intent)
+    setSearchHint(hintFromIntent(intent))
     patchParams({
       q: catalogParams.q ?? null,
       maker: catalogParams.maker ?? null,
@@ -428,6 +446,7 @@ export function CatalogPage() {
           Boolean(catalogParams.version)
         if (!hasVehicle) return
         if (cancelled) return
+        setSearchHint(hintFromIntent(intent))
         patchParams({
           q: catalogParams.q ?? null,
           maker: catalogParams.maker ?? null,
@@ -478,6 +497,7 @@ export function CatalogPage() {
 
   function clearFilters() {
     setSearchDraft('')
+    setSearchHint(null)
     setParams({}, { replace: true })
   }
 
@@ -904,6 +924,22 @@ export function CatalogPage() {
           ) : null}
         </div>
       </MobileDrawer>
+
+      {searchHint ? (
+        <div
+          className="mt-3 rounded-lg border border-fal-yellow-dark/40 bg-[#fff8e6] px-3 py-2.5 text-sm text-fal-navy"
+          role="status"
+        >
+          {searchHint}
+          <button
+            type="button"
+            className="ml-2 text-xs font-semibold underline-offset-2 hover:underline"
+            onClick={() => setSearchHint(null)}
+          >
+            Fechar
+          </button>
+        </div>
+      ) : null}
 
       {activeChips.length ? (
         <div className="mt-3 flex flex-wrap gap-2">

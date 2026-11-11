@@ -8,11 +8,13 @@ import {
   adminDeleteSearchSynonym,
   adminGetSearchPrepSettings,
   adminListSearchSynonyms,
+  adminListSearchZeroResults,
   adminRebuildSearchDocuments,
   adminUpsertSearchPrepSettings,
   adminUpsertSearchSynonym,
   type SearchPrepSettings,
   type SearchSynonymRow,
+  type SearchZeroResultRow,
 } from '@/services/search/searchPrepService'
 import { useEffect, useState, type FormEvent } from 'react'
 
@@ -26,16 +28,19 @@ export function AdminSearchPrepPage() {
   const [expandsTo, setExpandsTo] = useState('')
   const [busy, setBusy] = useState(false)
   const [rebuildBusy, setRebuildBusy] = useState(false)
+  const [zeroResults, setZeroResults] = useState<SearchZeroResultRow[]>([])
 
   async function reload() {
     setLoading(true)
     try {
-      const [s, list] = await Promise.all([
+      const [s, list, zeros] = await Promise.all([
         adminGetSearchPrepSettings(),
         adminListSearchSynonyms(),
+        adminListSearchZeroResults(40).catch(() => [] as SearchZeroResultRow[]),
       ])
       setSettings(s)
       setSynonyms(list)
+      setZeroResults(zeros)
     } catch (err) {
       push(toUserMessage(err), 'error')
     } finally {
@@ -205,6 +210,41 @@ export function AdminSearchPrepPage() {
               </table>
               {!synonyms.length ? (
                 <p className="text-sm text-fal-muted">Nenhum sinônimo cadastrado.</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
+            <h2 className="m-0 text-lg font-bold text-fal-navy">Buscas sem resultado</h2>
+            <p className="m-0 text-sm text-fal-muted">
+              Últimas consultas do catálogo com zero produtos (monitor). Ajuda a achar sinônimos e
+              lacunas de PVC.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-fal-line text-xs uppercase text-fal-muted">
+                  <tr>
+                    <th className="px-2 py-2">Quando</th>
+                    <th className="px-2 py-2">q</th>
+                    <th className="px-2 py-2">Veículo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {zeroResults.map((z) => (
+                    <tr key={z.id} className="border-b border-fal-line/50">
+                      <td className="whitespace-nowrap px-2 py-2 text-xs text-fal-muted">
+                        {new Date(z.createdAt).toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-2 py-2 font-mono text-xs">{z.q || '—'}</td>
+                      <td className="px-2 py-2 text-xs">
+                        {[z.maker, z.model, z.year].filter(Boolean).join(' · ') || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!zeroResults.length ? (
+                <p className="text-sm text-fal-muted">Nenhum zero-result registrado ainda.</p>
               ) : null}
             </div>
           </div>

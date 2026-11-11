@@ -194,6 +194,34 @@ export async function adminDeleteSearchSynonym(id: string): Promise<void> {
   invalidateSearchPrepCache()
 }
 
+export type SearchZeroResultRow = {
+  id: string
+  q: string | null
+  maker: string | null
+  model: string | null
+  year: string | null
+  createdAt: string
+}
+
+/** Últimas buscas sem resultado (monitor). */
+export async function adminListSearchZeroResults(limit = 40): Promise<SearchZeroResultRow[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('search_zero_results')
+    .select('id, q, maker, model, year, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    id: String(r.id),
+    q: (r.q as string | null) ?? null,
+    maker: (r.maker as string | null) ?? null,
+    model: (r.model as string | null) ?? null,
+    year: (r.year as string | null) ?? null,
+    createdAt: String(r.created_at),
+  }))
+}
+
 /** Rebuild search_document (null = todos). */
 export async function adminRebuildSearchDocuments(productIds?: string[]): Promise<number> {
   if (!supabase) throw new Error('Supabase não configurado')
