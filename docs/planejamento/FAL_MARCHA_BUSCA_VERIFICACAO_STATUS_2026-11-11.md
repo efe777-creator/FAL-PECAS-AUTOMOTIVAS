@@ -31,6 +31,7 @@
 | Defesa: limpar `q` bruto após interpretar | `searchService.ts` |
 | Catálogo veículos para match sem filtro nested quebrado | `vehicleService.listVehicleCatalogEntries` |
 | Deep-link `?q=` → URL canônica | CatalogPage `useEffect` |
+| Empty state veículo sem peças | CatalogPage: *“Veículo reconhecido — sem peças compatíveis”* |
 | Autocomplete VEÍCULOS\|PEÇAS + copy | Onda 3 (código + VAL) |
 | RPC year-range + wildcard + commercial_ref | **wtbp** via `20261110160000` |
 | Hotfix: não usar `customer_can_see_product` no compat | migration `20261111140000` ajustada |
@@ -55,7 +56,6 @@
 
 | Prioridade | Falta | Gate |
 |------------|-------|------|
-| P0 polish | Empty state distinto “veículo reconhecido sem peças” (Task 5 do plano P0) | código |
 | P1 | Autocomplete seccionado fino / mais casos UI | plano P1 |
 | P1 | Label período `12/...` → `2012–atual` | UX eFe |
 | P1 | search_prep / sinônimos aplicados de ponta a ponta no wtbp | OK eFe |
