@@ -45,4 +45,20 @@ describe('interpretSearchQuery', () => {
     expect(i.vehicle.maker).toBe('Hyundai')
     expect(i.vehicle.model).toBe('HB20')
   })
+
+  it('ponteira HB20 2015 → peça, NÃO version', () => {
+    const i = interpretSearchQuery('ponteira HB20 2015', catalog)
+    expect(i.productQuery?.toLowerCase()).toContain('ponteira')
+    expect(i.vehicle.model).toBe('HB20')
+    expect(i.vehicle.year).toBe('2015')
+    expect(i.vehicle.version).toBeUndefined()
+  })
+
+  it('HB20 One 2015 → version One', () => {
+    const i = interpretSearchQuery('HB20 One 2015', catalog)
+    expect(i.vehicle.model).toBe('HB20')
+    expect(i.vehicle.year).toBe('2015')
+    expect(i.vehicle.version?.toLowerCase()).toBe('one')
+    expect(i.productQuery).toBeNull()
+  })
 })

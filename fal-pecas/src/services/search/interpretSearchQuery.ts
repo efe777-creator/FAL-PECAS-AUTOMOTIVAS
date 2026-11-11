@@ -28,10 +28,13 @@ const CODE_RE = /^[A-Za-z]{2,}\d{3,}[A-Za-z0-9\-]*$/
 const PRODUCT_WORDS = new Set(
   [
     'terminal',
+    'ponteira',
     'pivo',
     'pivô',
     'axial',
+    'barra',
     'amortecedor',
+    'shock',
     'bandeja',
     'filtro',
     'oleo',
@@ -44,6 +47,31 @@ const PRODUCT_WORDS = new Set(
     'direção',
     'suspensao',
     'suspensão',
+    'coxim',
+    'bucha',
+  ].map((w) => normalizeEntityMatchKey(w)),
+)
+
+/** Versões de acabamento conhecidas — NÃO confundir com nome de peça (ex.: ponteira). */
+const VERSION_WORDS = new Set(
+  [
+    'one',
+    'unique',
+    'comfort',
+    'premium',
+    'sense',
+    'vision',
+    'style',
+    'sport',
+    'plus',
+    'max',
+    'diamond',
+    'evolution',
+    'high',
+    'se',
+    'lt',
+    'ltz',
+    'joy',
   ].map((w) => normalizeEntityMatchKey(w)),
 )
 
@@ -185,16 +213,11 @@ export function interpretSearchQuery(
       if (used.has(i)) continue
       const t = tokens[i]!
       if (YEAR_RE.test(t) || ENGINE_RE.test(t) || CODE_RE.test(t)) continue
-      if (!/^[A-Za-zÀ-ÿ]{2,12}$/.test(t) || isLikelyProductWord(t)) continue
-      const remaining = tokens.filter((_, idx) => !used.has(idx) && idx !== i)
-      const onlyProductOrEmpty =
-        remaining.length === 0 ||
-        remaining.every((x) => isLikelyProductWord(x) || CODE_RE.test(x))
-      if (onlyProductOrEmpty) {
-        vehicle.version = t
-        used.add(i)
-        break
-      }
+      if (isLikelyProductWord(t)) continue
+      if (!VERSION_WORDS.has(normalizeEntityMatchKey(t))) continue
+      vehicle.version = t
+      used.add(i)
+      break
     }
   }
 

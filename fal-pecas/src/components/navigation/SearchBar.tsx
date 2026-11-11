@@ -5,10 +5,8 @@ import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
-import {
-  interpretSearchQuery,
-  type VehicleCatalogEntry,
-} from '@/services/search/interpretSearchQuery'
+import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
+import type { VehicleCatalogEntry } from '@/services/search/interpretSearchQuery'
 import { listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -77,16 +75,12 @@ export function SearchBar() {
     setActiveIndex(-1)
   }, [query, loading, data, vehicleHits.length])
 
-  function catalogHrefFromQuery(raw: string): string {
-    const intent = interpretSearchQuery(raw, vehicleCatalog)
+  async function goCatalog() {
+    setOpen(false)
+    const intent = await interpretNaturalLanguage(qTrim, { catalog: vehicleCatalog })
     const { searchParams } = buildCatalogSearchParams(intent)
     const qs = searchParams.toString()
-    return qs ? `/catalogo?${qs}` : '/catalogo'
-  }
-
-  function goCatalog() {
-    setOpen(false)
-    navigate(catalogHrefFromQuery(qTrim))
+    navigate(qs ? `/catalogo?${qs}` : '/catalogo')
   }
 
   function goVehicle(v: VehicleCatalogEntry) {

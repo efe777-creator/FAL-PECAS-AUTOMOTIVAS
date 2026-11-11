@@ -20,25 +20,25 @@ describe('vehicleAppYear (MARCHA UI)', () => {
   })
 
   it('formatVehicleAppYear — início e fim', () => {
-    expect(formatVehicleAppYear({ yearStart: 2000, yearEnd: 2005 })).toBe('00/05')
-    expect(formatVehicleAppYear({ yearStart: 2020, yearEnd: 2022 })).toBe('20/22')
-    expect(formatVehicleAppYear({ yearStart: 2010, yearEnd: 2010 })).toBe('10')
+    expect(formatVehicleAppYear({ yearStart: 2000, yearEnd: 2005 })).toBe('2000–2005')
+    expect(formatVehicleAppYear({ yearStart: 2020, yearEnd: 2022 })).toBe('2020–2022')
+    expect(formatVehicleAppYear({ yearStart: 2010, yearEnd: 2010 })).toBe('2010')
   })
 
-  it('formatVehicleAppYear — só início → YY/...', () => {
-    expect(formatVehicleAppYear({ yearStart: 1997, yearEnd: null })).toBe('97/...')
-    expect(formatVehicleAppYear({ yearStart: 2012, yearEnd: null })).toBe('12/...')
+  it('formatVehicleAppYear — só início → YYYY–atual', () => {
+    expect(formatVehicleAppYear({ yearStart: 1997, yearEnd: null })).toBe('1997–atual')
+    expect(formatVehicleAppYear({ yearStart: 2012, yearEnd: null })).toBe('2012–atual')
   })
 
-  it('formatVehicleAppYear — só fim → .../YY (mostra o fim conhecido)', () => {
-    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 2010 })).toBe('.../10')
-    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 1997 })).toBe('.../97')
+  it('formatVehicleAppYear — só fim → até YYYY', () => {
+    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 2010 })).toBe('até 2010')
+    expect(formatVehicleAppYear({ yearStart: null, yearEnd: 1997 })).toBe('até 1997')
     expect(YEAR_NO_START_LABEL).toBe('Sem ano inicial')
   })
 
   it('formatVehicleAppYear — ambos ausentes / legado / inválido', () => {
     expect(formatVehicleAppYear({})).toBeNull()
-    expect(formatVehicleAppYear({ versionYear: 2012 })).toBe('12')
+    expect(formatVehicleAppYear({ versionYear: 2012 })).toBe('2012')
     expect(formatVehicleAppYear({ yearStart: 1800, yearEnd: 2000 })).toBeNull()
     expect(formatVehicleAppYear({ yearStart: 2000, yearEnd: 9999 })).toBeNull()
   })

@@ -24,7 +24,7 @@ import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
-import { interpretSearchQuery } from '@/services/search/interpretSearchQuery'
+import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
 import { searchCatalog } from '@/services/search/searchService'
 import { getVehicleOptions, listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import type {
@@ -396,7 +396,7 @@ export function CatalogPage() {
   /** Texto livre → URL canônica (mesmos params do seletor YMM). */
   async function applyInterpretedQuery(raw: string) {
     const catalog = await listVehicleCatalogEntries()
-    const intent = interpretSearchQuery(raw, catalog)
+    const intent = await interpretNaturalLanguage(raw, { catalog })
     const { catalogParams } = buildCatalogSearchParams(intent)
     patchParams({
       q: catalogParams.q ?? null,
@@ -418,7 +418,7 @@ export function CatalogPage() {
       try {
         const catalog = await listVehicleCatalogEntries()
         if (cancelled) return
-        const intent = interpretSearchQuery(raw, catalog)
+        const intent = await interpretNaturalLanguage(raw, { catalog })
         const { catalogParams } = buildCatalogSearchParams(intent)
         const hasVehicle =
           Boolean(catalogParams.maker) ||

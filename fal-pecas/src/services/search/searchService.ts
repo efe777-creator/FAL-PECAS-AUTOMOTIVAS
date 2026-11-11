@@ -9,7 +9,7 @@ import {
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import { attachPrimaryProductImages } from '@/services/products/productImages'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
-import { interpretSearchQuery } from '@/services/search/interpretSearchQuery'
+import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
 import { prepareSearchQuery } from '@/services/search/searchPrepService'
 import { listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
@@ -187,7 +187,7 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
   if (params.q?.trim() && !hasVehicle) {
     try {
       const catalog = await listVehicleCatalogEntries()
-      const intent = interpretSearchQuery(params.q, catalog)
+      const intent = await interpretNaturalLanguage(params.q, { catalog })
       const { catalogParams } = buildCatalogSearchParams(intent)
       // Não manter o q bruto quando a frase inteira virou filtro de veículo
       // (ex.: "HB20 2015" → model+year sem texto de produto).
