@@ -20,7 +20,7 @@
 |------|----------|-----------|
 | SQL YMM HYUNDAI/HB20/2015 | BRD2109, TDI2116, TDI2117 (3) | **PASS** |
 | Site seletor `?maker=HYUNDAI&model=HB20&year=2015` | 3 produtos + preços | **PASS** |
-| Site texto `?q=HB20%202015` | mesmos 3 (após deploy front) | pendente redeploy |
+| Site texto `?q=HB20%202015` | mesmos 3 (após deploy `6af493b6`) | **PASS** (BRD2109, TDI2116, TDI2117) |
 
 ## Assinatura
 
