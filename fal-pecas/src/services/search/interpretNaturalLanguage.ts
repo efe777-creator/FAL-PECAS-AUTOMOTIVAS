@@ -1,21 +1,20 @@
 /**
  * Camada IA (P2) — contrato estável.
- * Hoje: fallback 100% determinístico via interpretSearchQuery.
- * Pronto para Edge LLM grátis (Groq/Gemini): só quando allowLlm=true E flag remota.
- * Nunca inventa PVC / preço / estoque — LLM só devolve SearchIntent candidato.
+ * Fallback permanente: interpretSearchQuery.
+ * LLM: Edge `interpret-search-nl` só com VITE_SEARCH_NL_LLM=1.
+ * Nunca inventa PVC / preço / estoque.
  */
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import {
   interpretSearchQuery,
   type SearchIntent,
+  type SearchIntentVehicle,
   type VehicleCatalogEntry,
 } from './interpretSearchQuery'
 
 export type NlInterpretOptions = {
   catalog?: VehicleCatalogEntry[]
-  /**
-   * Reserva para Edge LLM. Ignorado até `VITE_SEARCH_NL_LLM=1` + função deployada.
-   * Default false = busca refinada só com parser determinístico.
-   */
+  /** Default true quando env liga LLM; false força só determinístico. */
   allowLlm?: boolean
 }
 
@@ -27,26 +26,65 @@ function llmEnabledByEnv(): boolean {
   }
 }
 
+function mergeIntent(
+  base: SearchIntent,
+  partial: Partial<SearchIntent> | null | undefined,
+  catalog: VehicleCatalogEntry[],
+): SearchIntent {
+  if (!partial || typeof partial !== 'object') return base
+  const vehicle: SearchIntentVehicle = {
+    ...base.vehicle,
+    ...(partial.vehicle ?? {}),
+  }
+  // Revalida model contra catálogo se LLM inventou grafia
+  if (vehicle.model && catalog.length) {
+    const key = vehicle.model.trim().toLowerCase()
+    const hit = catalog.find((c) => c.model.toLowerCase() === key)
+    if (hit) {
+      vehicle.model = hit.model
+      vehicle.maker = vehicle.maker || hit.maker
+    }
+  }
+  return {
+    ...base,
+    productQuery:
+      partial.productQuery !== undefined ? partial.productQuery : base.productQuery,
+    vehicle,
+    codeHint: partial.codeHint ?? base.codeHint,
+    needsClarification: partial.needsClarification ?? base.needsClarification,
+    clarification: partial.clarification ?? base.clarification,
+    confidence: partial.confidence ?? base.confidence,
+  }
+}
+
 /**
  * Interpreta linguagem natural ou query curta.
- * Sempre tem fallback determinístico — IA down ≠ busca quebrada.
+ * IA down / flag off → determinístico (busca não quebra).
  */
 export async function interpretNaturalLanguage(
   raw: string,
   opts: NlInterpretOptions = {},
 ): Promise<SearchIntent> {
   const catalog = opts.catalog ?? []
-  const wantLlm = Boolean(opts.allowLlm) && llmEnabledByEnv()
+  const deterministic = interpretSearchQuery(raw, catalog)
+  const wantLlm = opts.allowLlm !== false && llmEnabledByEnv()
 
-  if (wantLlm) {
-    try {
-      // Hook futuro: supabase.functions.invoke('interpret-search-nl', { body: { q: raw } })
-      // Resposta deve ser SearchIntent parcial; merge + validar contra catalog.
-      // Enquanto a Edge não existir, cai no determinístico.
-    } catch {
-      /* fallback abaixo */
-    }
+  if (!wantLlm || !isSupabaseConfigured || !supabase) {
+    return deterministic
   }
 
-  return interpretSearchQuery(raw, catalog)
+  // Código / YMM já altos: não gasta LLM
+  if (deterministic.confidence === 'high' || deterministic.codeHint) {
+    return deterministic
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('interpret-search-nl', {
+      body: { q: raw },
+    })
+    if (error || !data || data.intent == null) return deterministic
+    return mergeIntent(deterministic, data.intent as Partial<SearchIntent>, catalog)
+  } catch {
+    return deterministic
+  }
 }

@@ -61,4 +61,10 @@ describe('interpretSearchQuery', () => {
     expect(i.vehicle.version?.toLowerCase()).toBe('one')
     expect(i.productQuery).toBeNull()
   })
+
+  it('Nakata PVI1032 → prioriza código (não perde SKU)', () => {
+    const i = interpretSearchQuery('Nakata PVI1032', catalog)
+    expect(i.codeHint).toBe('PVI1032')
+    expect(i.productQuery).toBe('PVI1032')
+  })
 })

@@ -222,10 +222,23 @@ export function interpretSearchQuery(
   }
 
   const leftover = tokens.filter((_, i) => !used.has(i))
+  /** Marcas de peça: com SKU no query, não poluem p_q (AND zerava ex. Nakata+PVI sem brand_id). */
+  const BRAND_WORDS = new Set(
+    ['nakata', 'cofap', 'monroe', 'trw', 'skf', 'ina', 'luk', 'bosch', 'ngk', 'mahle'].map((w) =>
+      normalizeEntityMatchKey(w),
+    ),
+  )
   let productQuery: string | null
-  if (leftover.length) productQuery = leftover.join(' ')
-  else if (codeHint) productQuery = codeHint
-  else productQuery = null
+  if (codeHint) {
+    const extra = leftover.filter(
+      (t) => isLikelyProductWord(t) && !BRAND_WORDS.has(normalizeEntityMatchKey(t)),
+    )
+    productQuery = extra.length ? `${codeHint} ${extra.join(' ')}` : codeHint
+  } else if (leftover.length) {
+    productQuery = leftover.join(' ')
+  } else {
+    productQuery = null
+  }
 
   let confidence: SearchIntent['confidence'] = 'low'
   if (vehicle.model && vehicle.year) confidence = 'high'

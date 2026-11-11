@@ -16,6 +16,24 @@ import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSo
 
 const DEFAULT_PAGE_SIZE = 24
 
+/** Fire-and-forget: monitor de zero-result (não bloqueia a listagem). */
+async function logSearchZeroResult(params: ProductSearchParams): Promise<void> {
+  if (!supabase) return
+  try {
+    await supabase.from('search_zero_results').insert({
+      q: params.q?.trim() || null,
+      maker: params.maker?.trim() || null,
+      model: params.model?.trim() || null,
+      year: params.year?.trim() || null,
+      engine: params.engine?.trim() || null,
+      version: params.version?.trim() || null,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 240) : null,
+    })
+  } catch {
+    /* tabela ausente / RLS — busca segue */
+  }
+}
+
 function mapRpcRow(row: Record<string, unknown>): Product {
   const sku = String(row.sku)
   const resolved =
@@ -220,6 +238,9 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
 
   const rows = (data ?? []) as Record<string, unknown>[]
   const total = rows.length ? Number(rows[0].total_count ?? 0) : 0
+  if (total === 0 && page === 1) {
+    void logSearchZeroResult(effective)
+  }
   const mapped = rows.map(mapRpcRow)
   const withMeta = await enrichPageProductMeta(mapped)
   const withApps = await attachCompatibilitySummaries(withMeta, {
