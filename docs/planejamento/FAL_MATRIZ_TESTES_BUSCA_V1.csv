@@ -1,0 +1,24 @@
+id,entrada,resultado_atual,resultado_esperado,evidencia,status,gravidade,dependencias,criterio_aprovacao
+T01,HB20 (texto),SQL prod q=HB20 → 0; TinyFish → 3 produtos,Reconhecer veiculo e/ou listar apps PVC HB20,SQL 2026-11-11; TinyFish run 098d4da4,divergente_ambientes,P0,BUS-01 BUS-02,Texto ou autocomplete expoe veiculo; catalogo coerente com PVC
+T02,Hyundai HB20 (texto/autocomplete),TinyFish: 3 sugestoes produto; sem sugestao veiculo,Sugestoes VEICULO + pecas,TinyFish,falhou_parcial,P1,BUS-04,Secao VEICULOS com Hyundai HB20
+T03,HB20 2015 (texto),SQL RPC 2015=2 apos patch; parser Vitest PASS; E2E front pendente deploy,Mesmos produtos do filtro PVC para 2015,SQL+Vitest,passou_sql_e_unit / e2e_pendente,P0,BUS-01 BUS-02,total texto = total YMM apos fix
+T04,HB20 1.0 2015 (texto),Parser engine+year PASS; SQL engine sanitize; SKUs ambos ligados 1.0 e 1.6,Filtrar motor 1.0 + ano via PVC,Vitest+SQL,passou_parcial_dado,P0,BUS-01 VEI-01,So apps 1.0 (+ curingas)
+T05,HB20 1.6 2015 (texto),Idem T04 — ambos SKUs nas duas VV,Filtrar 1.6 + ano,SQL,passou_parcial_dado,P0,BUS-01 VEI-01,Nao misturar so 1.0
+T06,HB20 One (texto),VV prod sem One,Reconhecer versao se cadastrada ou clarificar,SQL,dado_ausente,P1,VEI dados,Versao cadastrada ou empty claro
+T07,Seletor Hyundai HB20 2015,SQL apos patch: TDI2116+TDI2117,Incluir 2015 via PVC range,SQL search_products,passou,P0,BUS-02,year=2015 retorna >=2 SKUs atuais
+T08,Seletor HB20 2015 1.0,2 TDI; BRD ainda ausente,3 ou conjunto PVC valido,SQL,passou_parcial PRO-02,P0,BUS-02 VEI-01 PRO-02,Conjunto documentado pos-fix
+T09,terminal HB20 2015,Parser Vitest PASS (q=terminal + model+year),Terminais PVC HB20 2015,Vitest,passou_unit / e2e_pendente,P0,BUS-01,TDI* no resultado
+T10,Terminal de direcao,SQL q=terminal → 36 total (amostra),Lista categoria/nome terminal,SQL,passou_parcial,P1,—,total > 0
+T11,Pivo,nao executado,Produtos pivô/sinônimo,—,nao_executado,P1,OPS-01 sinonimos,total > 0
+T12,Pivo Palio / Palio 2010,Parser pronto; E2E nao rodado,Peça + PVC Palio,—,nao_executado,P0,BUS-01,Filtro veiculo aplicado
+T13,Nakata PVI1032,nao executado,Hit marca+ref,—,nao_executado,P1,refs,SKU/ref encontrado
+T14,BRD2109,SQL: produto ausente; TinyFish listou,Hit codigo + PDP,SQL+TinyFish,pendente_comercial,P0,PRO-02,SKU published
+T15,TDI2116,SQL: hit codigo OK; price 0,Hit codigo; preco resolvido >0,SQL,passou_codigo / preco_pendente,P0,PRO-03,Codigo acha; preco ok
+T16,Produto sem aplicacao,TDI0150 published sem PVC,Nao afirmar compatibilidade,SQL,passou_codigo,P1,—,Sem badge falso
+T17,Veiculo sem produtos,Empty state atualizado,Mostrar veiculo + empty claro,CatalogPage,passou_codigo,P1,BUS-04,Copy especifica
+T18,Aplicacao year_end null,RPC range OK; label 12/... mantida,2015 compativel; label clara,SQL+formatVehicleAppYear,passou_match / label_aguardando_efe,P0/P1,BUS-02 UX-01,Match + copy
+T19,Erro digitacao,nao executado,Sugestao se sinonimo/fuzzy,—,nao_executado,P2,—,Recupera intent
+T20,Garagem veiculo salvo,Codigo alinhado URL; E2E pendente,Mesmos params URL / PVC,Onda4 VAL,passou_codigo / e2e_pendente,P1,GPL,total = seletor
+T21,Placa ok,Codigo alinhado; E2E pendente,Confirma + catalogo PVC,Onda4 VAL,passou_codigo / e2e_pendente,P1,GPL-01,Sem mock como real
+T22,Placa falha,codigo: fase manual,Abre seletor manual,VehiclePlateSearch.tsx,passou_codigo,P1,—,Fallback manual
+T23,IA indisponivel,interpretNaturalLanguage fallback deterministico,Busca tradicional ok,codigo,passou,P2,—,Sem regressao

@@ -8,7 +8,10 @@ import {
 } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import { attachPrimaryProductImages } from '@/services/products/productImages'
+import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
+import { interpretSearchQuery } from '@/services/search/interpretSearchQuery'
 import { prepareSearchQuery } from '@/services/search/searchPrepService'
+import { listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import type { Product, ProductSearchParams, ProductSearchResult, ProductSearchSort } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 24
@@ -174,16 +177,34 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
     return mockSearch({ ...params, page, pageSize, sort })
   }
 
-  const qPrepared = await prepareSearchQuery(params.q)
+  let effective: ProductSearchParams = { ...params }
+  const hasVehicle =
+    Boolean(params.maker?.trim()) ||
+    Boolean(params.model?.trim()) ||
+    Boolean(params.year?.trim()) ||
+    Boolean(params.engine?.trim()) ||
+    Boolean(params.version?.trim())
+  if (params.q?.trim() && !hasVehicle) {
+    try {
+      const catalog = await listVehicleCatalogEntries()
+      const intent = interpretSearchQuery(params.q, catalog)
+      const { catalogParams } = buildCatalogSearchParams(intent)
+      effective = { ...params, ...catalogParams }
+    } catch {
+      // Mantém params originais se o catálogo de veículos falhar
+    }
+  }
+
+  const qPrepared = await prepareSearchQuery(effective.q)
   const { data, error } = await supabase.rpc('search_products', {
     p_q: qPrepared || null,
-    p_category: params.category?.trim() || null,
-    p_brand: params.brand?.trim() || null,
-    p_maker: params.maker?.trim() || null,
-    p_model: params.model?.trim() || null,
-    p_year: params.year?.trim() || null,
-    p_engine: params.engine?.trim() || null,
-    p_version: params.version?.trim() || null,
+    p_category: effective.category?.trim() || null,
+    p_brand: effective.brand?.trim() || null,
+    p_maker: effective.maker?.trim() || null,
+    p_model: effective.model?.trim() || null,
+    p_year: effective.year?.trim() || null,
+    p_engine: effective.engine?.trim() || null,
+    p_version: effective.version?.trim() || null,
     p_sort: sort,
     p_page: page,
     p_page_size: pageSize,

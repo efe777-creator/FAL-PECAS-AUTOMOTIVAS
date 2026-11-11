@@ -2,6 +2,7 @@ import { mockVehicleTree } from '@/data/mocks/vehicles'
 import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { expandYearsForSelector } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import type { VehicleCatalogEntry } from '@/services/search/interpretSearchQuery'
 import type { VehicleFilter, VehicleOptionTree } from '@/types'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 
@@ -155,6 +156,50 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
     enginesByModel,
     versionsByModel,
   }
+}
+
+let vehicleCatalogCache: { at: number; entries: VehicleCatalogEntry[] } | null = null
+const VEHICLE_CATALOG_TTL_MS = 5 * 60 * 1000
+
+/** Distinct maker+model active para o interpretador de busca. */
+export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]> {
+  const now = Date.now()
+  if (vehicleCatalogCache && now - vehicleCatalogCache.at < VEHICLE_CATALOG_TTL_MS) {
+    return vehicleCatalogCache.entries
+  }
+
+  assertStoreBackendConfigured()
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
+    const entries: VehicleCatalogEntry[] = []
+    for (const [maker, models] of Object.entries(mockVehicleTree.modelsByMaker)) {
+      for (const model of models) entries.push({ maker, model })
+    }
+    vehicleCatalogCache = { at: now, entries }
+    return entries
+  }
+
+  const { data, error } = await supabase
+    .from('models')
+    .select('name, status, manufacturers!inner(name, status)')
+    .eq('status', 'active')
+    .eq('manufacturers.status', 'active')
+    .order('name')
+  if (error) throw error
+
+  const entries: VehicleCatalogEntry[] = []
+  const seen = new Set<string>()
+  for (const row of data ?? []) {
+    const maker = relationName(row.manufacturers)
+    const model = String(row.name ?? '')
+    if (!maker || !model) continue
+    const key = `${maker.toLowerCase()}|${model.toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    entries.push({ maker, model })
+  }
+  vehicleCatalogCache = { at: now, entries }
+  return entries
 }
 
 export function buildVehicleQuery(filter: VehicleFilter): URLSearchParams {

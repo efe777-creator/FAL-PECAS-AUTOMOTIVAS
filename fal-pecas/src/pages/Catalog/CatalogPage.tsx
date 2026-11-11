@@ -23,8 +23,10 @@ import {
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
+import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
+import { interpretSearchQuery } from '@/services/search/interpretSearchQuery'
 import { searchCatalog } from '@/services/search/searchService'
-import { getVehicleOptions } from '@/services/vehicles/vehicleService'
+import { getVehicleOptions, listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
 import type {
   Category,
   Product,
@@ -407,9 +409,28 @@ export function CatalogPage() {
     }
   }
 
-  function applySearch(e?: FormEvent) {
+  async function applySearch(e?: FormEvent) {
     e?.preventDefault()
-    patchParams({ q: searchDraft.trim() || null })
+    const raw = searchDraft.trim()
+    if (!raw) {
+      patchParams({ q: null })
+      return
+    }
+    try {
+      const catalog = await listVehicleCatalogEntries()
+      const intent = interpretSearchQuery(raw, catalog)
+      const { catalogParams } = buildCatalogSearchParams(intent)
+      patchParams({
+        q: catalogParams.q ?? null,
+        maker: catalogParams.maker ?? null,
+        model: catalogParams.model ?? null,
+        year: catalogParams.year ?? null,
+        engine: catalogParams.engine ?? null,
+        version: catalogParams.version ?? null,
+      })
+    } catch {
+      patchParams({ q: raw })
+    }
   }
 
   function clearFilters() {
@@ -878,7 +899,7 @@ export function CatalogPage() {
           <EmptyState
             title={
               vehicleFiltersActive
-                ? 'Sem peças para este veículo'
+                ? 'Veículo reconhecido — sem peças compatíveis'
                 : 'Nenhum produto encontrado'
             }
             description={emptyDescription}

@@ -1,4 +1,4 @@
-import { toCommercialTitleCase } from '@/lib/entityNormalize'
+import { formatModelDisplayName, toCommercialTitleCase } from '@/lib/entityNormalize'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { CompatibilityAppGroup, CompatibilityAppLine } from '@/types'
@@ -148,7 +148,7 @@ export function groupCompatibilityApps(
     const makerRaw = row.maker?.trim() || 'Outros'
     const makerKey = makerRaw.toLocaleLowerCase('pt-BR')
     const makerDisplay = toCommercialTitleCase(makerRaw)
-    const model = toCommercialTitleCase(row.model ?? '')
+    const model = formatModelDisplayName(row.model ?? '')
     if (!model && !row.yearLabel) continue
 
     const line: CompatibilityAppLine = {
