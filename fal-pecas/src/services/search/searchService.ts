@@ -189,7 +189,13 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
       const catalog = await listVehicleCatalogEntries()
       const intent = interpretSearchQuery(params.q, catalog)
       const { catalogParams } = buildCatalogSearchParams(intent)
-      effective = { ...params, ...catalogParams }
+      // Não manter o q bruto quando a frase inteira virou filtro de veículo
+      // (ex.: "HB20 2015" → model+year sem texto de produto).
+      effective = {
+        ...params,
+        ...catalogParams,
+        q: catalogParams.q,
+      }
     } catch {
       // Mantém params originais se o catálogo de veículos falhar
     }

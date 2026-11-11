@@ -183,16 +183,21 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     .from('models')
     .select('name, status, manufacturers!inner(name, status)')
     .eq('status', 'active')
-    .eq('manufacturers.status', 'active')
     .order('name')
   if (error) throw error
 
   const entries: VehicleCatalogEntry[] = []
   const seen = new Set<string>()
   for (const row of data ?? []) {
-    const maker = relationName(row.manufacturers)
+    const rawMaker = row.manufacturers as
+      | { name?: string; status?: string }
+      | { name?: string; status?: string }[]
+      | null
+    const makerObj = Array.isArray(rawMaker) ? rawMaker[0] : rawMaker
+    if (!makerObj?.name || makerObj.status !== 'active') continue
+    const maker = String(makerObj.name)
     const model = String(row.name ?? '')
-    if (!maker || !model) continue
+    if (!model) continue
     const key = `${maker.toLowerCase()}|${model.toLowerCase()}`
     if (seen.has(key)) continue
     seen.add(key)

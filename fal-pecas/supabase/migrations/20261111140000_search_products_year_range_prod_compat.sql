@@ -187,7 +187,6 @@ begin
     left join public.product_brands pb on pb.id = p.brand_id
     left join public.product_categories pc on pc.id = p.category_id
     where p.status = 'published'
-      and public.customer_can_see_product(p.id)
       and (
         v_category is null
         or p.category_id in (select cat_ids.id from cat_ids)
