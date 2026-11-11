@@ -36,7 +36,7 @@ function base(partial: Partial<AdminOrderDetail>): AdminOrderDetail {
     ],
     events: [],
     payment: null,
-    shipment: { provider: 'own', status: 'pending', trackingCode: null, amount: 5, metadata: null },
+    shipment: { id: 's1', provider: 'own', status: 'pending', trackingCode: null, amount: 5, metadata: null },
     ...partial,
   }
 }
@@ -67,6 +67,7 @@ describe('buildOrderOpsWizard (Fase 2)', () => {
           },
         ],
         shipment: {
+          id: 's1',
           provider: 'melhorenvio',
           status: 'pending',
           trackingCode: null,
