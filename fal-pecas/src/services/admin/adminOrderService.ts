@@ -737,17 +737,29 @@ export async function adminMarkPaymentRefunded(
   return data as { order_id: string; payment_status: string }
 }
 
-/** CP-EMB-01 — volumes neutros em shipments.metadata.packing */
+/** CP-EMB + Marcha 3 — volumes + alocação (ou exceção) em shipments.metadata.packing */
 export async function adminSetOrderPacking(
   orderId: string,
   volumes: unknown[],
-): Promise<{ order_id: string; shipment_id: string }> {
+  allocationException?: { active: boolean; reason: string } | null,
+): Promise<{
+  order_id: string
+  shipment_id: string
+  allocation_status?: string
+  complete?: boolean
+}> {
   const { data, error } = await getSupabase().rpc('admin_set_order_packing', {
     p_order_id: orderId,
     p_volumes: volumes,
+    p_allocation_exception: allocationException ?? null,
   })
   if (error) throw error
-  return data as { order_id: string; shipment_id: string }
+  return data as {
+    order_id: string
+    shipment_id: string
+    allocation_status?: string
+    complete?: boolean
+  }
 }
 
 /** CP-EVT-01 — abrir / atualizar / resolver ocorrência */

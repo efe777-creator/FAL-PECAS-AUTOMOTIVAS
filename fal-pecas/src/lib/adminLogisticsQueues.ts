@@ -4,7 +4,13 @@
  * Mock nunca entra em etiquetas-me nem entregas-proprias.
  */
 
-import { parseOrderPacking, type OrderPacking } from '@/lib/orderPacking'
+import {
+  isOrderPackingStructurallyComplete,
+  packingCompleteFromMeta,
+  parseOrderPacking,
+} from '@/lib/orderPacking'
+
+export { isOrderPackingStructurallyComplete } from '@/lib/orderPacking'
 
 /** Filas operacionais sob Expedição / hub (Opção A híbrida). */
 export type AdminLogisticsQueueId =
@@ -156,22 +162,17 @@ export function normalizeShipProvider(provider: string | null | undefined): 'mel
 }
 
 /**
- * Packing estruturalmente completo (Marcha 1).
- * Alocação formal produtos↔volumes = Marcha 3 — aqui só volumes com dims/peso válidos.
+ * Packing completo (Marcha 3): estrutural + alocação (ou exceção) no metadata.
+ * Sem alocação → permanece em "Preparar volumes".
  */
-export function isOrderPackingStructurallyComplete(packing: OrderPacking): boolean {
-  if (!packing.volumes.length) return false
-  return packing.volumes.every(
-    (v) =>
-      Boolean(v.id) &&
-      Number(v.lengthCm) > 0 &&
-      Number(v.widthCm) > 0 &&
-      Number(v.heightCm) > 0 &&
-      Number(v.weightKg) > 0,
-  )
+export function packingFromShipmentMeta(
+  metadata: Record<string, unknown> | null | undefined,
+): boolean {
+  return packingCompleteFromMeta(metadata)
 }
 
-export function packingFromShipmentMeta(
+/** Só dims/peso — útil para mensagens de próxima ação. */
+export function packingStructurallyFromMeta(
   metadata: Record<string, unknown> | null | undefined,
 ): boolean {
   return isOrderPackingStructurallyComplete(parseOrderPacking(metadata ?? null))
@@ -256,16 +257,21 @@ export function logisticsNextAction(order: LogisticsOrderLite): AdminLogisticsNe
 
   const packing = parseOrderPacking(order.shipment?.metadata ?? null)
   const packingOk = packingFromShipmentMeta(order.shipment?.metadata ?? null)
+  const structuralOk = packingStructurallyFromMeta(order.shipment?.metadata ?? null)
   if (!packing.volumes.length) return 'aguardar_embalagem'
   if (!packingOk) {
-    const invalid = packing.volumes.some(
-      (v) =>
-        Number(v.lengthCm) <= 0 ||
-        Number(v.widthCm) <= 0 ||
-        Number(v.heightCm) <= 0 ||
-        Number(v.weightKg) <= 0,
-    )
-    return invalid ? 'embalagem_invalida' : 'embalagem_incompleta'
+    if (!structuralOk) {
+      const invalid = packing.volumes.some(
+        (v) =>
+          Number(v.lengthCm) <= 0 ||
+          Number(v.widthCm) <= 0 ||
+          Number(v.heightCm) <= 0 ||
+          Number(v.weightKg) <= 0,
+      )
+      return invalid ? 'embalagem_invalida' : 'embalagem_incompleta'
+    }
+    if (packing.allocationStatus === 'invalid') return 'embalagem_invalida'
+    return 'embalagem_incompleta'
   }
 
   const labelState = meLabelStateFromMeta(order.shipment?.metadata ?? null)

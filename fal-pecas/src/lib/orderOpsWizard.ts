@@ -1,4 +1,4 @@
-import { parseOrderPacking } from '@/lib/orderPacking'
+import { isOrderPackingComplete, parseOrderPacking } from '@/lib/orderPacking'
 import { orderUsesMelhorEnvio } from '@/lib/orderShippingKind'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 
@@ -25,14 +25,16 @@ export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
   const st = order.status
   const packing = parseOrderPacking(order.shipment?.metadata ?? null)
   const hasVolumes = packing.volumes.length > 0
+  const packingDone = isOrderPackingComplete(
+    packing,
+    order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+  )
   const isMe = orderUsesMelhorEnvio(order)
-  const allSeparated =
-    order.items.length > 0 && order.items.every((i) => Boolean(i.separated))
 
   const confDone = ['pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'].includes(st)
   const confCurrent = ['confirmado', 'em_separacao'].includes(st)
-  const volDone = confDone || (confCurrent && hasVolumes)
-  const volCurrent = confCurrent && !hasVolumes
+  const volDone = confDone || (confCurrent && packingDone)
+  const volCurrent = confCurrent && !packingDone
   const freteDone = ['enviado', 'entregue'].includes(st) || (confDone && Boolean(order.shipment))
   const freteCurrent = confDone && !['enviado', 'entregue'].includes(st)
   const labelDone =

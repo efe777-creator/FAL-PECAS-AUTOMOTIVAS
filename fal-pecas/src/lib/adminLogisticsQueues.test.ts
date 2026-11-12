@@ -32,7 +32,7 @@ describe('adminLogisticsQueues', () => {
     expect(isPaymentBlockingLogistics('approved')).toBe(false)
   })
 
-  it('packing estrutural exige dims e peso > 0', () => {
+  it('packing completo exige dims/peso + alocação (Marcha 3)', () => {
     expect(
       packingFromShipmentMeta({
         packing: {
@@ -46,10 +46,45 @@ describe('adminLogisticsQueues', () => {
           volumes: [{ id: 'v1', lengthCm: 10, widthCm: 10, heightCm: 10, weightKg: 0.5 }],
         },
       }),
+    ).toBe(false)
+    expect(
+      packingFromShipmentMeta({
+        packing: {
+          volumes: [
+            {
+              id: 'v1',
+              lengthCm: 10,
+              widthCm: 10,
+              heightCm: 10,
+              weightKg: 0.5,
+              lines: [{ orderItemId: 'i1', quantity: 1 }],
+            },
+          ],
+          itemsFingerprint: 'i1:1',
+          allocationStatus: 'complete',
+        },
+      }),
     ).toBe(true)
   })
 
-  it('fila volumes: ME/own sem packing; mock fora', () => {
+  const packedComplete = {
+    packing: {
+      volumes: [
+        {
+          id: 'v1',
+          lengthCm: 10,
+          widthCm: 10,
+          heightCm: 10,
+          weightKg: 1,
+          lines: [{ orderItemId: 'i1', quantity: 1 }],
+        },
+      ],
+      itemsFingerprint: 'i1:1',
+      allocationStatus: 'complete',
+    },
+  }
+
+  it('fila volumes: ME/own sem packing completo; mock fora; só dims ainda é volumes', () => {
     const base = {
       status: 'pronto_para_envio',
       paymentStatus: 'approved',
@@ -77,15 +112,17 @@ describe('adminLogisticsQueues', () => {
         },
         'volumes',
       ),
+    ).toBe(true)
+    expect(
+      orderMatchesLogisticsQueue(
+        { ...base, shipment: { provider: 'own', metadata: packedComplete } },
+        'volumes',
+      ),
     ).toBe(false)
   })
 
-  it('etiquetas-me exige packing + approved + não purchased; own não entra', () => {
-    const packed = {
-      packing: {
-        volumes: [{ id: 'v1', lengthCm: 10, widthCm: 10, heightCm: 10, weightKg: 1 }],
-      },
-    }
+  it('etiquetas-me exige packing completo + approved + não purchased; own não entra', () => {
+    const packed = packedComplete
     const me = {
       status: 'pronto_para_envio',
       paymentStatus: 'approved',
@@ -116,17 +153,12 @@ describe('adminLogisticsQueues', () => {
   })
 
   it('entregas-proprias só provider=own (nunca mock)', () => {
-    const packed = {
-      packing: {
-        volumes: [{ id: 'v1', lengthCm: 10, widthCm: 10, heightCm: 10, weightKg: 1 }],
-      },
-    }
     expect(
       orderMatchesLogisticsQueue(
         {
           status: 'pronto_para_envio',
           paymentStatus: 'approved',
-          shipment: { provider: 'own', metadata: packed },
+          shipment: { provider: 'own', metadata: packedComplete },
         },
         'entregas-proprias',
       ),
@@ -136,7 +168,7 @@ describe('adminLogisticsQueues', () => {
         {
           status: 'pronto_para_envio',
           paymentStatus: 'approved',
-          shipment: { provider: 'mock', metadata: packed },
+          shipment: { provider: 'mock', metadata: packedComplete },
         },
         'entregas-proprias',
       ),
@@ -166,6 +198,17 @@ describe('adminLogisticsQueues', () => {
           },
         },
       }),
+    ).toBe('embalagem_incompleta')
+
+    expect(
+      logisticsNextAction({
+        status: 'pronto_para_envio',
+        paymentStatus: 'approved',
+        shipment: {
+          provider: 'melhorenvio',
+          metadata: { ...packedComplete, me: { label_state: 'quoted' } },
+        },
+      }),
     ).toBe('emitir_etiqueta')
 
     expect(
@@ -174,12 +217,7 @@ describe('adminLogisticsQueues', () => {
         paymentStatus: 'approved',
         shipment: {
           provider: 'melhorenvio',
-          metadata: {
-            packing: {
-              volumes: [{ id: 'v1', lengthCm: 10, widthCm: 10, heightCm: 10, weightKg: 1 }],
-            },
-            me: { label_state: 'printed' },
-          },
+          metadata: { ...packedComplete, me: { label_state: 'printed' } },
         },
       }),
     ).toBe('aguardar_postagem')
