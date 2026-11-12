@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { ADMIN_LOGISTICS_QUEUES } from '@/lib/adminLogisticsQueues'
 import {
   ADMIN_ORDER_AREAS,
   ADMIN_ORDER_VIEWS,
@@ -25,10 +26,12 @@ import {
   ADMIN_LIST_PAGE_SIZE,
   adminCentralIndicators,
   adminListOrders,
+  adminLogisticsQueueCounts,
   adminOrderStatusCounts,
   type AdminCentralIndicators,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
+import type { LogisticsQueueCounts } from '@/lib/adminLogisticsQueues'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -38,6 +41,7 @@ export function AdminOrdersHubPage() {
   const [attentionRows, setAttentionRows] = useState<AdminOrderListRow[]>([])
   const [recent, setRecent] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
+  const [logisticsCounts, setLogisticsCounts] = useState<LogisticsQueueCounts | null>(null)
   const [indicators, setIndicators] = useState<AdminCentralIndicators | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,16 +63,18 @@ export function AdminOrdersHubPage() {
     setLoading(true)
     setError(null)
     try {
-      const [attentionList, recentList, c, ind] = await Promise.all([
+      const [attentionList, recentList, c, ind, lq] = await Promise.all([
         adminListOrders(null, { statuses: ATTENTION_STATUSES, limit: ADMIN_LIST_PAGE_SIZE }),
         adminListOrders(null, { limit: 6 }),
         adminOrderStatusCounts(),
         adminCentralIndicators().catch(() => null),
+        adminLogisticsQueueCounts().catch(() => null),
       ])
       setAttentionRows(attentionList)
       setRecent(recentList)
       setCounts(c)
       setIndicators(ind)
+      setLogisticsCounts(lq)
     } catch (e) {
       setError(toUserMessage(e, 'Erro ao carregar pedidos'))
     } finally {
@@ -111,8 +117,9 @@ export function AdminOrdersHubPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-navy">Central de Pedidos</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Fluxo: pagamento → análise → separação → volumes → frete/etiqueta → despacho. Escolha
-            a área com trabalho; o detalhe mostra a próxima ação e o wizard de expedição.
+            Fluxo comercial primeiro (pagamento → análise → separação); depois a expedição
+            logística conforme a modalidade contratada. Prazos dos meios ficam em Logística
+            (config).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -252,6 +259,35 @@ export function AdminOrdersHubPage() {
                     <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-navy">{n}</p>
                     <p className="mt-2 text-xs text-fal-muted">{area.description}</p>
                     <p className="mt-3 text-xs font-semibold text-fal-navy">{area.primaryCta} →</p>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-fal-muted">
+              Expedição logística
+            </h2>
+            <p className="mb-3 text-xs text-fal-muted">
+              Filas após embalagem. Melhor Envio e frete próprio separados — mock não entra nas
+              filas reais.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {ADMIN_LOGISTICS_QUEUES.map((q) => {
+                const n = logisticsCounts?.[q.id] ?? null
+                return (
+                  <Link
+                    key={q.id}
+                    to={q.path}
+                    className="rounded-[14px] border border-fal-line bg-white p-4 no-underline transition hover:border-fal-navy"
+                  >
+                    <p className="text-sm font-bold text-fal-navy">{q.title}</p>
+                    <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-navy">
+                      {n == null ? '—' : n}
+                    </p>
+                    <p className="mt-2 text-xs text-fal-muted">{q.description}</p>
+                    <p className="mt-3 text-xs font-semibold text-fal-navy">{q.primaryCta} →</p>
                   </Link>
                 )
               })}

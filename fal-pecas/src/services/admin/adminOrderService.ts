@@ -1,3 +1,11 @@
+import {
+  ADMIN_LOGISTICS_NEXT_ACTION_LABEL,
+  emptyLogisticsQueueCounts,
+  logisticsNextAction,
+  orderMatchesLogisticsQueue,
+  type AdminLogisticsQueueId,
+  type LogisticsQueueCounts,
+} from '@/lib/adminLogisticsQueues'
 import { getSupabase } from '@/lib/supabase'
 import { transitionOrderStatus } from '@/services/orders/orderTransitionService'
 
@@ -15,6 +23,10 @@ export type AdminOrderListRow = {
   customerDecision: 'pending' | 'authorized' | 'rejected' | null
   cancellationRequest: 'pending' | 'approved' | 'rejected' | null
   cancellationReason: string | null
+  /** Marcha 1 — provider do shipment (quando a lista carrega join). */
+  shipProvider?: string | null
+  /** Marcha 1 — próxima ação logística (PT). */
+  logisticsNextActionLabel?: string | null
 }
 
 export type AdminOrderItem = {
@@ -359,6 +371,194 @@ export async function adminOrderStatusCounts(): Promise<Record<string, number>> 
   const out: Record<string, number> = {}
   for (const [k, v] of Object.entries(obj)) out[k] = Number(v)
   return out
+}
+
+/** Marcha 1 — contagens das filas logísticas (RPC server-side). */
+export async function adminLogisticsQueueCounts(): Promise<LogisticsQueueCounts> {
+  const { data, error } = await getSupabase().rpc('admin_logistics_queue_counts')
+  if (error) throw error
+  const raw = (data ?? {}) as Record<string, number>
+  const base = emptyLogisticsQueueCounts()
+  for (const id of Object.keys(base) as AdminLogisticsQueueId[]) {
+    base[id] = Number(raw[id] ?? 0)
+  }
+  return base
+}
+
+function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
+  const cust = row.customers as Record<string, unknown> | Record<string, unknown>[] | null
+  const c = Array.isArray(cust) ? cust[0] : cust
+  const profiles = c?.profiles as { full_name?: string } | { full_name?: string }[] | null | undefined
+  const prof = Array.isArray(profiles) ? profiles[0] : profiles
+  const items = row.order_items as unknown[] | null
+  const pays = row.payments as { status?: string; expires_at?: string }[] | null
+  const pay = Array.isArray(pays) ? pays[0] : null
+  const ships = row.shipments as
+    | { provider?: string; metadata?: Record<string, unknown> }[]
+    | null
+  const ship = Array.isArray(ships) ? ships[0] : null
+  const decision =
+    row.customer_decision === 'pending' ||
+    row.customer_decision === 'authorized' ||
+    row.customer_decision === 'rejected'
+      ? row.customer_decision
+      : null
+  const cancelReq =
+    row.cancellation_request === 'pending' ||
+    row.cancellation_request === 'approved' ||
+    row.cancellation_request === 'rejected'
+      ? row.cancellation_request
+      : null
+  const paymentStatus = pay?.status != null ? String(pay.status) : null
+  const shipProvider = ship?.provider != null ? String(ship.provider) : null
+  const meta =
+    ship?.metadata && typeof ship.metadata === 'object'
+      ? (ship.metadata as Record<string, unknown>)
+      : null
+  const next = logisticsNextAction({
+    status: String(row.status),
+    paymentStatus,
+    shipment: { provider: shipProvider, metadata: meta },
+  })
+  return {
+    id: String(row.id),
+    status: String(row.status),
+    total: Number(row.total ?? 0),
+    createdAt: String(row.created_at),
+    customerName: prof?.full_name != null ? String(prof.full_name) : null,
+    itemCount: Array.isArray(items) ? items.length : 0,
+    paymentStatus,
+    paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
+    customerDecision: decision,
+    cancellationRequest: cancelReq,
+    cancellationReason: row.cancellation_reason != null ? String(row.cancellation_reason) : null,
+    shipProvider,
+    logisticsNextActionLabel: ADMIN_LOGISTICS_NEXT_ACTION_LABEL[next],
+  }
+}
+
+/**
+ * Lista fila logística composta (Marcha 1).
+ * Busca por status elegíveis + join shipment/payment; aplica a mesma regra de orderMatchesLogisticsQueue.
+ * Contagens do hub usam RPC; esta lista filtra o subconjunto expedição (paginação ampla).
+ */
+export async function adminListLogisticsQueue(
+  queueId: AdminLogisticsQueueId,
+  opts?: { offset?: number; limit?: number },
+): Promise<AdminOrderListRow[]> {
+  const limit = opts?.limit ?? ADMIN_LIST_PAGE_SIZE
+  const offset = opts?.offset ?? 0
+
+  if (queueId === 'transito' || queueId === 'entregues') {
+    const status = queueId === 'transito' ? 'enviado' : 'entregue'
+    const { data, error } = await getSupabase()
+      .from('orders')
+      .select(
+        `
+        id, status, total, created_at, customer_id, customer_decision,
+        cancellation_request, cancellation_reason,
+        customers ( cpf, cnpj, profiles ( full_name ) ),
+        order_items ( id ),
+        payments ( status, expires_at ),
+        shipments ( provider, metadata )
+      `,
+      )
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + limit - 1)
+    if (error) throw error
+    return (data ?? []).map((row) => mapLogisticsListRow(row as Record<string, unknown>))
+  }
+
+  if (queueId === 'revisao') {
+    const { data: reviews, error: revErr } = await getSupabase()
+      .from('own_manual_reviews')
+      .select('order_id')
+      .eq('status', 'pending')
+      .not('order_id', 'is', null)
+      .limit(500)
+    if (revErr) throw revErr
+    const ids = [
+      ...new Set(
+        (reviews ?? [])
+          .map((r) => (r as { order_id?: string }).order_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ]
+    if (ids.length === 0) return []
+    const pageIds = ids.slice(offset, offset + limit)
+    const { data, error } = await getSupabase()
+      .from('orders')
+      .select(
+        `
+        id, status, total, created_at, customer_id, customer_decision,
+        cancellation_request, cancellation_reason,
+        customers ( cpf, cnpj, profiles ( full_name ) ),
+        order_items ( id ),
+        payments ( status, expires_at ),
+        shipments ( provider, metadata )
+      `,
+      )
+      .in('id', pageIds)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return (data ?? []).map((row) => {
+      const mapped = mapLogisticsListRow(row as Record<string, unknown>)
+      return {
+        ...mapped,
+        logisticsNextActionLabel: ADMIN_LOGISTICS_NEXT_ACTION_LABEL.revisao_aberta,
+      }
+    })
+  }
+
+  // volumes | etiquetas-me | entregas-proprias
+  const fetchLimit = Math.min(Math.max(limit + offset, ADMIN_LIST_PAGE_SIZE), 500)
+  const { data, error } = await getSupabase()
+    .from('orders')
+    .select(
+      `
+      id, status, total, created_at, customer_id, customer_decision,
+      cancellation_request, cancellation_reason,
+      customers ( cpf, cnpj, profiles ( full_name ) ),
+      order_items ( id ),
+      payments ( status, expires_at ),
+      shipments ( provider, metadata )
+    `,
+    )
+    .in('status', ['pronto_para_envio', 'preparando_envio'])
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(0, fetchLimit - 1)
+  if (error) throw error
+
+  const matched = (data ?? [])
+    .map((row) => {
+      const r = row as Record<string, unknown>
+      const ships = r.shipments as
+        | { provider?: string; metadata?: Record<string, unknown> }[]
+        | null
+      const ship = Array.isArray(ships) ? ships[0] : null
+      const pays = r.payments as { status?: string }[] | null
+      const pay = Array.isArray(pays) ? pays[0] : null
+      const lite = {
+        status: String(r.status),
+        paymentStatus: pay?.status != null ? String(pay.status) : null,
+        shipment: {
+          provider: ship?.provider != null ? String(ship.provider) : null,
+          metadata:
+            ship?.metadata && typeof ship.metadata === 'object'
+              ? (ship.metadata as Record<string, unknown>)
+              : null,
+        },
+      }
+      return { row: r, match: orderMatchesLogisticsQueue(lite, queueId) }
+    })
+    .filter((x) => x.match)
+    .slice(offset, offset + limit)
+    .map((x) => mapLogisticsListRow(x.row))
+
+  return matched
 }
 
 /** CP-CEN-011 — indicadores ops + financeiros (fórmulas V2). */

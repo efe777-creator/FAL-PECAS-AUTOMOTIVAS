@@ -8,6 +8,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   ADMIN_LIST_PAGE_SIZE,
+  adminListLogisticsQueue,
   adminListOrders,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
@@ -26,6 +27,7 @@ export function AdminOrdersViewPage() {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const isRevisaoLogistica = viewId === 'revisao-logistica'
 
   function pushError(message: string) {
     setError(message)
@@ -34,6 +36,7 @@ export function AdminOrdersViewPage() {
 
   const listOpts = useMemo(() => {
     if (!view || view.placeholder) return null
+    if (view.id === 'revisao-logistica') return null
     if (view.id === 'solicitacoes-cancelamento') {
       return { cancellationRequest: 'pending' as const }
     }
@@ -47,7 +50,13 @@ export function AdminOrdersViewPage() {
   }, [view])
 
   async function reload() {
-    if (!view || view.placeholder || listOpts == null) {
+    if (!view || view.placeholder) {
+      setRows([])
+      setHasMore(false)
+      setLoading(false)
+      return
+    }
+    if (!isRevisaoLogistica && listOpts == null) {
       setRows([])
       setHasMore(false)
       setLoading(false)
@@ -56,11 +65,16 @@ export function AdminOrdersViewPage() {
     setLoading(true)
     setError(null)
     try {
-      const list = await adminListOrders(null, {
-        offset: 0,
-        limit: ADMIN_LIST_PAGE_SIZE,
-        ...listOpts,
-      })
+      const list = isRevisaoLogistica
+        ? await adminListLogisticsQueue('revisao', {
+            offset: 0,
+            limit: ADMIN_LIST_PAGE_SIZE,
+          })
+        : await adminListOrders(null, {
+            offset: 0,
+            limit: ADMIN_LIST_PAGE_SIZE,
+            ...listOpts!,
+          })
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
@@ -71,15 +85,20 @@ export function AdminOrdersViewPage() {
   }
 
   async function loadMore() {
-    if (listOpts == null) return
+    if (!isRevisaoLogistica && listOpts == null) return
     setLoadingMore(true)
     setError(null)
     try {
-      const next = await adminListOrders(null, {
-        offset: rows.length,
-        limit: ADMIN_LIST_PAGE_SIZE,
-        ...listOpts,
-      })
+      const next = isRevisaoLogistica
+        ? await adminListLogisticsQueue('revisao', {
+            offset: rows.length,
+            limit: ADMIN_LIST_PAGE_SIZE,
+          })
+        : await adminListOrders(null, {
+            offset: rows.length,
+            limit: ADMIN_LIST_PAGE_SIZE,
+            ...listOpts!,
+          })
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id))
         return [...prev, ...next.filter((r) => !seen.has(r.id))]

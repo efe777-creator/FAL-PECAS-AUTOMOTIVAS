@@ -432,6 +432,7 @@ export type AdminOrderViewId =
   | 'cancelados'
   | 'problemas'
   | 'historico'
+  | 'revisao-logistica'
 
 export type AdminOrderView = {
   id: AdminOrderViewId
@@ -499,6 +500,14 @@ export const ADMIN_ORDER_VIEWS: readonly AdminOrderView[] = [
     description: 'Entregues e cancelados (consulta).',
     path: '/admin/pedidos/visao/historico',
     statuses: ['entregue', 'cancelado'],
+  },
+  {
+    id: 'revisao-logistica',
+    title: 'Revisão e ocorrências',
+    description:
+      'Revisões manuais own e ocorrências abertas — fora das filas de etiqueta/entrega própria.',
+    path: '/admin/pedidos/visao/revisao-logistica',
+    statuses: null,
   },
 ] as const
 

@@ -133,7 +133,9 @@ export function AdminOrdersListPanel({
                     </span>
                   </div>
                   <p className="mb-0 mt-2 text-xs font-semibold text-fal-navy">
-                    Próxima: {adminNextActionLabel(o.status, o.customerDecision)}
+                    Próxima:{' '}
+                    {o.logisticsNextActionLabel ??
+                      adminNextActionLabel(o.status, o.customerDecision)}
                   </p>
                   <p className="mb-0 mt-1 text-xs text-fal-muted">Pagamento: {paymentBadge(o)}</p>
                   {showWaitingTime ? (
@@ -203,7 +205,8 @@ export function AdminOrdersListPanel({
                         </span>
                       </td>
                       <td className="px-3 py-2 text-xs font-semibold text-fal-navy">
-                        {adminNextActionLabel(o.status, o.customerDecision)}
+                        {o.logisticsNextActionLabel ??
+                          adminNextActionLabel(o.status, o.customerDecision)}
                       </td>
                       {showItemPreview ? (
                         <td className="px-3 py-2 max-w-[220px] text-xs text-fal-muted">
