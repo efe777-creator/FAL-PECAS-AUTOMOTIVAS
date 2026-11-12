@@ -30,4 +30,9 @@
 2. Restringir policy staff a SELECT (ou UPDATE só colunas não críticas).
 3. Garantir que todo write crítico passa por RPC/Edge + `order_events`.
 
-**Não aplicado nesta entrega:** alteração de RLS (aguardando inventário FE completo + auth eFe para migrate remoto).
+## Harden local (2026-11-12)
+
+Migration `20261112183000_place_order_fingerprint_sec035.sql` **dropa** `shipments_staff_write`.
+Writes passam a depender de SECURITY DEFINER / service_role.
+
+**Remoto:** migrate só com auth eFe (marcha soberana = commits locais).
