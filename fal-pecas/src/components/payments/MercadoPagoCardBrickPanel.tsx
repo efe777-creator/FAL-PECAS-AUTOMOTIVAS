@@ -1,7 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
-import { falMaxInstallmentsForCheckout } from '@/lib/paymentDisplay'
+import { resolveInstallmentCount } from '@/lib/paymentDisplay'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { createFalPayment } from '@/services/payments/engine'
