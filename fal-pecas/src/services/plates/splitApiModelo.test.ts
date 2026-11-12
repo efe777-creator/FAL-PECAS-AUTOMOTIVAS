@@ -111,12 +111,19 @@ describe('splitApiModelo', () => {
     })
   })
 
-  it('não inventa motor em XTZ150 Crosser S', () => {
+  it('XTZ150 CROSSER S → modelo XTZ150 / versão Crosser S (sem inventar motor)', () => {
     expect(splitApiModelo('XTZ150 Crosser S')).toEqual({
-      model: 'XTZ150 Crosser S',
+      model: 'XTZ150',
       engine: null,
-      version: null,
+      version: 'Crosser S',
     })
+  })
+
+  it('normalizeVersionLabel: EXPRESSION/INTENS → canônicos', async () => {
+    const { normalizeVersionLabel } = await import('./splitApiModelo')
+    expect(normalizeVersionLabel('EXPRESSION')).toBe('Expression')
+    expect(normalizeVersionLabel('INTENS')).toBe('Intense')
+    expect(normalizeVersionLabel('Unique')).toBe('Unique')
   })
 })
 

@@ -4,6 +4,10 @@
  * aplica a mesma decisão do webhook (confirm RPC / set_terminal).
  */
 import {
+  assertCardInstallmentsAllowed,
+  type PaymentDisplaySettings,
+} from '@/lib/paymentDisplay'
+import {
   buildIdempotencyKey,
   buildMpPaymentBody,
   mapMpResponseToPaymentFields,
@@ -42,6 +46,8 @@ export interface CreateMpFlowDeps {
     status: number
     json: () => Promise<unknown>
   }>
+  /** HOME-06b P0 — política de parcelas da loja (null = display off / ausente). */
+  getPaymentDisplay?: () => Promise<PaymentDisplaySettings | null>
 }
 
 export async function executeCreateMpPayment(
@@ -86,6 +92,21 @@ export async function executeCreateMpPayment(
   const amount = Number(order.total)
   if (!(amount > 0)) {
     return { httpStatus: 422, body: { error: 'invalid_order_total' } }
+  }
+
+  if (card) {
+    try {
+      const display = deps.getPaymentDisplay ? await deps.getPaymentDisplay() : null
+      assertCardInstallmentsAllowed(card.installments, amount, display)
+    } catch (e) {
+      return {
+        httpStatus: 422,
+        body: {
+          error: 'installments_not_allowed',
+          detail: e instanceof Error ? e.message : 'installments inválido',
+        },
+      }
+    }
   }
 
   let existing = await deps.findPendingPayment(orderId)

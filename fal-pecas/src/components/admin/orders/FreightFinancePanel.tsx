@@ -71,7 +71,8 @@ export function FreightFinancePanel({
       <div>
         <h2 className="m-0 text-lg font-extrabold text-fal-navy">Frete — cobrado vs custo (G8)</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Cobrado do cliente vs custo efetivo do caminho (etiqueta ME ou entrega própria).
+          Cobrado do cliente (imutável) vs custo efetivo interno (etiqueta ME ou entrega própria).
+          Atualizar custo <strong>não</strong> altera o frete pago pelo cliente.
         </p>
       </div>
 

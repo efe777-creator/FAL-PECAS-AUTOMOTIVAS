@@ -37,7 +37,12 @@ const sections: { title: string; cards: DashCard[] }[] = [
       { to: '/admin/produtos', title: 'Produtos', desc: 'Cadastrar, publicar e arquivar' },
       { to: '/admin/precos', title: 'Preços', desc: 'Listas comerciais e importação' },
       { to: '/admin/categorias', title: 'Categorias', desc: 'Árvore comercial' },
-      { to: '/admin/home', title: 'Home da loja', desc: 'Campanhas e destaques' },
+      { to: '/admin/home', title: 'Home da loja', desc: 'Campanhas, destaques e condições' },
+      {
+        to: '/admin/home/promocoes',
+        title: 'Promoções',
+        desc: 'Ativar/desativar preço promocional por produto (independente dos destaques)',
+      },
       { to: '/admin/busca', title: 'Busca e sinônimos', desc: 'Documento unificado e sinônimos' },
       { to: '/admin/montadoras', title: 'Montadoras', desc: 'Cadastro de montadoras' },
       { to: '/admin/veiculos', title: 'Veículos', desc: 'Modelos e configurações' },
@@ -49,6 +54,11 @@ const sections: { title: string; cards: DashCard[] }[] = [
     title: 'Vendas',
     cards: [
       { to: '/admin/pedidos', title: 'Pedidos', desc: 'Recepção, confirmação e operação' },
+      {
+        to: '/admin/avisos',
+        title: 'Notificações',
+        desc: 'Respostas do cliente, cancelamentos e problemas',
+      },
       { to: '/admin/clientes', title: 'Clientes', desc: 'Consulta e detalhe' },
     ],
   },

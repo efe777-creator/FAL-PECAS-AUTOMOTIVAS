@@ -14,6 +14,18 @@ export interface OwnPaymentRow {
   expiresAt: string | null
 }
 
+/** Status de cobranças do pedido (RLS) — watcher mid-pay. */
+export async function listOwnPaymentStatusesByOrder(
+  orderId: string,
+): Promise<Array<{ id: string; status: string }>> {
+  const { data, error } = await getSupabase()
+    .from('payments')
+    .select('id, status')
+    .eq('order_id', orderId)
+  if (error) throw error
+  return (data ?? []).map((r) => ({ id: String(r.id), status: String(r.status) }))
+}
+
 /** SELECT próprio (RLS) — poll pós create-mp-payment. Nunca seta approved no FE. */
 export async function getOwnPayment(paymentId: string): Promise<OwnPaymentRow | null> {
   const { data, error } = await getSupabase()

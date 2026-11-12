@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DEV MP CardPayment vanilla</title>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        background: #f5f5f5;
+      }
+      #cardPaymentBrick_container {
+        background: #fff;
+        padding: 16px;
+        border-radius: 12px;
+        min-height: 320px;
+      }
+      #status {
+        margin: 12px 0;
+        color: #444;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>DEV · CardPayment vanilla (sem React)</h1>
+    <p id="status">Iniciando…</p>
+    <div id="cardPaymentBrick_container"></div>
+    <script>
+      const params = new URLSearchParams(location.search)
+      const pk =
+        params.get('pk') ||
+        'APP_USR-ae216fe5-5178-4547-a123-26279448096d'
+      const statusEl = document.getElementById('status')
+      statusEl.textContent = 'PK: ' + pk.slice(0, 16) + '…'
+
+      const mp = new MercadoPago(pk, { locale: 'pt-BR' })
+      const bricksBuilder = mp.bricks()
+
+      async function render() {
+        try {
+          window.cardPaymentBrickController = await bricksBuilder.create(
+            'cardPayment',
+            'cardPaymentBrick_container',
+            {
+              initialization: { amount: 10.5 },
+              customization: {
+                paymentMethods: { maxInstallments: 12 },
+              },
+              callbacks: {
+                onReady: () => {
+                  statusEl.textContent = 'READY — Secure Fields OK'
+                  statusEl.style.color = 'green'
+                },
+                onError: (err) => {
+                  statusEl.textContent =
+                    'ERROR: ' + (err?.message || JSON.stringify(err))
+                  statusEl.style.color = 'crimson'
+                  console.error(err)
+                },
+                onSubmit: async () => {
+                  statusEl.textContent = 'submit (dev noop)'
+                },
+              },
+            },
+          )
+          statusEl.textContent =
+            (statusEl.textContent || '') + ' | create() resolvido, aguardando onReady…'
+        } catch (e) {
+          statusEl.textContent = 'CREATE FAIL: ' + e
+          statusEl.style.color = 'crimson'
+          console.error(e)
+        }
+      }
+
+      render()
+    </script>
+  </body>
+</html>

@@ -252,6 +252,55 @@ export function packingCompleteFromMeta(
   return packing.allocationStatus === 'complete' && Boolean(packing.itemsFingerprint)
 }
 
+/** Extrai volumes candidatos das medidas contratadas na cotação/checkout. */
+export function volumesFromContractedMeta(
+  metadata: Record<string, unknown> | null | undefined,
+): OrderPackingVolume[] {
+  if (!metadata) return []
+  const quote = (metadata.quote ?? metadata.contracted ?? metadata.checkout) as
+    | Record<string, unknown>
+    | undefined
+  const vols = (quote?.volumes ?? metadata.volumes) as unknown
+  const out: OrderPackingVolume[] = []
+  if (Array.isArray(vols) && vols.length) {
+    for (const v of vols) {
+      if (!v || typeof v !== 'object') continue
+      const o = v as Record<string, unknown>
+      const lengthCm = Number(o.length_cm ?? o.lengthCm ?? o.length ?? 0)
+      const widthCm = Number(o.width_cm ?? o.widthCm ?? o.width ?? 0)
+      const heightCm = Number(o.height_cm ?? o.heightCm ?? o.height ?? 0)
+      const weightKg = Number(o.weight_kg ?? o.weightKg ?? o.weight ?? 0)
+      if (!(lengthCm > 0 && widthCm > 0 && heightCm > 0 && weightKg > 0)) continue
+      out.push({
+        ...emptyPackingVolume(),
+        lengthCm,
+        widthCm,
+        heightCm,
+        weightKg,
+        notes: 'Pré-preenchido da cotação',
+      })
+    }
+    if (out.length) return out
+  }
+  const lengthCm = Number(metadata.length_cm ?? metadata.lengthCm ?? 0)
+  const widthCm = Number(metadata.width_cm ?? metadata.widthCm ?? 0)
+  const heightCm = Number(metadata.height_cm ?? metadata.heightCm ?? 0)
+  const weightKg = Number(metadata.weight_kg ?? metadata.weightKg ?? 0)
+  if (lengthCm > 0 && widthCm > 0 && heightCm > 0 && weightKg > 0) {
+    return [
+      {
+        ...emptyPackingVolume(),
+        lengthCm,
+        widthCm,
+        heightCm,
+        weightKg,
+        notes: 'Pré-preenchido da cotação',
+      },
+    ]
+  }
+  return []
+}
+
 /** Distribui 100% dos itens no primeiro volume (atalho UX). */
 export function allocateAllToFirstVolume(
   packing: OrderPacking,

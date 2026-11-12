@@ -1,3 +1,4 @@
+import { Badge } from '@/components/common/Badge'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -7,7 +8,7 @@ import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
-import { productHref } from '@/lib/productHref'
+import { productHref, safeInternalReturnTo } from '@/lib/productHref'
 import {
   getProductBySlugOrId,
   listRelatedProductsForPdp,
@@ -24,9 +25,10 @@ import {
   isStoreBackendUnavailableError,
 } from '@/lib/storeBackend'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Product } from '@/types'
 import { Button } from '@/components/common/Button'
 import { useCart } from '@/contexts/CartContext'
@@ -54,6 +56,8 @@ import {
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
+import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
+import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import {
   buildPdpCatalogFilterLink,
   joinProductDescription,
@@ -63,6 +67,10 @@ import {
 import { buildProductSpecRows } from '@/lib/productSpecs'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { formatMoney } from '@/lib/money'
+import {
+  formatOfertaBadgeLabel,
+  resolvePromoOffer,
+} from '@/lib/promoPresentation'
 
 /** Teto da quantidade local na PDP (antes de adicionar ao carrinho). */
 const MAX_QTY = 99
@@ -70,6 +78,7 @@ const MAX_QTY = 99
 export function ProductPage() {
   const { slugOrId = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -78,10 +87,11 @@ export function ProductPage() {
   const [related, setRelated] = useState<Product[]>([])
   const [categoryPath, setCategoryPath] = useState<CategoryPathCrumb[]>([])
   const [qty, setQty] = useState(1)
-  const { addItem, updateQty, items } = useCart()
+  const { addItem, items } = useCart()
   const { user } = useAuth()
   const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
+  const presentation = useHomePresentation()
   const cartQty = product ? (items.find((i) => i.productId === product.id)?.quantity ?? 0) : 0
   const inCart = cartQty > 0
   const liked = product ? isFavorite(product.id) : false
@@ -319,7 +329,7 @@ export function ProductPage() {
   const brandName = current.brand ? toCommercialTitleCase(current.brand) : null
   const price = displayPrice(current)
   const listPrice = current.listPrice ?? current.price
-  const showStrike = listPrice > price + 0.001
+  const offer = resolvePromoOffer(listPrice, price)
   const shortDesc = current.shortDescription?.trim() || ''
   const longDesc = current.description?.trim() || ''
   const fullDescription = joinProductDescription(shortDesc, longDesc)
@@ -370,17 +380,30 @@ export function ProductPage() {
   }
 
   /**
-   * Garante a quantidade no carrinho e vai ao checkout.
-   * Modalidade de frete já escolhida na PDP segue via handoff de sessão.
+   * AJUSTE-035 C5 — compra direta isolada do carrinho.
+   * Frete escolhido na PDP segue via handoff de sessão.
    */
   function onBuyNow() {
     if (current.available === false) return
-    if (inCart) updateQty(current.id, qty)
-    else addItem(current, qty)
-    navigate('/checkout')
+    saveBuyNowIntent({ ...current, price: displayPrice(current) }, qty)
+    const here = `${location.pathname}${location.search}`
+    saveCheckoutReturnTo(here)
+    push('Seguindo para o checkout com a entrega selecionada (se houver)', 'success')
+    navigate('/checkout', { state: { from: here } })
   }
 
   function goBack() {
+    const fromState = safeInternalReturnTo(
+      (location.state as { from?: unknown } | null)?.from,
+    )
+    const fromQuery = safeInternalReturnTo(
+      new URLSearchParams(location.search).get('returnTo'),
+    )
+    const target = fromState ?? fromQuery
+    if (target) {
+      navigate(target)
+      return
+    }
     if (window.history.length > 1) navigate(-1)
     else navigate('/catalogo')
   }
@@ -390,7 +413,7 @@ export function ProductPage() {
       <button
         type="button"
         onClick={goBack}
-        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline md:hidden"
+        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
         aria-label="Voltar"
       >
         ← Voltar
@@ -468,11 +491,26 @@ export function ProductPage() {
               <span className="font-semibold text-fal-navy">{FABRICANTE_LABEL}:</span> {brandName}
             </p>
           ) : null}
-          <p className="mt-4 text-3xl font-black">
+          {current.available !== false && offer.isOffer && presentation.showOfertaBadge ? (
+            <div className="mt-4">
+              <Badge>
+                {formatOfertaBadgeLabel(offer, {
+                  showDiscountPercent: presentation.showDiscountPercent,
+                })}
+              </Badge>
+            </div>
+          ) : null}
+          <p
+            className={`${
+              offer.isOffer && presentation.showOfertaBadge ? 'mt-2' : 'mt-4'
+            } text-3xl font-black`}
+          >
             {current.available === false ? '—' : formatStorePriceLabel(price, listPrice)}
           </p>
-          {current.available !== false && showStrike ? (
-            <p className="mt-1 text-sm text-fal-muted line-through">{formatMoney(listPrice)}</p>
+          {current.available !== false && offer.isOffer ? (
+            <p className="mt-1 text-sm text-fal-muted line-through">
+              {formatMoney(offer.listPrice)}
+            </p>
           ) : null}
           {current.available !== false ? (
             <PaymentConditionHint amount={price} surface="pdp" />
@@ -485,7 +523,7 @@ export function ProductPage() {
             )}
           </p>
 
-          <div className="mt-5 space-y-2">
+          <div className="mt-5 space-y-3">
             {current.available === false ? (
               <Button variant="primary" fullWidth disabled>
                 Indisponível
@@ -528,12 +566,21 @@ export function ProductPage() {
                   </div>
                 </div>
 
+                <ProductShippingQuoteBlock product={current} quantity={qty} />
+
                 <Button variant="primary" fullWidth onClick={onBuyNow}>
                   {COMPRAR_AGORA_LABEL}
                 </Button>
                 <Button variant="light" fullWidth onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
                 </Button>
+
+                <a
+                  href="#pdp-detalhes"
+                  className="inline-block text-sm font-semibold text-fal-navy hover:underline"
+                >
+                  Ver mais informações do produto ↓
+                </a>
 
                 {inCart ? (
                   <p className="m-0 text-sm text-fal-muted" aria-live="polite">
@@ -568,13 +615,11 @@ export function ProductPage() {
               )
             })()}
           </div>
-
-          <ProductShippingQuoteBlock product={current} />
         </div>
       </div>
 
       {/* Abaixo do buy-box: apps → desc → specs → ajuda */}
-      <div className="mt-8 min-w-0 space-y-4">
+      <div id="pdp-detalhes" className="mt-8 min-w-0 scroll-mt-24 space-y-4">
         <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
           <CompatibilityAppsBlock
             variant="pdp"

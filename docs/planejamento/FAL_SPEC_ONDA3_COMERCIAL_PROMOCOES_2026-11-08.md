@@ -1,11 +1,22 @@
 # FAL — Especificação Técnica Oficial  
 ## Onda 3 — Comercial, Promoções e Conversão
 
+> ## SUPERSEDIDA
+>
+> **Data da supersessão:** 12/11/2026  
+> **Motivo:** substituída pela frente comercial paralela **Home da Loja (HOME-01…08)**, com inventário do implantado, auditoria obrigatória antes de implementação, e sequência Frente 1 → Gate pós-F1 → Frente 2 → Frente 3.  
+> **Plano mestre vigente:** [FAL_PLANO_MESTRE_HOME_COMERCIAL_2026-11.md](./FAL_PLANO_MESTRE_HOME_COMERCIAL_2026-11.md)  
+> **Backlog vigente:** [FAL_HOME_BACKLOG_01_08.md](./FAL_HOME_BACKLOG_01_08.md)  
+>
+> Este arquivo permanece como **histórico**. Os princípios das seções **2.1 a 2.5** abaixo são preservados como referência comercial; a **execução futura** segue o plano mestre e o backlog HOME.  
+> A supersessão **não** apaga o histórico nem invalida decisões comerciais ainda alinhadas ao mestre.
+
 **Projeto:** FAL Peças Automotivas  
 **Data:** 08/11/2026 (consolidada no repo 09/11/2026)  
-**Status:** Planejamento consolidado — aguarda Pacote MVP / aprovação para implementação  
-**Plano canônico:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
-**AJUSTE núcleo:** **022** (+ 013, 021, 010, 016, 020)
+**Status:** **SUPERSEDIDA** (12/11/2026) — não usar como plano de execução  
+**Plano canônico vigente:** [FAL_PLANO_MESTRE_HOME_COMERCIAL_2026-11.md](./FAL_PLANO_MESTRE_HOME_COMERCIAL_2026-11.md)  
+**Referência MVP histórica:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
+**AJUSTE núcleo (histórico):** **022** (+ 013, 021, 010, 016, 020) — novos AJUSTEs da frente Home **não** são numerados neste ciclo
 
 ---
 

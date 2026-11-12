@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DEV MP Secure Fields core</title>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        background: #f5f5f5;
+      }
+      label {
+        display: block;
+        margin: 12px 0 4px;
+        font-weight: 600;
+      }
+      .field {
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        height: 48px;
+        padding: 0 12px;
+      }
+      #status {
+        margin: 12px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>DEV · Secure Fields (core methods)</h1>
+    <p id="status">Iniciando…</p>
+
+    <label>Número do cartão</label>
+    <div id="form-checkout__cardNumber" class="field"></div>
+
+    <label>Validade</label>
+    <div id="form-checkout__expirationDate" class="field"></div>
+
+    <label>CVV</label>
+    <div id="form-checkout__securityCode" class="field"></div>
+
+    <script>
+      const pk = 'APP_USR-ae216fe5-5178-4547-a123-26279448096d'
+      const statusEl = document.getElementById('status')
+      const mp = new MercadoPago(pk, { locale: 'pt-BR' })
+
+      const style = {
+        height: '48px',
+        fontSize: '16px',
+        placeholderColor: '#999',
+      }
+
+      try {
+        const cardNumber = mp.fields
+          .create('cardNumber', { placeholder: 'Número do cartão', style })
+          .mount('form-checkout__cardNumber')
+        const expirationDate = mp.fields
+          .create('expirationDate', { placeholder: 'MM/AA', style })
+          .mount('form-checkout__expirationDate')
+        const securityCode = mp.fields
+          .create('securityCode', { placeholder: 'CVV', style })
+          .mount('form-checkout__securityCode')
+
+        let ready = 0
+        function bump(name) {
+          ready += 1
+          statusEl.textContent = `ready ${ready}/3 (${name})`
+          if (ready >= 3) {
+            statusEl.textContent = 'READY — fields OK'
+            statusEl.style.color = 'green'
+          }
+        }
+
+        cardNumber.on('ready', () => bump('cardNumber'))
+        expirationDate.on('ready', () => bump('expirationDate'))
+        securityCode.on('ready', () => bump('securityCode'))
+
+        setTimeout(() => {
+          const iframes = [...document.querySelectorAll('iframe')].map((f) => ({
+            src: f.src.slice(0, 60),
+            h: f.offsetHeight,
+            parent: f.parentElement?.id,
+          }))
+          if (ready < 3) {
+            statusEl.textContent =
+              `TIMEOUT ready=${ready}/3 iframes=` + JSON.stringify(iframes)
+            statusEl.style.color = 'crimson'
+          }
+        }, 6000)
+      } catch (e) {
+        statusEl.textContent = 'FAIL: ' + e
+        statusEl.style.color = 'crimson'
+        console.error(e)
+      }
+    </script>
+  </body>
+</html>

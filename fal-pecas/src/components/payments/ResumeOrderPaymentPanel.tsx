@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
 import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
+import { isUsableMpPublicKey } from '@/lib/mpAdminStatus'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   isPaymentExpired,
@@ -26,7 +27,8 @@ interface Props {
  */
 export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
-  const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
+  const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
+  const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const payment = order.payment
   const method = (payment?.method ?? '').toLowerCase()
   const initialChannel: Channel =

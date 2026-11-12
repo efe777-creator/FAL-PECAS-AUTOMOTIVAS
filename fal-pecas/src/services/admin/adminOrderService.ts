@@ -6,6 +6,12 @@ import {
   type AdminLogisticsQueueId,
   type LogisticsQueueCounts,
 } from '@/lib/adminLogisticsQueues'
+import {
+  contractedShippingShortLine,
+  readContractedShipping,
+} from '@/lib/contractedShipping'
+import { isOrderStorePickup } from '@/lib/orderShippingKind'
+import { isStorePickupAuthorized } from '@/lib/storePickupOps'
 import { getSupabase } from '@/lib/supabase'
 import { transitionOrderStatus } from '@/services/orders/orderTransitionService'
 
@@ -27,6 +33,12 @@ export type AdminOrderListRow = {
   shipProvider?: string | null
   /** Marcha 1 — próxima ação logística (PT). */
   logisticsNextActionLabel?: string | null
+  /** Frete/prazo congelados no checkout (ex.: "PAC · 4–8 dias úteis"). */
+  shippingChoiceLabel?: string | null
+  /** Retirada na loja. */
+  pickup?: boolean
+  /** Autorização de retirada (quando pickup). */
+  pickupAuthorized?: boolean
 }
 
 export type AdminOrderItem = {
@@ -128,7 +140,8 @@ export async function adminListOrders(
       cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
-      payments ( status, expires_at )
+      payments ( status, expires_at ),
+      shipments ( provider, metadata, carrier, service )
     `,
     )
     .order('created_at', { ascending: false })
@@ -155,41 +168,7 @@ export async function adminListOrders(
   const { data, error } = await q
   if (error) throw error
 
-  return (data ?? []).map((row) => {
-    const r = row as Record<string, unknown>
-    const cust = r.customers as Record<string, unknown> | Record<string, unknown>[] | null
-    const c = Array.isArray(cust) ? cust[0] : cust
-    const profiles = c?.profiles as { full_name?: string } | { full_name?: string }[] | null | undefined
-    const prof = Array.isArray(profiles) ? profiles[0] : profiles
-    const items = r.order_items as unknown[] | null
-    const pays = r.payments as { status?: string; expires_at?: string }[] | null
-    const pay = Array.isArray(pays) ? pays[0] : null
-    const decision =
-      r.customer_decision === 'pending' ||
-      r.customer_decision === 'authorized' ||
-      r.customer_decision === 'rejected'
-        ? r.customer_decision
-        : null
-    const cancelReq =
-      r.cancellation_request === 'pending' ||
-      r.cancellation_request === 'approved' ||
-      r.cancellation_request === 'rejected'
-        ? r.cancellation_request
-        : null
-    return {
-      id: String(r.id),
-      status: String(r.status),
-      total: Number(r.total ?? 0),
-      createdAt: String(r.created_at),
-      customerName: prof?.full_name != null ? String(prof.full_name) : null,
-      itemCount: Array.isArray(items) ? items.length : 0,
-      paymentStatus: pay?.status != null ? String(pay.status) : null,
-      paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
-      customerDecision: decision,
-      cancellationRequest: cancelReq,
-      cancellationReason: r.cancellation_reason != null ? String(r.cancellation_reason) : null,
-    }
-  })
+  return (data ?? []).map((row) => mapLogisticsListRow(row as Record<string, unknown>))
 }
 
 export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDetail | null> {
@@ -364,6 +343,44 @@ export async function adminDeliverOrder(orderId: string, proofRef?: string): Pro
   if (error) throw error
 }
 
+/** Autoriza retirada na loja (cliente vê Pronto para retirar). */
+export async function adminAuthorizeStorePickup(orderId: string): Promise<{
+  already: boolean
+  authorized_at?: string
+}> {
+  const { data, error } = await getSupabase().rpc('admin_authorize_store_pickup', {
+    p_order_id: orderId,
+  })
+  if (error) throw error
+  return data as { already: boolean; authorized_at?: string }
+}
+
+/** Confirma que o cliente retirou (autorizado → entregue). */
+export async function adminConfirmStorePickup(
+  orderId: string,
+  proofRef?: string,
+): Promise<void> {
+  const { error } = await getSupabase().rpc('admin_confirm_store_pickup', {
+    p_order_id: orderId,
+    p_proof_ref: proofRef ?? null,
+  })
+  if (error) throw error
+}
+
+/** Atualiza rastreio/obs após despacho. */
+export async function adminSetShipmentTracking(input: {
+  orderId: string
+  trackingCode?: string | null
+  note?: string | null
+}): Promise<void> {
+  const { error } = await getSupabase().rpc('admin_set_shipment_tracking', {
+    p_order_id: input.orderId,
+    p_tracking_code: input.trackingCode ?? null,
+    p_note: input.note ?? null,
+  })
+  if (error) throw error
+}
+
 /** Marcha 6 — tentativa de entrega frete próprio (append-only). */
 export async function adminOwnDeliveryAttempt(input: {
   orderId: string
@@ -426,7 +443,12 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
   const pays = row.payments as { status?: string; expires_at?: string }[] | null
   const pay = Array.isArray(pays) ? pays[0] : null
   const ships = row.shipments as
-    | { provider?: string; metadata?: Record<string, unknown> }[]
+    | {
+        provider?: string
+        metadata?: Record<string, unknown>
+        service?: string
+        carrier?: string
+      }[]
     | null
   const ship = Array.isArray(ships) ? ships[0] : null
   const decision =
@@ -447,11 +469,19 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
     ship?.metadata && typeof ship.metadata === 'object'
       ? (ship.metadata as Record<string, unknown>)
       : null
+  const shipmentLite = {
+    provider: shipProvider,
+    metadata: meta,
+    service: ship?.service != null ? String(ship.service) : null,
+    carrier: ship?.carrier != null ? String(ship.carrier) : null,
+  }
   const next = logisticsNextAction({
     status: String(row.status),
     paymentStatus,
-    shipment: { provider: shipProvider, metadata: meta },
+    shipment: shipmentLite,
   })
+  const contracted = readContractedShipping(shipmentLite)
+  const pickup = isOrderStorePickup({ shipment: shipmentLite })
   return {
     id: String(row.id),
     status: String(row.status),
@@ -466,6 +496,9 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
     cancellationReason: row.cancellation_reason != null ? String(row.cancellation_reason) : null,
     shipProvider,
     logisticsNextActionLabel: ADMIN_LOGISTICS_NEXT_ACTION_LABEL[next],
+    shippingChoiceLabel: contractedShippingShortLine(contracted),
+    pickup,
+    pickupAuthorized: pickup ? isStorePickupAuthorized(meta) : false,
   }
 }
 
@@ -492,7 +525,7 @@ export async function adminListLogisticsQueue(
         customers ( cpf, cnpj, profiles ( full_name ) ),
         order_items ( id ),
         payments ( status, expires_at ),
-        shipments ( provider, metadata )
+        shipments ( provider, metadata, carrier, service )
       `,
       )
       .eq('status', status)
@@ -529,7 +562,7 @@ export async function adminListLogisticsQueue(
         customers ( cpf, cnpj, profiles ( full_name ) ),
         order_items ( id ),
         payments ( status, expires_at ),
-        shipments ( provider, metadata )
+        shipments ( provider, metadata, carrier, service )
       `,
       )
       .in('id', pageIds)
@@ -555,7 +588,7 @@ export async function adminListLogisticsQueue(
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
       payments ( status, expires_at ),
-      shipments ( provider, metadata )
+      shipments ( provider, metadata, carrier, service )
     `,
     )
     .in('status', ['pronto_para_envio', 'preparando_envio'])
@@ -667,6 +700,41 @@ export async function adminFinalizeConfirmation(orderId: string): Promise<{
   if (error) throw error
   const row = data as { result?: string; status?: string }
   return { result: String(row.result ?? ''), status: String(row.status ?? '') }
+}
+
+export type StaffDecisionReasonKind = 'prazo' | 'obs' | 'indisponivel' | 'outro'
+
+/** Opt-in: único caminho para aguardando_decisao. */
+export async function adminRequestCustomerDecision(
+  orderId: string,
+  reasonKind: StaffDecisionReasonKind,
+  reasonText?: string | null,
+): Promise<{ status: string; customer_decision: string }> {
+  const { data, error } = await getSupabase().rpc('staff_request_customer_decision', {
+    p_order_id: orderId,
+    p_reason_kind: reasonKind,
+    p_reason_text: reasonText?.trim() ? reasonText.trim() : null,
+  })
+  if (error) throw error
+  const row = data as { status?: string; customer_decision?: string }
+  return {
+    status: String(row.status ?? 'aguardando_decisao'),
+    customer_decision: String(row.customer_decision ?? 'pending'),
+  }
+}
+
+/** Unstick: aguardando_decisao → em_analise. */
+export async function adminWithdrawCustomerDecisionRequest(
+  orderId: string,
+  note?: string | null,
+): Promise<{ status: string }> {
+  const { data, error } = await getSupabase().rpc('staff_withdraw_customer_decision_request', {
+    p_order_id: orderId,
+    p_note: note?.trim() ? note.trim() : null,
+  })
+  if (error) throw error
+  const row = data as { status?: string }
+  return { status: String(row.status ?? 'em_analise') }
 }
 
 export async function adminCancelOrder(orderId: string, note?: string): Promise<void> {

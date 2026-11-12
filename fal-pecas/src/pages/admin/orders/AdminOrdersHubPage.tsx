@@ -9,9 +9,9 @@ import {
   adminNextActionLabel,
   attentionSortKey,
   isAttentionOrder,
-  orderStatusOperatorLabel,
   sumAreaCount,
 } from '@/lib/adminOrderOps'
+import { listStatusLabel } from './AdminOrdersListPanel'
 import {
   confirmExpireUnpaidIntent,
   formatExpireUnpaidMessage,
@@ -299,6 +299,12 @@ export function AdminOrdersHubPage() {
               Atalhos
             </h2>
             <div className="flex flex-wrap gap-2">
+              <Link
+                to="/admin/avisos"
+                className="rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/20 px-3 py-2 text-sm font-extrabold text-fal-navy no-underline hover:border-fal-navy"
+              >
+                Notificações
+              </Link>
               {ADMIN_ORDER_VIEWS.map((v) => (
                 <Link
                   key={v.id}
@@ -324,7 +330,7 @@ export function AdminOrdersHubPage() {
                 <ul className="mt-2 space-y-2">
                   {attention.map((o) => (
                     <li key={o.id} className="flex items-start justify-between gap-2 text-sm">
-                      <div>
+                      <div className="min-w-0">
                         <Link
                           to={`/admin/pedidos/${o.id}`}
                           onClick={() => rememberOrdersReturnPath('/admin/pedidos')}
@@ -332,9 +338,14 @@ export function AdminOrdersHubPage() {
                         >
                           {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
                         </Link>
-                        <p className="text-xs text-fal-muted">
-                          {orderStatusOperatorLabel[o.status] ?? o.status} —{' '}
-                          {adminNextActionLabel(o.status, o.customerDecision)}
+                        <p className="mb-0 mt-0.5 text-xs font-extrabold text-fal-navy">
+                          Faça agora:{' '}
+                          {o.logisticsNextActionLabel ??
+                            adminNextActionLabel(o.status, o.customerDecision)}
+                        </p>
+                        <p className="mb-0 mt-0.5 text-xs text-fal-muted">
+                          {listStatusLabel(o)}
+                          {o.shippingChoiceLabel ? ` · ${o.shippingChoiceLabel}` : ''}
                         </p>
                       </div>
                       <span className="shrink-0 font-semibold">{formatMoney(o.total)}</span>
@@ -349,7 +360,7 @@ export function AdminOrdersHubPage() {
               <ul className="mt-2 space-y-2">
                 {recent.map((o) => (
                   <li key={o.id} className="flex items-start justify-between gap-2 text-sm">
-                    <div>
+                    <div className="min-w-0">
                       <Link
                         to={`/admin/pedidos/${o.id}`}
                         onClick={() => rememberOrdersReturnPath('/admin/pedidos')}
@@ -357,9 +368,9 @@ export function AdminOrdersHubPage() {
                       >
                         {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
                       </Link>
-                      <p className="text-xs text-fal-muted">
-                        {formatDateTime(o.createdAt)} ·{' '}
-                        {orderStatusOperatorLabel[o.status] ?? o.status}
+                      <p className="mb-0 mt-0.5 text-xs text-fal-muted">
+                        {formatDateTime(o.createdAt)} · {listStatusLabel(o)}
+                        {o.shippingChoiceLabel ? ` · ${o.shippingChoiceLabel}` : ''}
                       </p>
                     </div>
                     <span className="shrink-0 font-semibold">{formatMoney(o.total)}</span>

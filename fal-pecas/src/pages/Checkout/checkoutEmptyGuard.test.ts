@@ -14,4 +14,8 @@ describe('showCheckoutEmptyCart (FIND-SMOKE-UI-001)', () => {
     expect(showCheckoutEmptyCart(2, false)).toBe(false)
     expect(showCheckoutEmptyCart(1, true)).toBe(false)
   })
+
+  it('não mostra empty com buy_now sem carrinho', () => {
+    expect(showCheckoutEmptyCart(0, false, true)).toBe(false)
+  })
 })

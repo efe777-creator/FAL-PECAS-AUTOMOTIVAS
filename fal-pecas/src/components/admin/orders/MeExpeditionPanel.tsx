@@ -16,7 +16,10 @@ import { evaluateShipOrderGates } from '@/lib/meLabelShipGates'
 import { packingCompleteFromMeta } from '@/lib/orderPacking'
 import { openRomaneio } from '@/lib/adminOrderPrint'
 import { formatMoney } from '@/lib/money'
-import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
+import {
+  adminSetShipmentTracking,
+  type AdminOrderDetail,
+} from '@/services/admin/adminOrderService'
 import {
   meGenerateLabel,
   mePrepareLabel,
@@ -66,6 +69,8 @@ export function MeExpeditionPanel({
   const [lastQuote, setLastQuote] = useState<number | null>(null)
   const [divergenceMsg, setDivergenceMsg] = useState<string | null>(null)
   const [overrideReason, setOverrideReason] = useState('')
+  const [opsNote, setOpsNote] = useState('')
+  const [trackBusy, setTrackBusy] = useState(false)
 
   const labelState = useMemo(
     () => meLabelState(order.shipment?.metadata ?? null),
@@ -143,10 +148,10 @@ export function MeExpeditionPanel({
   return (
     <section className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">7. Expedição e entrega</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Expedição Melhor Envio</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Etiqueta Melhor Envio, postagem física e entrega ao cliente são passos separados. Frete
-          cobrado do cliente:{' '}
+          Após a separação: confirme medidas (pré-preenchidas da cotação) → etiqueta → despacho
+          (agora ou depois) → obs/rastreio. Frete cobrado do cliente:{' '}
           <strong>{formatMoney(order.shippingAmount)}</strong>.
         </p>
         <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
@@ -256,7 +261,20 @@ export function MeExpeditionPanel({
           type="button"
           variant="light"
           disabled={busy || meBusy || !alreadyPurchased(labelState) || alreadyGenerated(labelState)}
-          onClick={() => void runMe(() => meGenerateLabel(order.id))}
+          onClick={() => {
+            void (async () => {
+              await runMe(() => meGenerateLabel(order.id))
+              if (!shipGates.ok) return
+              const { confirmed } = await confirmDialog({
+                title: 'Marcar pedido como despachado?',
+                message:
+                  'Etiqueta gerada. Deseja registrar a entrega à transportadora agora? (pode fazer depois e informar o rastreio)',
+                confirmLabel: 'Sim, despachar',
+                cancelLabel: 'Agora não',
+              })
+              if (confirmed) onRequestShip()
+            })()
+          }}
         >
           Gerar etiqueta
         </Button>
@@ -277,32 +295,86 @@ export function MeExpeditionPanel({
         </Button>
       </div>
 
-      <div className="border-t border-fal-line pt-4">
-        <h3 className="m-0 text-sm font-bold text-fal-navy">
-          Entrega à transportadora (postagem física)
-        </h3>
-        <p className="mt-1 text-xs text-fal-muted">
-          Etiqueta comprada/impressa <strong>não</strong> marca o pedido como enviado. Só esta
-          ação (postagem/coleta) muda o status para enviado — o cliente então vê “Enviado”.
-        </p>
-        {!shipGates.ok ? (
-          <p className="mt-2 mb-0 text-sm text-amber-800">Postagem bloqueada: {shipGates.message}</p>
-        ) : null}
-        <div className="mt-3 grid gap-2 md:grid-cols-4">
-          <Input label="Transportadora" value={carrier} onChange={(e) => onCarrier(e.target.value)} />
-          <Input label="Serviço" value={service} onChange={(e) => onService(e.target.value)} />
-          <Input label="Rastreio" value={tracking} onChange={(e) => onTracking(e.target.value)} />
-          <div className="flex items-end">
-            <Button
-              type="button"
-              disabled={busy || pendingShip || meBusy || !shipGates.ok}
-              onClick={onRequestShip}
-            >
-              Registrar entrega à transportadora
-            </Button>
+      {['pronto_para_envio', 'preparando_envio'].includes(order.status) ? (
+        <div className="border-t border-fal-line pt-4">
+          <h3 className="m-0 text-sm font-bold text-fal-navy">
+            Despacho (pode ser agora ou depois)
+          </h3>
+          <p className="mt-1 text-xs text-fal-muted">
+            Etiqueta comprada/impressa <strong>não</strong> marca o pedido como enviado. Só o
+            despacho muda o status — o cliente então vê “Enviado”.
+          </p>
+          {!shipGates.ok ? (
+            <p className="mt-2 mb-0 text-sm text-amber-800">
+              Despacho bloqueado: {shipGates.message}
+            </p>
+          ) : null}
+          <div className="mt-3 grid gap-2 md:grid-cols-4">
+            <Input
+              label="Transportadora"
+              value={carrier}
+              onChange={(e) => onCarrier(e.target.value)}
+            />
+            <Input label="Serviço" value={service} onChange={(e) => onService(e.target.value)} />
+            <Input label="Rastreio" value={tracking} onChange={(e) => onTracking(e.target.value)} />
+            <div className="flex items-end">
+              <Button
+                type="button"
+                disabled={busy || pendingShip || meBusy || !shipGates.ok}
+                onClick={onRequestShip}
+              >
+                Confirmar despacho
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
+
+      {order.status === 'enviado' || order.status === 'entregue' ? (
+        <div className="border-t border-fal-line pt-4">
+          <h3 className="m-0 text-sm font-bold text-fal-navy">Obs. e rastreio (pós-despacho)</h3>
+          <div className="mt-2 grid gap-2 md:grid-cols-3">
+            <Input
+              label="Link / código de rastreio"
+              value={tracking}
+              onChange={(e) => onTracking(e.target.value)}
+            />
+            <Input
+              label="Observação operacional"
+              value={opsNote}
+              onChange={(e) => setOpsNote(e.target.value)}
+            />
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="light"
+                disabled={busy || trackBusy || order.status === 'entregue'}
+                onClick={() => {
+                  void (async () => {
+                    setTrackBusy(true)
+                    onError(null)
+                    try {
+                      await adminSetShipmentTracking({
+                        orderId: order.id,
+                        trackingCode: tracking.trim() || null,
+                        note: opsNote.trim() || null,
+                      })
+                      onMessage('Rastreio/obs. atualizados')
+                      await onReload()
+                    } catch (e) {
+                      onError(toUserMessage(e, 'Falha ao salvar rastreio'))
+                    } finally {
+                      setTrackBusy(false)
+                    }
+                  })()
+                }}
+              >
+                Salvar rastreio
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

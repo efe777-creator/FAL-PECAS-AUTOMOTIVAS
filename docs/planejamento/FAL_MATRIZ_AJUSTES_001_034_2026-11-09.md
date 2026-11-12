@@ -1,8 +1,9 @@
-# FAL — Matriz AJUSTE-001 a 034
+# FAL — Matriz AJUSTE-001 a 035
 
-**Data:** 2026-11-09 · **reconciliada 2026-11-10** (`main` `6dcd06a` / eFe `6af3728aa529d6e05f777cab`)  
+**Data:** 2026-11-09 · **reconciliada 2026-11-10** (`main` `6dcd06a` / eFe `6af3728aa529d6e05f777cab`) · **035 acrescentado 2026-11-12**  
 **Fonte:** auditorias + specs 1–3 + VALs 09–10/11 + [reconciliação](./FAL_AUDITORIA_RECONCILIACAO_PLANO_MVP_2026-11-10.md)  
 **Plano:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
+**Checkout (2026-11-12):** [plano](./FAL_PLANO_AJUSTE_035_CHECKOUT.md) · [cruzamento](./FAL_AUDITORIA_AJUSTE_035_CHECKOUT_CRUZAMENTO_2026-11-12.md) — evolução jornada/pagamento; **não** altera 034  
 **Central de Pedidos (2026-11-11):** [plano 4 frentes](./FAL_PLANO_CENTRAL_PEDIDOS_4_FRENTES_2026-11-11.md) · [matriz auditoria](./FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md) · [mapa jornada](./FAL_MAPA_JORNADA_CENTRAL_PEDIDOS_2026-11-11.md) — não cria fila paralela; absorve validação/correção de 006/007/014/015/016/017/031  
 **Legenda estado:** I = Implementado (validar ops) · P = Parcial · N = Não existe / só planejado · D = Dado/ops humana  
 
@@ -42,6 +43,7 @@
 | 032 | Atendimento e pós-venda | **I/P** | G6 | **MVP** | `/trocas-devolucoes` + WhatsApp; ticket formal = Evo |
 | 033 | Financeiro / margem básica | **I** | G5 | **MVP** | Margem pedido VAL 09/11 (matriz antiga N estava errada) |
 | 034 | Indicadores operação | **I** | G7 | **MVP** | KPIs dashboard VAL 09/11 |
+| 035 | Checkout — jornada, pagamento e recuperação | **I/P** | G3 | **MVP** | [cruzamento](./FAL_AUDITORIA_AJUSTE_035_CHECKOUT_CRUZAMENTO_2026-11-12.md) · CP-PAY-021 config+probe PASS · [probe VAL](./FAL_MARCHA_AJUSTE_035_CHECKOUT_WEBHOOK_EDGE_PROBE_VAL_2026-11-12.md) · delivery Pix opcional |
 
 \*028 completa comercial não bloqueia G1; fallback seletor + placa live já cobrem identificação.
 
@@ -86,4 +88,4 @@
 | Home | 029, 009, 021, 025, 012, 003, 030, 023, 024, 027, 028 |
 | Placa | 028 (+ garagem via customerVehicleService) |
 
-**Assinatura:** Matriz 001–034 reconciliada · 2026-11-10.
+**Assinatura:** Matriz 001–034 reconciliada · 2026-11-10 · **035 acrescentado 2026-11-12** (checkout; 034 preservado).

@@ -111,7 +111,7 @@ export function evaluateOwnDepartureGates(input: OwnOpsGateInput): OwnOpsGateRes
     blockers.push('order_not_ready')
   }
   if (input.paymentStatus !== 'approved') blockers.push('payment_not_approved')
-  if (!input.packingComplete) blockers.push('packing_incomplete')
+  // Packing não bloqueia frete próprio nesta onda (pós-separação libera envio).
   if (blockers.length) {
     return { ok: false, blockers, message: blockersMessage(blockers) }
   }
@@ -151,7 +151,7 @@ export function nextOwnDeliveryAction(
   if (provider !== 'own') return 'nao_own'
   if (input.orderStatus === 'entregue') return 'entregue'
   if (['pronto_para_envio', 'preparando_envio'].includes(input.orderStatus)) {
-    if (input.paymentStatus !== 'approved' || !input.packingComplete) {
+    if (input.paymentStatus !== 'approved') {
       return 'aguardar_packing_ou_pagamento'
     }
     return 'registrar_saida'

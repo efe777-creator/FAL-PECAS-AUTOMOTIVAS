@@ -104,7 +104,7 @@ Central **existe** (hub + 4 áreas + detalhe + F7 ops + ME + Meus Pedidos). Não
 | ID | Área | Recurso | Situação | Evidência | Arquivo/função | Backend | Banco | Problema | Gravidade | Dependência | Ação | Fase | Critério de aceite |
 |----|------|---------|----------|-----------|----------------|---------|-------|----------|-----------|-------------|------|------|-------------------|
 | CP-PAY-020 | Pagamento | create-mp | **Smoke PASS** | VAL 2026-11-11 Pix R$1 | Edge | Edge | payments | — | alta | tokens | Manter | 4 | Cria cobrança; terminal sync cartão |
-| CP-PAY-021 | Pagamento | Webhook confirm | **Parcial** | Pago live + sync manual; webhook prod gap | mp-webhook + sync-mp-payment | Edge+RPC | payments | Webhook só sandbox MCP | crítica ops | 017 painel prod | Configurar webhook prod | 4 | Libera c/ webhook **ou** sync |
+| CP-PAY-021 | Pagamento | Webhook confirm | **Parcial** | URL Edge no app sandbox MCP 12/11; secret Gate; live app fora MCP | mp-webhook + sync-mp-payment | Edge+RPC | payments | secret Edge≠MP + collector live | crítica ops | secret + app live | Espelhar secret; webhook app live | 4 | Libera c/ webhook **ou** sync |
 | CP-PAY-IDEM | Pagamento | Idempotência | Parcial | mpWebhookCore | Edge | payment_events | Reteste | média | — | Teste dup | 3 | Sem dup transição |
 | CP-PAY-REF | Pagamento | Estorno | Parcial | Manual + RPC | Onda2 | RPC | payments | ≠ cancel comercial | média | Ops | Runbook | 1 | Estorno documentado |
 

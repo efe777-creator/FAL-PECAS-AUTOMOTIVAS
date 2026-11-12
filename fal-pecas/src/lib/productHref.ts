@@ -18,3 +18,12 @@ export function productHref(
   const slug = product.slug?.trim()
   return slug ? `/produto/${encodeURIComponent(slug)}` : `/produto/${product.id}`
 }
+
+/** Path interno seguro para Voltar (evita open redirect). */
+export function safeInternalReturnTo(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const path = value.trim()
+  if (!path.startsWith('/') || path.startsWith('//')) return null
+  if (path.startsWith('/produto/')) return null
+  return path
+}

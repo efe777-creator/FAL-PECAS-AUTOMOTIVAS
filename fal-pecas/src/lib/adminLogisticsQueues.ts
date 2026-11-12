@@ -36,6 +36,7 @@ export type AdminLogisticsNextAction =
   | 'entregue'
   | 'mock_sandbox'
   | 'retirada'
+  | 'retirada_autorizada'
   | 'desconhecida'
 
 export type AdminLogisticsQueue = {
@@ -51,7 +52,8 @@ export const ADMIN_LOGISTICS_QUEUES: readonly AdminLogisticsQueue[] = [
   {
     id: 'volumes',
     title: 'Preparar volumes',
-    description: 'Separação concluída — falta embalar ou completar medidas/peso.',
+    description:
+      'Melhor Envio: separação concluída — falta confirmar medidas/peso e alocação. Frete próprio e retirada não entram nesta fila.',
     path: '/admin/pedidos/expedicao?fila=volumes',
     primaryCta: 'Registrar volumes e peso',
   },
@@ -106,7 +108,8 @@ export const ADMIN_LOGISTICS_NEXT_ACTION_LABEL: Record<AdminLogisticsNextAction,
   em_transito: 'Em trânsito',
   entregue: 'Entregue',
   mock_sandbox: 'Mock/sandbox (sem fila real)',
-  retirada: 'Retirada na loja',
+  retirada: 'Autorizar retirada na loja',
+  retirada_autorizada: 'Retirada autorizada — aguardando cliente',
   desconhecida: 'Verificar pedido',
 }
 
@@ -142,6 +145,35 @@ export function isPaymentBlockingLogistics(status: string | null | undefined): b
 export type LogisticsShipmentLite = {
   provider: string | null
   metadata: Record<string, unknown> | null
+  service?: string | null
+  carrier?: string | null
+}
+
+/** Retirada na loja a partir do shipment lite (metadata / service / carrier). */
+export function isLogisticsStorePickup(
+  shipment: LogisticsShipmentLite | null | undefined,
+): boolean {
+  if (!shipment) return false
+  const service = String(shipment.service ?? '').toLowerCase()
+  const carrier = String(shipment.carrier ?? '').toLowerCase()
+  if (service === 'pickup' || service.includes('retirada')) return true
+  if (carrier.includes('retirada') || carrier.includes('pickup')) return true
+  const meta = shipment.metadata
+  if (meta && typeof meta === 'object') {
+    const optionId = String(
+      (meta as { option_id?: unknown }).option_id ??
+        (meta as { optionId?: unknown }).optionId ??
+        '',
+    ).toLowerCase()
+    if (optionId.includes('pickup') || optionId === 'mock:pickup') return true
+    const kind = String(
+      (meta as { kind?: unknown }).kind ??
+        (meta as { shipping_kind?: unknown }).shipping_kind ??
+        '',
+    ).toLowerCase()
+    if (kind === 'pickup' || kind === 'retirada') return true
+  }
+  return false
 }
 
 export type LogisticsOrderLite = {
@@ -213,7 +245,8 @@ export function orderMatchesLogisticsQueue(
 
   if (queueId === 'volumes') {
     if (!EXPEDICAO_READY.has(order.status)) return false
-    if (provider !== 'melhorenvio' && provider !== 'own') return false
+    // Só ME: own/retirada não exigem packing nesta onda.
+    if (provider !== 'melhorenvio') return false
     if (order.hasOpenReview) return false
     return !packingOk
   }
@@ -232,7 +265,7 @@ export function orderMatchesLogisticsQueue(
     if (!EXPEDICAO_READY.has(order.status)) return false
     if (provider !== 'own') return false
     if (order.hasOpenReview) return false
-    if (!packingOk) return false
+    // Packing não bloqueia frete próprio.
     if (!paid) return false
     return true
   }
@@ -247,17 +280,25 @@ export function logisticsNextAction(order: LogisticsOrderLite): AdminLogisticsNe
   if (order.status === 'confirmado') return 'aguardar_separacao'
   if (order.status === 'em_separacao') return 'aguardar_conferencia'
 
+  // Retirada antes de mock: mock:pickup não deve cair em sandbox genérico.
+  if (isLogisticsStorePickup(order.shipment)) {
+    const auth = order.shipment?.metadata?.pickup
+    const authorized =
+      auth &&
+      typeof auth === 'object' &&
+      Boolean((auth as { authorized_at?: unknown }).authorized_at)
+    return authorized ? 'retirada_autorizada' : 'retirada'
+  }
+
   const provider = normalizeShipProvider(order.shipment?.provider)
   if (provider === 'mock') return 'mock_sandbox'
-
-  const optionId = String(order.shipment?.metadata?.option_id ?? '')
-  if (optionId.includes('pickup') || optionId.startsWith('mock:pickup')) return 'retirada'
 
   if (!EXPEDICAO_READY.has(order.status)) return 'desconhecida'
 
   const packing = parseOrderPacking(order.shipment?.metadata ?? null)
   const packingOk = packingFromShipmentMeta(order.shipment?.metadata ?? null)
   const structuralOk = packingStructurallyFromMeta(order.shipment?.metadata ?? null)
+  // ME / own: volumes obrigatórios para etiqueta/expedição.
   if (!packing.volumes.length) return 'aguardar_embalagem'
   if (!packingOk) {
     if (!structuralOk) {

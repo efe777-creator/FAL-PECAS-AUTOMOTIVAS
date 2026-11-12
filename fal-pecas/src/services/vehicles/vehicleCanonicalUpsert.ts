@@ -155,6 +155,10 @@ async function vehicleCanonicalUpsertClient(input: {
       .from('vehicle_versions')
       .update({ status: 'active', updated_at: new Date().toISOString() })
       .eq('id', existing.id)
+    const existingVersion =
+      existing.version_name == null || String(existing.version_name).trim() === ''
+        ? null
+        : String(existing.version_name)
     return {
       manufacturerId: makerRow.id,
       modelId: modelRow.id,
@@ -162,8 +166,8 @@ async function vehicleCanonicalUpsertClient(input: {
       maker: makerRow.name,
       model: modelRow.name,
       year: input.year == null ? null : String(input.year),
-      engine: input.engine,
-      version: input.version,
+      engine: existing.engine ?? input.engine,
+      version: existingVersion ?? input.version,
     }
   }
 

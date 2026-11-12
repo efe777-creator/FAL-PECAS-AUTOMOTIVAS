@@ -1,5 +1,9 @@
 import { isOrderPackingComplete, parseOrderPacking } from '@/lib/orderPacking'
-import { orderUsesMelhorEnvio } from '@/lib/orderShippingKind'
+import {
+  isOrderStorePickup,
+  orderShippingKind,
+  orderUsesMelhorEnvio,
+} from '@/lib/orderShippingKind'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 
 export type OpsWizardStepId =
@@ -19,25 +23,33 @@ export type OpsWizardStep = {
 
 /**
  * Wizard operacional Fase 2: Conferência → Volumes → Frete → Etiqueta(ME) → Despacho.
+ * Retirada: volumes opcionais (skipped); frete = retirada; etiqueta skipped.
  * Own/mock: etiqueta = skipped.
  */
 export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
   const st = order.status
+  const pickup = isOrderStorePickup(order)
+  const kind = orderShippingKind(order)
+  const packingOptional = pickup || kind === 'own'
   const packing = parseOrderPacking(order.shipment?.metadata ?? null)
-  const hasVolumes = packing.volumes.length > 0
-  const packingDone = isOrderPackingComplete(
-    packing,
-    order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
-  )
+  const packingDone =
+    packingOptional ||
+    isOrderPackingComplete(
+      packing,
+      order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+    )
+  const allSeparated =
+    order.items.length > 0 && order.items.every((i) => Boolean(i.separated))
   const isMe = orderUsesMelhorEnvio(order)
 
   const confDone = ['pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'].includes(st)
   const confCurrent = ['confirmado', 'em_separacao'].includes(st)
-  const volDone = confDone || (confCurrent && packingDone)
-  const volCurrent = confCurrent && !packingDone
+  const volDone = packingOptional || confDone || (confCurrent && packingDone)
+  const volCurrent = !packingOptional && confCurrent && !packingDone
   const freteDone = ['enviado', 'entregue'].includes(st) || (confDone && Boolean(order.shipment))
   const freteCurrent = confDone && !['enviado', 'entregue'].includes(st)
   const labelDone =
+    pickup ||
     !isMe ||
     ['enviado', 'entregue'].includes(st) ||
     Boolean(
@@ -50,11 +62,28 @@ export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
           ),
         ),
     )
-  const labelCurrent = isMe && freteCurrent && !labelDone
+  const labelCurrent = !pickup && isMe && freteCurrent && !labelDone
   const shipDone = ['enviado', 'entregue'].includes(st)
   const shipCurrent = confDone && !shipDone
   const delDone = st === 'entregue'
   const delCurrent = st === 'enviado'
+
+  const pickupAuthorized = Boolean(
+    order.shipment?.metadata &&
+      typeof order.shipment.metadata === 'object' &&
+      (order.shipment.metadata as { pickup?: { authorized_at?: unknown } }).pickup
+        ?.authorized_at,
+  )
+
+  const freteLabel = pickup
+    ? pickupAuthorized
+      ? 'Retirada OK'
+      : 'Autorizar retirada'
+    : isMe
+      ? 'Frete ME'
+      : kind === 'own'
+        ? 'Frete próprio'
+        : 'Frete'
 
   const steps: OpsWizardStep[] = [
     {
@@ -65,19 +94,27 @@ export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
     },
     {
       id: 'volumes',
-      label: 'Volumes',
+      label: packingOptional ? 'Volumes (opc.)' : 'Volumes',
       anchor: 'ops-volumes',
-      state: volDone ? 'done' : volCurrent ? 'current' : confCurrent || confDone ? 'todo' : 'todo',
+      state: packingOptional
+        ? 'skipped'
+        : volDone
+          ? 'done'
+          : volCurrent
+            ? 'current'
+            : confCurrent || confDone
+              ? 'todo'
+              : 'todo',
     },
     {
       id: 'frete',
-      label: isMe ? 'Frete ME' : 'Frete',
+      label: freteLabel,
       anchor: 'ops-expedicao',
       state: freteDone ? 'done' : freteCurrent ? 'current' : 'todo',
     },
   ]
 
-  if (isMe) {
+  if (isMe && !pickup) {
     steps.push({
       id: 'etiqueta',
       label: 'Etiqueta',
@@ -96,13 +133,13 @@ export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
   steps.push(
     {
       id: 'despacho',
-      label: 'Despacho',
+      label: pickup ? 'Liberar retirada' : 'Despacho',
       anchor: 'ops-expedicao',
       state: shipDone ? 'done' : shipCurrent ? 'current' : 'todo',
     },
     {
       id: 'entrega',
-      label: 'Entrega',
+      label: pickup ? 'Cliente retirou' : 'Entrega',
       anchor: 'ops-expedicao',
       state: delDone ? 'done' : delCurrent ? 'current' : 'todo',
     },
@@ -124,22 +161,44 @@ export function buildOrderOpsWizard(order: AdminOrderDetail): OpsWizardStep[] {
   })
 }
 
-export function wizardHint(steps: OpsWizardStep[]): string {
+export function wizardHint(steps: OpsWizardStep[], order?: AdminOrderDetail): string {
   const cur = steps.find((s) => s.state === 'current')
   if (!cur) return 'Fluxo operacional concluído ou fora da expedição.'
+  const pickup = order ? isOrderStorePickup(order) : false
+  const kind = order ? orderShippingKind(order) : 'unknown'
   switch (cur.id) {
     case 'conferencia':
-      return 'Separe e confira todos os itens antes de concluir a separação.'
+      return pickup
+        ? 'Retirada na loja: separe e confira os itens. Volumes não são obrigatórios para liberar a retirada.'
+        : 'Separe e confira todos os itens. Medidas de volume costumam ser confirmadas após a separação.'
     case 'volumes':
+      if (kind === 'melhorenvio') {
+        return 'Melhor Envio: registre L×A×P e peso reais e aloque os itens — libera cotação/compra de etiqueta.'
+      }
+      if (kind === 'own') {
+        return 'Frete próprio: registre volumes e peso antes de organizar a saída.'
+      }
       return 'Registre L×A×P e peso de cada volume (cm/kg).'
     case 'frete':
-      return 'Confira o frete do pedido (ME ou próprio).'
+      return pickup
+        ? 'Autorize a retirada para o cliente ver “Pronto para retirar” no app.'
+        : kind === 'melhorenvio'
+          ? 'Confirme medidas → etiqueta Melhor Envio → despacho quando postar.'
+          : kind === 'own'
+            ? 'Confirme o envio (rastreio opcional). Combinar entrega ao vivo fica para depois.'
+            : 'Confira o frete do pedido.'
     case 'etiqueta':
-      return 'Cotar → preparar → comprar → gerar → imprimir etiqueta ME.'
+      return 'Cotar → preparar → comprar → gerar → imprimir etiqueta ME. Despacho é passo separado.'
     case 'despacho':
-      return 'Registre entrega à transportadora / envio (pedido → enviado).'
+      return pickup
+        ? 'Quando o cliente buscar, confirme “Cliente retirou”.'
+        : kind === 'own'
+          ? 'Confirme o envio; depois confirme a entrega ao cliente.'
+          : 'Confirme o despacho agora ou depois; então informe obs/rastreio.'
     case 'entrega':
-      return 'Confirme a entrega ao cliente.'
+      return pickup
+        ? 'Confirme que o cliente retirou o pedido.'
+        : 'Confirme a entrega ao cliente.'
     default:
       return ''
   }

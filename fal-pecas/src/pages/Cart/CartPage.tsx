@@ -11,6 +11,7 @@ import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import type { CartItem } from '@/types'
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 
 export function CartPage() {
   useDocumentTitle('Carrinho | FAL Peças Automotivas')
@@ -191,7 +192,12 @@ export function CartPage() {
             <span>{formatMoney(subtotal + (shippingAmount ?? 0))}</span>
           </div>
           {user ? (
-            <Link to="/checkout" className="mt-4 block">
+            <Link
+              to="/checkout"
+              state={{ from: '/carrinho' }}
+              onClick={() => saveCheckoutReturnTo('/carrinho')}
+              className="mt-4 block"
+            >
               <Button variant="primary" fullWidth>
                 Finalizar compra
               </Button>

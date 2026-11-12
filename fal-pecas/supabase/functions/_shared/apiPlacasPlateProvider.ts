@@ -7,7 +7,11 @@
  * Nunca VITE_ / nunca no frontend.
  */
 import type { PlateLookupProvider, PlateProviderRaw } from './plateProvider.ts'
-import { sanitizeEngine, splitApiModelo } from './splitApiModelo.ts'
+import {
+  normalizeVersionLabel,
+  sanitizeEngine,
+  splitApiModelo,
+} from './splitApiModelo.ts'
 
 const DEFAULT_BASE = 'https://wdapi2.com.br/v3'
 
@@ -63,12 +67,21 @@ function normalizeMakerName(raw: string | null): string | null {
   return softTitleCase(raw)
 }
 
-/** Extrai ano AAAA sem inventar; "2019/2020" → "2019". */
+/** Extrai ano AAAA sem inventar; "2019/2020" → primeiro (fab). */
 export function extractYear(raw: unknown): string | null {
   const s = asString(raw)
   if (!s) return null
   const m = s.match(/(?:19|20)\d{2}/)
   return m ? m[0] : null
+}
+
+/** Ano-modelo: em faixa "2019/2020" usa o último AAAA; senão o único. */
+export function extractYearPreferModel(raw: unknown): string | null {
+  const s = asString(raw)
+  if (!s) return null
+  const years = [...s.matchAll(/(?:19|20)\d{2}/g)].map((m) => m[0]!)
+  if (!years.length) return null
+  return years[years.length - 1]!
 }
 
 function unavailable(message?: string): PlateProviderRaw {
@@ -141,15 +154,17 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
       asString(dados.motorizacao) ??
       asString(dados.cilindrada),
   )
-  const version =
+  const version = normalizeVersionLabel(
     split.version ??
-    asString(dados.versao) ??
-    asString(dados.versão) ??
-    asString(dados.version)
+      asString(dados.versao) ??
+      asString(dados.versão) ??
+      asString(dados.version),
+  )
+  // Preferir ano-modelo quando a API manda faixa fab/modelo.
   const year =
-    extractYear(dados.ano) ??
-    extractYear(dados.anoModelo) ??
-    extractYear(dados.ano_modelo)
+    extractYearPreferModel(dados.anoModelo) ??
+    extractYearPreferModel(dados.ano_modelo) ??
+    extractYearPreferModel(dados.ano)
   const fuel = asString(dados.combustivel) ?? asString(dados.combustível)
 
   if (!maker && !model) return notFound()

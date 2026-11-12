@@ -1,5 +1,6 @@
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs'
 import { Loading } from '@/components/common/Loading'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
 import { buildAdminBreadcrumbs } from '@/lib/adminBreadcrumbs'
@@ -8,13 +9,14 @@ import { AdminForbiddenPage } from '@/pages/admin/AdminForbiddenPage'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
-const catalogLinks = [
+const catalogLinks: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/admin/produtos', label: 'Produtos' },
   { to: '/admin/aplicacoes', label: 'Aplicações' },
   { to: '/admin/precos', label: 'Preços' },
   { to: '/admin/importacoes', label: 'Importações' },
   { to: '/admin/categorias', label: 'Categorias' },
-  { to: '/admin/home', label: 'Home da loja' },
+  { to: '/admin/home', label: 'Home da loja', end: true },
+  { to: '/admin/home/promocoes', label: 'Promoções' },
   { to: '/admin/montadoras', label: 'Montadoras' },
   { to: '/admin/veiculos', label: 'Veículos' },
   { to: '/admin/fabricantes', label: 'Fabricantes' },
@@ -23,6 +25,7 @@ const catalogLinks = [
 
 const salesLinks = [
   { to: '/admin/pedidos', label: 'Pedidos' },
+  { to: '/admin/avisos', label: 'Notificações' },
   { to: '/admin/clientes', label: 'Clientes' },
 ]
 
@@ -47,7 +50,7 @@ function NavSection({
   onNavigate,
 }: {
   title: string
-  links: { to: string; label: string }[]
+  links: Array<{ to: string; label: string; end?: boolean }>
   onNavigate: () => void
 }) {
   if (!links.length) return null
@@ -58,7 +61,13 @@ function NavSection({
       </p>
       <div className="space-y-0.5">
         {links.map((l) => (
-          <NavLink key={l.to} to={l.to} className={linkClass} onClick={onNavigate}>
+          <NavLink
+            key={l.to}
+            to={l.to}
+            end={l.end}
+            className={linkClass}
+            onClick={onNavigate}
+          >
             {l.label}
           </NavLink>
         ))}
@@ -168,16 +177,19 @@ export function AdminLayout() {
             <p className="text-xs font-bold uppercase tracking-wider text-fal-yellow">FAL ADMIN</p>
             <p className="mt-1 truncate text-sm text-white/65">Painel operacional</p>
           </div>
-          <button
-            type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
-            aria-label="Fechar menu"
-            onClick={closeNav}
-          >
-            <span className="text-xl leading-none" aria-hidden>
-              ×
-            </span>
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <NotificationBell allHref="/admin/avisos" variant="dark" />
+            <button
+              type="button"
+              className="grid h-11 w-11 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
+              aria-label="Fechar menu"
+              onClick={closeNav}
+            >
+              <span className="text-xl leading-none" aria-hidden>
+                ×
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -241,10 +253,11 @@ export function AdminLayout() {
               <span className="block h-0.5 w-4 rounded bg-fal-navy" />
             </span>
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wider text-fal-navy">FAL ADMIN</p>
             <p className="truncate text-sm font-semibold text-fal-ink">{pageTitle}</p>
           </div>
+          <NotificationBell allHref="/admin/avisos" variant="light" />
         </header>
 
         <main className="min-w-0 flex-1 p-4 md:p-6">

@@ -36,9 +36,12 @@ export function evaluateShipOrderGates(input: ShipOrderGateInput): ShipOrderGate
   if (input.orderCancelledOrRefunded) blockers.push('order_not_operable')
   if (!READY.has(input.orderStatus)) blockers.push('order_not_ready')
   if (input.paymentStatus !== 'approved') blockers.push('payment_not_approved')
-  if (!input.packingComplete) blockers.push('packing_incomplete')
 
   const provider = normalizeProvider(input.provider)
+  // Packing só obrigatório no Melhor Envio (own libera pós-separação).
+  if (provider === 'melhorenvio' && !input.packingComplete) {
+    blockers.push('packing_incomplete')
+  }
   if (provider === 'melhorenvio' && !alreadyPurchased(input.labelState)) {
     blockers.push('me_label_not_purchased')
   }
@@ -49,9 +52,9 @@ export function evaluateShipOrderGates(input: ShipOrderGateInput): ShipOrderGate
       order_not_operable: 'Pedido cancelado/reembolsado.',
       order_not_ready: 'Pedido ainda não pronto para postagem.',
       payment_not_approved: 'Pagamento não aprovado.',
-      packing_incomplete: 'Packing incompleto.',
+      packing_incomplete: 'Packing incompleto — confirme medidas antes da etiqueta/despacho ME.',
       me_label_not_purchased: 'Compre/gere a etiqueta Melhor Envio antes da postagem.',
-      mock_not_shippable: 'Mock não usa postagem real.',
+      mock_not_shippable: 'Mock não usa postagem real — use autorizar/confirmar retirada.',
     }
     return {
       ok: false,

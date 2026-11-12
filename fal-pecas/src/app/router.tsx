@@ -51,6 +51,11 @@ const AccountOrderDetailPage = lazy(() =>
     default: m.AccountOrderDetailPage,
   })),
 )
+const AccountNotificationsPage = lazy(() =>
+  import('@/pages/Account/AccountNotificationsPage').then((m) => ({
+    default: m.AccountNotificationsPage,
+  })),
+)
 const LoginPage = lazy(() =>
   import('@/pages/Login/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
@@ -118,6 +123,11 @@ const AdminOrderDetailPage = lazy(() =>
     default: m.AdminOrderDetailPage,
   })),
 )
+const AdminNotificationsPage = lazy(() =>
+  import('@/pages/admin/AdminNotificationsPage').then((m) => ({
+    default: m.AdminNotificationsPage,
+  })),
+)
 const AdminCategoriesPage = lazy(() =>
   import('@/pages/admin/categories/AdminCategoriesPage').then((m) => ({
     default: m.AdminCategoriesPage,
@@ -126,6 +136,11 @@ const AdminCategoriesPage = lazy(() =>
 const AdminHomeContentPage = lazy(() =>
   import('@/pages/admin/home/AdminHomeContentPage').then((m) => ({
     default: m.AdminHomeContentPage,
+  })),
+)
+const AdminPromotionsPage = lazy(() =>
+  import('@/pages/admin/home/AdminPromotionsPage').then((m) => ({
+    default: m.AdminPromotionsPage,
   })),
 )
 const AdminSearchPrepPage = lazy(() =>
@@ -287,6 +302,11 @@ const OrderConfirmationPage = lazy(() =>
     default: m.OrderConfirmationPage,
   })),
 )
+const DevMpBrickPage = lazy(() =>
+  import('@/pages/dev/DevMpBrickPage').then((m) => ({
+    default: m.DevMpBrickPage,
+  })),
+)
 const AdminOperatorsPage = lazy(() =>
   import('@/pages/admin/operators/AdminOperatorsPage').then((m) => ({
     default: m.AdminOperatorsPage,
@@ -339,6 +359,7 @@ export const router = createBrowserRouter([
       { path: 'importacoes', element: <AdminImportsPage /> },
       { path: 'categorias', element: <AdminCategoriesPage /> },
       { path: 'home', element: <AdminHomeContentPage /> },
+      { path: 'home/promocoes', element: <AdminPromotionsPage /> },
       { path: 'busca', element: <AdminSearchPrepPage /> },
       { path: 'montadoras', element: <AdminManufacturersPage /> },
       { path: 'veiculos', element: <AdminVehiclesPage /> },
@@ -357,6 +378,7 @@ export const router = createBrowserRouter([
         element: <AdminSupplierCostImportPage />,
       },
       { path: 'pedidos', element: <AdminOrdersHubPage /> },
+      { path: 'avisos', element: <AdminNotificationsPage /> },
       { path: 'pedidos/lista', element: <AdminOrdersPage /> },
       { path: 'pedidos/aguardando-pagamento', element: <AdminOrdersAreaPage /> },
       { path: 'pedidos/analise', element: <AdminOrdersAreaPage /> },
@@ -498,6 +520,7 @@ export const router = createBrowserRouter([
           { path: 'favoritos', element: <AccountFavoritesPage /> },
           { path: 'pedidos', element: <AccountOrdersPage /> },
           { path: 'pedidos/:id', element: <AccountOrderDetailPage /> },
+          { path: 'avisos', element: <AccountNotificationsPage /> },
         ],
       },
       {
@@ -546,6 +569,18 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: 'dev/mp-brick',
+              element: (
+                <Suspend>
+                  <DevMpBrickPage />
+                </Suspend>
+              ),
+            },
+          ]
+        : []),
       {
         path: '*',
         element: (

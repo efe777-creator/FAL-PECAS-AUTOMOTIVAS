@@ -14,8 +14,21 @@
       "url": "https://mcp.mercadopago.com/mcp"
     },
     "netlify-mcp": {
+      "url": "https://netlify-mcp.netlify.app/mcp"
+    },
+    "netlify-mcp-local": {
       "command": "npx",
-      "args": ["-y", "@netlify/mcp"]
+      "args": ["-y", "@netlify/mcp"],
+      "env": {
+        "NETLIFY_PERSONAL_ACCESS_TOKEN": "${NETLIFY_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
     },
     "correios": {
       "command": "npx",

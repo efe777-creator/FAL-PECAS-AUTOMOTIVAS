@@ -7,6 +7,7 @@ import {
   isOrderPackingComplete,
   parseOrderPacking,
   validatePackingAllocation,
+  volumesFromContractedMeta,
   volumesToRpcPayload,
   type OrderPackingVolume,
   type PackingAllocationException,
@@ -16,6 +17,11 @@ import {
   adminSetOrderPacking,
   type AdminOrderDetail,
 } from '@/services/admin/adminOrderService'
+import {
+  isOrderStorePickup,
+  orderShippingKind,
+  orderUsesMelhorEnvio,
+} from '@/lib/orderShippingKind'
 import { useEffect, useMemo, useState } from 'react'
 
 type Props = {
@@ -33,18 +39,39 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
   const [exceptionOn, setExceptionOn] = useState(false)
   const [exceptionReason, setExceptionReason] = useState('')
 
+  const pickup = isOrderStorePickup(order)
+  const kind = orderShippingKind(order)
+  const isMe = orderUsesMelhorEnvio(order)
+  const postSeparation = ['em_separacao', 'pronto_para_envio', 'preparando_envio'].includes(
+    order.status,
+  )
+  // Packing obrigatório só no Melhor Envio; own/retirada liberam pós-separação sem packing.
+  const packingRequired = !pickup && isMe
+
   const items = useMemo(
     () => order.items.map((i) => ({ id: i.id, quantity: i.quantity, name: i.nameSnapshot ?? i.sku })),
     [order.items],
   )
 
   useEffect(() => {
-    const parsed = parseOrderPacking(order.shipment?.metadata ?? null)
-    setVolumes(parsed.volumes.length ? parsed.volumes : [])
+    const meta = order.shipment?.metadata ?? null
+    const parsed = parseOrderPacking(meta)
+    if (parsed.volumes.length) {
+      setVolumes(parsed.volumes)
+    } else {
+      // Pré-preenche medidas da cotação e aloca itens no 1º volume (ainda precisa Salvar).
+      const seeded = volumesFromContractedMeta(meta)
+      if (seeded.length && items.length) {
+        const qty = items.map((i) => ({ id: i.id, quantity: i.quantity }))
+        setVolumes(allocateAllToFirstVolume({ volumes: seeded }, qty).volumes)
+      } else {
+        setVolumes(seeded)
+      }
+    }
     const exc = parsed.allocationException
     setExceptionOn(Boolean(exc?.active))
     setExceptionReason(exc?.reason ?? '')
-  }, [order.id, order.shipment?.metadata])
+  }, [order.id, order.shipment?.metadata, items])
 
   const itemQtys = useMemo(
     () => items.map((i) => ({ id: i.id, quantity: i.quantity })),
@@ -104,7 +131,15 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
 
   async function save() {
     if (!volumes.length) {
-      onError('Adicione ao menos um volume.')
+      if (pickup) {
+        onOk('Retirada na loja: volumes opcionais — nada a salvar.')
+        return
+      }
+      onError(
+        packingRequired
+          ? 'Para frete, adicione ao menos um volume com medidas e peso.'
+          : 'Adicione ao menos um volume para registrar medidas.',
+      )
       return
     }
     onBusy(true)
@@ -131,27 +166,54 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
     }
   }
 
+  const helpTitle = pickup
+    ? 'Volumes (opcional — retirada na loja)'
+    : isMe
+      ? 'Volumes / embalagem (Melhor Envio)'
+      : kind === 'own'
+        ? 'Volumes / embalagem (entrega própria)'
+        : 'Volumes / embalagem'
+
+  const helpBody = pickup
+    ? 'Retirada na loja: não é obrigatório cadastrar volumes para separar o pedido. Você pode registrar medidas se quiser. Confirme volumes/medidas após a separação, se for o caso.'
+    : packingRequired
+      ? postSeparation
+        ? isMe
+          ? 'Confirme ou altere as medidas da cotação (pré-preenchidas quando disponíveis) e aloque os itens. Isso libera a etiqueta Melhor Envio.'
+          : 'Após a separação, confirme medidas se quiser documentar. No frete próprio o envio já fica liberado sem packing.'
+        : 'Medidas da cotação podem aparecer pré-preenchidas. Confirme após a separação antes da etiqueta (ME).'
+      : 'Registre volumes quando precisar documentar a embalagem.'
+
+  const statusLine = pickup
+    ? volumes.length === 0
+      ? 'Retirada: packing não bloqueia separação.'
+      : complete
+        ? 'Medidas registradas (opcional).'
+        : 'Medidas opcionais incompletas — não bloqueia retirada.'
+    : complete
+      ? 'Packing completo — liberado para etiqueta/expedição (se demais gates OK).'
+      : packingRequired
+        ? `Obrigatório para frete${allocCheck.reason ? ` — ${allocCheck.reason}` : ''}.`
+        : `Incompleto${allocCheck.reason ? ` — ${allocCheck.reason}` : ''}.`
+
   return (
     <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Volumes / embalagem</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-navy">{helpTitle}</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Prazo operacional: cada unidade do pedido deve ir a um volume (ou exceção
-          justificada). Sem isso o pedido fica em Preparar volumes.
+          {helpBody}
           {locked ? ' Somente leitura após despacho.' : ''}
         </p>
         <p
           className={`mt-2 mb-0 text-sm font-semibold ${
-            complete ? 'text-emerald-700' : 'text-amber-800'
+            pickup || complete ? 'text-emerald-700' : 'text-amber-800'
           }`}
         >
-          {complete
-            ? 'Packing completo — liberado para filas ME/Own (se demais gates OK).'
-            : `Incompleto${allocCheck.reason ? ` — ${allocCheck.reason}` : ''}.`}
+          {statusLine}
         </p>
       </div>
 
-      {items.length > 0 ? (
+      {items.length > 0 && (volumes.length > 0 || !pickup) ? (
         <div className="rounded-[12px] border border-fal-line bg-fal-bg/40 px-3 py-2">
           <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
             Itens do pedido
@@ -263,7 +325,7 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
         </ul>
       )}
 
-      {!locked ? (
+      {!locked && (!pickup || volumes.length > 0) ? (
         <div className="space-y-3 rounded-[12px] border border-dashed border-fal-line p-3">
           <label className="flex items-start gap-2 text-sm text-fal-navy">
             <input
@@ -312,9 +374,19 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
               Alocar tudo no 1º volume
             </Button>
           ) : null}
-          <Button type="button" disabled={busy || volumes.length === 0} onClick={() => void save()}>
-            Salvar packing
-          </Button>
+          {volumes.length > 0 ? (
+            <Button type="button" disabled={busy} onClick={() => void save()}>
+              Salvar packing
+            </Button>
+          ) : pickup ? (
+            <p className="m-0 self-center text-sm text-fal-muted">
+              Sem volumes — ok para separar. Use “+ Volume” só se quiser registrar medidas.
+            </p>
+          ) : (
+            <Button type="button" disabled>
+              Salvar packing
+            </Button>
+          )}
         </div>
       ) : null}
     </section>

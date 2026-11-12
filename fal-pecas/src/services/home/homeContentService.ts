@@ -87,20 +87,62 @@ export async function listCuratedFeaturedProductIds(): Promise<string[]> {
   }
 }
 
-/** Quantidade de destaques na Home (admin). Fallback = constante. */
-export async function getFeaturedDisplayLimit(): Promise<number> {
-  if (!isSupabaseConfigured || !supabase) return HOME_FEATURED_LIMIT_DEFAULT
+export type HomePresentationSettings = {
+  featuredDisplayLimit: number
+  showOfertaBadge: boolean
+  showDiscountPercent: boolean
+}
+
+const HOME_PRESENTATION_DEFAULT: HomePresentationSettings = {
+  featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+  showOfertaBadge: true,
+  showDiscountPercent: true,
+}
+
+/** Settings de apresentação da Home/vitrine (cache leve em memória). */
+let homePresentationCache: { at: number; value: HomePresentationSettings } | null = null
+const HOME_PRESENTATION_TTL_MS = 5 * 60 * 1000
+
+/** Invalida após admin salvar Config (selo/% / limite). */
+export function invalidateHomePresentationCache() {
+  homePresentationCache = null
+}
+
+export async function getHomePresentationSettings(): Promise<HomePresentationSettings> {
+  if (!isSupabaseConfigured || !supabase) return HOME_PRESENTATION_DEFAULT
+  const now = Date.now()
+  if (homePresentationCache && now - homePresentationCache.at < HOME_PRESENTATION_TTL_MS) {
+    return homePresentationCache.value
+  }
   try {
     const { data, error } = await supabase
       .from('store_home_settings')
-      .select('featured_display_limit')
+      .select('featured_display_limit, show_oferta_badge, show_discount_percent')
       .limit(1)
       .maybeSingle()
     if (error) throw error
-    const n = Number((data as { featured_display_limit?: number } | null)?.featured_display_limit)
-    if (!Number.isFinite(n)) return HOME_FEATURED_LIMIT_DEFAULT
-    return Math.min(48, Math.max(1, Math.floor(n)))
+    const row = data as {
+      featured_display_limit?: number
+      show_oferta_badge?: boolean | null
+      show_discount_percent?: boolean | null
+    } | null
+    const n = Number(row?.featured_display_limit)
+    const value: HomePresentationSettings = {
+      featuredDisplayLimit: Number.isFinite(n)
+        ? Math.min(48, Math.max(1, Math.floor(n)))
+        : HOME_FEATURED_LIMIT_DEFAULT,
+      showOfertaBadge: row?.show_oferta_badge !== false,
+      showDiscountPercent: row?.show_discount_percent !== false,
+    }
+    homePresentationCache = { at: now, value }
+    return value
   } catch {
-    return HOME_FEATURED_LIMIT_DEFAULT
+    return HOME_PRESENTATION_DEFAULT
   }
+}
+
+/** Quantidade de destaques na Home (admin). Fallback = constante. */
+export async function getFeaturedDisplayLimit(): Promise<number> {
+  const s = await getHomePresentationSettings()
+  return s.featuredDisplayLimit
 }

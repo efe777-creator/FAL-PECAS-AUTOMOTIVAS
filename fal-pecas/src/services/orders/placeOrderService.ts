@@ -13,6 +13,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       product_id: i.productId,
       quantity: i.quantity,
     })),
+    clear_cart: input.clearCart !== false,
   }
 
   const { data, error } = await getSupabase().rpc('place_order', { p_payload: payload })
@@ -24,6 +25,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     status: String(row.status),
     total: Number(row.total ?? 0),
     paymentId: row.payment_id != null ? String(row.payment_id) : undefined,
+    paymentStatus: row.payment_status != null ? String(row.payment_status) : undefined,
     alreadyExisted: Boolean(row.already_existed),
   }
 }

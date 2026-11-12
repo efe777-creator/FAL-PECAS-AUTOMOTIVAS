@@ -42,8 +42,9 @@ function base(partial: Partial<AdminOrderDetail>): AdminOrderDetail {
 }
 
 describe('buildOrderOpsWizard (Fase 2)', () => {
-  it('own: etiqueta skipped; conferência current sem separated', () => {
+  it('own: volumes e etiqueta skipped; conferência current sem separated', () => {
     const steps = buildOrderOpsWizard(base({}))
+    expect(steps.find((s) => s.id === 'volumes')?.state).toBe('skipped')
     expect(steps.find((s) => s.id === 'etiqueta')?.state).toBe('skipped')
     expect(steps.find((s) => s.id === 'conferencia')?.state).toBe('current')
   })
@@ -79,5 +80,27 @@ describe('buildOrderOpsWizard (Fase 2)', () => {
     expect(steps.find((s) => s.id === 'conferencia')?.state).toBe('done')
     expect(steps.find((s) => s.id === 'volumes')?.state).toBe('done')
     expect(steps.find((s) => s.id === 'etiqueta')?.state).not.toBe('skipped')
+  })
+
+  it('retirada: volumes e etiqueta skipped; frete = Retirada', () => {
+    const steps = buildOrderOpsWizard(
+      base({
+        status: 'em_separacao',
+        shipment: {
+          id: 's1',
+          provider: 'mock',
+          status: 'pending',
+          trackingCode: null,
+          amount: 0,
+          service: 'pickup',
+          carrier: 'Retirada na loja',
+          metadata: { option_id: 'mock:pickup' },
+        },
+      }),
+    )
+    expect(steps.find((s) => s.id === 'volumes')?.state).toBe('skipped')
+    expect(steps.find((s) => s.id === 'etiqueta')?.state).toBe('skipped')
+    expect(steps.find((s) => s.id === 'frete')?.label).toBe('Autorizar retirada')
+    expect(steps.find((s) => s.id === 'conferencia')?.state).toBe('current')
   })
 })

@@ -39,7 +39,7 @@ const HAPPY_PATH: { id: OrderCustomerStep; label: string }[] = [
   { id: 'pedido_realizado', label: 'Pedido realizado' },
   { id: 'aguardando_pagamento', label: 'Pendente de pagamento' },
   { id: 'pagamento_aprovado', label: 'Pagamento aprovado' },
-  { id: 'recebido_pela_fal', label: 'Aguardando confirmação da loja' },
+  /** Um único passo comercial — evita duplicar "Aguardando confirmação da loja". */
   { id: 'em_confirmacao', label: 'Aguardando confirmação da loja' },
   { id: 'separacao', label: 'Em separação / postagem' },
   { id: 'enviado', label: 'Enviado' },
@@ -58,8 +58,9 @@ export function mapStatusToCustomerStep(status: string): OrderCustomerStep {
     case 'em_analise':
     case 'aguardando_disponibilidade':
     case 'aguardando_decisao':
+      return 'em_confirmacao'
     case 'confirmado':
-      return status === 'recebido' ? 'recebido_pela_fal' : 'em_confirmacao'
+      return 'separacao'
     case 'em_separacao':
     case 'pronto_para_envio':
     case 'preparando_envio':
@@ -75,7 +76,10 @@ export function mapStatusToCustomerStep(status: string): OrderCustomerStep {
   }
 }
 
-export function projectCustomerTimeline(status: string): CustomerTimelineStep[] {
+export function projectCustomerTimeline(
+  status: string,
+  opts?: { pickup?: boolean; pickupAuthorized?: boolean },
+): CustomerTimelineStep[] {
   if (status === 'cancelado') {
     return [
       { id: 'pedido_realizado', label: 'Pedido realizado', state: 'done' },
@@ -83,25 +87,35 @@ export function projectCustomerTimeline(status: string): CustomerTimelineStep[] 
     ]
   }
 
-  const current = mapStatusToCustomerStep(status)
-  // recebido: step recebido é current; demais confirmação ainda todo
-  let activeIndex = HAPPY_PATH.findIndex((s) => s.id === current)
-  if (status === 'recebido') {
-    activeIndex = HAPPY_PATH.findIndex((s) => s.id === 'recebido_pela_fal')
-  } else if (status === 'confirmado') {
-    // confirmação concluída; próximo é separação (ainda todo)
-    activeIndex = HAPPY_PATH.findIndex((s) => s.id === 'em_confirmacao')
-  } else if (
-    status === 'em_analise' ||
-    status === 'aguardando_disponibilidade' ||
-    status === 'aguardando_decisao'
+  const pickup = Boolean(opts?.pickup)
+  const pickupAuthorized = Boolean(opts?.pickupAuthorized)
+  const path = HAPPY_PATH.map((s) => {
+    if (!pickup) return s
+    if (s.id === 'separacao') return { ...s, label: 'Em separação' }
+    if (s.id === 'enviado') return { ...s, label: 'Pronto para retirar' }
+    if (s.id === 'entregue') return { ...s, label: 'Retirada feita' }
+    return s
+  })
+
+  let current = mapStatusToCustomerStep(status)
+  // Retirada autorizada ainda em pronto_para_envio → passo "Pronto para retirar"
+  if (
+    pickup &&
+    pickupAuthorized &&
+    (status === 'pronto_para_envio' || status === 'preparando_envio')
   ) {
-    activeIndex = HAPPY_PATH.findIndex((s) => s.id === 'em_confirmacao')
+    current = 'enviado'
   }
 
+  let activeIndex = path.findIndex((s) => s.id === current)
   if (activeIndex < 0) activeIndex = 0
 
-  return HAPPY_PATH.map((s, i) => ({
+  // confirmado: loja já aprovou — "confirmação" done; atual = separação (ainda não iniciada)
+  if (status === 'confirmado') {
+    activeIndex = path.findIndex((s) => s.id === 'separacao')
+  }
+
+  return path.map((s, i) => ({
     id: s.id,
     label: s.label,
     state: i < activeIndex ? 'done' : i === activeIndex ? 'current' : 'todo',
@@ -126,16 +140,55 @@ export const orderStatusLabel: Record<string, string> = {
   cancelado: 'Cancelado',
 }
 
-/** CTA principal na lista Meus pedidos. */
-export function customerOrderListCta(status: string): string | null {
-  switch (status) {
-    case 'aguardando_pagamento':
-      return 'Continuar pagamento →'
-    case 'aguardando_decisao':
-      return 'Responder loja →'
-    default:
-      return null
+type CustomerStatusCtx = {
+  status: string
+  pickup?: boolean
+  pickupAuthorized?: boolean
+}
+
+/** Label cliente ciente de retirada / autorização. */
+export function customerFacingOrderStatusLabel(ctx: CustomerStatusCtx): string {
+  const { status, pickup, pickupAuthorized } = ctx
+  if (pickup) {
+    if (status === 'entregue') return 'Retirado na loja'
+    if (status === 'enviado') return 'Pronto para retirar'
+    if (
+      (status === 'pronto_para_envio' || status === 'preparando_envio') &&
+      pickupAuthorized
+    ) {
+      return 'Pronto para retirar'
+    }
+    if (status === 'pronto_para_envio' || status === 'preparando_envio') {
+      return 'Separação concluída — aguardando liberação da retirada'
+    }
+    if (status === 'em_separacao') return 'Em separação'
   }
+  return orderStatusLabel[status] ?? status
+}
+
+type CustomerListCtaOpts = {
+  pickup?: boolean
+  pickupAuthorized?: boolean
+}
+
+/** CTA principal na lista Meus pedidos (ação que o cliente precisa ver agora). */
+export function customerOrderListCta(
+  status: string,
+  opts?: CustomerListCtaOpts,
+): string | null {
+  if (status === 'aguardando_pagamento') return 'Continuar pagamento →'
+  if (status === 'aguardando_decisao') return 'Responder loja →'
+  if (
+    opts?.pickup &&
+    opts.pickupAuthorized &&
+    (status === 'pronto_para_envio' ||
+      status === 'preparando_envio' ||
+      status === 'enviado')
+  ) {
+    return 'Pronto para retirar →'
+  }
+  if (status === 'enviado' && !opts?.pickup) return 'Acompanhar envio →'
+  return null
 }
 
 /** Labels operacionais granulares para o painel admin (filas distintas). */
@@ -172,8 +225,19 @@ export const ADMIN_ORDER_COUNTER_KEYS = [
   'enviado',
 ] as const
 
+export type AdminNextStepShipContext = {
+  pickup?: boolean
+  shippingKind?: 'melhorenvio' | 'own' | 'mock' | 'unknown'
+}
+
 /** Próximo passo operacional (admin detalhe). */
-export function adminOrderNextStep(status: string): { title: string; body: string } | null {
+export function adminOrderNextStep(
+  status: string,
+  ship?: AdminNextStepShipContext,
+): { title: string; body: string } | null {
+  const pickup = Boolean(ship?.pickup)
+  const kind = ship?.shippingKind ?? 'unknown'
+
   switch (status) {
     case 'aguardando_pagamento':
       return {
@@ -190,33 +254,65 @@ export function adminOrderNextStep(status: string): { title: string; body: strin
     case 'aguardando_disponibilidade':
       return {
         title: 'Concluir confirmação',
-        body: 'Salve a disponibilidade nos itens e use Finalizar confirmação. Indisponível/prazo pedem autorização do cliente.',
+        body: 'Salve a disponibilidade e finalize. Você decide se pede confirmação ao cliente (prazo, obs, etc.) — não é automático.',
       }
     case 'aguardando_decisao':
       return {
         title: 'Aguardando resposta do cliente',
-        body: 'Sem resposta: aguarde. Autorizado: finalize de novo para confirmar. Recusado: cancele ou renegocie.',
+        body: 'Você solicitou confirmação. Autorizado: finalize. Recusado: cancele/renegocie. Ou retire a solicitação.',
       }
     case 'confirmado':
       return {
-        title: 'Iniciar separação',
-        body: 'Marque os itens separados (o 1º check avança para Em separação).',
+        title: pickup ? 'Iniciar separação (retirada na loja)' : 'Iniciar separação',
+        body: pickup
+          ? 'Marque os itens separados (o 1º check avança para Em separação). Volumes não são obrigatórios na retirada.'
+          : kind === 'melhorenvio'
+            ? 'Marque os itens separados. Depois da separação, confirme volumes/medidas para liberar a etiqueta.'
+            : kind === 'own'
+              ? 'Marque os itens separados. Depois da separação, confirme o envio (rastreio opcional).'
+              : 'Marque os itens separados (o 1º check avança para Em separação).',
       }
     case 'em_separacao':
       return {
-        title: 'Concluir separação',
-        body: 'Separe todos os itens e então conclua para liberar a expedição.',
+        title: pickup ? 'Concluir separação (retirada)' : 'Concluir separação',
+        body: pickup
+          ? 'Separe todos os itens e conclua. Medidas de volume são opcionais — confirme só se precisar documentar.'
+          : kind === 'melhorenvio'
+            ? 'Separe todos os itens e conclua. Em seguida confirme volumes (L×A×P/peso) para cotar/comprar a etiqueta Melhor Envio.'
+            : kind === 'own'
+              ? 'Separe todos os itens e conclua. Em seguida confirme o envio (packing não é obrigatório).'
+              : 'Separe todos os itens e então conclua para liberar a expedição.',
       }
     case 'pronto_para_envio':
     case 'preparando_envio':
+      if (pickup) {
+        return {
+          title: 'Autorizar retirada na loja',
+          body: 'Pedido separado. Autorize a retirada para o cliente ver no app; depois confirme quando ele buscar. Packing não é obrigatório.',
+        }
+      }
+      if (kind === 'melhorenvio') {
+        return {
+          title: 'Emitir etiqueta e expedir',
+          body: 'Confirme volumes/medidas se ainda faltarem, compre a etiqueta Melhor Envio e registre o envio.',
+        }
+      }
+      if (kind === 'own') {
+        return {
+          title: 'Confirmar envio (frete próprio)',
+          body: 'Confirme o envio com rastreio/link opcional. Depois confirme a entrega ao cliente.',
+        }
+      }
       return {
         title: 'Expedir pedido',
         body: 'Informe transportadora/rastreio (opcional) e registre o envio.',
       }
     case 'enviado':
       return {
-        title: 'Confirmar entrega',
-        body: 'Quando o cliente receber, confirme a entrega.',
+        title: pickup ? 'Confirmar retirada' : 'Confirmar entrega',
+        body: pickup
+          ? 'Quando o cliente retirar na loja, confirme a entrega.'
+          : 'Quando o cliente receber, confirme a entrega.',
       }
     case 'entregue':
     case 'cancelado':
@@ -245,8 +341,13 @@ export const orderEventLabel: Record<string, string> = {
   shipment_prepared: 'Expedição preparada',
   order_shipped: 'Pedido enviado',
   order_delivered: 'Pedido entregue',
+  pickup_authorized: 'Retirada autorizada',
+  // confirm pickup também emite order_delivered — label acima cobre "Retirada feita" no status
   own_delivery_attempt: 'Tentativa de entrega própria',
   packing_updated: 'Packing / volumes atualizados',
+  customer_receipt_confirmed: 'Cliente confirmou o recebimento',
+  staff_requested_customer_decision: 'Loja solicitou confirmação do cliente',
+  staff_withdrew_customer_decision: 'Loja retirou solicitação de confirmação',
   occurrence_opened: 'Ocorrência aberta',
   occurrence_updated: 'Ocorrência atualizada',
   occurrence_assigned: 'Ocorrência atribuída',
@@ -288,6 +389,7 @@ export function orderConfirmationResultLabel(result: string | null | undefined):
     .toLowerCase()
   if (!key) return '—'
   if (key === 'confirmado') return 'Confirmado'
+  if (key === 'confirmado_com_prazo') return 'Confirmado (prazo informado pela loja)'
   if (key === 'nao_atendivel') return 'Não atendível — pedir autorização'
   if (key === 'com_ressalva') return 'Com ressalva (prazo) — pedir autorização'
   if (key === 'autorizado_com_indisponivel') return 'Autorizado com item indisponível'

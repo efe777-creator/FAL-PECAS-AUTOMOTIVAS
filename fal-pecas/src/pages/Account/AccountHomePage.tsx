@@ -1,10 +1,12 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { customerOrderListCta } from '@/lib/orderLifecycle'
 import { isStaffRole } from '@/services/admin/staffService'
 import { listAddresses } from '@/services/customers/addressService'
 import { listMyOrders } from '@/services/customers/orderQueryService'
 import { listSavedVehicles } from '@/services/customers/customerVehicleService'
-import { useEffect, useState } from 'react'
+import type { CustomerOrderSummary } from '@/types'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const cards = [
@@ -13,6 +15,11 @@ const cards = [
   { to: '/conta/veiculos', title: 'Meus carros', desc: 'Garagem e consulta por veículo' },
   { to: '/conta/favoritos', title: 'Favoritos', desc: 'Produtos que você marcou' },
   { to: '/conta/pedidos', title: 'Meus pedidos', desc: 'Consulta de pedidos' },
+  {
+    to: '/conta/avisos',
+    title: 'Notificações',
+    desc: 'Status, retirada e avisos da loja',
+  },
 ]
 
 export function AccountHomePage() {
@@ -22,25 +29,31 @@ export function AccountHomePage() {
   const [stats, setStats] = useState<{ addresses: number; vehicles: number; orders: number } | null>(
     null,
   )
+  const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
 
   useEffect(() => {
     if (!user) return
     let active = true
     void (async () => {
       try {
-        const [addresses, vehicles, orders] = await Promise.all([
+        const [addresses, vehicles, orderRows] = await Promise.all([
           listAddresses(),
           listSavedVehicles(),
           listMyOrders(),
         ])
-        if (active)
+        if (active) {
+          setOrders(orderRows)
           setStats({
             addresses: addresses.length,
             vehicles: vehicles.length,
-            orders: orders.length,
+            orders: orderRows.length,
           })
+        }
       } catch {
-        if (active) setStats(null)
+        if (active) {
+          setStats(null)
+          setOrders([])
+        }
       }
     })()
     return () => {
@@ -48,7 +61,22 @@ export function AccountHomePage() {
     }
   }, [user])
 
+  const pendingActions = useMemo(() => {
+    return orders
+      .map((o) => {
+        const cta = customerOrderListCta(o.status, {
+          pickup: o.pickup,
+          pickupAuthorized: o.pickupAuthorized,
+        })
+        if (!cta) return null
+        return { id: o.id, cta: cta.replace(/\s*→\s*$/, '') }
+      })
+      .filter((x): x is { id: string; cta: string } => x != null)
+      .slice(0, 5)
+  }, [orders])
+
   return (
+    <div className="space-y-4">
     <div className="rounded-fal border border-fal-line bg-white p-5">
       <h2 className="mt-0 text-xl font-extrabold">Resumo</h2>
       <p className="text-sm text-fal-muted">
@@ -91,6 +119,31 @@ export function AccountHomePage() {
           </Link>
         ))}
       </div>
+    </div>
+
+    {pendingActions.length > 0 ? (
+      <section className="rounded-fal border-2 border-fal-yellow-dark/40 bg-fal-yellow/15 p-5">
+        <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-navy/70">
+          Avisos dos seus pedidos
+        </p>
+        <h2 className="mt-1 mb-0 text-lg font-extrabold text-fal-navy">Faça agora</h2>
+        <ul className="mb-0 mt-3 list-none space-y-2 p-0">
+          {pendingActions.map((a) => (
+            <li key={a.id}>
+              <Link
+                to={`/conta/pedidos/${a.id}`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-navy/20 bg-white px-3 py-2 text-sm font-semibold text-fal-navy no-underline"
+              >
+                <span>
+                  Pedido {a.id.slice(0, 8)}… · {a.cta}
+                </span>
+                <span className="text-xs font-bold text-fal-auth-link">Abrir →</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null}
     </div>
   )
 }

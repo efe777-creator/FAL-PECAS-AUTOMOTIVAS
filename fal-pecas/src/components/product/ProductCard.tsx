@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/components/common/Toast'
+import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { productHref as productPath } from '@/lib/productHref'
@@ -21,11 +22,18 @@ import {
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
+import { formatMoney } from '@/lib/money'
 import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
+import {
+  formatOfertaBadgeLabel,
+  resolvePromoOffer,
+} from '@/lib/promoPresentation'
+import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
+import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
 import { type MouseEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth()
@@ -33,13 +41,17 @@ export function ProductCard({ product }: { product: Product }) {
   const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
+  const presentation = useHomePresentation()
   const liked = isFavorite(product.id)
   const price = displayPrice(product)
   const listPrice = product.listPrice ?? product.price
-  const showStrike = listPrice > price + 0.001
+  const offer = resolvePromoOffer(listPrice, price)
   const displayName = toCommercialTitleCase(product.name)
   const brandName = product.brand ? toCommercialTitleCase(product.brand) : null
   const productHref = productPath(product)
+  const returnFrom = `${location.pathname}${location.search}`
+  const pdpLinkState = { from: returnFrom }
   const available = product.available !== false
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
@@ -74,20 +86,25 @@ export function ProductCard({ product }: { product: Product }) {
     )
   }
 
-  /** Garante item no carrinho (sem incrementar se já está) e vai ao carrinho. */
+  /** AJUSTE-035 C5 — compra direta isolada; não mistura nem altera o carrinho. */
   function onBuyNow(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
-    if (!inCart) addItem(product, 1)
-    navigate('/carrinho')
+    saveBuyNowIntent({ ...product, price }, 1)
+    saveCheckoutReturnTo(returnFrom)
+    navigate('/checkout', { state: { from: returnFrom } })
   }
 
   return (
     <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5">
-      {showStrike ? (
+      {offer.isOffer && presentation.showOfertaBadge ? (
         <div className="absolute top-3.5 left-3.5 z-[1]">
-          <Badge>Oferta</Badge>
+          <Badge>
+            {formatOfertaBadgeLabel(offer, {
+              showDiscountPercent: presentation.showDiscountPercent,
+            })}
+          </Badge>
         </div>
       ) : null}
 
@@ -104,6 +121,7 @@ export function ProductCard({ product }: { product: Product }) {
         {product.imageUrl ? (
           <Link
             to={productHref}
+            state={pdpLinkState}
             className="group relative flex h-full w-full items-center justify-center"
             aria-label={`Ver ${displayName}`}
           >
@@ -119,7 +137,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       </ProductMediaFrame>
 
-      <Link to={productHref} className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Link to={productHref} state={pdpLinkState} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <h3
           className="mt-2 mb-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
           title={displayName}
@@ -183,9 +201,9 @@ export function ProductCard({ product }: { product: Product }) {
             <p className="m-0 truncate text-lg font-black sm:text-[22px]">
               {formatStorePriceLabel(price, listPrice)}
             </p>
-            {showStrike ? (
+            {offer.isOffer ? (
               <p className="m-0 -mt-1 truncate text-xs text-fal-muted line-through">
-                {formatMoneyStrike(listPrice)}
+                {formatMoney(offer.listPrice)}
               </p>
             ) : null}
             <PaymentConditionHint amount={price} surface="card" />
@@ -214,8 +232,4 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
     </article>
   )
-}
-
-function formatMoneyStrike(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }

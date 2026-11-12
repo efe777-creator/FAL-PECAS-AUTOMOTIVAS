@@ -210,6 +210,9 @@ export function projectAdminOrderTimeline(
   opts?: {
     hadDecisionStep?: boolean
     customerDecision?: CustomerDecisionLite
+    /** Retirada na loja: labels e passo atual adaptados. */
+    pickup?: boolean
+    pickupAuthorized?: boolean
   },
 ): AdminTimelineStep[] {
   if (status === 'cancelado') {
@@ -219,6 +222,8 @@ export function projectAdminOrderTimeline(
     ]
   }
 
+  const pickup = Boolean(opts?.pickup)
+  const pickupAuthorized = Boolean(opts?.pickupAuthorized)
   const hadDecision =
     opts?.hadDecisionStep === true ||
     status === 'aguardando_decisao' ||
@@ -290,12 +295,17 @@ export function projectAdminOrderTimeline(
     },
     {
       id: 'enviado',
-      label: 'Enviado',
-      match: (s) => s === 'enviado' || s === 'entregue',
+      label: pickup ? 'Pronto para retirar' : 'Enviado',
+      match: (s) =>
+        s === 'enviado' ||
+        s === 'entregue' ||
+        (pickup &&
+          pickupAuthorized &&
+          (s === 'pronto_para_envio' || s === 'preparando_envio')),
     },
     {
       id: 'entregue',
-      label: 'Entrega concluída',
+      label: pickup ? 'Retirada feita' : 'Entrega concluída',
       match: (s) => s === 'entregue',
     },
   )
@@ -307,10 +317,17 @@ export function projectAdminOrderTimeline(
   else if (['recebido', 'em_analise', 'aguardando_disponibilidade'].includes(status))
     currentId = 'analise'
   else if (status === 'aguardando_decisao') currentId = 'decisao'
+  else if (status === 'entregue') currentId = 'entregue'
+  else if (
+    pickup &&
+    (status === 'enviado' ||
+      ((status === 'pronto_para_envio' || status === 'preparando_envio') && pickupAuthorized))
+  ) {
+    // Autorizado / liberado: aguarda cliente — ainda não é "Retirada feita"
+    currentId = 'enviado'
+  } else if (status === 'enviado') currentId = 'enviado'
   else if (['confirmado', 'em_separacao', 'pronto_para_envio', 'preparando_envio'].includes(status))
     currentId = 'confirmado'
-  else if (status === 'enviado') currentId = 'enviado'
-  else if (status === 'entregue') currentId = 'entregue'
 
   const currentIndex = nodes.findIndex((n) => n.id === currentId)
   const idx = currentIndex < 0 ? 0 : currentIndex

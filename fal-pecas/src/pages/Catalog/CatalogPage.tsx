@@ -556,10 +556,25 @@ export function CatalogPage() {
 
   const onlyQueryChip =
     activeChips.length === 1 && activeChips[0]?.key === 'q' ? activeChips[0].label : null
+
+  /** Slug do nó pai (grupo←subgrupo ou categoria←grupo) para empty state de classificação. */
+  const parentCategorySlug = useMemo(() => {
+    if (!cat.trim()) return null
+    if (catPath.subgrupoId && catPath.grupoId) {
+      return allCategories.find((c) => c.id === catPath.grupoId)?.slug ?? null
+    }
+    if (catPath.grupoId && catPath.categoriaId) {
+      return allCategories.find((c) => c.id === catPath.categoriaId)?.slug ?? null
+    }
+    return null
+  }, [cat, catPath.subgrupoId, catPath.grupoId, catPath.categoriaId, allCategories])
+
   const emptyDescription = vehicleFiltersActive && !onlyQueryChip
     ? 'Identificamos o veículo, mas ainda não temos peças compatíveis cadastradas.'
     : onlyQueryChip
       ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
+      : cat.trim() && parentCategorySlug
+        ? `Nenhum produto nesta classificação (${catPath.label || cat}). Experimente o nível superior ou limpe o filtro de grupo/subgrupo.`
       : activeChips.length > 0
         ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
         : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
@@ -982,8 +997,20 @@ export function CatalogPage() {
                 : 'Nenhum produto encontrado'
             }
             description={emptyDescription}
-            actionLabel={activeChips.length ? 'Limpar filtros' : undefined}
-            actionTo={activeChips.length ? '/catalogo' : undefined}
+            actionLabel={
+              cat.trim() && parentCategorySlug
+                ? 'Ver classificação superior'
+                : activeChips.length
+                  ? 'Limpar filtros'
+                  : undefined
+            }
+            actionTo={
+              cat.trim() && parentCategorySlug
+                ? `/catalogo?cat=${encodeURIComponent(parentCategorySlug)}`
+                : activeChips.length
+                  ? '/catalogo'
+                  : undefined
+            }
           >
             {activeChips.length ? (
               <div className="mt-4 flex flex-wrap justify-center gap-2">

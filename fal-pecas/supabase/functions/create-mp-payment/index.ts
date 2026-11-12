@@ -93,6 +93,28 @@ Deno.serve(async (req) => {
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
+    // HOME-06b P0 — enforcement parcelas vs store_payment_display
+    if (card) {
+      const { data: displayRow } = await admin
+        .from('store_payment_display')
+        .select('enabled, max_installments, min_installment_amount')
+        .limit(1)
+        .maybeSingle()
+      const enabled = Boolean(displayRow?.enabled)
+      let maxAllowed = 1
+      if (enabled && amount > 0) {
+        const max = Math.min(Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1), 24)
+        const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
+        maxAllowed = minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
+      }
+      if (card.installments > maxAllowed) {
+        return json(422, {
+          error: 'installments_not_allowed',
+          detail: `installments acima do permitido (máx. ${maxAllowed})`,
+        })
+      }
+    }
+
     const payerDoc = customer.cpf
       ? ({ type: 'CPF' as const, number: String(customer.cpf).replace(/\D/g, '') })
       : customer.cnpj

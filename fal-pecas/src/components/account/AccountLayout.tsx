@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Container } from '@/components/layout/Container'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useAuth } from '@/contexts/AuthContext'
 import { isStaffRole } from '@/services/admin/staffService'
 import { Link, NavLink, Outlet } from 'react-router-dom'
@@ -11,6 +12,7 @@ const links = [
   { to: '/conta/veiculos', label: 'Meus carros' },
   { to: '/conta/favoritos', label: 'Favoritos' },
   { to: '/conta/pedidos', label: 'Meus pedidos' },
+  { to: '/conta/avisos', label: 'Notificações' },
 ]
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -29,8 +31,15 @@ export function AccountLayout() {
 
   return (
     <Container className="py-6 sm:py-8">
-      <h1 className="mt-0 mb-1 text-[24px] font-extrabold sm:mb-2 sm:text-[34px]">Minha conta</h1>
-      <p className="mb-4 text-fal-muted sm:mb-6">Olá, {firstName}.</p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:mb-6">
+        <div>
+          <h1 className="mt-0 mb-1 text-[24px] font-extrabold sm:mb-2 sm:text-[34px]">
+            Minha conta
+          </h1>
+          <p className="mb-0 text-fal-muted">Olá, {firstName}.</p>
+        </div>
+        <NotificationBell allHref="/conta/avisos" variant="light" />
+      </div>
 
       {/* Mobile: nav compacta horizontal antes do conteúdo */}
       <nav

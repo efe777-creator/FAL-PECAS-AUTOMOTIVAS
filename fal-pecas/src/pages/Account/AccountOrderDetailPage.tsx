@@ -16,20 +16,27 @@ import {
   whatsAppHref,
 } from '@/lib/whatsapp'
 import {
+  customerFacingOrderStatusLabel,
   orderEventLabel,
-  orderStatusLabel,
   projectCustomerTimeline,
 } from '@/lib/orderLifecycle'
+import { readContractedShipping } from '@/lib/contractedShipping'
+import { isOrderStorePickup } from '@/lib/orderShippingKind'
+import { isStorePickupAuthorized } from '@/lib/storePickupOps'
 import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
 import {
   customerCancelUnpaidOrder,
+  customerConfirmReceipt,
+  customerReportDeliveryIssue,
   customerRespondOrderDecision,
   requestOrderCancellation,
 } from '@/services/orders/customerOrderActions'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
-import type { OrderDetail } from '@/types'
+import { formatStoreOriginAddress } from '@/services/shipping/storePickupOption'
+import type { OrderDetail, StoreShippingOrigin } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -65,6 +72,7 @@ export function AccountOrderDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [rebuyBusy, setRebuyBusy] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
+  const [storeOrigin, setStoreOrigin] = useState<StoreShippingOrigin | null>(null)
 
   /** Só toast — não usa `error` de carga (senão a página vira ErrorState). */
   function pushError(message: string) {
@@ -94,10 +102,74 @@ export function AccountOrderDetailPage() {
     void reload()
   }, [reload])
 
+  useEffect(() => {
+    let active = true
+    void getStoreShippingOrigin()
+      .then((o) => {
+        if (active) setStoreOrigin(o)
+      })
+      .catch(() => {
+        if (active) setStoreOrigin(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const storePickup = order ? isOrderStorePickup(order) : false
+  const pickupAuthorized = order
+    ? isStorePickupAuthorized(order.shipment?.metadata ?? null)
+    : false
+  const pickupReady =
+    storePickup &&
+    pickupAuthorized &&
+    !!order &&
+    ['pronto_para_envio', 'preparando_envio', 'enviado'].includes(order.status)
   const timeline = useMemo(
-    () => (order ? projectCustomerTimeline(order.status) : []),
-    [order],
+    () =>
+      order
+        ? projectCustomerTimeline(order.status, {
+            pickup: storePickup,
+            pickupAuthorized,
+          })
+        : [],
+    [order, storePickup, pickupAuthorized],
   )
+  const statusLabel = order
+    ? customerFacingOrderStatusLabel({
+        status: order.status,
+        pickup: storePickup,
+        pickupAuthorized,
+      })
+    : ''
+
+  const decisionRequestReason = useMemo(() => {
+    if (!order?.events?.length) return null
+    const hit = [...order.events]
+      .reverse()
+      .find(
+        (e) =>
+          e.eventType === 'order_awaiting_decision' ||
+          e.eventType === 'staff_requested_customer_decision',
+      )
+    if (!hit) return null
+    const kind = String(hit.payload?.reason_kind ?? '')
+    const text = String(hit.payload?.reason_text ?? '').trim()
+    const kindLabel =
+      kind === 'prazo'
+        ? 'Prazo'
+        : kind === 'obs'
+          ? 'Observação'
+          : kind === 'indisponivel'
+            ? 'Indisponibilidade'
+            : kind === 'outro'
+              ? 'Outro'
+              : null
+    if (kindLabel && text) return `${kindLabel}: ${text}`
+    if (text) return text
+    if (kindLabel) return kindLabel
+    return null
+  }, [order])
 
   const awaitingPayment = order?.status === 'aguardando_pagamento'
   const awaitingDecision = order?.status === 'aguardando_decisao'
@@ -216,6 +288,60 @@ export function AccountOrderDetailPage() {
     }
   }
 
+  const receiptConfirmed = Boolean(
+    order?.events?.some((e) => e.eventType === 'customer_receipt_confirmed'),
+  )
+  const canPostDelivery =
+    order?.status === 'entregue' || order?.status === 'enviado'
+
+  async function onConfirmReceipt() {
+    if (!order) return
+    const { confirmed } = await confirmDialog({
+      title: 'Confirmar recebimento?',
+      message: 'Confirma que recebeu o pedido em boas condições?',
+      confirmLabel: 'Confirmar recebimento',
+    })
+    if (!confirmed) return
+    setActionBusy(true)
+    try {
+      const r = await customerConfirmReceipt(order.id)
+      pushOk(
+        r.already
+          ? 'Recebimento já estava confirmado.'
+          : 'Recebimento confirmado. Obrigado!',
+      )
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao confirmar recebimento'))
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function onReportDeliveryIssue() {
+    if (!order) return
+    const { confirmed, reason } = await confirmDialog({
+      title: 'Reportar problema?',
+      message: 'Descreva o que aconteceu. A loja será notificada.',
+      confirmLabel: 'Enviar',
+      danger: true,
+      requireReason: true,
+      reasonLabel: 'Descreva o problema',
+      reasonPlaceholder: 'Ex.: embalagem danificada, item faltando…',
+    })
+    if (!confirmed || !reason?.trim()) return
+    setActionBusy(true)
+    try {
+      await customerReportDeliveryIssue(order.id, reason)
+      pushOk('Problema registrado. A loja vai analisar.')
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao reportar problema'))
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
   async function onBuyAgain() {
     if (!order) return
     setRebuyBusy(true)
@@ -260,6 +386,7 @@ export function AccountOrderDetailPage() {
   }
 
   const addr = order.addressSnapshot
+  const contractedShip = readContractedShipping(order.shipment, order.shippingAmount)
   const updates =
     order.events.length > 0
       ? order.events
@@ -283,8 +410,7 @@ export function AccountOrderDetailPage() {
           <div>
             <h2 className="mt-0 text-xl font-extrabold">Pedido {order.id.slice(0, 8)}…</h2>
             <p className="mb-0 text-sm text-fal-muted">
-              {formatDateTime(order.createdAt)} ·{' '}
-              <strong>{orderStatusLabel[order.status] ?? order.status}</strong>
+              {formatDateTime(order.createdAt)} · <strong>{statusLabel}</strong>
             </p>
             {awaitingPayment ? (
               <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
@@ -294,6 +420,11 @@ export function AccountOrderDetailPage() {
             {awaitingDecision ? (
               <p className="mb-0 mt-2 inline-block rounded-md bg-sky-100 px-2 py-1 text-xs font-bold text-sky-900">
                 A loja pediu sua autorização — veja o painel abaixo
+              </p>
+            ) : null}
+            {pickupReady ? (
+              <p className="mb-0 mt-2 inline-block rounded-md bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900">
+                Retirada autorizada — você já pode buscar na loja
               </p>
             ) : null}
             {cancelRequestPending ? (
@@ -333,7 +464,7 @@ export function AccountOrderDetailPage() {
                 phone,
                 buildOrderWhatsAppMessage({
                   orderNumber: order.id.slice(0, 8),
-                  statusLabel: orderStatusLabel[order.status] ?? order.status,
+                  statusLabel,
                 }),
               )
               return (
@@ -357,6 +488,30 @@ export function AccountOrderDetailPage() {
         </div>
       </div>
 
+      {pickupReady ? (
+        <section className="rounded-fal border-2 border-emerald-400 bg-emerald-50/70 p-5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-emerald-900/80">
+            Faça agora
+          </p>
+          <h3 className="mt-1 mb-0 text-lg font-extrabold text-fal-navy">
+            Pedido pronto para retirar na loja
+          </h3>
+          <p className="mt-2 mb-0 text-sm text-fal-ink">
+            A loja liberou a retirada. Leve documento e o número do pedido{' '}
+            <strong>{order.id.slice(0, 8)}…</strong>.
+          </p>
+          {storeOrigin ? (
+            <p className="mt-3 mb-0 rounded-[10px] border border-emerald-200 bg-white px-3 py-2 text-sm text-fal-ink">
+              <strong>Endereço:</strong> {formatStoreOriginAddress(storeOrigin)}
+            </p>
+          ) : (
+            <p className="mt-3 mb-0 text-sm text-fal-muted">
+              Confirme o endereço da loja pelo WhatsApp se precisar.
+            </p>
+          )}
+        </section>
+      ) : null}
+
       {awaitingPayment ? (
         <div className="rounded-fal border border-amber-300 bg-amber-50/60 p-5">
           <h3 className="mt-0 text-base font-extrabold text-fal-navy">Continuar pagamento</h3>
@@ -372,15 +527,54 @@ export function AccountOrderDetailPage() {
         </div>
       ) : null}
 
+      {canPostDelivery ? (
+        <div className="rounded-fal border border-fal-line bg-white p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Pós-entrega</h3>
+          <p className="mt-1 text-sm text-fal-muted">
+            Confirme o recebimento ou avise se houve algum problema.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {order.status === 'entregue' ? (
+              receiptConfirmed ? (
+                <p className="mb-0 text-sm font-semibold text-fal-navy">
+                  Você já confirmou o recebimento.
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={actionBusy}
+                  onClick={() => void onConfirmReceipt()}
+                >
+                  Confirmar recebimento
+                </Button>
+              )
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={actionBusy}
+              onClick={() => void onReportDeliveryIssue()}
+            >
+              Tive um problema
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {awaitingDecision ? (
         <div className="rounded-fal border border-sky-300 bg-sky-50/70 p-5">
           <h3 className="mt-0 text-base font-extrabold text-fal-navy">
             A loja pediu sua autorização
           </h3>
           <p className="mt-1 text-sm text-fal-muted">
-            Um ou mais itens ficaram indisponíveis ou com prazo diferente. Nada é aplicado
-            em silêncio — escolha autorizar ou recusar.
+            A loja pediu sua confirmação para seguir com o pedido. Nada é aplicado em
+            silêncio — escolha autorizar ou recusar.
           </p>
+          {decisionRequestReason ? (
+            <p className="mt-2 rounded-md border border-sky-200 bg-white px-3 py-2 text-sm text-fal-ink">
+              <strong>Motivo da loja:</strong> {decisionRequestReason}
+            </p>
+          ) : null}
           <ul className="mt-3 list-none space-y-2 p-0 text-sm">
             {order.items
               .filter(
@@ -486,8 +680,16 @@ export function AccountOrderDetailPage() {
             <span>Subtotal</span>
             <span>{money(order.subtotal)}</span>
           </div>
-          <div className="flex justify-between">
-            <span>Frete</span>
+          <div className="flex justify-between gap-3">
+            <span>
+              Frete
+              {contractedShip ? (
+                <span className="mt-0.5 block text-xs font-normal text-fal-muted">
+                  {contractedShip.label}
+                  {contractedShip.etaLabel ? ` · ${contractedShip.etaLabel}` : ''}
+                </span>
+              ) : null}
+            </span>
             <span>{money(order.shippingAmount)}</span>
           </div>
           <div className="flex justify-between text-lg font-black">
@@ -537,10 +739,19 @@ export function AccountOrderDetailPage() {
           <h3 className="mt-0 text-base font-extrabold">Envio</h3>
           {order.shipment ? (
             <p className="m-0">
-              {String(order.shipment.metadata?.label ?? order.shipment.provider)} ·{' '}
-              {shipmentStatusLabel(order.shipment.status)}
+              <strong>{contractedShip?.label ?? String(order.shipment.provider ?? 'Frete')}</strong>
+              {contractedShip?.etaLabel ? (
+                <>
+                  <br />
+                  Prazo: {contractedShip.etaLabel}
+                </>
+              ) : null}
               <br />
-              {order.shipment.amount != null ? money(order.shipment.amount) : null}
+              Status: {shipmentStatusLabel(order.shipment.status)}
+              <br />
+              {order.shipment.amount != null
+                ? money(order.shipment.amount)
+                : money(order.shippingAmount)}
               {order.shipment.trackingCode ? (
                 <>
                   <br />

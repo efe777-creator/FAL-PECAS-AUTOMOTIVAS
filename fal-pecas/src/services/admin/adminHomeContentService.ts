@@ -5,6 +5,7 @@ import {
   FEATURED_DISPLAY_LIMIT_MIN,
   HOME_FEATURED_LIMIT_DEFAULT,
 } from '@/lib/homeSections'
+import { invalidateHomePresentationCache } from '@/services/home/homeContentService'
 
 export type AdminHomeBanner = HomeBanner & {
   sortOrder: number
@@ -16,6 +17,9 @@ export type AdminHomeBanner = HomeBanner & {
 export type AdminHomeSettings = {
   id: string
   featuredDisplayLimit: number
+  /** HOME-07 — só apresentação; não altera resolve. */
+  showOfertaBadge: boolean
+  showDiscountPercent: boolean
 }
 
 export type AdminFeaturedRow = {
@@ -28,6 +32,11 @@ export type AdminFeaturedRow = {
   status: string
   available: boolean
   categoryName: string | null
+  /** HOME-02 */
+  imageUrl: string | null
+  listPrice: number | null
+  resolvedPrice: number | null
+  promoActive: boolean
 }
 
 type BannerRow = {
@@ -126,24 +135,52 @@ export async function adminUpsertHomeBanner(
   return mapBanner(data as BannerRow)
 }
 
-export async function adminGetHomeSettings(): Promise<AdminHomeSettings> {
-  const { data, error } = await getSupabase()
-    .from('store_home_settings')
-    .select('id, featured_display_limit')
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  if (!data) {
-    return { id: '', featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT }
-  }
-  const row = data as { id: string; featured_display_limit: number }
+const HOME_SETTINGS_SELECT =
+  'id, featured_display_limit, show_oferta_badge, show_discount_percent'
+
+function mapHomeSettings(row: {
+  id: string
+  featured_display_limit: number
+  show_oferta_badge?: boolean | null
+  show_discount_percent?: boolean | null
+}): AdminHomeSettings {
   return {
     id: row.id,
     featuredDisplayLimit: Math.min(
       FEATURED_DISPLAY_LIMIT_MAX,
-      Math.max(FEATURED_DISPLAY_LIMIT_MIN, Math.floor(Number(row.featured_display_limit) || HOME_FEATURED_LIMIT_DEFAULT)),
+      Math.max(
+        FEATURED_DISPLAY_LIMIT_MIN,
+        Math.floor(Number(row.featured_display_limit) || HOME_FEATURED_LIMIT_DEFAULT),
+      ),
     ),
+    showOfertaBadge: row.show_oferta_badge !== false,
+    showDiscountPercent: row.show_discount_percent !== false,
   }
+}
+
+export async function adminGetHomeSettings(): Promise<AdminHomeSettings> {
+  const { data, error } = await getSupabase()
+    .from('store_home_settings')
+    .select(HOME_SETTINGS_SELECT)
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) {
+    return {
+      id: '',
+      featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+      showOfertaBadge: true,
+      showDiscountPercent: true,
+    }
+  }
+  return mapHomeSettings(
+    data as {
+      id: string
+      featured_display_limit: number
+      show_oferta_badge?: boolean | null
+      show_discount_percent?: boolean | null
+    },
+  )
 }
 
 export async function adminUpsertHomeSettings(
@@ -153,8 +190,12 @@ export async function adminUpsertHomeSettings(
     FEATURED_DISPLAY_LIMIT_MAX,
     Math.max(FEATURED_DISPLAY_LIMIT_MIN, Math.floor(Number(input.featuredDisplayLimit) || HOME_FEATURED_LIMIT_DEFAULT)),
   )
+  const showBadge = input.showOfertaBadge !== false
   const payload = {
     featured_display_limit: limit,
+    show_oferta_badge: showBadge,
+    /** % só faz sentido com selo ligado. */
+    show_discount_percent: showBadge && input.showDiscountPercent !== false,
     updated_at: new Date().toISOString(),
   }
   if (input.id) {
@@ -162,20 +203,34 @@ export async function adminUpsertHomeSettings(
       .from('store_home_settings')
       .update(payload)
       .eq('id', input.id)
-      .select('id, featured_display_limit')
+      .select(HOME_SETTINGS_SELECT)
       .single()
     if (error) throw error
-    const row = data as { id: string; featured_display_limit: number }
-    return { id: row.id, featuredDisplayLimit: row.featured_display_limit }
+    invalidateHomePresentationCache()
+    return mapHomeSettings(
+      data as {
+        id: string
+        featured_display_limit: number
+        show_oferta_badge?: boolean | null
+        show_discount_percent?: boolean | null
+      },
+    )
   }
   const { data, error } = await getSupabase()
     .from('store_home_settings')
     .insert(payload)
-    .select('id, featured_display_limit')
+    .select(HOME_SETTINGS_SELECT)
     .single()
   if (error) throw error
-  const row = data as { id: string; featured_display_limit: number }
-  return { id: row.id, featuredDisplayLimit: row.featured_display_limit }
+  invalidateHomePresentationCache()
+  return mapHomeSettings(
+    data as {
+      id: string
+      featured_display_limit: number
+      show_oferta_badge?: boolean | null
+      show_discount_percent?: boolean | null
+    },
+  )
 }
 
 export async function adminDeleteHomeBanner(id: string): Promise<void> {
@@ -216,15 +271,19 @@ export async function adminUploadHomeBannerImage(file: File): Promise<string> {
   return data.publicUrl
 }
 
+const BASE_LIST_ID = 'a1111111-1111-1111-1111-111111111101'
+
 export async function adminListFeaturedProducts(): Promise<AdminFeaturedRow[]> {
-  const { data, error } = await getSupabase()
+  const sb = getSupabase()
+  const { data, error } = await sb
     .from('store_home_featured_products')
     .select(
       'product_id, sort_order, active, products!inner(id, name, sku, commercial_ref, status, is_available, product_categories(name))',
     )
     .order('sort_order', { ascending: true })
   if (error) throw error
-  return (data ?? []).map((row) => {
+
+  const baseRows = (data ?? []).map((row) => {
     const r = row as {
       product_id: string
       sort_order: number
@@ -262,8 +321,80 @@ export async function adminListFeaturedProducts(): Promise<AdminFeaturedRow[]> {
       status: p.status,
       available: p.is_available !== false,
       categoryName: catName,
+      imageUrl: null as string | null,
+      listPrice: null as number | null,
+      resolvedPrice: null as number | null,
+      promoActive: false,
     }
   })
+
+  if (!baseRows.length) return baseRows
+
+  const ids = baseRows.map((r) => r.productId)
+
+  const [{ data: imgs }, { data: baseItems }, { data: promos }, resolved] = await Promise.all([
+    sb
+      .from('product_images')
+      .select('product_id, storage_path, is_primary, sort_order')
+      .in('product_id', ids)
+      .order('sort_order', { ascending: true }),
+    sb
+      .from('price_list_items')
+      .select('product_id, price')
+      .eq('price_list_id', BASE_LIST_ID)
+      .in('product_id', ids),
+    sb
+      .from('product_promotions')
+      .select('product_id, starts_at, ends_at')
+      .eq('status', 'active')
+      .in('product_id', ids),
+    sb.rpc('resolve_product_prices', {
+      p_product_ids: ids,
+      p_customer_id: null,
+      p_at: new Date().toISOString(),
+    }),
+  ])
+
+  const imgMap = new Map<string, string>()
+  for (const img of imgs ?? []) {
+    const row = img as {
+      product_id: string
+      storage_path: string
+      is_primary?: boolean
+    }
+    const pid = String(row.product_id)
+    const { data: pub } = sb.storage.from('product-images').getPublicUrl(row.storage_path)
+    const url = pub.publicUrl
+    if (!url) continue
+    if (row.is_primary || !imgMap.has(pid)) imgMap.set(pid, url)
+  }
+
+  const baseMap = new Map(
+    (baseItems ?? []).map((r) => [String(r.product_id), Number(r.price)]),
+  )
+  const now = Date.now()
+  const promoSet = new Set(
+    (promos ?? [])
+      .filter((r) => {
+        const row = r as { starts_at?: string | null; ends_at?: string | null }
+        if (row.starts_at && new Date(row.starts_at).getTime() > now) return false
+        if (row.ends_at && new Date(row.ends_at).getTime() < now) return false
+        return true
+      })
+      .map((r) => String((r as { product_id: string }).product_id)),
+  )
+  const resolvedMap = new Map<string, number>()
+  for (const row of (resolved.data ?? []) as Array<{ product_id: string; amount: number | string }>) {
+    resolvedMap.set(String(row.product_id), Number(row.amount))
+  }
+
+  return baseRows.map((r) => ({
+    ...r,
+    imageUrl: imgMap.get(r.productId) ?? null,
+    listPrice: baseMap.get(r.productId) ?? null,
+    resolvedPrice: resolvedMap.get(r.productId) ?? null,
+    promoActive: promoSet.has(r.productId),
+  }))
 }
 
 export async function adminAddFeaturedProduct(productId: string, sortOrder = 0): Promise<void> {

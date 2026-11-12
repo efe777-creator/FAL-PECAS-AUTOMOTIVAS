@@ -26,6 +26,21 @@ import {
   isMercadoPagoCheckoutEnabled,
 } from '@/services/payments/paymentService'
 import { placeOrder } from '@/services/orders/placeOrderService'
+import {
+  buyNowIntentToCartItems,
+  clearBuyNowIntent,
+  loadBuyNowIntent,
+} from '@/services/checkout/buyNowSession'
+import {
+  clearCheckoutIdempotencyKey,
+  clearCheckoutSession,
+  loadCheckoutIdempotencyKey,
+  loadCheckoutSession,
+  saveCheckoutSession,
+} from '@/services/checkout/checkoutSession'
+import { resolveCheckoutPaymentOutcome } from '@/services/checkout/resolveCheckoutPaymentOutcome'
+import { resumeCheckoutFromServer } from '@/services/checkout/resumeCheckoutFromServer'
+import { useCheckoutOrderPaymentWatch } from '@/hooks/useCheckoutOrderPaymentWatch'
 import { getActiveCarrierDescriptor } from '@/services/shipping/shippingService'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
 import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
@@ -40,17 +55,34 @@ import {
   isStorePickupOption,
 } from '@/services/shipping/storePickupOption'
 import type {
+  CartItem,
   CustomerAddress,
   ShippingQuoteOption,
   SimulatedPaymentMethod,
   StoreShippingOrigin,
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { isUsableMpPublicKey } from '@/lib/mpAdminStatus'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  checkoutBackLabel,
+  clearCheckoutReturnTo,
+  loadCheckoutReturnTo,
+  saveCheckoutReturnTo,
+  safeCheckoutReturnTo,
+} from '@/services/checkout/checkoutReturnTo'
 import { showCheckoutEmptyCart } from './checkoutEmptyGuard'
+import {
+  isMomentClickable,
+  MOMENT_LABELS,
+  resolveMomentIndex,
+  targetStepForMoment,
+  type CheckoutMomentIndex,
+} from './checkoutMoments'
 
+/** 3 momentos efetivos (Endereço → Entrega → Pagamento); steps internos 0–4. */
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
 
 function money(v: number) {
@@ -60,9 +92,21 @@ function money(v: number) {
 export function CheckoutPage() {
   useDocumentTitle('Checkout | FAL Peças Automotivas')
   const { user } = useAuth()
-  const { items, subtotal, clear } = useCart()
+  const { items: cartItems, clear: clearCart } = useCart()
   const { push } = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const [buyNowItems] = useState<CartItem[] | null>(() => {
+    const intent = loadBuyNowIntent()
+    return intent ? buyNowIntentToCartItems(intent) : null
+  })
+  const isBuyNow = Boolean(buyNowItems?.length)
+  const items = buyNowItems ?? cartItems
+  const subtotal = useMemo(
+    () => items.reduce((s, i) => s + i.price * i.quantity, 0),
+    [items],
+  )
 
   const [step, setStep] = useState(0)
   const [maxReachedStep, setMaxReachedStep] = useState(0)
@@ -80,14 +124,17 @@ export function CheckoutPage() {
   const [loadingAddrs, setLoadingAddrs] = useState(true)
   const [quoting, setQuoting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [idempotencyKey] = useState(() => crypto.randomUUID())
+  const [resuming, setResuming] = useState(true)
+  const [idempotencyKey] = useState(() => loadCheckoutIdempotencyKey())
   const [error, setError] = useState<string | null>(null)
   const quoteKeyRef = useRef('')
   const preferredHandoffRef = useRef<ShippingQuoteHandoff | null>(null)
   const errorRef = useRef<HTMLParagraphElement>(null)
+  const submitLockRef = useRef(false)
   const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
-  const mpPublicKey = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
+  const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
+  const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [mpAwaiting, setMpAwaiting] = useState<{
@@ -98,6 +145,7 @@ export function CheckoutPage() {
     pixQrCode?: string | null
     pixQrCodeBase64?: string | null
     expiresAt?: string | null
+    allowRetry?: boolean
   } | null>(null)
 
   function pushError(message: string) {
@@ -127,8 +175,19 @@ export function CheckoutPage() {
   }
 
   async function goToStep(target: number) {
-    if (target === step || mpAwaiting) return
+    if (target === step) return
     setError(null)
+
+    // Cobrança aberta: endereço/entrega view-only ou painel de pagamento.
+    if (mpAwaiting) {
+      if (target < 3) {
+        goToStepIndex(Math.max(0, Math.min(target, 2)))
+        return
+      }
+      goToStepIndex(4)
+      return
+    }
+
     // Voltar: sempre permitido até maxReached
     if (target < step) {
       goToStepIndex(target)
@@ -148,13 +207,100 @@ export function CheckoutPage() {
     goToStepIndex(target)
   }
 
+  function switchAwaitingToCard() {
+    if (!mpAwaiting) return
+    if (!mpPublicKey) {
+      pushError('Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.')
+      return
+    }
+    setMpChannel('card')
+    setMpAwaiting({
+      channel: 'card',
+      orderId: mpAwaiting.orderId,
+      amount: mpAwaiting.amount,
+    })
+    saveCheckoutSession({
+      orderId: mpAwaiting.orderId,
+      idempotencyKey,
+      channel: 'card',
+      amount: mpAwaiting.amount,
+    })
+    goToStepIndex(4)
+    setError(null)
+    push('Você pode pagar com cartão neste mesmo pedido', 'success')
+  }
+
   const onMpApproved = useCallback(
     (oid: string) => {
+      clearCheckoutSession()
+      clearCheckoutIdempotencyKey()
+      clearBuyNowIntent()
+      clearCheckoutReturnTo()
       push('Pagamento confirmado — pedido em análise', 'success')
       navigate(`/pedido/${oid}/confirmacao`)
     },
     [navigate, push],
   )
+
+  useCheckoutOrderPaymentWatch({
+    orderId: mpAwaiting?.orderId,
+    enabled: Boolean(mpAwaiting?.orderId),
+    paymentId: mpAwaiting?.paymentId,
+    onSettled: onMpApproved,
+  })
+
+  const onPixExpired = useCallback(() => {
+    setMpAwaiting((prev) =>
+      prev
+        ? {
+            ...prev,
+            paymentId: undefined,
+            pixQrCode: undefined,
+            pixQrCodeBase64: undefined,
+            expiresAt: undefined,
+            allowRetry: true,
+          }
+        : prev,
+    )
+    setError(
+      'Cobrança Pix expirada. Gere uma nova tentativa no mesmo pedido ou escolha cartão.',
+    )
+  }, [])
+
+  async function retryPixCharge() {
+    if (!mpAwaiting?.orderId || submitLockRef.current) return
+    submitLockRef.current = true
+    setSubmitting(true)
+    setError(null)
+    try {
+      const mp = await createFalPayment({ orderId: mpAwaiting.orderId, method: 'pix' })
+      if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
+        throw new Error('Não foi possível gerar o Pix. Tente novamente ou escolha cartão.')
+      }
+      setMpAwaiting({
+        channel: 'pix',
+        orderId: mpAwaiting.orderId,
+        paymentId: mp.paymentId,
+        amount: mp.amount ?? mpAwaiting.amount,
+        pixQrCode: mp.pixQrCode,
+        pixQrCodeBase64: mp.pixQrCodeBase64,
+        expiresAt: mp.expiresAt ?? null,
+      })
+      saveCheckoutSession({
+        orderId: mpAwaiting.orderId,
+        paymentId: mp.paymentId,
+        idempotencyKey,
+        channel: 'pix',
+        amount: mp.amount ?? mpAwaiting.amount,
+      })
+      push('Nova cobrança Pix gerada', 'success')
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao gerar novo Pix'))
+    } finally {
+      submitLockRef.current = false
+      setSubmitting(false)
+    }
+  }
 
   const onMpError = useCallback((msg: string) => {
     setError(msg)
@@ -233,6 +379,81 @@ export function CheckoutPage() {
       })
   }, [])
 
+  /** C2 — contexto local + verdade do servidor no mount. */
+  useEffect(() => {
+    let cancelled = false
+    async function resume() {
+      setResuming(true)
+      try {
+        // buy_now fresco = jornada nova (endereço/entrega → pagamento); não sequestrar.
+        if (isBuyNow) {
+          clearCheckoutSession()
+          return
+        }
+        const ctx = loadCheckoutSession()
+        if (!ctx?.orderId) return
+        const server = await resumeCheckoutFromServer(ctx.orderId)
+        if (cancelled) return
+        if (!server) {
+          clearCheckoutSession()
+          return
+        }
+        const outcome = server.outcome
+        if (outcome.kind === 'confirmed') {
+          clearCheckoutSession()
+          clearCheckoutIdempotencyKey()
+          navigate(`/pedido/${server.orderId}/confirmacao`)
+          return
+        }
+        if (outcome.kind === 'await_payment' || outcome.kind === 'retry_payment') {
+          const channel = server.channel || ctx.channel || 'pix'
+          setMpChannel(channel)
+          setMpAwaiting({
+            channel,
+            orderId: server.orderId,
+            paymentId:
+              outcome.kind === 'await_payment'
+                ? outcome.paymentId
+                : undefined,
+            amount: server.total,
+            pixQrCode: server.pixQrCode,
+            pixQrCodeBase64: server.pixQrCodeBase64,
+            expiresAt: server.expiresAt,
+            allowRetry: outcome.kind === 'retry_payment',
+          })
+          goToStepIndex(4)
+          if (outcome.kind === 'retry_payment') {
+            setError(outcome.reason)
+          }
+          return
+        }
+        if (outcome.kind === 'order_only') {
+          setError(outcome.reason)
+          setMpAwaiting({
+            channel: ctx.channel ?? 'pix',
+            orderId: server.orderId,
+            amount: server.total,
+            allowRetry: true,
+          })
+          goToStepIndex(4)
+        }
+      } catch (e) {
+        if (!cancelled) {
+          pushError(toUserMessage(e, 'Não foi possível recuperar o pagamento em andamento'))
+        }
+      } finally {
+        if (!cancelled) setResuming(false)
+      }
+    }
+    void resume().finally(() => {
+      if (!cancelled) setResuming(false)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const selectedAddress = useMemo(
     () => addresses.find((a) => a.id === addressId) ?? null,
     [addresses, addressId],
@@ -306,10 +527,11 @@ export function CheckoutPage() {
     }
   }
 
-  // Recota quando endereço/carrinho mudam no step de entrega
+  // Cota só na etapa Entrega — não bloquear "Continuar para entrega" na etapa Endereço.
   useEffect(() => {
-    if (step !== 2 || !selectedAddress) return
-    const t = window.setTimeout(() => void loadQuotes(), 300)
+    if (!selectedAddress || mpAwaiting) return
+    if (step !== 2) return
+    const t = window.setTimeout(() => void loadQuotes(), 200)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, addressId, itemCount, subtotal, originPostalCode])
@@ -332,6 +554,13 @@ export function CheckoutPage() {
     await goToStep(Math.min(step + 1, STEPS.length - 1))
   }
 
+  function finishLocalCartState() {
+    clearBuyNowIntent()
+    clearShippingQuoteHandoff()
+    // C5: buy_now não limpa o carrinho original
+    if (!isBuyNow) clearCart()
+  }
+
   async function finalize(outcome: 'approve' | 'fail') {
     if (!validateDoc() || !addressId || !shippingOptionId) return
     if (!termsAccepted) {
@@ -342,6 +571,9 @@ export function CheckoutPage() {
       pushError('Entrega indisponível no momento. Tente novamente mais tarde.')
       return
     }
+    // C4 — trava concorrência no cliente
+    if (submitLockRef.current || submitting) return
+    submitLockRef.current = true
     setSubmitting(true)
     setError(null)
     try {
@@ -349,7 +581,6 @@ export function CheckoutPage() {
         idempotencyKey,
         addressId,
         shippingOptionId,
-        // F9-F / FIND-015: com MP ativo, gravar meio real (não *_simulated)
         paymentMethod: mpEnabled
           ? mpChannel === 'card'
             ? 'credit_card'
@@ -358,14 +589,34 @@ export function CheckoutPage() {
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        clearCart: !isBuyNow,
       })
 
-      const paymentId = placed.paymentId
-      if (!paymentId) {
-        push('Pedido já registrado', 'success')
-        clear()
-        clearShippingQuoteHandoff()
+      const decision = resolveCheckoutPaymentOutcome({
+        orderId: placed.orderId,
+        orderStatus: placed.status,
+        paymentId: placed.paymentId,
+        paymentStatus: placed.paymentStatus,
+      })
+
+      if (decision.kind === 'confirmed') {
+        clearCheckoutSession()
+        clearCheckoutIdempotencyKey()
+        finishLocalCartState()
+        push('Pagamento confirmado', 'success')
         navigate(`/pedido/${placed.orderId}/confirmacao`)
+        return
+      }
+
+      if (decision.kind === 'order_only' && !mpEnabled) {
+        // Simulado sem paymentId — falha explícita (C1), não confirma
+        pushError(decision.reason)
+        saveCheckoutSession({
+          orderId: placed.orderId,
+          idempotencyKey,
+          channel: mpChannel,
+          amount: placed.total,
+        })
         return
       }
 
@@ -374,25 +625,83 @@ export function CheckoutPage() {
           if (!mpPublicKey) {
             throw new Error('Pagamento com cartão indisponível no momento.')
           }
-          // FIND-SMOKE-UI-001: setar awaiting ANTES de clear — senão empty-cart early-return esconde o Brick
+          if (!placed.paymentId && decision.kind === 'order_only') {
+            pushError(decision.reason)
+            saveCheckoutSession({
+              orderId: placed.orderId,
+              idempotencyKey,
+              channel: 'card',
+              amount: placed.total,
+            })
+            setMpAwaiting({
+              channel: 'card',
+              orderId: placed.orderId,
+              amount: placed.total,
+              allowRetry: true,
+            })
+            goToStepIndex(4)
+            return
+          }
           setMpAwaiting({
             channel: 'card',
             orderId: placed.orderId,
+            paymentId: placed.paymentId,
+            amount: placed.total,
+          })
+          saveCheckoutSession({
+            orderId: placed.orderId,
+            paymentId: placed.paymentId,
+            idempotencyKey,
+            channel: 'card',
             amount: placed.total,
           })
           goToStepIndex(4)
-          clear()
-          clearShippingQuoteHandoff()
-          push('Pedido criado — informe o cartão', 'success')
+          finishLocalCartState()
+          push(
+            placed.alreadyExisted
+              ? 'Retomando pagamento com cartão'
+              : 'Pedido criado — informe o cartão',
+            'success',
+          )
           return
         }
+
+        if (decision.kind === 'retry_payment' || decision.kind === 'order_only') {
+          // C3 — nova cobrança Pix no mesmo pedido
+          const mp = await createFalPayment({ orderId: placed.orderId, method: 'pix' })
+          if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
+            throw new Error(
+              'Não foi possível gerar o Pix. Tente novamente ou escolha cartão.',
+            )
+          }
+          setMpAwaiting({
+            channel: 'pix',
+            orderId: placed.orderId,
+            paymentId: mp.paymentId,
+            amount: placed.total,
+            pixQrCode: mp.pixQrCode,
+            pixQrCodeBase64: mp.pixQrCodeBase64,
+            expiresAt: mp.expiresAt ?? null,
+          })
+          saveCheckoutSession({
+            orderId: placed.orderId,
+            paymentId: mp.paymentId,
+            idempotencyKey,
+            channel: 'pix',
+            amount: placed.total,
+          })
+          goToStepIndex(4)
+          finishLocalCartState()
+          push('Nova cobrança Pix gerada — aguardando pagamento', 'success')
+          return
+        }
+
         const mp = await createFalPayment({ orderId: placed.orderId, method: 'pix' })
         if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
           throw new Error(
             'Não foi possível gerar o Pix. Tente novamente ou escolha cartão.',
           )
         }
-        // FIND-SMOKE-UI-001: awaiting antes do clear — senão empty-cart early-return esconde o Pix panel
         setMpAwaiting({
           channel: 'pix',
           orderId: placed.orderId,
@@ -402,16 +711,40 @@ export function CheckoutPage() {
           pixQrCodeBase64: mp.pixQrCodeBase64,
           expiresAt: mp.expiresAt ?? null,
         })
+        saveCheckoutSession({
+          orderId: placed.orderId,
+          paymentId: mp.paymentId,
+          idempotencyKey,
+          channel: 'pix',
+          amount: placed.total,
+        })
         goToStepIndex(4)
-        clear()
-        clearShippingQuoteHandoff()
-        push('Cobrança Pix criada — aguardando pagamento', 'success')
+        finishLocalCartState()
+        push(
+          placed.alreadyExisted
+            ? 'Retomando cobrança Pix'
+            : 'Cobrança Pix criada — aguardando pagamento',
+          'success',
+        )
         return
       }
 
-      const pay = await confirmSimulatedPayment(paymentId, outcome)
-      clear()
-      clearShippingQuoteHandoff()
+      if (!placed.paymentId) {
+        pushError(
+          'Pedido criado sem cobrança disponível. Não confirmamos pagamento automaticamente.',
+        )
+        saveCheckoutSession({
+          orderId: placed.orderId,
+          idempotencyKey,
+          amount: placed.total,
+        })
+        return
+      }
+
+      const pay = await confirmSimulatedPayment(placed.paymentId, outcome)
+      clearCheckoutSession()
+      clearCheckoutIdempotencyKey()
+      finishLocalCartState()
       if (outcome === 'approve') {
         push('Pagamento aprovado — pedido confirmado', 'success')
       } else {
@@ -421,12 +754,13 @@ export function CheckoutPage() {
     } catch (e) {
       pushError(toUserMessage(e, 'Erro ao finalizar pedido'))
     } finally {
+      submitLockRef.current = false
       setSubmitting(false)
     }
   }
 
-  // FIND-SMOKE-UI-001: com mpAwaiting, carrinho pode estar vazio após place_order — ainda assim mostrar Pix/Brick
-  if (showCheckoutEmptyCart(items.length, Boolean(mpAwaiting))) {
+  // FIND-SMOKE-UI-001 / C5: empty só sem itens de checkout, buy_now ou awaiting
+  if (showCheckoutEmptyCart(items.length, Boolean(mpAwaiting), isBuyNow)) {
     return (
       <Container className="py-8">
         <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
@@ -440,37 +774,124 @@ export function CheckoutPage() {
     )
   }
 
+  if (resuming && !mpAwaiting && items.length === 0) {
+    return (
+      <Container className="py-8">
+        <Loading label="Recuperando compra…" />
+      </Container>
+    )
+  }
+
+  const momentIndex = resolveMomentIndex(step, Boolean(mpAwaiting))
+  const deliveryViewOnly = Boolean(mpAwaiting)
+  const paymentAwaiting = Boolean(mpAwaiting)
+
+  function goToMoment(mi: CheckoutMomentIndex) {
+    if (
+      !isMomentClickable({
+        moment: mi,
+        current: momentIndex,
+        paymentAwaiting,
+        maxReachedStep,
+        step,
+      })
+    ) {
+      return
+    }
+    void goToStep(
+      targetStepForMoment(mi, {
+        shippingOptionId,
+        addressId,
+        paymentAwaiting,
+      }),
+    )
+  }
+
+  function onCheckoutBack() {
+    if (mpAwaiting) {
+      if (momentIndex === 2) goToStepIndex(2)
+      else if (momentIndex === 1) goToStepIndex(1)
+      else goToStepIndex(4)
+      return
+    }
+    if (step > 0) void goToStep(step - 1)
+  }
+
+  const backLeaveTo =
+    safeCheckoutReturnTo((location.state as { from?: unknown } | null)?.from) ??
+    loadCheckoutReturnTo() ??
+    (isBuyNow ? '/catalogo' : '/carrinho')
+  const backLeaveLabel = checkoutBackLabel(
+    safeCheckoutReturnTo(backLeaveTo) ?? backLeaveTo,
+    isBuyNow,
+  )
+
+  useEffect(() => {
+    const fromState = safeCheckoutReturnTo(
+      (location.state as { from?: unknown } | null)?.from,
+    )
+    if (fromState) saveCheckoutReturnTo(fromState)
+  }, [location.state])
+
   return (
     <Container className="py-8">
       <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
+      <p className="mt-1 text-sm font-semibold text-fal-muted">
+        Etapa {momentIndex + 1} de 3 — {MOMENT_LABELS[momentIndex]}
+        {isBuyNow ? ' · Compra direta' : ''}
+      </p>
       <div className="mt-4 flex flex-wrap gap-2" role="navigation" aria-label="Etapas do checkout">
-        {STEPS.map((label, i) => {
-          const reachable = !mpAwaiting && (i <= maxReachedStep || i === step || i === step + 1)
-          const active = i === step
-          const done = i < step
+        {MOMENT_LABELS.map((label, mi) => {
+          const moment = mi as CheckoutMomentIndex
+          const active = momentIndex === moment
+          const done = momentIndex > moment
+          const clickable = isMomentClickable({
+            moment,
+            current: momentIndex,
+            paymentAwaiting,
+            maxReachedStep,
+            step,
+          })
+          const midPayTitle =
+            paymentAwaiting && moment === 0
+              ? 'Ver endereço (somente leitura)'
+              : paymentAwaiting && moment === 1
+                ? 'Ver entrega (somente leitura)'
+                : paymentAwaiting && moment === 2
+                  ? 'Voltar ao pagamento'
+                  : undefined
           return (
             <button
               key={label}
               type="button"
-              disabled={!reachable}
-              onClick={() => void goToStep(i)}
+              disabled={!clickable}
+              title={active ? 'Etapa atual' : midPayTitle}
+              onClick={() => goToMoment(moment)}
               aria-current={active ? 'step' : undefined}
               className={[
                 'rounded-full px-3 py-2 text-xs font-extrabold transition',
                 active
-                  ? 'bg-fal-yellow text-fal-navy-dark'
+                  ? 'cursor-default bg-fal-yellow text-fal-navy-dark'
                   : done
-                    ? 'bg-fal-navy text-white hover:bg-fal-navy-dark'
-                    : reachable
+                    ? clickable
+                      ? 'bg-fal-navy text-white hover:bg-fal-navy-dark'
+                      : 'cursor-not-allowed bg-fal-navy text-white opacity-70'
+                    : clickable
                       ? 'bg-[#e9edef] text-fal-navy hover:bg-fal-line'
                       : 'cursor-not-allowed bg-[#e9edef] text-fal-muted opacity-60',
               ].join(' ')}
             >
-              {i + 1}. {label}
+              {mi + 1}. {label}
             </button>
           )
         })}
       </div>
+      {deliveryViewOnly ? (
+        <p className="mt-2 text-xs text-fal-muted">
+          Pagamento em andamento — você pode ver a entrega, voltar ao Pix ou trocar para cartão.
+          Para alterar endereço/frete, espere expirar o Pix ou use Meus pedidos.
+        </p>
+      ) : null}
 
       {error ? (
         <p
@@ -485,6 +906,13 @@ export function CheckoutPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="rounded-fal border border-fal-line bg-white p-5">
+          {deliveryViewOnly && momentIndex < 2 ? (
+            <div className="mb-4 rounded-fal border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              Visualização {momentIndex === 0 ? 'do endereço' : 'da entrega'} — cobrança ainda em
+              aberto. Use <strong>Voltar ao pagamento</strong> ou{' '}
+              <strong>Pagar com cartão</strong>.
+            </div>
+          ) : null}
           {step === 0 ? (
             <div className="space-y-4">
               <h2 className="mt-0 text-lg font-extrabold">Identificação</h2>
@@ -552,16 +980,22 @@ export function CheckoutPage() {
 
           {step === 1 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">Endereço de entrega</h2>
+              <h2 className="mt-0 text-lg font-extrabold">1. Endereço de entrega</h2>
+              <p className="m-0 text-sm text-fal-muted">
+                Confirme o endereço. Em seguida escolha o tipo de entrega.
+              </p>
               {loadingAddrs ? <Loading label="Carregando endereços…" /> : null}
               {!loadingAddrs && addresses.length > 0 ? (
                 <ul className="m-0 list-none space-y-2 p-0">
                   {addresses.map((a) => (
                     <li key={a.id}>
-                      <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3 hover:border-fal-navy">
+                      <label
+                        className={`flex gap-3 rounded-fal border border-fal-line p-3 ${deliveryViewOnly ? 'cursor-default opacity-90' : 'cursor-pointer hover:border-fal-navy'}`}
+                      >
                         <input
                           type="radio"
                           name="address"
+                          disabled={deliveryViewOnly}
                           checked={addressId === a.id}
                           onChange={() => {
                             setAddressId(a.id)
@@ -636,12 +1070,23 @@ export function CheckoutPage() {
 
           {step === 2 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">Entrega</h2>
-              <p className="m-0 text-sm text-fal-muted">
-                {shippingDisclaimer && !/D-FRETE|VITE_|mock/i.test(shippingDisclaimer)
-                  ? shippingDisclaimer
-                  : 'Escolha a forma de entrega. O valor e o prazo são confirmados ao finalizar.'}
-              </p>
+              <h2 className="mt-0 text-lg font-extrabold">2. Tipo de entrega</h2>
+              {preferredHandoffRef.current?.preferredOptionId ||
+              preferredHandoffRef.current?.preferredLabel ? (
+                <p className="m-0 rounded-fal border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-950">
+                  Frete da vitrine pré-selecionado
+                  {preferredHandoffRef.current.preferredLabel
+                    ? ` (${preferredHandoffRef.current.preferredLabel})`
+                    : ''}
+                  . Confirme ou escolha outra opção (valor e prazo) para seguir ao pagamento.
+                </p>
+              ) : (
+                <p className="m-0 text-sm text-fal-muted">
+                  {shippingDisclaimer && !/D-FRETE|VITE_|mock/i.test(shippingDisclaimer)
+                    ? shippingDisclaimer
+                    : 'Escolha entre as opções abaixo. O valor e o prazo são confirmados ao finalizar.'}
+                </p>
+              )}
               {!carrierDesc.placeOrderReady ? (
                 <p className="m-0 text-sm font-semibold text-fal-danger" role="status">
                   Entrega indisponível no momento. Tente novamente mais tarde.
@@ -661,7 +1106,7 @@ export function CheckoutPage() {
                         <span className="flex items-center gap-3 text-sm">
                           <input
                             type="radio"
-                            disabled={locked}
+                            disabled={locked || deliveryViewOnly}
                             name="ship"
                             checked={shippingOptionId === o.id}
                             onChange={() => setShippingOptionId(o.id)}
@@ -775,7 +1220,45 @@ export function CheckoutPage() {
                     initialPixQrCodeBase64={mpAwaiting.pixQrCodeBase64}
                     initialAmount={mpAwaiting.amount}
                     initialExpiresAt={mpAwaiting.expiresAt}
+                    onExpired={onPixExpired}
+                    onSwitchToCard={mpPublicKey ? switchAwaitingToCard : undefined}
+                    onViewDelivery={() => goToMoment(1)}
                   />
+                ) : mpAwaiting.allowRetry ? (
+                  <div className="space-y-3">
+                    <h2 className="mt-0 text-lg font-extrabold">Nova tentativa de pagamento</h2>
+                    <p className="text-sm text-fal-muted">
+                      O pedido permanece o mesmo. Gere um novo Pix ou pague com cartão.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={submitting}
+                        onClick={() => {
+                          setMpChannel('pix')
+                          void retryPixCharge()
+                        }}
+                      >
+                        {submitting ? 'Gerando…' : 'Gerar novo Pix'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="light"
+                        disabled={!mpPublicKey}
+                        onClick={() => {
+                          setMpChannel('card')
+                          setMpAwaiting({
+                            channel: 'card',
+                            orderId: mpAwaiting.orderId,
+                            amount: mpAwaiting.amount,
+                          })
+                        }}
+                      >
+                        Pagar com cartão
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <Loading label="Preparando Pix…" />
                 )
@@ -883,25 +1366,41 @@ export function CheckoutPage() {
           ) : null}
 
           <div className="mt-6 flex flex-wrap gap-2">
-            {step > 0 ? (
-              <Button type="button" variant="light" onClick={() => void goToStep(step - 1)}>
+            {mpAwaiting ? (
+              <Button type="button" variant="light" onClick={onCheckoutBack}>
+                {momentIndex === 2
+                  ? 'Voltar à entrega'
+                  : momentIndex === 1
+                    ? 'Voltar ao endereço'
+                    : 'Voltar ao pagamento'}
+              </Button>
+            ) : step > 0 ? (
+              <Button type="button" variant="light" onClick={() => void onCheckoutBack()}>
                 Voltar
               </Button>
             ) : (
-              <Link to="/carrinho">
+              <Link to={backLeaveTo}>
                 <Button type="button" variant="light">
-                  Carrinho
+                  {backLeaveLabel}
                 </Button>
               </Link>
             )}
-            {step < 4 ? (
+            {!mpAwaiting && step < 4 ? (
               <Button
                 type="button"
                 variant="primary"
-                disabled={quoting || (step === 1 && addresses.length === 0 && !showNewAddress)}
+                disabled={
+                  (step === 2 && quoting) ||
+                  (step === 1 && addresses.length === 0 && !showNewAddress) ||
+                  (step === 2 && !shippingOptionId)
+                }
                 onClick={() => void goNext()}
               >
-                Continuar
+                {step === 1
+                  ? 'Continuar para entrega'
+                  : step === 2
+                    ? 'Continuar para pagamento'
+                    : 'Continuar'}
               </Button>
             ) : null}
           </div>
@@ -918,15 +1417,33 @@ export function CheckoutPage() {
                 <span>{money(mpAwaiting.amount)}</span>
               </div>
               <p className="mt-3 text-xs text-fal-muted">
-                Aguardando confirmação do Mercado Pago. Se sair desta tela, retome o pagamento
-                em Meus pedidos.
+                Aguardando confirmação do Mercado Pago. Você pode ver a entrega, trocar para
+                cartão ou retomar depois em Meus pedidos.
               </p>
-              <Link
-                to={`/conta/pedidos/${mpAwaiting.orderId}`}
-                className="mt-3 inline-block text-sm font-bold text-fal-auth-link underline-offset-2 hover:underline"
-              >
-                Ver em Meus pedidos →
-              </Link>
+              <div className="mt-3 flex flex-col gap-2">
+                {/* Troca Pix→cartão: só no painel Pix (evita 3 botões iguais). */}
+                <Button
+                  type="button"
+                  variant="light"
+                  onClick={() => {
+                    if (momentIndex === 2) goToMoment(1)
+                    else if (momentIndex === 1) goToMoment(0)
+                    else goToMoment(2)
+                  }}
+                >
+                  {momentIndex === 2
+                    ? 'Ver entrega'
+                    : momentIndex === 1
+                      ? 'Ver endereço'
+                      : 'Voltar ao pagamento'}
+                </Button>
+                <Link
+                  to={`/conta/pedidos/${mpAwaiting.orderId}`}
+                  className="inline-block text-sm font-bold text-fal-auth-link underline-offset-2 hover:underline"
+                >
+                  Ver em Meus pedidos →
+                </Link>
+              </div>
             </>
           ) : (
             <>

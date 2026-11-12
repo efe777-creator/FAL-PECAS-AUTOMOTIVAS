@@ -70,7 +70,7 @@ export function AdminMercadoPagoPage() {
             <dd className="m-0 font-semibold text-fal-navy">{mpEnvLabel(pk.kind)}</dd>
           </div>
           <div>
-            <dt className="text-fal-muted">Public Key</dt>
+            <dt className="text-fal-muted">Public Key (build / Vite)</dt>
             <dd className="m-0 font-semibold text-fal-navy">
               {pk.configured ? `Configurada ${pk.suffix ?? ''}` : 'Ausente'}
             </dd>
@@ -82,8 +82,24 @@ export function AdminMercadoPagoPage() {
             </dd>
           </div>
         </dl>
+        <div className="rounded-[10px] border border-fal-line bg-fal-bg/40 p-3 text-xs text-fal-navy space-y-1">
+          <p className="m-0 font-semibold">Pareamento obrigatório</p>
+          <p className="m-0">
+            Front <code className="text-[11px]">VITE_MP_PUBLIC_KEY</code> e Edge{' '}
+            <code className="text-[11px]">MP_ACCESS_TOKEN</code> devem ser do mesmo app e
+            ambiente (TEST com TEST, prod com prod).
+          </p>
+          <p className="m-0">
+            App live FAL: <code className="text-[11px]">6371863177010206</code> · sandbox MCP:{' '}
+            <code className="text-[11px]">8320396999442614</code> (não misturar).
+          </p>
+          <p className="m-0 text-fal-muted">
+            No painel MP: cadastre domínios da loja + localhost, e ative tópicos de webhook
+            (payment). URL já apontada no app live.
+          </p>
+        </div>
         <p className="mb-0 text-xs text-fal-muted">
-          Troca test ↔ produção e tokens: no momento das variáveis da conta nova — não pela UI.
+          Troca test ↔ produção e tokens: nas variáveis Netlify + secrets Supabase — não pela UI.
         </p>
       </section>
 

@@ -6,6 +6,17 @@ import {
 } from '@/services/payments/mpCreatePaymentCore'
 import { describe, expect, it, vi } from 'vitest'
 
+const displayOn6 = {
+  id: '1',
+  enabled: true,
+  maxInstallments: 6,
+  minInstallmentAmount: 20,
+  interestFree: true,
+  showOnCards: true,
+  showOnPdp: true,
+  footnote: null,
+} as const
+
 function baseDeps(over: Partial<CreateMpFlowDeps> = {}): CreateMpFlowDeps {
   return {
     mpAccessToken: 'TEST-TOKEN',
@@ -21,6 +32,7 @@ function baseDeps(over: Partial<CreateMpFlowDeps> = {}): CreateMpFlowDeps {
     insertPayment: async () => 'pay-new',
     findProfileName: async () => 'Joao Silva',
     confirmPayment: async () => {},
+    getPaymentDisplay: async () => ({ ...displayOn6 }),
     fetchMp: async () => ({
       ok: true,
       status: 201,
@@ -161,6 +173,34 @@ describe('executeCreateMpPayment — casos A–I', () => {
     expect(res.body.orderApproved).toBe(true)
     expect(confirmPayment).toHaveBeenCalledWith('pay-new')
     expect(updates.some((u) => u.provider_status === 'approved')).toBe(true)
+  })
+
+  it('P0: installments acima da política → 422', async () => {
+    const fetchMp = vi.fn()
+    const res = await executeCreateMpPayment(
+      {
+        orderId: 'ord-1',
+        token: 'tok',
+        paymentMethodId: 'visa',
+        installments: 6,
+      },
+      baseDeps({
+        fetchMp,
+        getPaymentDisplay: async () => ({
+          id: '1',
+          enabled: true,
+          maxInstallments: 3,
+          minInstallmentAmount: 20,
+          interestFree: true,
+          showOnCards: true,
+          showOnPdp: true,
+          footnote: null,
+        }),
+      }),
+    )
+    expect(res.httpStatus).toBe(422)
+    expect(res.body.error).toBe('installments_not_allowed')
+    expect(fetchMp).not.toHaveBeenCalled()
   })
 
   it('G2: MP rejected síncrono (cartão) → status rejected sem confirm', async () => {

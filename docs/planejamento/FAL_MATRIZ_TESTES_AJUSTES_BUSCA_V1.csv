@@ -1,0 +1,31 @@
+id;area;entrada;resultado_atual;resultado_esperado;evidencia;status
+CAT-01;categoria;p_category=direcao (raiz com 99 pubs);count=99;count>0 published sob árvore;RPC 2026-11-12 n=99;PASS
+CAT-02;categoria;p_category=c-rolamento (folha com 1 pub);count=1;count=1;RPC 2026-11-12 n=1;PASS
+CAT-03;categoria;p_category=terminal-de-direcao (grupo com produtos de nome Terminal na raiz);count=0;após remap dados: count>0;RPC n=0; produtos TDI* em slug direcao;FAIL_DADOS
+CAT-04;categoria;p_category=pivo;count=0;após remap: PIVO na folha pivo ou grupo correto;RPC n=0; PVI* em direcao;FAIL_DADOS
+CAT-05;categoria;p_category=axial-de-direcao;count=0;conforme cadastro real do grupo;RPC n=0 nó vazio;FAIL_DADOS
+CAT-06;categoria;p_category=suspensao (ancestral);count=1 (só c-rolamento);>= pubs nos descendentes;RPC n=1;PASS
+CAT-07;categoria;UI ?cat=terminal-de-direcao sem veículo;lista vazia;empty justificado ou produtos remapeados;fluxo CatalogPage→slug;FAIL_DADOS
+CAT-08;categoria;categoria + texto q=terminal + cat=direcao;SKUs terminal sob direcao;intersect texto∧cat;a validar em VAL pós-fix;PENDENTE
+CAT-09;categoria;categoria + veículo HB20 2015 + cat=direcao;intersect PVC∧cat;não zerar se houver compat;a validar;PENDENTE
+CAT-10;categoria;categoria sem produtos (folhas vazias);0;0 + empty state UX;esperado vazio;PASS_ESPERADO
+PLA-01;placa;BB****29 frio=quente;Kwid/2017/1.0/Intense;Intense comercial;cache+Edge 2026-11-12;PASS
+PLA-02;placa;FR****37;HB20/2019/1.0/Unique;campos separados;cache;PASS
+PLA-03;placa;AY****45;Clio/2014/1.0/Expression;DENATRAN split;cache;PASS
+PLA-04;placa;IN****36;Cross Fox/2007/1.6/sem versão;não inventar versão;cache;PASS
+PLA-05;placa;CR****44;Ka/1999/1.0;ID OK; PVC vazio ano 1999;cache+PVC Ka 2008+;PASS_ID_EMPTY_PVC
+PLA-06;placa;QW****23;XTZ150 Crosser S no modelo;modelo limpo ± versão Crosser S;trim multi-token residual;FAIL_RESIDUAL
+PLA-07;placa;versão desconhecida (HB20 One);clarification / sem poluir version;T05 unit;PASS_UNIT
+PLA-08;placa;motor desconhecido / 0.1 API;engine null sanitizado;sanitizeEngine;PASS_UNIT
+PLA-09;placa;ano fab ≠ modelo (faixa AAAA/AAAA);hoje 1º ano só;fab+modelo distintos;extractYear;FAIL_GAP
+PLA-10;placa;resposta incompleta sem ano;status incomplete;incomplete + selects;mapper;PASS_UNIT
+PLA-11;placa;falha provedor / saldo;unavailable + mensagem manual;apiPlacasPlateProvider;PASS_CODE
+PLA-12;placa;conflito casing Expression vs EXPRESSION;duplicatas VV;um canônico;SQL count;FAIL_DADOS
+IA-01;ia;VITE_SEARCH_NL_LLM off;só determinístico;busca não quebra;interpretNaturalLanguage;PASS_DESIGN
+IA-02;ia;LLM on + NL pivô Palio;intent útil (VAL Groq);intent+PVC;FAL_MARCHA_BUSCA_IA_GROQ_VAL;PASS_STAGING
+IA-03;ia;código TDI / high confidence;não chama LLM;skip;código;PASS_DESIGN
+IA-04;ia;fallback Edge/Groq down;determinístico;não quebra;try/catch;PASS_DESIGN
+IA-05;ia;placa via LLM hot path;não existe;não acoplar;avaliação V1;NO_GO
+IA-06;ia;assist placa opcional validado mestre;não impl;P2 staging;avaliação V1;PENDENTE_APROVACAO
+FB-01;fallback;seleção manual YMM;filtros manuais;sempre disponível;VehicleSelector;PASS
+FB-02;fallback;placa unavailable;mensagem + manual;requiresManualSelection;plateTypes;PASS

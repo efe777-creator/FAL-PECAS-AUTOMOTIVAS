@@ -91,6 +91,10 @@ export interface CustomerOrderSummary {
   total: number
   createdAt: string
   itemCount: number
+  /** Frete/prazo comprados (ex.: "PAC · 4–8 dias úteis"). */
+  shippingChoiceLabel?: string | null
+  pickup?: boolean
+  pickupAuthorized?: boolean
 }
 
 export interface OrderItemSnapshot {
@@ -160,6 +164,8 @@ export interface OrderDetail {
     amount?: number | null
     trackingCode?: string | null
     metadata?: Record<string, unknown> | null
+    carrier?: string | null
+    service?: string | null
   } | null
 }
 
@@ -267,6 +273,8 @@ export interface PlaceOrderInput {
   documentKind: 'cpf' | 'cnpj'
   documentValue: string
   items?: PlaceOrderItemInput[]
+  /** AJUSTE-035 C5: false em buy_now para não esvaziar o carrinho. Default true. */
+  clearCart?: boolean
 }
 
 export interface PlaceOrderResult {
@@ -274,6 +282,7 @@ export interface PlaceOrderResult {
   status: string
   total: number
   paymentId?: string
+  paymentStatus?: string
   alreadyExisted: boolean
 }
 

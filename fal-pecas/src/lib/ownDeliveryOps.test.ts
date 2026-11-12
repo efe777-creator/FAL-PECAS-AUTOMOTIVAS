@@ -23,14 +23,14 @@ describe('ownDeliveryOps (Marcha 6)', () => {
     )
   })
 
-  it('saída exige pay + packing + provider own', () => {
+  it('saída exige pay + provider own (packing não bloqueia)', () => {
     expect(evaluateOwnDepartureGates(paidPacked).ok).toBe(true)
     expect(
       evaluateOwnDepartureGates({ ...paidPacked, paymentStatus: 'pending' }).blockers,
     ).toContain('payment_not_approved')
     expect(
-      evaluateOwnDepartureGates({ ...paidPacked, packingComplete: false }).blockers,
-    ).toContain('packing_incomplete')
+      evaluateOwnDepartureGates({ ...paidPacked, packingComplete: false }).ok,
+    ).toBe(true)
   })
 
   it('após saída: próxima = tentativa ou confirmar entrega', () => {

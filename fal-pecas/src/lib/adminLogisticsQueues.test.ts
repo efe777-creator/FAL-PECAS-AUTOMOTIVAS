@@ -84,7 +84,7 @@ describe('adminLogisticsQueues', () => {
     },
   }
 
-  it('fila volumes: ME/own sem packing completo; mock fora; só dims ainda é volumes', () => {
+  it('fila volumes: só ME sem packing; own/mock fora', () => {
     const base = {
       status: 'pronto_para_envio',
       paymentStatus: 'approved',
@@ -112,13 +112,13 @@ describe('adminLogisticsQueues', () => {
         },
         'volumes',
       ),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       orderMatchesLogisticsQueue(
-        { ...base, shipment: { provider: 'own', metadata: packedComplete } },
-        'volumes',
+        { ...base, shipment: { provider: 'own', metadata: {} }, paymentStatus: 'approved' },
+        'entregas-proprias',
       ),
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('etiquetas-me exige packing completo + approved + não purchased; own não entra', () => {
@@ -229,5 +229,30 @@ describe('adminLogisticsQueues', () => {
         shipment: { provider: 'mock', metadata: {} },
       }),
     ).toBe('mock_sandbox')
+
+    expect(
+      logisticsNextAction({
+        status: 'pronto_para_envio',
+        paymentStatus: 'approved',
+        shipment: {
+          provider: 'mock',
+          metadata: { option_id: 'mock:pickup' },
+        },
+      }),
+    ).toBe('retirada')
+
+    expect(
+      logisticsNextAction({
+        status: 'pronto_para_envio',
+        paymentStatus: 'approved',
+        shipment: {
+          provider: 'mock',
+          metadata: {
+            option_id: 'mock:pickup',
+            pickup: { authorized_at: '2026-11-12T12:00:00Z' },
+          },
+        },
+      }),
+    ).toBe('retirada_autorizada')
   })
 })

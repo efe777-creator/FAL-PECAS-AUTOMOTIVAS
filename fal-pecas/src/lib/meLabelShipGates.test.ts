@@ -34,12 +34,12 @@ describe('meLabelShipGates (Marcha 5 — label ≠ postagem)', () => {
     ).toContain('payment_not_approved')
   })
 
-  it('Own: não exige label ME; exige pay + packing', () => {
+  it('Own: não exige label ME nem packing; ME exige packing', () => {
     expect(
       evaluateShipOrderGates({
         orderStatus: 'pronto_para_envio',
         paymentStatus: 'approved',
-        packingComplete: true,
+        packingComplete: false,
         provider: 'own',
         labelState: 'none',
       }).ok,
@@ -50,10 +50,10 @@ describe('meLabelShipGates (Marcha 5 — label ≠ postagem)', () => {
         orderStatus: 'pronto_para_envio',
         paymentStatus: 'approved',
         packingComplete: false,
-        provider: 'own',
-        labelState: 'none',
-      }).ok,
-    ).toBe(false)
+        provider: 'melhorenvio',
+        labelState: 'printed',
+      }).blockers,
+    ).toContain('packing_incomplete')
   })
 
   it('copy cliente: pronto_para_envio ≠ enviado mesmo com etiqueta impressa', () => {

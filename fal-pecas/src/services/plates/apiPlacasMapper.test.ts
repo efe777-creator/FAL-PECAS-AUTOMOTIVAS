@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { splitApiModelo } from './splitApiModelo'
+import { normalizeVersionLabel, splitApiModelo } from './splitApiModelo'
 
 /** Espelho do mapper Edge (apiPlacasPlateProvider) para Vitest. */
-function extractYear(raw: unknown): string | null {
+function extractYearPreferModel(raw: unknown): string | null {
   if (raw == null) return null
   const s = String(raw).trim()
-  const m = s.match(/(?:19|20)\d{2}/)
-  return m ? m[0] : null
+  const years = [...s.matchAll(/(?:19|20)\d{2}/g)].map((m) => m[0]!)
+  if (!years.length) return null
+  return years[years.length - 1]!
 }
 
 function softMaker(raw: string | null): string | null {
@@ -30,7 +31,7 @@ function mapApiPlacasBasicoToRaw(body: unknown) {
   const dados = (basico.dados ?? {}) as Record<string, unknown>
   const maker = softMaker(dados.marca ? String(dados.marca) : null)
   const split = splitApiModelo(dados.modelo ? String(dados.modelo) : null)
-  const year = extractYear(dados.ano)
+  const year = extractYearPreferModel(dados.ano)
   if (!maker && !split.model) return { status: 'not_found' as const, maker: null, model: null, year: null }
   return {
     status: (year && maker && split.model ? 'found' : 'incomplete') as 'found' | 'incomplete',
@@ -38,7 +39,9 @@ function mapApiPlacasBasicoToRaw(body: unknown) {
     model: split.model,
     year,
     engine: split.engine,
-    version: split.version,
+    version: normalizeVersionLabel(
+      split.version ?? (dados.versao ? String(dados.versao) : null),
+    ),
     fuel: dados.combustivel ? String(dados.combustivel) : null,
   }
 }
@@ -85,12 +88,21 @@ describe('mapApiPlacasBasicoToRaw', () => {
     expect(r.version).toBeNull()
   })
 
-  it('extrai ano de faixa 2019/2020', () => {
+  it('faixa 2019/2020 → ano-modelo 2020', () => {
     const r = mapApiPlacasBasicoToRaw({
       basico: { dados: { marca: 'FIAT', modelo: 'Argo', ano: '2019/2020' } },
     })
-    expect(r.year).toBe('2019')
+    expect(r.year).toBe('2020')
     expect(r.status).toBe('found')
+  })
+
+  it('versão EXPRESSION da API → Expression', () => {
+    const r = mapApiPlacasBasicoToRaw({
+      basico: {
+        dados: { marca: 'RENAULT', modelo: 'Clio', ano: '2014', versao: 'EXPRESSION' },
+      },
+    })
+    expect(r.version).toBe('Expression')
   })
 
   it('incomplete sem ano', () => {

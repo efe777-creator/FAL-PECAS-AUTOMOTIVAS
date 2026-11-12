@@ -71,9 +71,12 @@ flowchart TD
 
 ```text
 aguardando_pagamento → (MP) → … → em_analise
-  → [opcional] aguardando_decisao
+  → [opcional, SÓ se ops solicitar] aguardando_decisao
   → confirmado → em_separacao → pronto_para_envio → enviado → entregue
   → cancelado (não pago / decisão / Onda2 / expire)
+
+Prazo/obs NÃO forçam aguardando_decisao. Opt-in: staff_request_customer_decision.
+Frete cobrado (shipping_amount) ≠ custo interno (G8); requote interno não altera cliente.
 ```
 
 ### 2.2 Eixos paralelos

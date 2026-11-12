@@ -24,6 +24,34 @@ export function resolveInstallmentCount(
   return Math.max(1, Math.min(max, byMin))
 }
 
+/**
+ * Teto FAL para checkout/Brick (HOME-06b P0).
+ * Display desligado/ausente → 1x (não inventar 12x).
+ * Display ligado → resolveInstallmentCount.
+ */
+export function falMaxInstallmentsForCheckout(
+  amount: number,
+  settings: PaymentDisplaySettings | null | undefined,
+): number {
+  if (!settings?.enabled) return 1
+  return resolveInstallmentCount(amount, settings)
+}
+
+/** Rejeita installments acima da política comercial FAL. */
+export function assertCardInstallmentsAllowed(
+  installments: number,
+  amount: number,
+  settings: PaymentDisplaySettings | null | undefined,
+): void {
+  if (!Number.isFinite(installments) || installments < 1) {
+    throw new Error('installments inválido')
+  }
+  const max = falMaxInstallmentsForCheckout(amount, settings)
+  if (installments > max) {
+    throw new Error(`installments acima do permitido (máx. ${max})`)
+  }
+}
+
 /** Linha curta para card/PDP. Null = não mostrar. */
 export function formatPaymentConditionLine(
   amount: number,

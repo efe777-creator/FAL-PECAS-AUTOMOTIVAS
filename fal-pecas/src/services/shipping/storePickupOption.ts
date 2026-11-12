@@ -84,4 +84,4 @@ export function formatStoreOriginAddress(origin: {
 }
 
 export const STORE_PICKUP_READY_NOTICE =
-  'Retire na loja neste endereço. Avisaremos por e-mail/WhatsApp quando o pedido estiver pronto para retirada.'
+  'Retire na loja neste endereço. Quando a loja liberar a retirada, o status em Meus pedidos muda para “Pronto para retirar”.'

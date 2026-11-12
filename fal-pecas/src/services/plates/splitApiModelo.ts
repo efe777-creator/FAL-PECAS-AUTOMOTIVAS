@@ -74,6 +74,32 @@ function expandTrim(abbr: string): string {
   return key.charAt(0) + abbr.slice(1).toLocaleLowerCase('pt-BR')
 }
 
+/**
+ * Canônica a versão (EXPRESSION→Expression, INTENS→Intense).
+ * Não inventa: se não houver evidência/alias, devolve title-case do texto.
+ */
+export function normalizeVersionLabel(raw: string | null | undefined): string | null {
+  if (raw == null) return null
+  const t = String(raw).trim()
+  if (!t) return null
+  const tokens = t.split(/\s+/).filter(Boolean)
+  if (!tokens.length) return null
+  if (tokens.length === 1) {
+    const key = tokens[0]!.toLocaleUpperCase('pt-BR')
+    if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
+    if (key.length <= 4 && /^[A-Z0-9\-]+$/.test(key)) return key
+    return key.charAt(0) + tokens[0]!.slice(1).toLocaleLowerCase('pt-BR')
+  }
+  return tokens
+    .map((tok) => {
+      const key = tok.toLocaleUpperCase('pt-BR')
+      if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
+      if (key.length <= 4 && /^[A-Z0-9\-]+$/.test(key)) return key
+      return key.charAt(0) + tok.slice(1).toLocaleLowerCase('pt-BR')
+    })
+    .join(' ')
+}
+
 function normalizeEngineToken(raw: string): string {
   const m = raw.match(/^(\d+\.\d+)(.*)$/i)
   if (!m) return raw
@@ -154,11 +180,22 @@ export function parseDenatranCompactToken(
 
 /**
  * Se sobrou "Modelo Trim", separa trim conhecido.
+ * Aceita trim + sufixo 1 letra (ex.: CROSSER S → Crosser S).
  */
 function peelTrailingTrim(modelTokens: string[]): {
   model: string
   version: string | null
 } {
+  if (modelTokens.length >= 3) {
+    const last = modelTokens[modelTokens.length - 1]!.toUpperCase()
+    const prev = modelTokens[modelTokens.length - 2]!.toUpperCase()
+    if (TRIM_ALIASES[prev] && /^[A-Z0-9]$/.test(last)) {
+      return {
+        model: formatPlateModelName(modelTokens.slice(0, -2).join(' ')),
+        version: normalizeVersionLabel(`${TRIM_ALIASES[prev]} ${last}`),
+      }
+    }
+  }
   if (modelTokens.length >= 2) {
     const last = modelTokens[modelTokens.length - 1]!.toUpperCase()
     if (TRIM_ALIASES[last]) {
@@ -204,7 +241,7 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return {
       model: peeled.model,
       engine,
-      version: after ?? peeled.version,
+      version: normalizeVersionLabel(after ?? peeled.version),
     }
   }
 
@@ -216,7 +253,7 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return {
       model: peeled.model,
       engine: gearEngine,
-      version: peeled.version,
+      version: normalizeVersionLabel(peeled.version),
     }
   }
 
@@ -227,7 +264,7 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return {
       model: peeled.model,
       engine: compact.engine,
-      version: compact.version ?? peeled.version,
+      version: normalizeVersionLabel(compact.version ?? peeled.version),
     }
   }
 
@@ -238,17 +275,20 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
       return {
         model: formatPlateModelName(tokens[0]!),
         engine: null,
-        version: TRIM_ALIASES[maybeTrim]!,
+        version: normalizeVersionLabel(TRIM_ALIASES[maybeTrim]!),
       }
     }
   }
 
-  // 5) Trim no fim sem motor: "XTZ150 CROSSER S" → modelo XTZ150, versão Crosser S?
-  // Só peela se o penúltimo/último forem trims conhecidos de uma palavra.
+  // 5) Trim no fim sem motor: "XTZ150 CROSSER S" → modelo XTZ150, versão Crosser S
   if (tokens.length >= 2) {
     const peeled = peelTrailingTrim(tokens)
     if (peeled.version) {
-      return { model: peeled.model, engine: null, version: peeled.version }
+      return {
+        model: peeled.model,
+        engine: null,
+        version: normalizeVersionLabel(peeled.version),
+      }
     }
   }
 

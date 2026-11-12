@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assertCardInstallmentsAllowed,
+  falMaxInstallmentsForCheckout,
   formatPaymentConditionLine,
   resolveInstallmentCount,
   type PaymentDisplaySettings,
@@ -31,5 +33,17 @@ describe('paymentDisplay', () => {
     const line = formatPaymentConditionLine(120, base, 'card')
     expect(line).toMatch(/em até 6x de/)
     expect(line).toMatch(/sem juros/)
+  })
+
+  it('checkout: display off → 1x; on → resolve', () => {
+    expect(falMaxInstallmentsForCheckout(200, null)).toBe(1)
+    expect(falMaxInstallmentsForCheckout(200, { ...base, enabled: false })).toBe(1)
+    expect(falMaxInstallmentsForCheckout(200, base)).toBe(6)
+  })
+
+  it('assert rejeita parcelas acima do teto', () => {
+    expect(() => assertCardInstallmentsAllowed(6, 50, base)).toThrow(/acima/)
+    expect(() => assertCardInstallmentsAllowed(2, 50, base)).not.toThrow()
+    expect(() => assertCardInstallmentsAllowed(2, 50, null)).toThrow(/acima/)
   })
 })

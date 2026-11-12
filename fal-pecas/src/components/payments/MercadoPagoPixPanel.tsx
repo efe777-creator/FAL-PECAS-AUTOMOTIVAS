@@ -26,6 +26,10 @@ interface Props {
   initialExpiresAt?: string | null
   /** Quando o QR expira (5 min) — pedido permanece; UI pode oferecer novo Pix/cartão. */
   onExpired?: () => void
+  /** Sair do Pix e pagar no cartão (mesmo pedido). */
+  onSwitchToCard?: () => void
+  /** Ver entrega (somente leitura) no checkout. */
+  onViewDelivery?: () => void
 }
 
 export function MercadoPagoPixPanel({
@@ -37,6 +41,8 @@ export function MercadoPagoPixPanel({
   initialAmount,
   initialExpiresAt,
   onExpired,
+  onSwitchToCard,
+  onViewDelivery,
 }: Props) {
   const toast = useToast()
   const [row, setRow] = useState<OwnPaymentRow | null>(() =>
@@ -103,7 +109,12 @@ export function MercadoPagoPixPanel({
           }))
           if (p.expiresAt) {
             setRemaining(secondsUntilExpiry(p.expiresAt))
-            if (isPaymentExpired(p.expiresAt)) setLocalExpired(true)
+            if (isPaymentExpired(p.expiresAt)) {
+              setLocalExpired((was) => {
+                if (!was) onExpired?.()
+                return true
+              })
+            }
           }
         }
         setError(null)
@@ -111,7 +122,10 @@ export function MercadoPagoPixPanel({
           onApproved(p.orderId || orderId)
         }
         if (p?.status === 'expired') {
-          setLocalExpired(true)
+          setLocalExpired((was) => {
+            if (!was) onExpired?.()
+            return true
+          })
         }
       } catch (e) {
         if (!cancelled) setError(toUserMessage(e, 'Erro ao consultar pagamento'))
@@ -128,18 +142,22 @@ export function MercadoPagoPixPanel({
 
   useEffect(() => {
     const expiresAt = row?.expiresAt ?? initialExpiresAt ?? null
-    if (!expiresAt || localExpired) return
+    if (!expiresAt) return
 
-    const id = setInterval(() => {
+    const tickExpiry = () => {
       const left = secondsUntilExpiry(expiresAt)
       setRemaining(left)
       if (left <= 0) {
-        setLocalExpired(true)
-        onExpired?.()
+        setLocalExpired((was) => {
+          if (!was) onExpired?.()
+          return true
+        })
       }
-    }, 1000)
+    }
+    tickExpiry()
+    const id = setInterval(tickExpiry, 1000)
     return () => clearInterval(id)
-  }, [row?.expiresAt, initialExpiresAt, localExpired, onExpired])
+  }, [row?.expiresAt, initialExpiresAt, onExpired])
 
   async function copyPix() {
     if (!row?.pixQrCode) return
@@ -246,6 +264,18 @@ export function MercadoPagoPixPanel({
             Status: {paymentStatusLabel(expired ? 'expired' : row.status)} · Pedido{' '}
             {orderId.slice(0, 8)}…
           </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {onViewDelivery ? (
+              <Button type="button" variant="light" onClick={onViewDelivery}>
+                Ver entrega
+              </Button>
+            ) : null}
+            {onSwitchToCard ? (
+              <Button type="button" variant="primary" onClick={onSwitchToCard}>
+                Pagar com cartão
+              </Button>
+            ) : null}
+          </div>
         </>
       ) : null}
     </div>

@@ -5,6 +5,7 @@ import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
 import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
@@ -21,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 type Props = {
   product: Product
+  quantity?: number
 }
 
 function formatCepInput(raw: string): string {
@@ -57,7 +59,7 @@ function etaLabel(o: ShippingQuoteOption): string {
  * Cotação leve na PDP: CEP manual ou endereço salvo no perfil.
  * Número/complemento extras confirmam no checkout (endereço salvo já traz o nº para cotar).
  */
-export function ProductShippingQuoteBlock({ product }: Props) {
+export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
   const [cep, setCep] = useState('')
   const [savedAddressId, setSavedAddressId] = useState('')
   const [savedAddress, setSavedAddress] = useState<CustomerAddress | null>(null)
@@ -139,7 +141,7 @@ export function ProductShippingQuoteBlock({ product }: Props) {
           }
         : await viaCepProvider.lookupByCep(postalDigits)
 
-      const price = product.price ?? 0
+      const price = displayPrice(product)
       const { envelope: env, needsAddressNumber } = await quoteStorefrontShippingEnvelope({
         postalCode: via.cep,
         state: via.state,
@@ -217,10 +219,15 @@ export function ProductShippingQuoteBlock({ product }: Props) {
 
   const selected = displayOptions.find((o) => o.id === selectedId)
   const showPickupNotice = selected ? isStorePickupOption(selected) : false
+  const qty = Math.max(1, Math.floor(quantity) || 1)
+  /** HOME-08: estimativa usa preço resolvido (promo), não o listPrice em `product.price`. */
+  const itemsSubtotal = displayPrice(product) * qty
+  const freightAmount = selected?.amount ?? 0
+  const estimatedTotal = itemsSubtotal + freightAmount
 
   return (
     <section
-      className="mt-5 rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4"
+      className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4"
       aria-labelledby="pdp-entrega-frete-title"
     >
       <h2 id="pdp-entrega-frete-title" className="m-0 text-base font-extrabold text-fal-navy">
@@ -229,6 +236,19 @@ export function ProductShippingQuoteBlock({ product }: Props) {
       <p className="mb-2 mt-1 text-xs text-fal-muted">
         Use um endereço do perfil ou consulte por CEP. A modalidade segue no checkout com
         “Comprar agora”.
+      </p>
+      <p className="mb-3 mt-0 rounded-[8px] border border-fal-line bg-white px-2.5 py-2 text-xs text-fal-ink">
+        <span className="font-semibold">Estimativa:</span> {qty}× produto{' '}
+        {formatMoney(itemsSubtotal)}
+        {selected ? (
+          <>
+            {' '}
+            + frete {formatMoney(freightAmount)} ={' '}
+            <strong className="text-fal-navy">{formatMoney(estimatedTotal)}</strong>
+          </>
+        ) : (
+          <> · escolha o frete abaixo</>
+        )}
       </p>
 
       <SavedAddressQuoteSelect

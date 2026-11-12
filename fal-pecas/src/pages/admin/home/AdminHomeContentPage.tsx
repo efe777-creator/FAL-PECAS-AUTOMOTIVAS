@@ -1,3 +1,4 @@
+import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
@@ -16,7 +17,12 @@ import {
   FEATURED_DISPLAY_LIMIT_MIN,
   HOME_FEATURED_LIMIT_DEFAULT,
 } from '@/lib/homeSections'
+import { formatMoney } from '@/lib/money'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
+import {
+  formatOfertaBadgeLabel,
+  resolvePromoOffer,
+} from '@/lib/promoPresentation'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminGetPaymentDisplaySettings,
@@ -41,12 +47,68 @@ import {
   type AdminHomeSettings,
 } from '@/services/admin/adminHomeContentService'
 import { adminListProducts } from '@/services/admin/adminProductService'
+import {
+  AdminHomeSectionTabs,
+  type HomeSectionTab,
+} from '@/pages/admin/home/AdminHomeSectionTabs'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
-type Tab = 'banners' | 'featured' | 'payment'
+type Tab = Exclude<HomeSectionTab, 'promotions'>
+type PreviewViewport = 'desktop' | 'tablet' | 'mobile'
+
+function tabFromLocationState(state: unknown): Tab | null {
+  const raw = (state as { homeTab?: string } | null)?.homeTab
+  if (raw === 'banners' || raw === 'featured' || raw === 'payment' || raw === 'config') {
+    return raw
+  }
+  return null
+}
 
 const MAX_FEATURED = ADMIN_FEATURED_MAX
+
+function FeaturedPriceCell({ row }: { row: AdminFeaturedRow }) {
+  const show = row.resolvedPrice ?? row.listPrice
+  if (show == null) return <span className="text-fal-muted">—</span>
+  const offer = resolvePromoOffer(row.listPrice, show)
+  const promo = offer.isOffer || row.promoActive
+  return (
+    <div className="space-y-0.5">
+      {promo && row.listPrice != null ? (
+        <p className="m-0 text-xs text-fal-muted line-through">{formatMoney(row.listPrice)}</p>
+      ) : null}
+      <p className={`m-0 font-semibold ${promo ? 'text-emerald-800' : 'text-fal-ink'}`}>
+        {formatMoney(show)}
+      </p>
+      {promo ? (
+        <span className="inline-flex">
+          <Badge>{offer.isOffer ? formatOfertaBadgeLabel(offer) : 'Oferta'}</Badge>
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function FeaturedThumb({ row, size = 'md' }: { row: AdminFeaturedRow; size?: 'sm' | 'md' }) {
+  const dim = size === 'sm' ? 'h-10 w-10' : 'h-12 w-12'
+  if (!row.imageUrl) {
+    return (
+      <div
+        className={`grid ${dim} shrink-0 place-items-center rounded-md border border-dashed border-fal-line bg-fal-bg text-[10px] text-fal-muted`}
+        aria-hidden
+      >
+        —
+      </div>
+    )
+  }
+  return (
+    <img
+      src={row.imageUrl}
+      alt=""
+      className={`${dim} shrink-0 rounded-md border border-fal-line object-cover`}
+    />
+  )
+}
 
 const emptyPayment = (): Omit<PaymentDisplaySettings, 'id'> => ({
   enabled: false,
@@ -84,7 +146,13 @@ function toDatetimeLocalValue(iso: string | null | undefined): string {
 export function AdminHomeContentPage() {
   useDocumentTitle('Home da loja | Admin FAL')
   const { push } = useToast()
-  const [tab, setTab] = useState<Tab>('banners')
+  const location = useLocation()
+  const [tab, setTab] = useState<Tab>(() => tabFromLocationState(location.state) ?? 'banners')
+
+  useEffect(() => {
+    const fromNav = tabFromLocationState(location.state)
+    if (fromNav) setTab(fromNav)
+  }, [location.state])
   const [banners, setBanners] = useState<AdminHomeBanner[]>([])
   const [featured, setFeatured] = useState<AdminFeaturedRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,6 +165,7 @@ export function AdminHomeContentPage() {
   const [searching, setSearching] = useState(false)
   const [listQ, setListQ] = useState('')
   const [listActive, setListActive] = useState<'all' | 'on' | 'off'>('all')
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
   const [payment, setPayment] = useState<Omit<PaymentDisplaySettings, 'id'> & { id?: string }>(
     emptyPayment(),
   )
@@ -108,6 +177,8 @@ export function AdminHomeContentPage() {
   const [homeSettings, setHomeSettings] = useState<AdminHomeSettings>({
     id: '',
     featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+    showOfertaBadge: true,
+    showDiscountPercent: true,
   })
   const [savingSettings, setSavingSettings] = useState(false)
   const bannerImageInputRef = useRef<HTMLInputElement>(null)
@@ -152,6 +223,15 @@ export function AdminHomeContentPage() {
     })
   }, [featured, listQ, listActive])
 
+  /** Prévia da faixa Destaques: só ativos, ordem da fila, até o limite da Home. */
+  const featuredPreview = useMemo(() => {
+    const limit = homeSettings.featuredDisplayLimit
+    return featured.filter((r) => r.active).slice(0, limit)
+  }, [featured, homeSettings.featuredDisplayLimit])
+
+  const previewMaxWidth =
+    previewViewport === 'mobile' ? 'max-w-[360px]' : previewViewport === 'tablet' ? 'max-w-[768px]' : 'max-w-full'
+
   async function reload() {
     setLoading(true)
     try {
@@ -162,6 +242,8 @@ export function AdminHomeContentPage() {
         adminGetHomeSettings().catch(() => ({
           id: '',
           featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
+          showOfertaBadge: true,
+          showDiscountPercent: true,
         })),
       ])
       setBanners(b)
@@ -184,7 +266,7 @@ export function AdminHomeContentPage() {
       const saved = await adminUpsertHomeSettings(homeSettings)
       setHomeSettings(saved)
       setDirtySettings(false)
-      push(`Home exibirá até ${saved.featuredDisplayLimit} destaques`, 'success')
+      push('Configurações da Home salvas', 'success')
     } catch (err) {
       push(toUserMessage(err), 'error')
     } finally {
@@ -331,7 +413,7 @@ export function AdminHomeContentPage() {
       <div>
         <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Home da loja</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Controle o que o cliente vê no carrossel e na faixa Destaques.
+          Campanhas, destaques, promoções, pagamento e config — na mesma faixa de abas.
         </p>
       </div>
 
@@ -339,20 +421,23 @@ export function AdminHomeContentPage() {
         <p className="m-0 font-bold text-fal-navy">Como funciona (simples)</p>
         <ul className="mt-2 mb-0 list-disc space-y-1 pl-5 text-fal-muted">
           <li>
-            <strong className="text-fal-ink">Campanhas</strong> = slides do carrossel (título + botão
-            para o catálogo). Só os <em>ativos</em> e dentro da vigência aparecem.
+            <strong className="text-fal-ink">Campanhas</strong> = slides do carrossel.
           </li>
           <li>
-            <strong className="text-fal-ink">Destaques</strong> = produtos que você escolhe. Você
-            define quantos a Home mostra. Se a fila estiver vazia, a loja completa sozinha.
+            <strong className="text-fal-ink">Destaques</strong> = curadoria da faixa Destaques
+            (independente de promoção).
           </li>
           <li>
-            <strong className="text-fal-ink">Ofertas</strong> = automáticas (preço promocional). Não
-            se editam aqui — e a Home evita repetir o mesmo item em Destaques.
+            <strong className="text-fal-ink">Promoções</strong> = ativar/desativar preço promocional
+            por produto (não altera destaques).
           </li>
           <li>
-            <strong className="text-fal-ink">Pagamento</strong> = texto “em até Nx…” nos cards/PDP.
-            Só aparece se você ligar aqui (não inventamos parcelas).
+            <strong className="text-fal-ink">Ofertas</strong> (vitrine) = faixa automática com preço
+            promocional já resolvido.
+          </li>
+          <li>
+            <strong className="text-fal-ink">Pagamento / Config</strong> = só apresentação (parcelas,
+            selo, %), sem mudar cálculo de preço.
           </li>
         </ul>
         <p className="mt-3 mb-0 text-sm">
@@ -375,29 +460,13 @@ export function AdminHomeContentPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant={tab === 'banners' ? 'primary' : 'outline'}
-          onClick={() => setTab('banners')}
-        >
-          Campanhas ({banners.length})
-        </Button>
-        <Button
-          type="button"
-          variant={tab === 'featured' ? 'primary' : 'outline'}
-          onClick={() => setTab('featured')}
-        >
-          Destaques ({featured.length}/{MAX_FEATURED})
-        </Button>
-        <Button
-          type="button"
-          variant={tab === 'payment' ? 'primary' : 'outline'}
-          onClick={() => setTab('payment')}
-        >
-          Pagamento
-        </Button>
-      </div>
+      <AdminHomeSectionTabs
+        active={tab}
+        bannersCount={banners.length}
+        featuredCount={featured.length}
+        featuredMax={MAX_FEATURED}
+        onSelectLocal={setTab}
+      />
 
       {loading ? <p className="text-sm text-fal-muted">Carregando…</p> : null}
       {dirty ? (
@@ -407,7 +476,7 @@ export function AdminHomeContentPage() {
         >
           Alterações não salvas
           {dirtyBanner ? ' (campanha)' : ''}
-          {dirtySettings ? ' (quantidade de destaques)' : ''}
+          {dirtySettings ? ' (config Home)' : ''}
           {dirtyPayment ? ' (pagamento)' : ''}. Salve antes de sair do admin.
         </p>
       ) : null}
@@ -743,6 +812,67 @@ export function AdminHomeContentPage() {
         </div>
       ) : null}
 
+      {tab === 'config' && !loading ? (
+        <form
+          onSubmit={(e) => void onSaveHomeSettings(e)}
+          className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-white p-4"
+        >
+          <h2 className="m-0 text-lg font-bold text-fal-navy">Configurações gerais</h2>
+          <p className="m-0 text-sm text-fal-muted">
+            Só apresentação na vitrine. Não altera preço resolvido, gateway nem checkout.
+          </p>
+          <Input
+            label="Quantidade de destaques na Home"
+            type="number"
+            min={FEATURED_DISPLAY_LIMIT_MIN}
+            max={FEATURED_DISPLAY_LIMIT_MAX}
+            value={String(homeSettings.featuredDisplayLimit)}
+            onChange={(e) => {
+              setDirtySettings(true)
+              setHomeSettings((s) => ({
+                ...s,
+                featuredDisplayLimit: Number(e.target.value) || HOME_FEATURED_LIMIT_DEFAULT,
+              }))
+            }}
+          />
+          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <input
+              type="checkbox"
+              checked={homeSettings.showOfertaBadge}
+              onChange={(e) => {
+                setDirtySettings(true)
+                const on = e.target.checked
+                setHomeSettings((s) => ({
+                  ...s,
+                  showOfertaBadge: on,
+                  showDiscountPercent: on ? s.showDiscountPercent : false,
+                }))
+              }}
+            />
+            Exibir selo Oferta no card e na PDP
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={homeSettings.showOfertaBadge && homeSettings.showDiscountPercent}
+              disabled={!homeSettings.showOfertaBadge}
+              onChange={(e) => {
+                setDirtySettings(true)
+                setHomeSettings((s) => ({ ...s, showDiscountPercent: e.target.checked }))
+              }}
+            />
+            Incluir % de desconto no selo (quando ≥ 1%)
+          </label>
+          <p className="m-0 rounded-lg bg-fal-bg px-3 py-2 text-xs text-fal-muted">
+            Desconto PIX % e faixas avançadas de parcelamento ficam adiado (não anunciamos o que o
+            checkout ainda não aplica). Parcelas: aba Pagamento.
+          </p>
+          <Button type="submit" variant="primary" disabled={savingSettings}>
+            {savingSettings ? 'Salvando…' : 'Salvar config'}
+          </Button>
+        </form>
+      ) : null}
+
       {tab === 'payment' && !loading ? (
         <form
           onSubmit={(e) => void onSavePayment(e)}
@@ -942,6 +1072,81 @@ export function AdminHomeContentPage() {
             </p>
           </div>
 
+          <section className="rounded-fal border border-fal-line bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="m-0 text-sm font-bold text-fal-navy">Prévia da faixa Destaques</h3>
+                <p className="m-0 mt-0.5 text-xs text-fal-muted">
+                  Dados reais (imagem, preço resolvido, selo Oferta). Até{' '}
+                  {homeSettings.featuredDisplayLimit} itens ligados — não altera a curadoria.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {(
+                  [
+                    ['desktop', 'Desktop'],
+                    ['tablet', 'Tablet'],
+                    ['mobile', 'Mobile'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <Button
+                    key={id}
+                    type="button"
+                    size="sm"
+                    variant={previewViewport === id ? 'primary' : 'outline'}
+                    onClick={() => setPreviewViewport(id)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className={`mx-auto mt-3 ${previewMaxWidth}`}>
+              {!featuredPreview.length ? (
+                <p className="m-0 rounded-lg border border-dashed border-fal-line bg-fal-bg px-3 py-4 text-sm text-fal-muted">
+                  Nenhum destaque ligado — a loja completa sozinha na Home.
+                </p>
+              ) : (
+                <ul
+                  className={`m-0 grid list-none gap-2 p-0 ${
+                    previewViewport === 'mobile'
+                      ? 'grid-cols-2'
+                      : previewViewport === 'tablet'
+                        ? 'grid-cols-3'
+                        : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+                  }`}
+                >
+                  {featuredPreview.map((row) => (
+                    <li
+                      key={row.productId}
+                      className="overflow-hidden rounded-[12px] border border-fal-line bg-fal-bg/40"
+                    >
+                      <div className="aspect-square bg-white">
+                        {row.imageUrl ? (
+                          <img
+                            src={row.imageUrl}
+                            alt=""
+                            className="h-full w-full object-contain p-2"
+                          />
+                        ) : (
+                          <div className="grid h-full place-items-center text-xs text-fal-muted">
+                            Sem imagem
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1 p-2">
+                        <p className="m-0 line-clamp-2 text-xs font-semibold text-fal-ink">
+                          {row.name}
+                        </p>
+                        <FeaturedPriceCell row={row} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
           {!featured.length ? (
             <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
               Fila vazia — a Home monta Destaques sozinha. Inclua produtos acima para escolher a
@@ -963,24 +1168,32 @@ export function AdminHomeContentPage() {
                     key={row.productId}
                     className={`rounded-[14px] border border-fal-line bg-white p-3 shadow-sm ${row.active ? '' : 'bg-fal-bg/60'}`}
                   >
-                    <p className="m-0 text-xs text-fal-muted">
-                      #{index + 1} · {row.commercialRef}
-                    </p>
-                    <Link
-                      className="mt-0.5 block text-sm font-extrabold text-fal-navy"
-                      to={`/admin/produtos/${row.productId}`}
-                    >
-                      {row.name}
-                    </Link>
-                    <p className="mb-0 mt-1 text-xs text-fal-muted">
-                      {row.categoryName ?? '—'} · {productStatusLabel(row.status)}
-                      {row.available ? '' : ' · indisp.'} ·{' '}
-                      {row.active ? (
-                        <span className="font-semibold text-emerald-800">Home ligado</span>
-                      ) : (
-                        'Home off'
-                      )}
-                    </p>
+                    <div className="flex gap-3">
+                      <FeaturedThumb row={row} />
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-xs text-fal-muted">
+                          #{index + 1} · {row.commercialRef}
+                        </p>
+                        <Link
+                          className="mt-0.5 block text-sm font-extrabold text-fal-navy"
+                          to={`/admin/produtos/${row.productId}`}
+                        >
+                          {row.name}
+                        </Link>
+                        <p className="mb-0 mt-1 text-xs text-fal-muted">
+                          {row.categoryName ?? '—'} · {productStatusLabel(row.status)}
+                          {row.available ? '' : ' · indisp.'} ·{' '}
+                          {row.active ? (
+                            <span className="font-semibold text-emerald-800">Home ligado</span>
+                          ) : (
+                            'Home off'
+                          )}
+                        </p>
+                        <div className="mt-2">
+                          <FeaturedPriceCell row={row} />
+                        </div>
+                      </div>
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -1040,8 +1253,10 @@ export function AdminHomeContentPage() {
                 <thead className="bg-fal-bg text-fal-muted">
                   <tr>
                     <th className="px-2 py-2">#</th>
+                    <th className="px-2 py-2">Img</th>
                     <th className="px-2 py-2">{CODIGO_REFERENCIA_LABEL}</th>
                     <th className="px-2 py-2">Nome</th>
+                    <th className="px-2 py-2">Preço</th>
                     <th className="px-2 py-2">Categoria</th>
                     <th className="px-2 py-2">Status</th>
                     <th className="px-2 py-2">Home</th>
@@ -1058,6 +1273,9 @@ export function AdminHomeContentPage() {
                         className={`border-t border-fal-line ${row.active ? '' : 'bg-fal-bg/60'}`}
                       >
                         <td className="px-2 py-2 text-xs text-fal-muted">{index + 1}</td>
+                        <td className="px-2 py-2">
+                          <FeaturedThumb row={row} size="sm" />
+                        </td>
                         <td className="px-2 py-2 font-mono text-xs">{row.commercialRef}</td>
                         <td className="px-2 py-2">
                           <Link
@@ -1066,6 +1284,9 @@ export function AdminHomeContentPage() {
                           >
                             {row.name}
                           </Link>
+                        </td>
+                        <td className="px-2 py-2">
+                          <FeaturedPriceCell row={row} />
                         </td>
                         <td className="px-2 py-2 text-xs text-fal-muted">
                           {row.categoryName ?? '—'}

@@ -58,3 +58,27 @@ export async function requestOrderCancellation(
   if (error) throw error
   return data as RequestCancellationResponse
 }
+
+export async function customerConfirmReceipt(
+  orderId: string,
+): Promise<{ order_id: string; already?: boolean }> {
+  const { data, error } = await getSupabase().rpc('customer_confirm_receipt', {
+    p_order_id: orderId,
+  })
+  if (error) throw error
+  return data as { order_id: string; already?: boolean }
+}
+
+export async function customerReportDeliveryIssue(
+  orderId: string,
+  reason: string,
+): Promise<{ order_id: string; occurrence_id: string }> {
+  const trimmed = reason.trim()
+  if (!trimmed) throw new Error('Informe o problema')
+  const { data, error } = await getSupabase().rpc('customer_report_delivery_issue', {
+    p_order_id: orderId,
+    p_reason: trimmed,
+  })
+  if (error) throw error
+  return data as { order_id: string; occurrence_id: string }
+}
