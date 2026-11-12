@@ -36,4 +36,13 @@ describe('meLabelPurchaseGates parity (src ↔ Edge shared)', () => {
     expect(idx).toMatch(/packingVols/)
     expect(idx).toMatch(/meCartVolumes/)
   })
+
+  it('Edge purchase grava finance G8 (charged vs label)', () => {
+    const idx = readFileSync(
+      resolve(__dirname, '../../supabase/functions/melhorenvio-label/index.ts'),
+      'utf8',
+    )
+    expect(idx).toMatch(/meFinanceRoot/)
+    expect(idx).toMatch(/cost_source: 'me_label'/)
+  })
 })

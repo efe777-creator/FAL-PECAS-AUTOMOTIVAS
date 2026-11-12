@@ -1,6 +1,6 @@
 ---
 name: Jornada Frete Logística
-overview: "V2.2.1: Opção A híbrida; Marchas 1–7 locais (reviews ciclo); ME-03/remoto + M8 pendentes; commits sem push."
+overview: "V2.2.1: Marchas 1–8 locais concluídas; ME-03 + migrate/deploy remoto pendentes eFe; commits sem push."
 todos:
   - id: m1-queues-ux
     content: "Marcha 1: filas compostas + próxima ação + hub/expedição (sem own|mock); inventário SEC-035"
@@ -30,8 +30,8 @@ todos:
     content: "Marcha 7: ocorrências ciclo completo (assign/start/resolve/reopen) + fila"
     status: completed
   - id: m8-freight-finance
-    content: "Marcha 8: frete cobrado vs custo efetivo + G8 mínimo do caminho habilitado"
-    status: pending
+    content: "Marcha 8: frete cobrado vs custo efetivo (G8) em metadata.finance"
+    status: completed
 isProject: false
 ---
 
@@ -483,7 +483,7 @@ Itens 1–8 do V2.2 + simplificação operacional de prazos (V2.2.1): **prazo re
 | 5 label≠postagem | ✅ ship gates + copy + packing→cart | migrate/deploy eFe |
 | 6 own ops | ✅ saída/tentativa/entrega + gates | migrate eFe |
 | 7 reviews | ✅ ciclo open→…→reopen + fila | migrate eFe |
-| 8 financeiro | ⏳ não iniciada | — |
+| 8 financeiro G8 | ✅ charged vs cost + painel | migrate/deploy eFe |
 
 ### 3. Pendências ainda abertas
 Marcha 3+ · migrate/deploy eFe · ME-03 · webhook MP prod · strings `payments` nas Edges irreversíveis · VAL G1 prazo pós-migrate.
@@ -506,14 +506,17 @@ Técnicas: packing/RPCs/Edges Marchas 3–8. Humanas: eFe ME-03, deploy auth, ta
 | Declarar MVP com mock | 3 níveis liberação | Alta | Doc OK |
 
 ### 6. Marchas
-1 ✅ ∥ 1b ✅ ∥ 1c ✅ → 2 ✅ → 3 ✅ → 4 ✅ (ME-03 humano) → 5 ✅ → 6 ✅ → 7 ✅ → **8 (próxima: frete cobrado vs custo)**.
+1 ✅ ∥ 1b ✅ ∥ 1c ✅ → 2 ✅ → 3 ✅ → 4 ✅ (ME-03 humano) → 5 ✅ → 6 ✅ → 7 ✅ → 8 ✅.
+
+**Código local das marchas do plano V2.2.1 concluído.** Próximo bloco humano: migrate/deploy + ME-03 + VALs Nível 1–2.
 
 ### 7. Aceite / STOP / PASS
 Por marcha em D.10; liberação em G; garantias de prazo em **I**.
 
 ### 8. Recomendação de autorização
 
-**Próxima marcha de código:** Marcha 8 (frete cobrado vs custo efetivo + G8), sob V2.2.1.  
+**Marchas 1–8 (código local): concluídas.**  
+**Próximo:** ordem eFe para migrate/deploy Edges + ME-03 + VALs.  
 **Não autorizar:** purchase ME prod (ME-03), push/deploy/migrate remoto sem ordem eFe, Nível 2/3 sem VALs.
 
 Arquitetura A híbrida e fórmula de prazo **não reabertas**.

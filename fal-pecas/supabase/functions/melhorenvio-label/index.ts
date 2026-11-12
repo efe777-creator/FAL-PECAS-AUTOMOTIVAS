@@ -160,8 +160,15 @@ Deno.serve(async (req) => {
       .replace(/\D/g, '')
       .slice(0, 8)
 
-    async function persist(patch: MeMeta, extraShipment?: Record<string, unknown>) {
-      const nextMeta = mergeMeMeta(meta, patch)
+    async function persist(
+      patch: MeMeta,
+      extraShipment?: Record<string, unknown>,
+      rootPatch?: Record<string, unknown>,
+    ) {
+      const nextMeta = {
+        ...mergeMeMeta(meta, patch),
+        ...(rootPatch ?? {}),
+      }
       Object.assign(meta, nextMeta)
       const { error } = await admin
         .from('shipments')
@@ -173,6 +180,20 @@ Deno.serve(async (req) => {
         .eq('id', shipment!.id)
       if (error) throw new Error(error.message)
       return nextMeta
+    }
+
+    function meFinanceRoot(labelAmt: number) {
+      const delta = Number((charged - labelAmt).toFixed(2))
+      return {
+        finance: {
+          charged_shipping: Number(charged.toFixed(2)),
+          effective_cost: Number(labelAmt.toFixed(2)),
+          cost_source: 'me_label',
+          delta,
+          recorded_at: new Date().toISOString(),
+          recorded_by: user.id,
+        },
+      }
     }
 
     if (action === 'status') {
@@ -570,18 +591,22 @@ Deno.serve(async (req) => {
               '',
           )
           if (maybeProtocol) {
-            await persist({
-              label_state: 'purchased',
-              protocol: maybeProtocol,
-              label_amount: labelAmount,
-              divergence,
-              purchase_in_flight: false,
-              dry_run: false,
-              last_error: null,
-              divergence_override: resolved.overrideApplied
-                ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
-                : null,
-            })
+            await persist(
+              {
+                label_state: 'purchased',
+                protocol: maybeProtocol,
+                label_amount: labelAmount,
+                divergence,
+                purchase_in_flight: false,
+                dry_run: false,
+                last_error: null,
+                divergence_override: resolved.overrideApplied
+                  ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
+                  : null,
+              },
+              { amount: labelAmount },
+              meFinanceRoot(labelAmount),
+            )
             return json(200, {
               ok: true,
               orderId,
@@ -608,18 +633,22 @@ Deno.serve(async (req) => {
         const purchase = (coJson?.purchase ?? coJson) as Record<string, unknown> | undefined
         protocol = String(purchase?.protocol ?? me.protocol ?? cartItemId)
       }
-      await persist({
-        label_state: 'purchased',
-        protocol,
-        label_amount: labelAmount,
-        divergence,
-        purchase_in_flight: false,
-        dry_run: dryRun,
-        last_error: null,
-        divergence_override: resolved.overrideApplied
-          ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
-          : null,
-      })
+      await persist(
+        {
+          label_state: 'purchased',
+          protocol,
+          label_amount: labelAmount,
+          divergence,
+          purchase_in_flight: false,
+          dry_run: dryRun,
+          last_error: null,
+          divergence_override: resolved.overrideApplied
+            ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
+            : null,
+        },
+        { amount: labelAmount },
+        meFinanceRoot(labelAmount),
+      )
       return json(200, {
         ok: true,
         orderId,
@@ -630,6 +659,7 @@ Deno.serve(async (req) => {
         sandbox,
         dryRun,
         overrideApplied: resolved.overrideApplied,
+        g8: meFinanceRoot(labelAmount).finance,
       })
     }
 

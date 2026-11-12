@@ -1,4 +1,5 @@
 import { MeExpeditionPanel } from '@/components/admin/orders/MeExpeditionPanel'
+import { FreightFinancePanel } from '@/components/admin/orders/FreightFinancePanel'
 import { OrderOccurrencesPanel } from '@/components/admin/orders/OrderOccurrencesPanel'
 import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
 import { OrderPackingPanel } from '@/components/admin/orders/OrderPackingPanel'
@@ -1073,6 +1074,15 @@ export function AdminOrderDetailPage() {
           />
         </div>
       ) : null}
+
+      <FreightFinancePanel
+        order={order}
+        busy={busy}
+        onBusy={setBusy}
+        onReload={reload}
+        onOk={pushOk}
+        onError={pushError}
+      />
 
       <OrderOccurrencesPanel
         order={order}

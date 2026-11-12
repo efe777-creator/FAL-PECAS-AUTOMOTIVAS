@@ -253,6 +253,7 @@ export const orderEventLabel: Record<string, string> = {
   occurrence_started: 'Ocorrência em andamento',
   occurrence_resolved: 'Ocorrência resolvida',
   occurrence_reopened: 'Ocorrência reaberta',
+  freight_finance_updated: 'Custo de frete (G8) atualizado',
   order_cancelled: 'Pedido cancelado',
   order_expired_unpaid: 'Expirado sem pagamento',
   order_awaiting_decision: 'Loja pediu sua autorização',

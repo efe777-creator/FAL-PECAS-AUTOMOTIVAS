@@ -379,6 +379,23 @@ export async function adminOwnDeliveryAttempt(input: {
   return data as { attempt_count: number }
 }
 
+/** Marcha 8 / G8 — custo efetivo do frete */
+export async function adminSetShipmentFreightCost(input: {
+  orderId: string
+  effectiveCost: number
+  costSource?: 'me_label' | 'own_ops' | 'manual'
+  note?: string | null
+}): Promise<{ g8_complete: boolean }> {
+  const { data, error } = await getSupabase().rpc('admin_set_shipment_freight_cost', {
+    p_order_id: input.orderId,
+    p_effective_cost: input.effectiveCost,
+    p_cost_source: input.costSource ?? 'manual',
+    p_note: input.note ?? null,
+  })
+  if (error) throw error
+  return data as { g8_complete: boolean }
+}
+
 export async function adminOrderStatusCounts(): Promise<Record<string, number>> {
   const { data, error } = await getSupabase().rpc('admin_order_status_counts')
   if (error) throw error
