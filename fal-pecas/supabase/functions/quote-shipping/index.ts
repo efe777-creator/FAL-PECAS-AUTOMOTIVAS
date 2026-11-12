@@ -66,6 +66,41 @@ function fingerprint(input: {
   ].join('::')
 }
 
+/** Marcha 1b — prazo exibido = carrier + prep (se não inclusa) + buffer. */
+function applyMeEtaPolicy(
+  carrierMin: number,
+  carrierMax: number,
+  policy: {
+    prepDays: number
+    bufferDays: number
+    prepIncludedInCarrier: boolean
+  },
+): {
+  carrier_eta_min: number
+  carrier_eta_max: number
+  eta_days_min: number
+  eta_days_max: number
+  fal_policy: Record<string, unknown>
+} {
+  const cMin = Math.max(0, carrierMin)
+  const cMax = Math.max(cMin, carrierMax)
+  const prep = policy.prepIncludedInCarrier ? 0 : Math.max(0, policy.prepDays)
+  const buffer = Math.max(0, policy.bufferDays)
+  return {
+    carrier_eta_min: cMin,
+    carrier_eta_max: cMax,
+    eta_days_min: cMin + prep + buffer,
+    eta_days_max: cMax + prep + buffer,
+    fal_policy: {
+      prep_days: policy.prepDays,
+      buffer_days: policy.bufferDays,
+      prep_included_in_carrier: policy.prepIncludedInCarrier,
+      prep_days_applied: prep,
+      buffer_days_applied: buffer,
+    },
+  }
+}
+
 function meHeaders(token: string, ua: string): Record<string, string> {
   return {
     Accept: 'application/json',
@@ -575,13 +610,17 @@ Deno.serve(async (req) => {
           const picture =
             (company?.picture ? String(company.picture) : null) ||
             (cfg?.company_picture ? String(cfg.company_picture) : null)
+          const carrierMin = Number(range.min ?? s.custom_delivery_time ?? s.delivery_time ?? 0)
+          const carrierMax = Number(range.max ?? s.custom_delivery_time ?? s.delivery_time ?? 0)
           return {
             service_id: serviceId,
             name: display,
             me_name: meName,
             amount: price,
-            eta_days_min: Number(range.min ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
-            eta_days_max: Number(range.max ?? s.custom_delivery_time ?? s.delivery_time ?? 0),
+            carrier_eta_min: carrierMin,
+            carrier_eta_max: carrierMax,
+            eta_days_min: carrierMin,
+            eta_days_max: carrierMax,
             packages: s.packages ?? null,
             company: company
               ? {
@@ -596,6 +635,32 @@ Deno.serve(async (req) => {
         })
         .filter((o): o is NonNullable<typeof o> => o != null)
         .sort((a, b) => a.amount - b.amount)
+
+      // Política de prazos FAL (Logística) — preserva carrier e aplica prep/buffer
+      const { data: etaRow } = await admin
+        .from('store_shipping_eta_policy')
+        .select(
+          'me_prep_days, me_buffer_days, me_prep_included_in_carrier, day_count_mode',
+        )
+        .limit(1)
+        .maybeSingle()
+      const etaPolicy = {
+        prepDays: Number(etaRow?.me_prep_days ?? 1) || 0,
+        bufferDays: Number(etaRow?.me_buffer_days ?? 0) || 0,
+        prepIncludedInCarrier: Boolean(etaRow?.me_prep_included_in_carrier),
+      }
+      const dayCountMode = String(etaRow?.day_count_mode ?? 'business_days')
+      for (const o of optionsPayload) {
+        const applied = applyMeEtaPolicy(o.carrier_eta_min, o.carrier_eta_max, etaPolicy)
+        o.eta_days_min = applied.eta_days_min
+        o.eta_days_max = applied.eta_days_max
+        ;(o as Record<string, unknown>).carrier_eta_min = applied.carrier_eta_min
+        ;(o as Record<string, unknown>).carrier_eta_max = applied.carrier_eta_max
+        ;(o as Record<string, unknown>).fal_policy = {
+          ...applied.fal_policy,
+          day_count_mode: dayCountMode,
+        }
+      }
 
       if (!optionsPayload.length) {
         return json(200, {
@@ -690,6 +755,9 @@ Deno.serve(async (req) => {
           company_picture: o.company && typeof o.company === 'object'
             ? (o.company as { picture?: string | null }).picture
             : null,
+          carrier_eta_min: (o as { carrier_eta_min?: number }).carrier_eta_min,
+          carrier_eta_max: (o as { carrier_eta_max?: number }).carrier_eta_max,
+          fal_policy: (o as { fal_policy?: Record<string, unknown> }).fal_policy,
         },
       }))
 
