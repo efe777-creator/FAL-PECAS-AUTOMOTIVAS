@@ -516,7 +516,8 @@ Por marcha em D.10; liberação em G; garantias de prazo em **I**.
 ### 8. Recomendação de autorização
 
 **Marchas 1–8 (código local): concluídas.**  
-**Próximo:** ordem eFe para migrate/deploy Edges + ME-03 + VALs.  
+**VAL fechamento local:** `FAL_MARCHA_FRETE_LOGISTICA_V2_2_1_FECHAMENTO_LOCAL_2026-11-12.md`  
+**Próximo:** ordem eFe para migrate/deploy Edges + ME-03 + VALs (checklist no VAL).  
 **Não autorizar:** purchase ME prod (ME-03), push/deploy/migrate remoto sem ordem eFe, Nível 2/3 sem VALs.
 
 Arquitetura A híbrida e fórmula de prazo **não reabertas**.
