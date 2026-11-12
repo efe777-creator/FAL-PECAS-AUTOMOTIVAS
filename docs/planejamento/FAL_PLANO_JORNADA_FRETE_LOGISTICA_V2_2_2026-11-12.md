@@ -1,19 +1,19 @@
 ---
 name: Jornada Frete Logística
-overview: "V2.2 consolidada: Opção A híbrida, prazos em Logística, packing com associação formal, pagamento canônico, SEC-035 P0, filas com próxima ação, label≠despacho, revisão com ciclo de vida, liberação em 3 níveis."
+overview: "V2.2.1: Opção A híbrida; prazos = real da escolha + tempo a mais (ME/Own); Marchas 1–2 locais; packing/SEC remota/ME-03 pendentes; commits sem push."
 todos:
   - id: m1-queues-ux
     content: "Marcha 1: filas compostas + próxima ação + hub/expedição (sem own|mock); inventário SEC-035"
-    status: in_progress
+    status: completed
   - id: m1b-prazos-logistica
-    content: "Marcha 1b: modelo de prazo (úteis/corridos, carrier, prep, buffer, exibido, snapshot); mock/retirada; pickup≠own"
-    status: pending
+    content: "Marcha 1b: prazo real + tempo a mais (ME/Own/mock/pickup); Logística; Edges; anti-double-count"
+    status: completed
   - id: m1c-sec035
-    content: "Marcha 1c/P0: inventário writes shipments + RPCs para campos críticos (provider/quote/label/packing/despacho)"
-    status: pending
+    content: "Marcha 1c/P0: inventário + drop shipments_staff_write (local); migrate remoto com eFe"
+    status: completed
   - id: m2-quote-integrity
-    content: "Marcha 2: fingerprint place_order + snapshot imutável + isolamento meq/ownq/mock"
-    status: pending
+    content: "Marcha 2: fingerprint place_order + snapshot + isolamento meq/ownq/mock (local)"
+    status: completed
   - id: m3-packing-gate
     content: "Marcha 3: packing_completo com alocação formal produtos↔volumes + invalidação"
     status: pending
@@ -37,9 +37,9 @@ isProject: false
 
 # Plano consolidado — Jornada Frete + Central Logística (Opção A híbrida)
 
-**Versão:** V2.2 · Integridade, segurança e liberação (2026-11-12)  
-**Base aprovada:** V2.1 (arquitetura A híbrida + prazos em Logística)  
-**Escopo desta etapa:** planejamento apenas — sem código, migrations, deploy ou dados.  
+**Versão:** V2.2.1 · Status de marcha + garantias de prazo (2026-11-12)  
+**Base aprovada:** V2.2 (arquitetura A híbrida + prazos em Logística + integridade)  
+**Modo de execução:** MARCHA SOBERANA — commits locais apenas; **sem** push/deploy/migrate remoto até ordem eFe.  
 **Auth de referência:** decisões FAL + VALs Central Pedidos Gates 0–2 · Gate 3 bloqueado em ME-03.
 
 ---
@@ -61,6 +61,18 @@ isProject: false
 
 ---
 
+## Changelog V2.2 → V2.2.1 (análise + garantias de prazo)
+
+| # | Ajuste | Evidência |
+|---|--------|-----------|
+| 1 | **Modelo de prazo simplificado e operacional:** `prazo_exibido = prazo_real_da_escolha + tempo_a_mais_FAL` | `shippingEtaPolicy.ts`, `LogisticsDeadlinePanel` |
+| 2 | ME: prazo real = cotação transportadora (amostras na tela); FAL só edita **extra** | `/admin/logistica/melhor-envio` |
+| 3 | Own: prazo real = base operacional (Gerais); FAL edita **base + extra** | `/admin/logistica/frete-proprio` |
+| 4 | Anti-double-count: `extraDays` único; `prep/buffer` legado só migra, não soma de novo | parse + vitest |
+| 5 | Edges `quote-shipping` / `quote-own-delivery` aplicam a mesma regra | commits locais |
+| 6 | Status Marchas 1 / 1b / 1c / 2 = **código local concluído**; remoto pendente eFe | `main` ahead origin |
+| 7 | Seção **I — Análise e garantias** (abaixo) | este doc |
+
 ### Decisão V2.1 (preservada) — Prazos na Logística
 
 Controle dos prazos dos meios disponíveis = tela **Logística** (`/admin/logistica`). Pedidos só usam snapshot. Own: settings; ME: política FAL sobre carrier; Mock: sair do hardcode.
@@ -68,6 +80,10 @@ Controle dos prazos dos meios disponíveis = tela **Logística** (`/admin/logist
 ### Decisão V2.2 — Complementos de integridade
 
 Detalhados nas seções D.2.1–D.9 e G abaixo.
+
+### Decisão V2.2.1 — Controle real do prazo (operador)
+
+Na Logística, o operador **vê** o prazo mínimo/máximo real da escolha e **só controla** o tempo a mais da FAL (ME) ou base+extra (Own). Cotação e checkout usam a mesma fórmula. Pedidos antigos **não** recalculam.
 
 ---
 
@@ -90,9 +106,10 @@ Ver V2.1 inventário. Destaques relevantes à V2.2:
 | Shipments write | staff policy `shipments_staff_write` + RPCs/Edges | Risco SEC-035 |
 | label_state | `melhorEnvioLabelState.ts` — none→printed; `canShipAfterLabel` separado | Existe; postagem = `ship_order`/`enviado` |
 | Reviews | `own_manual_reviews` sem insert | Parcial |
-| Prazos own | `eta_days_min/max` em Logística | Parcial |
-| Prazos ME/mock | API / hardcode | Fragmentado |
-| Pickup | `mock:pickup` / resolve mock — **não** é own | Isolar jornada se habilitado |
+| Prazos own | base `eta_days_*` + `own.extraDays` em Logística/Gerais + Edge | **Controle local OK** (migrate remoto pendente) |
+| Prazos ME | `carrier_eta_*` preservado + `me.extraDays`; painel + Edge | **Controle local OK** |
+| Prazos mock/pickup | política `store_shipping_eta_policy` (sem hardcode comercial) | **Local OK** |
+| Pickup | `mock:pickup` / resolve mock — **não** é own | Isolar jornada ops se habilitado |
 
 ---
 
@@ -106,7 +123,7 @@ Ver V2.1 inventário. Destaques relevantes à V2.2:
 | SEC-035 metadata | Staff UPDATE genérico | Marcha 1c | **P0** |
 | Fingerprint place_order | Não revalida carrinho | Marcha 2 | P0 |
 | Fila own ≠ mock | Storage OK; plano V1 errava | Manter regra V2.1 | P0 |
-| Prazos modelo completo | Own só; ME/mock incompleto | Marcha 1b | P0 |
+| Prazos modelo completo | **Local:** real+extra ME/Own; Edges alinhadas | Marcha 1b ✅ local · migrate/deploy eFe | P0 residual remoto |
 | Próxima ação nas filas | Tabs genéricas | Marcha 1 | P0 |
 | Label ≠ postagem | Código distingue; UX/gates reforçar | Marchas 4–5 | P0 |
 | Reviews ciclo de vida | Tabela sem write/CRUD | Marcha 7 | P1 |
@@ -186,25 +203,42 @@ flowchart TB
   Pickup -.-> Sep
 ```
 
-### D.2.1 Modelo de prazo (Marcha 1b completa)
+### D.2.1 Modelo de prazo (Marcha 1b — V2.2.1 operacional)
 
-Campos conceituais (persistir política + snapshot):
+**Fórmula única (obrigatória):**
+
+```text
+prazo_exibido = prazo_real_da_escolha + tempo_a_mais_FAL
+```
+
+| Meio | Prazo real (não inventado) | Controle FAL na Logística |
+|------|----------------------------|---------------------------|
+| **ME** | `carrier_eta_min/max` da cotação Melhor Envio | Só `me.extraDays` (tempo a mais) |
+| **Own** | `eta_days_min/max` base operacional (Gerais) | Base + `own.extraDays` |
+| **Mock** | Faixas em `store_shipping_eta_policy.mock` | Só Logística (sem hardcode checkout) |
+| **Retirada** | `pickup.availableInDays*` | Logística; **≠** own |
+
+Campos persistidos (política + snapshot):
 
 | Campo | Significado |
 |-------|-------------|
-| `day_count_mode` | `business_days` ou `calendar_days` (definir por meio na Logística) |
-| `carrier_eta_min/max` | Prazo original do transportador (ME) — **preservar** |
-| `prep_days_fal` | Tempo de preparação/expedição FAL |
-| `buffer_days` | Buffer operacional FAL |
-| `display_eta_min/max` | Prazo exibido ao cliente = política aplicada |
-| `snapshot_eta_*` | Congelado no pedido na contratação |
+| `day_count_mode` | `business_days` ou `calendar_days` |
+| `carrier_eta_min/max` | Prazo real ME — **somente leitura** no painel |
+| `me.extraDays` | Tempo a mais FAL sobre o carrier |
+| `own.extraDays` | Tempo a mais FAL sobre a base own |
+| `display_eta_min/max` | Real + extra (o que o cliente vê na cotação) |
+| `snapshot_eta_*` | Congelado no pedido; **imutável** se política mudar depois |
 
-**Regra anti-duplicação:** se o prazo do provedor **já inclui** preparação acordada, **não** somar `prep_days_fal` de novo. Documentar na Logística se o buffer é adicional ao carrier ou substitui.
+**Legado:** `prepDays` / `bufferDays` / `prepIncludedInCarrier` — só migração para `extraDays`; **não** somar de novo na cotação.
 
-- **ME:** metadata guarda `carrier_eta_*` + `fal_policy` (prep/buffer/mode) + `display_eta_*`.
-- **Own:** semântica de contagem configurável; `eta_days_min/max` existentes alinhados ao modelo.
-- **Mock:** prazos só da config Logística.
-- **Retirada:** prazo próprio (ex.: “disponível em X”); **não** classificar como own delivery.
+**Anti-duplicação (garantia):** um único extra aplicado; Edges não reaplicam prep+buffer em cima de `extraDays`.
+
+**Telas de controle:**
+- `/admin/logistica/melhor-envio` → `LogisticsDeadlinePanel` (amostras reais + extra)
+- `/admin/logistica/frete-proprio` → Gerais (base + extra)
+- `/admin/logistica/prazos` → visão consolidada
+
+**Commits locais (1b):** `33ae8e8` · `4cbf7c9` · `e732234`.
 
 ### D.3 Packing completo + associação formal (V2.2)
 
@@ -339,9 +373,9 @@ flowchart LR
 
 | Marcha | Objetivo | PASS | STOP |
 |--------|----------|------|------|
-| **1** | Filas + próxima ação; mock fora; inventário legado `own:%` | Contagens = listas; ações distintas | Inventário remoto sem VAL |
-| **1b** | Modelo prazo completo; pickup≠own; sem hardcode comercial | Nova cotação reflete Logística; snapshot antigo intacto; carrier preservado | Prep somada 2x sem regra |
-| **1c** | SEC-035: inventário writers + RPCs campos críticos | Patch genérico não altera provider/label/packing/quote | Staff ainda bypassa gates via UPDATE |
+| **1** | Filas + próxima ação; mock fora | Contagens = listas; ações distintas | Inventário remoto sem VAL |
+| **1b** | Prazo real + tempo a mais; pickup≠own | Cotação = real+extra; snapshot antigo intacto; carrier preservado | Extra/prep somados 2x; hardcode comercial |
+| **1c** | SEC-035: inventário + drop policy staff write (local) | Patch genérico não altera provider/label/packing/quote | Remoto ainda com policy antiga |
 | **2** | Fingerprint + snapshot + isolamento | G1–G3 smoke | Bypass place_order |
 | **3** | Packing + alocação + invalidação | G4; incompleto fora ME/Own | Completo sem alocação e sem exceção |
 | **4** | Fila ME + gates + idempotência + override + ME-03 | G5 evidenciado | Purchase sem packing ou sem pagamento canônico |
@@ -359,7 +393,10 @@ flowchart LR
 | Cenário | Marcha |
 |---------|--------|
 | Próxima ação “embalagem incompleta” ≠ “revisão aberta” | 1 |
-| Prazo ME: carrier + buffer; sem double prep | 1b |
+| Prazo ME: UI mostra carrier real; extra só FAL; display = real+extra | 1b |
+| Prazo Own: base + extra; Edge soma uma vez | 1b |
+| Migração legado buffer/prep → extraDays sem double-count | 1b |
+| Pedido antigo não muda ETA após salvar política nova | 1b |
 | Retirada não lista em entregas-proprias | 1b |
 | Staff UPDATE metadata.me.label_state direto falha ou é ignorado pós-1c | 1c |
 | Fingerprint mismatch → place_order rejeita | 2 |
@@ -378,23 +415,25 @@ flowchart LR
 
 ## F. Pendências e dependências
 
-### Já existe
+### Já existe (inclui Marchas 1–2 **locais**)
 Hub 4 áreas, detalhe, wizard, packing básico, ME/Own panels, place_order, quotes, divergence, ocorrências staff, SEC-030, origem/tarifas/POL, label_state machine, confirm MP.
 
-### Corrigir / desenvolver (V2.2)
-Filas + próxima ação · prazos modelo · SEC-035 · fingerprint · packing+alocação · pagamento canônico nas Edges · override auditado · idempotência dura · write reviews + ciclo · own ops eventos · financeiro · pickup isolado · testes I/E2E.
+**Local (commits, sem push):** filas hub · política ETA + painéis ME/Own · Edges real+extra · inventário SEC-035 + drop `shipments_staff_write` · fingerprint `place_order`.
+
+### Corrigir / desenvolver (a partir de Marcha 3)
+packing+alocação · pagamento canônico nas Edges de etiqueta/despacho · override auditado · idempotência dura · write reviews + ciclo · own ops eventos · financeiro · pickup isolado ops · testes I/E2E · **migrate/deploy remoto** do que já está em `main` local.
 
 ### Dependências humanas / externas
 - Auth eFe ME-03.
 - Webhook MP prod (sync mitiga).
 - Tarifas own comerciais.
-- Push/deploy com auth eFe.
-- Decisão final `day_count_mode` (úteis vs corridos) por meio — default proposto: **úteis** para ME display FAL e Own, salvo config.
+- Push/deploy/migrate com auth eFe.
+- `day_count_mode`: default **úteis** (já no código); ajuste fino por meio se necessário.
 
-### Ainda não resolvido nesta consolidação (ok deixar para execução)
-- Schema exato dos campos de alocação em `metadata.packing` (desenhar na Marcha 3 com migration).
-- Lista fechada de status strings de `payments` (inventário Marcha 1).
-- Política exata “prep já inclusa no carrier” por serviço ME (config Logística).
+### Ainda aberto para execução
+- Schema exato alocação `metadata.packing` (Marcha 3).
+- Lista fechada status `payments` nas Edges de ops irreversíveis (Marchas 4/6).
+- Smoke G1 prazo em ambiente com migrate aplicado (Nível 1).
 
 ---
 
@@ -426,46 +465,96 @@ Gates aplicáveis G1–G8 aprovados, jornadas completas do(s) caminho(s) habilit
 
 ---
 
-## H. Entregável final V2.2
+## H. Entregável final V2.2.1
 
-### 1. Alterações incorporadas
-Itens 1–8 do complemento (packing formal, pagamento canônico, SEC-035 P0, modelo prazo, próximas ações, label≠despacho, ciclo revisão, 3 níveis liberação).
+### 1. Alterações incorporadas (plano)
+Itens 1–8 do V2.2 + simplificação operacional de prazos (V2.2.1): **prazo real + tempo a mais**.
 
-### 2. Pendências ainda abertas
-Schema alocação packing; inventário strings `payments`; política prep-inclusa por serviço ME; ME-03 humano; webhook MP prod.
+### 2. Status de implementação local (2026-11-12)
 
-### 3. Dependências
-Técnicas: migrations/RPCs/Edges nas marchas 1c–8. Humanas: eFe ME-03, deploy auth, tarifas comerciais.
+| Marcha | Status local | Remoto |
+|--------|--------------|--------|
+| 1 Filas | ✅ `bcb7d43` | pendente push/migrate |
+| 1b Prazos | ✅ `33ae8e8` `4cbf7c9` `e732234` | pendente |
+| 1c SEC-035 | ✅ inventário + drop policy em `e356a84` | pendente migrate |
+| 2 Fingerprint | ✅ `e356a84` | pendente |
+| 3–8 | ⏳ não iniciadas | — |
 
-### 4. Matriz final de riscos
+### 3. Pendências ainda abertas
+Marcha 3+ · migrate/deploy eFe · ME-03 · webhook MP prod · strings `payments` nas Edges irreversíveis · VAL G1 prazo pós-migrate.
 
-| Risco | Mitigação | Severidade |
-|-------|-----------|------------|
-| Bypass metadata shipment | SEC-035 P0 / RPCs | Crítica |
-| Etiqueta sem pagamento real | Pagamento canônico + sync | Crítica |
-| Packing “completo” falso | Alocação formal | Alta |
-| Double prep no prazo | Modelo 1b anti-soma | Média |
-| Mock em fila own | Provider strict | Alta |
-| Dupla compra etiqueta | Idempotência + reconcile | Alta |
-| Ocorrência sumir | Append-only eventos | Alta |
-| Declarar MVP com mock | 3 níveis liberação | Alta |
+### 4. Dependências
+Técnicas: packing/RPCs/Edges Marchas 3–8. Humanas: eFe ME-03, deploy auth, tarifas comerciais.
 
-### 5. Marchas
-1 ∥ 1b ∥ 1c → 2 → 3 → 4→5 e/ou 6 → 7 → 8 (tabela D.10).
+### 5. Matriz final de riscos
 
-### 6. Aceite / STOP / PASS
-Por marcha em D.10; liberação em G (níveis 1–3).
+| Risco | Mitigação | Severidade | Estado |
+|-------|-----------|------------|--------|
+| Bypass metadata shipment | SEC-035 drop policy + RPCs | Crítica | Local OK · remoto pendente |
+| Etiqueta sem pagamento real | Pagamento canônico + sync | Crítica | Aberto (M4) |
+| Packing “completo” falso | Alocação formal | Alta | Aberto (M3) |
+| Double count no prazo | `extraDays` único + Edges | Média | **Mitigado local** |
+| Operador altera “prazo ME” como se fosse inventável | UI: real só leitura + extra | Alta | **Mitigado local** |
+| Mock em fila own | Provider strict | Alta | Regra mantida |
+| Dupla compra etiqueta | Idempotência + reconcile | Alta | Aberto (M4) |
+| Ocorrência sumir | Append-only eventos | Alta | Aberto (M7) |
+| Declarar MVP com mock | 3 níveis liberação | Alta | Doc OK |
 
-### 7. Recomendação de autorização
+### 6. Marchas
+1 ✅ ∥ 1b ✅ ∥ 1c ✅ → 2 ✅ → **3 (próxima)** → 4→5 e/ou 6 → 7 → 8.
 
-**Autorizar início da implementação na Marcha 1 (+ 1b e 1c em paralelo), sob V2.2.**
+### 7. Aceite / STOP / PASS
+Por marcha em D.10; liberação em G; garantias de prazo em **I**.
 
-Não autorizar ainda: purchase ME produção (ME-03), push/deploy prod, nem declarar Nível 2/3 sem VALs.
+### 8. Recomendação de autorização
 
-Pré-condição de kickoff: eFe confirma V2.2 como base; execução começa em Agent mode sem alterar arquitetura A híbrida.
+**Próxima marcha de código:** Marcha 3 (packing + alocação), sob V2.2.1.  
+**Não autorizar:** purchase ME prod (ME-03), push/deploy/migrate remoto sem ordem eFe, Nível 2/3 sem VALs.
+
+Arquitetura A híbrida e fórmula de prazo **não reabertas**.
+
+---
+
+## I. Análise e garantias — controle real dos prazos (V2.2.1)
+
+### I.1 Análise (o que estava errado / incompleto)
+
+| Problema | Por que quebrava o controle | Correção |
+|----------|-----------------------------|----------|
+| ME: operador sem ver o prazo da transportadora | “Buffer” solto sem âncora real | Amostras `carrier_eta` na tela + extra explícito |
+| Prep + buffer somáveis | Double-count no display | Campo único `extraDays`; legado só migra |
+| Own: só base, sem “tempo a mais” simétrico | Dinâmica diferente de ME | Base + `own.extraDays` na mesma regra |
+| Cotação Edge desalinhada da UI | Cliente via um número; ops outro | Edges usam a mesma fórmula |
+| Pedidos vivos recalculando | SLA contratado mudaria | Snapshot no pedido; política só afeta **nova** cotação |
+
+### I.2 Garantias (PASS / STOP)
+
+| # | Garantia | PASS | STOP |
+|---|----------|------|------|
+| G-P1 | Fonte do prazo real ME = cotação/carrier | UI e metadata preservam `carrier_eta_*` | Inventar min/max ME na Logística |
+| G-P2 | FAL só controla tempo a mais (ME) | Campo único `me.extraDays` | Somar prep+buffer+extra juntos |
+| G-P3 | Own = base operacional + extra | Gerais + política | Own sem extra ou Edge ignorando extra |
+| G-P4 | `display = real + extra` | `computeMeDisplayEta` / `computeOwnDisplayEta` + Edges | Display ≠ soma |
+| G-P5 | Pedido antigo imutável | Snapshot no place_order | Reaplicar política em pedidos fechados |
+| G-P6 | Pickup ≠ own | Política/pickup isolada | Retirada na fila own |
+| G-P7 | Mock ≠ comercial real | Mock só política Logística | Hardcode checkout / mock em fila real |
+
+### I.3 Evidência de código (local)
+
+- `fal-pecas/src/lib/shippingEtaPolicy.ts` (+ testes)
+- `fal-pecas/src/components/admin/logistics/LogisticsDeadlinePanel.tsx`
+- Páginas ME / Own / Prazos
+- `quote-shipping` / `quote-own-delivery`
+- Migration `20261112184000_own_extra_days_eta_policy.sql`
+
+### I.4 O que ainda **não** está garantido em produção
+
+1. Migrations/Edges **não** aplicadas no remoto (marcha soberana).  
+2. Smoke G1 de prazo em ambiente com dados reais ME pós-migrate.  
+3. Snapshot ETA completo no `place_order` para todos os campos D.2.1 (revisar na M3/M4 se faltar campo no metadata).
 
 ---
 
 ## Restrições permanentes
 
-Não implementar nesta etapa de planejamento. Sem segundo hub. Sem dual-status EN. Sem misturar ME/Own/Mock. Pickup ≠ own. Sem estoque. Secrets só servidor. Pedidos antigos não mudam com nova tarifa/prazo.
+Sem segundo hub. Sem dual-status EN. Sem misturar ME/Own/Mock. Pickup ≠ own. Sem estoque. Secrets só servidor. Pedidos antigos não mudam com nova tarifa/prazo. Commits locais até ordem eFe (sem push/deploy).

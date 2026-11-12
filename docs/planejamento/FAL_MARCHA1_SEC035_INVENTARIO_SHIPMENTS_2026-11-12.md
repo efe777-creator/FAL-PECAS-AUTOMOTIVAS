@@ -1,8 +1,8 @@
 # Marcha 1c — Inventário SEC-035 (shipments / metadata)
 
 **Data:** 2026-11-12  
-**Status:** Inventário (sem harden ainda) · commits locais apenas  
-**Plano:** V2.2
+**Status:** Inventário + harden local (drop policy) · commits locais apenas  
+**Plano:** V2.2.1
 
 ## Writers conhecidos
 
