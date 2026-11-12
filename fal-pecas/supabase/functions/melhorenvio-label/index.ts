@@ -11,7 +11,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   alreadyGenerated,
   alreadyPurchased,
-  evaluateFreightDivergence,
   labelStateOf,
   meAuthHeaders,
   meApiBase,
@@ -23,6 +22,11 @@ import {
   type MeLabelState,
   type MeMeta,
 } from '../_shared/melhorEnvioCore.ts'
+import {
+  evaluateMePurchaseGates,
+  resolveFreightDivergenceForPurchase,
+  type DivergenceOverride,
+} from '../_shared/meLabelPurchaseGates.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -438,14 +442,73 @@ Deno.serve(async (req) => {
           dryRun,
         })
       }
+
+      // Reconcile: se purchase_in_flight ficou preso, re-lê metadata antes de nova compra
+      const meEarly = parseMeMeta(meta)
+      if (meEarly.purchase_in_flight && meEarly.protocol) {
+        await persist({
+          label_state: 'purchased',
+          purchase_in_flight: false,
+          last_error: null,
+        })
+        return json(200, {
+          ok: true,
+          orderId,
+          labelState: 'purchased' as MeLabelState,
+          message: 'Compra reconciliada (já havia protocolo) — sem 2ª compra.',
+          sandbox,
+          dryRun,
+        })
+      }
+
+      const { data: payRows } = await admin
+        .from('payments')
+        .select('status')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      const payStatus =
+        Array.isArray(payRows) && payRows[0]?.status != null ? String(payRows[0].status) : null
+
+      const { data: packingOkRpc, error: packingErr } = await admin.rpc(
+        'order_packing_is_complete',
+        { p_order_id: orderId },
+      )
+      const packingComplete = packingErr ? false : packingOkRpc === true
+
+      const cancelled = orderStatus === 'cancelado'
+      const gates = evaluateMePurchaseGates({
+        orderStatus,
+        labelState: state,
+        paymentStatus: payStatus,
+        packingComplete,
+        orderCancelledOrRefunded: cancelled || payStatus === 'refunded',
+      })
+      if (!gates.ok) {
+        await persist({ last_error: gates.blockers[0] ?? 'purchase_gate' })
+        return json(409, {
+          ok: false,
+          orderId,
+          labelState: state,
+          error: gates.blockers[0] ?? 'purchase_gate',
+          blockers: gates.blockers,
+          message: gates.message,
+          sandbox,
+          dryRun,
+        })
+      }
+
       const me = parseMeMeta(meta)
       const labelAmount = Number(me.label_amount ?? me.quoted_amount ?? charged)
-      const divergence = evaluateFreightDivergence({
+      const rawOverride = body.divergenceOverride as DivergenceOverride | null | undefined
+      const resolved = resolveFreightDivergenceForPurchase({
         chargedShipping: charged,
         labelAmount,
+        override: rawOverride ?? null,
       })
-      if (divergence.blocked) {
-        await persist({ divergence, last_error: divergence.reason })
+      const divergence = resolved.divergence
+      if (resolved.blocked) {
+        await persist({ divergence, last_error: 'freight_divergence' })
         return json(409, {
           ok: false,
           orderId,
@@ -471,6 +534,8 @@ Deno.serve(async (req) => {
             labelState: state,
           })
         }
+        // Lock anti-dupla compra sob timeout
+        await persist({ purchase_in_flight: true, last_error: null })
         const coRes = await fetch(`${meApiBase()}/api/v2/me/shipment/checkout`, {
           method: 'POST',
           headers: meAuthHeaders(meToken!, meUa),
@@ -478,7 +543,36 @@ Deno.serve(async (req) => {
         })
         const coJson = (await coRes.json().catch(() => null)) as Record<string, unknown> | null
         if (!coRes.ok) {
+          // Reconcile: se ME já debitou / protocolo existe no body de erro conhecido, não limpa só o lock
+          const maybeProtocol = String(
+            (coJson as { purchase?: { protocol?: string } } | null)?.purchase?.protocol ??
+              (coJson as { protocol?: string } | null)?.protocol ??
+              '',
+          )
+          if (maybeProtocol) {
+            await persist({
+              label_state: 'purchased',
+              protocol: maybeProtocol,
+              label_amount: labelAmount,
+              divergence,
+              purchase_in_flight: false,
+              dry_run: false,
+              last_error: null,
+              divergence_override: resolved.overrideApplied
+                ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
+                : null,
+            })
+            return json(200, {
+              ok: true,
+              orderId,
+              labelState: 'purchased' as MeLabelState,
+              message: 'Checkout com resposta ambígua — reconciliado com protocolo (sem 2ª compra).',
+              sandbox,
+              dryRun,
+            })
+          }
           await persist({
+            purchase_in_flight: false,
             last_error: `checkout_http_${coRes.status}:${JSON.stringify(coJson).slice(0, 180)}`,
             divergence,
           })
@@ -487,7 +581,7 @@ Deno.serve(async (req) => {
             orderId,
             labelState: state,
             error: 'me_checkout_failed',
-            message: 'Falha no checkout Melhor Envio (saldo sandbox?).',
+            message: 'Falha no checkout Melhor Envio (saldo sandbox?). Não repita às cegas — confira status.',
             sandbox,
           })
         }
@@ -499,8 +593,12 @@ Deno.serve(async (req) => {
         protocol,
         label_amount: labelAmount,
         divergence,
+        purchase_in_flight: false,
         dry_run: dryRun,
         last_error: null,
+        divergence_override: resolved.overrideApplied
+          ? { reason: resolved.reason, at: new Date().toISOString(), by: user.id }
+          : null,
       })
       return json(200, {
         ok: true,
@@ -508,9 +606,10 @@ Deno.serve(async (req) => {
         labelState: 'purchased' as MeLabelState,
         message: dryRun
           ? 'Compra dry-run. Pedido permanece pronto_para_envio (sem ship_order).'
-          : 'Etiqueta comprada no sandbox. Pedido NÃO foi marcado como enviado.',
+          : 'Etiqueta comprada. Pedido NÃO foi marcado como enviado.',
         sandbox,
         dryRun,
+        overrideApplied: resolved.overrideApplied,
       })
     }
 

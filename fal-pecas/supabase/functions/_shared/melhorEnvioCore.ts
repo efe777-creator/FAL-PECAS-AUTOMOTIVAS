@@ -48,12 +48,19 @@ export type MeMeta = {
   last_error?: string | null
   checkout_snapshot_ref?: string | null
   dry_run?: boolean
+  /** Anti-dupla compra sob timeout de checkout. */
+  purchase_in_flight?: boolean | null
   divergence?: {
     chargedShipping: number
     labelAmount: number
     delta: number
     blocked: boolean
     reason?: string
+  } | null
+  divergence_override?: {
+    reason: string
+    at?: string
+    by?: string
   } | null
 }
 

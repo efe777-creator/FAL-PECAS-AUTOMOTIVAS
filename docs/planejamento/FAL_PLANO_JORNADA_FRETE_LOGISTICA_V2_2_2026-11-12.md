@@ -1,6 +1,6 @@
 ---
 name: Jornada Frete Logística
-overview: "V2.2.1: Opção A híbrida; prazos real+extra; Marchas 1–3 locais (packing+alocação); SEC/ME remoto pendente; commits sem push."
+overview: "V2.2.1: Opção A híbrida; Marchas 1–4 locais (ME purchase gates); ME-03/remoto pendente; commits sem push."
 todos:
   - id: m1-queues-ux
     content: "Marcha 1: filas compostas + próxima ação + hub/expedição (sem own|mock); inventário SEC-035"
@@ -18,8 +18,8 @@ todos:
     content: "Marcha 3: packing_completo com alocação formal produtos↔volumes + invalidação"
     status: completed
   - id: m4-me-labels
-    content: "Marcha 4: fila ME + pagamento canônico + packing + idempotência + override + ME-03"
-    status: pending
+    content: "Marcha 4: gates purchase ME (pay+packing+override+idempotência); ME-03 humano"
+    status: completed
   - id: m5-dispatch-track
     content: "Marcha 5: estados label vs postagem + eventos + copy cliente"
     status: pending
@@ -479,7 +479,8 @@ Itens 1–8 do V2.2 + simplificação operacional de prazos (V2.2.1): **prazo re
 | 1c SEC-035 | ✅ inventário + drop policy em `e356a84` | pendente migrate |
 | 2 Fingerprint | ✅ `e356a84` | pendente |
 | 3 Packing+alocação | ✅ local (`order_packing_is_complete` + UI) | pendente migrate |
-| 4–8 | ⏳ não iniciadas | — |
+| 4 ME purchase gates | ✅ pay+packing+override+idempotência local | Edge deploy + ME-03 eFe |
+| 5–8 | ⏳ não iniciadas | — |
 
 ### 3. Pendências ainda abertas
 Marcha 3+ · migrate/deploy eFe · ME-03 · webhook MP prod · strings `payments` nas Edges irreversíveis · VAL G1 prazo pós-migrate.
@@ -502,14 +503,14 @@ Técnicas: packing/RPCs/Edges Marchas 3–8. Humanas: eFe ME-03, deploy auth, ta
 | Declarar MVP com mock | 3 níveis liberação | Alta | Doc OK |
 
 ### 6. Marchas
-1 ✅ ∥ 1b ✅ ∥ 1c ✅ → 2 ✅ → 3 ✅ → **4 (próxima: fila ME + pagamento canônico)** → 5 e/ou 6 → 7 → 8.
+1 ✅ ∥ 1b ✅ ∥ 1c ✅ → 2 ✅ → 3 ✅ → 4 ✅ (ME-03 humano) → **5 (próxima: postagem ≠ label)** e/ou 6 → 7 → 8.
 
 ### 7. Aceite / STOP / PASS
 Por marcha em D.10; liberação em G; garantias de prazo em **I**.
 
 ### 8. Recomendação de autorização
 
-**Próxima marcha de código:** Marcha 4 (fila ME + pagamento canônico + gates etiqueta), sob V2.2.1.  
+**Próxima marcha de código:** Marcha 5 (label ≠ postagem/trânsito/copy cliente) e/ou Marcha 6 (own ops), sob V2.2.1.  
 **Não autorizar:** purchase ME prod (ME-03), push/deploy/migrate remoto sem ordem eFe, Nível 2/3 sem VALs.
 
 Arquitetura A híbrida e fórmula de prazo **não reabertas**.

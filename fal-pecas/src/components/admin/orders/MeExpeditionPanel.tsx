@@ -11,6 +11,8 @@ import {
   meLastErrorLabel,
   parseMeMeta,
 } from '@/lib/melhorEnvioLabelState'
+import { evaluateMePurchaseGates } from '@/lib/meLabelPurchaseGates'
+import { packingCompleteFromMeta } from '@/lib/orderPacking'
 import { openRomaneio } from '@/lib/adminOrderPrint'
 import { formatMoney } from '@/lib/money'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
@@ -62,13 +64,32 @@ export function MeExpeditionPanel({
   const [lengthCm, setLengthCm] = useState('')
   const [lastQuote, setLastQuote] = useState<number | null>(null)
   const [divergenceMsg, setDivergenceMsg] = useState<string | null>(null)
+  const [overrideReason, setOverrideReason] = useState('')
 
   const labelState = useMemo(
     () => meLabelState(order.shipment?.metadata ?? null),
     [order.shipment?.metadata],
   )
   const me = useMemo(() => parseMeMeta(order.shipment?.metadata ?? null), [order.shipment?.metadata])
-  const canBuy = canPurchaseLabel(order.status, labelState)
+  const packingOk = useMemo(
+    () => packingCompleteFromMeta(order.shipment?.metadata ?? null),
+    [order.shipment?.metadata],
+  )
+  const purchaseGates = useMemo(
+    () =>
+      evaluateMePurchaseGates({
+        orderStatus: order.status,
+        labelState,
+        paymentStatus: order.payment?.status ?? null,
+        packingComplete: packingOk,
+        orderCancelledOrRefunded:
+          order.status === 'cancelado' || order.payment?.status === 'refunded',
+      }),
+    [order.status, order.payment?.status, labelState, packingOk],
+  )
+  const canBuy =
+    canPurchaseLabel(order.status, labelState) &&
+    (purchaseGates.ok || purchaseGates.alreadyPurchased)
 
   async function runMe(fn: () => Promise<{ ok: boolean; message?: string; error?: string; divergence?: { blocked: boolean; reason?: string; labelAmount?: number } | null; printUrl?: string | null }>) {
     setMeBusy(true)
@@ -135,6 +156,16 @@ export function MeExpeditionPanel({
             {divergenceMsg}
           </p>
         ) : null}
+        {!purchaseGates.ok && !purchaseGates.alreadyPurchased ? (
+          <p className="mt-2 rounded-md border border-fal-line bg-fal-bg/50 px-3 py-2 text-sm text-fal-navy">
+            Compra bloqueada: {purchaseGates.message}
+          </p>
+        ) : null}
+        {order.payment?.status && order.payment.status !== 'approved' ? (
+          <p className="mt-1 mb-0 text-xs text-amber-800">
+            Pagamento canônico: {order.payment.status} (exige approved).
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -172,6 +203,16 @@ export function MeExpeditionPanel({
         >
           Preparar carrinho Melhor Envio
         </Button>
+        {divergenceMsg ? (
+          <div className="w-full max-w-xl">
+            <Input
+              label="Justificativa de override (divergência frete)"
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              disabled={busy || meBusy}
+            />
+          </div>
+        ) : null}
         <Button
           type="button"
           disabled={busy || meBusy || !canBuy}
@@ -186,7 +227,11 @@ export function MeExpeditionPanel({
             })
               .then(({ confirmed }) => {
                 if (!confirmed) return
-                return runMe(() => mePurchaseLabel(order.id, true))
+                const ov =
+                  divergenceMsg && overrideReason.trim()
+                    ? ({ confirm: true as const, reason: overrideReason.trim() })
+                    : null
+                return runMe(() => mePurchaseLabel(order.id, true, ov))
               })
               .catch((e) => onError(toUserMessage(e, 'Falha ao comprar etiqueta')))
           }}

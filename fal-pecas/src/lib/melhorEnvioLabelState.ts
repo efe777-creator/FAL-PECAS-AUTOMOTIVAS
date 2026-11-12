@@ -24,12 +24,18 @@ export type MeShipmentMeta = {
   last_error?: string | null
   checkout_snapshot_ref?: string | null
   quoted_amount?: number | null
+  purchase_in_flight?: boolean | null
   divergence?: {
     chargedShipping: number
     labelAmount: number
     delta: number
     blocked: boolean
     reason?: string
+  } | null
+  divergence_override?: {
+    reason: string
+    at?: string
+    by?: string
   } | null
 }
 
@@ -99,6 +105,11 @@ export function meLastErrorLabel(raw: string | null | undefined): string | null 
     token_invalid: 'Token Melhor Envio inválido ou expirado — reconecte no admin.',
     insufficient_balance: 'Saldo insuficiente na carteira Melhor Envio.',
     divergence_blocked: 'Compra bloqueada: valor da etiqueta diverge do frete cobrado.',
+    payment_not_approved: 'Pagamento não aprovado — espere approved na tabela payments.',
+    packing_incomplete: 'Packing incompleto — finalize volumes e alocação.',
+    freight_divergence: 'Divergência de frete — use override justificado ou recote.',
+    order_not_operable: 'Pedido cancelado/reembolsado.',
+    order_not_ready: 'Pedido ainda não pronto para etiqueta.',
   }
   if (map[key]) return map[key]
   if (map[key.toLowerCase()]) return map[key.toLowerCase()]

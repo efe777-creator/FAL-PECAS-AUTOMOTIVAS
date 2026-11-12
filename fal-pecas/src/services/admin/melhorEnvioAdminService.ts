@@ -65,9 +65,16 @@ export function mePrepareLabel(orderId: string) {
   return invokeLabel('prepare', orderId)
 }
 
-/** Compra explícita — operador deve confirmar na UI. */
-export function mePurchaseLabel(orderId: string, confirm: true) {
-  return invokeLabel('purchase', orderId, { confirm })
+/** Compra explícita — operador deve confirmar na UI. Override de divergência exige reason. */
+export function mePurchaseLabel(
+  orderId: string,
+  confirm: true,
+  divergenceOverride?: { confirm: true; reason: string } | null,
+) {
+  return invokeLabel('purchase', orderId, {
+    confirm,
+    ...(divergenceOverride ? { divergenceOverride } : {}),
+  })
 }
 
 export function meGenerateLabel(orderId: string) {
