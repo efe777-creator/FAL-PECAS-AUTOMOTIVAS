@@ -777,15 +777,20 @@ export async function adminSetOrderPacking(
   }
 }
 
-/** CP-EVT-01 — abrir / atualizar / resolver ocorrência */
+/** CP-EVT-01 + Marcha 7 — ciclo completo da ocorrência */
 export async function adminOccurrenceAction(input: {
   orderId: string
-  action: 'open' | 'update' | 'resolve'
+  action: 'open' | 'update' | 'assign' | 'start' | 'resolve' | 'reopen'
   occurrenceId?: string | null
   tipo?: string | null
   gravidade?: 'baixa' | 'media' | 'alta' | null
+  prioridade?: 'baixa' | 'media' | 'alta' | 'urgente' | null
+  acaoNecessaria?: string | null
   note?: string | null
   solucao?: string | null
+  motivoEncerramento?: string | null
+  motivoReabertura?: string | null
+  assigneeId?: string | null
   visibility?: 'internal' | 'customer'
 }): Promise<{ occurrence_id: string; event_type: string }> {
   const { data, error } = await getSupabase().rpc('admin_occurrence_action', {
@@ -797,6 +802,11 @@ export async function adminOccurrenceAction(input: {
     p_note: input.note ?? null,
     p_solucao: input.solucao ?? null,
     p_visibility: input.visibility ?? 'internal',
+    p_prioridade: input.prioridade ?? 'media',
+    p_acao_necessaria: input.acaoNecessaria ?? null,
+    p_assignee_id: input.assigneeId ?? null,
+    p_motivo_reabertura: input.motivoReabertura ?? null,
+    p_motivo_encerramento: input.motivoEncerramento ?? null,
   })
   if (error) throw error
   return data as { occurrence_id: string; event_type: string }
