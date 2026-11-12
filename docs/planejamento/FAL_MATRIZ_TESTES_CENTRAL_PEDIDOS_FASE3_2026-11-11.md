@@ -34,7 +34,7 @@
 |----|------|------|----------|-----------|
 | PAY-01 | Aguardando pagamento na área | M | Status correto | ✅ 3 pedidos · Pendente / Pendente (expirado) |
 | PAY-02 | Expire unpaid 48h | M | Pedidos saem da fila | ✅ fluxo hub+RPC (0 elegíveis <48h; fila permanece 3) |
-| PAY-03 | Approve MP → análise | H | Webhook/confirm | P |
+| PAY-03 | Approve MP → análise | H | Webhook/confirm | ✅ Pix prod `66dd89ff` MP `189071738498` → approved → `em_analise` (sync; webhook prod ainda gap) · ver CP-PAY VAL |
 | PAY-04 | Estorno manual mark refunded | M | payment refunded | P |
 
 ## CP-T-SEP — Separação
@@ -119,10 +119,11 @@
 **A:** 17 PASS unit · SEC-01 live · RPCs + CAN-POST + packing guards.  
 **M (2026-11-12):** CEN · PAY-01/02 · SEP · PKG-01 · ME-01/04 · OWN-01/02 · UI-01/02/04 · EVT-01 · TRK-01/02.
 
-**Bloqueio Gate 3:** **H** restantes — PAY-03 (MP approve) · ME-03 (compra etiqueta). ME-02 ✅.
+**Bloqueio Gate 3:** **ME-03** (compra etiqueta em `VITE_SHIPPING_ME_ENV=production` — custo real). PAY-03 ✅.
 
 ## Ordem restante
 
-1. H: PAY-03 · ME-03 (autorização eFe / saldo ME)
-2. Push+deploy só com autorização explícita
-3. Gate 3 após H ou decisão eFe de adiar H
+1. H: ME-03 só com autorização eFe (saldo ME produção)
+2. Ops: webhook MP prod (gap conhecido; sync mitiga)
+3. Push+deploy só com autorização explícita
+4. Gate 3 após ME-03 ou decisão eFe de adiar compra

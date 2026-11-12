@@ -19,12 +19,12 @@
 
 ## Gate 3
 
-**Não aberto** — pendente **H**:
+Ver [GATE3_STATUS](./FAL_MARCHA_CENTRAL_PEDIDOS_GATE3_STATUS_2026-11-12.md).
 
-1. PAY-03 — approve Mercado Pago → análise  
-2. ME-03 — purchase etiqueta (custo real; não executado)  
+**Não aberto** — único H crítico restante: **ME-03** (compra etiqueta produção).
 
-**ME-02** quote→prepare live: **PASS** (`6eb61dd5`, 2026-11-12).
+- PAY-03 ✅ (Pix prod + sync)  
+- ME-02 ✅  
 
 M opcional residual: PAY-04 · UI-03 · SEC-02.
 
