@@ -245,6 +245,8 @@ export const orderEventLabel: Record<string, string> = {
   shipment_prepared: 'Expedição preparada',
   order_shipped: 'Pedido enviado',
   order_delivered: 'Pedido entregue',
+  own_delivery_attempt: 'Tentativa de entrega própria',
+  packing_updated: 'Packing / volumes atualizados',
   order_cancelled: 'Pedido cancelado',
   order_expired_unpaid: 'Expirado sem pagamento',
   order_awaiting_decision: 'Loja pediu sua autorização',

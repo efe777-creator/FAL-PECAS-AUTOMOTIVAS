@@ -1083,7 +1083,10 @@ export function AdminOrderDetailPage() {
         onError={pushError}
       />
 
-      {order.status === 'pronto_para_envio' || order.status === 'preparando_envio' ? (
+      {order.status === 'pronto_para_envio' ||
+      order.status === 'preparando_envio' ||
+      (orderShippingKind(order) === 'own' &&
+        (order.status === 'enviado' || order.status === 'entregue')) ? (
         <div id="ops-expedicao" className="scroll-mt-20 space-y-4">
         {orderUsesMelhorEnvio(order) ? (
           <MeExpeditionPanel
@@ -1120,6 +1123,11 @@ export function AdminOrderDetailPage() {
             onService={setService}
             onTracking={setTracking}
             onRequestShip={() => setPending({ kind: 'ship' })}
+            onRequestDeliver={() => setPending({ kind: 'deliver' })}
+            proofRef={proofRef}
+            onProofRef={setProofRef}
+            onReload={() => reload()}
+            onOk={pushOk}
             onError={(m) => {
               if (m) pushError(m)
               else setError(null)
@@ -1157,7 +1165,8 @@ export function AdminOrderDetailPage() {
         </ol>
       </section>
 
-      {order.status === 'enviado' || order.status === 'entregue' ? (
+      {(order.status === 'enviado' || order.status === 'entregue') &&
+      orderShippingKind(order) !== 'own' ? (
         <section
           id="ops-expedicao"
           className="scroll-mt-20 rounded-[14px] border border-fal-line bg-white p-4"

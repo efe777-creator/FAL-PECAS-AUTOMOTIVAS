@@ -364,6 +364,21 @@ export async function adminDeliverOrder(orderId: string, proofRef?: string): Pro
   if (error) throw error
 }
 
+/** Marcha 6 — tentativa de entrega frete próprio (append-only). */
+export async function adminOwnDeliveryAttempt(input: {
+  orderId: string
+  note?: string | null
+  outcome?: 'failed' | 'rescheduled' | 'other'
+}): Promise<{ attempt_count: number }> {
+  const { data, error } = await getSupabase().rpc('admin_own_delivery_attempt', {
+    p_order_id: input.orderId,
+    p_note: input.note ?? null,
+    p_outcome: input.outcome ?? 'failed',
+  })
+  if (error) throw error
+  return data as { attempt_count: number }
+}
+
 export async function adminOrderStatusCounts(): Promise<Record<string, number>> {
   const { data, error } = await getSupabase().rpc('admin_order_status_counts')
   if (error) throw error
