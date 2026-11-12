@@ -16,9 +16,10 @@
 | OWN-01/02 · TRK-01/02 | `66dd89ff` mock | ship `SMOKE-OWN-20261112` → `enviado` → `entregue` |
 | PAY-02 | hub expire 48h | RPC OK · 0 elegíveis (<48h) · fila unpaid permanece 3 |
 | ME-04 | `6eb61dd5` | carrinho ME · status ainda `pronto_para_envio` |
+| ME-02 | `6eb61dd5` | Cotar → `quoted` R$11,15 → Preparar → `cart` (live) |
 
 ## Gate 3
 
-**Ainda não** — bloqueio **H:** PAY-03 · ME-02/03.
+**Ainda não** — bloqueio **H:** PAY-03 · ME-03 (compra).
 
-Smoke **M** (crítico + TRK/OWN/expire): **feito**. Matriz: [FAL_MATRIZ_TESTES_CENTRAL_PEDIDOS_FASE3_2026-11-11.md](./FAL_MATRIZ_TESTES_CENTRAL_PEDIDOS_FASE3_2026-11-11.md)
+Smoke **M** + ME-02: **feito**. Matriz: [FAL_MATRIZ_TESTES_CENTRAL_PEDIDOS_FASE3_2026-11-11.md](./FAL_MATRIZ_TESTES_CENTRAL_PEDIDOS_FASE3_2026-11-11.md)

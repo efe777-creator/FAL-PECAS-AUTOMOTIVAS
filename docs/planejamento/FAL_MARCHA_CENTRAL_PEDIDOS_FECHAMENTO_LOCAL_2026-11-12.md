@@ -22,9 +22,11 @@
 **Não aberto** — pendente **H**:
 
 1. PAY-03 — approve Mercado Pago → análise  
-2. ME-02/03 — quote/prepare live + purchase etiqueta  
+2. ME-03 — purchase etiqueta (custo real; não executado)  
 
-M opcional residual (não bloqueia decisão de gate se eFe adiar H): PAY-04 · UI-03 · SEC-02.
+**ME-02** quote→prepare live: **PASS** (`6eb61dd5`, 2026-11-12).
+
+M opcional residual: PAY-04 · UI-03 · SEC-02.
 
 ## Deploy
 

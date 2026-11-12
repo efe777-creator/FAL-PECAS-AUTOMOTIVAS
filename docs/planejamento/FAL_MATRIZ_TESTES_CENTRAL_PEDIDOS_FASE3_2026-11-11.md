@@ -60,8 +60,8 @@
 | ID | Caso | Tipo | Critério | Resultado |
 |----|------|------|----------|-----------|
 | ME-01 | Painel só provider ME | A/M | Own sem ME | ✅ shippingKind unit + wizard Frete ME em `6eb61dd5` |
-| ME-02 | Quote→prepare | M/H | label_state | P (UI + carrinho ME em `6eb61dd5`; purchase = H) |
-| ME-03 | Purchase GATE | H | CNPJ/saldo | P |
+| ME-02 | Quote→prepare | M/H | label_state | ✅ live `6eb61dd5`: quoted R$11,15 → prepare → `cart` |
+| ME-03 | Purchase GATE | H | CNPJ/saldo | P (não executado — custo real; aguarda eFe) |
 | ME-04 | Ship ≠ purchase | M | Status enviado só no ship | ✅ `6eb61dd5` no carrinho ME ainda `pronto_para_envio` |
 
 ## CP-T-OWN — Frete próprio
@@ -119,9 +119,10 @@
 **A:** 17 PASS unit · SEC-01 live · RPCs + CAN-POST + packing guards.  
 **M (2026-11-12):** CEN · PAY-01/02 · SEP · PKG-01 · ME-01/04 · OWN-01/02 · UI-01/02/04 · EVT-01 · TRK-01/02.
 
-**Bloqueio Gate 3:** só **H** críticos — PAY-03 (MP approve) · ME-02/03 (quote live + purchase). M opcional restante: PAY-04 · UI-03 · SEC-02.
+**Bloqueio Gate 3:** **H** restantes — PAY-03 (MP approve) · ME-03 (compra etiqueta). ME-02 ✅.
 
 ## Ordem restante
 
-1. H: PAY-03 · ME-02/03 (eFe / saldo ME)
-2. Gate 3 após H ou decisão eFe de aceitar Gate com H adiado
+1. H: PAY-03 · ME-03 (autorização eFe / saldo ME)
+2. Push+deploy só com autorização explícita
+3. Gate 3 após H ou decisão eFe de adiar H
