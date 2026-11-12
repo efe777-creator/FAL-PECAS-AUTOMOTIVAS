@@ -20,6 +20,12 @@ describe('order status labels (O1-A)', () => {
     expect(orderStatusLabel.recebido).not.toBe(orderStatusAdminLabel.recebido)
   })
 
+  it('Marcha 5: cliente só vê Enviado com status enviado (não com etiqueta)', () => {
+    expect(orderStatusLabel.pronto_para_envio).toBe('Aguardando postagem')
+    expect(orderStatusLabel.preparando_envio).toBe('Aguardando postagem')
+    expect(orderStatusLabel.enviado).toBe('Enviado')
+  })
+
   it('visibilidade do evento em PT-BR', () => {
     expect(orderEventVisibilityLabel('customer')).toBe('visível ao cliente')
     expect(orderEventVisibilityLabel('internal')).toBe('interno')

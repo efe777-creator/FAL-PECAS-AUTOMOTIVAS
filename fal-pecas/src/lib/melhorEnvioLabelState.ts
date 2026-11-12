@@ -127,6 +127,10 @@ export function canPurchaseLabel(orderStatus: string, labelState: MeLabelState):
   )
 }
 
+/**
+ * @deprecated Preferir evaluateShipOrderGates (Marcha 5) — status sozinho NÃO basta.
+ * Mantido: só checa se o pedido está em janela de postagem.
+ */
 export function canShipAfterLabel(orderStatus: string): boolean {
   return orderStatus === 'pronto_para_envio' || orderStatus === 'preparando_envio'
 }

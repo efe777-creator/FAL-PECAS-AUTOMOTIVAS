@@ -326,6 +326,26 @@ Deno.serve(async (req) => {
             })
           }
           const vol = (me.volumes ?? {}) as Record<string, unknown>
+          // Marcha 3/5: preferir volumes do packing do pedido (fonte neutra)
+          const packingVols = Array.isArray((meta as { packing?: { volumes?: unknown } }).packing?.volumes)
+            ? ((meta as { packing: { volumes: Record<string, unknown>[] } }).packing.volumes)
+            : []
+          const meCartVolumes =
+            packingVols.length > 0
+              ? packingVols.map((pv) => ({
+                  height: Number(pv.heightCm ?? 2),
+                  width: Number(pv.widthCm ?? 11),
+                  length: Number(pv.lengthCm ?? 16),
+                  weight: Number(pv.weightKg ?? 0.3),
+                }))
+              : [
+                  {
+                    height: Number(vol.heightCm ?? 2),
+                    width: Number(vol.widthCm ?? 11),
+                    length: Number(vol.lengthCm ?? 16),
+                    weight: Number(vol.weightKg ?? 0.3),
+                  },
+                ]
           const fromDoc = meFromDocumentFields(String(originRow.document ?? ''))
           const toDoc = meToDocument(String(addrSnap.document ?? addrSnap.cpf ?? ''))
           const cartBody = {
@@ -365,14 +385,7 @@ Deno.serve(async (req) => {
                 unitary_value: charged > 0 ? charged : 1,
               },
             ],
-            volumes: [
-              {
-                height: Number(vol.heightCm ?? 2),
-                width: Number(vol.widthCm ?? 11),
-                length: Number(vol.lengthCm ?? 16),
-                weight: Number(vol.weightKg ?? 0.3),
-              },
-            ],
+            volumes: meCartVolumes,
             options: {
               insurance_value: charged > 0 ? charged : 1,
               receipt: false,
@@ -443,7 +456,7 @@ Deno.serve(async (req) => {
         })
       }
 
-      // Reconcile: se purchase_in_flight ficou preso, re-lê metadata antes de nova compra
+      // Reconcile / limpa lock preso
       const meEarly = parseMeMeta(meta)
       if (meEarly.purchase_in_flight && meEarly.protocol) {
         await persist({
@@ -458,6 +471,13 @@ Deno.serve(async (req) => {
           message: 'Compra reconciliada (já havia protocolo) — sem 2ª compra.',
           sandbox,
           dryRun,
+        })
+      }
+      if (meEarly.purchase_in_flight && !meEarly.protocol) {
+        // Lock órfão (timeout sem protocolo) — libera para nova tentativa auditável
+        await persist({
+          purchase_in_flight: false,
+          last_error: 'purchase_in_flight_cleared',
         })
       }
 

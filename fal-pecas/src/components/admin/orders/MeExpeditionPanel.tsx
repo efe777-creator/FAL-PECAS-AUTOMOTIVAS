@@ -12,6 +12,7 @@ import {
   parseMeMeta,
 } from '@/lib/melhorEnvioLabelState'
 import { evaluateMePurchaseGates } from '@/lib/meLabelPurchaseGates'
+import { evaluateShipOrderGates } from '@/lib/meLabelShipGates'
 import { packingCompleteFromMeta } from '@/lib/orderPacking'
 import { openRomaneio } from '@/lib/adminOrderPrint'
 import { formatMoney } from '@/lib/money'
@@ -90,6 +91,19 @@ export function MeExpeditionPanel({
   const canBuy =
     canPurchaseLabel(order.status, labelState) &&
     (purchaseGates.ok || purchaseGates.alreadyPurchased)
+  const shipGates = useMemo(
+    () =>
+      evaluateShipOrderGates({
+        orderStatus: order.status,
+        paymentStatus: order.payment?.status ?? null,
+        packingComplete: packingOk,
+        provider: order.shipment?.provider ?? 'melhorenvio',
+        labelState,
+        orderCancelledOrRefunded:
+          order.status === 'cancelado' || order.payment?.status === 'refunded',
+      }),
+    [order.status, order.payment?.status, order.shipment?.provider, packingOk, labelState],
+  )
 
   async function runMe(fn: () => Promise<{ ok: boolean; message?: string; error?: string; divergence?: { blocked: boolean; reason?: string; labelAmount?: number } | null; printUrl?: string | null }>) {
     setMeBusy(true)
@@ -268,14 +282,22 @@ export function MeExpeditionPanel({
           Entrega à transportadora (postagem física)
         </h3>
         <p className="mt-1 text-xs text-fal-muted">
-          Só use depois de embalar e (se aplicável) imprimir a etiqueta. O pedido passa a enviado.
+          Etiqueta comprada/impressa <strong>não</strong> marca o pedido como enviado. Só esta
+          ação (postagem/coleta) muda o status para enviado — o cliente então vê “Enviado”.
         </p>
+        {!shipGates.ok ? (
+          <p className="mt-2 mb-0 text-sm text-amber-800">Postagem bloqueada: {shipGates.message}</p>
+        ) : null}
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           <Input label="Transportadora" value={carrier} onChange={(e) => onCarrier(e.target.value)} />
           <Input label="Serviço" value={service} onChange={(e) => onService(e.target.value)} />
           <Input label="Rastreio" value={tracking} onChange={(e) => onTracking(e.target.value)} />
           <div className="flex items-end">
-            <Button type="button" disabled={busy || pendingShip || meBusy} onClick={onRequestShip}>
+            <Button
+              type="button"
+              disabled={busy || pendingShip || meBusy || !shipGates.ok}
+              onClick={onRequestShip}
+            >
               Registrar entrega à transportadora
             </Button>
           </div>

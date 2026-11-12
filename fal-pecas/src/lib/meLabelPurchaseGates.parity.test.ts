@@ -27,4 +27,13 @@ describe('meLabelPurchaseGates parity (src ↔ Edge shared)', () => {
     expect(idx).toMatch(/divergenceOverride/)
     expect(idx).toMatch(/purchase_in_flight/)
   })
+
+  it('Edge prepare usa packing.volumes quando existir', () => {
+    const idx = readFileSync(
+      resolve(__dirname, '../../supabase/functions/melhorenvio-label/index.ts'),
+      'utf8',
+    )
+    expect(idx).toMatch(/packingVols/)
+    expect(idx).toMatch(/meCartVolumes/)
+  })
 })
