@@ -1,43 +1,42 @@
 import { describe, expect, it } from 'vitest'
 import {
-  DEFAULT_SHIPPING_ETA_POLICY,
   computeMeDisplayEta,
+  computeOwnDisplayEta,
   parseShippingEtaPolicy,
 } from './shippingEtaPolicy'
 
-describe('shippingEtaPolicy', () => {
-  it('soma prep + buffer ao carrier quando prep não está inclusa', () => {
+describe('shippingEtaPolicy — prazo real + tempo extra', () => {
+  it('ME: exibido = carrier real + tempo extra (sem doble prep)', () => {
     const r = computeMeDisplayEta(
-      { min: 3, max: 5 },
+      { min: 2, max: 4 },
       {
         dayCountMode: 'business_days',
-        me: { prepDays: 1, bufferDays: 1, prepIncludedInCarrier: false },
+        me: { extraDays: 1, prepDays: 0, bufferDays: 1, prepIncludedInCarrier: true },
       },
     )
-    expect(r.carrierEtaMin).toBe(3)
-    expect(r.carrierEtaMax).toBe(5)
-    expect(r.prepDaysApplied).toBe(1)
-    expect(r.bufferDaysApplied).toBe(1)
-    expect(r.displayEtaMin).toBe(5)
-    expect(r.displayEtaMax).toBe(7)
+    expect(r.carrierEtaMin).toBe(2)
+    expect(r.carrierEtaMax).toBe(4)
+    expect(r.extraDaysApplied).toBe(1)
+    expect(r.displayEtaMin).toBe(3)
+    expect(r.displayEtaMax).toBe(5)
   })
 
-  it('não soma prep duas vezes se já inclusa no carrier', () => {
-    const r = computeMeDisplayEta(
-      { min: 4, max: 6 },
-      {
-        dayCountMode: 'business_days',
-        me: { prepDays: 2, bufferDays: 1, prepIncludedInCarrier: true },
-      },
+  it('Own: exibido = prazo base + tempo extra', () => {
+    const r = computeOwnDisplayEta(
+      { min: 1, max: 2 },
+      { own: { dayCountMode: 'business_days', extraDays: 2 } },
     )
-    expect(r.prepDaysApplied).toBe(0)
-    expect(r.displayEtaMin).toBe(5)
-    expect(r.displayEtaMax).toBe(7)
+    expect(r.baseEtaMin).toBe(1)
+    expect(r.baseEtaMax).toBe(2)
+    expect(r.displayEtaMin).toBe(3)
+    expect(r.displayEtaMax).toBe(4)
   })
 
-  it('parse preenche defaults sem hardcode quebrado', () => {
-    const p = parseShippingEtaPolicy({})
-    expect(p.mock.economicMin).toBe(DEFAULT_SHIPPING_ETA_POLICY.mock.economicMin)
-    expect(p.dayCountMode).toBe('business_days')
+  it('migra buffer antigo para extraDays', () => {
+    const p = parseShippingEtaPolicy({
+      me: { buffer_days: 2, prep_days: 1, prep_included_in_carrier: false },
+    })
+    expect(p.me.extraDays).toBe(3)
+    expect(p.me.prepIncludedInCarrier).toBe(true)
   })
 })

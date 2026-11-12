@@ -1,4 +1,5 @@
 import { ensureOwnRateId } from '@/components/admin/ownDelivery/ownDeliveryHelpers'
+import { LogisticsDeadlinePanel } from '@/components/admin/logistics/LogisticsDeadlinePanel'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import type { OwnDeliveryCepRange, OwnDeliveryRate } from '@/services/admin/adminOwnDeliveryService'
@@ -14,6 +15,9 @@ export type OwnDeliveryGeralValues = {
   maxDistanceKm: string
   etaDaysMin: number
   etaDaysMax: number
+  /** Tempo a mais FAL sobre o prazo base. */
+  etaExtraDays: number
+  etaDayCountMode: 'business_days' | 'calendar_days'
   showTech: boolean
 }
 
@@ -34,6 +38,8 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
     maxDistanceKm,
     etaDaysMin,
     etaDaysMax,
+    etaExtraDays,
+    etaDayCountMode,
     showTech,
   } = values
 
@@ -82,22 +88,18 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
         onChange={(e) => onChange({ maxDistanceKm: e.target.value })}
         hint="Limite geral. Cada veículo pode ter km próprio no menu Veículos."
       />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          label="Prazo mínimo (dias)"
-          type="number"
-          min="0"
-          value={String(etaDaysMin)}
-          onChange={(e) => onChange({ etaDaysMin: Number(e.target.value) || 1 })}
-        />
-        <Input
-          label="Prazo máximo (dias)"
-          type="number"
-          min="0"
-          value={String(etaDaysMax)}
-          onChange={(e) => onChange({ etaDaysMax: Number(e.target.value) || 3 })}
-        />
-      </div>
+      <LogisticsDeadlinePanel
+        mode="own"
+        baseMin={etaDaysMin}
+        baseMax={etaDaysMax}
+        extraDays={etaExtraDays}
+        dayCountMode={etaDayCountMode}
+        showSaveButton={false}
+        onBaseMin={(n) => onChange({ etaDaysMin: n })}
+        onBaseMax={(n) => onChange({ etaDaysMax: Math.max(n, etaDaysMin) })}
+        onExtraDays={(n) => onChange({ etaExtraDays: n })}
+        onDayCountMode={(m) => onChange({ etaDayCountMode: m })}
+      />
       <div className="space-y-2">
         <h3 className="m-0 text-sm font-extrabold text-fal-navy">Faixas de CEP atendidas</h3>
         {cepRanges.map((r, i) => (

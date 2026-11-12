@@ -1,26 +1,27 @@
 /**
- * Modelo de prazo V2.2 Marcha 1b — política FAL sobre prazos dos meios.
- * Fonte de configuração: tela Logística (não Pedidos).
+ * Controle de prazos — Logística FAL.
+ *
+ * ME:  prazo exibido = prazo real da transportadora (cotação) + tempo extra FAL
+ * Own: prazo exibido = prazo base operacional FAL + tempo extra FAL
+ * Nunca soma o mesmo tempo duas vezes.
  */
 
 export type DayCountMode = 'business_days' | 'calendar_days'
 
 export type ShippingEtaPolicy = {
-  /** Own / ME / mock compartilham modo padrão; meios podem sobrescrever. */
   dayCountMode: DayCountMode
   me: {
-    /** Dias de preparação FAL antes do carrier (0 se já incluso no prazo ME). */
+    /** Tempo a mais (dias) sobre o prazo real do Melhor Envio. */
+    extraDays: number
+    /** @deprecated use extraDays — mantido só para migração de dados antigos */
     prepDays: number
-    /** Buffer operacional adicional. */
     bufferDays: number
-    /**
-     * Se true, NÃO soma prepDays ao carrier (prep já contemplada no prazo do provedor).
-     * Buffer ainda pode ser somado se bufferDays > 0.
-     */
     prepIncludedInCarrier: boolean
   }
   own: {
     dayCountMode: DayCountMode
+    /** Tempo a mais (dias) sobre o prazo base do frete próprio. */
+    extraDays: number
   }
   mock: {
     economicMin: number
@@ -29,7 +30,6 @@ export type ShippingEtaPolicy = {
     expressMax: number
   }
   pickup: {
-    /** Dias até disponível para retirada (0 = mesmo dia). */
     availableInDaysMin: number
     availableInDaysMax: number
   }
@@ -38,12 +38,14 @@ export type ShippingEtaPolicy = {
 export const DEFAULT_SHIPPING_ETA_POLICY: ShippingEtaPolicy = {
   dayCountMode: 'business_days',
   me: {
-    prepDays: 1,
+    extraDays: 0,
+    prepDays: 0,
     bufferDays: 0,
-    prepIncludedInCarrier: false,
+    prepIncludedInCarrier: true,
   },
   own: {
     dayCountMode: 'business_days',
+    extraDays: 0,
   },
   mock: {
     economicMin: 5,
@@ -57,44 +59,81 @@ export const DEFAULT_SHIPPING_ETA_POLICY: ShippingEtaPolicy = {
   },
 }
 
-export type CarrierEtaRange = { min: number; max: number }
+export type EtaRange = { min: number; max: number }
 
 export type DisplayEtaResult = {
-  carrierEtaMin: number
-  carrierEtaMax: number
-  prepDaysApplied: number
-  bufferDaysApplied: number
+  /** Prazo real da escolha (carrier ou base own) — não editável pelo “extra”. */
+  baseEtaMin: number
+  baseEtaMax: number
+  extraDaysApplied: number
   displayEtaMin: number
   displayEtaMax: number
   dayCountMode: DayCountMode
 }
 
+/** Compat: carrierEta* aliases */
+export type MeDisplayEtaResult = DisplayEtaResult & {
+  carrierEtaMin: number
+  carrierEtaMax: number
+}
+
 /**
- * Prazo exibido ME = carrier + prep (se não inclusa) + buffer.
- * Nunca soma prep duas vezes quando prepIncludedInCarrier=true.
+ * ME: prazo exibido = prazo real do serviço (transportadora) + tempo extra FAL.
  */
 export function computeMeDisplayEta(
-  carrier: CarrierEtaRange,
+  carrier: EtaRange,
   policy: Pick<ShippingEtaPolicy, 'dayCountMode' | 'me'>,
-): DisplayEtaResult {
-  const prep = policy.me.prepIncludedInCarrier ? 0 : Math.max(0, policy.me.prepDays)
-  const buffer = Math.max(0, policy.me.bufferDays)
+): MeDisplayEtaResult {
+  const extra = resolveMeExtraDays(policy.me)
   const cMin = Math.max(0, carrier.min)
   const cMax = Math.max(cMin, carrier.max)
   return {
+    baseEtaMin: cMin,
+    baseEtaMax: cMax,
     carrierEtaMin: cMin,
     carrierEtaMax: cMax,
-    prepDaysApplied: prep,
-    bufferDaysApplied: buffer,
-    displayEtaMin: cMin + prep + buffer,
-    displayEtaMax: cMax + prep + buffer,
+    extraDaysApplied: extra,
+    displayEtaMin: cMin + extra,
+    displayEtaMax: cMax + extra,
     dayCountMode: policy.dayCountMode,
   }
 }
 
+/**
+ * Own: prazo exibido = prazo base (settings) + tempo extra FAL.
+ */
+export function computeOwnDisplayEta(
+  base: EtaRange,
+  policy: Pick<ShippingEtaPolicy, 'own'>,
+): DisplayEtaResult {
+  const extra = Math.max(0, policy.own.extraDays)
+  const bMin = Math.max(0, base.min)
+  const bMax = Math.max(bMin, base.max)
+  return {
+    baseEtaMin: bMin,
+    baseEtaMax: bMax,
+    extraDaysApplied: extra,
+    displayEtaMin: bMin + extra,
+    displayEtaMax: bMax + extra,
+    dayCountMode: policy.own.dayCountMode,
+  }
+}
+
+/** Prefer extraDays; senão migra buffer/prep antigos sem doble-contagem. */
+export function resolveMeExtraDays(me: ShippingEtaPolicy['me']): number {
+  if (typeof me.extraDays === 'number' && !Number.isNaN(me.extraDays)) {
+    return Math.max(0, me.extraDays)
+  }
+  const buffer = Math.max(0, me.bufferDays || 0)
+  const prep = me.prepIncludedInCarrier ? 0 : Math.max(0, me.prepDays || 0)
+  return buffer + prep
+}
+
 export function parseShippingEtaPolicy(raw: unknown): ShippingEtaPolicy {
   const d = DEFAULT_SHIPPING_ETA_POLICY
-  if (!raw || typeof raw !== 'object') return { ...d, me: { ...d.me }, own: { ...d.own }, mock: { ...d.mock }, pickup: { ...d.pickup } }
+  if (!raw || typeof raw !== 'object') {
+    return structuredClone(d)
+  }
   const o = raw as Record<string, unknown>
   const me = (o.me && typeof o.me === 'object' ? o.me : {}) as Record<string, unknown>
   const own = (o.own && typeof o.own === 'object' ? o.own : {}) as Record<string, unknown>
@@ -102,17 +141,29 @@ export function parseShippingEtaPolicy(raw: unknown): ShippingEtaPolicy {
   const pickup = (o.pickup && typeof o.pickup === 'object' ? o.pickup : {}) as Record<string, unknown>
   const mode = (v: unknown, fallback: DayCountMode): DayCountMode =>
     v === 'calendar_days' || v === 'business_days' ? v : fallback
+
+  const bufferDays = Number(me.bufferDays ?? me.buffer_days ?? 0) || 0
+  const prepDays = Number(me.prepDays ?? me.prep_days ?? 0) || 0
+  const prepIncluded = Boolean(
+    me.prepIncludedInCarrier ?? me.prep_included_in_carrier ?? true,
+  )
+  const explicitExtra = me.extraDays ?? me.extra_days
+  const extraDays =
+    explicitExtra != null && explicitExtra !== ''
+      ? Math.max(0, Number(explicitExtra) || 0)
+      : Math.max(0, bufferDays + (prepIncluded ? 0 : prepDays))
+
   return {
     dayCountMode: mode(o.dayCountMode ?? o.day_count_mode, d.dayCountMode),
     me: {
-      prepDays: Number(me.prepDays ?? me.prep_days ?? d.me.prepDays) || 0,
-      bufferDays: Number(me.bufferDays ?? me.buffer_days ?? d.me.bufferDays) || 0,
-      prepIncludedInCarrier: Boolean(
-        me.prepIncludedInCarrier ?? me.prep_included_in_carrier ?? d.me.prepIncludedInCarrier,
-      ),
+      extraDays,
+      prepDays: 0,
+      bufferDays: extraDays,
+      prepIncludedInCarrier: true,
     },
     own: {
       dayCountMode: mode(own.dayCountMode ?? own.day_count_mode, d.own.dayCountMode),
+      extraDays: Math.max(0, Number(own.extraDays ?? own.extra_days ?? 0) || 0),
     },
     mock: {
       economicMin: Number(mock.economicMin ?? mock.economic_min ?? d.mock.economicMin) || 0,
@@ -129,4 +180,8 @@ export function parseShippingEtaPolicy(raw: unknown): ShippingEtaPolicy {
       ) || 0,
     },
   }
+}
+
+function structuredClone<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T
 }

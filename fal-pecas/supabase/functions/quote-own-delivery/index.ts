@@ -342,8 +342,16 @@ Deno.serve(async (req) => {
       Number(tariff.tarifa_minima),
       adicional,
     )
-    const etaMin = Number(settings.eta_days_min) || 1
-    const etaMax = Number(settings.eta_days_max) || 3
+    const baseEtaMin = Number(settings.eta_days_min) || 1
+    const baseEtaMax = Math.max(baseEtaMin, Number(settings.eta_days_max) || 3)
+    const { data: etaPolicyRow } = await admin
+      .from('store_shipping_eta_policy')
+      .select('own_extra_days, own_day_count_mode')
+      .limit(1)
+      .maybeSingle()
+    const ownExtra = Math.max(0, Number(etaPolicyRow?.own_extra_days ?? 0) || 0)
+    const etaMin = baseEtaMin + ownExtra
+    const etaMax = baseEtaMax + ownExtra
 
     const { data: customer } = user?.id
       ? await admin.from('customers').select('id').eq('profile_id', user.id).maybeSingle()
@@ -355,6 +363,10 @@ Deno.serve(async (req) => {
       amount,
       eta_days_min: etaMin,
       eta_days_max: etaMax,
+      base_eta_min: baseEtaMin,
+      base_eta_max: baseEtaMax,
+      extra_days: ownExtra,
+      day_count_mode: String(etaPolicyRow?.own_day_count_mode ?? 'business_days'),
       pol_total: polTotal,
       distance_km_one_way: distanceKm,
       tariff_min: Number(tariff.tarifa_minima),

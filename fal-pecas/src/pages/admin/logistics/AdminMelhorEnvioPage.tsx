@@ -1,3 +1,4 @@
+import { LogisticsDeadlinePanel } from '@/components/admin/logistics/LogisticsDeadlinePanel'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
@@ -5,6 +6,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
+import { DEFAULT_SHIPPING_ETA_POLICY, type ShippingEtaPolicy } from '@/lib/shippingEtaPolicy'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   fetchMeAdminStatus,
@@ -15,7 +17,14 @@ import {
   type MeAdminStatus,
   type MeShippingServiceRow,
 } from '@/services/admin/adminMeShippingService'
+import {
+  getShippingEtaPolicy,
+  listRecentMeCarrierEtas,
+  saveShippingEtaPolicy,
+  type MeQuoteEtaSample,
+} from '@/services/admin/adminShippingEtaPolicyService'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 type Draft = MeShippingServiceRow & { dirty?: boolean }
 
@@ -37,17 +46,24 @@ export function AdminMelhorEnvioPage() {
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [etaPolicy, setEtaPolicy] = useState<ShippingEtaPolicy>(DEFAULT_SHIPPING_ETA_POLICY)
+  const [etaSamples, setEtaSamples] = useState<MeQuoteEtaSample[]>([])
+  const [savingEta, setSavingEta] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setErr(null)
     try {
-      const [list, st] = await Promise.all([
+      const [list, st, pol, samples] = await Promise.all([
         listMeShippingServices(),
         fetchMeAdminStatus().catch(() => null),
+        getShippingEtaPolicy().catch(() => DEFAULT_SHIPPING_ETA_POLICY),
+        listRecentMeCarrierEtas().catch(() => [] as MeQuoteEtaSample[]),
       ])
       setRows(list.map((r) => ({ ...r })))
       setStatus(st)
+      setEtaPolicy(pol)
+      setEtaSamples(samples)
     } catch (e) {
       const msg = toUserMessage(e, 'Falha ao carregar Melhor Envio')
       setErr(msg)
@@ -154,9 +170,44 @@ export function AdminMelhorEnvioPage() {
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Melhor Envio</h1>
         <p className="m-0 text-sm text-fal-muted">
           Status da integração e quais fretes aparecem na loja (nome + logo da transportadora).
-          Cotação na loja ativa; compra de etiqueta só na Expedição do pedido.
+          Cotação na loja ativa; compra de etiqueta só na Expedição do pedido. Controle de prazo:
+          real da transportadora + tempo a mais FAL.
+        </p>
+        <p className="mt-2 mb-0 text-xs">
+          <Link to="/admin/logistica/prazos" className="font-semibold text-fal-navy">
+            Ver todos os prazos (mock/retirada) →
+          </Link>
         </p>
       </div>
+
+      <LogisticsDeadlinePanel
+        mode="me"
+        extraDays={etaPolicy.me.extraDays}
+        dayCountMode={etaPolicy.dayCountMode}
+        samples={etaSamples}
+        saving={savingEta}
+        onExtraDays={(n) =>
+          setEtaPolicy((p) => ({
+            ...p,
+            me: { ...p.me, extraDays: n, bufferDays: n, prepDays: 0, prepIncludedInCarrier: true },
+          }))
+        }
+        onDayCountMode={(m) => setEtaPolicy((p) => ({ ...p, dayCountMode: m }))}
+        onSave={() => {
+          void (async () => {
+            setSavingEta(true)
+            try {
+              const saved = await saveShippingEtaPolicy(etaPolicy)
+              setEtaPolicy(saved)
+              toast.push('Prazo Melhor Envio salvo. Vale para novas cotações.', 'success')
+            } catch (e) {
+              toast.push(toUserMessage(e, 'Falha ao salvar prazo ME'), 'error')
+            } finally {
+              setSavingEta(false)
+            }
+          })()
+        }}
+      />
 
       <section className="rounded-[14px] border border-fal-line bg-white p-4 sm:p-5">
         <h2 className="m-0 text-base font-extrabold text-fal-navy">Status da integração</h2>

@@ -21,6 +21,11 @@ import {
   type OwnDeliveryRate,
   type OwnVehicleCategory,
 } from '@/services/admin/adminOwnDeliveryService'
+import {
+  getShippingEtaPolicy,
+  saveShippingEtaPolicy,
+} from '@/services/admin/adminShippingEtaPolicyService'
+import { DEFAULT_SHIPPING_ETA_POLICY } from '@/lib/shippingEtaPolicy'
 import type { OwnPricingMode } from '@/types'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
@@ -60,6 +65,10 @@ export function AdminOwnDeliveryPage() {
   const [maxDistanceKm, setMaxDistanceKm] = useState('')
   const [etaDaysMin, setEtaDaysMin] = useState(1)
   const [etaDaysMax, setEtaDaysMax] = useState(3)
+  const [etaExtraDays, setEtaExtraDays] = useState(0)
+  const [etaDayCountMode, setEtaDayCountMode] = useState<'business_days' | 'calendar_days'>(
+    'business_days',
+  )
   const [showTech, setShowTech] = useState(false)
   const [categories, setCategories] = useState<OwnVehicleCategory[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,9 +113,10 @@ export function AdminOwnDeliveryPage() {
     void (async () => {
       setLoading(true)
       try {
-        const [s, cats] = await Promise.all([
+        const [s, cats, etaPol] = await Promise.all([
           getOwnDeliverySettings(),
           listOwnVehicleCategories().catch(() => [] as OwnVehicleCategory[]),
+          getShippingEtaPolicy().catch(() => DEFAULT_SHIPPING_ETA_POLICY),
         ])
         if (s) {
           setId(s.id)
@@ -119,6 +129,8 @@ export function AdminOwnDeliveryPage() {
           setEtaDaysMin(s.etaDaysMin)
           setEtaDaysMax(s.etaDaysMax)
         }
+        setEtaExtraDays(etaPol.own.extraDays)
+        setEtaDayCountMode(etaPol.own.dayCountMode)
         setCategories(cats)
       } catch (e) {
         const msg = toUserMessage(e, 'Erro ao carregar frete próprio')
@@ -139,22 +151,31 @@ export function AdminOwnDeliveryPage() {
     setOk(null)
     try {
       const normalizedRates = normalizeFlatRates(rates, etaDaysMin, etaDaysMax)
-      const saved = await upsertOwnDeliverySettings({
-        id,
-        enabled,
-        coverageLabel,
-        cepRanges,
-        rates: normalizedRates,
-        pricingMode,
-        maxDistanceKm: maxDistanceKm.trim() ? Number(maxDistanceKm) : null,
-        etaDaysMin,
-        etaDaysMax,
-      })
+      const [saved] = await Promise.all([
+        upsertOwnDeliverySettings({
+          id,
+          enabled,
+          coverageLabel,
+          cepRanges,
+          rates: normalizedRates,
+          pricingMode,
+          maxDistanceKm: maxDistanceKm.trim() ? Number(maxDistanceKm) : null,
+          etaDaysMin,
+          etaDaysMax,
+        }),
+        (async () => {
+          const cur = await getShippingEtaPolicy().catch(() => DEFAULT_SHIPPING_ETA_POLICY)
+          await saveShippingEtaPolicy({
+            ...cur,
+            own: { dayCountMode: etaDayCountMode, extraDays: etaExtraDays },
+          })
+        })(),
+      ])
       setId(saved.id)
       setRates(saved.rates)
       setDirty(false)
       reportOk(
-        `Salvo. Frete ${saved.enabled ? 'ativo' : 'desligado'} · cálculo ${pricingModeLabel(saved.pricingMode)}.`,
+        `Salvo. Frete ${saved.enabled ? 'ativo' : 'desligado'} · prazo cliente = base ${etaDaysMin}–${etaDaysMax} + extra ${etaExtraDays} · ${pricingModeLabel(saved.pricingMode)}.`,
       )
     } catch (err) {
       reportError(toUserMessage(err, 'Falha ao salvar'))
@@ -170,8 +191,8 @@ export function AdminOwnDeliveryPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Frete próprio</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Configure veículos, preços e capacidade dos produtos. O sistema calcula o frete na
-          cotação da loja.
+          Configure veículos, preços, capacidade e prazos (base operacional + tempo a mais). O
+          sistema calcula o frete na cotação da loja.
         </p>
       </div>
 
@@ -227,6 +248,8 @@ export function AdminOwnDeliveryPage() {
             maxDistanceKm,
             etaDaysMin,
             etaDaysMax,
+            etaExtraDays,
+            etaDayCountMode,
             showTech,
           }}
           saving={saving}
@@ -241,6 +264,8 @@ export function AdminOwnDeliveryPage() {
             if (patch.maxDistanceKm !== undefined) setMaxDistanceKm(patch.maxDistanceKm)
             if (patch.etaDaysMin !== undefined) setEtaDaysMin(patch.etaDaysMin)
             if (patch.etaDaysMax !== undefined) setEtaDaysMax(patch.etaDaysMax)
+            if (patch.etaExtraDays !== undefined) setEtaExtraDays(patch.etaExtraDays)
+            if (patch.etaDayCountMode !== undefined) setEtaDayCountMode(patch.etaDayCountMode)
             if (nextShowTech !== undefined) setShowTech(nextShowTech)
           }}
           onSubmit={(e) => void onSubmitGeral(e)}

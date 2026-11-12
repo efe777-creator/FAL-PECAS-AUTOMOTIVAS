@@ -636,18 +636,16 @@ Deno.serve(async (req) => {
         .filter((o): o is NonNullable<typeof o> => o != null)
         .sort((a, b) => a.amount - b.amount)
 
-      // Política de prazos FAL (Logística) — preserva carrier e aplica prep/buffer
+      // Política FAL: prazo real = carrier; tempo a mais = me_buffer_days (único extra)
       const { data: etaRow } = await admin
         .from('store_shipping_eta_policy')
-        .select(
-          'me_prep_days, me_buffer_days, me_prep_included_in_carrier, day_count_mode',
-        )
+        .select('me_buffer_days, day_count_mode')
         .limit(1)
         .maybeSingle()
       const etaPolicy = {
-        prepDays: Number(etaRow?.me_prep_days ?? 1) || 0,
+        prepDays: 0,
         bufferDays: Number(etaRow?.me_buffer_days ?? 0) || 0,
-        prepIncludedInCarrier: Boolean(etaRow?.me_prep_included_in_carrier),
+        prepIncludedInCarrier: true,
       }
       const dayCountMode = String(etaRow?.day_count_mode ?? 'business_days')
       for (const o of optionsPayload) {
@@ -658,6 +656,7 @@ Deno.serve(async (req) => {
         ;(o as Record<string, unknown>).carrier_eta_max = applied.carrier_eta_max
         ;(o as Record<string, unknown>).fal_policy = {
           ...applied.fal_policy,
+          extra_days: etaPolicy.bufferDays,
           day_count_mode: dayCountMode,
         }
       }
