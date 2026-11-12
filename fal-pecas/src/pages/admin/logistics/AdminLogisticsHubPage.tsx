@@ -15,6 +15,12 @@ const cards = [
     ready: true,
   },
   {
+    to: '/admin/logistica/prazos',
+    title: 'Prazos de entrega',
+    desc: 'Prazos e buffers dos meios (ME, próprio, mock e retirada). Pedidos usam o snapshot.',
+    ready: true,
+  },
+  {
     to: '/admin/logistica/melhor-envio',
     title: 'Melhor Envio',
     desc: 'Status da integração e quais transportadoras aparecem na loja.',
@@ -47,8 +53,8 @@ export function AdminLogisticsHubPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Logística</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Configure origem, frete próprio, Melhor Envio e embalagens. Pedidos e expedição ficam na
-          área de Pedidos.
+          Configure origem, prazos dos meios, frete próprio, Melhor Envio e embalagens. Pedidos e
+          expedição ficam na área de Pedidos.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

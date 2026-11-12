@@ -13,16 +13,21 @@ export function isStorePickupOption(
   return false
 }
 
-/** Opção fixa: retirada na loja R$ 0,00. */
-export function createStorePickupOption(): ShippingQuoteOption {
+/** Opção fixa: retirada na loja R$ 0,00. Prazos via Logística (Marcha 1b). */
+export function createStorePickupOption(eta?: {
+  min?: number
+  max?: number
+}): ShippingQuoteOption {
+  const min = eta?.min ?? 0
+  const max = Math.max(min, eta?.max ?? 1)
   return {
     id: STORE_PICKUP_OPTION_ID,
     provider: 'mock',
     serviceCode: 'pickup',
     label: 'Retirada na loja',
     amount: 0,
-    etaDaysMin: 0,
-    etaDaysMax: 1,
+    etaDaysMin: min,
+    etaDaysMax: max,
     metadata: { kind: 'pickup' },
   }
 }

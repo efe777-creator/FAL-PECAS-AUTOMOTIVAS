@@ -246,6 +246,11 @@ const AdminShippingSettingsPage = lazy(() =>
     default: m.AdminShippingSettingsPage,
   })),
 )
+const AdminShippingEtaPolicyPage = lazy(() =>
+  import('@/pages/admin/logistics/AdminShippingEtaPolicyPage').then((m) => ({
+    default: m.AdminShippingEtaPolicyPage,
+  })),
+)
 const AdminPaymentsHubPage = lazy(() =>
   import('@/pages/admin/payments/AdminPaymentsHubPage').then((m) => ({
     default: m.AdminPaymentsHubPage,
@@ -366,6 +371,7 @@ export const router = createBrowserRouter([
       { path: 'logistica/frete-proprio', element: <AdminOwnDeliveryPage /> },
       { path: 'logistica/melhor-envio', element: <AdminMelhorEnvioPage /> },
       { path: 'logistica/caixas', element: <AdminShippingBoxesPage /> },
+      { path: 'logistica/prazos', element: <AdminShippingEtaPolicyPage /> },
       { path: 'logistica/configuracoes', element: <AdminShippingSettingsPage /> },
       {
         path: 'logistica/:slug',
