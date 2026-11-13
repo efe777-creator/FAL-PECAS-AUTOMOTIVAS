@@ -2,7 +2,8 @@
 
 **Versão:** V2 · **Data:** 2026-11-11  
 **Programa:** [FAL_PLANO_CENTRAL_PEDIDOS_4_FRENTES_2026-11-11.md](./FAL_PLANO_CENTRAL_PEDIDOS_4_FRENTES_2026-11-11.md)  
-**Matriz:** [FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md](./FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md)
+**Matriz:** [FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md](./FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md)  
+**Notificações (CP-NOT):** [FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md) · [FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md)
 
 ---
 
@@ -245,6 +246,9 @@ flowchart LR
 | Margem | Sim | Não |
 | Etiqueta/romaneio | Sim | Não |
 | Tracking | Manual + histórico | Quando customer-visible |
+| Inbox / sininho (CP-NOT) | Topbar admin + `/admin/avisos` | Header loja (logado) + conta + `/conta/avisos` |
+
+`order_events` = verdade auditável. Inbox (`app_notifications`) = **projeção** para o usuário. Canais WhatsApp/e-mail = mesmo motor (ondas N3/N4) — ver spec CP-NOT.
 
 ---
 

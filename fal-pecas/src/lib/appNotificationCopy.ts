@@ -74,7 +74,7 @@ export function appNotificationCopy(
     case 'order_awaiting_decision':
     case 'staff_requested_customer_decision':
       return {
-        title: 'A loja pediu sua decisão',
+        title: 'Ação necessária — decisão do pedido',
         body: opts?.reasonText?.trim() || 'Abra o pedido para continuar, esperar ou cancelar.',
       }
     case 'staff_held_for_availability':
@@ -155,4 +155,53 @@ export function appNotificationCopy(
 
 export function appNotificationHref(orderId: string, audience: 'customer' | 'staff'): string {
   return audience === 'staff' ? `/admin/pedidos/${orderId}` : `/conta/pedidos/${orderId}`
+}
+
+/** Kinds que exigem decisão do cliente (selo Ação necessária). */
+const ACTIONABLE_CUSTOMER_KINDS = new Set([
+  'order_awaiting_decision',
+  'staff_requested_customer_decision',
+])
+
+/** Kinds que exigem ação do operador. */
+const ACTIONABLE_STAFF_KINDS = new Set([
+  'cancellation_requested',
+  'customer_chose_continue_available',
+  'customer_chose_wait_arrival',
+  'customer_chose_cancel',
+  'customer_authorized_changes',
+  'customer_rejected_changes',
+  'occurrence_opened',
+])
+
+export function isActionableNotificationKind(
+  kind: string,
+  audience: 'customer' | 'staff' = 'customer',
+): boolean {
+  const k = kind.trim().toLowerCase()
+  return audience === 'staff' ? ACTIONABLE_STAFF_KINDS.has(k) : ACTIONABLE_CUSTOMER_KINDS.has(k)
+}
+
+/** Prefer coluna DB (N2); fallback pelo kind (N1). */
+export function notificationNeedsAction(opts: {
+  kind: string
+  audience: 'customer' | 'staff'
+  actionable?: boolean | null
+}): boolean {
+  if (opts.actionable === true) return true
+  if (opts.actionable === false) return false
+  return isActionableNotificationKind(opts.kind, opts.audience)
+}
+
+/** Href de navegação: âncora #decisao para ações do cliente. */
+export function resolveNotificationNavHref(opts: {
+  href: string
+  kind: string
+  audience: 'customer' | 'staff'
+}): string {
+  const base = opts.href.split('#')[0]
+  if (opts.audience === 'customer' && isActionableNotificationKind(opts.kind, 'customer')) {
+    return `${base}#decisao`
+  }
+  return opts.href.includes('#') ? opts.href : base
 }

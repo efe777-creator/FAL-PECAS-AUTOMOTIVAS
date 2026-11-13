@@ -13,6 +13,8 @@
 4. Separação/print ignoram `indisponivel`
 5. Labels + notificações in-app
 
+**Baseline inbox:** preservado. Evolução UX/motor/multicanal = frente transversal [CP-NOT](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md) (Gate 0 MARCHA 2026-11-13).
+
 ## Fora (Fase B)
 
 Medidas/cotação, divergência volume, etiqueta ME, frete próprio apps, rastreio, WhatsApp.

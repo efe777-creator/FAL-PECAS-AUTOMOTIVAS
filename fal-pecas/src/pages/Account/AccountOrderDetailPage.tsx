@@ -39,7 +39,7 @@ import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import { formatStoreOriginAddress } from '@/services/shipping/storePickupOption'
 import type { OrderDetail, StoreShippingOrigin } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 function availabilityLabel(a: string | null | undefined): string {
   switch (a) {
@@ -61,6 +61,7 @@ function money(v: number) {
 export function AccountOrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { addItem } = useCart()
   const toast = useToast()
   const [order, setOrder] = useState<OrderDetail | null>(null)
@@ -213,6 +214,13 @@ export function AccountOrderDetailPage() {
   const decisionPending =
     awaitingDecision &&
     (order?.customerDecision == null || order.customerDecision === 'pending')
+
+  useEffect(() => {
+    if (loading || !order || location.hash !== '#decisao') return
+    const el = document.getElementById('decisao')
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loading, order, location.hash, awaitingDecision])
   const canRequestCancel =
     !!order &&
     order.payment?.status === 'approved' &&
@@ -613,7 +621,10 @@ export function AccountOrderDetailPage() {
       ) : null}
 
       {awaitingDecision ? (
-        <div className="rounded-fal border border-sky-300 bg-sky-50/70 p-5">
+        <div
+          id="decisao"
+          className="scroll-mt-28 rounded-fal border border-sky-300 bg-sky-50/70 p-5"
+        >
           <h3 className="mt-0 text-base font-extrabold text-fal-navy">
             {proposalKind === 'prazo'
               ? 'Prazo de entrega maior'

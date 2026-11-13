@@ -25,7 +25,8 @@
 **Matriz:** [FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md](./FAL_AUDITORIA_CENTRAL_PEDIDOS_MATRIZ_2026-11-11.md)  
 **Mapa:** [FAL_MAPA_JORNADA_CENTRAL_PEDIDOS_2026-11-11.md](./FAL_MAPA_JORNADA_CENTRAL_PEDIDOS_2026-11-11.md)  
 **Ajustes:** [FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md](./FAL_MATRIZ_AJUSTES_001_034_2026-11-09.md) (006, 007, 014, 015, 016, 017, 031)  
-**MVP:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)
+**MVP:** [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](./FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md)  
+**CP-NOT (P2 transversal):** [FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md) · [FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md) · [FAL_AUDITORIA_NOTIFICACOES_2026-11-13.md](./FAL_AUDITORIA_NOTIFICACOES_2026-11-13.md)
 
 ---
 
@@ -96,6 +97,7 @@ Hub 4 áreas · detalhe · RPCs F7 ops · MP · ME label cycle · frete próprio
 | P1 | CP-CAN-POST | UI+RPC | **FEITO** bloqueio approve pós-despacho |
 | P1 | CP-PRT-DOC | Spec | **FEITO** spec archive (storage = P2) |
 | P2 | polish / ME webhook auto | Evolução | — |
+| **P2** | **CP-NOT** | Central de Notificações (transversal) | N0–N2 MARCHA · N3 WA = **FUTURO** ([spec](./FAL_SPEC_NOTIFICACOES_WHATSAPP_FUTURO_2026-11-13.md)) · N4 e-mail |
 | **Fora** | CP-STK-* / F7F | Módulo estoque | Só documentado |
 | H | CP-ME-PUR / CP-PAY-021 webhook prod / 006–007 | Humano Fase 4 | PAY create PASS · approve via sync; webhook prod aberto |
 

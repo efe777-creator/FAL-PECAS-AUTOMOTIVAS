@@ -1,5 +1,11 @@
 import { getSupabase } from '@/lib/supabase'
 
+export type AppNotificationSeverity =
+  | 'informativa'
+  | 'importante'
+  | 'acao_necessaria'
+  | 'operacional'
+
 export type AppNotification = {
   id: string
   audience: 'customer' | 'staff'
@@ -12,6 +18,21 @@ export type AppNotification = {
   href: string
   readAt: string | null
   createdAt: string
+  severity: AppNotificationSeverity | null
+  actionable: boolean
+}
+
+function mapSeverity(v: unknown): AppNotificationSeverity | null {
+  const s = String(v ?? '')
+  if (
+    s === 'informativa' ||
+    s === 'importante' ||
+    s === 'acao_necessaria' ||
+    s === 'operacional'
+  ) {
+    return s
+  }
+  return null
 }
 
 function mapRow(r: Record<string, unknown>): AppNotification {
@@ -28,6 +49,8 @@ function mapRow(r: Record<string, unknown>): AppNotification {
     href: String(r.href),
     readAt: r.read_at != null ? String(r.read_at) : null,
     createdAt: String(r.created_at),
+    severity: mapSeverity(r.severity),
+    actionable: Boolean(r.actionable),
   }
 }
 
@@ -39,7 +62,7 @@ export async function listMyNotifications(opts?: {
   let q = getSupabase()
     .from('app_notifications')
     .select(
-      'id, audience, channel, order_id, source_event_id, kind, title, body, href, read_at, created_at',
+      'id, audience, channel, order_id, source_event_id, kind, title, body, href, read_at, created_at, severity, actionable',
     )
     .order('created_at', { ascending: false })
     .limit(limit)

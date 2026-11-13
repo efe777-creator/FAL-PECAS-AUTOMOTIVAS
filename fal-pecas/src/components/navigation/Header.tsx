@@ -5,6 +5,8 @@ import { NavBar } from './NavBar'
 import { SearchBar } from './SearchBar'
 import { MobileDrawer } from './MobileDrawer'
 import { Container } from '@/components/layout/Container'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { useAuth } from '@/contexts/AuthContext'
 import { useCategories } from '@/hooks/useCatalog'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -12,6 +14,7 @@ import { Link } from 'react-router-dom'
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const categories = useCategories()
+  const { user } = useAuth()
 
   return (
     <header className="sticky top-0 z-[100] border-b border-fal-line bg-white">
@@ -19,7 +22,13 @@ export function Header() {
         <Logo />
         <SearchBar />
         <div className="flex items-center justify-end gap-2 lg:gap-4">
+          {user ? (
+            <div className="lg:hidden">
+              <NotificationBell allHref="/conta/avisos" variant="light" />
+            </div>
+          ) : null}
           <div className="hidden items-center gap-4 lg:flex">
+            {user ? <NotificationBell allHref="/conta/avisos" variant="light" /> : null}
             <AccountButton />
             <Link className="text-center text-[13px] text-fal-navy" to="/conta/pedidos">
               <b className="block text-xl">📦</b>
@@ -83,6 +92,15 @@ export function Header() {
           >
             Meus pedidos
           </Link>
+          {user ? (
+            <Link
+              to="/conta/avisos"
+              className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-bg"
+              onClick={() => setMenuOpen(false)}
+            >
+              Notificações
+            </Link>
+          ) : null}
           {categories.data.length > 0 ? (
             <>
               <p className="mt-3 mb-1 px-3 text-xs font-bold uppercase tracking-wide text-fal-muted">

@@ -1,3 +1,9 @@
+/**
+ * Deep links manuais wa.me (contato loja / produto / pedido).
+ * CP-NOT N3 (envio transacional automático) = FUTURO — ver
+ * docs/planejamento/FAL_SPEC_NOTIFICACOES_WHATSAPP_FUTURO_2026-11-13.md
+ */
+
 /** Mensagens WhatsApp contextualizadas (Bloco E). */
 
 export function buildProductWhatsAppMessage(input: {

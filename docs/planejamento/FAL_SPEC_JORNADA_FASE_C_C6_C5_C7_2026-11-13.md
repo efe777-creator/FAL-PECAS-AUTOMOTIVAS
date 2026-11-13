@@ -18,4 +18,4 @@
 - Inbox `shipment_tracking_updated`.
 - Webhook ME tracking-only (sem auto-deliver).
 
-WhatsApp fora de escopo.
+**Baseline inbox C7:** preservado. Evolução Central de Notificações / WhatsApp / e-mail = [CP-NOT](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md) (Gate 0 MARCHA 2026-11-13). WhatsApp continua fora do escopo desta Fase C.
