@@ -73,9 +73,7 @@ export function SavedAddressQuoteSelect({ valueId, onSelect, name = 'saved-ship-
           onSelect(found)
         }}
       />
-      <p className="mb-0 mt-1 text-[11px] text-fal-muted">
-        Escolha um endereço cadastrado ou informe outro CEP abaixo.
-      </p>
+      <p className="mb-0 mt-1 text-[11px] text-fal-muted">Ou digite outro CEP abaixo.</p>
     </div>
   )
 }

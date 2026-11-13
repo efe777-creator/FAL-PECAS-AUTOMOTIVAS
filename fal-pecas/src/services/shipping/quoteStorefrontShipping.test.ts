@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createOwnConfirmCheckoutOption } from '@/services/shipping/ownConfirmCheckoutOption'
 import { selectableShippingOptions } from '@/services/shipping/quoteStorefrontShipping'
+import { ensureCustomerShippingOptions } from '@/services/shipping/storePickupOption'
 import type { ShippingQuoteOption } from '@/types'
 
 describe('selectableShippingOptions', () => {
@@ -77,5 +79,24 @@ describe('selectableShippingOptions', () => {
     ]
     const sorted = [...selectableShippingOptions(opts)].sort((a, b) => a.amount - b.amount)
     expect(sorted.map((o) => o.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('exclui Entrega FAL provisional do filtro checkout (place_order-safe)', () => {
+    const provisional = createOwnConfirmCheckoutOption({ min: 1, max: 3 })
+    const out = selectableShippingOptions(
+      ensureCustomerShippingOptions([
+        { id: 'meq:1', provider: 'melhorenvio', serviceCode: '1', label: 'PAC', amount: 20 },
+        provisional,
+      ]),
+    )
+    expect(out.map((o) => o.id)).toEqual(['meq:1', 'mock:pickup'])
+  })
+
+  it('PDP: provisional fica após fretes precificados e antes da retirada', () => {
+    const sorted = ensureCustomerShippingOptions([
+      { id: 'meq:1', provider: 'melhorenvio', serviceCode: '1', label: 'PAC', amount: 20 },
+      createOwnConfirmCheckoutOption({ min: 1, max: 3 }),
+    ])
+    expect(sorted.map((o) => o.id)).toEqual(['meq:1', 'own:confirm_checkout', 'mock:pickup'])
   })
 })

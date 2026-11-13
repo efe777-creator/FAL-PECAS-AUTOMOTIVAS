@@ -1,15 +1,20 @@
 import {
   formatStoreOriginAddress,
+  STORE_PICKUP_HOURS_LABEL,
+  STORE_PICKUP_NOTIFY_NOTICE,
   STORE_PICKUP_READY_NOTICE,
+  STORE_PICKUP_SWITCH_NOTICE,
 } from '@/services/shipping/storePickupOption'
 import type { StoreShippingOrigin } from '@/types'
 
 type Props = {
   origin: StoreShippingOrigin | null | undefined
   compact?: boolean
+  /** Checkout: reforça troca de modalidade. */
+  showSwitchHint?: boolean
 }
 
-export function StorePickupNotice({ origin, compact }: Props) {
+export function StorePickupNotice({ origin, compact, showSwitchHint }: Props) {
   return (
     <div
       className={
@@ -19,7 +24,9 @@ export function StorePickupNotice({ origin, compact }: Props) {
       }
       role="status"
     >
-      <p className="m-0 font-bold text-fal-navy">Retirada na loja — R$ 0,00</p>
+      <p className="m-0 font-bold text-fal-navy">
+        {compact ? 'Retirada na loja' : 'Onde retirar'}
+      </p>
       {origin ? (
         <p className="mb-0 mt-1 text-fal-ink">{formatStoreOriginAddress(origin)}</p>
       ) : (
@@ -27,9 +34,17 @@ export function StorePickupNotice({ origin, compact }: Props) {
           Endereço da loja será confirmado no checkout.
         </p>
       )}
+      {!compact ? (
+        <p className="mb-0 mt-1 text-fal-ink">
+          <span className="font-semibold text-fal-navy">Horário:</span> {STORE_PICKUP_HOURS_LABEL}
+        </p>
+      ) : null}
       <p className={`mb-0 mt-1 text-fal-muted ${compact ? 'text-[11px]' : 'text-xs'}`}>
-        {STORE_PICKUP_READY_NOTICE}
+        {compact ? STORE_PICKUP_READY_NOTICE : STORE_PICKUP_NOTIFY_NOTICE}
       </p>
+      {!compact && showSwitchHint !== false ? (
+        <p className="mb-0 mt-2 text-xs font-semibold text-fal-navy">{STORE_PICKUP_SWITCH_NOTICE}</p>
+      ) : null}
     </div>
   )
 }

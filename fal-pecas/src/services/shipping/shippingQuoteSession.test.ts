@@ -110,4 +110,56 @@ describe('shippingQuoteSession', () => {
 
     expect(preferenceKindFromOption(opts[0]!)).toBe('own')
   })
+
+  it('match: provisional Entrega FAL da PDP → own precificada no checkout', () => {
+    const priced: ShippingQuoteOption = {
+      id: 'ownq:new:moto',
+      provider: 'own',
+      serviceCode: 'moto',
+      label: 'Entrega FAL (Motocicleta)',
+      amount: 61.29,
+    }
+    expect(
+      matchPreferredShippingOption([priced, createStorePickupOption()], {
+        preferredOptionId: 'own:confirm_checkout',
+        preferredKind: 'own',
+        preferredServiceCode: 'own_confirm_checkout',
+        preferredLabel: 'Entrega FAL',
+        postalCode: '08290220',
+        savedAt: new Date().toISOString(),
+      })?.id,
+    ).toBe('ownq:new:moto')
+  })
+
+  it('match: preferência own na PDP sem preço → provisional', () => {
+    const provisional = {
+      id: 'own:confirm_checkout',
+      provider: 'own',
+      serviceCode: 'own_confirm_checkout',
+      label: 'Entrega FAL',
+      amount: 0,
+      metadata: { kind: 'own_confirm_checkout', provisional: true },
+    } satisfies ShippingQuoteOption
+    expect(
+      matchPreferredShippingOption(
+        [
+          {
+            id: 'meq:1',
+            provider: 'melhorenvio',
+            serviceCode: '1',
+            label: 'PAC',
+            amount: 15,
+          },
+          provisional,
+          createStorePickupOption(),
+        ],
+        {
+          preferredKind: 'own',
+          preferredLabel: 'Entrega FAL',
+          postalCode: '01310100',
+          savedAt: new Date().toISOString(),
+        },
+      )?.id,
+    ).toBe('own:confirm_checkout')
+  })
 })

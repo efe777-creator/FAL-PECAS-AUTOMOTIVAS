@@ -1,3 +1,4 @@
+import { isOwnConfirmCheckoutOption } from '@/services/shipping/ownConfirmCheckoutOption'
 import type { ShippingQuoteOption } from '@/types'
 
 /** ID estável aceito por `resolve_mock_shipping_option` / place_order. */
@@ -41,7 +42,8 @@ export function withStorePickupOption(
 }
 
 /**
- * Ordem única loja/checkout: fretes por preço crescente; retirada sempre por último.
+ * Ordem única loja/checkout: fretes por preço crescente;
+ * provisional own (confirmar no checkout) antes da retirada; retirada por último.
  */
 export function sortShippingOptionsForCustomer(
   options: ShippingQuoteOption[],
@@ -51,6 +53,10 @@ export function sortShippingOptionsForCustomer(
     const bPick = isStorePickupOption(b)
     if (aPick && !bPick) return 1
     if (!aPick && bPick) return -1
+    const aProv = isOwnConfirmCheckoutOption(a)
+    const bProv = isOwnConfirmCheckoutOption(b)
+    if (aProv && !bProv) return 1
+    if (!aProv && bProv) return -1
     return a.amount - b.amount
   })
 }
@@ -84,4 +90,13 @@ export function formatStoreOriginAddress(origin: {
 }
 
 export const STORE_PICKUP_READY_NOTICE =
-  'Retire na loja neste endereço. Quando a loja liberar a retirada, o status em Meus pedidos muda para “Pronto para retirar”.'
+  'Retire neste endereço. A loja libera a retirada e avisa assim que a separação for concluída.'
+
+/** Horário de atendimento para retirada (copy vitrine/checkout; origem sem campo de horário). */
+export const STORE_PICKUP_HOURS_LABEL = 'Seg–Sex 08h–18h · Sáb 08h–12h'
+
+export const STORE_PICKUP_NOTIFY_NOTICE =
+  'Avisamos assim que a separação for concluída. A retirada só fica liberada quando o status em Meus pedidos estiver “Pronto para retirar”.'
+
+export const STORE_PICKUP_SWITCH_NOTICE =
+  'Prefere receber em casa? Informe o CEP e escolha outra modalidade.'

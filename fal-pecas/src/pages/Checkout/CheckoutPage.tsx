@@ -17,7 +17,7 @@ import {
 import { AddressForm } from '@/components/address/AddressForm'
 import { formatCepMask } from '@/lib/cep'
 import { formatMoney } from '@/lib/money'
-import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
+import { CheckoutPickupConfirm } from '@/components/checkout/CheckoutPickupConfirm'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
 import { listAddresses, upsertAddress } from '@/services/customers/addressService'
 import { createFalPayment } from '@/services/payments/engine'
@@ -25,6 +25,8 @@ import {
   confirmSimulatedPayment,
   isMercadoPagoCheckoutEnabled,
 } from '@/services/payments/paymentService'
+import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
+import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { placeOrder } from '@/services/orders/placeOrderService'
 import {
   buyNowIntentToCartItems,
@@ -42,18 +44,25 @@ import { resolveCheckoutPaymentOutcome } from '@/services/checkout/resolveChecko
 import { resumeCheckoutFromServer } from '@/services/checkout/resumeCheckoutFromServer'
 import { useCheckoutOrderPaymentWatch } from '@/hooks/useCheckoutOrderPaymentWatch'
 import { getActiveCarrierDescriptor } from '@/services/shipping/shippingService'
+import { cartItemsQuoteFingerprint } from '@/services/shipping/cartQuoteFingerprint'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
-import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
-import { selectableShippingOptions } from '@/services/shipping/quoteStorefrontShipping'
+import {
+  isOwnConfirmCheckoutOption,
+  isPricedOwnDeliveryOption,
+} from '@/services/shipping/ownConfirmCheckoutOption'
+import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import {
   loadShippingQuoteHandoff,
   clearShippingQuoteHandoff,
   matchPreferredShippingOption,
+  saveShippingQuoteHandoff,
   type ShippingQuoteHandoff,
 } from '@/services/shipping/shippingQuoteSession'
 import {
+  createStorePickupOption,
   ensureCustomerShippingOptions,
   isStorePickupOption,
+  STORE_PICKUP_OPTION_ID,
 } from '@/services/shipping/storePickupOption'
 import type {
   CartItem,
@@ -121,6 +130,15 @@ export function CheckoutPage() {
   const [shippingOptions, setShippingOptions] = useState<ShippingQuoteOption[]>([])
   const [shippingOptionId, setShippingOptionId] = useState('')
   const [shippingDisclaimer, setShippingDisclaimer] = useState<string | null>(null)
+  /** Aviso de handoff PDP vs endereço/recotação no checkout. */
+  const [shippingHandoffNotice, setShippingHandoffNotice] = useState<{
+    tone: 'ok' | 'warn'
+    text: string
+  } | null>(null)
+  /** Modalidade editável no checkout (não fica presa ao handoff da vitrine). */
+  const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'home'>(() =>
+    loadShippingQuoteHandoff()?.preferredKind === 'pickup' ? 'pickup' : 'home',
+  )
   const [paymentMethod, setPaymentMethod] = useState<SimulatedPaymentMethod>('pix_simulated')
   const [loadingAddrs, setLoadingAddrs] = useState(true)
   const [quoting, setQuoting] = useState(false)
@@ -134,10 +152,17 @@ export function CheckoutPage() {
   const submitLockRef = useRef(false)
   const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
+  const paymentDisplay = usePaymentDisplay()
+  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay)
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
   const [termsAccepted, setTermsAccepted] = useState(false)
+
+  useEffect(() => {
+    if (mpChannel === 'pix' && !payAvail.pix && payAvail.card) setMpChannel('card')
+    else if (mpChannel === 'card' && !payAvail.card && payAvail.pix) setMpChannel('pix')
+  }, [payAvail.pix, payAvail.card, mpChannel])
   const [mpAwaiting, setMpAwaiting] = useState<{
     channel: 'pix' | 'card'
     orderId: string
@@ -162,9 +187,17 @@ export function CheckoutPage() {
   function stepPrereqError(target: number): string | null {
     // validateDoc já seta a mensagem específica
     if (target >= 1 && !validateDoc()) return '__doc__'
-    if (target >= 2 && !addressId) return 'Selecione um endereço de entrega'
+    if (target >= 2 && !addressId) {
+      return deliveryMode === 'pickup'
+        ? 'Cadastre um endereço para a nota fiscal'
+        : 'Selecione um endereço de entrega'
+    }
     if (target >= 3) {
       if (!shippingOptionId) return 'Selecione uma opção de entrega'
+      const shipOpt = shippingOptions.find((o) => o.id === shippingOptionId)
+      if (shipOpt && isOwnConfirmCheckoutOption(shipOpt)) {
+        return 'Confirme a entrega FAL com o endereço completo. Recalcule o frete nesta etapa.'
+      }
       if (!carrierDesc.placeOrderReady) {
         return 'Entrega indisponível no momento. Tente novamente mais tarde.'
       }
@@ -204,13 +237,14 @@ export function CheckoutPage() {
       if (err !== '__doc__') pushError(err)
       return
     }
-    if (target === 2) await loadQuotes(true)
+    // Não await cotação aqui: a etapa Entrega deve abrir na hora.
+    // O useEffect (step === 2) dispara loadQuotes e mostra "Cotando frete…".
     goToStepIndex(target)
   }
 
   function switchAwaitingToCard() {
     if (!mpAwaiting) return
-    if (!mpPublicKey) {
+    if (!mpPublicKey || !payAvail.card) {
       pushError('Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.')
       return
     }
@@ -465,18 +499,101 @@ export function CheckoutPage() {
     [shippingOptions, shippingOptionId],
   )
 
+  const vitrineHandoff = preferredHandoffRef.current
+  const vitrineAddress = useMemo(() => {
+    const id = vitrineHandoff?.preferredAddressId
+    if (!id) return null
+    return addresses.find((a) => a.id === id) ?? null
+  }, [addresses, vitrineHandoff?.preferredAddressId])
+  const isPickupMode = deliveryMode === 'pickup'
+
+  useEffect(() => {
+    if (!selectedShipping) return
+    setDeliveryMode(isStorePickupOption(selectedShipping) ? 'pickup' : 'home')
+  }, [selectedShipping])
+
+  function chooseDeliveryMode(mode: 'pickup' | 'home') {
+    setDeliveryMode(mode)
+    const prev = preferredHandoffRef.current
+    if (mode === 'pickup') {
+      const pickup = createStorePickupOption()
+      // Endereço do perfil fica só para NF — sem mostrar lista na UI.
+      if (!addressId && addresses.length > 0) {
+        const preferred =
+          addresses.find((a) => a.id === prev?.preferredAddressId) ??
+          addresses.find((a) => a.isDefault) ??
+          addresses[0]
+        if (preferred) setAddressId(preferred.id)
+      }
+      preferredHandoffRef.current = {
+        postalCode: prev?.postalCode,
+        preferredAddressId: prev?.preferredAddressId,
+        preferredOptionId: STORE_PICKUP_OPTION_ID,
+        preferredKind: 'pickup',
+        preferredServiceCode: 'pickup',
+        preferredLabel: pickup.label,
+        savedAt: new Date().toISOString(),
+      }
+      saveShippingQuoteHandoff({
+        postalCode: prev?.postalCode,
+        preferredAddressId: prev?.preferredAddressId,
+        option: pickup,
+      })
+      if (shippingOptions.some((o) => isStorePickupOption(o))) {
+        setShippingOptionId(STORE_PICKUP_OPTION_ID)
+      }
+      return
+    }
+
+    if (prev?.preferredKind === 'pickup') {
+      preferredHandoffRef.current = {
+        ...prev,
+        preferredKind: undefined,
+        preferredOptionId: undefined,
+        preferredServiceCode: undefined,
+        preferredLabel: undefined,
+        savedAt: new Date().toISOString(),
+      }
+    }
+    if (selectedShipping && isStorePickupOption(selectedShipping)) {
+      const nextHome = shippingOptions.find((o) => !isStorePickupOption(o))
+      setShippingOptionId(nextHome?.id ?? '')
+    }
+  }
+
+  function onSelectShippingOption(optionId: string) {
+    setShippingOptionId(optionId)
+    const opt = shippingOptions.find((o) => o.id === optionId)
+    if (!opt) return
+    const prev = preferredHandoffRef.current
+    saveShippingQuoteHandoff({
+      postalCode: prev?.postalCode ?? selectedAddress?.postalCode,
+      preferredAddressId: prev?.preferredAddressId ?? addressId,
+      option: opt,
+    })
+    preferredHandoffRef.current = loadShippingQuoteHandoff() ?? {
+      ...(prev ?? { savedAt: new Date().toISOString() }),
+      preferredOptionId: opt.id,
+      preferredKind: isStorePickupOption(opt) ? 'pickup' : opt.provider === 'own' ? 'own' : 'carrier',
+      preferredServiceCode: opt.serviceCode,
+      preferredLabel: opt.label,
+      savedAt: new Date().toISOString(),
+    }
+    setDeliveryMode(isStorePickupOption(opt) ? 'pickup' : 'home')
+  }
+
   const itemCount = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items])
   const shippingAmount = selectedShipping?.amount ?? 0
   const total = subtotal + shippingAmount
 
   async function loadQuotes(force = false) {
     if (!selectedAddress) return
+    const itemsFp = cartItemsQuoteFingerprint(items, subtotal)
     const key = [
       originPostalCode ?? '',
       selectedAddress.postalCode,
       selectedAddress.number ?? '',
-      itemCount,
-      subtotal.toFixed(2),
+      itemsFp,
     ].join('|')
     if (!force && key === quoteKeyRef.current && shippingOptions.length) return
     setQuoting(true)
@@ -488,7 +605,11 @@ export function CheckoutPage() {
       const logistics = await loadCartLogistics(
         items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       )
-      const env = await quoteShippingEnvelope({
+      const totalWeightKg =
+        logistics.reduce((acc, it) => acc + (it.weightKg ?? 0) * (it.quantity || 1), 0) ||
+        undefined
+      // Mesma cotação da vitrine/carrinho (ME + FAL + retirada), sem mock.
+      const { envelope: env } = await quoteStorefrontShippingEnvelope({
         postalCode: selectedAddress.postalCode,
         state: selectedAddress.state,
         city: selectedAddress.city,
@@ -499,44 +620,90 @@ export function CheckoutPage() {
         itemCount,
         originPostalCode,
         items: logistics,
+        totalWeightKg,
       })
       setShippingDisclaimer(env.disclaimer ?? null)
       if (env.status !== 'ok') {
         quoteKeyRef.current = key
         setShippingOptions([])
         setShippingOptionId('')
+        setShippingHandoffNotice(null)
         pushError(env.message ?? 'Erro ao cotar frete')
         return
       }
-      const selectable = selectableShippingOptions(
-        ensureCustomerShippingOptions(env.options),
-      )
+      const selectable = ensureCustomerShippingOptions(env.options)
       quoteKeyRef.current = key
       setShippingOptions(selectable)
-      const matched = matchPreferredShippingOption(selectable, preferredHandoffRef.current)
+      const handoff = preferredHandoffRef.current
+      const matched = matchPreferredShippingOption(selectable, handoff)
       setShippingOptionId((prev) => {
-        if (prev && selectable.some((o) => o.id === prev)) return prev
         if (matched) return matched.id
+        if (prev && selectable.some((o) => o.id === prev)) return prev
         return selectable[0]?.id ?? ''
       })
+
+      const handoffCep = (handoff?.postalCode ?? '').replace(/\D/g, '')
+      const addrCep = (selectedAddress.postalCode ?? '').replace(/\D/g, '')
+      if (handoffCep.length === 8 && addrCep.length === 8 && handoffCep !== addrCep) {
+        setShippingHandoffNotice({
+          tone: 'warn',
+          text: `O CEP do endereço (${formatCepMask(addrCep)}) difere do calculado na vitrine (${formatCepMask(handoffCep)}). Confira as opções atualizadas abaixo.`,
+        })
+      } else if (handoff?.preferredKind || handoff?.preferredOptionId || handoff?.preferredLabel) {
+        if (!matched) {
+          setShippingHandoffNotice({
+            tone: 'warn',
+            text: `A modalidade da vitrine${handoff.preferredLabel ? ` (${handoff.preferredLabel})` : ''} não está disponível para este endereço. Escolha outra opção.`,
+          })
+        } else if (handoff.preferredKind === 'own' && isPricedOwnDeliveryOption(matched)) {
+          setShippingHandoffNotice({
+            tone: 'ok',
+            text: `Entrega FAL confirmada com seu endereço: ${formatMoney(matched.amount)}${
+              matched.etaDaysMin != null && matched.etaDaysMax != null
+                ? ` · ${matched.etaDaysMin}–${matched.etaDaysMax} dias úteis`
+                : ''
+            }.`,
+          })
+        } else if (handoff.preferredKind === 'pickup' || isStorePickupOption(matched)) {
+          // Detalhes ficam no StorePickupNotice — evita banner + painel repetidos.
+          setShippingHandoffNotice(null)
+        } else {
+          setShippingHandoffNotice({
+            tone: 'ok',
+            text: `${matched.label} da vitrine. Confirme ou troque abaixo.`,
+          })
+        }
+      } else {
+        setShippingHandoffNotice(null)
+      }
     } catch (e) {
       setShippingOptions([])
       setShippingOptionId('')
       setShippingDisclaimer(null)
+      setShippingHandoffNotice(null)
       pushError(toUserMessage(e, 'Erro ao cotar frete'))
     } finally {
       setQuoting(false)
     }
   }
 
-  // Cota só na etapa Entrega — não bloquear "Continuar para entrega" na etapa Endereço.
+  // Etapa Entrega: retirada não cotiza frete; entrega em casa cotiza sob demanda.
   useEffect(() => {
-    if (!selectedAddress || mpAwaiting) return
-    if (step !== 2) return
+    if (mpAwaiting || step !== 2) return
+    if (deliveryMode === 'pickup') {
+      setQuoting(false)
+      setShippingHandoffNotice(null)
+      setShippingOptions((prev) =>
+        prev.some((o) => isStorePickupOption(o)) ? prev : [createStorePickupOption()],
+      )
+      setShippingOptionId(STORE_PICKUP_OPTION_ID)
+      return
+    }
+    if (!selectedAddress) return
     const t = window.setTimeout(() => void loadQuotes(), 200)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, addressId, itemCount, subtotal, originPostalCode])
+  }, [step, addressId, items, subtotal, originPostalCode, deliveryMode])
 
   function validateDoc(): boolean {
     const digits = onlyDigits(docValue)
@@ -569,9 +736,23 @@ export function CheckoutPage() {
       pushError('Aceite os termos e a política de privacidade para finalizar.')
       return
     }
+    if (selectedShipping && isOwnConfirmCheckoutOption(selectedShipping)) {
+      pushError('Confirme a entrega FAL com o endereço completo antes de finalizar.')
+      return
+    }
     if (!carrierDesc.placeOrderReady) {
       pushError('Entrega indisponível no momento. Tente novamente mais tarde.')
       return
+    }
+    if (mpEnabled) {
+      if (mpChannel === 'card' && !payAvail.card) {
+        pushError('Cartão não está disponível no momento.')
+        return
+      }
+      if (mpChannel === 'pix' && !payAvail.pix) {
+        pushError('Pix não está disponível no momento.')
+        return
+      }
     }
     // C4 — trava concorrência no cliente
     if (submitLockRef.current || submitting) return
@@ -982,66 +1163,189 @@ export function CheckoutPage() {
 
           {step === 1 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">1. Endereço de entrega</h2>
-              <p className="m-0 text-sm text-fal-muted">
-                Confirme o endereço. Em seguida escolha o tipo de entrega.
-              </p>
-              {loadingAddrs ? <Loading label="Carregando endereços…" /> : null}
-              {!loadingAddrs && addresses.length > 0 ? (
-                <ul className="m-0 list-none space-y-2 p-0">
-                  {addresses.map((a) => (
-                    <li key={a.id}>
-                      <label
-                        className={`flex gap-3 rounded-fal border border-fal-line p-3 ${deliveryViewOnly ? 'cursor-default opacity-90' : 'cursor-pointer hover:border-fal-navy'}`}
-                      >
-                        <input
-                          type="radio"
-                          name="address"
-                          disabled={deliveryViewOnly}
-                          checked={addressId === a.id}
-                          onChange={() => {
-                            setAddressId(a.id)
-                            setShippingOptions([])
-                            setShippingOptionId('')
-                            setMaxReachedStep((m) => Math.min(m, 1))
-                            if (step > 1) setStep(1)
-                          }}
-                        />
-                        <span className="text-sm">
-                          <strong>{a.label || a.recipient}</strong>
-                          <br />
-                          {a.street}, {a.number}
-                          {a.complement ? ` — ${a.complement}` : ''}
-                          <br />
-                          {a.district ? `${a.district} · ` : ''}
-                          {a.city}/{a.state} · CEP {formatCepMask(a.postalCode)}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {!loadingAddrs && addresses.length === 0 && !showNewAddress ? (
-                <p className="text-sm text-fal-muted">
-                  Nenhum endereço salvo. Cadastre um abaixo para continuar.
-                </p>
-              ) : null}
+              <h2 className="mt-0 text-lg font-extrabold">1. Como deseja receber?</h2>
 
-              {showNewAddress ? (
+              <ul
+                className="m-0 list-none space-y-2 p-0"
+                role="radiogroup"
+                aria-label="Modalidade de entrega"
+              >
+                <li>
+                  <label
+                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-fal border p-3 ${
+                      isPickupMode
+                        ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                        : 'border-fal-line hover:border-fal-navy'
+                    } ${deliveryViewOnly ? 'pointer-events-none opacity-90' : ''}`}
+                  >
+                    <span className="flex items-start gap-3 text-sm">
+                      <input
+                        type="radio"
+                        name="checkout-delivery-mode"
+                        className="mt-1"
+                        disabled={deliveryViewOnly}
+                        checked={isPickupMode}
+                        onChange={() => chooseDeliveryMode('pickup')}
+                      />
+                      <span>
+                        <strong>Retirada na loja</strong>
+                        <span className="mt-0.5 block text-fal-muted">Sem frete</span>
+                      </span>
+                    </span>
+                    <strong>{money(0)}</strong>
+                  </label>
+                </li>
+                <li>
+                  <label
+                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-fal border p-3 ${
+                      !isPickupMode
+                        ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                        : 'border-fal-line hover:border-fal-navy'
+                    } ${deliveryViewOnly ? 'pointer-events-none opacity-90' : ''}`}
+                  >
+                    <span className="flex items-start gap-3 text-sm">
+                      <input
+                        type="radio"
+                        name="checkout-delivery-mode"
+                        className="mt-1"
+                        disabled={deliveryViewOnly}
+                        checked={!isPickupMode}
+                        onChange={() => chooseDeliveryMode('home')}
+                      />
+                      <span>
+                        <strong>Receber em casa</strong>
+                        <span className="mt-0.5 block text-fal-muted">Frete na próxima etapa</span>
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              </ul>
+
+              {isPickupMode ? (
+                <p className="m-0 text-sm text-fal-muted">
+                  Na próxima etapa você confere endereço, horário e a liberação da retirada.
+                </p>
+              ) : (
+                <>
+                  {vitrineAddress ? (
+                    <p className="m-0 text-sm text-fal-muted" role="status">
+                      Endereço da vitrine pré-selecionado. Confirme ou troque abaixo.
+                    </p>
+                  ) : (
+                    <p className="m-0 text-sm text-fal-muted">
+                      Confirme o endereço de entrega.
+                    </p>
+                  )}
+                  {loadingAddrs ? <Loading label="Carregando endereços…" /> : null}
+                  {!loadingAddrs && addresses.length > 0 ? (
+                    <ul className="m-0 list-none space-y-2 p-0">
+                      {addresses.map((a) => {
+                        const fromVitrine = vitrineAddress?.id === a.id
+                        const selected = addressId === a.id
+                        return (
+                          <li key={a.id}>
+                            <label
+                              className={`flex gap-3 rounded-fal border p-3 ${
+                                selected
+                                  ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                  : 'border-fal-line'
+                              } ${deliveryViewOnly ? 'cursor-default opacity-90' : 'cursor-pointer hover:border-fal-navy'}`}
+                            >
+                              <input
+                                type="radio"
+                                name="address"
+                                disabled={deliveryViewOnly}
+                                checked={selected}
+                                onChange={() => {
+                                  setAddressId(a.id)
+                                  setShippingOptions([])
+                                  setShippingOptionId('')
+                                  setMaxReachedStep((m) => Math.min(m, 1))
+                                  if (step > 1) setStep(1)
+                                }}
+                              />
+                              <span className="text-sm">
+                                <strong>{a.label || a.recipient}</strong>
+                                {fromVitrine ? (
+                                  <span className="ml-2 text-[11px] font-semibold text-fal-navy">
+                                    Vitrine
+                                  </span>
+                                ) : null}
+                                <br />
+                                {a.street}, {a.number}
+                                {a.complement ? ` — ${a.complement}` : ''}
+                                <br />
+                                {a.district ? `${a.district} · ` : ''}
+                                {a.city}/{a.state} · CEP {formatCepMask(a.postalCode)}
+                              </span>
+                            </label>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : null}
+                  {!loadingAddrs && addresses.length === 0 && !showNewAddress ? (
+                    <p className="text-sm text-fal-muted">
+                      Nenhum endereço salvo. Cadastre um abaixo para continuar.
+                    </p>
+                  ) : null}
+
+                  {showNewAddress ? (
+                    <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-4">
+                      <h3 className="mt-0 text-base font-extrabold">Novo endereço</h3>
+                      <p className="mt-0 mb-3 text-sm text-fal-muted">
+                        Digite o CEP para preencher o endereço automaticamente.
+                      </p>
+                      <AddressForm
+                        key="checkout-new-address"
+                        initial={{
+                          recipient: user?.fullName?.trim() || user?.email || '',
+                          isDefault: addresses.length === 0,
+                        }}
+                        submitLabel="Salvar e continuar"
+                        showCancel
+                        onCancel={() => setShowNewAddress(false)}
+                        onSubmit={async (values) => {
+                          const saved = await upsertAddress({
+                            ...values,
+                            label: values.label || null,
+                            complement: values.complement || null,
+                            reference: values.reference || null,
+                            district: values.district || null,
+                            isDefault: values.isDefault || addresses.length === 0,
+                          })
+                          setShowNewAddress(false)
+                          await reloadAddresses(saved.id)
+                          setAddressId(saved.id)
+                          setShippingOptions([])
+                          setShippingOptionId('')
+                          push('Endereço salvo', 'success')
+                          goToStepIndex(2)
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <Button type="button" variant="light" onClick={() => setShowNewAddress(true)}>
+                      + Adicionar novo endereço
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Retirada: se não houver endereço no perfil, exige cadastro só para NF (sem lista). */}
+              {isPickupMode && !loadingAddrs && addresses.length === 0 ? (
                 <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-4">
-                  <h3 className="mt-0 text-base font-extrabold">Novo endereço</h3>
+                  <h3 className="mt-0 text-base font-extrabold">Endereço para a nota fiscal</h3>
                   <p className="mt-0 mb-3 text-sm text-fal-muted">
-                    Digite o CEP para preencher o endereço automaticamente.
+                    Necessário para emitir a NF. A retirada continua na loja.
                   </p>
                   <AddressForm
-                    key="checkout-new-address"
+                    key="checkout-pickup-nf-address"
                     initial={{
                       recipient: user?.fullName?.trim() || user?.email || '',
-                      isDefault: addresses.length === 0,
+                      isDefault: true,
                     }}
                     submitLabel="Salvar e continuar"
-                    showCancel
-                    onCancel={() => setShowNewAddress(false)}
                     onSubmit={async (values) => {
                       const saved = await upsertAddress({
                         ...values,
@@ -1049,129 +1353,169 @@ export function CheckoutPage() {
                         complement: values.complement || null,
                         reference: values.reference || null,
                         district: values.district || null,
-                        isDefault: values.isDefault || addresses.length === 0,
+                        isDefault: true,
                       })
-                      setShowNewAddress(false)
                       await reloadAddresses(saved.id)
                       setAddressId(saved.id)
-                      setShippingOptions([])
-                      setShippingOptionId('')
                       push('Endereço salvo', 'success')
-                      // Avança para Entrega; cotação sobe no effect do step 2
                       goToStepIndex(2)
                     }}
                   />
                 </div>
-              ) : (
-                <Button type="button" variant="light" onClick={() => setShowNewAddress(true)}>
-                  + Adicionar novo endereço
-                </Button>
-              )}
+              ) : null}
             </div>
           ) : null}
 
           {step === 2 ? (
-            <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">2. Tipo de entrega</h2>
-              {preferredHandoffRef.current?.preferredOptionId ||
-              preferredHandoffRef.current?.preferredLabel ? (
-                <p className="m-0 rounded-fal border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-950">
-                  Frete da vitrine pré-selecionado
-                  {preferredHandoffRef.current.preferredLabel
-                    ? ` (${preferredHandoffRef.current.preferredLabel})`
-                    : ''}
-                  . Confirme ou escolha outra opção (valor e prazo) para seguir ao pagamento.
-                </p>
-              ) : (
-                <p className="m-0 text-sm text-fal-muted">
-                  {shippingDisclaimer && !/D-FRETE|VITE_|mock/i.test(shippingDisclaimer)
-                    ? shippingDisclaimer
-                    : 'Escolha entre as opções abaixo. O valor e o prazo são confirmados ao finalizar.'}
-                </p>
-              )}
-              {!carrierDesc.placeOrderReady ? (
-                <p className="m-0 text-sm font-semibold text-fal-danger" role="status">
-                  Entrega indisponível no momento. Tente novamente mais tarde.
-                </p>
-              ) : null}
-              {quoting ? (
-                <Loading label="Cotando frete…" />
-              ) : shippingOptions.length === 0 ? (
-                <p className="text-sm text-fal-muted">Nenhuma opção disponível. Volte e confira o CEP.</p>
-              ) : (
-                <ul className="m-0 list-none space-y-2 p-0">
-                  {shippingOptions.map((o) => {
-                    const locked = o.metadata?.selectable === false
-                    return (
-                    <li key={o.id}>
-                      <label className={`flex items-center justify-between gap-3 rounded-fal border border-fal-line p-3 ${locked ? 'opacity-80' : 'cursor-pointer hover:border-fal-navy'}`}>
-                        <span className="flex items-center gap-3 text-sm">
-                          <input
-                            type="radio"
-                            disabled={locked || deliveryViewOnly}
-                            name="ship"
-                            checked={shippingOptionId === o.id}
-                            onChange={() => setShippingOptionId(o.id)}
-                          />
-                          <span>
-                            <strong>{o.label}</strong>
-                            {o.etaDaysMin != null ? (
-                              <span className="block text-fal-muted">
-                                {isStorePickupOption(o) || o.etaDaysMin === 0
-                                  ? 'Disponível para retirada'
-                                  : `${o.etaDaysMin}–${o.etaDaysMax} dias úteis`}
+            isPickupMode ? (
+              <CheckoutPickupConfirm
+                origin={storeOrigin}
+                viewOnly={deliveryViewOnly}
+                onSwitchToHome={() => chooseDeliveryMode('home')}
+              />
+            ) : (
+              <div className="space-y-4">
+                <h2 className="mt-0 text-lg font-extrabold">2. Tipo de entrega</h2>
+                {shippingHandoffNotice ? (
+                  <p
+                    className={
+                      shippingHandoffNotice.tone === 'warn'
+                        ? 'm-0 rounded-fal border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950'
+                        : 'm-0 rounded-fal border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-950'
+                    }
+                    role="status"
+                  >
+                    {shippingHandoffNotice.text}
+                  </p>
+                ) : (
+                  <p className="m-0 text-sm text-fal-muted">
+                    Confirme a modalidade. Pode trocar se quiser.
+                  </p>
+                )}
+                {!carrierDesc.placeOrderReady ? (
+                  <p className="m-0 text-sm font-semibold text-fal-danger" role="status">
+                    Entrega indisponível no momento. Tente novamente mais tarde.
+                  </p>
+                ) : null}
+                {quoting ? (
+                  <Loading label="Cotando frete…" />
+                ) : shippingOptions.length === 0 ? (
+                  <p className="text-sm text-fal-muted">
+                    Nenhuma opção disponível. Volte e confira o CEP.
+                  </p>
+                ) : (
+                  <ul className="m-0 list-none space-y-2 p-0">
+                    {shippingOptions
+                      .filter((o) => !isStorePickupOption(o))
+                      .map((o) => {
+                        const locked = o.metadata?.selectable === false
+                        const selected = shippingOptionId === o.id
+                        return (
+                          <li key={o.id}>
+                            <label
+                              className={`flex items-center justify-between gap-3 rounded-fal border p-3 ${
+                                selected
+                                  ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                  : 'border-fal-line'
+                              } ${locked ? 'opacity-80' : 'cursor-pointer hover:border-fal-navy'}`}
+                            >
+                              <span className="flex items-center gap-3 text-sm">
+                                <input
+                                  type="radio"
+                                  disabled={locked || deliveryViewOnly}
+                                  name="ship"
+                                  checked={selected}
+                                  onChange={() => onSelectShippingOption(o.id)}
+                                />
+                                <span>
+                                  <strong>{o.label}</strong>
+                                  {selected ? (
+                                    <span className="ml-2 text-[11px] font-semibold text-fal-navy">
+                                      Selecionada
+                                    </span>
+                                  ) : null}
+                                  {o.etaDaysMin != null ? (
+                                    <span className="block text-fal-muted">
+                                      {`${o.etaDaysMin}–${o.etaDaysMax} dias úteis`}
+                                    </span>
+                                  ) : null}
+                                </span>
                               </span>
-                            ) : null}
-                          </span>
-                        </span>
-                        <strong>{locked ? '—' : money(o.amount)}</strong>
-                      </label>
-                    </li>
-                    )
-                  })}
-                </ul>
-              )}
-              {selectedShipping && isStorePickupOption(selectedShipping) ? (
-                <StorePickupNotice origin={storeOrigin} />
-              ) : null}
-              <button
-                type="button"
-                className="text-sm font-semibold text-fal-navy underline"
-                onClick={() => void loadQuotes(true)}
-              >
-                Recalcular frete
-              </button>
-            </div>
+                              <strong>{locked ? '—' : money(o.amount)}</strong>
+                            </label>
+                          </li>
+                        )
+                      })}
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-fal-navy underline"
+                  onClick={() => void loadQuotes(true)}
+                >
+                  Recalcular frete
+                </button>
+                {!deliveryViewOnly ? (
+                  <button
+                    type="button"
+                    className="ml-4 text-sm font-semibold text-fal-navy underline"
+                    onClick={() => chooseDeliveryMode('pickup')}
+                  >
+                    Prefiro retirar na loja
+                  </button>
+                ) : null}
+              </div>
+            )
           ) : null}
 
           {step === 3 ? (
             <div className="space-y-4">
-              {mpEnabled ? (
+              {mpEnabled && (payAvail.pix || payAvail.card) ? (
                 <>
+                  <h2 className="mt-0 text-lg font-extrabold">Como deseja pagar?</h2>
+                  <p className="text-sm text-fal-muted">
+                    Opções liberadas na loja e na integração Mercado Pago. A confirmação pode levar
+                    alguns instantes.
+                  </p>
+                  {payAvail.pix ? (
+                    <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                      <input
+                        type="radio"
+                        name="mpChannel"
+                        checked={mpChannel === 'pix'}
+                        onChange={() => setMpChannel('pix')}
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold">Pix</span>
+                        <span className="block text-xs text-fal-muted">Pagamento instantâneo</span>
+                      </span>
+                    </label>
+                  ) : null}
+                  {payAvail.card ? (
+                    <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                      <input
+                        type="radio"
+                        name="mpChannel"
+                        checked={mpChannel === 'card'}
+                        onChange={() => setMpChannel('card')}
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold">Cartão de crédito</span>
+                        <span className="block text-xs text-fal-muted">
+                          Informe os dados do cartão para consultar as condições disponíveis.
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
+                </>
+              ) : mpEnabled && !payAvail.pix && !payAvail.card ? (
+                <div className="space-y-2">
                   <h2 className="mt-0 text-lg font-extrabold">Pagamento</h2>
                   <p className="text-sm text-fal-muted">
-                    Escolha Pix ou cartão. A confirmação pode levar alguns instantes para aparecer
-                    nesta tela.
+                    Nenhum meio de pagamento está liberado comercialmente no momento. Fale com a
+                    loja ou tente mais tarde.
                   </p>
-                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
-                    <input
-                      type="radio"
-                      name="mpChannel"
-                      checked={mpChannel === 'pix'}
-                      onChange={() => setMpChannel('pix')}
-                    />
-                    <span className="text-sm font-semibold">Pix</span>
-                  </label>
-                  <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
-                    <input
-                      type="radio"
-                      name="mpChannel"
-                      checked={mpChannel === 'card'}
-                      onChange={() => setMpChannel('card')}
-                    />
-                    <span className="text-sm font-semibold">Cartão (crédito/débito)</span>
-                  </label>
-                </>
+                </div>
               ) : (
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Pagamento</h2>
@@ -1223,7 +1567,9 @@ export function CheckoutPage() {
                     initialAmount={mpAwaiting.amount}
                     initialExpiresAt={mpAwaiting.expiresAt}
                     onExpired={onPixExpired}
-                    onSwitchToCard={mpPublicKey ? switchAwaitingToCard : undefined}
+                    onSwitchToCard={
+                      mpPublicKey && payAvail.card ? switchAwaitingToCard : undefined
+                    }
                     onViewDelivery={() => goToMoment(1)}
                   />
                 ) : mpAwaiting.allowRetry ? (
@@ -1233,32 +1579,36 @@ export function CheckoutPage() {
                       O pedido permanece o mesmo. Gere um novo Pix ou pague com cartão.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="primary"
-                        disabled={submitting}
-                        onClick={() => {
-                          setMpChannel('pix')
-                          void retryPixCharge()
-                        }}
-                      >
-                        {submitting ? 'Gerando…' : 'Gerar novo Pix'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="light"
-                        disabled={!mpPublicKey}
-                        onClick={() => {
-                          setMpChannel('card')
-                          setMpAwaiting({
-                            channel: 'card',
-                            orderId: mpAwaiting.orderId,
-                            amount: mpAwaiting.amount,
-                          })
-                        }}
-                      >
-                        Pagar com cartão
-                      </Button>
+                      {payAvail.pix ? (
+                        <Button
+                          type="button"
+                          variant="primary"
+                          disabled={submitting}
+                          onClick={() => {
+                            setMpChannel('pix')
+                            void retryPixCharge()
+                          }}
+                        >
+                          {submitting ? 'Gerando…' : 'Gerar novo Pix'}
+                        </Button>
+                      ) : null}
+                      {payAvail.card ? (
+                        <Button
+                          type="button"
+                          variant="light"
+                          disabled={!mpPublicKey}
+                          onClick={() => {
+                            setMpChannel('card')
+                            setMpAwaiting({
+                              channel: 'card',
+                              orderId: mpAwaiting.orderId,
+                              amount: mpAwaiting.amount,
+                            })
+                          }}
+                        >
+                          Pagar com cartão
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 ) : (
@@ -1392,14 +1742,17 @@ export function CheckoutPage() {
                 type="button"
                 variant="primary"
                 disabled={
-                  (step === 2 && quoting) ||
-                  (step === 1 && addresses.length === 0 && !showNewAddress) ||
+                  (step === 2 && !isPickupMode && quoting) ||
+                  (step === 1 && !isPickupMode && addresses.length === 0 && !showNewAddress) ||
+                  (step === 1 && isPickupMode && addresses.length === 0) ||
                   (step === 2 && !shippingOptionId)
                 }
                 onClick={() => void goNext()}
               >
                 {step === 1
-                  ? 'Continuar para entrega'
+                  ? isPickupMode
+                    ? 'Continuar para retirada'
+                    : 'Continuar para entrega'
                   : step === 2
                     ? 'Continuar para pagamento'
                     : 'Continuar'}

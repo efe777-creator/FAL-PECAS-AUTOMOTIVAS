@@ -7,11 +7,16 @@ import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { viaCepProvider } from '@/services/address/viaCepProvider'
 import { getStoreShippingOrigin } from '@/services/admin/adminShippingOriginService'
+import { cartItemsQuoteFingerprint } from '@/services/shipping/cartQuoteFingerprint'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
 import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
+import { preferStorefrontShippingOption } from '@/services/shipping/preferStorefrontShippingOption'
 import { quoteStorefrontShippingEnvelope } from '@/services/shipping/quoteStorefrontShipping'
 import type { ShippingQuoteEnvelope } from '@/services/shipping/shippingQuoteContract'
-import { saveShippingQuoteHandoff } from '@/services/shipping/shippingQuoteSession'
+import {
+  loadShippingQuoteHandoff,
+  saveShippingQuoteHandoff,
+} from '@/services/shipping/shippingQuoteSession'
 import {
   createStorePickupOption,
   isStorePickupOption,
@@ -55,11 +60,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   }, [envelope, pickupOnly])
 
   const cartKey = useMemo(
-    () =>
-      items
-        .map((i) => `${i.productId}:${i.quantity}`)
-        .sort()
-        .join('|') + `::${subtotal.toFixed(2)}`,
+    () => cartItemsQuoteFingerprint(items, subtotal),
     [items, subtotal],
   )
 
@@ -139,9 +140,18 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         setHintNeedsNumber(needsAddressNumber)
         setEnvelope(env)
         if (env.status === 'ok' && env.options.length) {
-          const keep =
-            env.options.find((o) => o.id === selectedId) ?? env.options[0]
-          if (keep) setSelectedId(keep.id)
+          // Handoff da PDP/carrinho prevalece sobre o default "retirada" do radio.
+          const prev = loadShippingQuoteHandoff()
+          const preferred = preferStorefrontShippingOption(env.options, {
+            postalCode: digits,
+            preferredAddressId: savedAddressId || prev?.preferredAddressId,
+            preferredOptionId: prev?.preferredOptionId ?? selectedId,
+            preferredKind: prev?.preferredKind,
+            preferredServiceCode: prev?.preferredServiceCode,
+            preferredLabel: prev?.preferredLabel,
+            savedAt: prev?.savedAt ?? new Date().toISOString(),
+          })
+          if (preferred) setSelectedId(preferred.id)
         }
       } catch (e) {
         if (gen !== quoteGen.current) return
@@ -158,7 +168,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         if (gen === quoteGen.current) setLoading(false)
       }
     },
-    [cep, number, items, subtotal, origin?.postalCode, selectedId],
+    [cep, number, items, subtotal, origin?.postalCode, selectedId, savedAddressId],
   )
 
   useEffect(() => {
@@ -169,6 +179,14 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     void runQuote({ silentClear: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage a cartKey; CEP/nº já no runQuote
   }, [cartKey])
+
+  /** CEP completo → cotar o conjunto atual (pré-seleção / handoff para o checkout). */
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8 || items.length === 0) return
+    void runQuote({ silentClear: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- CEP dispara; nº entra no runQuote
+  }, [cep])
 
   useEffect(() => {
     const opt = displayOptions.find((o) => o.id === selectedId) ?? displayOptions[0]

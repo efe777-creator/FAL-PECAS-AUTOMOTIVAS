@@ -97,7 +97,7 @@ Detalhe completo: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_P
 | Hub `/admin/logistica` 4 atalhos | IMPLEMENTADO | `AdminLogisticsHubPage` (ME/config “Em breve”) |
 | Origem + remetente + ViaCEP | IMPLEMENTADO | `AdminShippingOriginPage` · wtbp + VAL ORIGEM |
 | Frete próprio **v1** flat + `own:*` | IMPLEMENTADO | `store_own_delivery_settings` · `AdminOwnDeliveryPage` · `enabled=false` prod · [VAL](./FAL_MARCHA_LOGISTICA_FRETE_PROPRIO_VAL_2026-11-04.md) |
-| Frete próprio **v2** (POL/veículo/km) | **GAP** | Planejamento: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md) |
+| Frete próprio **v2** (POL/veículo/km) | **IMPLEMENTADO** | Código `quote-own-delivery` + own/* · calibração operacional contínua · spec cotação [FAL_SPEC_COTACAO_CARRINHO_AGRUPADA_CAIXAS_POL_2026-11-13.md](./FAL_SPEC_COTACAO_CARRINHO_AGRUPADA_CAIXAS_POL_2026-11-13.md) |
 | Medidas `*_origin` + form + bulk + M6 | IMPLEMENTADO | VAL medidas · VAL M6 (100 quote-ready) |
 | Cotação PDP/carrinho/checkout envelope | IMPLEMENTADO | mock default; disclaimer B |
 | Carrinho `loadCartLogistics` | **IMPLEMENTADO** | `CartShippingQuoteBlock` · VAL ME PR-1 |
@@ -164,16 +164,17 @@ Config: faixas CEP, rates `own:*` com **amount flat**, resolve no `place_order`.
 - Produção: `enabled=false` (smoke 04/11).  
 - Sob D-FRETE B: se habilitado, disclaimer de homologação até C.
 
-### 8.2 v2 — APROVADO no planejamento (não implementado)
+### 8.2 v2 — IMPLEMENTADO (rebase 2026-11-13)
 
-Substitui P-ME-5 “critérios avançados” pelo desenho completo:
+Contrato unificado: POL + seleção de veículo + km **ida** (Google Routes Edge) + tarifa **por categoria**.
 
-- Contrato unificado: POL + seleção de veículo + km **ida** (Google Routes Edge) + tarifa **por categoria**.  
-- Evoluir a mesma rota `/admin/logistica/frete-proprio` (6 blocos).  
-- Fórmula `frete = max(km × R$/km, tarifa_mínima)` = **APROVADO** (piso · MARCHA sequencial 2026-11-05).  
-- Documento canônico da frente: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md).
+- Edge `quote-own-delivery` + motores `ownPol` / `ownVehicleSelect` / `ownPricing`.  
+- Admin `/admin/logistica/frete-proprio`.  
+- Fórmula `frete = max(km × R$/km, tarifa_mínima) + adicional`.  
+- Cotação agrupada no carrinho: [FAL_SPEC_COTACAO_CARRINHO_AGRUPADA_CAIXAS_POL_2026-11-13.md](./FAL_SPEC_COTACAO_CARRINHO_AGRUPADA_CAIXAS_POL_2026-11-13.md).  
+- Planejamento histórico: [FAL_PLANEJAMENTO_FRETE_PROPRIO.md](./FAL_PLANEJAMENTO_FRETE_PROPRIO.md).
 
-Manter v1 flat como `pricing_mode: flat` até cutover.
+`pricing_mode: flat` (v1) permanece disponível até cutover comercial total.
 
 ---
 
@@ -251,7 +252,7 @@ sequenceDiagram
 | Checkout | IMPLEMENTADO logistics + disclaimer B |
 | Handoff CEP sessão | IMPLEMENTADO `shippingQuoteSession` |
 | Default provider | mock |
-| Own v2 (POL/km/número) | GAP — ver planejamento frete próprio |
+| Own v2 (POL/km/número) | IMPLEMENTADO — ver spec cotação carrinho 13/11 |
 
 ---
 

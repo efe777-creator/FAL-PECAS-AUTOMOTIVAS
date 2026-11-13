@@ -1,5 +1,9 @@
 /** Handoff leve carrinho/PDP → checkout (preferência de frete). Sem valor de frete como verdade. */
 
+import {
+  isOwnConfirmCheckoutOption,
+  isPricedOwnDeliveryOption,
+} from '@/services/shipping/ownConfirmCheckoutOption'
 import { isStorePickupOption, STORE_PICKUP_OPTION_ID } from '@/services/shipping/storePickupOption'
 import type { ShippingQuoteOption } from '@/types'
 
@@ -107,7 +111,7 @@ export function clearShippingQuoteHandoff(): void {
 
 /**
  * Resolve a opção preferida na lista re-cotada do checkout.
- * Ordem: id exato → pickup → serviceCode → label → null.
+ * Ordem: id exato → pickup → own (incl. provisional PDP) → serviceCode → label → null.
  */
 export function matchPreferredShippingOption(
   options: ShippingQuoteOption[],
@@ -125,15 +129,39 @@ export function matchPreferredShippingOption(
     if (pickup) return pickup
   }
 
-  if (handoff.preferredServiceCode) {
+  if (
+    handoff.preferredKind === 'own' ||
+    handoff.preferredOptionId === 'own:confirm_checkout' ||
+    handoff.preferredServiceCode === 'own_confirm_checkout'
+  ) {
+    const pricedOwn = options.find((o) => isPricedOwnDeliveryOption(o))
+    if (pricedOwn) return pricedOwn
+    // PDP cep-only: mantém Entrega FAL provisional quando ainda não há own precificada
+    const provisional = options.find((o) => isOwnConfirmCheckoutOption(o))
+    if (provisional) return provisional
+  }
+
+  if (
+    handoff.preferredServiceCode &&
+    handoff.preferredServiceCode !== 'own_confirm_checkout' &&
+    handoff.preferredServiceCode !== 'needs_number'
+  ) {
     const byCode = options.find((o) => o.serviceCode === handoff.preferredServiceCode)
     if (byCode) return byCode
   }
 
   if (handoff.preferredLabel) {
     const want = normalizeLabel(handoff.preferredLabel)
-    const byLabel = options.find((o) => normalizeLabel(o.label) === want)
+    const byLabel = options.find(
+      (o) =>
+        !isOwnConfirmCheckoutOption(o) && normalizeLabel(o.label) === want,
+    )
     if (byLabel) return byLabel
+    // “Entrega FAL” provisional → qualquer own precificada
+    if (want.includes('entrega fal')) {
+      const pricedOwn = options.find((o) => isPricedOwnDeliveryOption(o))
+      if (pricedOwn) return pricedOwn
+    }
   }
 
   return null
