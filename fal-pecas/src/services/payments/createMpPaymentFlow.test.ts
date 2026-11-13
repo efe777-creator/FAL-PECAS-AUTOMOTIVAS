@@ -275,6 +275,49 @@ describe('executeCreateMpPayment — casos A–I', () => {
     expect(insertPayment).not.toHaveBeenCalled()
   })
 
+  it('H2b: pending cartão 1x + novo 3x → cancela e cria novo', async () => {
+    const updates: Record<string, unknown>[] = []
+    const fetchMp = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 99, status: 'pending', payment_method_id: 'visa' }),
+    }))
+    const res = await executeCreateMpPayment(
+      {
+        orderId: 'ord-1',
+        token: 'tok',
+        paymentMethodId: 'visa',
+        installments: 3,
+      },
+      baseDeps({
+        findPendingPayment: async () => ({
+          id: 'pay-card-1x',
+          provider_payment_id: 'mp-card-1',
+          method: 'credit_card',
+          installments: 1,
+        }),
+        updatePayment: async (_id, patch) => {
+          updates.push(patch)
+        },
+        insertPayment: async () => 'pay-card-3x',
+        fetchMp,
+      }),
+    )
+    expect(res.body.reused).not.toBe(true)
+    expect(updates.some((u) => u.status === 'cancelled')).toBe(true)
+    expect(
+      updates.some(
+        (u) =>
+          u.metadata &&
+          typeof u.metadata === 'object' &&
+          (u.metadata as { cancelled_reason?: string }).cancelled_reason ===
+            'installments_changed',
+      ),
+    ).toBe(true)
+    expect(fetchMp).toHaveBeenCalled()
+    expect(res.httpStatus).toBe(201)
+  })
+
   it('H2: pending Pix + pedido cartão → cancela e cria novo', async () => {
     const updates: Record<string, unknown>[] = []
     const fetchMp = vi.fn(async () => ({

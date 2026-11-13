@@ -48,6 +48,12 @@ function edgeErrorMessage(data: unknown, fallback: string): string {
     if (code === 'invalid_order_total') {
       return 'Total do pedido inválido para pagamento.'
     }
+    if (code === 'installments_not_allowed') {
+      return 'Essa condição de parcelamento não está disponível. Escolha à vista ou outra parcela liberada.'
+    }
+    if (code === 'method_not_allowed') {
+      return 'Este meio de pagamento não está disponível no momento.'
+    }
     if (code) {
       return row.detail ? `${code}: ${row.detail}` : code
     }

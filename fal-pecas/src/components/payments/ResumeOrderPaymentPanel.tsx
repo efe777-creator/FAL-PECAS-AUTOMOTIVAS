@@ -9,10 +9,12 @@ import {
   PIX_PAYMENT_TTL_MINUTES,
   UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
+import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { createFalPayment } from '@/services/payments/engine'
+import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import type { OrderDetail } from '@/types'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 type Channel = 'pix' | 'card'
 
@@ -23,10 +25,12 @@ interface Props {
 
 /**
  * Retoma Pix/Brick para pedido em aguardando_pagamento (Meus Pedidos).
- * Pix TTL 5 min ≠ cancelamento do pedido (48 h).
+ * Pix TTL (PIX_PAYMENT_TTL_MINUTES) ≠ cancelamento do pedido (48 h).
  */
 export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
+  const paymentDisplay = usePaymentDisplay()
+  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay)
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const payment = order.payment
@@ -60,6 +64,15 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     return null
   })
   const [cardReady, setCardReady] = useState(initialChannel === 'card')
+
+  useEffect(() => {
+    if (channel === 'pix' && !payAvail.pix && payAvail.card) {
+      setChannel('card')
+      setCardReady(true)
+    } else if (channel === 'card' && !payAvail.card && payAvail.pix) {
+      setChannel('pix')
+    }
+  }, [payAvail.pix, payAvail.card, channel])
 
   const orderPaymentExpired =
     isPaymentExpired(payment?.expiresAt) ||
@@ -112,38 +125,47 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={[
-            'rounded-[10px] border px-3 py-2 text-sm font-bold',
-            channel === 'pix'
-              ? 'border-fal-navy bg-fal-navy text-white'
-              : 'border-fal-line bg-white text-fal-navy',
-          ].join(' ')}
-          onClick={() => setChannel('pix')}
-        >
-          Pix
-        </button>
-        <button
-          type="button"
-          className={[
-            'rounded-[10px] border px-3 py-2 text-sm font-bold',
-            channel === 'card'
-              ? 'border-fal-navy bg-fal-navy text-white'
-              : 'border-fal-line bg-white text-fal-navy',
-          ].join(' ')}
-          onClick={() => {
-            setChannel('card')
-            setCardReady(true)
-          }}
-        >
-          Cartão
-        </button>
+        {payAvail.pix ? (
+          <button
+            type="button"
+            className={[
+              'rounded-[10px] border px-3 py-2 text-sm font-bold',
+              channel === 'pix'
+                ? 'border-fal-navy bg-fal-navy text-white'
+                : 'border-fal-line bg-white text-fal-navy',
+            ].join(' ')}
+            onClick={() => setChannel('pix')}
+          >
+            Pix
+          </button>
+        ) : null}
+        {payAvail.card ? (
+          <button
+            type="button"
+            className={[
+              'rounded-[10px] border px-3 py-2 text-sm font-bold',
+              channel === 'card'
+                ? 'border-fal-navy bg-fal-navy text-white'
+                : 'border-fal-line bg-white text-fal-navy',
+            ].join(' ')}
+            onClick={() => {
+              setChannel('card')
+              setCardReady(true)
+            }}
+          >
+            Cartão
+          </button>
+        ) : null}
       </div>
+      {!payAvail.pix && !payAvail.card ? (
+        <p className="m-0 text-sm text-fal-muted">
+          Nenhum meio de pagamento está liberado comercialmente no momento.
+        </p>
+      ) : null}
 
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}
 
-      {channel === 'pix' ? (
+      {channel === 'pix' && payAvail.pix ? (
         needsNewPix ? (
           <div className="space-y-2">
             <p className="m-0 text-sm text-fal-muted">
@@ -171,7 +193,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         )
       ) : null}
 
-      {channel === 'card' ? (
+      {channel === 'card' && payAvail.card ? (
         !mpPublicKey ? (
           <p className="m-0 text-sm text-fal-danger">
             Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.

@@ -117,32 +117,35 @@ Deno.serve(async (req) => {
           displayRow?.installments_enabled != null
             ? Boolean(displayRow.installments_enabled)
             : Boolean(displayRow?.enabled)
+        const allowInterest =
+          displayRow?.allow_interest_installments != null
+            ? Boolean(displayRow.allow_interest_installments)
+            : true
+        const freeMax = Math.max(0, Math.floor(Number(displayRow?.interest_free_max) || 0))
         let maxAllowed = 1
         if (installmentsOn && amount > 0) {
           const max = Math.min(Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1), 24)
           const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
           maxAllowed =
             minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
+          // Juros comerciais off → teto efetivo = interest_free_max (alinha front).
+          if (!allowInterest) {
+            maxAllowed = freeMax <= 0 ? 1 : Math.min(maxAllowed, freeMax)
+          }
+        }
+        if (!Number.isFinite(card.installments) || card.installments < 1) {
+          return json(422, {
+            error: 'installments_not_allowed',
+            detail: 'installments inválido',
+          })
         }
         if (card.installments > maxAllowed) {
           return json(422, {
             error: 'installments_not_allowed',
-            detail: `installments acima do permitido (máx. ${maxAllowed})`,
-          })
-        }
-        const allowInterest =
-          displayRow?.allow_interest_installments != null
-            ? Boolean(displayRow.allow_interest_installments)
-            : true
-        const freeMax = Math.max(0, Math.floor(Number(displayRow?.interest_free_max) || 0))
-        // Sem payload de juros do MP: se juros comerciais off, só até interest_free_max (0 → 1x).
-        if (card.installments > 1 && !allowInterest && (freeMax <= 0 || card.installments > freeMax)) {
-          return json(422, {
-            error: 'installments_not_allowed',
             detail:
-              freeMax <= 0
-                ? 'parcelas com juros não permitidas (só 1x)'
-                : `sem juros só até ${freeMax}x (ou habilite juros)`,
+              !allowInterest && freeMax > 0 && card.installments > freeMax
+                ? `sem juros só até ${freeMax}x (ou habilite juros)`
+                : `installments acima do permitido (máx. ${maxAllowed})`,
           })
         }
       }
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
     const { data: existingRaw } = await admin
       .from('payments')
       .select(
-        'id, provider_payment_id, status, amount, metadata, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
+        'id, provider_payment_id, status, amount, metadata, expires_at, method, installments, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
       )
       .eq('order_id', orderId)
       .eq('status', 'pending')
@@ -191,11 +194,16 @@ Deno.serve(async (req) => {
       existing = null
     }
 
-    // Troca Pix ↔ cartão: cancela pending do outro canal (não reutilizar QR Pix no Brick).
+    // Troca Pix ↔ cartão ou mudança de parcelas: cancela pending (não reutilizar cobrança MP).
     if (existing?.provider_payment_id) {
       const existingIsPix = String(existing.method ?? 'pix') === 'pix'
       const wantsPix = !card
-      if (existingIsPix !== wantsPix) {
+      const prevInstallments = Math.max(1, Math.floor(Number(existing.installments) || 1))
+      const nextInstallments = card
+        ? Math.max(1, Math.floor(Number(card.installments) || 1))
+        : null
+      const installmentsChanged = Boolean(card) && prevInstallments !== nextInstallments
+      if (existingIsPix !== wantsPix || installmentsChanged) {
         await admin
           .from('payments')
           .update({
@@ -204,9 +212,11 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
             metadata: {
               ...((existing.metadata ?? {}) as Record<string, unknown>),
-              cancelled_reason: 'method_switch',
+              cancelled_reason: existingIsPix !== wantsPix ? 'method_switch' : 'installments_changed',
               from_method: existing.method ?? 'pix',
               to_method: internalMethod,
+              from_installments: prevInstallments,
+              to_installments: nextInstallments,
             },
           })
           .eq('id', existing.id)

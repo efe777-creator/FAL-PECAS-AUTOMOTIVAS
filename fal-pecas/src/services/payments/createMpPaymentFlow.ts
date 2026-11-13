@@ -35,6 +35,7 @@ export interface CreateMpFlowDeps {
     id: string
     provider_payment_id: string | null
     method?: string | null
+    installments?: number | null
   } | null>
   updatePayment: (id: string, patch: Record<string, unknown>) => Promise<void>
   insertPayment: (row: Record<string, unknown>) => Promise<string>
@@ -127,15 +128,20 @@ export async function executeCreateMpPayment(
   if (existing?.provider_payment_id) {
     const existingIsPix = (existing.method ?? 'pix') === 'pix'
     const wantsPix = !card
-    // Troca Pix ↔ cartão: não reutilizar cobrança do outro canal.
-    if (existingIsPix !== wantsPix) {
+    const prevInstallments = Math.max(1, Math.floor(Number(existing.installments) || 1))
+    const installmentsChanged =
+      Boolean(card) && prevInstallments !== Math.max(1, Math.floor(Number(card?.installments) || 1))
+    // Troca Pix ↔ cartão ou mudança de parcelas: não reutilizar cobrança MP antiga.
+    if (existingIsPix !== wantsPix || installmentsChanged) {
       await deps.updatePayment(existing.id, {
         status: 'cancelled',
         cancelled_at: new Date().toISOString(),
         metadata: {
-          cancelled_reason: 'method_switch',
+          cancelled_reason: existingIsPix !== wantsPix ? 'method_switch' : 'installments_changed',
           from_method: existing.method ?? 'pix',
           to_method: internalMethod,
+          from_installments: prevInstallments,
+          to_installments: card?.installments ?? null,
         },
       })
       existing = null

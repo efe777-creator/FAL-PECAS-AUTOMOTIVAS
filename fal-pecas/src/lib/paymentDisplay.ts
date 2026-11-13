@@ -48,16 +48,23 @@ export function resolveInstallmentCount(
 }
 
 /**
- * Teto FAL para checkout (PAY consolidação).
+ * Teto FAL para checkout / vitrine (PAY consolidação).
  * Parcelamento desligado / settings ausentes → 1x.
- * Ligado → resolveInstallmentCount (max + min parcela).
+ * Ligado → max + min parcela; se juros comerciais off → também capa em interestFreeMax.
  */
 export function falMaxInstallmentsForCheckout(
   amount: number,
   settings: PaymentDisplaySettings | null | undefined,
 ): number {
   if (!settings?.installmentsEnabled) return 1
-  return resolveInstallmentCount(amount, settings)
+  let n = resolveInstallmentCount(amount, settings)
+  // Sem juros liberados: o cliente só pode escolher até freeMax (0 → só à vista).
+  if (settings.allowInterestInstallments === false) {
+    const freeMax = Math.max(0, Math.floor(settings.interestFreeMax))
+    if (freeMax <= 0) return 1
+    n = Math.min(n, freeMax)
+  }
+  return n
 }
 
 function approxEqual(a: number, b: number, eps = 0.02): boolean {
@@ -77,9 +84,31 @@ export function isInstallmentInterestFree(
   return approxEqual(implied, orderAmount)
 }
 
+function vistaOption(amount: number): InstallmentOption {
+  return {
+    installments: 1,
+    installmentAmount: amount,
+    totalAmount: amount,
+    interestFree: true,
+    label: `À vista no cartão — ${formatMoney(amount)}`,
+  }
+}
+
+function labelInstallmentOption(
+  amount: number,
+  o: InstallmentOption,
+  free: boolean,
+): string {
+  if (o.installments === 1) return `À vista no cartão — ${formatMoney(amount)}`
+  const parcelLabel = formatMoney(o.installmentAmount)
+  return free
+    ? `${o.installments}x de ${parcelLabel} sem juros`
+    : `${o.installments}x de ${parcelLabel} (com juros)`
+}
+
 /**
  * Filtra opções MP pela política comercial FAL.
- * Nunca inventa parcela que o gateway não ofereceu.
+ * Sempre garante à vista (1x). Nx>1 só se o gateway ofereceu e a política liberar.
  */
 export function filterInstallmentOptions(
   amount: number,
@@ -88,40 +117,39 @@ export function filterInstallmentOptions(
 ): InstallmentOption[] {
   const max = falMaxInstallmentsForCheckout(amount, settings)
   const allowInterest = settings?.allowInterestInstallments !== false
+  const freeMax = Math.max(0, Math.floor(settings?.interestFreeMax ?? 0))
   const minParcel = settings ? Math.max(Number(settings.minInstallmentAmount) || 0, 0) : 0
 
-  const filtered = options
+  const withVista = options.some((o) => Number(o.installments) === 1)
+    ? options
+    : [vistaOption(amount), ...options]
+
+  const filtered = withVista
     .filter((o) => Number.isFinite(o.installments) && o.installments >= 1 && o.installments <= max)
     .filter((o) => (minParcel <= 0 ? true : o.installmentAmount + 1e-9 >= minParcel || o.installments === 1))
     .filter((o) => {
+      if (o.installments <= 1) return true
       const free = o.interestFree || isInstallmentInterestFree(amount, o)
-      // Sem juros do gateway: sempre ok (dentro do teto/min já filtrados).
-      if (free) return true
+      if (free) {
+        // Alinha Edge: juros off → só até interestFreeMax (0 = só à vista).
+        if (!allowInterest && (freeMax <= 0 || o.installments > freeMax)) return false
+        return true
+      }
       return allowInterest
     })
     .map((o) => {
       const free = o.interestFree || isInstallmentInterestFree(amount, o)
-      const parcelLabel = formatMoney(o.installmentAmount)
-      const label =
-        o.installments === 1
-          ? `1x — ${formatMoney(amount)}`
-          : free
-            ? `${o.installments}x — ${parcelLabel} sem juros`
-            : `${o.installments}x — ${parcelLabel} (com juros)`
-      return { ...o, interestFree: free, label }
+      return { ...o, interestFree: free, label: labelInstallmentOption(amount, o, free) }
     })
     .sort((a, b) => a.installments - b.installments)
 
-  if (filtered.length) return filtered
-  return [
-    {
-      installments: 1,
-      installmentAmount: amount,
-      totalAmount: amount,
-      interestFree: true,
-      label: `1x — ${formatMoney(amount)}`,
-    },
-  ]
+  // Dedup por N (MP às vezes repete) e garante 1x final.
+  const byN = new Map<number, InstallmentOption>()
+  for (const o of filtered) {
+    if (!byN.has(o.installments)) byN.set(o.installments, o)
+  }
+  if (!byN.has(1)) byN.set(1, vistaOption(amount))
+  return [...byN.values()].sort((a, b) => a.installments - b.installments)
 }
 
 /** Rejeita installments acima da política comercial FAL. */
@@ -144,27 +172,26 @@ export function assertCardInstallmentsAllowed(
   if (!settings || installments <= 1) return
 
   const allowInterest = settings.allowInterestInstallments !== false
-  if (option) {
-    const free =
-      Boolean(option.interestFree) ||
+  const freeMax = Math.max(0, Math.floor(settings.interestFreeMax))
+  const free = option
+    ? Boolean(option.interestFree) ||
       isInstallmentInterestFree(amount, {
         installments,
         installmentAmount: option.installmentAmount,
         totalAmount: option.totalAmount,
       })
-    if (!free && !allowInterest) {
-      throw new Error('parcelas com juros não permitidas')
-    }
-  } else if (installments > 1 && !allowInterest) {
-    // Sem opção MP: só permite até interestFreeMax (0 = somente 1x).
-    const freeMax = Math.max(0, Math.floor(settings.interestFreeMax))
-    if (freeMax <= 0 || installments > freeMax) {
-      throw new Error(
-        freeMax <= 0
-          ? 'parcelas com juros não permitidas (só 1x)'
-          : `sem juros só até ${freeMax}x (ou habilite juros)`,
-      )
-    }
+    : null
+
+  if (option && !free && !allowInterest) {
+    throw new Error('parcelas com juros não permitidas')
+  }
+  // Com ou sem option MP: juros off → nunca acima de interestFreeMax.
+  if (!allowInterest && (freeMax <= 0 || installments > freeMax)) {
+    throw new Error(
+      freeMax <= 0
+        ? 'parcelas com juros não permitidas (só 1x)'
+        : `sem juros só até ${freeMax}x (ou habilite juros)`,
+    )
   }
   const minParcel = Math.max(Number(settings.minInstallmentAmount) || 0, 0)
   if (minParcel > 0 && option?.installmentAmount != null && installments > 1) {

@@ -2,7 +2,7 @@ import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import {
-  falMaxInstallmentsForCheckout,
+  assertCardInstallmentsAllowed,
   filterInstallmentOptions,
   type InstallmentOption,
 } from '@/lib/paymentDisplay'
@@ -88,6 +88,7 @@ export function MercadoPagoCardBrickPanel({
   const [mountKey, setMountKey] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const installmentsRef = useRef(1)
+  const binReqRef = useRef(0)
   const onApprovedRef = useRef(onApproved)
   const onErrorRef = useRef(onError)
   const onTokenizedRef = useRef(onTokenized)
@@ -109,25 +110,20 @@ export function MercadoPagoCardBrickPanel({
   }, [installments])
 
   const amountNum = Math.round(Number(amount) * 100) / 100
-  const maxInstallments = useMemo(
-    () => falMaxInstallmentsForCheckout(amountNum, paymentDisplay),
-    [paymentDisplay, amountNum],
-  )
 
   const displayInstallmentOptions = useMemo(() => {
     if (!installmentOptions.length) {
-      return filterInstallmentOptions(amountNum, paymentDisplay, [
-        {
-          installments: 1,
-          installmentAmount: amountNum,
-          totalAmount: amountNum,
-          interestFree: true,
-          label: '',
-        },
-      ])
+      return filterInstallmentOptions(amountNum, paymentDisplay, [])
     }
     return filterInstallmentOptions(amountNum, paymentDisplay, installmentOptions)
   }, [installmentOptions, amountNum, paymentDisplay])
+
+  const canChooseInstallments = displayInstallmentOptions.length > 1
+
+  useEffect(() => {
+    const allowed = displayInstallmentOptions.some((o) => o.installments === installments)
+    if (!allowed) setInstallments(displayInstallmentOptions[0]?.installments ?? 1)
+  }, [displayInstallmentOptions, installments])
 
   useEffect(() => {
     try {
@@ -146,20 +142,26 @@ export function MercadoPagoCardBrickPanel({
     readyFields.cardNumber && readyFields.expirationDate && readyFields.securityCode,
   )
 
+  const resetInstallmentChoice = useCallback(() => {
+    setBinMethod(null)
+    setInstallmentOptions([])
+    setInstallments(1)
+  }, [])
+
   const handleBinChange = useCallback(
     async (bin: string | null) => {
+      const req = ++binReqRef.current
       if (!bin || bin.length < 6) {
-        setBinMethod(null)
-        setInstallmentOptions([])
-        setInstallments(1)
+        resetInstallmentChoice()
         return
       }
       const sliced = bin.slice(0, 8)
       try {
         const pm = await getPaymentMethods({ bin: sliced })
+        if (req !== binReqRef.current) return
         const first = pm?.results?.[0]
         if (!first?.id) {
-          setBinMethod(null)
+          resetInstallmentChoice()
           return
         }
         let issuerId =
@@ -175,6 +177,7 @@ export function MercadoPagoCardBrickPanel({
             /* issuer opcional */
           }
         }
+        if (req !== binReqRef.current) return
         const method: BinMethod = {
           id: String(first.id),
           paymentTypeId: String(first.payment_type_id ?? 'credit_card'),
@@ -187,7 +190,10 @@ export function MercadoPagoCardBrickPanel({
           bin: sliced,
           paymentMethodId: method.id,
         })
+        if (req !== binReqRef.current) return
         const costs = inst?.[0]?.payer_costs ?? []
+        // Guarda bruto do MP (sem cap FAL). O filtro comercial roda no useMemo —
+        // assim, se a config ainda estava carregando no BIN, as Nx liberam depois.
         const raw: InstallmentOption[] = costs
           .map((c) => {
             const n = Number(c.installments)
@@ -206,22 +212,23 @@ export function MercadoPagoCardBrickPanel({
               label: '',
             }
           })
-          .filter((o) => Number.isFinite(o.installments) && o.installments >= 1)
-        const capped = raw.filter((o) => o.installments <= maxInstallments)
-        setInstallmentOptions(capped.length ? capped : [])
-        const filtered = filterInstallmentOptions(
-          amountNum,
-          paymentDisplay,
-          capped.length ? capped : [],
-        )
+          .filter(
+            (o) =>
+              Number.isFinite(o.installments) &&
+              o.installments >= 1 &&
+              o.installments <= 24,
+          )
+        setInstallmentOptions(raw)
+        const filtered = filterInstallmentOptions(amountNum, paymentDisplay, raw)
         const current = installmentsRef.current
         const next = filtered.find((o) => o.installments === current) ?? filtered[0]
         setInstallments(next?.installments ?? 1)
       } catch {
-        /* bin lookup best-effort */
+        if (req !== binReqRef.current) return
+        resetInstallmentChoice()
       }
     },
-    [amountNum, maxInstallments, paymentDisplay],
+    [amountNum, paymentDisplay, resetInstallmentChoice],
   )
 
   const syncTickRef = useRef(0)
@@ -284,12 +291,11 @@ export function MercadoPagoCardBrickPanel({
   const remountFields = useCallback(() => {
     setReadyFields({})
     setRejectReason(null)
-    setBinMethod(null)
-    setInstallmentOptions([])
-    setInstallments(1)
+    binReqRef.current += 1
+    resetInstallmentChoice()
     setStatus('idle')
     setMountKey((k) => k + 1)
-  }, [])
+  }, [resetInstallmentChoice])
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -314,6 +320,10 @@ export function MercadoPagoCardBrickPanel({
         })
         const token = tokenRes?.id
         if (!token) throw new Error('Não foi possível tokenizar o cartão. Tente novamente.')
+
+        const selected =
+          displayInstallmentOptions.find((o) => o.installments === installments) ?? null
+        assertCardInstallmentsAllowed(installments, amountNum, paymentDisplay, selected)
 
         if (tokenizeOnly) {
           onTokenizedRef.current?.({
@@ -372,6 +382,9 @@ export function MercadoPagoCardBrickPanel({
       docNumber,
       orderId,
       installments,
+      displayInstallmentOptions,
+      amountNum,
+      paymentDisplay,
       remountFields,
       tokenizeOnly,
     ],
@@ -506,13 +519,15 @@ export function MercadoPagoCardBrickPanel({
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-fal-ink" htmlFor="mp-installments">
-            Parcelas
+            {canChooseInstallments ? 'Parcelas no cartão' : 'Pagamento no cartão'}
           </label>
           <select
             id="mp-installments"
             className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-sm"
             value={installments}
             onChange={(ev) => setInstallments(Number(ev.target.value))}
+            disabled={!binMethod}
+            aria-describedby="mp-installments-hint"
           >
             {displayInstallmentOptions.map((o) => (
               <option key={o.installments} value={o.installments}>
@@ -520,11 +535,13 @@ export function MercadoPagoCardBrickPanel({
               </option>
             ))}
           </select>
-          {!binMethod ? (
-            <p className="mb-0 mt-1 text-xs text-fal-muted">
-              Informe os dados do cartão para consultar as condições disponíveis.
-            </p>
-          ) : null}
+          <p id="mp-installments-hint" className="mb-0 mt-1 text-xs text-fal-muted">
+            {!binMethod
+              ? 'Informe o número do cartão para liberar à vista e as parcelas disponíveis.'
+              : canChooseInstallments
+                ? 'Escolha à vista ou o número de parcelas liberadas para este valor e cartão.'
+                : 'Neste valor só está disponível à vista no cartão.'}
+          </p>
         </div>
 
         {binMethod ? (
