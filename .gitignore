@@ -29,16 +29,24 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.cursor/plans/
+.cursor/**
 
 # Archives / local dumps
 *.zip
 *.rar
 *.7z
 
+# Supabase CLI cache / link metadata (não versionar)
+supabase/.temp/
+fal-pecas/supabase/.temp/
+**/supabase/.temp/
+
 # Supabase temp
 fal-pecas/supabase/migrations/_*.sql
 fal-pecas/supabase/migrations/part*.sql
 fal-pecas/supabase/migrations/_query.json
+fal-pecas/supabase/tmp_*.sql
 
 # OS
 desktop.ini
