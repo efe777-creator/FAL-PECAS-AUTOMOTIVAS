@@ -52,17 +52,20 @@ import {
   type HomeSectionTab,
 } from '@/pages/admin/home/AdminHomeSectionTabs'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
 type Tab = Exclude<HomeSectionTab, 'promotions'>
 type PreviewViewport = 'desktop' | 'tablet' | 'mobile'
 
-function tabFromLocationState(state: unknown): Tab | null {
-  const raw = (state as { homeTab?: string } | null)?.homeTab
+function parseHomeTab(raw: string | null | undefined): Tab | null {
   if (raw === 'banners' || raw === 'featured' || raw === 'payment' || raw === 'config') {
     return raw
   }
   return null
+}
+
+function tabFromLocationState(state: unknown): Tab | null {
+  return parseHomeTab((state as { homeTab?: string } | null)?.homeTab)
 }
 
 const MAX_FEATURED = ADMIN_FEATURED_MAX
@@ -152,12 +155,32 @@ export function AdminHomeContentPage() {
   useDocumentTitle('Home da loja | Admin FAL')
   const { push } = useToast()
   const location = useLocation()
-  const [tab, setTab] = useState<Tab>(() => tabFromLocationState(location.state) ?? 'banners')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(
+    () =>
+      parseHomeTab(searchParams.get('tab')) ??
+      tabFromLocationState(location.state) ??
+      'banners',
+  )
 
   useEffect(() => {
+    const fromQuery = parseHomeTab(searchParams.get('tab'))
     const fromNav = tabFromLocationState(location.state)
-    if (fromNav) setTab(fromNav)
-  }, [location.state])
+    if (fromQuery) setTab(fromQuery)
+    else if (fromNav) setTab(fromNav)
+  }, [location.state, searchParams])
+
+  function selectTab(next: Tab) {
+    setTab(next)
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('tab', next)
+        return p
+      },
+      { replace: true },
+    )
+  }
   const [banners, setBanners] = useState<AdminHomeBanner[]>([])
   const [featured, setFeatured] = useState<AdminFeaturedRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -446,8 +469,8 @@ export function AdminHomeContentPage() {
             promocional já resolvido.
           </li>
           <li>
-            <strong className="text-fal-ink">Pagamento / Config</strong> = só apresentação (parcelas,
-            selo, %), sem mudar cálculo de preço.
+            <strong className="text-fal-ink">Pagamento</strong> = o que o cliente pode usar (Pix,
+            cartão, parcelas) — integração técnica fica em Pagamentos. Config = selo/apresentação.
           </li>
         </ul>
         <p className="mt-3 mb-0 text-sm">
@@ -475,7 +498,7 @@ export function AdminHomeContentPage() {
         bannersCount={banners.length}
         featuredCount={featured.length}
         featuredMax={MAX_FEATURED}
-        onSelectLocal={setTab}
+        onSelectLocal={selectTab}
       />
 
       {loading ? <p className="text-sm text-fal-muted">Carregando…</p> : null}

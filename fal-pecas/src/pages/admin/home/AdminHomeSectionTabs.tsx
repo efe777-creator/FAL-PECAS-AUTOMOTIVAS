@@ -30,7 +30,7 @@ export function AdminHomeSectionTabs({
       onSelectLocal(tab)
       return
     }
-    navigate('/admin/home', { state: { homeTab: tab } })
+    navigate(`/admin/home?tab=${tab}`, { state: { homeTab: tab } })
   }
 
   return (
