@@ -44,6 +44,7 @@ import { useCheckoutOrderPaymentWatch } from '@/hooks/useCheckoutOrderPaymentWat
 import { getActiveCarrierDescriptor } from '@/services/shipping/shippingService'
 import { loadCartLogistics } from '@/services/shipping/loadCartLogistics'
 import { quoteShippingEnvelope } from '@/services/shipping/quoteShippingEnvelope'
+import { selectableShippingOptions } from '@/services/shipping/quoteStorefrontShipping'
 import {
   loadShippingQuoteHandoff,
   clearShippingQuoteHandoff,
@@ -507,8 +508,9 @@ export function CheckoutPage() {
         pushError(env.message ?? 'Erro ao cotar frete')
         return
       }
-      const opts = ensureCustomerShippingOptions(env.options)
-      const selectable = opts.filter((o) => o.metadata?.selectable !== false)
+      const selectable = selectableShippingOptions(
+        ensureCustomerShippingOptions(env.options),
+      )
       quoteKeyRef.current = key
       setShippingOptions(selectable)
       const matched = matchPreferredShippingOption(selectable, preferredHandoffRef.current)

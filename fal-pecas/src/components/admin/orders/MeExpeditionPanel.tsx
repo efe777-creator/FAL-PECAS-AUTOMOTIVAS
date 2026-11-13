@@ -13,7 +13,12 @@ import {
 } from '@/lib/melhorEnvioLabelState'
 import { evaluateMePurchaseGates } from '@/lib/meLabelPurchaseGates'
 import { evaluateShipOrderGates } from '@/lib/meLabelShipGates'
-import { packingCompleteFromMeta } from '@/lib/orderPacking'
+import {
+  packingCompleteFromMeta,
+  parseOrderPacking,
+  parseVolumeDims,
+} from '@/lib/orderPacking'
+import { ensureCheckoutQuoteFromMeta, latestOpsQuote } from '@/lib/opsShippingQuote'
 import { openRomaneio } from '@/lib/adminOrderPrint'
 import { formatMoney } from '@/lib/money'
 import {
@@ -26,9 +31,11 @@ import {
   mePrintLabel,
   mePurchaseLabel,
   meQuoteLabel,
+  meTrackingLabel,
+  type MeOpsQuoteOption,
 } from '@/services/admin/melhorEnvioAdminService'
 import { resolveShippingMeEnvMode } from '@/services/shipping/carrierRegistry'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type Props = {
   order: AdminOrderDetail
@@ -37,9 +44,11 @@ type Props = {
   carrier: string
   service: string
   tracking: string
+  trackingUrl?: string
   onCarrier: (v: string) => void
   onService: (v: string) => void
   onTracking: (v: string) => void
+  onTrackingUrl?: (v: string) => void
   onRequestShip: () => void
   onReload: () => Promise<void>
   onMessage: (msg: string | null) => void
@@ -53,9 +62,11 @@ export function MeExpeditionPanel({
   carrier,
   service,
   tracking,
+  trackingUrl = '',
   onCarrier,
   onService,
   onTracking,
+  onTrackingUrl,
   onRequestShip,
   onReload,
   onMessage,
@@ -71,16 +82,51 @@ export function MeExpeditionPanel({
   const [overrideReason, setOverrideReason] = useState('')
   const [opsNote, setOpsNote] = useState('')
   const [trackBusy, setTrackBusy] = useState(false)
+  const [dimsSeeded, setDimsSeeded] = useState(false)
+  const [quoteOptions, setQuoteOptions] = useState<MeOpsQuoteOption[]>([])
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
+  const setTrackingUrl = onTrackingUrl ?? (() => undefined)
 
   const labelState = useMemo(
     () => meLabelState(order.shipment?.metadata ?? null),
     [order.shipment?.metadata],
   )
   const me = useMemo(() => parseMeMeta(order.shipment?.metadata ?? null), [order.shipment?.metadata])
+  const packing = useMemo(
+    () => parseOrderPacking(order.shipment?.metadata ?? null),
+    [order.shipment?.metadata],
+  )
   const packingOk = useMemo(
     () => packingCompleteFromMeta(order.shipment?.metadata ?? null),
     [order.shipment?.metadata],
   )
+
+  function applyPackingDims() {
+    const first = packing.volumes[0]
+    if (!first) return false
+    setWeightKg(String(first.weightKg))
+    setHeightCm(String(first.heightCm))
+    setWidthCm(String(first.widthCm))
+    setLengthCm(String(first.lengthCm))
+    return true
+  }
+
+  useEffect(() => {
+    if (dimsSeeded) return
+    if (applyPackingDims()) {
+      setDimsSeeded(true)
+      return
+    }
+    const fromMe = parseVolumeDims(me.volumes)
+    if (fromMe) {
+      setWeightKg(String(fromMe.weightKg))
+      setHeightCm(String(fromMe.heightCm))
+      setWidthCm(String(fromMe.widthCm))
+      setLengthCm(String(fromMe.lengthCm))
+      setDimsSeeded(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once per mount/order
+  }, [order.id, packing.volumes.length, dimsSeeded])
   const purchaseGates = useMemo(
     () =>
       evaluateMePurchaseGates({
@@ -110,7 +156,41 @@ export function MeExpeditionPanel({
     [order.status, order.payment?.status, order.shipment?.provider, packingOk, labelState],
   )
 
-  async function runMe(fn: () => Promise<{ ok: boolean; message?: string; error?: string; divergence?: { blocked: boolean; reason?: string; labelAmount?: number } | null; printUrl?: string | null }>) {
+  const checkout = useMemo(
+    () => ensureCheckoutQuoteFromMeta(order.shipment?.metadata ?? null, order.shippingAmount),
+    [order.shipment?.metadata, order.shippingAmount],
+  )
+  const latestOps = useMemo(
+    () => latestOpsQuote(order.shipment?.metadata ?? null),
+    [order.shipment?.metadata],
+  )
+
+  useEffect(() => {
+    if (latestOps?.options?.length) {
+      setQuoteOptions(
+        latestOps.options.map((o) => ({
+          service_id: o.serviceId,
+          company: o.company,
+          name: o.name,
+          price: o.price,
+          delivery_time: o.deliveryTime,
+        })),
+      )
+      if (latestOps.selectedServiceId != null) setSelectedServiceId(latestOps.selectedServiceId)
+    }
+  }, [latestOps])
+
+  async function runMe(
+    fn: () => Promise<{
+      ok: boolean
+      message?: string
+      error?: string
+      divergence?: { blocked: boolean; reason?: string; labelAmount?: number } | null
+      printUrl?: string | null
+      options?: MeOpsQuoteOption[]
+      selectedServiceId?: number | null
+    }>,
+  ) {
     setMeBusy(true)
     onError(null)
     onMessage(null)
@@ -120,6 +200,10 @@ export function MeExpeditionPanel({
       if (r.divergence?.blocked) {
         setDivergenceMsg(r.divergence.reason ?? 'Divergência de frete — compra bloqueada.')
         if (r.divergence.labelAmount != null) setLastQuote(r.divergence.labelAmount)
+      }
+      if (Array.isArray(r.options) && r.options.length) {
+        setQuoteOptions(r.options)
+        if (r.selectedServiceId != null) setSelectedServiceId(r.selectedServiceId)
       }
       if (!r.ok) {
         onError(r.error ?? r.message ?? 'Operação Melhor Envio falhou')
@@ -203,16 +287,97 @@ export function MeExpeditionPanel({
             onChange={(e) => setLengthCm(e.target.value)}
           />
         </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="light"
+            disabled={busy || meBusy || packing.volumes.length === 0}
+            onClick={() => {
+              if (applyPackingDims()) onMessage('Medidas do packing aplicadas — recote a etiqueta')
+              else onError('Packing sem volumes para aplicar')
+            }}
+          >
+            Usar medidas do packing
+          </Button>
+        </div>
       </div>
+
+      {checkout.amount != null && latestOps?.quotedAmount != null ? (
+        <p className="mb-0 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+          Comparativo: original {formatMoney(checkout.amount)} × ops{' '}
+          {formatMoney(latestOps.quotedAmount)} · cliente paga{' '}
+          {formatMoney(order.shippingAmount)} (imutável)
+        </p>
+      ) : null}
+
+      {quoteOptions.length > 0 ? (
+        <div className="rounded-[10px] border border-fal-line bg-fal-bg/40 p-3">
+          <h3 className="m-0 text-sm font-bold text-fal-navy">Opções da recote</h3>
+          <p className="mt-1 text-xs text-fal-muted">
+            Selecione o serviço operacional e recote/prepare. Não altera o frete do cliente.
+          </p>
+          <ul className="mt-2 list-none space-y-1 p-0">
+            {quoteOptions.map((o) => {
+              const id = Number(o.service_id ?? o.id ?? 0)
+              return (
+                <li key={id}>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="me-ops-service"
+                      checked={selectedServiceId === id}
+                      onChange={() => setSelectedServiceId(id)}
+                      disabled={busy || meBusy}
+                    />
+                    <span>
+                      {o.company ? `${o.company} — ` : ''}
+                      {o.name ?? `Serviço #${id}`} · {formatMoney(Number(o.price ?? 0))}
+                      {o.delivery_time ? ` · ${o.delivery_time}` : ''}
+                    </span>
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
+          <Button
+            type="button"
+            variant="light"
+            className="mt-2"
+            disabled={busy || meBusy || selectedServiceId == null}
+            onClick={() =>
+              void runMe(() =>
+                meQuoteLabel(
+                  order.id,
+                  { ...(packageOverride ?? {}), usePacking: true },
+                  selectedServiceId,
+                ),
+              )
+            }
+          >
+            Aplicar serviço selecionado
+          </Button>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="light"
           disabled={busy || meBusy}
-          onClick={() => void runMe(() => meQuoteLabel(order.id, packageOverride))}
+          onClick={() =>
+            void runMe(() =>
+              meQuoteLabel(
+                order.id,
+                {
+                  ...(packageOverride ?? {}),
+                  usePacking: true,
+                },
+                selectedServiceId,
+              ),
+            )
+          }
         >
-          Cotar etiqueta
+          Cotar etiqueta (interno)
         </Button>
         <Button
           type="button"
@@ -309,7 +474,7 @@ export function MeExpeditionPanel({
               Despacho bloqueado: {shipGates.message}
             </p>
           ) : null}
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
+          <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-5">
             <Input
               label="Transportadora"
               value={carrier}
@@ -317,6 +482,12 @@ export function MeExpeditionPanel({
             />
             <Input label="Serviço" value={service} onChange={(e) => onService(e.target.value)} />
             <Input label="Rastreio" value={tracking} onChange={(e) => onTracking(e.target.value)} />
+            <Input
+              label="Link de rastreio"
+              value={trackingUrl}
+              onChange={(e) => setTrackingUrl(e.target.value)}
+              placeholder="https://…"
+            />
             <div className="flex items-end">
               <Button
                 type="button"
@@ -333,18 +504,50 @@ export function MeExpeditionPanel({
       {order.status === 'enviado' || order.status === 'entregue' ? (
         <div className="border-t border-fal-line pt-4">
           <h3 className="m-0 text-sm font-bold text-fal-navy">Obs. e rastreio (pós-despacho)</h3>
-          <div className="mt-2 grid gap-2 md:grid-cols-3">
+          <div className="mt-2 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
             <Input
-              label="Link / código de rastreio"
+              label="Código de rastreio"
               value={tracking}
               onChange={(e) => onTracking(e.target.value)}
+            />
+            <Input
+              label="Link de rastreio"
+              value={trackingUrl}
+              onChange={(e) => setTrackingUrl(e.target.value)}
+              placeholder="https://…"
             />
             <Input
               label="Observação operacional"
               value={opsNote}
               onChange={(e) => setOpsNote(e.target.value)}
             />
-            <div className="flex items-end">
+            <div className="flex flex-wrap items-end gap-2">
+              <Button
+                type="button"
+                variant="light"
+                disabled={busy || trackBusy || meBusy}
+                onClick={() =>
+                  void runMe(async () => {
+                    const r = await meTrackingLabel(order.id)
+                    if (r.ok && r.me?.tracking) onTracking(String(r.me.tracking))
+                    const url =
+                      r.me && typeof r.me === 'object'
+                        ? String((r.me as { tracking_url?: string }).tracking_url ?? '')
+                        : ''
+                    if (url) setTrackingUrl(url)
+                    if (r.ok && (r.me?.tracking || url)) {
+                      await adminSetShipmentTracking({
+                        orderId: order.id,
+                        trackingCode: r.me?.tracking ? String(r.me.tracking) : tracking.trim() || null,
+                        trackingUrl: url || trackingUrl.trim() || null,
+                      })
+                    }
+                    return r
+                  })
+                }
+              >
+                Atualizar do Melhor Envio
+              </Button>
               <Button
                 type="button"
                 variant="light"
@@ -357,9 +560,10 @@ export function MeExpeditionPanel({
                       await adminSetShipmentTracking({
                         orderId: order.id,
                         trackingCode: tracking.trim() || null,
+                        trackingUrl: trackingUrl.trim() || null,
                         note: opsNote.trim() || null,
                       })
-                      onMessage('Rastreio/obs. atualizados')
+                      onMessage('Rastreio/obs. atualizados — cliente notificado')
                       await onReload()
                     } catch (e) {
                       onError(toUserMessage(e, 'Falha ao salvar rastreio'))

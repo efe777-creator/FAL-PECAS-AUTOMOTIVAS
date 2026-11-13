@@ -1,9 +1,21 @@
 import { getSupabase } from '@/lib/supabase'
 
+export type CustomerDecisionChoice =
+  | 'continue_available'
+  | 'wait_arrival'
+  | 'cancel_order'
+  | 'authorize'
+  | 'reject'
+
 export type CustomerDecisionResponse = {
   order_id: string
   status: string
-  customer_decision: 'authorized' | 'rejected'
+  customer_decision:
+    | 'authorized'
+    | 'rejected'
+    | 'continue_available'
+    | 'wait_arrival'
+    | 'cancel_order'
 }
 
 export type CustomerCancelUnpaidResponse = {
@@ -24,12 +36,12 @@ export async function customerCancelUnpaidOrder(
 
 export async function customerRespondOrderDecision(
   orderId: string,
-  decision: 'authorize' | 'reject',
+  decision: CustomerDecisionChoice,
   reason?: string,
 ): Promise<CustomerDecisionResponse> {
   const trimmed = reason?.trim() || null
-  if (decision === 'reject' && !trimmed) {
-    throw new Error('Informe o motivo da recusa')
+  if ((decision === 'reject' || decision === 'cancel_order') && !trimmed) {
+    throw new Error('Informe o motivo do cancelamento')
   }
   const { data, error } = await getSupabase().rpc('customer_respond_order_decision', {
     p_order_id: orderId,

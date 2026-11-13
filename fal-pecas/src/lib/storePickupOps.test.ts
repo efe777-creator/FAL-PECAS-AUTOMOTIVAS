@@ -30,6 +30,15 @@ describe('volumesFromContractedMeta', () => {
     expect(vols[0]?.lengthCm).toBe(30)
     expect(vols[0]?.weightKg).toBe(1.5)
   })
+
+  it('aceita volumes ME como objeto único', () => {
+    const vols = volumesFromContractedMeta({
+      me: { volumes: { lengthCm: 16, widthCm: 11, heightCm: 2, weightKg: 0.3 } },
+    })
+    expect(vols).toHaveLength(1)
+    expect(vols[0]?.lengthCm).toBe(16)
+    expect(vols[0]?.weightKg).toBe(0.3)
+  })
 })
 
 describe('customerFacingOrderStatusLabel pickup', () => {

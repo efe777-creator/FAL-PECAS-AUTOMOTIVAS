@@ -14,6 +14,15 @@ export type MeLabelAction =
   | 'tracking'
   | 'status'
 
+export type MeOpsQuoteOption = {
+  service_id?: number
+  id?: number
+  company?: string | null
+  name?: string | null
+  price?: number
+  delivery_time?: string | null
+}
+
 export type MeLabelResponse = {
   ok: boolean
   orderId: string
@@ -26,10 +35,23 @@ export type MeLabelResponse = {
     blocked: boolean
     reason?: string
   } | null
+  options?: MeOpsQuoteOption[]
+  selectedServiceId?: number | null
   printUrl?: string | null
   message?: string
   error?: string
   sandbox?: boolean
+}
+
+function edgeErrorMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== 'object') return fallback
+  const body = data as Record<string, unknown>
+  const msg = typeof body.message === 'string' ? body.message.trim() : ''
+  const code = typeof body.error === 'string' ? body.error.trim() : ''
+  if (msg && code && msg !== code) return `${code}: ${msg}`
+  if (msg) return msg
+  if (code) return code
+  return fallback
 }
 
 async function invokeLabel(
@@ -41,11 +63,27 @@ async function invokeLabel(
     body: { action, orderId, ...extra },
   })
   if (error) {
+    const fallback = error.message || 'Falha ao chamar melhorenvio-label'
+    // supabase-js pode colocar o JSON da Edge em error.context (Response) ou em data.
+    let contextBody: unknown = data
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        contextBody = await ctx.json()
+      } catch {
+        /* keep data */
+      }
+    }
+    const fromBody = edgeErrorMessage(contextBody, fallback)
+    const partial =
+      contextBody && typeof contextBody === 'object' ? (contextBody as MeLabelResponse) : null
     return {
+      ...(partial ?? {}),
       ok: false,
-      orderId,
-      labelState: 'none',
-      error: error.message || 'Falha ao chamar melhorenvio-label',
+      orderId: partial?.orderId ?? orderId,
+      labelState: partial?.labelState ?? 'none',
+      error: fromBody,
+      message: fromBody,
     }
   }
   const body = (data ?? {}) as MeLabelResponse
@@ -57,8 +95,15 @@ async function invokeLabel(
   }
 }
 
-export function meQuoteLabel(orderId: string, packageOverride?: Record<string, unknown>) {
-  return invokeLabel('quote', orderId, { packageOverride })
+export function meQuoteLabel(
+  orderId: string,
+  packageOverride?: Record<string, unknown>,
+  selectedServiceId?: number | null,
+) {
+  return invokeLabel('quote', orderId, {
+    packageOverride,
+    ...(selectedServiceId != null ? { selectedServiceId } : {}),
+  })
 }
 
 export function mePrepareLabel(orderId: string) {

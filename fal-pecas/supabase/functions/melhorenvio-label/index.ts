@@ -11,6 +11,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   alreadyGenerated,
   alreadyPurchased,
+  evaluateFreightDivergence,
   labelStateOf,
   meAuthHeaders,
   meApiBase,
@@ -160,6 +161,27 @@ Deno.serve(async (req) => {
       .replace(/\D/g, '')
       .slice(0, 8)
 
+    // Congela cotação original na 1ª operação (nunca sobrescreve)
+    if (!meta.checkout_quote || typeof meta.checkout_quote !== 'object') {
+      const me0 = parseMeMeta(meta)
+      meta.checkout_quote = {
+        label: meta.label ?? null,
+        company: null,
+        service_id: Number(meta.service_id ?? me0.service_id ?? 0) || null,
+        service_code: meta.service_code ?? null,
+        amount: charged,
+        quote_id: meta.quote_id ?? me0.checkout_snapshot_ref ?? null,
+        volumes: meta.volumes ?? me0.volumes ?? null,
+        volume_count: 1,
+        total_weight_kg: null,
+        frozen_at: new Date().toISOString(),
+      }
+      await admin
+        .from('shipments')
+        .update({ metadata: meta, updated_at: new Date().toISOString() })
+        .eq('id', shipment.id)
+    }
+
     async function persist(
       patch: MeMeta,
       extraShipment?: Record<string, unknown>,
@@ -168,6 +190,10 @@ Deno.serve(async (req) => {
       const nextMeta = {
         ...mergeMeMeta(meta, patch),
         ...(rootPatch ?? {}),
+      }
+      // Preserva checkout_quote mesmo se rootPatch omitir
+      if (meta.checkout_quote && !nextMeta.checkout_quote) {
+        nextMeta.checkout_quote = meta.checkout_quote
       }
       Object.assign(meta, nextMeta)
       const { error } = await admin
@@ -211,12 +237,54 @@ Deno.serve(async (req) => {
     if (action === 'quote') {
       let labelAmount = charged
       let volumes: unknown = null
+      let quoteOptions: Array<Record<string, unknown>> = []
+      let selectedServiceId: number | null = null
+      const pkg = (body.packageOverride ?? {}) as Record<string, unknown>
+      const meMeta = parseMeMeta(meta)
+      const packing = (meta.packing ?? {}) as Record<string, unknown>
+      const packingVols = Array.isArray(packing.volumes) ? packing.volumes : []
+      const packingFirst =
+        packingVols[0] && typeof packingVols[0] === 'object'
+          ? (packingVols[0] as Record<string, unknown>)
+          : null
+      const usePacking = pkg.usePacking === true || body.usePacking === true
+      const snapVol = (meMeta.volumes ?? {}) as Record<string, unknown>
+      const src = usePacking && packingFirst ? packingFirst : null
+      const width = Number(
+        pkg.widthCm ?? src?.widthCm ?? snapVol.widthCm ?? snapVol.width ?? 11,
+      )
+      const height = Number(
+        pkg.heightCm ?? src?.heightCm ?? snapVol.heightCm ?? snapVol.height ?? 2,
+      )
+      const length = Number(
+        pkg.lengthCm ?? src?.lengthCm ?? snapVol.lengthCm ?? snapVol.length ?? 16,
+      )
+      const weight = Number(
+        pkg.weightKg ?? src?.weightKg ?? snapVol.weightKg ?? snapVol.weight ?? 0.3,
+      )
+      const preferredServiceId = Number(
+        body.selectedServiceId ?? body.serviceId ?? meMeta.service_id ?? meta.service_id ?? 0,
+      )
+
+      // Congela cotação original (nunca sobrescreve se já existir)
+      const checkoutQuote =
+        meta.checkout_quote && typeof meta.checkout_quote === 'object'
+          ? (meta.checkout_quote as Record<string, unknown>)
+          : {
+              label: meta.label ?? null,
+              company: null,
+              service_id: Number(meta.service_id ?? meMeta.service_id ?? 0) || null,
+              service_code: meta.service_code ?? null,
+              amount: charged,
+              quote_id: meta.quote_id ?? meMeta.checkout_snapshot_ref ?? null,
+              volumes: meta.volumes ?? meMeta.volumes ?? null,
+              volume_count: 1,
+              total_weight_kg: null,
+              frozen_at: new Date().toISOString(),
+            }
+
       if (!dryRun) {
-        // Cotação real sandbox: POST /api/v2/me/shipment/calculate (esqueleto — payload mínimo)
         try {
-          const pkg = (body.packageOverride ?? {}) as Record<string, unknown>
-          const meMeta = parseMeMeta(meta)
-          const vol = (meMeta.volumes ?? {}) as Record<string, unknown>
           if (originPostal.length !== 8 || destPostal.length !== 8) {
             await persist({ last_error: 'origin_or_dest_postal_missing' })
             return json(422, {
@@ -237,10 +305,10 @@ Deno.serve(async (req) => {
               products: [
                 {
                   id: 'pkg',
-                  width: Number(pkg.widthCm ?? vol.widthCm ?? 11),
-                  height: Number(pkg.heightCm ?? vol.heightCm ?? 2),
-                  length: Number(pkg.lengthCm ?? vol.lengthCm ?? 16),
-                  weight: Number(pkg.weightKg ?? vol.weightKg ?? 0.3),
+                  width,
+                  height,
+                  length,
+                  weight,
                   insurance_value: charged > 0 ? charged : 1,
                   quantity: 1,
                 },
@@ -255,14 +323,53 @@ Deno.serve(async (req) => {
               orderId,
               labelState: state,
               error: 'me_quote_failed',
-              message: 'Falha na cotação Melhor Envio sandbox.',
+              message: 'Falha na cotação Melhor Envio.',
               sandbox,
             })
           }
-          const first = Array.isArray(data) ? data[0] : null
-          if (first && typeof first === 'object') {
-            labelAmount = Number((first as { price?: string }).price ?? charged)
-            volumes = (first as { packages?: unknown }).packages ?? null
+          const rows = Array.isArray(data) ? data : []
+          quoteOptions = rows
+            .filter((r) => r && typeof r === 'object')
+            .map((r) => {
+              const row = r as Record<string, unknown>
+              const company =
+                row.company && typeof row.company === 'object'
+                  ? String((row.company as { name?: string }).name ?? '')
+                  : String(row.company ?? '')
+              return {
+                service_id: Number(row.id ?? 0),
+                id: Number(row.id ?? 0),
+                company: company || null,
+                name: String(row.name ?? row.service ?? ''),
+                price: Number(row.price ?? 0),
+                delivery_time: row.delivery_time != null ? String(row.delivery_time) : null,
+              }
+            })
+            .filter((o) => o.service_id > 0)
+
+          let picked =
+            preferredServiceId > 0
+              ? rows.find((r) => Number((r as { id?: number }).id) === preferredServiceId)
+              : null
+          if (!picked) {
+            const contracted = Number(meta.service_id ?? meMeta.service_id ?? 0)
+            picked =
+              contracted > 0
+                ? rows.find((r) => Number((r as { id?: number }).id) === contracted)
+                : null
+          }
+          if (!picked) picked = rows[0] ?? null
+          if (picked && typeof picked === 'object') {
+            selectedServiceId = Number((picked as { id?: number }).id ?? preferredServiceId) || null
+            labelAmount = Number((picked as { price?: string }).price ?? charged)
+            volumes = {
+              lengthCm: length,
+              widthCm: width,
+              heightCm: height,
+              weightKg: weight,
+              service_id: selectedServiceId,
+              packages: (picked as { packages?: unknown }).packages ?? null,
+            }
           }
         } catch (e) {
           await persist({
@@ -272,6 +379,7 @@ Deno.serve(async (req) => {
         }
       } else {
         labelAmount = charged
+        volumes = { lengthCm: length, widthCm: width, heightCm: height, weightKg: weight }
       }
 
       const divergence = evaluateFreightDivergence({
@@ -280,26 +388,53 @@ Deno.serve(async (req) => {
         serviceAvailable: true,
       })
       const prevVol = parseMeMeta(meta).volumes
-      await persist({
-        label_state: 'quoted',
+      const prevOps = Array.isArray(meta.ops_quotes) ? [...(meta.ops_quotes as unknown[])] : []
+      const opsEntry = {
+        at: new Date().toISOString(),
+        by: user.id,
+        volumes: [
+          {
+            lengthCm: length,
+            widthCm: width,
+            heightCm: height,
+            weightKg: weight,
+          },
+        ],
+        options: quoteOptions,
+        selected_service_id: selectedServiceId,
         quoted_amount: labelAmount,
-        label_amount: labelAmount,
-        // Não apagar volumes do packing snapshot se a calculate não devolver packages.
-        volumes: volumes ?? prevVol ?? null,
-        divergence,
-        dry_run: dryRun,
-        last_error: null,
-      })
+      }
+      prevOps.push(opsEntry)
+
+      await persist(
+        {
+          label_state: 'quoted',
+          quoted_amount: labelAmount,
+          label_amount: labelAmount,
+          service_id: selectedServiceId ?? meMeta.service_id ?? null,
+          volumes: volumes ?? prevVol ?? null,
+          divergence,
+          dry_run: dryRun,
+          last_error: null,
+        },
+        undefined,
+        {
+          checkout_quote: checkoutQuote,
+          ops_quotes: prevOps,
+        },
+      )
       return json(200, {
         ok: true,
         orderId,
         labelState: 'quoted' as MeLabelState,
         divergence,
+        options: quoteOptions,
+        selectedServiceId,
         message: dryRun
           ? 'Cotação dry-run (MELHOR_ENVIO_TOKEN ausente). Sandbox real exige secret.'
           : sandbox
-            ? 'Cotação Melhor Envio (sandbox) ok.'
-            : 'Cotação Melhor Envio (produção) ok.',
+            ? 'Cotação Melhor Envio (sandbox) ok — escolha o serviço se divergir.'
+            : 'Cotação Melhor Envio (produção) ok — escolha o serviço se divergir.',
         sandbox,
         dryRun,
       })
@@ -764,7 +899,43 @@ Deno.serve(async (req) => {
 
     // --- tracking ---
     if (action === 'tracking') {
-      const me = parseMeMeta(meta)
+      let me = parseMeMeta(meta)
+      if (!dryRun && meToken && me.cart_id) {
+        try {
+          // Melhor Envio: POST tracking com id(s) do envio no carrinho/protocolo
+          const trackRes = await fetch(`${meApiBase()}/api/v2/me/shipment/tracking`, {
+            method: 'POST',
+            headers: meAuthHeaders(meToken, meUa),
+            body: JSON.stringify({ orders: [me.cart_id] }),
+          })
+          const trackData = await trackRes.json().catch(() => null)
+          const row = Array.isArray(trackData)
+            ? trackData[0]
+            : trackData && typeof trackData === 'object'
+              ? (trackData as Record<string, unknown>)[String(me.cart_id)] ?? trackData
+              : null
+          if (row && typeof row === 'object') {
+            const o = row as Record<string, unknown>
+            const code = String(o.tracking ?? o.tracking_code ?? o.code ?? '').trim()
+            const url = String(o.tracking_url ?? o.self_tracking ?? o.url ?? '').trim() || null
+            if (code) {
+              await persist({
+                tracking: code,
+                tracking_url: url,
+                last_error: null,
+              })
+              // Atualiza coluna shipments.tracking_code se vazia ou divergente
+              await admin
+                .from('shipments')
+                .update({ tracking_code: code, updated_at: new Date().toISOString() })
+                .eq('id', shipment.id)
+              me = { ...me, tracking: code, tracking_url: url }
+            }
+          }
+        } catch {
+          // Mantém meta local se pull falhar
+        }
+      }
       return json(200, {
         ok: true,
         orderId,
@@ -772,7 +943,7 @@ Deno.serve(async (req) => {
         me,
         message: me.tracking
           ? `Rastreio: ${me.tracking}`
-          : 'Sem rastreio ainda. Webhook ME não auto-avança pedido nesta marcha.',
+          : 'Sem rastreio ainda. Compre/gere a etiqueta ou informe manualmente.',
         sandbox,
         dryRun,
       })

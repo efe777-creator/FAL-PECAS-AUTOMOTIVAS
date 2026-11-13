@@ -56,13 +56,19 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
   useEffect(() => {
     const meta = order.shipment?.metadata ?? null
     const parsed = parseOrderPacking(meta)
+    const qty = items.map((i) => ({ id: i.id, quantity: i.quantity }))
     if (parsed.volumes.length) {
-      setVolumes(parsed.volumes)
+      const hasAnyLine = parsed.volumes.some((v) => (v.lines?.length ?? 0) > 0)
+      // Volumes salvos sem lines (seed incompleto) → reaplicar alocação no 1º volume.
+      if (!hasAnyLine && items.length && !parsed.allocationException?.active) {
+        setVolumes(allocateAllToFirstVolume({ volumes: parsed.volumes }, qty).volumes)
+      } else {
+        setVolumes(parsed.volumes)
+      }
     } else {
       // Pré-preenche medidas da cotação e aloca itens no 1º volume (ainda precisa Salvar).
       const seeded = volumesFromContractedMeta(meta)
       if (seeded.length && items.length) {
-        const qty = items.map((i) => ({ id: i.id, quantity: i.quantity }))
         setVolumes(allocateAllToFirstVolume({ volumes: seeded }, qty).volumes)
       } else {
         setVolumes(seeded)
@@ -147,15 +153,33 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
       const exception = exceptionOn
         ? { active: true, reason: exceptionReason.trim() }
         : null
+      // Garante lines no payload: volumes sem alocação → aloca tudo no 1º volume antes do RPC.
+      let toSave = volumes
+      const hasAnyLine = volumes.some((v) => (v.lines?.length ?? 0) > 0)
+      if (!hasAnyLine && items.length && !exceptionOn) {
+        toSave = allocateAllToFirstVolume({ volumes }, itemQtys).volumes
+        setVolumes(toSave)
+      }
+      const allocPreview = validatePackingAllocation(
+        {
+          volumes: toSave,
+          allocationException: exceptionOn
+            ? { active: true, reason: exceptionReason }
+            : null,
+        },
+        itemQtys,
+      )
       const res = await adminSetOrderPacking(
         order.id,
-        volumesToRpcPayload(volumes),
+        volumesToRpcPayload(toSave),
         exception,
       )
-      const st = res.allocation_status ?? (complete ? 'complete' : 'incomplete')
+      const st =
+        res.allocation_status ??
+        (exceptionOn || allocPreview.ok ? (exceptionOn ? 'exception' : 'complete') : 'incomplete')
       onOk(
         st === 'complete' || st === 'exception'
-          ? `Packing completo · ${volumes.length} volume(s)`
+          ? `Packing completo · ${toSave.length} volume(s)`
           : `Packing salvo (incompleto) · falta alocar itens`,
       )
       await onReload()

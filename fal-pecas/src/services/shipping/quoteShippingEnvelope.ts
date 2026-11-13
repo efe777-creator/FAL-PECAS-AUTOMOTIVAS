@@ -45,21 +45,9 @@ export async function quoteShippingEnvelope(
     })
   }
 
-  // Live ou ME edge: gaps logísticos bloqueiam (sem inventar defaults).
-  if (desc.mode === 'live' || desc.envKey === 'melhorenvio') {
-    const gaps = logisticsGaps(req)
-    if (gaps.length) {
-      return buildErrorEnvelope({
-        providerId: desc.id,
-        mode: desc.mode,
-        status: 'missing_logistics',
-        req,
-        message:
-          'Faltam peso ou medidas do produto. Não foi possível cotar a entrega sem inventar valores.',
-        disclaimer,
-      })
-    }
-  }
+  // Gaps ME: provider ainda pode devolver own/pickup. Só erro se lista vazia.
+  const gaps =
+    desc.mode === 'live' || desc.envKey === 'melhorenvio' ? logisticsGaps(req) : []
 
   try {
     const provider = resolveCarrierProvider(desc.envKey)
@@ -68,9 +56,11 @@ export async function quoteShippingEnvelope(
       return buildErrorEnvelope({
         providerId: desc.id,
         mode: desc.mode,
-        status: 'unavailable',
+        status: gaps.length ? 'missing_logistics' : 'unavailable',
         req,
-        message: 'Nenhuma opção de frete disponível para este CEP',
+        message: gaps.length
+          ? 'Faltam peso ou medidas do produto. Não foi possível cotar a entrega sem inventar valores.'
+          : 'Nenhuma opção de frete disponível para este CEP',
         disclaimer,
       })
     }
@@ -80,13 +70,16 @@ export async function quoteShippingEnvelope(
       options,
       req,
       disclaimer,
+      message: gaps.length
+        ? 'Cotação Melhor Envio indisponível (peso/medidas). Opções FAL / retirada mantidas.'
+        : undefined,
     })
   } catch (e) {
     const message = toUserMessage(e, 'Erro ao cotar frete')
     return buildErrorEnvelope({
       providerId: desc.id,
       mode: desc.mode,
-      status: classifyError(message),
+      status: gaps.length ? 'missing_logistics' : classifyError(message),
       req,
       message,
       disclaimer,

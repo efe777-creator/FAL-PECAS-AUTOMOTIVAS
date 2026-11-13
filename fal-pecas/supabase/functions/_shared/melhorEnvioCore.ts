@@ -40,6 +40,7 @@ export type MeMeta = {
   cart_item_id?: string | null
   protocol?: string | null
   tracking?: string | null
+  tracking_url?: string | null
   label_url?: string | null
   service_id?: string | number | null
   label_amount?: number | null

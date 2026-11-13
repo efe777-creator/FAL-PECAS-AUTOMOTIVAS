@@ -11,7 +11,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     .from('orders')
     .select(
       `
-      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_decision,
+      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_decision, decision_proposal,
       cancellation_request, cancellation_reason,
       order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note ),
       order_status_history ( id, status, note, created_at ),
@@ -77,8 +77,18 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
 
   const decisionRaw = (data as { customer_decision?: string | null }).customer_decision
   const customerDecision =
-    decisionRaw === 'pending' || decisionRaw === 'authorized' || decisionRaw === 'rejected'
+    decisionRaw === 'pending' ||
+    decisionRaw === 'authorized' ||
+    decisionRaw === 'rejected' ||
+    decisionRaw === 'continue_available' ||
+    decisionRaw === 'wait_arrival' ||
+    decisionRaw === 'cancel_order'
       ? decisionRaw
+      : null
+  const proposalRaw = (data as { decision_proposal?: unknown }).decision_proposal
+  const decisionProposal =
+    proposalRaw && typeof proposalRaw === 'object'
+      ? (proposalRaw as Record<string, unknown>)
       : null
   const cancelRaw = (data as { cancellation_request?: string | null }).cancellation_request
   const cancellationRequest =
@@ -97,6 +107,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
     addressSnapshot: (data.address_snapshot as Record<string, unknown> | null) ?? null,
     paymentRef: data.payment_ref != null ? String(data.payment_ref) : null,
     customerDecision,
+    decisionProposal,
     cancellationRequest,
     cancellationReason: cancelReason != null ? String(cancelReason) : null,
     items: items.map((i: Record<string, unknown>) => ({

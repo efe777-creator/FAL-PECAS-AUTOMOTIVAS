@@ -23,6 +23,7 @@ import {
 import { readContractedShipping } from '@/lib/contractedShipping'
 import { isOrderStorePickup } from '@/lib/orderShippingKind'
 import { isStorePickupAuthorized } from '@/lib/storePickupOps'
+import { buildTrackingUrl } from '@/lib/shipmentTrackingUrl'
 import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
 import {
   customerCancelUnpaidOrder,
@@ -143,7 +144,39 @@ export function AccountOrderDetailPage() {
       })
     : ''
 
+  const proposalKind = useMemo(() => {
+    const fromCol = String(order?.decisionProposal?.kind ?? '').trim()
+    if (fromCol) return fromCol
+    if (!order?.events?.length) return ''
+    const hit = [...order.events]
+      .reverse()
+      .find(
+        (e) =>
+          e.eventType === 'order_awaiting_decision' ||
+          e.eventType === 'staff_requested_customer_decision',
+      )
+    return String(hit?.payload?.kind ?? hit?.payload?.reason_kind ?? '').trim()
+  }, [order])
+
   const decisionRequestReason = useMemo(() => {
+    const fromCol = String(order?.decisionProposal?.reason_text ?? '').trim()
+    if (fromCol) {
+      const kindLabel =
+        proposalKind === 'prazo'
+          ? 'Prazo'
+          : proposalKind === 'parcial'
+            ? 'Itens indisponíveis'
+            : proposalKind === 'escolha'
+              ? 'Decisão necessária'
+              : proposalKind === 'obs'
+                ? 'Observação'
+                : proposalKind === 'indisponivel'
+                  ? 'Indisponibilidade'
+                  : proposalKind === 'outro'
+                    ? 'Outro'
+                    : null
+      return kindLabel ? `${kindLabel}: ${fromCol}` : fromCol
+    }
     if (!order?.events?.length) return null
     const hit = [...order.events]
       .reverse()
@@ -153,23 +186,27 @@ export function AccountOrderDetailPage() {
           e.eventType === 'staff_requested_customer_decision',
       )
     if (!hit) return null
-    const kind = String(hit.payload?.reason_kind ?? '')
+    const kind = String(hit.payload?.kind ?? hit.payload?.reason_kind ?? '')
     const text = String(hit.payload?.reason_text ?? '').trim()
     const kindLabel =
       kind === 'prazo'
         ? 'Prazo'
-        : kind === 'obs'
-          ? 'Observação'
-          : kind === 'indisponivel'
-            ? 'Indisponibilidade'
-            : kind === 'outro'
-              ? 'Outro'
-              : null
+        : kind === 'parcial'
+          ? 'Itens indisponíveis'
+          : kind === 'escolha'
+            ? 'Decisão necessária'
+            : kind === 'obs'
+              ? 'Observação'
+              : kind === 'indisponivel'
+                ? 'Indisponibilidade'
+                : kind === 'outro'
+                  ? 'Outro'
+                  : null
     if (kindLabel && text) return `${kindLabel}: ${text}`
     if (text) return text
     if (kindLabel) return kindLabel
     return null
-  }, [order])
+  }, [order, proposalKind])
 
   const awaitingPayment = order?.status === 'aguardando_pagamento'
   const awaitingDecision = order?.status === 'aguardando_decisao'
@@ -225,34 +262,48 @@ export function AccountOrderDetailPage() {
     }
   }
 
-  async function onRespondDecision(decision: 'authorize' | 'reject') {
+  async function onRespondDecision(
+    decision: 'continue_available' | 'wait_arrival' | 'cancel_order',
+  ) {
     if (!order) return
     const { confirmed, reason } =
-      decision === 'authorize'
+      decision === 'continue_available'
         ? await confirmDialog({
-            title: 'Autorizar alterações?',
+            title:
+              proposalKind === 'prazo' ? 'Aceitar o novo prazo?' : 'Continuar com o disponível?',
             message:
-              'Autorizar as alterações da loja (itens indisponíveis ou com prazo)? Depois a loja poderá confirmar o pedido.',
-            confirmLabel: 'Autorizar',
+              proposalKind === 'prazo'
+                ? 'Você aceita o prazo informado pela loja. A equipe vai liberar o pedido para separação.'
+                : 'Seguiremos só com os itens disponíveis (estorno do faltante é manual pela loja). A equipe libera a separação em seguida.',
+            confirmLabel: proposalKind === 'prazo' ? 'Aceitar prazo' : 'Continuar',
           })
-        : await confirmDialog({
-            title: 'Recusar alterações?',
-            message:
-              'Informe o motivo. A loja será avisada e precisará cancelar ou renegociar.',
-            confirmLabel: 'Recusar',
-            danger: true,
-            requireReason: true,
-            reasonLabel: 'Motivo da recusa',
-            reasonPlaceholder: 'Ex.: prefiro cancelar / prazo longo demais',
-          })
+        : decision === 'wait_arrival'
+          ? await confirmDialog({
+              title: 'Esperar a chegada?',
+              message:
+                'O pedido fica aguardando disponibilidade. A loja retomará quando o item chegar.',
+              confirmLabel: 'Esperar',
+            })
+          : await confirmDialog({
+              title: 'Cancelar o pedido?',
+              message:
+                'Informe o motivo. A loja analisará o cancelamento do pedido inteiro (estorno manual).',
+              confirmLabel: 'Cancelar pedido',
+              danger: true,
+              requireReason: true,
+              reasonLabel: 'Motivo do cancelamento',
+              reasonPlaceholder: 'Ex.: prefiro cancelar / prazo longo demais',
+            })
     if (!confirmed) return
     setActionBusy(true)
     try {
       await customerRespondOrderDecision(order.id, decision, reason)
       pushOk(
-        decision === 'authorize'
-          ? 'Autorização registrada. A loja poderá confirmar o pedido.'
-          : 'Recusa registrada. A loja analisará o pedido.',
+        decision === 'continue_available'
+          ? 'Confirmação recebida. A loja vai liberar o pedido para separação.'
+          : decision === 'wait_arrival'
+            ? 'Registrado. A loja aguardará a disponibilidade.'
+            : 'Cancelamento solicitado. A loja analisará o pedido.',
       )
       await reload()
     } catch (e) {
@@ -564,15 +615,26 @@ export function AccountOrderDetailPage() {
       {awaitingDecision ? (
         <div className="rounded-fal border border-sky-300 bg-sky-50/70 p-5">
           <h3 className="mt-0 text-base font-extrabold text-fal-navy">
-            A loja pediu sua autorização
+            {proposalKind === 'prazo'
+              ? 'Prazo de entrega maior'
+              : proposalKind === 'parcial'
+                ? 'Item(ns) indisponível(is)'
+                : proposalKind === 'escolha'
+                  ? 'Precisamos da sua decisão'
+                  : 'A loja pediu sua decisão'}
           </h3>
           <p className="mt-1 text-sm text-fal-muted">
-            A loja pediu sua confirmação para seguir com o pedido. Nada é aplicado em
-            silêncio — escolha autorizar ou recusar.
+            Nada é aplicado em silêncio. Escolha com clareza como prefere seguir.
           </p>
           {decisionRequestReason ? (
             <p className="mt-2 rounded-md border border-sky-200 bg-white px-3 py-2 text-sm text-fal-ink">
-              <strong>Motivo da loja:</strong> {decisionRequestReason}
+              <strong>Mensagem da loja:</strong> {decisionRequestReason}
+            </p>
+          ) : null}
+          {proposalKind === 'parcial' || proposalKind === 'escolha' ? (
+            <p className="mt-2 text-xs text-fal-muted">
+              O valor do item faltante, se houver, será tratado pela loja (estorno manual). Os
+              totais do pedido não mudam automaticamente.
             </p>
           ) : null}
           <ul className="mt-3 list-none space-y-2 p-0 text-sm">
@@ -599,26 +661,40 @@ export function AccountOrderDetailPage() {
               <Button
                 type="button"
                 disabled={actionBusy}
-                onClick={() => void onRespondDecision('authorize')}
+                onClick={() => void onRespondDecision('continue_available')}
               >
-                Autorizar
+                {proposalKind === 'prazo' ? 'Aceitar novo prazo' : 'Continuar com o disponível'}
               </Button>
+              {proposalKind !== 'prazo' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={actionBusy}
+                  onClick={() => void onRespondDecision('wait_arrival')}
+                >
+                  Esperar o prazo informado
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="light"
                 disabled={actionBusy}
-                onClick={() => void onRespondDecision('reject')}
+                onClick={() => void onRespondDecision('cancel_order')}
               >
-                Recusar
+                Cancelar o pedido
               </Button>
             </div>
           ) : (
             <p className="mb-0 mt-3 text-sm font-semibold text-fal-navy">
-              {order.customerDecision === 'authorized'
-                ? 'Você já autorizou. Aguardando a loja confirmar o pedido.'
-                : order.customerDecision === 'rejected'
-                  ? 'Você recusou. A loja analisará o pedido.'
-                  : null}
+              {order.customerDecision === 'authorized' ||
+              order.customerDecision === 'continue_available'
+                ? 'Você confirmou. Aguardando a loja liberar o pedido para separação.'
+                : order.customerDecision === 'wait_arrival'
+                  ? 'Você pediu para esperar. A loja retomará quando houver disponibilidade.'
+                  : order.customerDecision === 'rejected' ||
+                      order.customerDecision === 'cancel_order'
+                    ? 'Você pediu cancelamento. A loja analisará o pedido.'
+                    : null}
             </p>
           )}
         </div>
@@ -752,12 +828,40 @@ export function AccountOrderDetailPage() {
               {order.shipment.amount != null
                 ? money(order.shipment.amount)
                 : money(order.shippingAmount)}
-              {order.shipment.trackingCode ? (
-                <>
-                  <br />
-                  Rastreio: {order.shipment.trackingCode}
-                </>
-              ) : null}
+              {(() => {
+                const meta = order.shipment?.metadata ?? null
+                const own = meta?.own as Record<string, unknown> | undefined
+                const me = meta?.me as Record<string, unknown> | undefined
+                const trackingUrl = buildTrackingUrl({
+                  trackingCode: order.shipment?.trackingCode,
+                  trackingUrl:
+                    (meta?.tracking_url as string | undefined) ??
+                    (own?.tracking_url as string | undefined) ??
+                    (me?.tracking_url as string | undefined) ??
+                    null,
+                  carrier: order.shipment?.carrier,
+                  provider: order.shipment?.provider,
+                })
+                if (!order.shipment?.trackingCode && !trackingUrl) return null
+                return (
+                  <>
+                    <br />
+                    Rastreio:{' '}
+                    {trackingUrl ? (
+                      <a
+                        href={trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-fal-navy underline"
+                      >
+                        {order.shipment?.trackingCode || 'Acompanhar envio'}
+                      </a>
+                    ) : (
+                      order.shipment?.trackingCode
+                    )}
+                  </>
+                )
+              })()}
             </p>
           ) : (
             <p className="m-0 text-fal-muted">Sem registro</p>

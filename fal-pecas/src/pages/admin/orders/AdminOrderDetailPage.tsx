@@ -1,6 +1,7 @@
 import { MeExpeditionPanel } from '@/components/admin/orders/MeExpeditionPanel'
 import { ContractedFreightSnapshotPanel } from '@/components/admin/orders/ContractedFreightSnapshotPanel'
 import { FreightFinancePanel } from '@/components/admin/orders/FreightFinancePanel'
+import { OrderAnalysisResolutionPanel } from '@/components/admin/orders/OrderAnalysisResolutionPanel'
 import { OrderOccurrencesPanel } from '@/components/admin/orders/OrderOccurrencesPanel'
 import { AdminOrderCommandBar } from '@/components/admin/orders/AdminOrderCommandBar'
 import { PurchasedShippingSummary } from '@/components/admin/orders/PurchasedShippingSummary'
@@ -18,6 +19,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { openSeparationList } from '@/lib/adminOrderPrint'
+import { classifyAnalysisItems } from '@/lib/orderAnalysisResolution'
 import { summarizeOrderMargin, type OrderMarginSummary } from '@/lib/orderMarginSummary'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
@@ -56,6 +58,7 @@ import {
   adminDeliverOrder,
   adminFinalizeConfirmation,
   adminGetOrderDetail,
+  adminHoldForAvailability,
   adminMarkPaymentRefunded,
   adminRequestCustomerDecision,
   adminResolveOrderCancellation,
@@ -130,6 +133,7 @@ export function AdminOrderDetailPage() {
   const [carrier, setCarrier] = useState('')
   const [service, setService] = useState('')
   const [tracking, setTracking] = useState('')
+  const [trackingUrl, setTrackingUrl] = useState('')
   const [proofRef, setProofRef] = useState('')
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [cancelNote, setCancelNote] = useState('')
@@ -186,6 +190,11 @@ export function AdminOrderDetailPage() {
           '',
         )
         setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')
+        const metaUrl =
+          (d.shipment?.metadata?.tracking_url as string | undefined) ||
+          (me?.tracking_url as string | undefined) ||
+          ((d.shipment?.metadata?.own as { tracking_url?: string } | undefined)?.tracking_url)
+        setTrackingUrl((prev) => prev || metaUrl || '')
       }
     } catch (e) {
       pushError(toUserMessage(e, 'Erro ao carregar'))
@@ -486,6 +495,7 @@ export function AdminOrderDetailPage() {
         carrier: carrier || undefined,
         service: service || undefined,
         trackingCode: tracking || undefined,
+        trackingUrl: trackingUrl || undefined,
       })
       pushOk('Pedido expedido')
       setPending(null)
@@ -538,8 +548,21 @@ export function AdminOrderDetailPage() {
     current.status,
   )
   const inSeparation = current.status === 'confirmado' || current.status === 'em_separacao'
-  const separatedCount = current.items.filter((it) => it.separated).length
-  const allSeparated = current.items.length > 0 && separatedCount === current.items.length
+  const separableItems = current.items.filter((it) => it.availability !== 'indisponivel')
+  const separatedCount = separableItems.filter((it) => it.separated).length
+  const allSeparated =
+    current.items.length > 0 &&
+    (separableItems.length === 0 || separatedCount === separableItems.length)
+  const analysisMode = classifyAnalysisItems(
+    current.items.map((i) => ({ availability: i.availability, leadDays: i.leadDays })),
+  )
+  const customerAuthorizedPartial =
+    current.customerDecision === 'authorized' ||
+    current.customerDecision === 'continue_available'
+  const canStaffFinalizeAnalysis =
+    current.status === 'aguardando_decisao'
+      ? customerAuthorizedPartial
+      : analysisMode === 'all_ok' || analysisMode === 'prazo_only'
   const hadDecisionStep =
     current.customerDecision != null ||
     current.status === 'aguardando_decisao' ||
@@ -568,11 +591,15 @@ export function AdminOrderDetailPage() {
       ? {
           title: adminNextActionLabel(current.status, current.customerDecision),
           body:
-            current.customerDecision === 'authorized'
-              ? 'Use Finalizar confirmação para confirmar o pedido com a autorização registrada.'
-              : current.customerDecision === 'rejected'
-                ? 'Não confirme. Cancele (gerente) ou ajuste com o cliente.'
-                : 'Aguarde a resposta do cliente. Não confirme em silêncio.',
+            current.customerDecision === 'authorized' ||
+            current.customerDecision === 'continue_available'
+              ? 'Cliente autorizou. Se o status ainda estiver aqui (legado), finalize a confirmação.'
+              : current.customerDecision === 'rejected' ||
+                  current.customerDecision === 'cancel_order'
+                ? 'Cliente pediu cancelamento. Não confirme — analise o cancelamento.'
+                : current.customerDecision === 'wait_arrival'
+                  ? 'Cliente pediu espera. O pedido deve ir para aguardando disponibilidade.'
+                  : 'Aguarde a resposta do cliente. Não confirme em silêncio.',
         }
       : storePickup &&
           pickupAuthorized &&
@@ -584,7 +611,9 @@ export function AdminOrderDetailPage() {
         : baseStep
 
   async function markAllSeparated() {
-    const pendingItems = current.items.filter((it) => !it.separated)
+    const pendingItems = current.items.filter(
+      (it) => !it.separated && it.availability !== 'indisponivel',
+    )
     if (pendingItems.length === 0) return
     setBusy(true)
     setError(null)
@@ -596,6 +625,38 @@ export function AdminOrderDetailPage() {
       await reload()
     } catch (e) {
       pushError(toUserMessage(e, 'Falha ao marcar separação'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runHoldForAvailability(waitDays: number | null, note: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      await adminHoldForAvailability(id, waitDays, note || null)
+      pushOk('Pedido em aguardando disponibilidade')
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao colocar em espera'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runRequestDecisionWithKind(
+    kind: StaffDecisionReasonKind,
+    reasonText: string,
+    proposal?: Record<string, unknown>,
+  ) {
+    setBusy(true)
+    setError(null)
+    try {
+      await adminRequestCustomerDecision(id, kind, reasonText, proposal ?? null)
+      pushOk('Confirmação solicitada ao cliente')
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao solicitar confirmação'))
     } finally {
       setBusy(false)
     }
@@ -658,7 +719,9 @@ export function AdminOrderDetailPage() {
         actorLabel={adminActorBadgeLabel(actor)}
         nextStep={nextStep}
         separationProgress={
-          inSeparation ? `Separação: ${separatedCount}/${order.items.length} item(ns)` : null
+          inSeparation
+            ? `Separação: ${separatedCount}/${separableItems.length} item(ns) a enviar`
+            : null
         }
       />
 
@@ -1018,7 +1081,8 @@ export function AdminOrderDetailPage() {
         ) : null}
         {inSeparation ? (
           <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
-            Separe a quantidade integral por linha ({separatedCount}/{order.items.length}).
+            Separe a quantidade integral por linha ({separatedCount}/{separableItems.length} a
+            enviar). Itens indisponíveis ficam fora.
             {storePickup
               ? ' Retirada: volumes opcionais.'
               : shipKind === 'melhorenvio'
@@ -1251,21 +1315,54 @@ export function AdminOrderDetailPage() {
                   </p>
                 )}
                 {inSeparation ? (
-                  <label className="mt-2 flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(it.separated)}
-                      disabled={busy}
-                      onChange={(e) => void toggleSeparated(it.id, e.target.checked)}
-                    />
-                    Item separado
-                  </label>
+                  it.availability === 'indisponivel' ? (
+                    <p className="mt-2 mb-0 rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-800">
+                      Indisponível — não separar / fora do envio
+                    </p>
+                  ) : (
+                    <label className="mt-2 flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(it.separated)}
+                        disabled={busy}
+                        onChange={(e) => void toggleSeparated(it.id, e.target.checked)}
+                      />
+                      Item separado
+                    </label>
+                  )
                 ) : null}
               </div>
             )
           })}
         </div>
       </section>
+
+      {(inAnalysis || inSeparation) && current ? (
+        <OrderAnalysisResolutionPanel
+          order={current}
+          busy={busy || pending != null}
+          onFinalize={() => setPending({ kind: 'finalize' })}
+          onRequestDecision={runRequestDecisionWithKind}
+          onHold={runHoldForAvailability}
+          onWithdraw={
+            current.status === 'aguardando_decisao' &&
+            current.customerDecision !== 'continue_available' &&
+            current.customerDecision !== 'authorized' &&
+            current.customerDecision !== 'cancel_order' &&
+            current.customerDecision !== 'rejected'
+              ? () => void runWithdrawCustomerDecision()
+              : undefined
+          }
+          onPrintSeparation={() => {
+            if (!openSeparationList(current)) {
+              toast.push(
+                'Não foi possível abrir a lista de separação. Libere pop-ups para este site.',
+                'error',
+              )
+            }
+          }}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-2 rounded-[14px] border border-dashed border-fal-line bg-white px-3 py-3">
         {needsReception ? (
@@ -1287,27 +1384,24 @@ export function AdminOrderDetailPage() {
                 disabled={busy || pending != null}
                 onClick={() => void runRequestCustomerDecision()}
               >
-                Solicitar confirmação do cliente
+                Solicitar confirmação (legado / texto livre)
               </Button>
             )}
             <Button
               type="button"
-              disabled={
-                busy ||
-                pending != null ||
-                (current.status === 'aguardando_decisao' &&
-                  current.customerDecision !== 'authorized')
-              }
+              disabled={busy || pending != null || !canStaffFinalizeAnalysis}
               title={
-                current.status === 'aguardando_decisao' &&
-                current.customerDecision !== 'authorized'
-                  ? 'Aguarde o cliente ou retire a solicitação'
+                !canStaffFinalizeAnalysis
+                  ? analysisMode === 'incomplete'
+                    ? 'Defina a disponibilidade de todos os itens'
+                    : analysisMode === 'has_unavailable'
+                      ? 'Com item indisponível: peça decisão ao cliente ou espere a chegada'
+                      : 'Aguarde o cliente ou retire a solicitação'
                   : undefined
               }
               onClick={() => setPending({ kind: 'finalize' })}
             >
-              {current.status === 'aguardando_decisao' &&
-              current.customerDecision === 'authorized'
+              {current.status === 'aguardando_decisao' && customerAuthorizedPartial
                 ? 'Confirmar pedido e enviar para separação (cliente autorizou)'
                 : 'Confirmar pedido e enviar para separação'}
             </Button>
@@ -1317,13 +1411,12 @@ export function AdminOrderDetailPage() {
           <>
             {!allSeparated ? (
               <p className="w-full rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                Separação incompleta ({separatedCount}/{order.items.length}). Não conclua ainda.
-                Qty parcial na linha (ex.: 4 de 5) → abra ocorrência de divergência/falta
-                (multi-envio não suportado).
+                Separação incompleta ({separatedCount}/{separableItems.length} a enviar). Não
+                conclua ainda. Itens indisponíveis ficam fora do envio.
               </p>
             ) : (
               <p className="w-full rounded-[10px] border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-950">
-                Todos os itens marcados — pode concluir a separação.
+                Itens a enviar marcados — pode concluir a separação.
               </p>
             )}
             <Button
@@ -1472,9 +1565,11 @@ export function AdminOrderDetailPage() {
                   carrier={carrier}
                   service={service}
                   tracking={tracking}
+                  trackingUrl={trackingUrl}
                   onCarrier={setCarrier}
                   onService={setService}
                   onTracking={setTracking}
+                  onTrackingUrl={setTrackingUrl}
                   onRequestShip={() => setPending({ kind: 'ship' })}
                   onReload={() => reload()}
                   onMessage={(m) => {
@@ -1490,6 +1585,7 @@ export function AdminOrderDetailPage() {
             </>
           ) : (
             <>
+              <ContractedFreightSnapshotPanel order={order} />
               <div className="rounded-[14px] ring-1 ring-fal-navy/15">
                 <OwnShipPanel
                   order={order}
@@ -1517,9 +1613,9 @@ export function AdminOrderDetailPage() {
               {['confirmado', 'em_separacao', 'pronto_para_envio', 'preparando_envio'].includes(
                 order.status,
               ) ? (
-                <details className="rounded-[14px] border border-fal-line bg-white">
+                <details className="rounded-[14px] border border-fal-line bg-white" open>
                   <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-fal-muted [&::-webkit-details-marker]:hidden">
-                    Volumes (opcional no frete próprio)
+                    Volumes / medidas (own — registre divergência se necessário)
                   </summary>
                   <div id="ops-volumes" className="border-t border-fal-line p-0">
                     <OrderPackingPanel

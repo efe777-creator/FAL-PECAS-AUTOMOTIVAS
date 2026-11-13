@@ -124,7 +124,14 @@ export interface OrderLifecycleEvent {
   createdAt: string
 }
 
-export type OrderCustomerDecision = 'pending' | 'authorized' | 'rejected' | null
+export type OrderCustomerDecision =
+  | 'pending'
+  | 'authorized'
+  | 'rejected'
+  | 'continue_available'
+  | 'wait_arrival'
+  | 'cancel_order'
+  | null
 
 export type OrderCancellationRequest = 'pending' | 'approved' | 'rejected' | null
 
@@ -139,6 +146,8 @@ export interface OrderDetail {
   paymentRef?: string | null
   /** Decisão do cliente em aguardando_decisao. */
   customerDecision?: OrderCustomerDecision
+  /** Proposta da loja (kind, reason_text, etas…). */
+  decisionProposal?: Record<string, unknown> | null
   /** Solicitação de cancelamento pós-pago (Onda 2). */
   cancellationRequest?: OrderCancellationRequest
   cancellationReason?: string | null

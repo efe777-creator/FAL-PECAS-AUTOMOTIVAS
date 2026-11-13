@@ -17,6 +17,43 @@ import { transitionOrderStatus } from '@/services/orders/orderTransitionService'
 
 export type OrderItemAvailability = 'disponivel' | 'disponivel_com_prazo' | 'indisponivel'
 
+export type CustomerDecisionValue =
+  | 'pending'
+  | 'authorized'
+  | 'rejected'
+  | 'continue_available'
+  | 'wait_arrival'
+  | 'cancel_order'
+
+export function parseCustomerDecision(raw: unknown): CustomerDecisionValue | null {
+  if (
+    raw === 'pending' ||
+    raw === 'authorized' ||
+    raw === 'rejected' ||
+    raw === 'continue_available' ||
+    raw === 'wait_arrival' ||
+    raw === 'cancel_order'
+  ) {
+    return raw
+  }
+  return null
+}
+
+/** Fonte canônica para gates ME: preferir approved; senão o mais recente por created_at. */
+export function pickCanonicalPayment<T extends { status?: string; created_at?: string }>(
+  payments: T[] | null | undefined,
+): T | null {
+  if (!Array.isArray(payments) || payments.length === 0) return null
+  const approved = payments.find((p) => String(p.status ?? '') === 'approved')
+  if (approved) return approved
+  const sorted = [...payments].sort((a, b) => {
+    const ta = a.created_at ? Date.parse(String(a.created_at)) : 0
+    const tb = b.created_at ? Date.parse(String(b.created_at)) : 0
+    return tb - ta
+  })
+  return sorted[0] ?? null
+}
+
 export type AdminOrderListRow = {
   id: string
   status: string
@@ -26,7 +63,7 @@ export type AdminOrderListRow = {
   itemCount: number
   paymentStatus: string | null
   paymentExpiresAt: string | null
-  customerDecision: 'pending' | 'authorized' | 'rejected' | null
+  customerDecision: CustomerDecisionValue | null
   cancellationRequest: 'pending' | 'approved' | 'rejected' | null
   cancellationReason: string | null
   /** Marcha 1 — provider do shipment (quando a lista carrega join). */
@@ -70,7 +107,8 @@ export type AdminOrderDetail = {
   customerName: string | null
   customerEmail: string | null
   customerDoc: string | null
-  customerDecision: 'pending' | 'authorized' | 'rejected' | null
+  customerDecision: CustomerDecisionValue | null
+  decisionProposal: Record<string, unknown> | null
   cancellationRequest: 'pending' | 'approved' | 'rejected' | null
   cancellationReason: string | null
   cancellationResolveNote: string | null
@@ -118,7 +156,7 @@ export type AdminListOrdersOpts = {
   /** Preferir isto a `filterStatus` quando a fila tem vários status. */
   statuses?: readonly string[] | null
   cancellationRequest?: 'pending' | 'approved' | 'rejected' | null
-  customerDecision?: 'pending' | 'authorized' | 'rejected' | null
+  customerDecision?: CustomerDecisionValue | null
   /**
    * Visão "problemas": decisão rejected OU aguardando_pagamento
    * (pagamento failed/rejected ainda refinado no cliente sobre este subconjunto).
@@ -140,7 +178,7 @@ export async function adminListOrders(
       cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
-      payments ( status, expires_at ),
+      payments ( status, expires_at, created_at ),
       shipments ( provider, metadata, carrier, service )
     `,
     )
@@ -176,7 +214,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     .from('orders')
     .select(
       `
-      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id, customer_decision,
+      id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_id, customer_decision, decision_proposal,
       cancellation_request, cancellation_reason, cancellation_resolve_note, inventory_mode_at_order,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items (
@@ -184,7 +222,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
         products ( inventory ( quantity_on_hand, quantity_reserved ) )
       ),
       order_events ( id, event_type, payload, visibility, created_at ),
-      payments ( id, provider, status, amount, external_ref, expires_at, method ),
+      payments ( id, provider, status, amount, external_ref, expires_at, method, created_at ),
       shipments ( id, provider, status, amount, tracking_code, metadata, carrier, service, shipped_at, delivered_at, proof_ref )
     `,
     )
@@ -212,7 +250,9 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
   const payments = Array.isArray(paymentsRaw) ? paymentsRaw : []
   const shipmentsRaw = r.shipments as unknown
   const shipments = Array.isArray(shipmentsRaw) ? shipmentsRaw : []
-  const payment = payments[0] as Record<string, unknown> | undefined
+  const payment = pickCanonicalPayment(
+    payments as { status?: string; created_at?: string }[],
+  ) as Record<string, unknown> | null
   const shipment = shipments[0] as Record<string, unknown> | undefined
 
   return {
@@ -228,11 +268,10 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
     customerName: prof?.full_name != null ? String(prof.full_name) : null,
     customerEmail: prof?.username != null ? String(prof.username) : null,
     customerDoc: doc,
-    customerDecision:
-      r.customer_decision === 'pending' ||
-      r.customer_decision === 'authorized' ||
-      r.customer_decision === 'rejected'
-        ? r.customer_decision
+    customerDecision: parseCustomerDecision(r.customer_decision),
+    decisionProposal:
+      r.decision_proposal && typeof r.decision_proposal === 'object'
+        ? (r.decision_proposal as Record<string, unknown>)
         : null,
     cancellationRequest:
       r.cancellation_request === 'pending' ||
@@ -325,12 +364,14 @@ export async function adminShipOrder(input: {
   carrier?: string
   service?: string
   trackingCode?: string
+  trackingUrl?: string
 }): Promise<void> {
   const { error } = await getSupabase().rpc('ship_order', {
     p_order_id: input.orderId,
     p_carrier: input.carrier ?? null,
     p_service: input.service ?? null,
     p_tracking_code: input.trackingCode ?? null,
+    p_tracking_url: input.trackingUrl ?? null,
   })
   if (error) throw error
 }
@@ -372,10 +413,32 @@ export async function adminSetShipmentTracking(input: {
   orderId: string
   trackingCode?: string | null
   note?: string | null
+  trackingUrl?: string | null
 }): Promise<void> {
   const { error } = await getSupabase().rpc('admin_set_shipment_tracking', {
     p_order_id: input.orderId,
     p_tracking_code: input.trackingCode ?? null,
+    p_note: input.note ?? null,
+    p_tracking_url: input.trackingUrl ?? null,
+  })
+  if (error) throw error
+}
+
+/** Fase B — frete próprio: app (Uber/99) + custo real + rastreio (sem mudar frete do cliente). */
+export async function adminSetOwnDispatchDetails(input: {
+  orderId: string
+  transportMode?: string | null
+  appCost?: number | null
+  trackingCode?: string | null
+  trackingUrl?: string | null
+  note?: string | null
+}): Promise<void> {
+  const { error } = await getSupabase().rpc('admin_set_own_dispatch_details', {
+    p_order_id: input.orderId,
+    p_transport_mode: input.transportMode ?? null,
+    p_app_cost: input.appCost ?? null,
+    p_tracking_code: input.trackingCode ?? null,
+    p_tracking_url: input.trackingUrl ?? null,
     p_note: input.note ?? null,
   })
   if (error) throw error
@@ -440,8 +503,8 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
   const profiles = c?.profiles as { full_name?: string } | { full_name?: string }[] | null | undefined
   const prof = Array.isArray(profiles) ? profiles[0] : profiles
   const items = row.order_items as unknown[] | null
-  const pays = row.payments as { status?: string; expires_at?: string }[] | null
-  const pay = Array.isArray(pays) ? pays[0] : null
+  const pays = row.payments as { status?: string; expires_at?: string; created_at?: string }[] | null
+  const pay = pickCanonicalPayment(pays)
   const ships = row.shipments as
     | {
         provider?: string
@@ -451,12 +514,7 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
       }[]
     | null
   const ship = Array.isArray(ships) ? ships[0] : null
-  const decision =
-    row.customer_decision === 'pending' ||
-    row.customer_decision === 'authorized' ||
-    row.customer_decision === 'rejected'
-      ? row.customer_decision
-      : null
+  const decision = parseCustomerDecision(row.customer_decision)
   const cancelReq =
     row.cancellation_request === 'pending' ||
     row.cancellation_request === 'approved' ||
@@ -524,7 +582,7 @@ export async function adminListLogisticsQueue(
         cancellation_request, cancellation_reason,
         customers ( cpf, cnpj, profiles ( full_name ) ),
         order_items ( id ),
-        payments ( status, expires_at ),
+        payments ( status, expires_at, created_at ),
         shipments ( provider, metadata, carrier, service )
       `,
       )
@@ -561,7 +619,7 @@ export async function adminListLogisticsQueue(
         cancellation_request, cancellation_reason,
         customers ( cpf, cnpj, profiles ( full_name ) ),
         order_items ( id ),
-        payments ( status, expires_at ),
+        payments ( status, expires_at, created_at ),
         shipments ( provider, metadata, carrier, service )
       `,
       )
@@ -587,7 +645,7 @@ export async function adminListLogisticsQueue(
       cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
       order_items ( id ),
-      payments ( status, expires_at ),
+      payments ( status, expires_at, created_at ),
       shipments ( provider, metadata, carrier, service )
     `,
     )
@@ -604,8 +662,8 @@ export async function adminListLogisticsQueue(
         | { provider?: string; metadata?: Record<string, unknown> }[]
         | null
       const ship = Array.isArray(ships) ? ships[0] : null
-      const pays = r.payments as { status?: string }[] | null
-      const pay = Array.isArray(pays) ? pays[0] : null
+      const pays = r.payments as { status?: string; created_at?: string }[] | null
+      const pay = pickCanonicalPayment(pays)
       const lite = {
         status: String(r.status),
         paymentStatus: pay?.status != null ? String(pay.status) : null,
@@ -702,18 +760,26 @@ export async function adminFinalizeConfirmation(orderId: string): Promise<{
   return { result: String(row.result ?? ''), status: String(row.status ?? '') }
 }
 
-export type StaffDecisionReasonKind = 'prazo' | 'obs' | 'indisponivel' | 'outro'
+export type StaffDecisionReasonKind =
+  | 'prazo'
+  | 'obs'
+  | 'indisponivel'
+  | 'outro'
+  | 'parcial'
+  | 'escolha'
 
 /** Opt-in: único caminho para aguardando_decisao. */
 export async function adminRequestCustomerDecision(
   orderId: string,
   reasonKind: StaffDecisionReasonKind,
   reasonText?: string | null,
+  proposal?: Record<string, unknown> | null,
 ): Promise<{ status: string; customer_decision: string }> {
   const { data, error } = await getSupabase().rpc('staff_request_customer_decision', {
     p_order_id: orderId,
     p_reason_kind: reasonKind,
     p_reason_text: reasonText?.trim() ? reasonText.trim() : null,
+    p_proposal: proposal ?? {},
   })
   if (error) throw error
   const row = data as { status?: string; customer_decision?: string }
@@ -721,6 +787,22 @@ export async function adminRequestCustomerDecision(
     status: String(row.status ?? 'aguardando_decisao'),
     customer_decision: String(row.customer_decision ?? 'pending'),
   }
+}
+
+/** Hold: em_analise|aguardando_decisao → aguardando_disponibilidade. */
+export async function adminHoldForAvailability(
+  orderId: string,
+  waitDays?: number | null,
+  note?: string | null,
+): Promise<{ status: string }> {
+  const { data, error } = await getSupabase().rpc('staff_hold_for_availability', {
+    p_order_id: orderId,
+    p_wait_days: waitDays != null && waitDays >= 1 ? waitDays : null,
+    p_note: note?.trim() ? note.trim() : null,
+  })
+  if (error) throw error
+  const row = data as { status?: string }
+  return { status: String(row.status ?? 'aguardando_disponibilidade') }
 }
 
 /** Unstick: aguardando_decisao → em_analise. */

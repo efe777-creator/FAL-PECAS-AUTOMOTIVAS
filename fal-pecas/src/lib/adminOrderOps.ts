@@ -94,7 +94,15 @@ export function visibleStatusesInGroup(
   })
 }
 
-export type CustomerDecisionLite = 'pending' | 'authorized' | 'rejected' | null | undefined
+export type CustomerDecisionLite =
+  | 'pending'
+  | 'authorized'
+  | 'rejected'
+  | 'continue_available'
+  | 'wait_arrival'
+  | 'cancel_order'
+  | null
+  | undefined
 
 /**
  * Quem precisa agir agora.
@@ -108,8 +116,17 @@ export function adminActorKind(
     case 'aguardando_pagamento':
       return 'wait_payment'
     case 'aguardando_decisao':
-      if (customerDecision === 'authorized') return 'team'
-      if (customerDecision === 'rejected') return 'team'
+      if (
+        customerDecision === 'authorized' ||
+        customerDecision === 'continue_available'
+      )
+        return 'team'
+      if (
+        customerDecision === 'rejected' ||
+        customerDecision === 'cancel_order' ||
+        customerDecision === 'wait_arrival'
+      )
+        return 'team'
       return 'customer'
     case 'entregue':
     case 'cancelado':
@@ -149,8 +166,15 @@ export function adminNextActionLabel(
   customerDecision?: CustomerDecisionLite,
 ): string {
   if (status === 'aguardando_decisao') {
-    if (customerDecision === 'authorized') return 'Cliente autorizou — finalizar confirmação'
-    if (customerDecision === 'rejected') return 'Cliente recusou — cancelar ou renegociar'
+    if (
+      customerDecision === 'authorized' ||
+      customerDecision === 'continue_available'
+    )
+      return 'Cliente aprovou — finalizar e enviar à separação'
+    if (customerDecision === 'rejected' || customerDecision === 'cancel_order')
+      return 'Cliente pediu cancelamento — analisar'
+    if (customerDecision === 'wait_arrival')
+      return 'Cliente pediu espera — retomar quando houver estoque'
     return 'Aguardando autorização do cliente'
   }
   const step = adminOrderNextStep(status)
@@ -190,8 +214,16 @@ export function attentionSortKey(
   if (status === 'pronto_para_envio') return 10
   if (status === 'pagamento_aprovado' || status === 'recebido') return 20
   if (status === 'em_analise' || status === 'aguardando_disponibilidade') return 30
-  if (status === 'aguardando_decisao' && customerDecision === 'authorized') return 25
-  if (status === 'aguardando_decisao' && customerDecision === 'rejected') return 15
+  if (
+    status === 'aguardando_decisao' &&
+    (customerDecision === 'authorized' || customerDecision === 'continue_available')
+  )
+    return 25
+  if (
+    status === 'aguardando_decisao' &&
+    (customerDecision === 'rejected' || customerDecision === 'cancel_order')
+  )
+    return 15
   if (status === 'aguardando_decisao') return 40
   if (status === 'confirmado') return 50
   if (status === 'em_separacao') return 55

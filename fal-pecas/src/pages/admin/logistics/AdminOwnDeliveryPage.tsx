@@ -2,6 +2,7 @@ import { OwnDeliveryAuditTab } from '@/components/admin/ownDelivery/OwnDeliveryA
 import { OwnDeliveryGeralTab } from '@/components/admin/ownDelivery/OwnDeliveryGeralTab'
 import { OwnDeliveryManualTab } from '@/components/admin/ownDelivery/OwnDeliveryManualTab'
 import { OwnDeliveryProductsTab } from '@/components/admin/ownDelivery/OwnDeliveryProductsTab'
+import { OwnDeliveryProvidersTab } from '@/components/admin/ownDelivery/OwnDeliveryProvidersTab'
 import { OwnDeliveryRatesTab } from '@/components/admin/ownDelivery/OwnDeliveryRatesTab'
 import { OwnDeliveryVehiclesTab } from '@/components/admin/ownDelivery/OwnDeliveryVehiclesTab'
 import {
@@ -29,7 +30,7 @@ import { DEFAULT_SHIPPING_ETA_POLICY } from '@/lib/shippingEtaPolicy'
 import type { OwnPricingMode } from '@/types'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
-type Tab = 'geral' | 'veiculos' | 'tarifas' | 'produtos' | 'manual' | 'historico'
+type Tab = 'geral' | 'veiculos' | 'tarifas' | 'produtos' | 'prestadores' | 'manual' | 'historico'
 
 const DEFAULT_RANGES: OwnDeliveryCepRange[] = [{ from: '01000000', to: '05999999' }]
 const DEFAULT_RATES: OwnDeliveryRate[] = [
@@ -48,6 +49,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
   { id: 'veiculos', label: 'Veículos', hint: 'Tipos de entrega' },
   { id: 'tarifas', label: 'Tarifas', hint: 'Preços por veículo' },
   { id: 'produtos', label: 'Produtos', hint: 'Capacidade dos produtos' },
+  { id: 'prestadores', label: 'Prestadores', hint: 'Uber, 99 e apps' },
   { id: 'manual', label: 'Análise manual', hint: 'Casos especiais' },
   { id: 'historico', label: 'Histórico', hint: 'Alterações recentes' },
 ]
@@ -290,6 +292,10 @@ export function AdminOwnDeliveryPage() {
           onOk={reportOk}
           onError={reportError}
         />
+      ) : null}
+
+      {tab === 'prestadores' ? (
+        <OwnDeliveryProvidersTab onOk={reportOk} onError={reportError} />
       ) : null}
 
       {tab === 'manual' ? <OwnDeliveryManualTab onError={reportError} /> : null}

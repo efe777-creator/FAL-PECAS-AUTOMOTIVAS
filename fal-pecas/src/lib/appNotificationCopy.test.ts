@@ -14,7 +14,9 @@ describe('appNotificationCopy', () => {
 
   it('status e decisão', () => {
     expect(appNotificationCopy('payment_approved')?.title).toBe('Pagamento aprovado')
-    expect(appNotificationCopy('order_awaiting_decision')?.title).toContain('autorização')
+    expect(appNotificationCopy('order_awaiting_decision')?.title).toMatch(/decis[aã]o|autoriza/i)
+    expect(appNotificationCopy('customer_chose_continue_available')?.title).toBeTruthy()
+    expect(appNotificationCopy('staff_held_for_availability')?.title).toBeTruthy()
   })
 
   it('href por audience', () => {

@@ -65,6 +65,7 @@ export function buildOkEnvelope(input: {
   req: ShippingQuoteRequest
   disclaimer?: string | null
   ttlMs?: number
+  message?: string
 }): ShippingQuoteEnvelope {
   const quotedAt = new Date().toISOString()
   const ttl = input.ttlMs ?? defaultQuoteTtlMs()
@@ -77,6 +78,7 @@ export function buildOkEnvelope(input: {
     expiresAt: new Date(Date.now() + ttl).toISOString(),
     requestFingerprint: fingerprintQuoteRequest(input.req),
     disclaimer: input.disclaimer,
+    message: input.message,
   }
 }
 

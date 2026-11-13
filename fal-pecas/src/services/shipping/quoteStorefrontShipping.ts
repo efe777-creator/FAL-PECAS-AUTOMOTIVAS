@@ -5,7 +5,6 @@ import {
   logisticsGaps,
   type ShippingQuoteEnvelope,
 } from '@/services/shipping/shippingQuoteContract'
-import { getCarrierByEnvKey } from '@/services/shipping/carrierRegistry'
 import { ensureCustomerShippingOptions } from '@/services/shipping/storePickupOption'
 import type { ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
@@ -44,25 +43,10 @@ export function storefrontNeedsAddressNumber(options: ShippingQuoteOption[]): bo
 export async function quoteStorefrontShippingEnvelope(
   req: ShippingQuoteRequest,
 ): Promise<StorefrontQuoteResult> {
-  const gaps = logisticsGaps(req)
-  if (gaps.length) {
-    const desc = getCarrierByEnvKey('melhorenvio')
-    return {
-      needsAddressNumber: false,
-      envelope: buildErrorEnvelope({
-        providerId: desc.id,
-        mode: desc.mode,
-        status: 'missing_logistics',
-        req,
-        message:
-          'Este produto ainda não tem peso ou medidas suficientes para cotar a entrega.',
-        disclaimer: null,
-      }),
-    }
-  }
-
+  // Gaps de dims/peso NÃO bloqueiam own/pickup — o provider ME trata ME separado.
   const env = await quoteShippingEnvelope(req, 'melhorenvio')
   const needsAddressNumber = storefrontNeedsAddressNumber(env.options)
+  const gaps = logisticsGaps(req)
 
   if (env.status !== 'ok') {
     return {
@@ -79,11 +63,13 @@ export async function quoteStorefrontShippingEnvelope(
       envelope: buildErrorEnvelope({
         providerId: env.providerId,
         mode: env.mode,
-        status: 'unavailable',
+        status: gaps.length ? 'missing_logistics' : 'unavailable',
         req,
         message: needsAddressNumber
           ? 'Informe o número do endereço para cotar a entrega FAL nesta região. Sem opções de transportadora para este CEP no momento.'
-          : 'Nenhuma opção de entrega disponível para este CEP no momento.',
+          : gaps.length
+            ? 'Este produto ainda não tem peso ou medidas suficientes para cotar transportadoras. Frete FAL / retirada podem aparecer quando cobertos.'
+            : 'Nenhuma opção de entrega disponível para este CEP no momento.',
         disclaimer: null,
       }),
     }
@@ -97,6 +83,7 @@ export async function quoteStorefrontShippingEnvelope(
       options: selectable,
       req,
       disclaimer: 'Valores estimados de entrega. Confirme o frete no checkout.',
+      message: env.message,
     }),
   }
 }

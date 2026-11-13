@@ -54,13 +54,15 @@ export function openSeparationList(order: AdminOrderDetail): boolean {
   const shortId = escapeHtml(order.id.slice(0, 8))
   const itemsHtml = order.items
     .map((it) => {
-      const mark = it.separated ? '☑' : '☐'
-      return `<tr>
+      const unavailable = it.availability === 'indisponivel'
+      const mark = unavailable ? '—' : it.separated ? '☑' : '☐'
+      const note = unavailable ? 'Não separar / fora do envio' : ''
+      return `<tr${unavailable ? ' style="background:#fef2f2;color:#991b1b"' : ''}>
         <td class="check">${mark}</td>
         <td>${escapeHtml(it.sku)}</td>
-        <td>${escapeHtml(it.nameSnapshot)}</td>
+        <td>${escapeHtml(it.nameSnapshot)}${unavailable ? ' <em>(indisponível)</em>' : ''}</td>
         <td>${escapeHtml(it.quantity)}</td>
-        <td></td>
+        <td>${escapeHtml(note)}</td>
       </tr>`
     })
     .join('')
@@ -87,7 +89,7 @@ export function openSeparationList(order: AdminOrderDetail): boolean {
       </thead>
       <tbody>${itemsHtml}</tbody>
     </table>
-    <p class="hint">Documento interno de separação. Sem preços. Após separar todos os itens, conclua a separação no painel para liberar a expedição.</p>
+    <p class="hint">Documento interno de separação. Sem preços. Itens indisponíveis não entram no envio. Após separar os itens disponíveis, conclua a separação no painel.</p>
     <script>window.print()</script>
     </body></html>`
   return openHtmlPrint(html)
@@ -95,12 +97,20 @@ export function openSeparationList(order: AdminOrderDetail): boolean {
 
 /** Romaneio interno (fase expedição) — sem preços. */
 export function openRomaneio(order: AdminOrderDetail): boolean {
-  const itemsHtml = order.items
+  const shipItems = order.items.filter((it) => it.availability !== 'indisponivel')
+  const skipped = order.items.filter((it) => it.availability === 'indisponivel')
+  const itemsHtml = shipItems
     .map(
       (it) =>
         `<tr><td>${escapeHtml(it.sku)}</td><td>${escapeHtml(it.nameSnapshot)}</td><td>${escapeHtml(it.quantity)}</td></tr>`,
     )
     .join('')
+  const skippedHtml =
+    skipped.length === 0
+      ? ''
+      : `<p class="meta" style="margin-top:12px"><strong>Fora do envio (indisponível):</strong> ${skipped
+          .map((it) => escapeHtml(it.sku))
+          .join(', ')}</p>`
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
     <title>Romaneio ${escapeHtml(order.id.slice(0, 8))}</title>
     <style>${PRINT_CSS}</style></head><body>
@@ -115,6 +125,7 @@ export function openRomaneio(order: AdminOrderDetail): boolean {
       <thead><tr><th>Código</th><th>Produto</th><th>Qtd</th></tr></thead>
       <tbody>${itemsHtml}</tbody>
     </table>
+    ${skippedHtml}
     <p class="hint">Etiqueta Melhor Envio é separada deste romaneio. Postagem física = Registrar entrega à transportadora.</p>
     <script>window.print()</script>
     </body></html>`

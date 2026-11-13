@@ -252,48 +252,79 @@ export function packingCompleteFromMeta(
   return packing.allocationStatus === 'complete' && Boolean(packing.itemsFingerprint)
 }
 
+/** Normaliza um volume (objeto ME ou chaves planas) em medidas cm/kg. */
+export function parseVolumeDims(raw: unknown): {
+  lengthCm: number
+  widthCm: number
+  heightCm: number
+  weightKg: number
+} | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  const lengthCm = Number(o.length_cm ?? o.lengthCm ?? o.length ?? 0)
+  const widthCm = Number(o.width_cm ?? o.widthCm ?? o.width ?? 0)
+  const heightCm = Number(o.height_cm ?? o.heightCm ?? o.height ?? 0)
+  const weightKg = Number(o.weight_kg ?? o.weightKg ?? o.weight ?? 0)
+  if (!(lengthCm > 0 && widthCm > 0 && heightCm > 0 && weightKg > 0)) return null
+  return { lengthCm, widthCm, heightCm, weightKg }
+}
+
+/** Lista de volumes a partir de quote.volumes (array **ou** objeto único ME). */
+export function listContractedVolumeRaw(
+  metadata: Record<string, unknown> | null | undefined,
+): unknown[] {
+  if (!metadata) return []
+  const quote = (metadata.quote ?? metadata.contracted ?? metadata.checkout) as
+    | Record<string, unknown>
+    | undefined
+  const me = metadata.me as Record<string, unknown> | undefined
+  const vols = quote?.volumes ?? me?.volumes ?? metadata.volumes
+  if (Array.isArray(vols)) return vols
+  if (vols && typeof vols === 'object') return [vols]
+  return []
+}
+
+/** Texto legível das medidas contratadas (ME objeto ou array). */
+export function formatContractedDims(
+  metadata: Record<string, unknown> | null | undefined,
+): string {
+  const list = listContractedVolumeRaw(metadata)
+  const parts: string[] = []
+  for (let i = 0; i < list.length; i++) {
+    const d = parseVolumeDims(list[i])
+    if (!d) continue
+    parts.push(`Vol ${i + 1}: ${d.lengthCm}×${d.widthCm}×${d.heightCm} cm · ${d.weightKg} kg`)
+  }
+  if (parts.length) return parts.join(' · ')
+  if (metadata) {
+    const d = parseVolumeDims(metadata)
+    if (d) return `${d.lengthCm}×${d.widthCm}×${d.heightCm} cm · ${d.weightKg} kg`
+  }
+  return 'Snapshot de medidas não gravado na compra'
+}
+
 /** Extrai volumes candidatos das medidas contratadas na cotação/checkout. */
 export function volumesFromContractedMeta(
   metadata: Record<string, unknown> | null | undefined,
 ): OrderPackingVolume[] {
   if (!metadata) return []
-  const quote = (metadata.quote ?? metadata.contracted ?? metadata.checkout) as
-    | Record<string, unknown>
-    | undefined
-  const vols = (quote?.volumes ?? metadata.volumes) as unknown
   const out: OrderPackingVolume[] = []
-  if (Array.isArray(vols) && vols.length) {
-    for (const v of vols) {
-      if (!v || typeof v !== 'object') continue
-      const o = v as Record<string, unknown>
-      const lengthCm = Number(o.length_cm ?? o.lengthCm ?? o.length ?? 0)
-      const widthCm = Number(o.width_cm ?? o.widthCm ?? o.width ?? 0)
-      const heightCm = Number(o.height_cm ?? o.heightCm ?? o.height ?? 0)
-      const weightKg = Number(o.weight_kg ?? o.weightKg ?? o.weight ?? 0)
-      if (!(lengthCm > 0 && widthCm > 0 && heightCm > 0 && weightKg > 0)) continue
-      out.push({
-        ...emptyPackingVolume(),
-        lengthCm,
-        widthCm,
-        heightCm,
-        weightKg,
-        notes: 'Pré-preenchido da cotação',
-      })
-    }
-    if (out.length) return out
+  for (const v of listContractedVolumeRaw(metadata)) {
+    const d = parseVolumeDims(v)
+    if (!d) continue
+    out.push({
+      ...emptyPackingVolume(),
+      ...d,
+      notes: 'Pré-preenchido da cotação',
+    })
   }
-  const lengthCm = Number(metadata.length_cm ?? metadata.lengthCm ?? 0)
-  const widthCm = Number(metadata.width_cm ?? metadata.widthCm ?? 0)
-  const heightCm = Number(metadata.height_cm ?? metadata.heightCm ?? 0)
-  const weightKg = Number(metadata.weight_kg ?? metadata.weightKg ?? 0)
-  if (lengthCm > 0 && widthCm > 0 && heightCm > 0 && weightKg > 0) {
+  if (out.length) return out
+  const flat = parseVolumeDims(metadata)
+  if (flat) {
     return [
       {
         ...emptyPackingVolume(),
-        lengthCm,
-        widthCm,
-        heightCm,
-        weightKg,
+        ...flat,
         notes: 'Pré-preenchido da cotação',
       },
     ]

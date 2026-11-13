@@ -74,8 +74,43 @@ export function appNotificationCopy(
     case 'order_awaiting_decision':
     case 'staff_requested_customer_decision':
       return {
-        title: 'A loja pediu sua autorização',
-        body: opts?.reasonText?.trim() || 'Abra o pedido para autorizar ou recusar.',
+        title: 'A loja pediu sua decisão',
+        body: opts?.reasonText?.trim() || 'Abra o pedido para continuar, esperar ou cancelar.',
+      }
+    case 'staff_held_for_availability':
+      return {
+        title: 'Pedido aguardando disponibilidade',
+        body: opts?.note?.trim() || 'A loja aguarda a chegada de item(ns).',
+      }
+    case 'staff_updated_eta_and_confirmed':
+      return {
+        title: 'Prazo atualizado e pedido confirmado',
+        body: 'A loja atualizou o prazo e liberou o pedido para separação.',
+      }
+    case 'shipment_tracking_updated':
+      return {
+        title: 'Rastreio atualizado',
+        body: 'Há um novo código ou link de rastreio no detalhe do pedido.',
+      }
+    case 'customer_chose_continue_available':
+      return {
+        title: 'Confirmação recebida',
+        body: 'Recebemos sua confirmação. A loja vai liberar o pedido para separação.',
+      }
+    case 'customer_chose_wait_arrival':
+      return {
+        title: 'Você pediu para esperar',
+        body: 'Aguardaremos a disponibilidade; a loja retomará o pedido.',
+      }
+    case 'customer_chose_cancel':
+      return {
+        title: 'Cancelamento solicitado',
+        body: 'Recebemos seu pedido de cancelamento. A loja vai analisar.',
+      }
+    case 'order_confirmed_with_caveat':
+      return {
+        title: 'Pedido confirmado',
+        body: 'A loja confirmou o pedido (com prazo atualizado).',
       }
     case 'cancellation_approved':
       return {
@@ -94,8 +129,8 @@ export function appNotificationCopy(
       }
     case 'customer_authorized_changes':
       return {
-        title: 'Cliente autorizou alterações',
-        body: 'O cliente autorizou. Confirme o pedido na Central.',
+        title: 'Cliente aprovou — liberar separação',
+        body: 'O cliente autorizou. Finalize a confirmação e envie o pedido para separação.',
       }
     case 'customer_rejected_changes':
       return {
