@@ -129,7 +129,7 @@ export function CheckoutPage() {
   const [storeOrigin, setStoreOrigin] = useState<StoreShippingOrigin | null>(null)
   const [shippingOptions, setShippingOptions] = useState<ShippingQuoteOption[]>([])
   const [shippingOptionId, setShippingOptionId] = useState('')
-  const [shippingDisclaimer, setShippingDisclaimer] = useState<string | null>(null)
+  const [, setShippingDisclaimer] = useState<string | null>(null)
   /** Aviso de handoff PDP vs endereço/recotação no checkout. */
   const [shippingHandoffNotice, setShippingHandoffNotice] = useState<{
     tone: 'ok' | 'warn'

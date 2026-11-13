@@ -36,6 +36,7 @@ function base(partial: Partial<AdminOrderDetail>): AdminOrderDetail {
     ],
     events: [],
     payment: null,
+    decisionProposal: null,
     shipment: { id: 's1', provider: 'own', status: 'pending', trackingCode: null, amount: 5, metadata: null },
     ...partial,
   }

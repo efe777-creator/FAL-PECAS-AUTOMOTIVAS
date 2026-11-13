@@ -179,6 +179,7 @@ export function AdminOrderDetailPage() {
             ? (meRaw as {
                 company_name?: string
                 tracking?: string
+                tracking_url?: string
                 service_id?: string | number
               })
             : null
@@ -192,7 +193,7 @@ export function AdminOrderDetailPage() {
         setTracking((prev) => prev || d.shipment?.trackingCode || me?.tracking || '')
         const metaUrl =
           (d.shipment?.metadata?.tracking_url as string | undefined) ||
-          (me?.tracking_url as string | undefined) ||
+          me?.tracking_url ||
           ((d.shipment?.metadata?.own as { tracking_url?: string } | undefined)?.tracking_url)
         setTrackingUrl((prev) => prev || metaUrl || '')
       }
