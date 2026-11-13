@@ -94,17 +94,31 @@ export async function executeCreateMpPayment(
     return { httpStatus: 422, body: { error: 'invalid_order_total' } }
   }
 
-  if (card) {
-    try {
-      const display = deps.getPaymentDisplay ? await deps.getPaymentDisplay() : null
-      assertCardInstallmentsAllowed(card.installments, amount, display)
-    } catch (e) {
+  {
+    const display = deps.getPaymentDisplay ? await deps.getPaymentDisplay() : null
+    if (card && display?.cardEnabled === false) {
       return {
         httpStatus: 422,
-        body: {
-          error: 'installments_not_allowed',
-          detail: e instanceof Error ? e.message : 'installments inválido',
-        },
+        body: { error: 'method_not_allowed', detail: 'cartão desativado comercialmente' },
+      }
+    }
+    if (!card && display?.pixEnabled === false) {
+      return {
+        httpStatus: 422,
+        body: { error: 'method_not_allowed', detail: 'pix desativado comercialmente' },
+      }
+    }
+    if (card) {
+      try {
+        assertCardInstallmentsAllowed(card.installments, amount, display)
+      } catch (e) {
+        return {
+          httpStatus: 422,
+          body: {
+            error: 'installments_not_allowed',
+            detail: e instanceof Error ? e.message : 'installments inválido',
+          },
+        }
       }
     }
   }

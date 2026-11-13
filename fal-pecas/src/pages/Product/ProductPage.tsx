@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
 import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
+import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMethodsBlock'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
@@ -513,7 +514,10 @@ export function ProductPage() {
             </p>
           ) : null}
           {current.available !== false ? (
-            <PaymentConditionHint amount={price} surface="pdp" />
+            <>
+              <PaymentConditionHint amount={price} surface="pdp" />
+              <StorePaymentMethodsBlock amount={price} surface="pdp" />
+            </>
           ) : null}
           <p className="mt-2 text-sm">
             {current.available === false ? (

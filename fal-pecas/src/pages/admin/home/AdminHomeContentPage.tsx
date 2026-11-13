@@ -115,6 +115,11 @@ const emptyPayment = (): Omit<PaymentDisplaySettings, 'id'> => ({
   maxInstallments: 3,
   minInstallmentAmount: 20,
   interestFree: true,
+  interestFreeMax: 3,
+  allowInterestInstallments: false,
+  installmentsEnabled: false,
+  cardEnabled: true,
+  pixEnabled: true,
   showOnCards: true,
   showOnPdp: true,
   footnote: null,
@@ -281,7 +286,12 @@ export function AdminHomeContentPage() {
       const saved = await adminUpsertPaymentDisplaySettings(payment)
       setPayment(saved)
       setDirtyPayment(false)
-      push(saved.enabled ? 'Condições ativas na loja' : 'Condições salvas (ainda desligadas)', 'success')
+      push(
+        saved.cardEnabled || saved.pixEnabled
+          ? 'Condições comerciais de pagamento salvas'
+          : 'Salvo — Pix e cartão desativados comercialmente',
+        'success',
+      )
     } catch (err) {
       push(toUserMessage(err), 'error')
     } finally {
@@ -876,95 +886,163 @@ export function AdminHomeContentPage() {
       {tab === 'payment' && !loading ? (
         <form
           onSubmit={(e) => void onSavePayment(e)}
-          className="max-w-xl space-y-3 rounded-fal border border-fal-line bg-white p-4"
+          className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-white p-4"
         >
-          <h2 className="m-0 text-lg font-bold text-fal-navy">Condições nos cards e PDP</h2>
+          <h2 className="m-0 text-lg font-bold text-fal-navy">Configuração comercial de pagamentos</h2>
           <p className="m-0 text-sm text-fal-muted">
-            Isto é só comunicação na vitrine. O checkout continua com Pix/cartão do provedor.
+            Controla o que o cliente pode usar. A integração técnica fica em Pagamentos → Mercado
+            Pago. Só vale o que estiver ligado nos dois níveis.
           </p>
-          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
-            <input
-              type="checkbox"
-              checked={payment.enabled}
+
+          <fieldset className="m-0 space-y-2 border-0 p-0">
+            <legend className="mb-1 text-sm font-bold text-fal-navy">Meios disponíveis</legend>
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <input
+                type="checkbox"
+                checked={payment.cardEnabled}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, cardEnabled: e.target.checked }))
+                }}
+              />
+              Cartão de crédito — disponibilizar na loja
+            </label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <input
+                type="checkbox"
+                checked={payment.pixEnabled}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, pixEnabled: e.target.checked }))
+                }}
+              />
+              Pix — disponibilizar na loja
+            </label>
+          </fieldset>
+
+          <fieldset className="m-0 space-y-3 border-0 p-0">
+            <legend className="mb-1 text-sm font-bold text-fal-navy">Parcelamento (cartão)</legend>
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <input
+                type="checkbox"
+                checked={payment.installmentsEnabled}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, installmentsEnabled: e.target.checked }))
+                }}
+              />
+              Ativar parcelamento (senão só 1x)
+            </label>
+            <Input
+              label="Máximo de parcelas"
+              type="number"
+              min={1}
+              max={24}
+              value={String(payment.maxInstallments)}
               onChange={(e) => {
                 setDirtyPayment(true)
-                setPayment((p) => ({ ...p, enabled: e.target.checked }))
+                const maxInstallments = Number(e.target.value) || 1
+                setPayment((p) => ({
+                  ...p,
+                  maxInstallments,
+                  interestFreeMax: Math.min(p.interestFreeMax, maxInstallments),
+                }))
               }}
             />
-            Mostrar na loja
-          </label>
-          <Input
-            label="Máximo de parcelas"
-            type="number"
-            min={1}
-            max={24}
-            value={String(payment.maxInstallments)}
-            onChange={(e) => {
-              setDirtyPayment(true)
-              setPayment((p) => ({
-                ...p,
-                maxInstallments: Number(e.target.value) || 1,
-              }))
-            }}
-          />
-          <Input
-            label="Parcela mínima (R$)"
-            type="number"
-            min={0}
-            step="0.01"
-            value={String(payment.minInstallmentAmount)}
-            onChange={(e) => {
-              setDirtyPayment(true)
-              setPayment((p) => ({
-                ...p,
-                minInstallmentAmount: Number(e.target.value) || 0,
-              }))
-            }}
-          />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={payment.interestFree}
+            <Input
+              label="Parcelas sem juros (até)"
+              type="number"
+              min={0}
+              max={24}
+              value={String(payment.interestFreeMax)}
               onChange={(e) => {
                 setDirtyPayment(true)
-                setPayment((p) => ({ ...p, interestFree: e.target.checked }))
+                const interestFreeMax = Math.max(0, Number(e.target.value) || 0)
+                setPayment((p) => ({
+                  ...p,
+                  interestFreeMax,
+                  interestFree: interestFreeMax > 0,
+                }))
               }}
             />
-            Texto “sem juros”
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={payment.showOnCards}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={payment.allowInterestInstallments}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, allowInterestInstallments: e.target.checked }))
+                }}
+              />
+              Permitir parcelas com juros (condições do gateway)
+            </label>
+            <Input
+              label="Valor mínimo por parcela (R$)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={String(payment.minInstallmentAmount)}
               onChange={(e) => {
                 setDirtyPayment(true)
-                setPayment((p) => ({ ...p, showOnCards: e.target.checked }))
+                setPayment((p) => ({
+                  ...p,
+                  minInstallmentAmount: Number(e.target.value) || 0,
+                }))
               }}
             />
-            Nos cards
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={payment.showOnPdp}
+          </fieldset>
+
+          <fieldset className="m-0 space-y-2 border-0 p-0">
+            <legend className="mb-1 text-sm font-bold text-fal-navy">Exibição na vitrine</legend>
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <input
+                type="checkbox"
+                checked={payment.enabled}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, enabled: e.target.checked }))
+                }}
+              />
+              Mostrar condição de parcelas na loja
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={payment.showOnCards}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, showOnCards: e.target.checked }))
+                }}
+              />
+              Nos cards
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={payment.showOnPdp}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => ({ ...p, showOnPdp: e.target.checked }))
+                }}
+              />
+              Na página do produto
+            </label>
+            <Input
+              label="Rodapé (só PDP, opcional)"
+              value={payment.footnote ?? ''}
               onChange={(e) => {
                 setDirtyPayment(true)
-                setPayment((p) => ({ ...p, showOnPdp: e.target.checked }))
+                setPayment((p) => ({ ...p, footnote: e.target.value }))
               }}
+              placeholder="Ex.: sujeito à análise do cartão"
             />
-            Na página do produto
-          </label>
-          <Input
-            label="Rodapé (só PDP, opcional)"
-            value={payment.footnote ?? ''}
-            onChange={(e) => {
-              setDirtyPayment(true)
-              setPayment((p) => ({ ...p, footnote: e.target.value }))
-            }}
-            placeholder="Ex.: sujeito à análise do cartão"
-          />
+          </fieldset>
+
           <p className="m-0 rounded-lg bg-fal-bg px-3 py-2 text-sm">
-            Prévia (R$ 199,90): <strong>{paymentPreview}</strong>
+            Prévia (R$ 199,90): <strong>{paymentPreview ?? '—'}</strong>
+            {!payment.cardEnabled ? (
+              <span className="mt-1 block text-xs text-fal-muted">Cartão desativado comercialmente.</span>
+            ) : null}
           </p>
           <Button type="submit" variant="primary" disabled={savingPayment}>
             {savingPayment ? 'Salvando…' : 'Salvar condições'}

@@ -24,7 +24,7 @@ Sequência obrigatória: **Frente 1 → Gate pós-F1 → Frente 2 → Frente 3**
 | Consolidação | F1 | Spec gate Opção A + P0 pag | **DONE** — [FAL_SPEC_HOME_CONSOLIDACAO_GATE_PAG_2026-11-12.md](./FAL_SPEC_HOME_CONSOLIDACAO_GATE_PAG_2026-11-12.md) |
 | HOME-03 | F1 | Novo — menu Promoções | **DONE remoto** · [apply VAL](./FAL_MARCHA_HOME_F1_APPLY_SMOKE_VAL_2026-11-12.md) · smoke UI com massa pendente |
 | HOME-04 | F1* | Integração global | **Gate resolve PASS** · [VAL](./FAL_MARCHA_HOME_04_GATE_SMOKE_VAL_2026-11-12.md) · UI jornada pendente massa |
-| HOME-06b | F1 | Implantação Pagamentos | **P0 remoto DONE** (Edge) · PIX%/faixas ainda fora |
+| HOME-06b | F1 | Implantação Pagamentos | **PAY consolidação 2026-11-13** — [auditoria](./FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md) · P0 Brick + controle comercial + parcelas reais · PIX%/faixas ainda fora |
 | Gate pós-F1 | Entre F1 e F2 | Análise melhorias/correções/ajustes | **DONE** — [FAL_ANALISE_POS_F1_HOME_COMERCIAL_2026-11-12.md](./FAL_ANALISE_POS_F1_HOME_COMERCIAL_2026-11-12.md) · P0=0 · F2 liberada |
 | HOME-02 | F2 | Refino Destaques | **Próximo** (B-01/B-02 + B-06) |
 | HOME-05 | F2 | Cards promocionais | Após HOME-02 parcial |
@@ -174,9 +174,10 @@ Anunciar meios não homologados · texto manual que contradiz regra · alterar p
 #### Prompt Cursor (placeholder)
 
 ```text
-[AGUARDA AUTORIZAÇÃO — ver FAL_SPEC_HOME_CONSOLIDACAO_GATE_PAG_2026-11-12.md §2]
-Pacote HOME-06b fase 1 (P0): enforcement installments no create payment + Brick sem fallback 12x.
-Sem PIX%/faixas nesta fase. Não misturar AJUSTE-035 além do necessário.
+AUTORIZADO — FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md
+HOME-06b / PAY: Brick = falMaxInstallmentsForCheckout; store_payment_display expandido
+(card/pix/parcelas); checkout consome getEffectivePaymentAvailability.
+Sem PIX%/faixas. AJUSTE-035 só aplica availability (não redefine tetos comerciais).
 ```
 
 ---

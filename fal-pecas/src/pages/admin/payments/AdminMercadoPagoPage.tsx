@@ -124,10 +124,14 @@ export function AdminMercadoPagoPage() {
         {loadErr ? <p className="m-0 text-sm text-red-700">{loadErr}</p> : null}
         {display ? (
           <ul className="m-0 list-none space-y-1 p-0 text-sm text-fal-navy">
-            <li>Exibição: {display.enabled ? 'ligada' : 'desligada'}</li>
+            <li>Cartão comercial: {display.cardEnabled ? 'ligado' : 'desligado'}</li>
+            <li>Pix comercial: {display.pixEnabled ? 'ligado' : 'desligado'}</li>
+            <li>Parcelamento: {display.installmentsEnabled ? 'ligado' : 'só 1x'}</li>
+            <li>Exibição vitrine: {display.enabled ? 'ligada' : 'desligada'}</li>
             <li>Máx. parcelas: {display.maxInstallments}</li>
+            <li>Sem juros até: {display.interestFreeMax}x</li>
+            <li>Com juros: {display.allowInterestInstallments ? 'permitido' : 'não'}</li>
             <li>Parcela mínima: R$ {Number(display.minInstallmentAmount).toFixed(2)}</li>
-            <li>Sem juros (flag): {display.interestFree ? 'sim' : 'não'}</li>
           </ul>
         ) : !loadErr ? (
           <p className="m-0 text-sm text-fal-muted">Carregando…</p>

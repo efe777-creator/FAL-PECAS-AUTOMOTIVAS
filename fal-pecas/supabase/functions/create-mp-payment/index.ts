@@ -93,25 +93,58 @@ Deno.serve(async (req) => {
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
-    // HOME-06b P0 — enforcement parcelas vs store_payment_display
-    if (card) {
+    // PAY consolidação — disponibilidade comercial + parcelas vs store_payment_display
+    {
       const { data: displayRow } = await admin
         .from('store_payment_display')
-        .select('enabled, max_installments, min_installment_amount')
+        .select(
+          'enabled, max_installments, min_installment_amount, installments_enabled, card_enabled, pix_enabled, interest_free_max, allow_interest_installments',
+        )
         .limit(1)
         .maybeSingle()
-      const enabled = Boolean(displayRow?.enabled)
-      let maxAllowed = 1
-      if (enabled && amount > 0) {
-        const max = Math.min(Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1), 24)
-        const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
-        maxAllowed = minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
+
+      const cardEnabled = displayRow?.card_enabled != null ? Boolean(displayRow.card_enabled) : true
+      const pixEnabled = displayRow?.pix_enabled != null ? Boolean(displayRow.pix_enabled) : true
+      if (card && !cardEnabled) {
+        return json(422, { error: 'method_not_allowed', detail: 'cartão desativado comercialmente' })
       }
-      if (card.installments > maxAllowed) {
-        return json(422, {
-          error: 'installments_not_allowed',
-          detail: `installments acima do permitido (máx. ${maxAllowed})`,
-        })
+      if (!card && !pixEnabled) {
+        return json(422, { error: 'method_not_allowed', detail: 'pix desativado comercialmente' })
+      }
+
+      if (card) {
+        const installmentsOn =
+          displayRow?.installments_enabled != null
+            ? Boolean(displayRow.installments_enabled)
+            : Boolean(displayRow?.enabled)
+        let maxAllowed = 1
+        if (installmentsOn && amount > 0) {
+          const max = Math.min(Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1), 24)
+          const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
+          maxAllowed =
+            minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
+        }
+        if (card.installments > maxAllowed) {
+          return json(422, {
+            error: 'installments_not_allowed',
+            detail: `installments acima do permitido (máx. ${maxAllowed})`,
+          })
+        }
+        const allowInterest =
+          displayRow?.allow_interest_installments != null
+            ? Boolean(displayRow.allow_interest_installments)
+            : true
+        const freeMax = Math.max(0, Math.floor(Number(displayRow?.interest_free_max) || 0))
+        // Sem payload de juros do MP: se juros comerciais off, só até interest_free_max (0 → 1x).
+        if (card.installments > 1 && !allowInterest && (freeMax <= 0 || card.installments > freeMax)) {
+          return json(422, {
+            error: 'installments_not_allowed',
+            detail:
+              freeMax <= 0
+                ? 'parcelas com juros não permitidas (só 1x)'
+                : `sem juros só até ${freeMax}x (ou habilite juros)`,
+          })
+        }
       }
     }
 
@@ -257,7 +290,16 @@ Deno.serve(async (req) => {
           method: internalMethod,
           currency: 'BRL',
           installments: card?.installments ?? null,
-          metadata: { ...meta, mp_attempt: mpAttempt },
+          metadata: {
+            ...meta,
+            mp_attempt: mpAttempt,
+            commercial_snapshot: {
+              method: internalMethod,
+              installments: card?.installments ?? 1,
+              amount,
+              at: new Date().toISOString(),
+            },
+          },
         })
         .eq('id', paymentId)
     } else {
@@ -272,6 +314,14 @@ Deno.serve(async (req) => {
           currency: 'BRL',
           installments: card?.installments ?? null,
           external_ref: orderId,
+          metadata: {
+            commercial_snapshot: {
+              method: internalMethod,
+              installments: card?.installments ?? 1,
+              amount,
+              at: new Date().toISOString(),
+            },
+          },
         })
         .select('id')
         .single()

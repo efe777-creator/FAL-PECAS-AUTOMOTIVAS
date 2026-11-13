@@ -1,7 +1,11 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
-import { resolveInstallmentCount } from '@/lib/paymentDisplay'
+import {
+  falMaxInstallmentsForCheckout,
+  filterInstallmentOptions,
+  type InstallmentOption,
+} from '@/lib/paymentDisplay'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { createFalPayment } from '@/services/payments/engine'
@@ -80,7 +84,7 @@ export function MercadoPagoCardBrickPanel({
   const [docNumber, setDocNumber] = useState('')
   const [binMethod, setBinMethod] = useState<BinMethod | null>(null)
   const [installments, setInstallments] = useState(1)
-  const [installmentOptions, setInstallmentOptions] = useState<number[]>([1])
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([])
   const [mountKey, setMountKey] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const installmentsRef = useRef(1)
@@ -105,10 +109,25 @@ export function MercadoPagoCardBrickPanel({
   }, [installments])
 
   const amountNum = Math.round(Number(amount) * 100) / 100
-  const maxInstallments = useMemo(() => {
-    if (!paymentDisplay?.enabled) return 12
-    return Math.min(12, resolveInstallmentCount(amountNum, paymentDisplay))
-  }, [paymentDisplay, amountNum])
+  const maxInstallments = useMemo(
+    () => falMaxInstallmentsForCheckout(amountNum, paymentDisplay),
+    [paymentDisplay, amountNum],
+  )
+
+  const displayInstallmentOptions = useMemo(() => {
+    if (!installmentOptions.length) {
+      return filterInstallmentOptions(amountNum, paymentDisplay, [
+        {
+          installments: 1,
+          installmentAmount: amountNum,
+          totalAmount: amountNum,
+          interestFree: true,
+          label: '',
+        },
+      ])
+    }
+    return filterInstallmentOptions(amountNum, paymentDisplay, installmentOptions)
+  }, [installmentOptions, amountNum, paymentDisplay])
 
   useEffect(() => {
     try {
@@ -131,7 +150,7 @@ export function MercadoPagoCardBrickPanel({
     async (bin: string | null) => {
       if (!bin || bin.length < 6) {
         setBinMethod(null)
-        setInstallmentOptions([1])
+        setInstallmentOptions([])
         setInstallments(1)
         return
       }
@@ -169,18 +188,40 @@ export function MercadoPagoCardBrickPanel({
           paymentMethodId: method.id,
         })
         const costs = inst?.[0]?.payer_costs ?? []
-        const opts = costs
-          .map((c) => Number(c.installments))
-          .filter((n) => Number.isFinite(n) && n >= 1 && n <= maxInstallments)
-        const unique = [...new Set(opts.length ? opts : [1])].sort((a, b) => a - b)
-        setInstallmentOptions(unique)
+        const raw: InstallmentOption[] = costs
+          .map((c) => {
+            const n = Number(c.installments)
+            const installmentAmount = Number(
+              (c as { installment_amount?: number }).installment_amount ??
+                amountNum / Math.max(n, 1),
+            )
+            const totalAmount = Number(
+              (c as { total_amount?: number }).total_amount ?? installmentAmount * n,
+            )
+            return {
+              installments: n,
+              installmentAmount,
+              totalAmount,
+              interestFree: false,
+              label: '',
+            }
+          })
+          .filter((o) => Number.isFinite(o.installments) && o.installments >= 1)
+        const capped = raw.filter((o) => o.installments <= maxInstallments)
+        setInstallmentOptions(capped.length ? capped : [])
+        const filtered = filterInstallmentOptions(
+          amountNum,
+          paymentDisplay,
+          capped.length ? capped : [],
+        )
         const current = installmentsRef.current
-        setInstallments(unique.includes(current) ? current : unique[0]!)
+        const next = filtered.find((o) => o.installments === current) ?? filtered[0]
+        setInstallments(next?.installments ?? 1)
       } catch {
         /* bin lookup best-effort */
       }
     },
-    [amountNum, maxInstallments],
+    [amountNum, maxInstallments, paymentDisplay],
   )
 
   const syncTickRef = useRef(0)
@@ -244,6 +285,8 @@ export function MercadoPagoCardBrickPanel({
     setReadyFields({})
     setRejectReason(null)
     setBinMethod(null)
+    setInstallmentOptions([])
+    setInstallments(1)
     setStatus('idle')
     setMountKey((k) => k + 1)
   }, [])
@@ -471,12 +514,17 @@ export function MercadoPagoCardBrickPanel({
             value={installments}
             onChange={(ev) => setInstallments(Number(ev.target.value))}
           >
-            {installmentOptions.map((n) => (
-              <option key={n} value={n}>
-                {n}x
+            {displayInstallmentOptions.map((o) => (
+              <option key={o.installments} value={o.installments}>
+                {o.label}
               </option>
             ))}
           </select>
+          {!binMethod ? (
+            <p className="mb-0 mt-1 text-xs text-fal-muted">
+              Informe os dados do cartão para consultar as condições disponíveis.
+            </p>
+          ) : null}
         </div>
 
         {binMethod ? (
@@ -491,12 +539,10 @@ export function MercadoPagoCardBrickPanel({
         </Button>
       </form>
 
-      {paymentDisplay?.enabled && paymentDisplay.interestFree ? (
-        <p className="m-0 text-xs text-fal-muted">
-          Parcelas no cartão conforme regras do Mercado Pago e da conta FAL. A vitrine indica
-          condições comerciais; o valor cobrado é o total do pedido.
-        </p>
-      ) : null}
+      <p className="m-0 text-xs text-fal-muted">
+        Parcelas = condições do Mercado Pago filtradas pela política da loja. O valor cobrado
+        respeita a opção escolhida.
+      </p>
       {!fieldsOk ? (
         <button
           type="button"

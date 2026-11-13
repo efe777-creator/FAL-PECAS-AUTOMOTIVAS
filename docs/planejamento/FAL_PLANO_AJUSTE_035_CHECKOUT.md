@@ -6,7 +6,8 @@
 **ID:** AJUSTE-035 exclusivo checkout. **AJUSTE-034** permanece Indicadores de operação (intocado).  
 **Programa:** `CHECKOUT-01` … `CHECKOUT-05`  
 **Operador:** contrato **A** — checkout alimenta a Central por estados; sem telas admin novas.  
-**Data:** 2026-11-12 · **atualizado:** 2026-11-12 (pós-MARCHAs)
+**Data:** 2026-11-12 · **atualizado:** 2026-11-13 (coordenação PAY consolidação)  
+**Coordenação comercial:** [FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md](./FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md) — 035 **consome** `store_payment_display` / availability; **não** redefine tetos comerciais (dono = HOME-06b / Home da Loja).
 
 **Goal:** Cliente decide produto e entrega primeiro; checkout confirma e conclui pagamento com resultado real, recuperação após refresh e sem pedidos/cobranças duplicados.
 
