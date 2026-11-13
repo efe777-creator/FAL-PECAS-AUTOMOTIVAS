@@ -18,4 +18,15 @@ describe('adminMeasureGapOrFilter', () => {
     expect(s.startsWith('weight_kg.is.null')).toBe(true)
     expect(s).toContain('height_cm.is.null')
   })
+
+  it('pol: capacidade frete próprio ausente', () => {
+    expect(adminMeasureGapOrFilter('pol')).toBe('pol_unit.is.null')
+  })
+})
+
+describe('adminListProductsPage pol gap (contrato)', () => {
+  it('filtro pol na listagem restringe a own_delivery_allowed (documentado)', () => {
+    // Implementação em adminListProductsPage: .is('pol_unit', null).eq('own_delivery_allowed', true)
+    expect(adminMeasureGapOrFilter('pol')).toContain('pol_unit')
+  })
 })

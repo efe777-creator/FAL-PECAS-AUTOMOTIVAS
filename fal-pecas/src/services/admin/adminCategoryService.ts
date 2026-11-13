@@ -468,6 +468,45 @@ export async function adminDeleteCategory(id: string, all?: Category[]): Promise
  * Aplica `default_*` da classificação aos produtos do nó + subárvore.
  * Default: `skip_manual` (não sobrescreve medidas deste produto).
  */
+/**
+ * Resolve medidas padrão andando pais acima até achar ao menos um eixo > 0.
+ * Cotação ainda lê só o produto; isto só alimenta o apply admin.
+ */
+export function resolveCategoryDefaultMeasures(
+  items: Category[],
+  categoryId: string,
+): {
+  weightKg: number | null
+  lengthCm: number | null
+  widthCm: number | null
+  heightCm: number | null
+  sourceCategoryId: string | null
+} {
+  let cur: string | null | undefined = categoryId
+  const seen = new Set<string>()
+  while (cur) {
+    if (seen.has(cur)) break
+    seen.add(cur)
+    const cat = items.find((c) => c.id === cur)
+    if (!cat) break
+    const weightKg = cat.defaultWeightKg != null && cat.defaultWeightKg > 0 ? cat.defaultWeightKg : null
+    const lengthCm = cat.defaultLengthCm != null && cat.defaultLengthCm > 0 ? cat.defaultLengthCm : null
+    const widthCm = cat.defaultWidthCm != null && cat.defaultWidthCm > 0 ? cat.defaultWidthCm : null
+    const heightCm = cat.defaultHeightCm != null && cat.defaultHeightCm > 0 ? cat.defaultHeightCm : null
+    if (weightKg != null || lengthCm != null || widthCm != null || heightCm != null) {
+      return { weightKg, lengthCm, widthCm, heightCm, sourceCategoryId: cat.id }
+    }
+    cur = cat.parentId
+  }
+  return {
+    weightKg: null,
+    lengthCm: null,
+    widthCm: null,
+    heightCm: null,
+    sourceCategoryId: null,
+  }
+}
+
 export async function adminApplyCategoryDefaultMeasures(opts: {
   categoryId: string
   allCategories?: Category[]
@@ -477,18 +516,21 @@ export async function adminApplyCategoryDefaultMeasures(opts: {
   const cat = items.find((c) => c.id === opts.categoryId)
   if (!cat) throw new Error('Classificação não encontrada.')
 
+  const resolved = resolveCategoryDefaultMeasures(items, opts.categoryId)
   const patch: {
     weightKg?: number | null
     lengthCm?: number | null
     widthCm?: number | null
     heightCm?: number | null
   } = {}
-  if (cat.defaultWeightKg != null) patch.weightKg = cat.defaultWeightKg
-  if (cat.defaultLengthCm != null) patch.lengthCm = cat.defaultLengthCm
-  if (cat.defaultWidthCm != null) patch.widthCm = cat.defaultWidthCm
-  if (cat.defaultHeightCm != null) patch.heightCm = cat.defaultHeightCm
+  if (resolved.weightKg != null) patch.weightKg = resolved.weightKg
+  if (resolved.lengthCm != null) patch.lengthCm = resolved.lengthCm
+  if (resolved.widthCm != null) patch.widthCm = resolved.widthCm
+  if (resolved.heightCm != null) patch.heightCm = resolved.heightCm
   if (!Object.keys(patch).length) {
-    throw new Error('Defina ao menos uma medida padrão nesta classificação antes de aplicar.')
+    throw new Error(
+      'Defina ao menos uma medida padrão nesta classificação (ou em um pai) antes de aplicar.',
+    )
   }
 
   const productIds = await adminListProductIdsInCategorySubtree(items, opts.categoryId)

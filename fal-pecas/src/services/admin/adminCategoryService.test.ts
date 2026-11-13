@@ -5,6 +5,7 @@ import {
   categoryLevelLabel,
   categoryPath,
   collectCategorySubtreeIds,
+  resolveCategoryDefaultMeasures,
   CATEGORY_MAX_DEPTH,
 } from '@/services/admin/adminCategoryService'
 import type { Category } from '@/types'
@@ -71,5 +72,54 @@ describe('category hierarchy (3 níveis)', () => {
     expect(categoryLevelLabel(categoryDepth(items, 'g1'))).toBe('Categoria')
     expect(categoryLevelLabel(categoryDepth(items, 'c1'))).toBe('Grupo')
     expect(categoryLevelLabel(categoryDepth(items, 's1'))).toBe('Subgrupo')
+  })
+})
+
+describe('resolveCategoryDefaultMeasures', () => {
+  it('usa o próprio nó quando tem padrão', () => {
+    const items: Category[] = [
+      {
+        ...cat('root', 'SUSPENSÃO'),
+        defaultWeightKg: 0.4,
+        defaultLengthCm: 10,
+        defaultWidthCm: 8,
+        defaultHeightCm: 12,
+      },
+      cat('leaf', 'BIELETA', 'root'),
+    ]
+    items[1] = {
+      ...items[1],
+      defaultWeightKg: 0.5,
+      defaultLengthCm: 6,
+      defaultWidthCm: 8,
+      defaultHeightCm: 35,
+    }
+    const r = resolveCategoryDefaultMeasures(items, 'leaf')
+    expect(r.sourceCategoryId).toBe('leaf')
+    expect(r.weightKg).toBe(0.5)
+  })
+
+  it('sobe para o pai quando o nó está vazio', () => {
+    const items: Category[] = [
+      {
+        ...cat('root', 'SUSPENSÃO'),
+        defaultWeightKg: 0.44,
+        defaultLengthCm: 7.6,
+        defaultWidthCm: 10,
+        defaultHeightCm: 17.8,
+      },
+      cat('leaf', 'PARCIAL', 'root'),
+    ]
+    const r = resolveCategoryDefaultMeasures(items, 'leaf')
+    expect(r.sourceCategoryId).toBe('root')
+    expect(r.weightKg).toBe(0.44)
+    expect(r.lengthCm).toBe(7.6)
+  })
+
+  it('retorna vazio se a cadeia não tem padrão', () => {
+    const items = [cat('root', 'FILTROS'), cat('leaf', 'FILTRO DE ÓLEO', 'root')]
+    const r = resolveCategoryDefaultMeasures(items, 'leaf')
+    expect(r.sourceCategoryId).toBeNull()
+    expect(r.weightKg).toBeNull()
   })
 })

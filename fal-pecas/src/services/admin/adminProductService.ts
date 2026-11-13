@@ -118,14 +118,16 @@ const SELECT = `
 /** Tamanho padrão de página da lista de produtos admin. */
 export const ADMIN_PRODUCTS_PAGE_SIZE = 200
 
-/** Gap de medidas logísticas na listagem admin (residual P1-LOG-HIST). */
-export type AdminMeasureGapFilter = 'weight' | 'dims' | 'any'
+/** Gap de medidas logísticas na listagem admin (residual P1-LOG-HIST + POL). */
+export type AdminMeasureGapFilter = 'weight' | 'dims' | 'any' | 'pol'
 
-/** Filtro PostgREST `.or(...)` para gaps de peso/dims (null ou ≤ 0). */
+/** Filtro PostgREST `.or(...)` para gaps de peso/dims/POL (null ou ≤ 0 / POL null). */
 export function adminMeasureGapOrFilter(gap: AdminMeasureGapFilter): string {
   const weight = 'weight_kg.is.null,weight_kg.lte.0'
   const dims =
     'height_cm.is.null,height_cm.lte.0,width_cm.is.null,width_cm.lte.0,length_cm.is.null,length_cm.lte.0'
+  /** Capacidade frete próprio ausente — UI: “Sem capacidade de entrega”. */
+  if (gap === 'pol') return 'pol_unit.is.null'
   if (gap === 'weight') return weight
   if (gap === 'dims') return dims
   return `${weight},${dims}`
@@ -179,7 +181,10 @@ export async function adminListProductsPage(
     q = q.in('category_id', params.categoryIds)
   }
   if (productIdsByMaker) q = q.in('id', productIdsByMaker)
-  if (params?.measureGap) {
+  if (params?.measureGap === 'pol') {
+    // Meta FAL: só elegíveis sem capacidade cadastrada
+    q = q.is('pol_unit', null).eq('own_delivery_allowed', true)
+  } else if (params?.measureGap) {
     q = q.or(adminMeasureGapOrFilter(params.measureGap))
   }
   if (params?.q?.trim()) {

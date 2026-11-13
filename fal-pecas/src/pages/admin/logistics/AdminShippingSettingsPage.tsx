@@ -49,15 +49,20 @@ export function AdminShippingSettingsPage() {
         <h2 className="m-0 text-base font-extrabold text-fal-navy">Como a cotação se comporta hoje</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-fal-ink">
           <li>
-            Produto sem peso/medidas úteis não entra bem na cotação — preencha medidas ou aplique o
-            padrão da classificação.
+            Produto sem peso/medidas úteis não entra bem na cotação ME — preencha medidas ou aplique o
+            padrão da classificação (a cotação não inventa default).
           </li>
           <li>
             Com caixas ativas, o sistema escolhe a <strong>menor caixa</strong> que comporta volume e
-            peso do conjunto (uma caixa por cotação).
+            peso do <strong>conjunto do carrinho</strong> (uma caixa por cotação).
           </li>
           <li>
-            Sem caixa adequada, a cotação Melhor Envio pode ser recusada (não inventa envelope).
+            Sem caixa adequada, a cotação Melhor Envio é recusada (não inventa envelope). Multi-volume
+            real só na separação; re-cotação ops não altera o frete cobrado do cliente.
+          </li>
+          <li>
+            Frete próprio FAL usa capacidade de entrega do produto + km ida + tarifa do veículo — não
+            usa modelos de caixa.
           </li>
           <li>
             Origem da loja (CEP/remetente) é obrigatória para frete próprio e Melhor Envio.

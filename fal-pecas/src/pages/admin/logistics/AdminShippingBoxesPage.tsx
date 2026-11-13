@@ -159,8 +159,10 @@ export function AdminShippingBoxesPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Caixas e embalagens</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Modelos usados na cotação Melhor Envio. Com caixas ativas, a regra v1 escolhe a menor que
-          comporta volume e peso; se nenhuma servir, a cotação é recusada (não inventa envelope).
+          Modelos usados na cotação Melhor Envio do carrinho (conjunto). Com caixas ativas, a regra
+          v1 escolhe a menor que comporta volume e peso em <strong>1 volume</strong>; se nenhuma
+          servir, a cotação é recusada (não inventa envelope). Frete próprio FAL usa capacidade de
+          entrega do produto, não estas caixas. Calibre com as médias de peso/dims das classificações.
         </p>
       </div>
 

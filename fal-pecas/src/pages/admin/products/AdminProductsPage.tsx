@@ -25,6 +25,7 @@ import {
   adminReleaseProductsToStore,
   adminSetProductStatus,
   adminSetProductsAvailability,
+  type AdminMeasureGapFilter,
   type ApplyGlobalMeasuresMode,
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
@@ -53,7 +54,7 @@ export function AdminProductsPage() {
   const [manufacturerId, setManufacturerId] = useState('')
   const [filterCascade, setFilterCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
   const [withoutImage, setWithoutImage] = useState(false)
-  const [measureGap, setMeasureGap] = useState<'' | 'weight' | 'dims' | 'any'>('')
+  const [measureGap, setMeasureGap] = useState<'' | AdminMeasureGapFilter>('')
   const [loading, setLoading] = useState(true)
   const [busyBulk, setBusyBulk] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -91,7 +92,7 @@ export function AdminProductsPage() {
     availableFilter?: string
     manufacturerId?: string
     withoutImage?: boolean
-    measureGap?: '' | 'weight' | 'dims' | 'any'
+    measureGap?: '' | AdminMeasureGapFilter
     filterCascade?: CategoryCascadeValue
     offset?: number
   }) {
@@ -127,7 +128,7 @@ export function AdminProductsPage() {
     availableFilter?: string
     manufacturerId?: string
     withoutImage?: boolean
-    measureGap?: '' | 'weight' | 'dims' | 'any'
+    measureGap?: '' | AdminMeasureGapFilter
     filterCascade?: CategoryCascadeValue
   }) {
     setLoading(true)
@@ -563,12 +564,15 @@ export function AdminProductsPage() {
           <select
             className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
             value={measureGap}
-            onChange={(e) => setMeasureGap(e.target.value as '' | 'weight' | 'dims' | 'any')}
+            onChange={(e) =>
+              setMeasureGap(e.target.value as '' | AdminMeasureGapFilter)
+            }
           >
             <option value="">Todas</option>
             <option value="weight">Sem peso</option>
             <option value="dims">Sem dimensões</option>
             <option value="any">Sem peso ou dimensões</option>
+            <option value="pol">Sem capacidade de entrega (frete FAL)</option>
           </select>
         </label>
         <CategoryCascadeSelects

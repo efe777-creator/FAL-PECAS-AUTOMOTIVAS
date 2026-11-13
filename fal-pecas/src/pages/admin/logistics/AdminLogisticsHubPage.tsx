@@ -11,7 +11,7 @@ const cards = [
   {
     to: '/admin/logistica/frete-proprio',
     title: 'Frete próprio',
-    desc: 'Gerais, veículos, tarifas e produtos elegíveis ao frete da FAL.',
+    desc: 'Veículos (capacidade), tarifas por km e produtos elegíveis — cotação do conjunto via capacidade, não caixa.',
     ready: true,
   },
   {
@@ -29,19 +29,19 @@ const cards = [
   {
     to: '/admin/logistica/caixas',
     title: 'Caixas e embalagens',
-    desc: 'Modelos de caixa para cotação de frete (peso e volume do pedido).',
+    desc: 'Modelos padrão: a cotação do carrinho usa a menor caixa que comporta o conjunto (1 volume ME).',
     ready: true,
   },
   {
     to: '/admin/categorias#medidas-padrao',
     title: 'Medidas por classificação',
-    desc: 'Peso e dimensões padrão por categoria/grupo/subgrupo; a aplicação respeita medidas deste produto.',
+    desc: 'Peso/dims médios → apply nos produtos (não inventa na cotação). Spec cotação agrupada 13/11.',
     ready: true,
   },
   {
     to: '/admin/logistica/configuracoes',
     title: 'Configurações de envio',
-    desc: 'Regras atuais da cotação e atalhos para origem, caixas e Melhor Envio.',
+    desc: 'Regras: ME = caixa; FAL = capacidade + km; packing ops re-cota custo sem mudar frete do cliente.',
     ready: true,
   },
 ] as const
@@ -53,8 +53,8 @@ export function AdminLogisticsHubPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Logística</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Configure origem, prazos dos meios, frete próprio, Melhor Envio e embalagens. Pedidos e
-          expedição ficam na área de Pedidos.
+          Configure origem, prazos, frete próprio (capacidade + km), Melhor Envio e caixas padrão do
+          carrinho. Pedidos e expedição (packing / re-cotação interna) ficam em Pedidos.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
