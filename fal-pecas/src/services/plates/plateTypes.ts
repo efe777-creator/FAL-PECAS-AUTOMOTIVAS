@@ -1,4 +1,5 @@
 import type { VehicleFilter } from '@/types'
+import { isModelNameClean, splitApiModelo } from '@/services/plates/splitApiModelo'
 
 export type PlateLookupStatus =
   | 'found'
@@ -49,23 +50,31 @@ export interface PlateLookupResult {
 
 export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
   const identified = Boolean(result.maker && result.model)
+  let model = result.model ?? undefined
+  let engine =
+    result.engine != null && String(result.engine).trim()
+      ? String(result.engine).trim()
+      : undefined
+  let version =
+    result.version != null && String(result.version).trim()
+      ? String(result.version).trim()
+      : undefined
+
+  // Nunca deixar versão/motor colados no modelo do filtro (cache legado / API).
+  if (model && !isModelNameClean(model)) {
+    const split = splitApiModelo(model)
+    model = split.model || model
+    if (!engine && split.engine) engine = split.engine
+    if (!version && split.version) version = split.version
+  }
+
   return {
     maker: result.maker ?? undefined,
-    model: result.model ?? undefined,
+    model,
     year: result.year ?? undefined,
     // Placa sem motor/versão → "" ("Não informado") para o select não ficar em branco
-    engine:
-      result.engine != null && String(result.engine).trim()
-        ? String(result.engine).trim()
-        : identified
-          ? ''
-          : undefined,
-    version:
-      result.version != null && String(result.version).trim()
-        ? String(result.version).trim()
-        : identified
-          ? ''
-          : undefined,
+    engine: engine ?? (identified ? '' : undefined),
+    version: version ?? (identified ? '' : undefined),
   }
 }
 

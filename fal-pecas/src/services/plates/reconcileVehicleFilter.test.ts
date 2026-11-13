@@ -55,6 +55,87 @@ describe('reconcileVehicleFilter', () => {
     )
     expect(r.version).toBe('Intense')
   })
+
+  it('placa Kwid não promove modelo poluído Kwid Intens 10MT do cadastro', () => {
+    const dirtyTree: VehicleOptionTree = {
+      ...tree,
+      makers: ['Renault'],
+      modelsByMaker: { Renault: ['Kwid Intens 10MT', 'Kwid'] },
+      yearsByModel: { 'Renault|Kwid': ['2017'] },
+      enginesByModel: { 'Renault|Kwid': ['1.0'] },
+      versionsByModel: { 'Renault|Kwid': ['Intense'] },
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Renault', model: 'Kwid', year: '2017', engine: '1.0', version: 'Intense' },
+      dirtyTree,
+    )
+    expect(r.model).toBe('Kwid')
+    expect(r.version).toBe('Intense')
+  })
+
+  it('prefixo: só modelo poluído no pool → mantém needle limpo da placa (não força composto)', () => {
+    const dirtyOnly: VehicleOptionTree = {
+      ...tree,
+      makers: ['Renault'],
+      modelsByMaker: { Renault: ['Kwid Intens 10MT'] },
+      yearsByModel: {},
+      enginesByModel: {},
+      versionsByModel: {},
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Renault', model: 'Kwid', year: '2017', engine: '1.0', version: 'Intense' },
+      dirtyOnly,
+    )
+    // Não promover "Kwid Intens 10MT" só porque começa com Kwid
+    expect(r.model).toBe('Kwid')
+  })
+
+  it('placa com modelo composto alinha para base curta no cadastro', () => {
+    const dirtyTree: VehicleOptionTree = {
+      ...tree,
+      makers: ['Ford'],
+      modelsByMaker: { Ford: ['Fiesta Flex', 'Fiesta'] },
+      yearsByModel: {},
+      enginesByModel: { 'Ford|Fiesta': ['1.0'] },
+      versionsByModel: {},
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Ford', model: 'Fiesta Flex', year: '2007', engine: '1.0' },
+      dirtyTree,
+    )
+    expect(r.model).toBe('Fiesta')
+  })
+
+  it('CHEV da placa alinha para Chevrolet no mestre', () => {
+    const r = reconcileVehicleFilter(
+      { maker: 'CHEV', model: 'Prisma', year: '2019', engine: '1.0', version: 'Joy' },
+      {
+        ...tree,
+        makers: ['Chevrolet', 'Volkswagen'],
+        modelsByMaker: { Chevrolet: ['Prisma', 'Onix'], Volkswagen: ['Gol'] },
+        enginesByModel: { 'Chevrolet|Prisma': ['1.0'] },
+        versionsByModel: { 'Chevrolet|Prisma': ['Joy', 'LT'] },
+      },
+    )
+    expect(r.maker).toBe('Chevrolet')
+    expect(r.model).toBe('Prisma')
+    expect(r.version).toBe('Joy')
+  })
+
+  it('versão/motor sem match no mestre → Não informado', () => {
+    const r = reconcileVehicleFilter(
+      {
+        maker: 'Volkswagen',
+        model: 'Cross Fox',
+        year: '2007',
+        engine: '2.0 Turbo Inventado',
+        version: 'XYZ Fantasy',
+      },
+      tree,
+    )
+    expect(r.engine).toBe('')
+    expect(r.version).toBe('')
+  })
 })
 
 describe('selectOptionsWithValue', () => {

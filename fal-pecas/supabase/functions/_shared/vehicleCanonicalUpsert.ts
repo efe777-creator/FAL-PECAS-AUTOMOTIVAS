@@ -1,6 +1,8 @@
 /**
  * Upsert canônico de veículo via RPC (Edge / service_role).
  */
+import { assertModelClean } from './splitApiModelo.ts'
+
 export type CanonicalUpsertResult = {
   manufacturerId: string
   modelId: string
@@ -26,6 +28,28 @@ function parseYear(year: string | number | null | undefined): number | null {
   return Math.trunc(n)
 }
 
+/** Re-split modelo composto antes de gravar no mestre. */
+function cleanPlateFields(input: {
+  maker: string
+  model: string
+  year?: string | number | null
+  engine?: string | null
+  version?: string | null
+}) {
+  const maker = String(input.maker ?? '').trim()
+  const cleaned = assertModelClean(input.model, {
+    engine: input.engine,
+    version: input.version,
+  })
+  return {
+    maker,
+    model: cleaned.model,
+    year: input.year,
+    engine: cleaned.engine,
+    version: cleaned.version,
+  }
+}
+
 export async function vehicleCanonicalUpsert(
   sb: Sb,
   input: {
@@ -37,16 +61,17 @@ export async function vehicleCanonicalUpsert(
     source?: 'import' | 'plate' | 'admin'
   },
 ): Promise<CanonicalUpsertResult> {
-  const maker = String(input.maker ?? '').trim()
-  const model = String(input.model ?? '').trim()
+  const cleaned = cleanPlateFields(input)
+  const maker = cleaned.maker
+  const model = cleaned.model
   if (!maker || !model) throw new Error('maker_and_model_required')
 
   const { data, error } = await sb.rpc('upsert_vehicle_canonical', {
     p_maker: maker,
     p_model: model,
-    p_year: parseYear(input.year),
-    p_engine: input.engine?.trim() || null,
-    p_version: input.version?.trim() || null,
+    p_year: parseYear(cleaned.year),
+    p_engine: cleaned.engine,
+    p_version: cleaned.version,
     p_source: input.source ?? 'plate',
   })
 

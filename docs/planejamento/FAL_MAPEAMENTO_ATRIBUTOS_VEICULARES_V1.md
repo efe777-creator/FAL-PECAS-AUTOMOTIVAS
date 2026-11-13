@@ -46,16 +46,15 @@ Espelho em `TRIM_ALIASES` (`splitApiModelo.ts`): Expression, Authentique, Dynami
 
 Novos trims: adicionar alias + teste Vitest **antes** de depender na UI.
 
-## 5. Ano fab vs ano-modelo (proposta)
+## 5. Ano fab vs ano-modelo
 
-| Situação | Comportamento proposto |
-|----------|------------------------|
-| Só um AAAA | `yearModel = yearFabrication = AAAA` |
-| `2019/2020` | fab=2019, modelo=2020 (2º); filtro PVC default = **ano-modelo** |
-| Só `anoModelo` | yearModel preenchido; fab null |
-| Conflito | status `incomplete` + mensagem; não escolher silenciosamente |
+| Situação | Comportamento |
+|----------|---------------|
+| Só um AAAA | `year` único no filtro / VV |
+| `2019/2020` | Provider preferencialmente usa **ano-modelo** (`extractYearPreferModel` = último AAAA); filtro PVC = esse ano |
+| Campos distintos fab/modelo | Ainda colapsam em um `year` no `VehicleFilter` (gap INV pós-Onda 1) |
 
-**Hoje:** um único `year` = primeiro AAAA encontrado → documentado como gap P1.
+**INV:** ver [FAL_INV_CHARTER_V1.md](./FAL_INV_CHARTER_V1.md) — Onda 1 não muda semântica PVC.
 
 ## 6. Fuel / transmission
 

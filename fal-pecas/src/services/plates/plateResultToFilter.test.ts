@@ -35,4 +35,25 @@ describe('plateResultToFilter', () => {
     expect(f.engine).toBe('')
     expect(f.version).toBe('')
   })
+
+  it('separa modelo composto legado em modelo + versão/motor', () => {
+    const f = plateResultToFilter(
+      base({
+        maker: 'Renault',
+        model: 'Kwid Intens 10MT',
+        year: '2020',
+        version: null,
+        engine: null,
+      }),
+    )
+    expect(f.model).toBe('Kwid')
+    expect(f.version).toBe('Intense')
+    expect(f.engine).toBe('1.0')
+  })
+
+  it('não inclui fuel no VehicleFilter', () => {
+    const f = plateResultToFilter(base({ fuel: 'FLEX' }))
+    expect(f).not.toHaveProperty('fuel')
+    expect(Object.keys(f).sort()).toEqual(['engine', 'maker', 'model', 'version', 'year'].sort())
+  })
 })

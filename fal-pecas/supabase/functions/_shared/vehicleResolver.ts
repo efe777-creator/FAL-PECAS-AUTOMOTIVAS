@@ -56,7 +56,7 @@ export async function resolveVehicleAgainstCatalog(
   const modelQ = raw.model.trim()
   const makerAliases: Record<string, string[]> = {
     volkswagen: ['volkswagen', 'vw'],
-    chevrolet: ['chevrolet', 'gm', 'chevy'],
+    chevrolet: ['chevrolet', 'gm', 'chevy', 'chev'],
     'mercedes-benz': ['mercedes-benz', 'mercedes'],
   }
   const makerNeedles = new Set<string>([makerQ.toLowerCase()])

@@ -8,8 +8,8 @@
  */
 import type { PlateLookupProvider, PlateProviderRaw } from './plateProvider.ts'
 import {
-  normalizeVersionLabel,
   sanitizeEngine,
+  sanitizeVersionLabel,
   splitApiModelo,
 } from './splitApiModelo.ts'
 
@@ -36,6 +36,7 @@ const MAKER_ALIASES: Record<string, string> = {
   gm: 'Chevrolet',
   chevrolet: 'Chevrolet',
   chevy: 'Chevrolet',
+  chev: 'Chevrolet',
   fiat: 'Fiat',
   ford: 'Ford',
   toyota: 'Toyota',
@@ -154,7 +155,8 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
       asString(dados.motorizacao) ??
       asString(dados.cilindrada),
   )
-  const version = normalizeVersionLabel(
+  // Versão da API às vezes é motor+câmbio ("1.6 A") — nunca vira trim.
+  const version = sanitizeVersionLabel(
     split.version ??
       asString(dados.versao) ??
       asString(dados.versão) ??

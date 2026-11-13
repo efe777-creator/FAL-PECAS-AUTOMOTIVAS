@@ -4,6 +4,11 @@ import {
   formatModelDisplayName,
 } from '@/lib/entityNormalize'
 import { toSlug } from '@/lib/slug'
+import {
+  assertModelClean,
+  normalizeVersionLabel,
+  sanitizeEngine,
+} from '@/services/plates/splitApiModelo'
 
 export type VehicleCanonicalSource = 'import' | 'plate' | 'admin'
 
@@ -47,13 +52,17 @@ export async function vehicleCanonicalUpsert(
   input: VehicleCanonicalInput,
 ): Promise<VehicleCanonicalResult> {
   const maker = formatManufacturerDisplayName(input.maker)
-  const model = formatModelDisplayName(input.model)
+  const cleaned = assertModelClean(input.model, {
+    engine: input.engine,
+    version: input.version,
+  })
+  const model = formatModelDisplayName(cleaned.model)
   if (!maker || !model) {
     throw new Error('maker_and_model_required')
   }
   const year = parseYear(input.year)
-  const engine = blankToNull(input.engine)
-  const version = blankToNull(input.version)
+  const engine = blankToNull(sanitizeEngine(cleaned.engine) ?? undefined)
+  const version = blankToNull(normalizeVersionLabel(cleaned.version) ?? undefined)
   const source = input.source ?? 'admin'
 
   const sb = getSupabase()

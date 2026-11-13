@@ -119,11 +119,94 @@ describe('splitApiModelo', () => {
     })
   })
 
+  it('FIESTA FLEX → Fiesta sem fuel no modelo/versão', () => {
+    expect(splitApiModelo('Fiesta Flex')).toEqual({
+      model: 'Fiesta',
+      engine: null,
+      version: null,
+    })
+  })
+
+  it('ARGO TREKKING → Argo / Trekking', () => {
+    expect(splitApiModelo('Argo Trekking')).toEqual({
+      model: 'Argo',
+      engine: null,
+      version: 'Trekking',
+    })
+  })
+
+  it('PALIO FIRE ECONOMY → Palio / Fire Economy', () => {
+    expect(splitApiModelo('Palio Fire Economy')).toEqual({
+      model: 'Palio',
+      engine: null,
+      version: 'Fire Economy',
+    })
+  })
+
+  it('POLO HL AB → Polo / HL AB', () => {
+    expect(splitApiModelo('Polo HL AB')).toEqual({
+      model: 'Polo',
+      engine: null,
+      version: 'HL AB',
+    })
+  })
+
+  it('TUCSON GLSB → Tucson / GLSB', () => {
+    expect(splitApiModelo('Tucson Glsb')).toEqual({
+      model: 'Tucson',
+      engine: null,
+      version: 'GLSB',
+    })
+  })
+
+  it('PRISMA 10MT JOYE → Prisma / 1.0 / Joy (motor no meio)', () => {
+    expect(splitApiModelo('Prisma 10MT Joye')).toEqual({
+      model: 'Prisma',
+      engine: '1.0',
+      version: 'Joy',
+    })
+    expect(splitApiModelo('PRISMA 10MT JOYE')).toEqual({
+      model: 'Prisma',
+      engine: '1.0',
+      version: 'Joy',
+    })
+  })
+
+  it('PPP8A30: HB20 1.6A 1.6 A → motor 1.6, versão null (A = câmbio, não trim)', () => {
+    expect(splitApiModelo('HB20 1.6A 1.6 A')).toEqual({
+      model: 'HB20',
+      engine: '1.6',
+      version: null,
+    })
+    expect(splitApiModelo('HB20 1.6 A')).toEqual({
+      model: 'HB20',
+      engine: '1.6',
+      version: null,
+    })
+    expect(splitApiModelo('HB20 1.6A')).toEqual({
+      model: 'HB20',
+      engine: '1.6',
+      version: null,
+    })
+  })
+
   it('normalizeVersionLabel: EXPRESSION/INTENS → canônicos', async () => {
     const { normalizeVersionLabel } = await import('./splitApiModelo')
     expect(normalizeVersionLabel('EXPRESSION')).toBe('Expression')
     expect(normalizeVersionLabel('INTENS')).toBe('Intense')
     expect(normalizeVersionLabel('Unique')).toBe('Unique')
+  })
+
+  it('sanitizeVersionLabel: rejeita motor/câmbio colados (1.6 A, 1.6A, A, AT)', async () => {
+    const { sanitizeVersionLabel } = await import('./splitApiModelo')
+    expect(sanitizeVersionLabel('1.6 A')).toBeNull()
+    expect(sanitizeVersionLabel('1.6A')).toBeNull()
+    expect(sanitizeVersionLabel('1.6')).toBeNull()
+    expect(sanitizeVersionLabel('A')).toBeNull()
+    expect(sanitizeVersionLabel('AT')).toBeNull()
+    expect(sanitizeVersionLabel('MT')).toBeNull()
+    expect(sanitizeVersionLabel('Unique')).toBe('Unique')
+    expect(sanitizeVersionLabel('Comfort Plus')).toBe('Comfort Plus')
   })
 })
 
@@ -132,6 +215,41 @@ describe('sanitizeEngine', () => {
     expect(sanitizeEngine('0.1')).toBeNull()
     expect(sanitizeEngine('1.0')).toBe('1.0')
     expect(sanitizeEngine('10MT')).toBe('1.0')
+  })
+
+  it('normaliza 1.8AT e 1.6L', () => {
+    expect(sanitizeEngine('1.8AT')).toBe('1.8')
+    expect(sanitizeEngine('1.6L')).toBe('1.6')
+  })
+})
+
+describe('assertModelClean', () => {
+  it('separa Kwid Intens 10MT em modelo limpo + versão + motor', async () => {
+    const { assertModelClean } = await import('./splitApiModelo')
+    expect(assertModelClean('Kwid Intens 10MT')).toEqual({
+      model: 'Kwid',
+      engine: '1.0',
+      version: 'Intense',
+    })
+  })
+
+  it('extras versão 1.6 A não vira trim — motor permanece 1.6', async () => {
+    const { assertModelClean } = await import('./splitApiModelo')
+    expect(assertModelClean('HB20', { engine: '1.6', version: '1.6 A' })).toEqual({
+      model: 'HB20',
+      engine: '1.6',
+      version: null,
+    })
+  })
+})
+
+describe('isModelNameClean', () => {
+  it('detecta compostos vs limpos', async () => {
+    const { isModelNameClean } = await import('./splitApiModelo')
+    expect(isModelNameClean('HB20')).toBe(true)
+    expect(isModelNameClean('Cross Fox')).toBe(true)
+    expect(isModelNameClean('Kwid Intens 10MT')).toBe(false)
+    expect(isModelNameClean('Fiesta Flex')).toBe(false)
   })
 })
 

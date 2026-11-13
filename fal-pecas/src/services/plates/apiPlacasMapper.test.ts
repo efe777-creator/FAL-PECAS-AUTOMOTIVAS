@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeVersionLabel, splitApiModelo } from './splitApiModelo'
+import { sanitizeVersionLabel, splitApiModelo } from './splitApiModelo'
 
 /** Espelho do mapper Edge (apiPlacasPlateProvider) para Vitest. */
 function extractYearPreferModel(raw: unknown): string | null {
@@ -39,7 +39,7 @@ function mapApiPlacasBasicoToRaw(body: unknown) {
     model: split.model,
     year,
     engine: split.engine,
-    version: normalizeVersionLabel(
+    version: sanitizeVersionLabel(
       split.version ?? (dados.versao ? String(dados.versao) : null),
     ),
     fuel: dados.combustivel ? String(dados.combustivel) : null,
@@ -103,6 +103,25 @@ describe('mapApiPlacasBasicoToRaw', () => {
       },
     })
     expect(r.version).toBe('Expression')
+  })
+
+  it('PPP8A30: HB20 1.6A 1.6 A → sem versão inventada; motor 1.6', () => {
+    const r = mapApiPlacasBasicoToRaw({
+      basico: {
+        dados: {
+          marca: 'HYUNDAI',
+          modelo: 'HB20 1.6A 1.6 A',
+          ano: '2016/2017',
+          versao: '1.6 A',
+          combustivel: 'Alcool / Gasolina',
+        },
+      },
+    })
+    expect(r.maker).toBe('Hyundai')
+    expect(r.model).toBe('HB20')
+    expect(r.engine).toBe('1.6')
+    expect(r.version).toBeNull()
+    expect(r.year).toBe('2017')
   })
 
   it('incomplete sem ano', () => {
