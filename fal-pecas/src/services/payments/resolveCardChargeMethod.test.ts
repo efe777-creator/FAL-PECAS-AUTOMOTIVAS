@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  alignPaymentMethodIdForPreferred,
   detectBinCardKind,
   pickPaymentMethodForPreferred,
   resolveCardChargeMethod,
@@ -71,5 +72,36 @@ describe('detectBinCardKind / pickPaymentMethodForPreferred', () => {
   it('cai no primeiro se nenhum casar', () => {
     const results = [{ id: 'visa', payment_type_id: 'credit_card' }]
     expect(pickPaymentMethodForPreferred(results, 'debit_card')?.id).toBe('visa')
+  })
+})
+
+describe('alignPaymentMethodIdForPreferred', () => {
+  it('mapeia visa/master → debvisa/debmaster no canal débito', () => {
+    expect(alignPaymentMethodIdForPreferred('debit_card', 'visa')).toEqual({
+      paymentMethodId: 'debvisa',
+      remapped: true,
+    })
+    expect(alignPaymentMethodIdForPreferred('debit_card', 'master')).toEqual({
+      paymentMethodId: 'debmaster',
+      remapped: true,
+    })
+  })
+
+  it('não remapeia se já for débito', () => {
+    expect(alignPaymentMethodIdForPreferred('debit_card', 'debvisa')).toEqual({
+      paymentMethodId: 'debvisa',
+      remapped: false,
+    })
+  })
+
+  it('no crédito remapeia debvisa → visa e preserva master', () => {
+    expect(alignPaymentMethodIdForPreferred('credit_card', 'debvisa')).toEqual({
+      paymentMethodId: 'visa',
+      remapped: true,
+    })
+    expect(alignPaymentMethodIdForPreferred('credit_card', 'master')).toEqual({
+      paymentMethodId: 'master',
+      remapped: false,
+    })
   })
 })

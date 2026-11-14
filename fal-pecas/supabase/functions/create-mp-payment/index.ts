@@ -3,6 +3,7 @@
 // Terminal síncrono do MP → mesma decisão do webhook (RPC / set_terminal).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
+  alignMpPaymentMethodId,
   buildIdempotencyKey,
   buildMpPaymentBody,
   isPaymentExpired,
@@ -70,7 +71,9 @@ Deno.serve(async (req) => {
       (rawBody ?? {}) as Record<string, unknown>,
     )
     const internalMethod = resolveInternalMethod(card)
-    const mpPaymentMethodId = card?.paymentMethodId ?? 'pix'
+    const mpPaymentMethodId = card
+      ? alignMpPaymentMethodId(internalMethod, card.paymentMethodId)
+      : 'pix'
 
     const { data: customer, error: custErr } = await admin
       .from('customers')

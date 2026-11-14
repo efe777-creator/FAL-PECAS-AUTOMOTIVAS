@@ -106,6 +106,33 @@ export function resolveInternalMethod(card?: MpCardClientFields): MpCreateMethod
   return 'credit_card'
 }
 
+/** Catálogo BIN BR devolve visa/master; API de pagamento débito exige debvisa/debmaster. */
+const CREDIT_TO_DEBIT_METHOD_ID: Record<string, string> = {
+  visa: 'debvisa',
+  master: 'debmaster',
+  mastercard: 'debmaster',
+}
+
+const DEBIT_TO_CREDIT_METHOD_ID: Record<string, string> = {
+  debvisa: 'visa',
+  debmaster: 'master',
+}
+
+export function alignMpPaymentMethodId(
+  internalMethod: MpCreateMethod,
+  paymentMethodId: string,
+): string {
+  const id = String(paymentMethodId ?? '')
+    .trim()
+    .toLowerCase()
+  if (!id || internalMethod === 'pix') return paymentMethodId
+  if (internalMethod === 'debit_card') {
+    if (id.startsWith('deb') || id.includes('debit')) return id
+    return CREDIT_TO_DEBIT_METHOD_ID[id] ?? id
+  }
+  return DEBIT_TO_CREDIT_METHOD_ID[id] ?? id
+}
+
 /** @deprecated use resolveInternalMethod — Pix default F9-B */
 export function serverPaymentMethod(): MpCreateMethod {
   return 'pix'

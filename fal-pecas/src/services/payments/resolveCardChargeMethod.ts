@@ -50,3 +50,42 @@ export function pickPaymentMethodForPreferred<T extends { payment_type_id?: stri
   })
   return match ?? results[0]
 }
+
+/**
+ * No BR o catálogo BIN costuma devolver `visa`/`master` mesmo para débito.
+ * A API de pagamentos exige `debvisa`/`debmaster` para processar como débito
+ * (docs MP: payment_method_id débito ≠ bandeira de crédito).
+ */
+const CREDIT_TO_DEBIT_METHOD_ID: Record<string, string> = {
+  visa: 'debvisa',
+  master: 'debmaster',
+  mastercard: 'debmaster',
+}
+
+const DEBIT_TO_CREDIT_METHOD_ID: Record<string, string> = {
+  debvisa: 'visa',
+  debmaster: 'master',
+}
+
+export function alignPaymentMethodIdForPreferred(
+  preferred: CardChargeMethod,
+  paymentMethodId: string,
+): { paymentMethodId: string; remapped: boolean } {
+  const id = String(paymentMethodId ?? '')
+    .trim()
+    .toLowerCase()
+  if (!id) return { paymentMethodId: id, remapped: false }
+
+  if (preferred === 'debit_card') {
+    if (id.startsWith('deb') || id.includes('debit')) {
+      return { paymentMethodId: id, remapped: false }
+    }
+    const mapped = CREDIT_TO_DEBIT_METHOD_ID[id]
+    if (mapped) return { paymentMethodId: mapped, remapped: true }
+    return { paymentMethodId: id, remapped: false }
+  }
+
+  const mapped = DEBIT_TO_CREDIT_METHOD_ID[id]
+  if (mapped) return { paymentMethodId: mapped, remapped: true }
+  return { paymentMethodId: id, remapped: false }
+}

@@ -12,6 +12,7 @@ import { createFalPayment } from '@/services/payments/engine'
 import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import {
+  alignPaymentMethodIdForPreferred,
   pickPaymentMethodForPreferred,
   resolveCardChargeMethod,
 } from '@/services/payments/resolveCardChargeMethod'
@@ -358,10 +359,15 @@ export function MercadoPagoCardBrickPanel({
           preferred: preferredPaymentType,
           binPaymentTypeId: binMethod.paymentTypeId,
         })
-        if (binMismatch) {
+        // Docs MP: débito usa payment_method_id debvisa/debmaster — não visa/master.
+        const aligned = alignPaymentMethodIdForPreferred(method, binMethod.id)
+        const chargePaymentMethodId = aligned.paymentMethodId
+        if (binMismatch || aligned.remapped) {
           setBinHint(
             method === 'debit_card'
-              ? 'O catálogo do Mercado Pago marcou este BIN como crédito; seguiremos como débito (à vista), conforme sua escolha.'
+              ? aligned.remapped
+                ? 'Cartão identificado; cobrando como débito à vista (bandeira debitável do Mercado Pago).'
+                : 'O catálogo do Mercado Pago marcou este BIN como crédito; seguiremos como débito (à vista), conforme sua escolha.'
               : 'O catálogo do Mercado Pago marcou este BIN como débito; seguiremos como crédito, conforme sua escolha.',
           )
         }
@@ -375,7 +381,7 @@ export function MercadoPagoCardBrickPanel({
         if (tokenizeOnly) {
           onTokenizedRef.current?.({
             token,
-            paymentMethodId: binMethod.id,
+            paymentMethodId: chargePaymentMethodId,
             installments: chargeInstallments,
           })
           setStatus('tokenized')
@@ -387,7 +393,7 @@ export function MercadoPagoCardBrickPanel({
           method,
           card: {
             token,
-            paymentMethodId: binMethod.id,
+            paymentMethodId: chargePaymentMethodId,
             installments: chargeInstallments,
             issuerId: binMethod.issuerId,
             paymentTypeId: method,
