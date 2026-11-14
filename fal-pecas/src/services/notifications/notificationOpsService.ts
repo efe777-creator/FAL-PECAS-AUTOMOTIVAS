@@ -35,6 +35,7 @@ export type NotificationKindCatalogRow = {
   enabled: boolean
   channels: string[]
   staffTitle: string | null
+  category: string | null
 }
 
 function mapDelivery(r: Record<string, unknown>): NotificationDelivery {
@@ -99,7 +100,7 @@ export async function listNotificationKindCatalog(): Promise<NotificationKindCat
   const { data, error } = await getSupabase()
     .from('notification_kind_catalog')
     .select(
-      'kind, notify_customer, notify_staff, severity, mandatory, enabled, channels, staff_title',
+      'kind, notify_customer, notify_staff, severity, mandatory, enabled, channels, staff_title, category',
     )
     .order('kind')
   if (error) throw error
@@ -117,6 +118,7 @@ export async function listNotificationKindCatalog(): Promise<NotificationKindCat
       enabled: Boolean(row.enabled),
       channels,
       staffTitle: row.staff_title != null ? String(row.staff_title) : null,
+      category: row.category != null ? String(row.category) : null,
     }
   })
 }

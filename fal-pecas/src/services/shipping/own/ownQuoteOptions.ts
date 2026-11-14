@@ -16,7 +16,26 @@ export async function resolveOwnQuoteOptions(
 
     if (own.pricingMode === 'distance_vehicle') {
       const number = (req.number ?? '').trim()
-      if (!number) {
+      const items = (req.items ?? [])
+        .filter((i) => i.productId)
+        .map((i) => ({ productId: i.productId, quantity: i.quantity }))
+      if (!items.length) return []
+
+      // Sem número: estimativa por CEP (PDP). Com número: cotação exata.
+      const estimateCepOnly = !number
+      const res = await invokeOwnDeliveryQuote({
+        postalCode: req.postalCode,
+        number: number || undefined,
+        street: req.street ?? '',
+        district: req.district,
+        city: req.city ?? '',
+        state: req.state ?? '',
+        items,
+        estimateCepOnly,
+      })
+
+      if (res.status === 'priced' && res.options?.length) return res.options
+      if (res.status === 'missing_number') {
         return [
           {
             id: 'own:needs_number',
@@ -30,22 +49,6 @@ export async function resolveOwnQuoteOptions(
           },
         ]
       }
-      const items = (req.items ?? [])
-        .filter((i) => i.productId)
-        .map((i) => ({ productId: i.productId, quantity: i.quantity }))
-      if (!items.length) return []
-
-      const res = await invokeOwnDeliveryQuote({
-        postalCode: req.postalCode,
-        number,
-        street: req.street ?? '',
-        district: req.district,
-        city: req.city,
-        state: req.state,
-        items,
-      })
-
-      if (res.status === 'priced' && res.options?.length) return res.options
       if (res.status === 'manual_review') {
         return [
           {

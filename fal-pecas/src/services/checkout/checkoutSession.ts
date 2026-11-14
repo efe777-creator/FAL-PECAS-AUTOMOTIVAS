@@ -41,7 +41,7 @@ function storageRemove(key: string): void {
   }
 }
 
-export type CheckoutSessionChannel = 'pix' | 'card'
+export type CheckoutSessionChannel = 'pix' | 'card' | 'credit_card' | 'debit_card'
 
 export type CheckoutSessionContext = {
   orderId: string

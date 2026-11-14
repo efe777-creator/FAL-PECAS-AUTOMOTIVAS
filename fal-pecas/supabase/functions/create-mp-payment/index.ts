@@ -98,55 +98,84 @@ Deno.serve(async (req) => {
       const { data: displayRow } = await admin
         .from('store_payment_display')
         .select(
-          'enabled, max_installments, min_installment_amount, installments_enabled, card_enabled, pix_enabled, interest_free_max, allow_interest_installments',
+          'enabled, max_installments, min_installment_amount, installments_enabled, card_enabled, credit_enabled, debit_enabled, pix_enabled, interest_free_max, allow_interest_installments',
         )
         .limit(1)
         .maybeSingle()
 
       const cardEnabled = displayRow?.card_enabled != null ? Boolean(displayRow.card_enabled) : true
+      const creditEnabled =
+        displayRow?.credit_enabled != null ? Boolean(displayRow.credit_enabled) : cardEnabled
+      const debitEnabled =
+        displayRow?.debit_enabled != null ? Boolean(displayRow.debit_enabled) : cardEnabled
       const pixEnabled = displayRow?.pix_enabled != null ? Boolean(displayRow.pix_enabled) : true
-      if (card && !cardEnabled) {
-        return json(422, { error: 'method_not_allowed', detail: 'cartão desativado comercialmente' })
-      }
       if (!card && !pixEnabled) {
         return json(422, { error: 'method_not_allowed', detail: 'pix desativado comercialmente' })
       }
 
       if (card) {
-        const installmentsOn =
-          displayRow?.installments_enabled != null
-            ? Boolean(displayRow.installments_enabled)
-            : Boolean(displayRow?.enabled)
-        const allowInterest =
-          displayRow?.allow_interest_installments != null
-            ? Boolean(displayRow.allow_interest_installments)
-            : true
-        const freeMax = Math.max(0, Math.floor(Number(displayRow?.interest_free_max) || 0))
-        let maxAllowed = 1
-        if (installmentsOn && amount > 0) {
-          const max = Math.min(Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1), 24)
-          const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
-          maxAllowed =
-            minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
-          // Juros comerciais off → teto efetivo = interest_free_max (alinha front).
-          if (!allowInterest) {
-            maxAllowed = freeMax <= 0 ? 1 : Math.min(maxAllowed, freeMax)
+        const isDebit =
+          internalMethod === 'debit_card' ||
+          String(card.paymentTypeId ?? '')
+            .toLowerCase()
+            .includes('debit')
+        if (isDebit && !debitEnabled) {
+          return json(422, {
+            error: 'method_not_allowed',
+            detail: 'débito desativado comercialmente',
+          })
+        }
+        if (!isDebit && !creditEnabled) {
+          return json(422, {
+            error: 'method_not_allowed',
+            detail: 'crédito desativado comercialmente',
+          })
+        }
+        if (isDebit) {
+          if (!Number.isFinite(card.installments) || card.installments !== 1) {
+            return json(422, {
+              error: 'installments_not_allowed',
+              detail: 'débito só à vista (1x)',
+            })
           }
-        }
-        if (!Number.isFinite(card.installments) || card.installments < 1) {
-          return json(422, {
-            error: 'installments_not_allowed',
-            detail: 'installments inválido',
-          })
-        }
-        if (card.installments > maxAllowed) {
-          return json(422, {
-            error: 'installments_not_allowed',
-            detail:
-              !allowInterest && freeMax > 0 && card.installments > freeMax
-                ? `sem juros só até ${freeMax}x (ou habilite juros)`
-                : `installments acima do permitido (máx. ${maxAllowed})`,
-          })
+        } else {
+          const installmentsOn =
+            displayRow?.installments_enabled != null
+              ? Boolean(displayRow.installments_enabled)
+              : Boolean(displayRow?.enabled)
+          const allowInterest =
+            displayRow?.allow_interest_installments != null
+              ? Boolean(displayRow.allow_interest_installments)
+              : true
+          const freeMax = Math.max(0, Math.floor(Number(displayRow?.interest_free_max) || 0))
+          let maxAllowed = 1
+          if (installmentsOn && amount > 0) {
+            const max = Math.min(
+              Math.max(Math.floor(Number(displayRow?.max_installments) || 1), 1),
+              24,
+            )
+            const minParcel = Math.max(Number(displayRow?.min_installment_amount) || 0, 0)
+            maxAllowed =
+              minParcel <= 0 ? max : Math.max(1, Math.min(max, Math.floor(amount / minParcel)))
+            if (!allowInterest) {
+              maxAllowed = freeMax <= 0 ? 1 : Math.min(maxAllowed, freeMax)
+            }
+          }
+          if (!Number.isFinite(card.installments) || card.installments < 1) {
+            return json(422, {
+              error: 'installments_not_allowed',
+              detail: 'installments inválido',
+            })
+          }
+          if (card.installments > maxAllowed) {
+            return json(422, {
+              error: 'installments_not_allowed',
+              detail:
+                !allowInterest && freeMax > 0 && card.installments > freeMax
+                  ? `sem juros só até ${freeMax}x (ou habilite juros)`
+                  : `installments acima do permitido (máx. ${maxAllowed})`,
+            })
+          }
         }
       }
     }

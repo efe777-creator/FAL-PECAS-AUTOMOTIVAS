@@ -126,25 +126,33 @@ export function AdminLayout() {
     return () => window.removeEventListener('keydown', onKey)
   }, [navOpen])
 
-  /** inert: conteúdo atrás do drawer; aside fechado no mobile. */
+  /**
+   * inert no drawer off-canvas. Usa position computada (fixed = drawer),
+   * não matchMedia paralelo ao Tailwind — em ~980–1024px o mq e o `lg:`
+   * divergiam: menu visível com inert → cliques mortos.
+   */
   useEffect(() => {
     const aside = asideRef.current
     const content = contentRef.current
-    const mq = window.matchMedia('(max-width: 1023px)')
     function apply() {
-      const mobile = mq.matches
+      const drawerMode = Boolean(aside && getComputedStyle(aside).position === 'fixed')
       if (aside) {
-        if (mobile && !navOpen) aside.setAttribute('inert', '')
+        if (drawerMode && !navOpen) aside.setAttribute('inert', '')
         else aside.removeAttribute('inert')
       }
       if (content) {
-        if (mobile && navOpen) content.setAttribute('inert', '')
+        if (drawerMode && navOpen) content.setAttribute('inert', '')
         else content.removeAttribute('inert')
       }
     }
     apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null
+    if (aside && ro) ro.observe(aside)
+    window.addEventListener('resize', apply)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', apply)
+    }
   }, [navOpen])
 
   const closeNav = () => setNavOpen(false)
@@ -167,8 +175,10 @@ export function AdminLayout() {
       className={[
         'flex w-[min(288px,88vw)] flex-col bg-fal-navy text-white lg:w-[260px] lg:shrink-0',
         'fixed inset-y-0 left-0 z-40 h-screen transition-transform duration-200 ease-out',
-        'lg:sticky lg:top-0 lg:z-0 lg:translate-x-0 lg:transition-none',
-        navOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        'lg:sticky lg:top-0 lg:z-10 lg:translate-x-0 lg:transition-none',
+        navOpen
+          ? 'translate-x-0 pointer-events-auto'
+          : '-translate-x-full pointer-events-none lg:translate-x-0 lg:pointer-events-auto',
       ].join(' ')}
     >
       <div className="shrink-0 border-b border-white/10 px-4 py-4 lg:py-5">
@@ -178,7 +188,7 @@ export function AdminLayout() {
             <p className="mt-1 truncate text-sm text-white/65">Painel operacional</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <NotificationBell allHref="/admin/avisos" variant="dark" />
+            <NotificationBell allHref="/admin/avisos" audience="staff" variant="dark" />
             <button
               type="button"
               className="grid h-11 w-11 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
@@ -257,7 +267,7 @@ export function AdminLayout() {
             <p className="text-xs font-bold uppercase tracking-wider text-fal-navy">FAL ADMIN</p>
             <p className="truncate text-sm font-semibold text-fal-ink">{pageTitle}</p>
           </div>
-          <NotificationBell allHref="/admin/avisos" variant="light" />
+          <NotificationBell allHref="/admin/avisos" audience="staff" variant="light" />
         </header>
 
         <main className="min-w-0 flex-1 p-4 md:p-6">

@@ -24,11 +24,11 @@ export function Header() {
         <div className="flex items-center justify-end gap-2 lg:gap-4">
           {user ? (
             <div className="lg:hidden">
-              <NotificationBell allHref="/conta/avisos" variant="light" />
+              <NotificationBell allHref="/conta/avisos" audience="customer" variant="light" />
             </div>
           ) : null}
           <div className="hidden items-center gap-4 lg:flex">
-            {user ? <NotificationBell allHref="/conta/avisos" variant="light" /> : null}
+            {user ? <NotificationBell allHref="/conta/avisos" audience="customer" variant="light" /> : null}
             <AccountButton />
             <Link className="text-center text-[13px] text-fal-navy" to="/conta/pedidos">
               <b className="block text-xl">📦</b>

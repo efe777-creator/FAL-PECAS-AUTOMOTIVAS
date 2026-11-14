@@ -20,6 +20,8 @@ export type ShippingQuoteHandoff = {
   preferredKind?: ShippingPreferenceKind
   preferredServiceCode?: string
   preferredLabel?: string
+  /** Valor visto na PDP (estimativa); checkout compara se houver ajuste. */
+  estimatedAmount?: number
   savedAt: string
 }
 
@@ -66,6 +68,10 @@ export function saveShippingQuoteHandoff(input: {
       return
     }
 
+    const estimatedAmount =
+      option && Number.isFinite(option.amount) && !isOwnConfirmCheckoutOption(option)
+        ? Number(option.amount)
+        : undefined
     const payload: ShippingQuoteHandoff = {
       postalCode,
       preferredAddressId: input.preferredAddressId || undefined,
@@ -73,6 +79,7 @@ export function saveShippingQuoteHandoff(input: {
       preferredKind,
       preferredServiceCode: input.preferredServiceCode ?? option?.serviceCode,
       preferredLabel: input.preferredLabel ?? option?.label,
+      estimatedAmount,
       savedAt: new Date().toISOString(),
     }
     sessionStorage.setItem(KEY, JSON.stringify(payload))

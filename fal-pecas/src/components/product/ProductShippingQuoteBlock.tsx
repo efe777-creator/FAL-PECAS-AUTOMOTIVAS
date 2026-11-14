@@ -61,8 +61,12 @@ function productQuoteReady(product: Product): boolean {
 }
 
 function optionAmountLabel(o: ShippingQuoteOption): string {
-  if (isOwnConfirmCheckoutOption(o)) return 'No checkout'
+  if (isOwnConfirmCheckoutOption(o)) return 'Sob consulta'
   return formatMoney(o.amount)
+}
+
+function isOwnEstimateOption(o: ShippingQuoteOption): boolean {
+  return o.provider === 'own' && o.metadata?.estimate === true
 }
 
 const PICKUP_OPTION = createStorePickupOption()
@@ -423,18 +427,26 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
               <>
                 <span className="font-semibold text-fal-navy">Entrega FAL</span>
                 {selectedEta ? <span className="text-fal-muted"> · {selectedEta}</span> : null}
-                <span className="text-fal-muted"> · confirme no checkout</span>
+                <span className="text-fal-muted"> · confirme o valor no checkout</span>
               </>
             ) : (
               <>
                 <span className="font-semibold text-fal-navy">
-                  Frete {formatMoney(freightAmount)}
+                  {selectedDelivery && isOwnEstimateOption(selectedDelivery)
+                    ? `Entrega FAL ${formatMoney(freightAmount)}`
+                    : `Frete ${formatMoney(freightAmount)}`}
                 </span>
                 {selectedEta ? <span className="text-fal-muted"> · {selectedEta}</span> : null}
                 <span className="text-fal-muted">
                   {' '}
                   · Total estimado {formatMoney(estimatedTotal)}
                 </span>
+                {selectedDelivery && isOwnEstimateOption(selectedDelivery) ? (
+                  <span className="mt-1 block text-[11px] text-fal-muted">
+                    Estimativa pelo CEP. No checkout, com o número do endereço, o valor pode ajustar
+                    levemente.
+                  </span>
+                ) : null}
               </>
             )}
           </p>

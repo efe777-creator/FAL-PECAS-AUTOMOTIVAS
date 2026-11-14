@@ -13,10 +13,14 @@ import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { createFalPayment } from '@/services/payments/engine'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
+import {
+  isCardMpChannel,
+  preferredPaymentTypeFromChannel,
+  resolveSelectableChannel,
+  type MpPayChannel,
+} from '@/services/checkout/checkoutPaymentChannel'
 import type { OrderDetail } from '@/types'
 import { useCallback, useEffect, useState } from 'react'
-
-type Channel = 'pix' | 'card'
 
 interface Props {
   order: OrderDetail
@@ -24,7 +28,8 @@ interface Props {
 }
 
 /**
- * Retoma Pix/Brick para pedido em aguardando_pagamento (Meus Pedidos).
+ * Retoma Pix/crédito/débito para pedido em aguardando_pagamento (Meus Pedidos).
+ * Crédito↔débito NÃO remonta Secure Fields (só preferredPaymentType).
  * Pix TTL (PIX_PAYMENT_TTL_MINUTES) ≠ cancelamento do pedido (48 h).
  */
 export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
@@ -35,12 +40,16 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const payment = order.payment
   const method = (payment?.method ?? '').toLowerCase()
-  const initialChannel: Channel =
-    method.includes('card') || method.includes('credit') || method.includes('debit')
-      ? 'card'
-      : 'pix'
+  const initialChannel = resolveSelectableChannel(
+    method.includes('debit')
+      ? 'debit_card'
+      : method.includes('credit') || method.includes('card')
+        ? 'credit_card'
+        : 'pix',
+    payAvail,
+  )
 
-  const [channel, setChannel] = useState<Channel>(initialChannel)
+  const [channel, setChannel] = useState<MpPayChannel>(initialChannel)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pixSession, setPixSession] = useState<{
@@ -63,22 +72,26 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     }
     return null
   })
-  const [cardReady, setCardReady] = useState(initialChannel === 'card')
+  const [cardReady, setCardReady] = useState(isCardMpChannel(initialChannel))
+
+  function selectChannel(desired: MpPayChannel) {
+    const next = resolveSelectableChannel(desired, payAvail)
+    setChannel(next)
+    if (isCardMpChannel(next)) setCardReady(true)
+  }
 
   useEffect(() => {
-    if (channel === 'pix' && !payAvail.pix && payAvail.card) {
-      setChannel('card')
-      setCardReady(true)
-    } else if (channel === 'card' && !payAvail.card && payAvail.pix) {
-      setChannel('pix')
+    const next = resolveSelectableChannel(channel, payAvail)
+    if (next !== channel) {
+      setChannel(next)
+      if (isCardMpChannel(next)) setCardReady(true)
     }
-  }, [payAvail.pix, payAvail.card, channel])
+  }, [payAvail.pix, payAvail.card, payAvail.credit, payAvail.debit, channel])
 
   const orderPaymentExpired =
     isPaymentExpired(payment?.expiresAt) ||
     payment?.status === 'expired' ||
     payment?.status === 'rejected'
-  // Sessão nova (generatePix) prevalece: não ficar preso no expired do payment antigo do pedido.
   const needsNewPix = channel === 'pix' && !pixSession
 
   const onApproved = useCallback(() => {
@@ -115,6 +128,9 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     )
   }
 
+  const channelCount =
+    (payAvail.pix ? 1 : 0) + (payAvail.credit ? 1 : 0) + (payAvail.debit ? 1 : 0)
+
   return (
     <div className="space-y-4">
       <p className="m-0 text-xs text-fal-muted">
@@ -124,39 +140,56 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         fila.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        {payAvail.pix ? (
-          <button
-            type="button"
-            className={[
-              'rounded-[10px] border px-3 py-2 text-sm font-bold',
-              channel === 'pix'
-                ? 'border-fal-navy bg-fal-navy text-white'
-                : 'border-fal-line bg-white text-fal-navy',
-            ].join(' ')}
-            onClick={() => setChannel('pix')}
-          >
-            Pix
-          </button>
-        ) : null}
-        {payAvail.card ? (
-          <button
-            type="button"
-            className={[
-              'rounded-[10px] border px-3 py-2 text-sm font-bold',
-              channel === 'card'
-                ? 'border-fal-navy bg-fal-navy text-white'
-                : 'border-fal-line bg-white text-fal-navy',
-            ].join(' ')}
-            onClick={() => {
-              setChannel('card')
-              setCardReady(true)
-            }}
-          >
-            Cartão
-          </button>
-        ) : null}
-      </div>
+      {channelCount > 1 ? (
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="Forma de pagamento deste pedido"
+        >
+          {payAvail.pix ? (
+            <button
+              type="button"
+              className={[
+                'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                channel === 'pix'
+                  ? 'border-fal-navy bg-fal-navy text-white'
+                  : 'border-fal-line bg-white text-fal-navy',
+              ].join(' ')}
+              onClick={() => selectChannel('pix')}
+            >
+              Pix
+            </button>
+          ) : null}
+          {payAvail.credit ? (
+            <button
+              type="button"
+              className={[
+                'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                channel === 'credit_card'
+                  ? 'border-fal-navy bg-fal-navy text-white'
+                  : 'border-fal-line bg-white text-fal-navy',
+              ].join(' ')}
+              onClick={() => selectChannel('credit_card')}
+            >
+              Crédito
+            </button>
+          ) : null}
+          {payAvail.debit ? (
+            <button
+              type="button"
+              className={[
+                'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                channel === 'debit_card'
+                  ? 'border-fal-navy bg-fal-navy text-white'
+                  : 'border-fal-line bg-white text-fal-navy',
+              ].join(' ')}
+              onClick={() => selectChannel('debit_card')}
+            >
+              Débito
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {!payAvail.pix && !payAvail.card ? (
         <p className="m-0 text-sm text-fal-muted">
           Nenhum meio de pagamento está liberado comercialmente no momento.
@@ -170,7 +203,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
           <div className="space-y-2">
             <p className="m-0 text-sm text-fal-muted">
               {orderPaymentExpired
-                ? 'Cobrança Pix expirada. Gere um novo QR ou pague com cartão — o pedido continua ativo.'
+                ? 'Cobrança Pix expirada. Gere um novo QR ou escolha crédito/débito — o pedido continua ativo.'
                 : `Gere a cobrança Pix deste pedido (válida por ${PIX_PAYMENT_TTL_MINUTES} minutos).`}
             </p>
             <Button type="button" variant="primary" disabled={busy} onClick={() => void generatePix()}>
@@ -193,7 +226,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
         )
       ) : null}
 
-      {channel === 'card' && payAvail.card ? (
+      {isCardMpChannel(channel) && payAvail.card ? (
         !mpPublicKey ? (
           <p className="m-0 text-sm text-fal-danger">
             Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.
@@ -203,6 +236,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
             orderId={order.id}
             amount={payment?.amount ?? order.total}
             publicKey={mpPublicKey}
+            preferredPaymentType={preferredPaymentTypeFromChannel(channel)}
             onApproved={onApproved}
             onError={(message) => setError(message)}
           />

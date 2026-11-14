@@ -32,4 +32,35 @@ describe('checkoutSession (C2)', () => {
     const b = loadCheckoutIdempotencyKey()
     expect(a).toBe(b)
   })
+
+  it('round-trip credit_card e debit_card', () => {
+    saveCheckoutSession({
+      orderId: 'ord-cc',
+      paymentId: undefined,
+      idempotencyKey: '22222222-2222-2222-2222-222222222222',
+      channel: 'credit_card',
+      amount: 99.9,
+    })
+    expect(loadCheckoutSession()?.channel).toBe('credit_card')
+
+    saveCheckoutSession({
+      orderId: 'ord-cc',
+      paymentId: undefined,
+      idempotencyKey: '22222222-2222-2222-2222-222222222222',
+      channel: 'debit_card',
+      amount: 99.9,
+    })
+    expect(loadCheckoutSession()?.channel).toBe('debit_card')
+    expect(loadCheckoutSession()?.orderId).toBe('ord-cc')
+  })
+
+  it('aceita canal legado card', () => {
+    saveCheckoutSession({
+      orderId: 'ord-legacy',
+      idempotencyKey: '33333333-3333-3333-3333-333333333333',
+      channel: 'card',
+      amount: 1,
+    })
+    expect(loadCheckoutSession()?.channel).toBe('card')
+  })
 })

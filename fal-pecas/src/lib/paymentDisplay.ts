@@ -17,7 +17,12 @@ export type PaymentDisplaySettings = {
   allowInterestInstallments: boolean
   /** Se false, checkout/cartão só 1x. */
   installmentsEnabled: boolean
+  /** Legado / agregado: qualquer cartão (crédito OU débito). */
   cardEnabled: boolean
+  /** Cartão de crédito comercialmente disponível. */
+  creditEnabled: boolean
+  /** Cartão de débito comercialmente disponível. */
+  debitEnabled: boolean
   pixEnabled: boolean
   showOnCards: boolean
   showOnPdp: boolean
@@ -208,7 +213,7 @@ export function formatPaymentConditionLine(
   surface: 'card' | 'pdp',
 ): string | null {
   if (!settings?.enabled) return null
-  if (!settings.cardEnabled) return null
+  if (!settings.creditEnabled && !settings.cardEnabled) return null
   if (surface === 'card' && !settings.showOnCards) return null
   if (surface === 'pdp' && !settings.showOnPdp) return null
   if (!(amount > 0)) return null

@@ -1,9 +1,9 @@
 /**
  * Checkout — 3 momentos efetivos sobre steps internos 0–4.
- * 0 Endereço (steps 0–1) · 1 Entrega (step 2) · 2 Pagamento (steps 3–4)
+ * 0 Dados e endereço (steps 0–1) · 1 Entrega (step 2) · 2 Pagamento (steps 3–4)
  */
 
-export const MOMENT_LABELS = ['Endereço', 'Entrega', 'Pagamento'] as const
+export const MOMENT_LABELS = ['Dados e endereço', 'Entrega', 'Pagamento'] as const
 
 export type CheckoutMomentIndex = 0 | 1 | 2
 

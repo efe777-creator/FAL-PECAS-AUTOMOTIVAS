@@ -1,6 +1,5 @@
 import { Button } from '@/components/common/Button'
 import { Container } from '@/components/layout/Container'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useAuth } from '@/contexts/AuthContext'
 import { isStaffRole } from '@/services/admin/staffService'
 import { Link, NavLink, Outlet } from 'react-router-dom'
@@ -38,7 +37,6 @@ export function AccountLayout() {
           </h1>
           <p className="mb-0 text-fal-muted">Olá, {firstName}.</p>
         </div>
-        <NotificationBell allHref="/conta/avisos" variant="light" />
       </div>
 
       {/* Mobile: nav compacta horizontal antes do conteúdo */}

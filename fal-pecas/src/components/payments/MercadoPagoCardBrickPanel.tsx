@@ -12,9 +12,11 @@ import { createFalPayment } from '@/services/payments/engine'
 import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import {
-  CardNumber,
-  ExpirationDate,
-  SecurityCode,
+  pickPaymentMethodForPreferred,
+  resolveCardChargeMethod,
+} from '@/services/payments/resolveCardChargeMethod'
+import { MpCardSecureFields } from '@/components/payments/MpCardSecureFields'
+import {
   createCardToken,
   getInstallments,
   getIssuers,
@@ -29,6 +31,11 @@ interface Props {
   publicKey: string
   onApproved: (orderId: string) => void
   onError: (message: string) => void
+  /**
+   * Canal explícito do checkout/retomada (crédito ou débito).
+   * Manda na cobrança; o BIN do MP só informa (catálogo BR costuma errar débito).
+   */
+  preferredPaymentType?: 'credit_card' | 'debit_card'
   /** DEV: só tokeniza, não chama Edge (pedido fake). */
   tokenizeOnly?: boolean
   onTokenized?: (info: { token: string; paymentMethodId: string; installments: number }) => void
@@ -50,15 +57,6 @@ function ensureMpInit(publicKey: string) {
   mpInitedKey = publicKey
 }
 
-const fieldStyle = {
-  height: '48px',
-  fontSize: '16px',
-  placeholderColor: '#94a3b8',
-} as const
-
-const fieldShellClass =
-  'h-12 overflow-hidden rounded-[10px] border border-fal-line bg-white px-3 [&_[id$=SecureField_container]]:h-12 [&_iframe]:!h-12'
-
 /**
  * Cartão via Core Methods (Secure Fields), não Card Payment Brick.
  * Brick ficou preso em loading dos PCI fields; mp.fields monta de forma estável.
@@ -71,6 +69,7 @@ export function MercadoPagoCardBrickPanel({
   onError,
   tokenizeOnly = false,
   onTokenized,
+  preferredPaymentType = 'credit_card',
 }: Props) {
   const paymentDisplay = usePaymentDisplay()
   const [sdkReady, setSdkReady] = useState(false)
@@ -83,6 +82,7 @@ export function MercadoPagoCardBrickPanel({
   const [docType, setDocType] = useState<'CPF' | 'CNPJ'>('CPF')
   const [docNumber, setDocNumber] = useState('')
   const [binMethod, setBinMethod] = useState<BinMethod | null>(null)
+  const [binHint, setBinHint] = useState<string | null>(null)
   const [installments, setInstallments] = useState(1)
   const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([])
   const [mountKey, setMountKey] = useState(0)
@@ -159,9 +159,10 @@ export function MercadoPagoCardBrickPanel({
       try {
         const pm = await getPaymentMethods({ bin: sliced })
         if (req !== binReqRef.current) return
-        const first = pm?.results?.[0]
+        const first = pickPaymentMethodForPreferred(pm?.results, preferredPaymentType)
         if (!first?.id) {
           resetInstallmentChoice()
+          setBinHint(null)
           return
         }
         let issuerId =
@@ -184,6 +185,17 @@ export function MercadoPagoCardBrickPanel({
           issuerId,
         }
         setBinMethod(method)
+        const resolved = resolveCardChargeMethod({
+          preferred: preferredPaymentType,
+          binPaymentTypeId: method.paymentTypeId,
+        })
+        setBinHint(
+          resolved.binMismatch
+            ? preferredPaymentType === 'debit_card'
+              ? 'O catálogo do Mercado Pago marcou este BIN como crédito; seguiremos como débito (à vista), conforme sua escolha.'
+              : 'O catálogo do Mercado Pago marcou este BIN como débito; seguiremos como crédito, conforme sua escolha.'
+            : null,
+        )
 
         const inst = await getInstallments({
           amount: String(amountNum),
@@ -228,7 +240,7 @@ export function MercadoPagoCardBrickPanel({
         resetInstallmentChoice()
       }
     },
-    [amountNum, paymentDisplay, resetInstallmentChoice],
+    [amountNum, paymentDisplay, preferredPaymentType, resetInstallmentChoice],
   )
 
   const syncTickRef = useRef(0)
@@ -291,11 +303,31 @@ export function MercadoPagoCardBrickPanel({
   const remountFields = useCallback(() => {
     setReadyFields({})
     setRejectReason(null)
+    setBinHint(null)
     binReqRef.current += 1
     resetInstallmentChoice()
     setStatus('idle')
     setMountKey((k) => k + 1)
   }, [resetInstallmentChoice])
+
+  // Troca crédito↔débito: só atualiza aviso BIN; NÃO remonta Secure Fields.
+  useEffect(() => {
+    if (!binMethod) {
+      setBinHint(null)
+      return
+    }
+    const resolved = resolveCardChargeMethod({
+      preferred: preferredPaymentType,
+      binPaymentTypeId: binMethod.paymentTypeId,
+    })
+    setBinHint(
+      resolved.binMismatch
+        ? preferredPaymentType === 'debit_card'
+          ? 'O catálogo do Mercado Pago marcou este BIN como crédito; seguiremos como débito (à vista), conforme sua escolha.'
+          : 'O catálogo do Mercado Pago marcou este BIN como débito; seguiremos como crédito, conforme sua escolha.'
+        : null,
+    )
+  }, [preferredPaymentType, binMethod])
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -321,23 +353,34 @@ export function MercadoPagoCardBrickPanel({
         const token = tokenRes?.id
         if (!token) throw new Error('Não foi possível tokenizar o cartão. Tente novamente.')
 
-        const selected =
-          displayInstallmentOptions.find((o) => o.installments === installments) ?? null
-        assertCardInstallmentsAllowed(installments, amountNum, paymentDisplay, selected)
+        // Canal do cliente manda; BIN do MP não bloqueia (catálogo BR costuma errar débito).
+        const { method, binMismatch } = resolveCardChargeMethod({
+          preferred: preferredPaymentType,
+          binPaymentTypeId: binMethod.paymentTypeId,
+        })
+        if (binMismatch) {
+          setBinHint(
+            method === 'debit_card'
+              ? 'O catálogo do Mercado Pago marcou este BIN como crédito; seguiremos como débito (à vista), conforme sua escolha.'
+              : 'O catálogo do Mercado Pago marcou este BIN como débito; seguiremos como crédito, conforme sua escolha.',
+          )
+        }
+        const chargeInstallments = method === 'debit_card' ? 1 : installments
+        if (method === 'credit_card') {
+          const selected =
+            displayInstallmentOptions.find((o) => o.installments === installments) ?? null
+          assertCardInstallmentsAllowed(installments, amountNum, paymentDisplay, selected)
+        }
 
         if (tokenizeOnly) {
           onTokenizedRef.current?.({
             token,
             paymentMethodId: binMethod.id,
-            installments,
+            installments: chargeInstallments,
           })
           setStatus('tokenized')
           return
         }
-
-        const method = String(binMethod.paymentTypeId).toLowerCase().includes('debit')
-          ? 'debit_card'
-          : 'credit_card'
 
         const res = await createFalPayment({
           orderId,
@@ -345,9 +388,9 @@ export function MercadoPagoCardBrickPanel({
           card: {
             token,
             paymentMethodId: binMethod.id,
-            installments,
+            installments: chargeInstallments,
             issuerId: binMethod.issuerId,
-            paymentTypeId: binMethod.paymentTypeId,
+            paymentTypeId: method,
           },
         })
         setStatus(res.status)
@@ -362,7 +405,7 @@ export function MercadoPagoCardBrickPanel({
               : 'Pagamento cancelado. Você pode tentar novamente.'
           setRejectReason(msg)
           onErrorRef.current(msg)
-          remountFields()
+          // Não remonta Secure Fields automaticamente — remount destrói digitação no mobile.
           return
         }
         setPaymentId(res.paymentId)
@@ -387,8 +430,12 @@ export function MercadoPagoCardBrickPanel({
       paymentDisplay,
       remountFields,
       tokenizeOnly,
+      preferredPaymentType,
     ],
   )
+
+  const debitMode = preferredPaymentType === 'debit_card'
+  const showInstallments = !debitMode
 
   if (!sdkReady) return <Loading label="Carregando formulário de cartão…" />
 
@@ -415,9 +462,12 @@ export function MercadoPagoCardBrickPanel({
 
   return (
     <div className="space-y-4">
-      <h2 className="mt-0 text-lg font-extrabold">Pagamento com cartão</h2>
+      <h2 className="mt-0 text-lg font-extrabold">
+        {debitMode ? 'Pagamento com cartão de débito' : 'Pagamento com cartão de crédito'}
+      </h2>
       <p className="text-sm text-fal-muted">
         Os dados do cartão são protegidos pelo Mercado Pago. O valor cobrado é o total do pedido.
+        {debitMode ? ' Débito é cobrado à vista.' : ''}
       </p>
       {rejectReason ? (
         <div className="rounded-[10px] border border-fal-danger/30 bg-red-50 p-3 text-sm text-fal-danger">
@@ -433,45 +483,23 @@ export function MercadoPagoCardBrickPanel({
           </Button>
         </div>
       ) : null}
+      {binHint ? (
+        <p className="m-0 rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
+          {binHint}
+        </p>
+      ) : null}
       {submitting ? <Loading label="Processando cartão…" /> : null}
       {!fieldsOk ? (
         <p className="text-xs text-fal-muted">Montando campos seguros do Mercado Pago…</p>
       ) : null}
 
-      <form key={mountKey} className="space-y-3" onSubmit={(ev) => void handleSubmit(ev)}>
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-fal-ink">Número do cartão</label>
-          <div className={fieldShellClass}>
-            <CardNumber
-              placeholder="Número do cartão"
-              style={fieldStyle}
-              onReady={() => markFieldReady('cardNumber')}
-              onBinChange={(arg) => void handleBinChange(arg.bin ?? null)}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-fal-ink">Validade</label>
-            <div className={fieldShellClass}>
-              <ExpirationDate
-                placeholder="MM/AA"
-                style={fieldStyle}
-                onReady={() => markFieldReady('expirationDate')}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-fal-ink">CVV</label>
-            <div className={fieldShellClass}>
-              <SecurityCode
-                placeholder="CVV"
-                style={fieldStyle}
-                onReady={() => markFieldReady('securityCode')}
-              />
-            </div>
-          </div>
-        </div>
+      <form className="space-y-3" onSubmit={(ev) => void handleSubmit(ev)}>
+        <MpCardSecureFields
+          mountKey={mountKey}
+          publicKey={publicKey}
+          onFieldReady={markFieldReady}
+          onBinChange={handleBinChange}
+        />
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-fal-ink" htmlFor="mp-card-name">
@@ -517,32 +545,36 @@ export function MercadoPagoCardBrickPanel({
           </div>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-fal-ink" htmlFor="mp-installments">
-            {canChooseInstallments ? 'Parcelas no cartão' : 'Pagamento no cartão'}
-          </label>
-          <select
-            id="mp-installments"
-            className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-sm"
-            value={installments}
-            onChange={(ev) => setInstallments(Number(ev.target.value))}
-            disabled={!binMethod}
-            aria-describedby="mp-installments-hint"
-          >
-            {displayInstallmentOptions.map((o) => (
-              <option key={o.installments} value={o.installments}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <p id="mp-installments-hint" className="mb-0 mt-1 text-xs text-fal-muted">
-            {!binMethod
-              ? 'Informe o número do cartão para liberar à vista e as parcelas disponíveis.'
-              : canChooseInstallments
-                ? 'Escolha à vista ou o número de parcelas liberadas para este valor e cartão.'
-                : 'Neste valor só está disponível à vista no cartão.'}
-          </p>
-        </div>
+        {showInstallments ? (
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-fal-ink" htmlFor="mp-installments">
+              {canChooseInstallments ? 'Parcelas no cartão' : 'Pagamento no cartão'}
+            </label>
+            <select
+              id="mp-installments"
+              className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-sm"
+              value={installments}
+              onChange={(ev) => setInstallments(Number(ev.target.value))}
+              disabled={!binMethod}
+              aria-describedby="mp-installments-hint"
+            >
+              {displayInstallmentOptions.map((o) => (
+                <option key={o.installments} value={o.installments}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <p id="mp-installments-hint" className="mb-0 mt-1 text-xs text-fal-muted">
+              {!binMethod
+                ? 'Informe o número do cartão para liberar à vista e as parcelas disponíveis.'
+                : canChooseInstallments
+                  ? 'Escolha à vista ou o número de parcelas liberadas para este valor e cartão.'
+                  : 'Neste valor só está disponível à vista no cartão.'}
+            </p>
+          </div>
+        ) : (
+          <p className="m-0 text-sm text-fal-muted">Débito: cobrança à vista (1x).</p>
+        )}
 
         {binMethod ? (
           <p className="m-0 text-xs text-fal-muted">

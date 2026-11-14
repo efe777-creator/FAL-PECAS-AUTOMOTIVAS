@@ -14,12 +14,14 @@ export type OwnQuoteEdgeResponse = {
 
 export async function invokeOwnDeliveryQuote(input: {
   postalCode: string
-  number: string
-  street: string
+  number?: string
+  street?: string
   district?: string
-  city: string
-  state: string
+  city?: string
+  state?: string
   items: { productId: string; quantity: number }[]
+  /** PDP: precifica com CEP (sem número). Checkout confirma com endereço completo. */
+  estimateCepOnly?: boolean
 }): Promise<OwnQuoteEdgeResponse> {
   const { data, error } = await getSupabase().functions.invoke('quote-own-delivery', {
     body: input,

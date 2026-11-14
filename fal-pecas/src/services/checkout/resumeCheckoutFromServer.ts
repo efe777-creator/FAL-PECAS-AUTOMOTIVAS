@@ -18,7 +18,8 @@ export type ResumeCheckoutResult = {
 
 function channelFromMethod(method: string | null | undefined): CheckoutSessionChannel {
   const m = (method ?? '').toLowerCase()
-  if (m.includes('card') || m.includes('credit') || m.includes('debit')) return 'card'
+  if (m.includes('debit')) return 'debit_card'
+  if (m.includes('credit') || m.includes('card')) return 'credit_card'
   return 'pix'
 }
 

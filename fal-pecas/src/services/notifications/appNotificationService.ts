@@ -1,5 +1,15 @@
 import { getSupabase } from '@/lib/supabase'
 
+export type AppNotificationAudience = 'customer' | 'staff'
+
+export type AppNotificationCategory =
+  | 'pedidos'
+  | 'pagamentos'
+  | 'entregas'
+  | 'clientes'
+  | 'estoque'
+  | 'sistema'
+
 export type AppNotificationSeverity =
   | 'informativa'
   | 'importante'
@@ -8,7 +18,7 @@ export type AppNotificationSeverity =
 
 export type AppNotification = {
   id: string
-  audience: 'customer' | 'staff'
+  audience: AppNotificationAudience
   channel: string
   orderId: string | null
   sourceEventId: string | null
@@ -20,6 +30,7 @@ export type AppNotification = {
   createdAt: string
   severity: AppNotificationSeverity | null
   actionable: boolean
+  category: AppNotificationCategory | null
 }
 
 function mapSeverity(v: unknown): AppNotificationSeverity | null {
@@ -29,6 +40,21 @@ function mapSeverity(v: unknown): AppNotificationSeverity | null {
     s === 'importante' ||
     s === 'acao_necessaria' ||
     s === 'operacional'
+  ) {
+    return s
+  }
+  return null
+}
+
+function mapCategory(v: unknown): AppNotificationCategory | null {
+  const s = String(v ?? '')
+  if (
+    s === 'pedidos' ||
+    s === 'pagamentos' ||
+    s === 'entregas' ||
+    s === 'clientes' ||
+    s === 'estoque' ||
+    s === 'sistema'
   ) {
     return s
   }
@@ -51,31 +77,38 @@ function mapRow(r: Record<string, unknown>): AppNotification {
     createdAt: String(r.created_at),
     severity: mapSeverity(r.severity),
     actionable: Boolean(r.actionable),
+    category: mapCategory(r.category),
   }
 }
 
-export async function listMyNotifications(opts?: {
+const SELECT_COLS =
+  'id, audience, channel, order_id, source_event_id, kind, title, body, href, read_at, created_at, severity, actionable, category'
+
+export async function listMyNotifications(opts: {
+  audience: AppNotificationAudience
   limit?: number
   unreadOnly?: boolean
 }): Promise<AppNotification[]> {
-  const limit = opts?.limit ?? 50
+  const limit = opts.limit ?? 50
   let q = getSupabase()
     .from('app_notifications')
-    .select(
-      'id, audience, channel, order_id, source_event_id, kind, title, body, href, read_at, created_at, severity, actionable',
-    )
+    .select(SELECT_COLS)
+    .eq('audience', opts.audience)
     .order('created_at', { ascending: false })
     .limit(limit)
-  if (opts?.unreadOnly) q = q.is('read_at', null)
+  if (opts.unreadOnly) q = q.is('read_at', null)
   const { data, error } = await q
   if (error) throw error
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>))
 }
 
-export async function countUnreadNotifications(): Promise<number> {
+export async function countUnreadNotifications(
+  audience: AppNotificationAudience,
+): Promise<number> {
   const { count, error } = await getSupabase()
     .from('app_notifications')
     .select('id', { count: 'exact', head: true })
+    .eq('audience', audience)
     .is('read_at', null)
   if (error) throw error
   return count ?? 0
@@ -86,8 +119,12 @@ export async function markNotificationRead(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function markAllNotificationsRead(): Promise<number> {
-  const { data, error } = await getSupabase().rpc('mark_all_app_notifications_read')
+export async function markAllNotificationsRead(
+  audience: AppNotificationAudience,
+): Promise<number> {
+  const { data, error } = await getSupabase().rpc('mark_all_app_notifications_read', {
+    p_audience: audience,
+  })
   if (error) throw error
   return Number(data ?? 0)
 }

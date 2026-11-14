@@ -1,22 +1,22 @@
+import { NotificationInboxItem } from '@/components/notifications/NotificationInboxItem'
+import { useAuth } from '@/contexts/AuthContext'
+import { resolveNotificationNavHref } from '@/lib/appNotificationCopy'
+import { sortNotificationsForInbox } from '@/lib/notificationDisplay'
+import { getSupabase } from '@/lib/supabase'
 import {
   countUnreadNotifications,
   listMyNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   type AppNotification,
+  type AppNotificationAudience,
 } from '@/services/notifications/appNotificationService'
-import {
-  notificationNeedsAction,
-  resolveNotificationNavHref,
-} from '@/lib/appNotificationCopy'
-import { formatDateTime } from '@/lib/datetime'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 type Props = {
-  /** Página lista completa */
   allHref: string
-  /** Variante visual no admin (fundo escuro) */
+  audience: AppNotificationAudience
   variant?: 'light' | 'dark'
   pollMs?: number
 }
@@ -40,43 +40,38 @@ function BellIcon({ className }: { className?: string }) {
   )
 }
 
-function sortForDropdown(items: AppNotification[]): AppNotification[] {
-  return [...items].sort((a, b) => {
-    const aAct =
-      notificationNeedsAction({ kind: a.kind, audience: a.audience, actionable: a.actionable }) &&
-      !a.readAt
-        ? 0
-        : 1
-    const bAct =
-      notificationNeedsAction({ kind: b.kind, audience: b.audience, actionable: b.actionable }) &&
-      !b.readAt
-        ? 0
-        : 1
-    if (aAct !== bAct) return aAct - bAct
-    return b.createdAt.localeCompare(a.createdAt)
-  })
-}
-
-export function NotificationBell({ allHref, variant = 'light', pollMs = 30_000 }: Props) {
+export function NotificationBell({
+  allHref,
+  audience,
+  variant = 'light',
+  pollMs = 45_000,
+}: Props) {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [unread, setUnread] = useState(0)
   const [items, setItems] = useState<AppNotification[]>([])
   const [busy, setBusy] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const realtimeChannelSuffix = useId().replace(/:/g, '')
 
   const refresh = useCallback(async () => {
     try {
       const [n, list] = await Promise.all([
-        countUnreadNotifications(),
-        listMyNotifications({ limit: 10 }),
+        countUnreadNotifications(audience),
+        listMyNotifications({ audience, limit: 10 }),
       ])
       setUnread(n)
-      setItems(sortForDropdown(list))
+      setItems(sortNotificationsForInbox(list).slice(0, 10))
     } catch {
       /* silencioso no header */
     }
-  }, [])
+  }, [audience])
+
+  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
 
   useEffect(() => {
     void refresh()
@@ -90,6 +85,31 @@ export function NotificationBell({ allHref, variant = 'light', pollMs = 30_000 }
       window.removeEventListener('focus', onFocus)
     }
   }, [refresh, pollMs])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const sb = getSupabase()
+    // Nome único por instância: header monta 2 sinos (CSS mobile/desktop); canal
+    // reutilizado pelo Supabase já vem subscribed() e .on() depois disso quebra.
+    const channel = sb
+      .channel(`app-notif:${audience}:${user.id}:${realtimeChannelSuffix}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_notifications',
+          filter: `recipient_profile_id=eq.${user.id}`,
+        },
+        () => {
+          void refreshRef.current()
+        },
+      )
+      .subscribe()
+    return () => {
+      void sb.removeChannel(channel)
+    }
+  }, [user?.id, audience, realtimeChannelSuffix])
 
   useEffect(() => {
     if (!open) return
@@ -129,7 +149,7 @@ export function NotificationBell({ allHref, variant = 'light', pollMs = 30_000 }
   async function onMarkAll() {
     setBusy(true)
     try {
-      await markAllNotificationsRead()
+      await markAllNotificationsRead(audience)
       await refresh()
     } finally {
       setBusy(false)
@@ -165,66 +185,39 @@ export function NotificationBell({ allHref, variant = 'light', pollMs = 30_000 }
       {open ? (
         <div
           role="dialog"
-          aria-label="Notificações"
+          aria-label="Central de notificações"
           className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-[12px] border border-fal-line bg-white shadow-lg"
         >
           <div className="flex items-center justify-between gap-2 border-b border-fal-line px-3 py-2">
-            <p className="m-0 text-sm font-extrabold text-fal-navy">Notificações</p>
+            <div>
+              <p className="m-0 text-sm font-extrabold text-fal-navy">Notificações</p>
+              <p className="m-0 text-[11px] text-fal-muted">
+                {unread > 0 ? `${unread} não lida${unread === 1 ? '' : 's'}` : 'Tudo lido'}
+              </p>
+            </div>
             <button
               type="button"
               className="text-xs font-bold text-fal-auth-link disabled:opacity-50"
               disabled={busy || unread === 0}
               onClick={() => void onMarkAll()}
             >
-              Marcar todos lidos
+              Marcar todas como lidas
             </button>
           </div>
           <ul className="m-0 max-h-80 list-none space-y-0 overflow-y-auto p-0">
             {items.length === 0 ? (
               <li className="px-3 py-4 text-sm text-fal-muted">Nenhum aviso por enquanto.</li>
             ) : (
-              items.map((n) => {
-                const actionable = notificationNeedsAction({
-                  kind: n.kind,
-                  audience: n.audience,
-                  actionable: n.actionable,
-                })
-                return (
-                  <li key={n.id} className="border-b border-fal-line last:border-0">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void openItem(n)}
-                      className={[
-                        'block w-full px-3 py-2.5 text-left hover:bg-fal-bg/80',
-                        actionable && !n.readAt
-                          ? 'bg-sky-50'
-                          : n.readAt
-                            ? 'opacity-80'
-                            : 'bg-fal-yellow/10',
-                      ].join(' ')}
-                    >
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-sm font-bold text-fal-navy">{n.title}</span>
-                        {actionable ? (
-                          <span className="rounded bg-sky-700 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            Ação necessária
-                          </span>
-                        ) : null}
-                      </span>
-                      {n.body ? (
-                        <span className="mt-0.5 block text-xs text-fal-muted line-clamp-2">
-                          {n.body}
-                        </span>
-                      ) : null}
-                      <span className="mt-1 block text-[11px] text-fal-muted">
-                        {formatDateTime(n.createdAt)}
-                        {!n.readAt ? ' · Não lido' : ''}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })
+              items.map((n) => (
+                <li key={n.id} className="border-b border-fal-line last:border-0">
+                  <NotificationInboxItem
+                    notification={n}
+                    busy={busy}
+                    compact
+                    onOpen={(item) => void openItem(item)}
+                  />
+                </li>
+              ))
             )}
           </ul>
           <div className="border-t border-fal-line px-3 py-2">

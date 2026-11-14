@@ -18,6 +18,8 @@ const base: PaymentDisplaySettings = {
   allowInterestInstallments: false,
   installmentsEnabled: true,
   cardEnabled: true,
+  creditEnabled: true,
+  debitEnabled: true,
   pixEnabled: true,
   showOnCards: true,
   showOnPdp: true,
@@ -33,7 +35,13 @@ describe('paymentDisplay', () => {
   it('não exibe se desligado ou 1x', () => {
     expect(formatPaymentConditionLine(15, base, 'card')).toBeNull()
     expect(formatPaymentConditionLine(100, { ...base, enabled: false }, 'card')).toBeNull()
-    expect(formatPaymentConditionLine(100, { ...base, cardEnabled: false }, 'card')).toBeNull()
+    expect(
+      formatPaymentConditionLine(
+        100,
+        { ...base, cardEnabled: false, creditEnabled: false, debitEnabled: false },
+        'card',
+      ),
+    ).toBeNull()
   })
 
   it('monta copy com juros', () => {

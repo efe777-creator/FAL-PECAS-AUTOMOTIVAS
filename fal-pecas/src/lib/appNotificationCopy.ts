@@ -87,6 +87,11 @@ export function appNotificationCopy(
         title: 'Prazo atualizado e pedido confirmado',
         body: 'A loja atualizou o prazo e liberou o pedido para separação.',
       }
+    case 'staff_withdrew_customer_decision':
+      return {
+        title: 'Decisão não é mais necessária',
+        body: 'A loja retirou o pedido de decisão. Acompanhe o status no detalhe.',
+      }
     case 'shipment_tracking_updated':
       return {
         title: 'Rastreio atualizado',

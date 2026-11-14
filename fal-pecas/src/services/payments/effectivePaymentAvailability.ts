@@ -6,7 +6,10 @@ import { getPaymentDisplaySettings } from '@/services/store/paymentDisplayServic
 export type EffectivePaymentAvailability = {
   integrationOn: boolean
   pix: boolean
+  /** Qualquer cartão (crédito ou débito). */
   card: boolean
+  credit: boolean
+  debit: boolean
   installmentsEnabled: boolean
   settings: PaymentDisplaySettings | null
 }
@@ -16,24 +19,8 @@ export type EffectivePaymentAvailability = {
  * Fonte comercial: store_payment_display. Técnica: VITE_PAYMENT_PROVIDER + adapter.
  */
 export async function getEffectivePaymentAvailability(): Promise<EffectivePaymentAvailability> {
-  const integrationOn = isMercadoPagoCheckoutEnabled()
   const settings = await getPaymentDisplaySettings()
-  const caps = paymentEngine.getAdapter('mercadopago')?.capabilities()
-  const methods = new Set(caps?.methods ?? [])
-
-  const pixCommercial = settings?.pixEnabled !== false
-  const cardCommercial = settings?.cardEnabled !== false
-
-  return {
-    integrationOn,
-    pix: integrationOn && pixCommercial && methods.has('pix'),
-    card:
-      integrationOn &&
-      cardCommercial &&
-      (methods.has('credit_card') || methods.has('debit_card')),
-    installmentsEnabled: Boolean(settings?.installmentsEnabled),
-    settings,
-  }
+  return resolveEffectivePaymentAvailability(settings)
 }
 
 /** Versão síncrona quando settings já foram carregados (hooks / checkout). */
@@ -44,14 +31,23 @@ export function resolveEffectivePaymentAvailability(
   const caps = paymentEngine.getAdapter('mercadopago')?.capabilities()
   const methods = new Set(caps?.methods ?? [])
   const pixCommercial = settings?.pixEnabled !== false
-  const cardCommercial = settings?.cardEnabled !== false
+  const creditCommercial =
+    settings?.creditEnabled != null
+      ? Boolean(settings.creditEnabled)
+      : settings?.cardEnabled !== false
+  const debitCommercial =
+    settings?.debitEnabled != null
+      ? Boolean(settings.debitEnabled)
+      : settings?.cardEnabled !== false
+  const credit =
+    integrationOn && creditCommercial && methods.has('credit_card')
+  const debit = integrationOn && debitCommercial && methods.has('debit_card')
   return {
     integrationOn,
     pix: integrationOn && pixCommercial && methods.has('pix'),
-    card:
-      integrationOn &&
-      cardCommercial &&
-      (methods.has('credit_card') || methods.has('debit_card')),
+    credit,
+    debit,
+    card: credit || debit,
     installmentsEnabled: Boolean(settings?.installmentsEnabled),
     settings: settings ?? null,
   }

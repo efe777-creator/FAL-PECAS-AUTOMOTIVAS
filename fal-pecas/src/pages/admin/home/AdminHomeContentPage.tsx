@@ -122,6 +122,8 @@ const emptyPayment = (): Omit<PaymentDisplaySettings, 'id'> => ({
   allowInterestInstallments: false,
   installmentsEnabled: false,
   cardEnabled: true,
+  creditEnabled: true,
+  debitEnabled: true,
   pixEnabled: true,
   showOnCards: true,
   showOnPdp: true,
@@ -922,13 +924,38 @@ export function AdminHomeContentPage() {
             <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
               <input
                 type="checkbox"
-                checked={payment.cardEnabled}
+                checked={payment.creditEnabled}
                 onChange={(e) => {
                   setDirtyPayment(true)
-                  setPayment((p) => ({ ...p, cardEnabled: e.target.checked }))
+                  setPayment((p) => {
+                    const creditEnabled = e.target.checked
+                    return {
+                      ...p,
+                      creditEnabled,
+                      cardEnabled: creditEnabled || p.debitEnabled,
+                    }
+                  })
                 }}
               />
               Cartão de crédito — disponibilizar na loja
+            </label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <input
+                type="checkbox"
+                checked={payment.debitEnabled}
+                onChange={(e) => {
+                  setDirtyPayment(true)
+                  setPayment((p) => {
+                    const debitEnabled = e.target.checked
+                    return {
+                      ...p,
+                      debitEnabled,
+                      cardEnabled: p.creditEnabled || debitEnabled,
+                    }
+                  })
+                }}
+              />
+              Cartão de débito — disponibilizar na loja
             </label>
             <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
               <input

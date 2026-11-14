@@ -40,6 +40,13 @@ import {
   loadCheckoutSession,
   saveCheckoutSession,
 } from '@/services/checkout/checkoutSession'
+import {
+  isCardMpChannel,
+  normalizeMpChannel,
+  preferredPaymentTypeFromChannel,
+  resolveSelectableChannel,
+  type MpPayChannel,
+} from '@/services/checkout/checkoutPaymentChannel'
 import { resolveCheckoutPaymentOutcome } from '@/services/checkout/resolveCheckoutPaymentOutcome'
 import { resumeCheckoutFromServer } from '@/services/checkout/resumeCheckoutFromServer'
 import { useCheckoutOrderPaymentWatch } from '@/hooks/useCheckoutOrderPaymentWatch'
@@ -92,11 +99,20 @@ import {
   type CheckoutMomentIndex,
 } from './checkoutMoments'
 
-/** 3 momentos efetivos (Endereço → Entrega → Pagamento); steps internos 0–4. */
+/** Steps internos 0–4; UI mostra 3 momentos (Dados e endereço → Entrega → Pagamento). */
 const STEPS = ['Identificação', 'Endereço', 'Entrega', 'Pagamento', 'Revisão'] as const
 
 function money(v: number) {
   return formatMoney(v)
+}
+
+function momentSubtitle(step: number, paymentAwaiting: boolean): string {
+  if (paymentAwaiting) return 'Pagamento em andamento'
+  if (step === 0) return 'Identificação'
+  if (step === 1) return 'Endereço e modalidade'
+  if (step === 2) return 'Entrega ou retirada'
+  if (step === 3) return 'Escolha como pagar'
+  return 'Revise e pague'
 }
 
 export function CheckoutPage() {
@@ -156,15 +172,11 @@ export function CheckoutPage() {
   const payAvail = resolveEffectivePaymentAvailability(paymentDisplay)
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
-  const [mpChannel, setMpChannel] = useState<'pix' | 'card'>('pix')
+  const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
   const [termsAccepted, setTermsAccepted] = useState(false)
 
-  useEffect(() => {
-    if (mpChannel === 'pix' && !payAvail.pix && payAvail.card) setMpChannel('card')
-    else if (mpChannel === 'card' && !payAvail.card && payAvail.pix) setMpChannel('pix')
-  }, [payAvail.pix, payAvail.card, mpChannel])
   const [mpAwaiting, setMpAwaiting] = useState<{
-    channel: 'pix' | 'card'
+    channel: MpPayChannel
     orderId: string
     paymentId?: string
     amount: number
@@ -173,6 +185,41 @@ export function CheckoutPage() {
     expiresAt?: string | null
     allowRetry?: boolean
   } | null>(null)
+
+  /**
+   * Única entrada para Pix/crédito/débito — valor explícito (sem stale).
+   * Crédito↔débito com pedido aberto NÃO remonta Secure Fields (só preferredPaymentType).
+   */
+  function selectPayChannel(desired: MpPayChannel) {
+    const next = resolveSelectableChannel(desired, payAvail)
+    setMpChannel(next)
+    setMpAwaiting((prev) => {
+      if (!prev) return prev
+      if (prev.channel === next) return prev
+      const sameCardFamily = isCardMpChannel(prev.channel) && isCardMpChannel(next)
+      const updated = sameCardFamily
+        ? { ...prev, channel: next }
+        : {
+            channel: next,
+            orderId: prev.orderId,
+            amount: prev.amount,
+            allowRetry: next === 'pix' ? true : undefined,
+          }
+      saveCheckoutSession({
+        orderId: updated.orderId,
+        paymentId: updated.paymentId,
+        idempotencyKey,
+        channel: next,
+        amount: updated.amount,
+      })
+      return updated
+    })
+  }
+
+  useEffect(() => {
+    const next = resolveSelectableChannel(mpChannel, payAvail)
+    if (next !== mpChannel) setMpChannel(next)
+  }, [payAvail.pix, payAvail.card, payAvail.credit, payAvail.debit, mpChannel])
 
   function pushError(message: string) {
     setError(message)
@@ -202,7 +249,7 @@ export function CheckoutPage() {
         return 'Entrega indisponível no momento. Tente novamente mais tarde.'
       }
     }
-    if (target >= 4 && mpEnabled && mpChannel === 'card' && !mpPublicKey) {
+    if (target >= 4 && mpEnabled && isCardMpChannel(mpChannel) && !mpPublicKey) {
       return 'Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.'
     }
     return null
@@ -240,29 +287,6 @@ export function CheckoutPage() {
     // Não await cotação aqui: a etapa Entrega deve abrir na hora.
     // O useEffect (step === 2) dispara loadQuotes e mostra "Cotando frete…".
     goToStepIndex(target)
-  }
-
-  function switchAwaitingToCard() {
-    if (!mpAwaiting) return
-    if (!mpPublicKey || !payAvail.card) {
-      pushError('Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.')
-      return
-    }
-    setMpChannel('card')
-    setMpAwaiting({
-      channel: 'card',
-      orderId: mpAwaiting.orderId,
-      amount: mpAwaiting.amount,
-    })
-    saveCheckoutSession({
-      orderId: mpAwaiting.orderId,
-      idempotencyKey,
-      channel: 'card',
-      amount: mpAwaiting.amount,
-    })
-    goToStepIndex(4)
-    setError(null)
-    push('Você pode pagar com cartão neste mesmo pedido', 'success')
   }
 
   const onMpApproved = useCallback(
@@ -441,7 +465,7 @@ export function CheckoutPage() {
           return
         }
         if (outcome.kind === 'await_payment' || outcome.kind === 'retry_payment') {
-          const channel = server.channel || ctx.channel || 'pix'
+          const channel = normalizeMpChannel(server.channel || ctx.channel || 'pix')
           setMpChannel(channel)
           setMpAwaiting({
             channel,
@@ -464,8 +488,10 @@ export function CheckoutPage() {
         }
         if (outcome.kind === 'order_only') {
           setError(outcome.reason)
+          const channel = normalizeMpChannel(ctx.channel ?? 'pix')
+          setMpChannel(channel)
           setMpAwaiting({
-            channel: ctx.channel ?? 'pix',
+            channel,
             orderId: server.orderId,
             amount: server.total,
             allowRetry: true,
@@ -656,9 +682,19 @@ export function CheckoutPage() {
             text: `A modalidade da vitrine${handoff.preferredLabel ? ` (${handoff.preferredLabel})` : ''} não está disponível para este endereço. Escolha outra opção.`,
           })
         } else if (handoff.preferredKind === 'own' && isPricedOwnDeliveryOption(matched)) {
+          const prevAmount =
+            typeof handoff.estimatedAmount === 'number' ? handoff.estimatedAmount : null
+          const delta =
+            prevAmount != null && Number.isFinite(prevAmount)
+              ? Math.round((matched.amount - prevAmount) * 100) / 100
+              : 0
+          const deltaNote =
+            Math.abs(delta) >= 0.01
+              ? ` (ajuste de ${delta > 0 ? '+' : ''}${formatMoney(delta)} vs estimativa da vitrine)`
+              : ''
           setShippingHandoffNotice({
             tone: 'ok',
-            text: `Entrega FAL confirmada com seu endereço: ${formatMoney(matched.amount)}${
+            text: `Entrega FAL confirmada com seu endereço: ${formatMoney(matched.amount)}${deltaNote}${
               matched.etaDaysMin != null && matched.etaDaysMax != null
                 ? ` · ${matched.etaDaysMin}–${matched.etaDaysMax} dias úteis`
                 : ''
@@ -705,6 +741,13 @@ export function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, addressId, items, subtotal, originPostalCode, deliveryMode])
 
+  useEffect(() => {
+    const fromState = safeCheckoutReturnTo(
+      (location.state as { from?: unknown } | null)?.from,
+    )
+    if (fromState) saveCheckoutReturnTo(fromState)
+  }, [location.state])
+
   function validateDoc(): boolean {
     const digits = onlyDigits(docValue)
     if (docKind === 'cpf') {
@@ -745,7 +788,7 @@ export function CheckoutPage() {
       return
     }
     if (mpEnabled) {
-      if (mpChannel === 'card' && !payAvail.card) {
+      if (isCardMpChannel(mpChannel) && !payAvail.card) {
         pushError('Cartão não está disponível no momento.')
         return
       }
@@ -765,8 +808,10 @@ export function CheckoutPage() {
         addressId,
         shippingOptionId,
         paymentMethod: mpEnabled
-          ? mpChannel === 'card'
-            ? 'credit_card'
+          ? isCardMpChannel(mpChannel)
+            ? mpChannel === 'debit_card'
+              ? 'debit_card'
+              : 'credit_card'
             : 'pix'
           : paymentMethod,
         documentKind: docKind,
@@ -804,7 +849,7 @@ export function CheckoutPage() {
       }
 
       if (mpEnabled) {
-        if (mpChannel === 'card') {
+        if (isCardMpChannel(mpChannel)) {
           if (!mpPublicKey) {
             throw new Error('Pagamento com cartão indisponível no momento.')
           }
@@ -813,11 +858,11 @@ export function CheckoutPage() {
             saveCheckoutSession({
               orderId: placed.orderId,
               idempotencyKey,
-              channel: 'card',
+              channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
               amount: placed.total,
             })
             setMpAwaiting({
-              channel: 'card',
+              channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
               orderId: placed.orderId,
               amount: placed.total,
               allowRetry: true,
@@ -826,7 +871,7 @@ export function CheckoutPage() {
             return
           }
           setMpAwaiting({
-            channel: 'card',
+            channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
             orderId: placed.orderId,
             paymentId: placed.paymentId,
             amount: placed.total,
@@ -835,7 +880,7 @@ export function CheckoutPage() {
             orderId: placed.orderId,
             paymentId: placed.paymentId,
             idempotencyKey,
-            channel: 'card',
+            channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
             amount: placed.total,
           })
           goToStepIndex(4)
@@ -1009,19 +1054,15 @@ export function CheckoutPage() {
     isBuyNow,
   )
 
-  useEffect(() => {
-    const fromState = safeCheckoutReturnTo(
-      (location.state as { from?: unknown } | null)?.from,
-    )
-    if (fromState) saveCheckoutReturnTo(fromState)
-  }, [location.state])
-
   return (
     <Container className="py-8">
       <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
       <p className="mt-1 text-sm font-semibold text-fal-muted">
         Etapa {momentIndex + 1} de 3 — {MOMENT_LABELS[momentIndex]}
         {isBuyNow ? ' · Compra direta' : ''}
+      </p>
+      <p className="mt-0.5 text-xs text-fal-muted">
+        {momentSubtitle(step, paymentAwaiting)}
       </p>
       <div className="mt-4 flex flex-wrap gap-2" role="navigation" aria-label="Etapas do checkout">
         {MOMENT_LABELS.map((label, mi) => {
@@ -1070,9 +1111,10 @@ export function CheckoutPage() {
         })}
       </div>
       {deliveryViewOnly ? (
-        <p className="mt-2 text-xs text-fal-muted">
-          Pagamento em andamento — você pode ver a entrega, voltar ao Pix ou trocar para cartão.
-          Para alterar endereço/frete, espere expirar o Pix ou use Meus pedidos.
+        <p className="mt-2 text-xs text-fal-muted" role="status">
+          Pagamento em andamento — endereço e entrega em somente leitura. Use as etapas acima
+          para consultar ou volte ao pagamento. Para alterar endereço/frete, espere a cobrança
+          expirar ou use Meus pedidos.
         </p>
       ) : null}
 
@@ -1091,9 +1133,13 @@ export function CheckoutPage() {
         <div className="rounded-fal border border-fal-line bg-white p-5">
           {deliveryViewOnly && momentIndex < 2 ? (
             <div className="mb-4 rounded-fal border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              Visualização {momentIndex === 0 ? 'do endereço' : 'da entrega'} — cobrança ainda em
-              aberto. Use <strong>Voltar ao pagamento</strong> ou{' '}
-              <strong>Pagar com cartão</strong>.
+              Visualização {momentIndex === 0 ? 'dos dados e endereço' : 'da entrega'} — cobrança
+              ainda em aberto.
+              <div className="mt-2">
+                <Button type="button" variant="primary" onClick={() => goToMoment(2)}>
+                  Voltar ao pagamento
+                </Button>
+              </div>
             </div>
           ) : null}
           {step === 0 ? (
@@ -1163,7 +1209,7 @@ export function CheckoutPage() {
 
           {step === 1 ? (
             <div className="space-y-4">
-              <h2 className="mt-0 text-lg font-extrabold">1. Como deseja receber?</h2>
+              <h2 className="mt-0 text-lg font-extrabold">Como deseja receber?</h2>
 
               <ul
                 className="m-0 list-none space-y-2 p-0"
@@ -1222,9 +1268,112 @@ export function CheckoutPage() {
               </ul>
 
               {isPickupMode ? (
-                <p className="m-0 text-sm text-fal-muted">
-                  Na próxima etapa você confere endereço, horário e a liberação da retirada.
-                </p>
+                <>
+                  <p className="m-0 text-sm text-fal-muted">
+                    Na próxima etapa você confere endereço da loja, horário e a liberação da
+                    retirada.
+                  </p>
+                  {!loadingAddrs && addressId
+                    ? (() => {
+                        const nf = addresses.find((a) => a.id === addressId)
+                        if (!nf) return null
+                        return (
+                          <div
+                            className="rounded-fal border border-fal-line bg-fal-bg/50 p-3 text-sm"
+                            role="status"
+                          >
+                            <p className="m-0 font-semibold text-fal-navy">
+                              Endereço na nota fiscal
+                            </p>
+                            <p className="mb-0 mt-1 text-fal-ink">
+                              {nf.street}, {nf.number}
+                              {nf.complement ? ` — ${nf.complement}` : ''}
+                              <br />
+                              {nf.district ? `${nf.district} · ` : ''}
+                              {nf.city}/{nf.state} · CEP {formatCepMask(nf.postalCode)}
+                            </p>
+                            {!deliveryViewOnly ? (
+                              <button
+                                type="button"
+                                className="mt-2 text-sm font-semibold text-fal-navy underline"
+                                onClick={() => {
+                                  setShowNewAddress(true)
+                                }}
+                              >
+                                Trocar endereço da NF
+                              </button>
+                            ) : null}
+                          </div>
+                        )
+                      })()
+                    : null}
+                  {isPickupMode && !loadingAddrs && addresses.length > 0 && showNewAddress ? (
+                    <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-4">
+                      <h3 className="mt-0 text-base font-extrabold">Endereço para a nota fiscal</h3>
+                      <p className="mt-0 mb-3 text-sm text-fal-muted">
+                        Necessário para emitir a NF. A retirada continua na loja.
+                      </p>
+                      {addresses.length > 0 ? (
+                        <ul className="mb-3 m-0 list-none space-y-2 p-0">
+                          {addresses.map((a) => (
+                            <li key={a.id}>
+                              <label
+                                className={`flex gap-3 rounded-fal border p-3 ${
+                                  addressId === a.id
+                                    ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                    : 'border-fal-line'
+                                } cursor-pointer hover:border-fal-navy`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="nf-address"
+                                  checked={addressId === a.id}
+                                  onChange={() => {
+                                    setAddressId(a.id)
+                                    setShowNewAddress(false)
+                                  }}
+                                />
+                                <span className="text-sm">
+                                  <strong>{a.label || a.recipient}</strong>
+                                  <br />
+                                  {a.street}, {a.number}
+                                  {a.complement ? ` — ${a.complement}` : ''}
+                                  <br />
+                                  {a.district ? `${a.district} · ` : ''}
+                                  {a.city}/{a.state} · CEP {formatCepMask(a.postalCode)}
+                                </span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <AddressForm
+                        key="checkout-pickup-nf-change"
+                        initial={{
+                          recipient: user?.fullName?.trim() || user?.email || '',
+                          isDefault: addresses.length === 0,
+                        }}
+                        submitLabel="Salvar endereço da NF"
+                        showCancel
+                        onCancel={() => setShowNewAddress(false)}
+                        onSubmit={async (values) => {
+                          const saved = await upsertAddress({
+                            ...values,
+                            label: values.label || null,
+                            complement: values.complement || null,
+                            reference: values.reference || null,
+                            district: values.district || null,
+                            isDefault: values.isDefault || addresses.length === 0,
+                          })
+                          setShowNewAddress(false)
+                          await reloadAddresses(saved.id)
+                          setAddressId(saved.id)
+                          push('Endereço da NF salvo', 'success')
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <>
                   {vitrineAddress ? (
@@ -1375,7 +1524,7 @@ export function CheckoutPage() {
               />
             ) : (
               <div className="space-y-4">
-                <h2 className="mt-0 text-lg font-extrabold">2. Tipo de entrega</h2>
+                <h2 className="mt-0 text-lg font-extrabold">Tipo de entrega</h2>
                 {shippingHandoffNotice ? (
                   <p
                     className={
@@ -1483,7 +1632,7 @@ export function CheckoutPage() {
                         type="radio"
                         name="mpChannel"
                         checked={mpChannel === 'pix'}
-                        onChange={() => setMpChannel('pix')}
+                        onChange={() => selectPayChannel('pix')}
                       />
                       <span>
                         <span className="block text-sm font-semibold">Pix</span>
@@ -1491,18 +1640,34 @@ export function CheckoutPage() {
                       </span>
                     </label>
                   ) : null}
-                  {payAvail.card ? (
+                  {payAvail.credit ? (
                     <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                       <input
                         type="radio"
                         name="mpChannel"
-                        checked={mpChannel === 'card'}
-                        onChange={() => setMpChannel('card')}
+                        checked={mpChannel === 'credit_card'}
+                        onChange={() => selectPayChannel('credit_card')}
                       />
                       <span>
                         <span className="block text-sm font-semibold">Cartão de crédito</span>
                         <span className="block text-xs text-fal-muted">
-                          Informe os dados do cartão para consultar as condições disponíveis.
+                          Informe os dados do cartão para consultar parcelas e condições.
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
+                  {payAvail.debit ? (
+                    <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
+                      <input
+                        type="radio"
+                        name="mpChannel"
+                        checked={mpChannel === 'debit_card'}
+                        onChange={() => selectPayChannel('debit_card')}
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold">Cartão de débito</span>
+                        <span className="block text-xs text-fal-muted">
+                          Cobrança à vista no débito.
                         </span>
                       </span>
                     </label>
@@ -1549,71 +1714,104 @@ export function CheckoutPage() {
           {step === 4 ? (
             <div className="space-y-4">
               {mpAwaiting ? (
-                mpAwaiting.channel === 'card' ? (
-                  <MercadoPagoCardBrickPanel
-                    orderId={mpAwaiting.orderId}
-                    amount={mpAwaiting.amount}
-                    publicKey={mpPublicKey}
-                    onApproved={onMpApproved}
-                    onError={onMpError}
-                  />
-                ) : mpAwaiting.paymentId ? (
-                  <MercadoPagoPixPanel
-                    paymentId={mpAwaiting.paymentId}
-                    orderId={mpAwaiting.orderId}
-                    onApproved={onMpApproved}
-                    initialPixQrCode={mpAwaiting.pixQrCode}
-                    initialPixQrCodeBase64={mpAwaiting.pixQrCodeBase64}
-                    initialAmount={mpAwaiting.amount}
-                    initialExpiresAt={mpAwaiting.expiresAt}
-                    onExpired={onPixExpired}
-                    onSwitchToCard={
-                      mpPublicKey && payAvail.card ? switchAwaitingToCard : undefined
-                    }
-                    onViewDelivery={() => goToMoment(1)}
-                  />
-                ) : mpAwaiting.allowRetry ? (
-                  <div className="space-y-3">
-                    <h2 className="mt-0 text-lg font-extrabold">Nova tentativa de pagamento</h2>
-                    <p className="text-sm text-fal-muted">
-                      O pedido permanece o mesmo. Gere um novo Pix ou pague com cartão.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
+                <>
+                  {(payAvail.pix || payAvail.credit || payAvail.debit) &&
+                  (payAvail.pix ? 1 : 0) + (payAvail.credit ? 1 : 0) + (payAvail.debit ? 1 : 0) >
+                    1 ? (
+                    <div
+                      className="flex flex-wrap gap-2"
+                      role="group"
+                      aria-label="Forma de pagamento deste pedido"
+                    >
+                      {payAvail.pix ? (
+                        <button
+                          type="button"
+                          className={[
+                            'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                            mpAwaiting.channel === 'pix'
+                              ? 'border-fal-navy bg-fal-navy text-white'
+                              : 'border-fal-line bg-white text-fal-navy',
+                          ].join(' ')}
+                          onClick={() => selectPayChannel('pix')}
+                        >
+                          Pix
+                        </button>
+                      ) : null}
+                      {payAvail.credit ? (
+                        <button
+                          type="button"
+                          className={[
+                            'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                            mpAwaiting.channel === 'credit_card'
+                              ? 'border-fal-navy bg-fal-navy text-white'
+                              : 'border-fal-line bg-white text-fal-navy',
+                          ].join(' ')}
+                          onClick={() => selectPayChannel('credit_card')}
+                        >
+                          Crédito
+                        </button>
+                      ) : null}
+                      {payAvail.debit ? (
+                        <button
+                          type="button"
+                          className={[
+                            'rounded-[10px] border px-3 py-2 text-sm font-bold',
+                            mpAwaiting.channel === 'debit_card'
+                              ? 'border-fal-navy bg-fal-navy text-white'
+                              : 'border-fal-line bg-white text-fal-navy',
+                          ].join(' ')}
+                          onClick={() => selectPayChannel('debit_card')}
+                        >
+                          Débito
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {isCardMpChannel(mpAwaiting.channel) ? (
+                    <MercadoPagoCardBrickPanel
+                      orderId={mpAwaiting.orderId}
+                      amount={mpAwaiting.amount}
+                      publicKey={mpPublicKey}
+                      preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
+                      onApproved={onMpApproved}
+                      onError={onMpError}
+                    />
+                  ) : mpAwaiting.paymentId ? (
+                    <MercadoPagoPixPanel
+                      paymentId={mpAwaiting.paymentId}
+                      orderId={mpAwaiting.orderId}
+                      onApproved={onMpApproved}
+                      initialPixQrCode={mpAwaiting.pixQrCode}
+                      initialPixQrCodeBase64={mpAwaiting.pixQrCodeBase64}
+                      initialAmount={mpAwaiting.amount}
+                      initialExpiresAt={mpAwaiting.expiresAt}
+                      onExpired={onPixExpired}
+                    />
+                  ) : mpAwaiting.allowRetry || mpAwaiting.channel === 'pix' ? (
+                    <div className="space-y-3">
+                      <h2 className="mt-0 text-lg font-extrabold">Nova tentativa de pagamento</h2>
+                      <p className="text-sm text-fal-muted">
+                        O pedido permanece o mesmo. Gere um novo Pix ou escolha crédito/débito
+                        acima.
+                      </p>
                       {payAvail.pix ? (
                         <Button
                           type="button"
                           variant="primary"
                           disabled={submitting}
                           onClick={() => {
-                            setMpChannel('pix')
+                            selectPayChannel('pix')
                             void retryPixCharge()
                           }}
                         >
                           {submitting ? 'Gerando…' : 'Gerar novo Pix'}
                         </Button>
                       ) : null}
-                      {payAvail.card ? (
-                        <Button
-                          type="button"
-                          variant="light"
-                          disabled={!mpPublicKey}
-                          onClick={() => {
-                            setMpChannel('card')
-                            setMpAwaiting({
-                              channel: 'card',
-                              orderId: mpAwaiting.orderId,
-                              amount: mpAwaiting.amount,
-                            })
-                          }}
-                        >
-                          Pagar com cartão
-                        </Button>
-                      ) : null}
                     </div>
-                  </div>
-                ) : (
-                  <Loading label="Preparando Pix…" />
-                )
+                  ) : (
+                    <Loading label="Preparando Pix…" />
+                  )}
+                </>
               ) : (
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Revisão</h2>
@@ -1635,8 +1833,10 @@ export function CheckoutPage() {
                     <p>
                       <strong>Pagamento:</strong>{' '}
                       {mpEnabled
-                        ? mpChannel === 'card'
-                          ? 'Cartão (Mercado Pago)'
+                        ? isCardMpChannel(mpChannel)
+                          ? mpChannel === 'debit_card'
+                            ? 'Cartão de débito (Mercado Pago)'
+                            : 'Cartão de crédito (Mercado Pago)'
                           : 'Pix (Mercado Pago)'
                         : paymentMethod === 'pix_simulated'
                           ? 'Pix (demonstração)'
@@ -1690,7 +1890,7 @@ export function CheckoutPage() {
                     >
                       {submitting
                         ? 'Processando…'
-                        : mpChannel === 'card'
+                        : isCardMpChannel(mpChannel)
                           ? 'Continuar para cartão'
                           : 'Gerar cobrança Pix'}
                     </Button>
@@ -1718,25 +1918,23 @@ export function CheckoutPage() {
           ) : null}
 
           <div className="mt-6 flex flex-wrap gap-2">
-            {mpAwaiting ? (
-              <Button type="button" variant="light" onClick={onCheckoutBack}>
-                {momentIndex === 2
-                  ? 'Voltar à entrega'
-                  : momentIndex === 1
-                    ? 'Voltar ao endereço'
-                    : 'Voltar ao pagamento'}
+            {mpAwaiting && momentIndex < 2 ? (
+              <Button type="button" variant="primary" onClick={() => goToMoment(2)}>
+                Voltar ao pagamento
               </Button>
-            ) : step > 0 ? (
+            ) : !mpAwaiting && step > 0 ? (
               <Button type="button" variant="light" onClick={() => void onCheckoutBack()}>
                 Voltar
               </Button>
-            ) : (
+            ) : null}
+            {/* Com cobrança aberta o leave para PDP/carrinho fica no resumo lateral. */}
+            {!mpAwaiting && step === 0 ? (
               <Link to={backLeaveTo}>
                 <Button type="button" variant="light">
                   {backLeaveLabel}
                 </Button>
               </Link>
-            )}
+            ) : null}
             {!mpAwaiting && step < 4 ? (
               <Button
                 type="button"
@@ -1772,26 +1970,16 @@ export function CheckoutPage() {
                 <span>{money(mpAwaiting.amount)}</span>
               </div>
               <p className="mt-3 text-xs text-fal-muted">
-                Aguardando confirmação do Mercado Pago. Você pode ver a entrega, trocar para
-                cartão ou retomar depois em Meus pedidos.
+                Aguardando confirmação do Mercado Pago. Troque Pix/crédito/débito no painel ou
+                consulte entrega pelas etapas acima.
               </p>
               <div className="mt-3 flex flex-col gap-2">
-                {/* Troca Pix→cartão: só no painel Pix (evita 3 botões iguais). */}
-                <Button
-                  type="button"
-                  variant="light"
-                  onClick={() => {
-                    if (momentIndex === 2) goToMoment(1)
-                    else if (momentIndex === 1) goToMoment(0)
-                    else goToMoment(2)
-                  }}
+                <Link
+                  to={backLeaveTo}
+                  className="inline-block text-sm font-bold text-fal-auth-link underline-offset-2 hover:underline"
                 >
-                  {momentIndex === 2
-                    ? 'Ver entrega'
-                    : momentIndex === 1
-                      ? 'Ver endereço'
-                      : 'Voltar ao pagamento'}
-                </Button>
+                  {backLeaveLabel} →
+                </Link>
                 <Link
                   to={`/conta/pedidos/${mpAwaiting.orderId}`}
                   className="inline-block text-sm font-bold text-fal-auth-link underline-offset-2 hover:underline"

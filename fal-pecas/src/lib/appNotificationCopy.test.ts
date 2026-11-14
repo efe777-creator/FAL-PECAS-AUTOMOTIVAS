@@ -23,6 +23,9 @@ describe('appNotificationCopy', () => {
     expect(appNotificationCopy('order_awaiting_decision')?.title).toMatch(/a[cç][aã]o necess[aá]ria/i)
     expect(appNotificationCopy('customer_chose_continue_available')?.title).toBeTruthy()
     expect(appNotificationCopy('staff_held_for_availability')?.title).toBeTruthy()
+    expect(appNotificationCopy('staff_withdrew_customer_decision')?.title).toBe(
+      'Decisão não é mais necessária',
+    )
   })
 
   it('href por audience', () => {

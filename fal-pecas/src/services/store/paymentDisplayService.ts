@@ -5,7 +5,7 @@ const CACHE_TTL_MS = 5 * 60_000
 let cache: { at: number; data: PaymentDisplaySettings | null } | null = null
 
 const SELECT_COLS =
-  'id, enabled, max_installments, min_installment_amount, interest_free, interest_free_max, allow_interest_installments, installments_enabled, card_enabled, pix_enabled, show_on_cards, show_on_pdp, footnote'
+  'id, enabled, max_installments, min_installment_amount, interest_free, interest_free_max, allow_interest_installments, installments_enabled, card_enabled, credit_enabled, debit_enabled, pix_enabled, show_on_cards, show_on_pdp, footnote'
 
 type Row = {
   id: string
@@ -17,6 +17,8 @@ type Row = {
   allow_interest_installments?: boolean | null
   installments_enabled?: boolean | null
   card_enabled?: boolean | null
+  credit_enabled?: boolean | null
+  debit_enabled?: boolean | null
   pix_enabled?: boolean | null
   show_on_cards: boolean
   show_on_pdp: boolean
@@ -47,6 +49,18 @@ function mapRow(row: Row): PaymentDisplaySettings {
         : !interestFree,
     installmentsEnabled,
     cardEnabled: row.card_enabled != null ? Boolean(row.card_enabled) : true,
+    creditEnabled:
+      row.credit_enabled != null
+        ? Boolean(row.credit_enabled)
+        : row.card_enabled != null
+          ? Boolean(row.card_enabled)
+          : true,
+    debitEnabled:
+      row.debit_enabled != null
+        ? Boolean(row.debit_enabled)
+        : row.card_enabled != null
+          ? Boolean(row.card_enabled)
+          : true,
     pixEnabled: row.pix_enabled != null ? Boolean(row.pix_enabled) : true,
     showOnCards: Boolean(row.show_on_cards),
     showOnPdp: Boolean(row.show_on_pdp),
@@ -117,7 +131,11 @@ export async function adminUpsertPaymentDisplaySettings(
     interest_free_max: interestFreeMax,
     allow_interest_installments: Boolean(input.allowInterestInstallments),
     installments_enabled: Boolean(input.installmentsEnabled),
-    card_enabled: Boolean(input.cardEnabled),
+    credit_enabled: Boolean(input.creditEnabled ?? input.cardEnabled),
+    debit_enabled: Boolean(input.debitEnabled ?? input.cardEnabled),
+    card_enabled: Boolean(
+      (input.creditEnabled ?? input.cardEnabled) || (input.debitEnabled ?? input.cardEnabled),
+    ),
     pix_enabled: Boolean(input.pixEnabled),
     show_on_cards: input.showOnCards,
     show_on_pdp: input.showOnPdp,

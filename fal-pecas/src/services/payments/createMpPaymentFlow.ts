@@ -97,29 +97,57 @@ export async function executeCreateMpPayment(
 
   {
     const display = deps.getPaymentDisplay ? await deps.getPaymentDisplay() : null
-    if (card && display?.cardEnabled === false) {
-      return {
-        httpStatus: 422,
-        body: { error: 'method_not_allowed', detail: 'cartão desativado comercialmente' },
+    if (card) {
+      const method = String(card.paymentTypeId ?? '').toLowerCase().includes('debit')
+        ? 'debit_card'
+        : 'credit_card'
+      const creditOk =
+        display?.creditEnabled != null
+          ? Boolean(display.creditEnabled)
+          : display?.cardEnabled !== false
+      const debitOk =
+        display?.debitEnabled != null
+          ? Boolean(display.debitEnabled)
+          : display?.cardEnabled !== false
+      if (method === 'debit_card' && !debitOk) {
+        return {
+          httpStatus: 422,
+          body: { error: 'method_not_allowed', detail: 'débito desativado comercialmente' },
+        }
+      }
+      if (method === 'credit_card' && !creditOk) {
+        return {
+          httpStatus: 422,
+          body: { error: 'method_not_allowed', detail: 'crédito desativado comercialmente' },
+        }
+      }
+      if (method === 'debit_card' && card.installments !== 1) {
+        return {
+          httpStatus: 422,
+          body: {
+            error: 'installments_not_allowed',
+            detail: 'débito só à vista (1x)',
+          },
+        }
+      }
+      if (method === 'credit_card') {
+        try {
+          assertCardInstallmentsAllowed(card.installments, amount, display)
+        } catch (e) {
+          return {
+            httpStatus: 422,
+            body: {
+              error: 'installments_not_allowed',
+              detail: e instanceof Error ? e.message : 'installments inválido',
+            },
+          }
+        }
       }
     }
     if (!card && display?.pixEnabled === false) {
       return {
         httpStatus: 422,
         body: { error: 'method_not_allowed', detail: 'pix desativado comercialmente' },
-      }
-    }
-    if (card) {
-      try {
-        assertCardInstallmentsAllowed(card.installments, amount, display)
-      } catch (e) {
-        return {
-          httpStatus: 422,
-          body: {
-            error: 'installments_not_allowed',
-            detail: e instanceof Error ? e.message : 'installments inválido',
-          },
-        }
       }
     }
   }

@@ -22,7 +22,8 @@ export type StorefrontQuoteResult = {
 export type StorefrontQuoteOpts = {
   /**
    * PDP: cotação rápida só com CEP.
-   * Sem nº → inclui “Entrega FAL” provisional (confirma preço no checkout).
+   * Frete FAL vem precificado por estimativa (Edge estimateCepOnly);
+   * fallback provisional só se a estimativa falhar.
    */
   cepOnlyQuickQuote?: boolean
 }
@@ -73,7 +74,7 @@ export async function quoteStorefrontShippingEnvelope(
 
   let selectable = selectableShippingOptions(ensureCustomerShippingOptions(env.options))
 
-  // PDP (só CEP): se cobriu own mas falta nº, oferece Entrega FAL provisional (fora do filtro checkout).
+  // Fallback raro: se Edge não precificou e ainda há needs_number, mantém provisional.
   if (
     opts?.cepOnlyQuickQuote &&
     needsAddressNumber &&
@@ -99,17 +100,17 @@ export async function quoteStorefrontShippingEnvelope(
         mode: env.mode,
         status: gaps.length ? 'missing_logistics' : 'unavailable',
         req,
-        message: needsAddressNumber
-          ? opts?.cepOnlyQuickQuote
-            ? 'Confirme o endereço no checkout para ver a entrega FAL. Sem opções de transportadora para este CEP no momento.'
-            : 'Informe o número do endereço para cotar a entrega FAL nesta região. Sem opções de transportadora para este CEP no momento.'
-          : gaps.length
-            ? 'Este produto ainda não tem peso ou medidas suficientes para cotar transportadoras. Frete FAL / retirada podem aparecer quando cobertos.'
-            : 'Nenhuma opção de entrega disponível para este CEP no momento.',
+        message: gaps.length
+          ? 'Este produto ainda não tem peso ou medidas suficientes para cotar transportadoras. Frete FAL / retirada podem aparecer quando cobertos.'
+          : 'Nenhuma opção de entrega disponível para este CEP no momento.',
         disclaimer: null,
       }),
     }
   }
+
+  const hasOwnEstimate = selectable.some(
+    (o) => o.provider === 'own' && o.metadata?.estimate === true,
+  )
 
   return {
     needsAddressNumber,
@@ -118,7 +119,9 @@ export async function quoteStorefrontShippingEnvelope(
       mode: env.mode,
       options: selectable,
       req,
-      disclaimer: 'Valores estimados de entrega. Confirme o frete no checkout.',
+      disclaimer: hasOwnEstimate
+        ? 'Entrega FAL com valor estimado pelo CEP. O valor pode ajustar levemente no checkout com o endereço completo.'
+        : 'Valores estimados de entrega. Confirme o frete no checkout.',
       message: env.message,
     }),
   }

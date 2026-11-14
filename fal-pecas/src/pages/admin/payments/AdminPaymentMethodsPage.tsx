@@ -51,8 +51,9 @@ export function AdminPaymentMethodsPage() {
       <div className="rounded-[14px] border border-dashed border-fal-line bg-fal-bg/40 p-4 text-sm">
         <p className="m-0 font-semibold text-fal-navy">Disponibilidade efetiva agora</p>
         <p className="mb-0 mt-1 text-fal-muted">
-          Integração: {mpOn ? 'ligada' : 'desligada'} · Pix loja:{' '}
-          {avail.pix ? 'visível' : 'oculto'} · Cartão loja: {avail.card ? 'visível' : 'oculto'}
+          Integração: {mpOn ? 'ligada' : 'desligada'} · Pix:{' '}
+          {avail.pix ? 'visível' : 'oculto'} · Crédito: {avail.credit ? 'visível' : 'oculto'} ·
+          Débito: {avail.debit ? 'visível' : 'oculto'}
         </p>
         <Link to="/admin/home" className="mt-2 inline-block font-semibold text-fal-navy">
           Configurar na Home da loja →
@@ -76,14 +77,23 @@ export function AdminPaymentMethodsPage() {
                 : !adapterOk
                   ? 'Adaptador sem Pix'
                   : 'Desativado na Home da loja'
-          } else if (m.code === 'credit_card' || m.code === 'debit_card') {
-            active = avail.card && adapterOk
+          } else if (m.code === 'credit_card') {
+            active = avail.credit && adapterOk
             detail = active
               ? 'Integração + comercial ON'
               : !mpOn
                 ? 'Integração MP off'
-                : settings?.cardEnabled === false
-                  ? 'Desativado na Home da loja'
+                : settings?.creditEnabled === false
+                  ? 'Crédito desativado na Home da loja'
+                  : 'Indisponível no adaptador ou comercial'
+          } else if (m.code === 'debit_card') {
+            active = avail.debit && adapterOk
+            detail = active
+              ? 'Integração + comercial ON'
+              : !mpOn
+                ? 'Integração MP off'
+                : settings?.debitEnabled === false
+                  ? 'Débito desativado na Home da loja'
                   : 'Indisponível no adaptador ou comercial'
           }
           return (

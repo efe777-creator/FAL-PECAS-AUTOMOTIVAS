@@ -6,7 +6,7 @@ import {
 } from './checkoutMoments'
 
 describe('checkoutMoments (3 etapas)', () => {
-  it('resolveMomentIndex: endereço / entrega / pagamento', () => {
+  it('resolveMomentIndex: dados e endereço / entrega / pagamento', () => {
     expect(resolveMomentIndex(0)).toBe(0)
     expect(resolveMomentIndex(1)).toBe(0)
     expect(resolveMomentIndex(2)).toBe(1)
@@ -68,7 +68,7 @@ describe('checkoutMoments (3 etapas)', () => {
     ).toBe(true)
   })
 
-  it('targetStepForMoment: endereço / entrega / pagamento', () => {
+  it('targetStepForMoment: dados e endereço / entrega / pagamento', () => {
     expect(targetStepForMoment(0, { shippingOptionId: 'sedex', addressId: 'a1' })).toBe(1)
     expect(targetStepForMoment(0, { shippingOptionId: '', addressId: '' })).toBe(0)
     expect(targetStepForMoment(1, { shippingOptionId: 'sedex', addressId: 'a1' })).toBe(2)
@@ -80,5 +80,26 @@ describe('checkoutMoments (3 etapas)', () => {
         paymentAwaiting: true,
       }),
     ).toBe(4)
+  })
+
+  it('sem cobrança: momento 2 exige maxReached ≥ 2', () => {
+    expect(
+      isMomentClickable({
+        moment: 2,
+        current: 0,
+        paymentAwaiting: false,
+        maxReachedStep: 1,
+        step: 1,
+      }),
+    ).toBe(false)
+    expect(
+      isMomentClickable({
+        moment: 2,
+        current: 1,
+        paymentAwaiting: false,
+        maxReachedStep: 2,
+        step: 2,
+      }),
+    ).toBe(true)
   })
 })

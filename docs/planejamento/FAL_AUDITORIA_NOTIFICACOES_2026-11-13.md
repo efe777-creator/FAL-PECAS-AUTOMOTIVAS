@@ -1,11 +1,14 @@
 # Auditoria — Central de Notificações FAL (CP-NOT)
 
-**Versão:** V1 · **Data:** 2026-11-13  
+**Versão:** V2 · **Atualizado:** 2026-11-13 (N4 in-app)  
 **Auth:** eFe — Gate 0 **MARCHA**  
 **Escopo leitura:** código + migrations + UI (`fal-pecas/`)  
 **Programa Central:** [FAL_PLANO_CENTRAL_PEDIDOS_4_FRENTES_2026-11-11.md](./FAL_PLANO_CENTRAL_PEDIDOS_4_FRENTES_2026-11-11.md)  
-**Spec:** [FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_SPEC_CENTRAL_NOTIFICACOES_2026-11-13.md)  
-**Plano:** [FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md)
+**Spec N4:** [../superpowers/specs/2026-11-13-fal-notificacoes-design.md](../superpowers/specs/2026-11-13-fal-notificacoes-design.md)  
+**Figma:** https://www.figma.com/design/ngSQc82mEQI0uXv51rK64r  
+**Plano legado:** [FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md](./FAL_PLANO_CENTRAL_NOTIFICACOES_2026-11-13.md)
+
+> **Nota V2:** N4 entregue — categorias, audience na leitura/mark-all, Realtime em `app_notifications`, UI padronizada (Central + badges), sino no Header, sinos duplicados removidos da conta, Pedido # no body. WhatsApp/e-mail continuam OFF. Trechos abaixo (V1) podem estar desatualizados; preferir a spec N4.
 
 ---
 

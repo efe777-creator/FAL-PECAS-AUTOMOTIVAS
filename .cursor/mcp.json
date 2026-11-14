@@ -11,6 +11,7 @@
       }
     },
     "mercadopago-mcp-server": {
+      "type": "http",
       "url": "https://mcp.mercadopago.com/mcp"
     },
     "netlify-mcp": {

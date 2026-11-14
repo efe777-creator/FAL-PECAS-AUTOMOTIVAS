@@ -16,11 +16,14 @@ const displayOn6 = {
   allowInterestInstallments: false,
   installmentsEnabled: true,
   cardEnabled: true,
+  creditEnabled: true,
+  debitEnabled: true,
   pixEnabled: true,
   showOnCards: true,
   showOnPdp: true,
   footnote: null,
 } as const
+// creditEnabled/debitEnabled required by PaymentDisplaySettings
 
 function baseDeps(over: Partial<CreateMpFlowDeps> = {}): CreateMpFlowDeps {
   return {
@@ -201,6 +204,8 @@ describe('executeCreateMpPayment — casos A–I', () => {
           allowInterestInstallments: false,
           installmentsEnabled: true,
           cardEnabled: true,
+          creditEnabled: true,
+          debitEnabled: true,
           pixEnabled: true,
           showOnCards: true,
           showOnPdp: true,

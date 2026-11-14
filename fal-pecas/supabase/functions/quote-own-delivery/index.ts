@@ -76,10 +76,11 @@ Deno.serve(async (req) => {
     const district = String(body.district ?? '').trim()
     const city = String(body.city ?? '').trim()
     const state = String(body.state ?? '').trim().toUpperCase().slice(0, 2)
+    const estimateCepOnly = Boolean(body.estimateCepOnly) && !number
     const items = (Array.isArray(body.items) ? body.items : []) as Item[]
 
     if (postalCode.length !== 8) return json(400, { status: 'out_of_coverage', message: 'CEP inválido' })
-    if (!number) {
+    if (!number && !estimateCepOnly) {
       return json(200, {
         status: 'missing_number',
         message: 'Informe o número do imóvel para cotar a entrega FAL.',
@@ -214,11 +215,12 @@ Deno.serve(async (req) => {
     if (!origin) return json(500, { error: 'origin_missing' })
 
     const originPostal = onlyDigits(origin.postal_code)
+    const destNumberForHash = estimateCepOnly ? 'cep-estimate' : number
     const hash = addressHash({
       originPostal,
       destPostal: postalCode,
-      number,
-      street,
+      number: destNumberForHash,
+      street: estimateCepOnly ? '' : street,
       city,
       state,
     })
@@ -251,9 +253,10 @@ Deno.serve(async (req) => {
       ]
         .filter(Boolean)
         .join(', ')
-      const destAddr = [street, number, district, city, state, postalCode, 'Brasil']
-        .filter(Boolean)
-        .join(', ')
+      // Estimativa PDP: geocode pelo CEP (+ cidade/UF quando houver), sem número.
+      const destAddr = estimateCepOnly
+        ? [district, city, state, postalCode, 'Brasil'].filter(Boolean).join(', ')
+        : [street, number, district, city, state, postalCode, 'Brasil'].filter(Boolean).join(', ')
 
       const routeRes = await fetch(
         'https://routes.googleapis.com/directions/v2:computeRoutes',
@@ -307,7 +310,7 @@ Deno.serve(async (req) => {
           address_hash: hash,
           origin_postal_code: originPostal,
           dest_postal_code: postalCode,
-          dest_number: number,
+          dest_number: destNumberForHash,
           distance_km: distanceKm,
           provider: 'google_routes',
           expires_at: expires,
@@ -357,9 +360,12 @@ Deno.serve(async (req) => {
       ? await admin.from('customers').select('id').eq('profile_id', user.id).maybeSingle()
       : { data: null }
 
+    const optionLabel = estimateCepOnly
+      ? `Entrega FAL (${chosen.label}) — estimativa`
+      : `Entrega FAL (${chosen.label})`
     const option = {
       vehicle_code: chosen.code,
-      label: `Entrega FAL (${chosen.label})`,
+      label: optionLabel,
       amount,
       eta_days_min: etaMin,
       eta_days_max: etaMax,
@@ -376,16 +382,18 @@ Deno.serve(async (req) => {
       category_id: chosen.id,
       vehicle_icon: chosen.icon ?? null,
       vehicle_max_km: maxKmEffective,
+      estimate: estimateCepOnly,
     }
 
     const fingerprint = [
       originPostal,
       postalCode,
-      number,
+      destNumberForHash,
       items.map((i) => `${i.productId}:${i.quantity}`).sort().join('|'),
       chosen.code,
       String(tariff.version),
       String(distanceKm),
+      estimateCepOnly ? 'est' : 'exact',
     ].join('::')
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
@@ -426,6 +434,7 @@ Deno.serve(async (req) => {
             distanceKmOneWay: distanceKm,
             vehicleCode: chosen.code,
             quoteId: quote.id,
+            estimate: estimateCepOnly,
           },
         },
       ],
