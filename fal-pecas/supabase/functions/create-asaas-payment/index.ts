@@ -7,10 +7,13 @@ import {
   asaasDueDateDaysFromNow,
 } from '../_shared/asaasApiCore.ts'
 import { parseCreateMpPaymentClientBody, resolveInternalMethod } from '../_shared/mpCreatePaymentCore.ts'
+import { moneyToAmountCents } from '../_shared/paymentRouterCore.ts'
 import {
-  decidePaymentRoute,
-  moneyToAmountCents,
-} from '../_shared/paymentRouterCore.ts'
+  decidePaymentRouteForStore,
+  loadPaymentRoutingConfig,
+  paymentRouteBlocked,
+} from '../_shared/paymentRoutingConfigCore.ts'
+import { isPaymentExpired } from '../_shared/mpCreatePaymentCore.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -132,10 +135,12 @@ Deno.serve(async (req) => {
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
     const amountCents = moneyToAmountCents(amount)
-    const route = decidePaymentRoute({
-      method: routableMethod,
-      amountCents,
-    })
+    const routing = await loadPaymentRoutingConfig(admin)
+    const route = decidePaymentRouteForStore(routableMethod, amountCents, routing)
+    const blocked = paymentRouteBlocked(route.provider, routing)
+    if (blocked) {
+      return json(503, { error: blocked, detail: 'Provedor desativado em payment_routing_config.' })
+    }
     if (route.provider !== 'asaas') {
       return json(409, {
         error: 'payment_route_mismatch',
@@ -186,7 +191,56 @@ Deno.serve(async (req) => {
         .eq('id', customer.id)
     }
 
+    const { data: existingPay } = await admin
+      .from('payments')
+      .select(
+        'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
+      )
+      .eq('order_id', orderId)
+      .eq('provider', 'asaas')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    let existing = existingPay
+    if (existing && isPaymentExpired(existing.expires_at as string | null)) {
+      await admin
+        .from('payments')
+        .update({
+          status: 'expired',
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .eq('status', 'pending')
+      existing = null
+    }
+
+    if (existing?.provider_payment_id) {
+      return json(200, {
+        paymentId: existing.id,
+        provider: 'asaas',
+        providerPaymentId: existing.provider_payment_id,
+        status: 'pending',
+        providerStatus: existing.provider_status ?? 'PENDING',
+        orderId,
+        amount: Number(existing.amount ?? amount),
+        method: existing.method ?? routableMethod,
+        pixQrCode: existing.pix_qr_code ?? null,
+        pixQrCodeBase64: existing.pix_qr_code_base64 ?? null,
+        paymentUrl: existing.payment_url ?? null,
+        expiresAt: existing.expires_at ?? null,
+        reused: true,
+        orderApproved: false,
+        routedProvider: 'asaas',
+      })
+    }
+
     let paymentId: string
+    if (existing?.id) {
+      paymentId = existing.id
+    } else {
     const { data: inserted, error: insErr } = await admin
       .from('payments')
       .insert({
@@ -208,6 +262,7 @@ Deno.serve(async (req) => {
       return json(500, { error: 'payment_insert_failed', detail: insErr?.message })
     }
     paymentId = inserted.id
+    }
 
     const billingType = asaasBillingTypeForMethod(routableMethod)
     const createPay = await asaasApiRequest<AsaasPayment>(apiKey, asaasBase, '/payments', {

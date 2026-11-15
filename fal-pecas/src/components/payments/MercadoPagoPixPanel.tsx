@@ -12,7 +12,7 @@ import {
   UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
 import { getOwnPayment, type OwnPaymentRow } from '@/services/payments/ownPaymentService'
-import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
+import { syncCheckoutPayment } from '@/services/payments/paymentSyncService'
 import { useEffect, useRef, useState } from 'react'
 
 interface Props {
@@ -87,7 +87,7 @@ export function MercadoPagoPixPanel({
         syncTickRef.current += 1
         if (p?.status === 'pending' && syncTickRef.current % 2 === 0) {
           try {
-            const sync = await syncMercadoPagoPayment(paymentId)
+            const sync = await syncCheckoutPayment(paymentId)
             if (sync.status === 'approved' || sync.orderApproved) {
               onApproved(sync.orderId || p.orderId || orderId)
               return

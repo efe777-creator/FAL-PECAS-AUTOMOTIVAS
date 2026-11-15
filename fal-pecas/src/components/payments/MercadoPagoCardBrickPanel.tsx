@@ -9,7 +9,7 @@ import {
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { createFalPayment } from '@/services/payments/engine'
-import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
+import { syncCheckoutPayment } from '@/services/payments/paymentSyncService'
 import { getOwnPayment } from '@/services/payments/ownPaymentService'
 import {
   alignPaymentMethodIdForPreferred,
@@ -256,7 +256,7 @@ export function MercadoPagoCardBrickPanel({
         syncTickRef.current += 1
         if (p.status === 'pending' && syncTickRef.current % 2 === 0) {
           try {
-            const sync = await syncMercadoPagoPayment(paymentId!)
+            const sync = await syncCheckoutPayment(paymentId!)
             if (sync.status) p = { ...p, status: sync.status }
             else p = (await getOwnPayment(paymentId!)) ?? p
           } catch {

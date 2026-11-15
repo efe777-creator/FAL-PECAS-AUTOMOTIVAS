@@ -56,6 +56,15 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
     expect(d.ruleVersion).toBe('fal-pay-hybrid-v1')
   })
 
+  it('card_provider mercadopago mantém parcelas no MP', () => {
+    expect(
+      resolveRoutedPaymentProvider(
+        { method: 'credit_card', amountCents: 5000 },
+        { cardProvider: 'mercadopago' },
+      ),
+    ).toBe('mercadopago')
+  })
+
   it('limite configurável não altera semântica inclusive', () => {
     expect(
       resolveRoutedPaymentProvider({

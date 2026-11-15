@@ -167,8 +167,15 @@ export function assertCardInstallmentsAllowed(
   if (!Number.isFinite(installments) || installments < 1) {
     throw new Error('installments inválido')
   }
-  if (settings && settings.cardEnabled === false) {
+  if (
+    settings &&
+    (settings.cardEnabled === false ||
+      (settings.creditEnabled === false && settings.debitEnabled === false))
+  ) {
     throw new Error('cartão desativado comercialmente')
+  }
+  if (settings && installments > 1 && settings.creditEnabled === false) {
+    throw new Error('crédito desativado comercialmente')
   }
   const max = falMaxInstallmentsForCheckout(amount, settings)
   if (installments > max) {

@@ -12,10 +12,12 @@ import {
   pixDateOfExpiration,
   resolveInternalMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
+import { moneyToAmountCents } from '../_shared/paymentRouterCore.ts'
 import {
-  decidePaymentRoute,
-  moneyToAmountCents,
-} from '../_shared/paymentRouterCore.ts'
+  decidePaymentRouteForStore,
+  loadPaymentRoutingConfig,
+  paymentRouteBlocked,
+} from '../_shared/paymentRoutingConfigCore.ts'
 import {
   decideWebhookTransition,
   mapMpProviderStatusToInternal,
@@ -101,10 +103,12 @@ Deno.serve(async (req) => {
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
 
     const amountCents = moneyToAmountCents(amount)
-    const route = decidePaymentRoute({
-      method: internalMethod,
-      amountCents,
-    })
+    const routing = await loadPaymentRoutingConfig(admin)
+    const route = decidePaymentRouteForStore(internalMethod, amountCents, routing)
+    const blocked = paymentRouteBlocked(route.provider, routing)
+    if (blocked) {
+      return json(503, { error: blocked, detail: 'Provedor desativado em payment_routing_config.' })
+    }
     if (route.provider !== 'mercadopago') {
       return json(409, {
         error: 'payment_route_mismatch',
@@ -219,6 +223,7 @@ Deno.serve(async (req) => {
         'id, provider_payment_id, status, amount, metadata, expires_at, method, installments, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
       )
       .eq('order_id', orderId)
+      .eq('provider', 'mercadopago')
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(1)

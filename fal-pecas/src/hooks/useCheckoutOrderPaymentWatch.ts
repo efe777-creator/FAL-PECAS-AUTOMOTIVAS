@@ -1,6 +1,6 @@
 import { isCheckoutPaymentSettled } from '@/services/checkout/isCheckoutPaymentSettled'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
-import { syncMercadoPagoPayment } from '@/services/payments/mpSyncPaymentService'
+import { syncCheckoutPayment } from '@/services/payments/paymentSyncService'
 import { listOwnPaymentStatusesByOrder } from '@/services/payments/ownPaymentService'
 import { useEffect, useRef } from 'react'
 
@@ -38,7 +38,7 @@ export function useCheckoutOrderPaymentWatch(opts: {
         tickRef.current += 1
         if (paymentId && tickRef.current % 2 === 0) {
           try {
-            await syncMercadoPagoPayment(paymentId)
+            await syncCheckoutPayment(paymentId)
           } catch {
             /* sync best-effort */
           }

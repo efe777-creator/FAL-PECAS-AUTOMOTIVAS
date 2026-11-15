@@ -27,6 +27,8 @@ import {
 } from '@/services/payments/paymentService'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
+import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
+import { formatPaymentConditionLine } from '@/lib/paymentDisplay'
 import { placeOrder } from '@/services/orders/placeOrderService'
 import {
   buyNowIntentToCartItems,
@@ -169,7 +171,8 @@ export function CheckoutPage() {
   const carrierDesc = useMemo(() => getActiveCarrierDescriptor(), [])
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const paymentDisplay = usePaymentDisplay()
-  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay)
+  const paymentRouting = usePaymentRoutingConfig()
+  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay, paymentRouting)
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
@@ -1623,9 +1626,14 @@ export function CheckoutPage() {
                 <>
                   <h2 className="mt-0 text-lg font-extrabold">Como deseja pagar?</h2>
                   <p className="text-sm text-fal-muted">
-                    Opções liberadas na loja e na integração Mercado Pago. A confirmação pode levar
-                    alguns instantes.
+                    Opções liberadas na Home da loja (Pagamentos) e no roteamento FAL PAY. A
+                    confirmação pode levar alguns instantes.
                   </p>
+                  {payAvail.cardBlockedReason ? (
+                    <p className="rounded-fal border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                      {payAvail.cardBlockedReason}
+                    </p>
+                  ) : null}
                   {payAvail.pix ? (
                     <label className="flex cursor-pointer gap-3 rounded-fal border border-fal-line p-3">
                       <input
@@ -1651,7 +1659,14 @@ export function CheckoutPage() {
                       <span>
                         <span className="block text-sm font-semibold">Cartão de crédito</span>
                         <span className="block text-xs text-fal-muted">
-                          Informe os dados do cartão para consultar parcelas e condições.
+                          {formatPaymentConditionLine(
+                            subtotal + shippingAmount,
+                            paymentDisplay,
+                            'pdp',
+                          ) ??
+                            (payAvail.installmentsEnabled
+                              ? 'Consulte as parcelas após informar o cartão.'
+                              : 'Somente à vista (parcelamento desligado na loja).')}
                         </span>
                       </span>
                     </label>

@@ -12,6 +12,14 @@ export type RoutablePaymentMethod =
   | 'boleto'
   | 'other'
 
+export type StorePaymentRoutingOverrides = {
+  pixMpMaxAmountCents?: number
+  pixBelowLimitProvider?: RoutedPaymentProviderId
+  pixAboveLimitProvider?: RoutedPaymentProviderId
+  cardProvider?: RoutedPaymentProviderId
+  boletoProvider?: RoutedPaymentProviderId
+}
+
 export interface PaymentRouteInput {
   method: RoutablePaymentMethod
   amountCents: number
@@ -27,21 +35,31 @@ export function moneyToAmountCents(total: number): number {
 
 export function resolveRoutedPaymentProvider(
   input: PaymentRouteInput,
+  store?: StorePaymentRoutingOverrides,
 ): RoutedPaymentProviderId {
-  const limit = input.pixMpMaxAmountCents ?? DEFAULT_PIX_MP_MAX_AMOUNT_CENTS
-  if (input.method === 'boleto' || input.method === 'credit_card' || input.method === 'debit_card') {
-    return 'asaas'
-  }
-  if (input.method === 'pix') {
-    return input.amountCents <= limit ? 'mercadopago' : 'asaas'
+  const limit =
+    input.pixMpMaxAmountCents ?? store?.pixMpMaxAmountCents ?? DEFAULT_PIX_MP_MAX_AMOUNT_CENTS
+  const method = input.method
+  if (method === 'boleto') return store?.boletoProvider ?? 'asaas'
+  if (method === 'credit_card' || method === 'debit_card') return store?.cardProvider ?? 'asaas'
+  if (method === 'pix') {
+    return input.amountCents <= limit
+      ? (store?.pixBelowLimitProvider ?? 'mercadopago')
+      : (store?.pixAboveLimitProvider ?? 'asaas')
   }
   return 'mercadopago'
 }
 
-export function decidePaymentRoute(input: PaymentRouteInput) {
+export function decidePaymentRoute(
+  input: PaymentRouteInput,
+  store?: StorePaymentRoutingOverrides,
+) {
+  const limit =
+    input.pixMpMaxAmountCents ?? store?.pixMpMaxAmountCents ?? DEFAULT_PIX_MP_MAX_AMOUNT_CENTS
   return {
     ...input,
-    provider: resolveRoutedPaymentProvider(input),
+    pixMpMaxAmountCents: limit,
+    provider: resolveRoutedPaymentProvider(input, store),
     ruleVersion: PAYMENT_ROUTE_RULE_VERSION,
   }
 }

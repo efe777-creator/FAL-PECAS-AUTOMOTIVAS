@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase'
+import { getPaymentRoutingConfig } from '@/services/payments/paymentRoutingService'
 import {
   decidePaymentRoute,
   moneyToAmountCents,
@@ -25,9 +26,19 @@ export async function decidePaymentRouteForOrder(
   pixMpMaxAmountCents?: number,
 ): Promise<PaymentRouteDecision> {
   const total = await getOrderTotalForPayment(orderId)
-  return decidePaymentRoute({
-    method,
-    amountCents: moneyToAmountCents(total),
-    pixMpMaxAmountCents,
-  })
+  const routing = await getPaymentRoutingConfig()
+  return decidePaymentRoute(
+    {
+      method,
+      amountCents: moneyToAmountCents(total),
+      pixMpMaxAmountCents: pixMpMaxAmountCents ?? routing.pixMpMaxAmountCents,
+    },
+    {
+      pixMpMaxAmountCents: routing.pixMpMaxAmountCents,
+      pixBelowLimitProvider: routing.pixBelowLimitProvider,
+      pixAboveLimitProvider: routing.pixAboveLimitProvider,
+      cardProvider: routing.cardProvider,
+      boletoProvider: routing.boletoProvider,
+    },
+  )
 }
