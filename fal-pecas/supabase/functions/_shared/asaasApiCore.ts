@@ -17,14 +17,20 @@ export async function asaasApiRequest<T = unknown>(
   init?: RequestInit,
 ): Promise<{ ok: true; data: T; status: number } | { ok: false; status: number; body: unknown }> {
   const url = `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`
+  const method = String(init?.method ?? 'GET').toUpperCase()
+  // GET /pixQrCode: Asaas retorna 403 se a chamada tiver body (docs).
+  const headers: Record<string, string> = {
+    access_token: apiKey,
+    'User-Agent': 'FAL-PECAS-AUTOMOTIVAS/1.0',
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (method !== 'GET' && method !== 'HEAD') {
+    headers['Content-Type'] = 'application/json'
+  }
   const res = await fetch(url, {
     ...init,
-    headers: {
-      access_token: apiKey,
-      'Content-Type': 'application/json',
-      'User-Agent': 'FAL-PECAS-AUTOMOTIVAS/1.0',
-      ...(init?.headers ?? {}),
-    },
+    method,
+    headers,
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {

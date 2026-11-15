@@ -1,5 +1,6 @@
 /**
  * Enforce comercial de parcelas (espelho create-mp-payment).
+ * Payload Asaas: docs.asaas.com — avulso = `value`; parcelado = `installmentCount` + `totalValue`.
  */
 export type StoreDisplayRow = {
   enabled?: boolean | null
@@ -69,4 +70,40 @@ export function assertInstallmentsAllowed(
     return `installments acima do permitido (máx. ${maxAllowed})`
   }
   return null
+}
+
+export type AsaasChargeBillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD'
+
+/**
+ * Corpo POST /v3/payments alinhado à doc oficial Asaas.
+ * Cartão à vista: só `value`. Parcelado: `installmentCount` + `totalValue` (sem `value`).
+ * Pix/boleto: só `value`.
+ */
+export function buildAsaasPaymentCreateBody(input: {
+  customer: string
+  billingType: AsaasChargeBillingType
+  amount: number
+  dueDate: string
+  description: string
+  externalReference: string
+  remoteIp: string
+  /** Parcelas do cartão; débito/Pix forçam 1. */
+  installments?: number
+}): Record<string, unknown> {
+  const base: Record<string, unknown> = {
+    customer: input.customer,
+    billingType: input.billingType,
+    dueDate: input.dueDate,
+    description: input.description,
+    externalReference: input.externalReference,
+    remoteIp: input.remoteIp,
+  }
+  const count = Math.max(1, Math.floor(Number(input.installments) || 1))
+  if (input.billingType === 'CREDIT_CARD' && count > 1) {
+    base.installmentCount = count
+    base.totalValue = input.amount
+    return base
+  }
+  base.value = input.amount
+  return base
 }

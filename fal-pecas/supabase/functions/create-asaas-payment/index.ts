@@ -12,7 +12,10 @@ import {
   isPaymentExpired,
   pixDateOfExpiration,
 } from '../_shared/asaasCreatePaymentCore.ts'
-import { assertInstallmentsAllowed } from '../_shared/asaasInstallmentsCore.ts'
+import {
+  assertInstallmentsAllowed,
+  buildAsaasPaymentCreateBody,
+} from '../_shared/asaasInstallmentsCore.ts'
 import { moneyToAmountCents } from '../_shared/paymentRouterCore.ts'
 import {
   decidePaymentRouteForStore,
@@ -377,19 +380,17 @@ Deno.serve(async (req) => {
 
     const billingType = asaasBillingTypeForMethod(routableMethod)
     const dueDays = billingType === 'BOLETO' ? 7 : billingType === 'CREDIT_CARD' ? 5 : 3
-    const asaasPayload: Record<string, unknown> = {
+    const cardInstallments = routableMethod === 'debit_card' ? 1 : installments
+    const asaasPayload = buildAsaasPaymentCreateBody({
       customer: asaasCustomerId,
       billingType,
-      value: amount,
+      amount,
       dueDate: asaasDueDateDaysFromNow(dueDays),
       description: `Pedido FAL ${orderId}`,
       externalReference: orderId,
       remoteIp: clientRemoteIp(req.headers),
-    }
-    if (billingType === 'CREDIT_CARD') {
-      const count = routableMethod === 'debit_card' ? 1 : installments
-      if (count > 1) asaasPayload.installmentCount = count
-    }
+      installments: billingType === 'CREDIT_CARD' ? cardInstallments : 1,
+    })
     const createPay = await asaasApiRequest<AsaasPayment>(apiKey, asaasBase, '/payments', {
       method: 'POST',
       body: JSON.stringify(asaasPayload),
@@ -413,7 +414,13 @@ Deno.serve(async (req) => {
     let pixQrCode: string | null = null
     let pixQrCodeBase64: string | null = null
     let expiresAt: string | null = null
-    let paymentUrl: string | null = asaasPay.bankSlipUrl ?? asaasPay.invoiceUrl ?? null
+    // Cartão: invoiceUrl (fatura Asaas). Boleto: bankSlipUrl. Pix: QR via endpoint dedicado.
+    let paymentUrl: string | null =
+      billingType === 'CREDIT_CARD'
+        ? (asaasPay.invoiceUrl ?? null)
+        : billingType === 'BOLETO'
+          ? (asaasPay.bankSlipUrl ?? asaasPay.invoiceUrl ?? null)
+          : (asaasPay.invoiceUrl ?? null)
 
     if (billingType === 'PIX') {
       const hydrated = await fetchAsaasPixQr(apiKey, asaasBase, asaasPay.id)
