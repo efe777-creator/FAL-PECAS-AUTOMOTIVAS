@@ -6,14 +6,18 @@ import {
   asaasBillingTypeForMethod,
   asaasDueDateDaysFromNow,
 } from '../_shared/asaasApiCore.ts'
-import { parseCreateMpPaymentClientBody, resolveInternalMethod } from '../_shared/mpCreatePaymentCore.ts'
+import {
+  parseCreateMpPaymentClientBody,
+  resolveInternalMethod,
+  isPaymentExpired,
+  pixDateOfExpiration,
+} from '../_shared/asaasCreatePaymentCore.ts'
 import { moneyToAmountCents } from '../_shared/paymentRouterCore.ts'
 import {
   decidePaymentRouteForStore,
   loadPaymentRoutingConfig,
   paymentRouteBlocked,
 } from '../_shared/paymentRoutingConfigCore.ts'
-import { isPaymentExpired, pixDateOfExpiration } from '../_shared/mpCreatePaymentCore.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -127,8 +131,8 @@ Deno.serve(async (req) => {
       return json(400, { error: 'invalid_json' })
     }
 
-    const { orderId, card } = parseCreateMpPaymentClientBody((rawBody ?? {}) as Record<string, unknown>)
-    const internalMethod = resolveInternalMethod(card)
+    const { orderId } = parseCreateMpPaymentClientBody((rawBody ?? {}) as Record<string, unknown>)
+    const internalMethod = resolveInternalMethod()
     const routableMethod =
       internalMethod === 'credit_card' || internalMethod === 'debit_card'
         ? internalMethod
@@ -169,13 +173,6 @@ Deno.serve(async (req) => {
         error: 'payment_route_mismatch',
         routedProvider: 'mercadopago',
         detail: 'Esta cobrança deve ser criada via Mercado Pago.',
-      })
-    }
-
-    if (card) {
-      return json(501, {
-        error: 'asaas_card_not_ready',
-        detail: 'Cartão Asaas em implementação; roteador já direciona para Asaas.',
       })
     }
 
