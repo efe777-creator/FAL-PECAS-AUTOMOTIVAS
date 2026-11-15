@@ -61,12 +61,37 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, reused: true })
   }
 
-  const { data: paymentRow } = await admin
+  let paymentRow: { id: string; status: string; order_id: string; provider_payment_id?: string | null } | null =
+    null
+  const { data: byProviderId } = await admin
     .from('payments')
-    .select('id, status, order_id')
+    .select('id, status, order_id, provider_payment_id')
     .eq('provider', 'asaas')
     .eq('provider_payment_id', providerPaymentId)
     .maybeSingle()
+  paymentRow = byProviderId
+
+  const orderRef = payment?.externalReference ? String(payment.externalReference).trim() : ''
+  if (!paymentRow?.id && orderRef) {
+    const { data: byOrder } = await admin
+      .from('payments')
+      .select('id, status, order_id, provider_payment_id')
+      .eq('provider', 'asaas')
+      .eq('order_id', orderRef)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (byOrder?.id) {
+      paymentRow = byOrder
+      if (!byOrder.provider_payment_id) {
+        await admin
+          .from('payments')
+          .update({ provider_payment_id: providerPaymentId })
+          .eq('id', byOrder.id)
+      }
+    }
+  }
 
   if (!existingEvent) {
     const { error: insEvErr } = await admin.from('payment_events').insert({

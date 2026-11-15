@@ -13,7 +13,7 @@ import {
   loadPaymentRoutingConfig,
   paymentRouteBlocked,
 } from '../_shared/paymentRoutingConfigCore.ts'
-import { isPaymentExpired } from '../_shared/mpCreatePaymentCore.ts'
+import { isPaymentExpired, pixDateOfExpiration } from '../_shared/mpCreatePaymentCore.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +29,29 @@ function json(status: number, body: Record<string, unknown>) {
 
 type AsaasCustomer = { id: string; cpfCnpj?: string }
 type AsaasPayment = { id: string; status?: string; bankSlipUrl?: string; invoiceUrl?: string }
+type AsaasPixQr = { payload?: string; encodedImage?: string; expirationDate?: string }
+
+async function fetchAsaasPixQr(
+  apiKey: string,
+  base: string,
+  asaasPaymentId: string,
+): Promise<{ pixQrCode: string | null; pixQrCodeBase64: string | null; expiresAt: string | null }> {
+  const qr = await asaasApiRequest<AsaasPixQr>(apiKey, base, `/payments/${asaasPaymentId}/pixQrCode`, {
+    method: 'GET',
+  })
+  if (!qr.ok) {
+    return {
+      pixQrCode: null,
+      pixQrCodeBase64: null,
+      expiresAt: pixDateOfExpiration(),
+    }
+  }
+  return {
+    pixQrCode: qr.data.payload ?? null,
+    pixQrCodeBase64: qr.data.encodedImage ?? null,
+    expiresAt: qr.data.expirationDate ?? pixDateOfExpiration(),
+  }
+}
 
 async function ensureAsaasCustomer(
   apiKey: string,
@@ -218,6 +241,23 @@ Deno.serve(async (req) => {
     }
 
     if (existing?.provider_payment_id) {
+      let pixQrCode = existing.pix_qr_code ?? null
+      let pixQrCodeBase64 = existing.pix_qr_code_base64 ?? null
+      let expiresAt = (existing.expires_at as string | null) ?? null
+      if (routableMethod === 'pix' && (!pixQrCode || !pixQrCodeBase64)) {
+        const hydrated = await fetchAsaasPixQr(apiKey, asaasBase, String(existing.provider_payment_id))
+        pixQrCode = hydrated.pixQrCode ?? pixQrCode
+        pixQrCodeBase64 = hydrated.pixQrCodeBase64 ?? pixQrCodeBase64
+        expiresAt = hydrated.expiresAt ?? expiresAt
+        await admin
+          .from('payments')
+          .update({
+            pix_qr_code: pixQrCode,
+            pix_qr_code_base64: pixQrCodeBase64,
+            expires_at: expiresAt,
+          })
+          .eq('id', existing.id)
+      }
       return json(200, {
         paymentId: existing.id,
         provider: 'asaas',
@@ -227,10 +267,10 @@ Deno.serve(async (req) => {
         orderId,
         amount: Number(existing.amount ?? amount),
         method: existing.method ?? routableMethod,
-        pixQrCode: existing.pix_qr_code ?? null,
-        pixQrCodeBase64: existing.pix_qr_code_base64 ?? null,
+        pixQrCode,
+        pixQrCodeBase64,
         paymentUrl: existing.payment_url ?? null,
-        expiresAt: existing.expires_at ?? null,
+        expiresAt,
         reused: true,
         orderApproved: false,
         routedProvider: 'asaas',
@@ -298,16 +338,10 @@ Deno.serve(async (req) => {
     let paymentUrl: string | null = asaasPay.bankSlipUrl ?? asaasPay.invoiceUrl ?? null
 
     if (billingType === 'PIX') {
-      const qr = await asaasApiRequest<{
-        payload?: string
-        encodedImage?: string
-        expirationDate?: string
-      }>(apiKey, asaasBase, `/payments/${asaasPay.id}/pixQrCode`, { method: 'GET' })
-      if (qr.ok) {
-        pixQrCode = qr.data.payload ?? null
-        pixQrCodeBase64 = qr.data.encodedImage ?? null
-        expiresAt = qr.data.expirationDate ?? null
-      }
+      const hydrated = await fetchAsaasPixQr(apiKey, asaasBase, asaasPay.id)
+      pixQrCode = hydrated.pixQrCode
+      pixQrCodeBase64 = hydrated.pixQrCodeBase64
+      expiresAt = hydrated.expiresAt
     }
 
     const providerStatus = (asaasPay.status ?? 'PENDING').toLowerCase()
