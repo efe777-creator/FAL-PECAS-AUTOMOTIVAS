@@ -4,6 +4,12 @@
 [functions.create-mp-payment]
 verify_jwt = true
 
+[functions.create-asaas-payment]
+verify_jwt = true
+
+[functions.asaas-webhook]
+verify_jwt = false
+
 [functions.sync-mp-payment]
 verify_jwt = true
 

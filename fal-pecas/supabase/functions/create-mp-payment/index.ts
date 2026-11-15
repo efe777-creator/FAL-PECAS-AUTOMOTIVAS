@@ -13,6 +13,10 @@ import {
   resolveInternalMethod,
 } from '../_shared/mpCreatePaymentCore.ts'
 import {
+  decidePaymentRoute,
+  moneyToAmountCents,
+} from '../_shared/paymentRouterCore.ts'
+import {
   decideWebhookTransition,
   mapMpProviderStatusToInternal,
 } from '../_shared/mpWebhookCore.ts'
@@ -95,6 +99,20 @@ Deno.serve(async (req) => {
 
     const amount = Number(order.total)
     if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
+
+    const amountCents = moneyToAmountCents(amount)
+    const route = decidePaymentRoute({
+      method: internalMethod,
+      amountCents,
+    })
+    if (route.provider !== 'mercadopago') {
+      return json(409, {
+        error: 'payment_route_mismatch',
+        routedProvider: 'asaas',
+        detail: 'Esta cobrança deve ser criada via Asaas.',
+        routing: route,
+      })
+    }
 
     // PAY consolidação — disponibilidade comercial + parcelas vs store_payment_display
     {

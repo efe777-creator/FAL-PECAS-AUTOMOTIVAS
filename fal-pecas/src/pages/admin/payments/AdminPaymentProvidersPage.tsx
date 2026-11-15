@@ -61,6 +61,12 @@ export function AdminPaymentProvidersPage() {
                   </Link>
                 </p>
               ) : null}
+              {a.id === 'asaas' ? (
+                <p className="mb-0 mt-2 text-xs text-fal-muted">
+                  Roteamento: PIX &gt; R$ 201, cartão e boleto. Secrets:{' '}
+                  <code className="text-xs">ASAAS_API_KEY</code> no Edge.
+                </p>
+              ) : null}
             </li>
           )
         })}

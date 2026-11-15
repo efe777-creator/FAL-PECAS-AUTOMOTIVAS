@@ -16,4 +16,5 @@ export {
   type PersistedPaymentStatus,
 } from '@/services/payments/engine/paymentStatuses'
 export { mercadoPagoAdapter } from '@/services/payments/engine/mercadoPagoAdapter'
+export { asaasAdapter } from '@/services/payments/engine/asaasAdapter'
 export { createFalPayment, createPaymentEngine, paymentEngine } from '@/services/payments/engine/paymentEngine'

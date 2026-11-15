@@ -26,6 +26,19 @@ export function AdminPaymentWebhooksPage() {
           <code className="text-xs">MP_WEBHOOK_SECRET</code> · idempotência por provider_event_id.
         </p>
       </section>
+      <section className="rounded-[14px] border border-fal-line bg-white p-5 space-y-2">
+        <h2 className="m-0 text-base font-extrabold text-fal-navy">URL Asaas</h2>
+        <p className="m-0 break-all font-mono text-xs">
+          {url
+            ? url.replace(/mercado-pago-webhook$/, 'asaas-webhook')
+            : 'VITE_SUPABASE_URL ausente'}
+        </p>
+        <p className="mb-0 text-sm text-fal-muted">
+          Edge: <code className="text-xs">asaas-webhook</code> · header{' '}
+          <code className="text-xs">asaas-access-token</code> ={' '}
+          <code className="text-xs">ASAAS_WEBHOOK_TOKEN</code>.
+        </p>
+      </section>
     </div>
   )
 }

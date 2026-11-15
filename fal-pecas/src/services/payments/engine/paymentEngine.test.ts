@@ -2,12 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { createPaymentEngine } from '@/services/payments/engine/paymentEngine'
 
 describe('paymentEngine PG05', () => {
-  it('lista adaptador MP e resolve primary mercadopago', () => {
+  it('lista adaptadores MP e Asaas e resolve primary mercadopago', () => {
     const engine = createPaymentEngine(() => 'mercadopago')
     expect(engine.primaryProviderId()).toBe('mercadopago')
-    expect(engine.listAdapters().map((a) => a.id)).toContain('mercadopago')
-    expect(engine.getAdapter()?.label).toBe('Mercado Pago')
-    expect(engine.getAdapter()?.capabilities().methods).toContain('pix')
+    const ids = engine.listAdapters().map((a) => a.id)
+    expect(ids).toContain('mercadopago')
+    expect(ids).toContain('asaas')
+    expect(engine.getAdapter('mercadopago')?.label).toBe('Mercado Pago')
+    expect(engine.getAdapter('mercadopago')?.capabilities().methods).toContain('pix')
   })
 
   it('createPayment delega ao adaptador', async () => {

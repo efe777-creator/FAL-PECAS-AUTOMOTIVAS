@@ -1,0 +1,296 @@
+// FAL PAY — cobrança Asaas (PIX / boleto / cartão conforme roteamento).
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import {
+  asaasApiBase,
+  asaasApiRequest,
+  asaasBillingTypeForMethod,
+  asaasDueDateDaysFromNow,
+} from '../_shared/asaasApiCore.ts'
+import { parseCreateMpPaymentClientBody, resolveInternalMethod } from '../_shared/mpCreatePaymentCore.ts'
+import {
+  decidePaymentRoute,
+  moneyToAmountCents,
+} from '../_shared/paymentRouterCore.ts'
+
+const corsHeaders: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function json(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+type AsaasCustomer = { id: string; cpfCnpj?: string }
+type AsaasPayment = { id: string; status?: string; bankSlipUrl?: string; invoiceUrl?: string }
+
+async function ensureAsaasCustomer(
+  apiKey: string,
+  base: string,
+  input: {
+    customerId: string
+    email: string
+    name: string
+    cpfCnpj: string
+    existingAsaasId?: string | null
+  },
+): Promise<string> {
+  if (input.existingAsaasId) return input.existingAsaasId
+  const cpfCnpj = input.cpfCnpj.replace(/\D/g, '')
+  const found = await asaasApiRequest<{ data?: AsaasCustomer[] }>(
+    apiKey,
+    base,
+    `/customers?cpfCnpj=${encodeURIComponent(cpfCnpj)}&limit=1`,
+    { method: 'GET' },
+  )
+  if (found.ok && found.data.data?.[0]?.id) {
+    return found.data.data[0].id
+  }
+  const created = await asaasApiRequest<AsaasCustomer>(apiKey, base, '/customers', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name || 'Cliente FAL',
+      email: input.email,
+      cpfCnpj,
+      externalReference: input.customerId,
+    }),
+  })
+  if (!created.ok) {
+    throw new Error('asaas_customer_create_failed')
+  }
+  return created.data.id
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' })
+
+  try {
+    const apiKey = Deno.env.get('ASAAS_API_KEY')
+    if (!apiKey) return json(503, { error: 'ASAAS_API_KEY missing' })
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !anonKey || !serviceKey) {
+      return json(500, { error: 'supabase_env_missing' })
+    }
+
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) return json(401, { error: 'missing_authorization' })
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const {
+      data: { user },
+      error: userErr,
+    } = await userClient.auth.getUser()
+    if (userErr || !user) return json(401, { error: 'unauthorized' })
+
+    const admin = createClient(supabaseUrl, serviceKey)
+    const asaasBase = asaasApiBase(Deno.env.get('ASAAS_ENV'))
+
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return json(400, { error: 'invalid_json' })
+    }
+
+    const { orderId, card } = parseCreateMpPaymentClientBody((rawBody ?? {}) as Record<string, unknown>)
+    const internalMethod = resolveInternalMethod(card)
+    const routableMethod =
+      internalMethod === 'credit_card' || internalMethod === 'debit_card'
+        ? internalMethod
+        : internalMethod === 'pix'
+          ? 'pix'
+          : 'pix'
+
+    const { data: customer, error: custErr } = await admin
+      .from('customers')
+      .select('id, cpf, cnpj, metadata')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+    if (custErr || !customer) return json(404, { error: 'customer_not_found' })
+
+    const { data: order, error: orderErr } = await admin
+      .from('orders')
+      .select('id, status, total, customer_id')
+      .eq('id', orderId)
+      .eq('customer_id', customer.id)
+      .maybeSingle()
+    if (orderErr || !order) return json(404, { error: 'order_not_found' })
+    if (order.status !== 'aguardando_pagamento') {
+      return json(409, { error: 'order_not_awaiting_payment', status: order.status })
+    }
+
+    const amount = Number(order.total)
+    if (!(amount > 0)) return json(422, { error: 'invalid_order_total' })
+
+    const amountCents = moneyToAmountCents(amount)
+    const route = decidePaymentRoute({
+      method: routableMethod,
+      amountCents,
+    })
+    if (route.provider !== 'asaas') {
+      return json(409, {
+        error: 'payment_route_mismatch',
+        routedProvider: 'mercadopago',
+        detail: 'Esta cobrança deve ser criada via Mercado Pago.',
+      })
+    }
+
+    if (card) {
+      return json(501, {
+        error: 'asaas_card_not_ready',
+        detail: 'Cartão Asaas em implementação; roteador já direciona para Asaas.',
+      })
+    }
+
+    const meta = (customer.metadata ?? {}) as Record<string, unknown>
+    const existingAsaasId =
+      typeof meta.asaas_customer_id === 'string' ? meta.asaas_customer_id : null
+    const doc = customer.cpf
+      ? String(customer.cpf).replace(/\D/g, '')
+      : customer.cnpj
+        ? String(customer.cnpj).replace(/\D/g, '')
+        : ''
+    if (!doc) return json(422, { error: 'payer_document_required' })
+    const email = user.email ?? ''
+    if (!email) return json(422, { error: 'payer_email_required' })
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const asaasCustomerId = await ensureAsaasCustomer(apiKey, asaasBase, {
+      customerId: customer.id,
+      email,
+      name: profile?.full_name ?? 'Cliente FAL',
+      cpfCnpj: doc,
+      existingAsaasId,
+    })
+
+    if (!existingAsaasId) {
+      await admin
+        .from('customers')
+        .update({
+          metadata: { ...meta, asaas_customer_id: asaasCustomerId },
+        })
+        .eq('id', customer.id)
+    }
+
+    let paymentId: string
+    const { data: inserted, error: insErr } = await admin
+      .from('payments')
+      .insert({
+        order_id: orderId,
+        provider: 'asaas',
+        status: 'pending',
+        amount,
+        method: routableMethod,
+        currency: 'BRL',
+        external_ref: orderId,
+        metadata: {
+          routing: route,
+          asaas_billing_type: asaasBillingTypeForMethod(routableMethod),
+        },
+      })
+      .select('id')
+      .single()
+    if (insErr || !inserted) {
+      return json(500, { error: 'payment_insert_failed', detail: insErr?.message })
+    }
+    paymentId = inserted.id
+
+    const billingType = asaasBillingTypeForMethod(routableMethod)
+    const createPay = await asaasApiRequest<AsaasPayment>(apiKey, asaasBase, '/payments', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer: asaasCustomerId,
+        billingType,
+        value: amount,
+        dueDate: asaasDueDateDaysFromNow(billingType === 'BOLETO' ? 7 : 3),
+        description: `Pedido FAL ${orderId}`,
+        externalReference: orderId,
+      }),
+    })
+    if (!createPay.ok) {
+      await admin
+        .from('payments')
+        .update({
+          status: 'rejected',
+          provider_status: 'error',
+          metadata: {
+            asaas_error: createPay.body,
+            routing: route,
+          },
+        })
+        .eq('id', paymentId)
+      return json(502, { error: 'asaas_create_failed', detail: createPay.body })
+    }
+
+    const asaasPay = createPay.data
+    let pixQrCode: string | null = null
+    let pixQrCodeBase64: string | null = null
+    let expiresAt: string | null = null
+    let paymentUrl: string | null = asaasPay.bankSlipUrl ?? asaasPay.invoiceUrl ?? null
+
+    if (billingType === 'PIX') {
+      const qr = await asaasApiRequest<{
+        payload?: string
+        encodedImage?: string
+        expirationDate?: string
+      }>(apiKey, asaasBase, `/payments/${asaasPay.id}/pixQrCode`, { method: 'GET' })
+      if (qr.ok) {
+        pixQrCode = qr.data.payload ?? null
+        pixQrCodeBase64 = qr.data.encodedImage ?? null
+        expiresAt = qr.data.expirationDate ?? null
+      }
+    }
+
+    const providerStatus = (asaasPay.status ?? 'PENDING').toLowerCase()
+    await admin
+      .from('payments')
+      .update({
+        provider_payment_id: asaasPay.id,
+        provider_status: asaasPay.status ?? 'PENDING',
+        pix_qr_code: pixQrCode,
+        pix_qr_code_base64: pixQrCodeBase64,
+        payment_url: paymentUrl,
+        expires_at: expiresAt,
+        metadata: {
+          routing: route,
+          asaas_payment: { id: asaasPay.id, status: asaasPay.status },
+        },
+      })
+      .eq('id', paymentId)
+
+    return json(201, {
+      paymentId,
+      provider: 'asaas',
+      providerPaymentId: asaasPay.id,
+      status: providerStatus === 'received' || providerStatus === 'confirmed' ? 'approved' : 'pending',
+      providerStatus: asaasPay.status ?? 'PENDING',
+      orderId,
+      amount,
+      method: routableMethod,
+      pixQrCode,
+      pixQrCodeBase64,
+      paymentUrl,
+      expiresAt,
+      reused: false,
+      orderApproved: false,
+      routedProvider: 'asaas',
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'unknown_error'
+    return json(400, { error: message })
+  }
+})
