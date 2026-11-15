@@ -131,13 +131,23 @@ export async function saveRemoteCart(items: CartItem[]): Promise<void> {
   )
   if (upsErr) throw upsErr
 
-  const keepIds = unique.map((i) => i.productId)
-  const { error: delErr } = await sb
+  const keepSet = new Set(unique.map((i) => i.productId))
+  const { data: existingRows, error: selOrphansErr } = await sb
     .from('cart_items')
-    .delete()
+    .select('product_id')
     .eq('cart_id', cartId)
-    .not('product_id', 'in', `(${keepIds.join(',')})`)
-  if (delErr) throw delErr
+  if (selOrphansErr) throw selOrphansErr
+  const orphanIds = (existingRows ?? [])
+    .map((r) => String(r.product_id))
+    .filter((id) => !keepSet.has(id))
+  if (orphanIds.length) {
+    const { error: delErr } = await sb
+      .from('cart_items')
+      .delete()
+      .eq('cart_id', cartId)
+      .in('product_id', orphanIds)
+    if (delErr) throw delErr
+  }
 
   await sb.from('carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId)
 }

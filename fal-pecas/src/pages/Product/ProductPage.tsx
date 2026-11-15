@@ -390,7 +390,7 @@ export function ProductPage() {
     const here = `${location.pathname}${location.search}`
     saveCheckoutReturnTo(here)
     push('Seguindo para o checkout com a entrega selecionada (se houver)', 'success')
-    navigate('/checkout', { state: { from: here } })
+    navigate('/checkout', { state: { from: here, checkoutMode: 'buyNow' } })
   }
 
   function goBack() {

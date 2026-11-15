@@ -28,11 +28,11 @@ import {
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { placeOrder } from '@/services/orders/placeOrderService'
+import { clearBuyNowIntent } from '@/services/checkout/buyNowSession'
 import {
-  buyNowIntentToCartItems,
-  clearBuyNowIntent,
-  loadBuyNowIntent,
-} from '@/services/checkout/buyNowSession'
+  resolveCheckoutItems,
+  type CheckoutNavState,
+} from '@/services/checkout/resolveCheckoutItems'
 import {
   clearCheckoutIdempotencyKey,
   clearCheckoutSession,
@@ -72,7 +72,6 @@ import {
   STORE_PICKUP_OPTION_ID,
 } from '@/services/shipping/storePickupOption'
 import type {
-  CartItem,
   CustomerAddress,
   ShippingQuoteOption,
   SimulatedPaymentMethod,
@@ -123,12 +122,10 @@ export function CheckoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [buyNowItems] = useState<CartItem[] | null>(() => {
-    const intent = loadBuyNowIntent()
-    return intent ? buyNowIntentToCartItems(intent) : null
-  })
-  const isBuyNow = Boolean(buyNowItems?.length)
-  const items = buyNowItems ?? cartItems
+  const { items, isBuyNow } = useMemo(
+    () => resolveCheckoutItems(cartItems, location.state as CheckoutNavState | null),
+    [cartItems, location.state, location.key],
+  )
   const subtotal = useMemo(
     () => items.reduce((s, i) => s + i.price * i.quantity, 0),
     [items],
