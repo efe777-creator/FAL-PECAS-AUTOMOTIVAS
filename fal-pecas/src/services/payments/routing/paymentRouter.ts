@@ -19,6 +19,8 @@ export type StorePaymentRoutingOverrides = {
   pixAboveLimitProvider?: RoutedPaymentProviderId
   cardProvider?: RoutedPaymentProviderId
   boletoProvider?: RoutedPaymentProviderId
+  /** false = cartão Asaas ainda não no checkout; cai para Mercado Pago. */
+  asaasCardCheckoutReady?: boolean
 }
 
 export interface PaymentRouteInput {
@@ -54,7 +56,11 @@ export function resolveRoutedPaymentProvider(
   }
 
   if (method === 'credit_card' || method === 'debit_card') {
-    return store?.cardProvider ?? 'asaas'
+    const wanted = store?.cardProvider ?? 'asaas'
+    if (wanted === 'asaas' && store?.asaasCardCheckoutReady === false) {
+      return 'mercadopago'
+    }
+    return wanted
   }
 
   if (method === 'pix') {

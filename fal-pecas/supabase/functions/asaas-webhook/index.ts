@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, ignored: true, reason: 'no_payment_id' })
   }
 
-  const providerEventId = `${event}:${providerPaymentId}:${String(body.dateCreated ?? '')}`
+  const asaasEventId = typeof body.id === 'string' ? body.id.trim() : ''
+  const providerEventId = asaasEventId || `${event}:${providerPaymentId}:${String(body.dateCreated ?? '')}`
 
   const admin = createClient(supabaseUrl, serviceKey)
 

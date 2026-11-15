@@ -22,15 +22,20 @@ export function AdminPaymentProvidersPage() {
         </Link>
         <h1 className="mt-2 text-[28px] font-extrabold text-fal-navy">Provedores e integrações</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Provedor principal no ambiente: <strong>{primary}</strong> (
-          <code className="text-xs">VITE_PAYMENT_PROVIDER={envKey}</code>).
+          Integração do ambiente: <strong>{primary}</strong> (
+          <code className="text-xs">VITE_PAYMENT_PROVIDER={envKey}</code>). Quem recebe cada
+          cobrança é o roteamento em{' '}
+          <Link to="/admin/pagamentos/metodos" className="font-semibold text-fal-navy">
+            Métodos
+          </Link>
+          .
         </p>
       </div>
 
       <ul className="m-0 list-none space-y-3 p-0">
         {adapters.map((a) => {
           const caps = a.capabilities()
-          const active = a.id === primary
+          const inEngine = a.id === 'mercadopago' || a.id === 'asaas'
           return (
             <li
               key={a.id}
@@ -40,10 +45,10 @@ export function AdminPaymentProvidersPage() {
                 <h2 className="m-0 text-lg font-extrabold text-fal-navy">{a.label}</h2>
                 <span
                   className={`rounded-md px-2 py-0.5 text-xs font-bold ${
-                    active ? 'bg-fal-yellow text-fal-navy-dark' : 'bg-fal-line/60 text-fal-muted'
+                    inEngine ? 'bg-fal-yellow text-fal-navy-dark' : 'bg-fal-line/60 text-fal-muted'
                   }`}
                 >
-                  {active ? 'Atual' : 'Registrado'}
+                  {inEngine ? 'Ativo no motor' : 'Registrado'}
                 </span>
               </div>
               <p className="mb-0 mt-2 text-sm text-fal-muted">

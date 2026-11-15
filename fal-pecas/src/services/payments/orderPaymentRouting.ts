@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase'
+import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
 import { getPaymentRoutingConfig } from '@/services/payments/paymentRoutingService'
 import {
   decidePaymentRoute,
@@ -39,6 +40,7 @@ export async function decidePaymentRouteForOrder(
       pixAboveLimitProvider: routing.pixAboveLimitProvider,
       cardProvider: routing.cardProvider,
       boletoProvider: routing.boletoProvider,
+      asaasCardCheckoutReady: ASAAS_CARD_CHECKOUT_READY,
     },
   )
 }

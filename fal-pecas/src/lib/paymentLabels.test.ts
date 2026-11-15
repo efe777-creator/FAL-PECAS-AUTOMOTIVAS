@@ -25,6 +25,7 @@ describe('paymentStatusLabel', () => {
 describe('paymentProviderLabel', () => {
   it('traduz provedores conhecidos', () => {
     expect(paymentProviderLabel('mercadopago')).toBe('Mercado Pago')
+    expect(paymentProviderLabel('asaas')).toBe('Asaas')
     expect(paymentProviderLabel('simulated')).toBe('Demonstração')
     expect(paymentProviderLabel(null)).toBe('—')
   })

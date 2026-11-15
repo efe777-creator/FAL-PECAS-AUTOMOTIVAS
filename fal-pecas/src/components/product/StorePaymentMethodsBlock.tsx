@@ -1,6 +1,8 @@
 import { falMaxInstallmentsForCheckout, formatPaymentConditionLine } from '@/lib/paymentDisplay'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
+import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
+import { moneyToAmountCents } from '@/services/payments/routing/paymentRouter'
 
 /**
  * Cards / PDP — formas de pagamento efetivas (integração ∩ comercial).
@@ -15,7 +17,12 @@ export function StorePaymentMethodsBlock({
   className?: string
 }) {
   const settings = usePaymentDisplay()
-  const avail = resolveEffectivePaymentAvailability(settings)
+  const routing = usePaymentRoutingConfig()
+  const avail = resolveEffectivePaymentAvailability(
+    settings,
+    routing,
+    moneyToAmountCents(amount),
+  )
 
   if (!avail.pix && !avail.card) return null
 

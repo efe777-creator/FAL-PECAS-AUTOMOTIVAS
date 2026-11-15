@@ -65,6 +65,15 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
     ).toBe('mercadopago')
   })
 
+  it('cartão Asaas não pronto cai para Mercado Pago', () => {
+    expect(
+      resolveRoutedPaymentProvider(
+        { method: 'credit_card', amountCents: 5000 },
+        { cardProvider: 'asaas', asaasCardCheckoutReady: false },
+      ),
+    ).toBe('mercadopago')
+  })
+
   it('limite configurável não altera semântica inclusive', () => {
     expect(
       resolveRoutedPaymentProvider({

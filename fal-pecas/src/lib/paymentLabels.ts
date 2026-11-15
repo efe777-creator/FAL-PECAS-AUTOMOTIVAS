@@ -18,6 +18,7 @@ const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
   mercadopago: 'Mercado Pago',
   mercado_pago: 'Mercado Pago',
   mp: 'Mercado Pago',
+  asaas: 'Asaas',
   simulated: 'Demonstração',
   demo: 'Demonstração',
 }

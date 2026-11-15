@@ -26,8 +26,14 @@ import {
   isMercadoPagoCheckoutEnabled,
 } from '@/services/payments/paymentService'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
+import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
+import { paymentProviderLabel } from '@/lib/paymentLabels'
+import {
+  decidePaymentRoute,
+  moneyToAmountCents,
+} from '@/services/payments/routing/paymentRouter'
 import { formatPaymentConditionLine } from '@/lib/paymentDisplay'
 import { placeOrder } from '@/services/orders/placeOrderService'
 import {
@@ -172,10 +178,33 @@ export function CheckoutPage() {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const paymentDisplay = usePaymentDisplay()
   const paymentRouting = usePaymentRoutingConfig()
-  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay, paymentRouting)
+  const shippingPreviewAmount =
+    shippingOptions.find((o) => o.id === shippingOptionId)?.amount ?? 0
+  const checkoutAmountCents = moneyToAmountCents(subtotal + shippingPreviewAmount)
+  const payAvail = resolveEffectivePaymentAvailability(
+    paymentDisplay,
+    paymentRouting,
+    checkoutAmountCents,
+  )
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
+  const checkoutPayRoute = decidePaymentRoute(
+    {
+      method:
+        mpChannel === 'pix' ? 'pix' : mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
+      amountCents: checkoutAmountCents,
+    },
+    {
+      pixMpMaxAmountCents: paymentRouting.pixMpMaxAmountCents,
+      pixBelowLimitProvider: paymentRouting.pixBelowLimitProvider,
+      pixAboveLimitProvider: paymentRouting.pixAboveLimitProvider,
+      cardProvider: paymentRouting.cardProvider,
+      boletoProvider: paymentRouting.boletoProvider,
+      asaasCardCheckoutReady: ASAAS_CARD_CHECKOUT_READY,
+    },
+  )
+  const checkoutPayProviderLabel = paymentProviderLabel(checkoutPayRoute.provider)
   const [termsAccepted, setTermsAccepted] = useState(false)
 
   const [mpAwaiting, setMpAwaiting] = useState<{
@@ -1850,9 +1879,9 @@ export function CheckoutPage() {
                       {mpEnabled
                         ? isCardMpChannel(mpChannel)
                           ? mpChannel === 'debit_card'
-                            ? 'Cartão de débito (Mercado Pago)'
-                            : 'Cartão de crédito (Mercado Pago)'
-                          : 'Pix (Mercado Pago)'
+                            ? `Cartão de débito (${checkoutPayProviderLabel})`
+                            : `Cartão de crédito (${checkoutPayProviderLabel})`
+                          : `Pix (${checkoutPayProviderLabel})`
                         : paymentMethod === 'pix_simulated'
                           ? 'Pix (demonstração)'
                           : 'Cartão (demonstração)'}
@@ -1985,7 +2014,7 @@ export function CheckoutPage() {
                 <span>{money(mpAwaiting.amount)}</span>
               </div>
               <p className="mt-3 text-xs text-fal-muted">
-                Aguardando confirmação do Mercado Pago. Troque Pix/crédito/débito no painel ou
+                Aguardando confirmação do pagamento. Troque Pix/crédito/débito no painel ou
                 consulte entrega pelas etapas acima.
               </p>
               <div className="mt-3 flex flex-col gap-2">

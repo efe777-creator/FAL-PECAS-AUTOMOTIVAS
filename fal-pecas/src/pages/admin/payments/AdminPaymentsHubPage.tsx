@@ -5,13 +5,13 @@ const cards = [
   {
     to: '/admin/pagamentos/provedores',
     title: 'Provedores e integrações',
-    desc: 'Mercado Pago (atual) e slots para futuros gateways.',
+    desc: 'Mercado Pago e Asaas no motor FAL PAY (roteamento híbrido).',
     ready: true,
   },
   {
     to: '/admin/pagamentos/metodos',
     title: 'Métodos de pagamento',
-    desc: 'Pix, cartão e entrada Mercado Pago (API e opções).',
+    desc: 'Pix/cartão, parcelas e controle real do roteamento FAL PAY.',
     ready: true,
   },
   {
@@ -47,8 +47,8 @@ export function AdminPaymentsHubPage() {
       <div>
         <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Pagamentos</h1>
         <p className="m-0 text-sm text-fal-muted">
-          A FAL controla a integração. Mercado Pago é o primeiro provedor — o checkout fala com o
-          motor FAL, não com detalhes internos do gateway.
+          A FAL controla a integração. Pix, cartão e Asaas/Mercado Pago são definidos em Métodos
+          (`payment_routing_config`). O checkout fala com o motor FAL, não com o gateway direto.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

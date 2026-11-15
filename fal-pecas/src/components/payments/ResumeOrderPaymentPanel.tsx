@@ -10,8 +10,10 @@ import {
   UNPAID_ORDER_TTL_HOURS,
 } from '@/services/payments/mpCreatePaymentCore'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
+import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { createFalPayment } from '@/services/payments/engine'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
+import { moneyToAmountCents } from '@/services/payments/routing/paymentRouter'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import {
   isCardMpChannel,
@@ -35,7 +37,12 @@ interface Props {
 export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
   const mpEnabled = isMercadoPagoCheckoutEnabled()
   const paymentDisplay = usePaymentDisplay()
-  const payAvail = resolveEffectivePaymentAvailability(paymentDisplay)
+  const paymentRouting = usePaymentRoutingConfig()
+  const payAvail = resolveEffectivePaymentAvailability(
+    paymentDisplay,
+    paymentRouting,
+    moneyToAmountCents(order.total),
+  )
   const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
   const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const payment = order.payment

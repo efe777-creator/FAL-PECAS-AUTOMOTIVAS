@@ -176,6 +176,18 @@ Deno.serve(async (req) => {
       })
     }
 
+    {
+      const { data: displayRow } = await admin
+        .from('store_payment_display')
+        .select('pix_enabled')
+        .limit(1)
+        .maybeSingle()
+      const pixEnabled = displayRow?.pix_enabled != null ? Boolean(displayRow.pix_enabled) : true
+      if (!pixEnabled) {
+        return json(422, { error: 'method_not_allowed', detail: 'pix desativado comercialmente' })
+      }
+    }
+
     const meta = (customer.metadata ?? {}) as Record<string, unknown>
     const existingAsaasId =
       typeof meta.asaas_customer_id === 'string' ? meta.asaas_customer_id : null
@@ -211,10 +223,10 @@ Deno.serve(async (req) => {
         .eq('id', customer.id)
     }
 
-    const { data: existingPay } = await admin
+    const { data: existingAsaas } = await admin
       .from('payments')
       .select(
-        'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status',
+        'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider',
       )
       .eq('order_id', orderId)
       .eq('provider', 'asaas')
@@ -223,7 +235,36 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle()
 
-    let existing = existingPay
+    let existing = existingAsaas
+    if (!existing) {
+      const { data: stub } = await admin
+        .from('payments')
+        .select(
+          'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider',
+        )
+        .eq('order_id', orderId)
+        .eq('status', 'pending')
+        .is('provider_payment_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (stub?.id) {
+        await admin
+          .from('payments')
+          .update({
+            provider: 'asaas',
+            method: routableMethod,
+            metadata: {
+              routing: route,
+              asaas_billing_type: asaasBillingTypeForMethod(routableMethod),
+              claimed_from: stub.provider,
+            },
+          })
+          .eq('id', stub.id)
+          .eq('status', 'pending')
+        existing = { ...stub, provider: 'asaas', method: routableMethod }
+      }
+    }
     if (existing && isPaymentExpired(existing.expires_at as string | null)) {
       await admin
         .from('payments')

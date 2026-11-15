@@ -57,6 +57,8 @@ export function storeRoutingOverrides(config: LoadedPaymentRoutingConfig): Store
     pixAboveLimitProvider: config.pixAboveLimitProvider,
     cardProvider: config.cardProvider,
     boletoProvider: config.boletoProvider,
+    // Espelho de falPayCapabilities.ASAAS_CARD_CHECKOUT_READY (false até Edge de cartão).
+    asaasCardCheckoutReady: false,
   }
 }
 

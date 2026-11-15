@@ -26,23 +26,31 @@ function storeOverridesFrom(config: PaymentRoutingConfig) {
     pixAboveLimitProvider: config.pixAboveLimitProvider,
     cardProvider: config.cardProvider,
     boletoProvider: config.boletoProvider,
+    asaasCardCheckoutReady: ASAAS_CARD_CHECKOUT_READY,
   }
+}
+
+function providerEnabled(provider: 'mercadopago' | 'asaas', routing: PaymentRoutingConfig): boolean {
+  return provider === 'asaas' ? routing.asaasEnabled : routing.mercadopagoEnabled
 }
 
 /**
  * Disponibilidade efetiva = integração técnica AND política comercial AND roteamento FAL PAY.
  */
-export async function getEffectivePaymentAvailability(): Promise<EffectivePaymentAvailability> {
+export async function getEffectivePaymentAvailability(
+  amountCents?: number | null,
+): Promise<EffectivePaymentAvailability> {
   const settings = await getPaymentDisplaySettings()
   const { getPaymentRoutingConfig } = await import('@/services/payments/paymentRoutingService')
   const routing = await getPaymentRoutingConfig()
-  return resolveEffectivePaymentAvailability(settings, routing)
+  return resolveEffectivePaymentAvailability(settings, routing, amountCents)
 }
 
 /** Versão síncrona quando settings/roteamento já foram carregados (hooks / checkout). */
 export function resolveEffectivePaymentAvailability(
   settings: PaymentDisplaySettings | null | undefined,
   routing?: PaymentRoutingConfig | null,
+  amountCents?: number | null,
 ): EffectivePaymentAvailability {
   const integrationOn = isMercadoPagoCheckoutEnabled()
   const caps = paymentEngine.getAdapter('mercadopago')?.capabilities()
@@ -68,12 +76,12 @@ export function resolveEffectivePaymentAvailability(
       if (!routing.asaasEnabled) {
         credit = false
         debit = false
-        cardBlockedReason = 'Asaas desativado no roteamento (payment_routing_config).'
+        cardBlockedReason = 'Asaas desativado no roteamento (Pagamentos → Métodos).'
       } else if (!ASAAS_CARD_CHECKOUT_READY) {
         credit = false
         debit = false
         cardBlockedReason =
-          'Cartão roteado para Asaas — checkout de cartão ainda não liberado. Use Pix ou defina card_provider=mercadopago no roteamento.'
+          'Cartão roteado para Asaas — checkout de cartão ainda não liberado. Use Pix ou roteie cartão para Mercado Pago em Pagamentos → Métodos.'
       }
     } else if (cardRoute.provider === 'mercadopago' && !routing.mercadopagoEnabled) {
       credit = false
@@ -84,8 +92,20 @@ export function resolveEffectivePaymentAvailability(
 
   const pixBase = integrationOn && pixCommercial && methods.has('pix')
   let pix = pixBase
-  if (pixBase && routing && !routing.mercadopagoEnabled && !routing.asaasEnabled) {
-    pix = false
+  if (pixBase && routing) {
+    const store = storeOverridesFrom(routing)
+    if (amountCents != null && Number.isFinite(amountCents)) {
+      const pixRoute = decidePaymentRoute({ method: 'pix', amountCents }, store)
+      pix = providerEnabled(pixRoute.provider, routing)
+    } else {
+      const below = decidePaymentRoute({ method: 'pix', amountCents: 1 }, store)
+      const above = decidePaymentRoute(
+        { method: 'pix', amountCents: routing.pixMpMaxAmountCents + 1 },
+        store,
+      )
+      pix =
+        providerEnabled(below.provider, routing) || providerEnabled(above.provider, routing)
+    }
   }
 
   return {

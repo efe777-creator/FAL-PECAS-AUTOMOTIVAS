@@ -1,12 +1,21 @@
+import { Button } from '@/components/common/Button'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { falMaxInstallmentsForCheckout } from '@/lib/paymentDisplay'
 import { formatMoney } from '@/lib/money'
+import { toUserMessage } from '@/lib/toUserMessage'
+import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { paymentEngine } from '@/services/payments/engine'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
+import {
+  savePaymentRoutingConfig,
+  type PaymentRoutingConfig,
+} from '@/services/payments/paymentRoutingService'
+import type { RoutedPaymentProviderId } from '@/services/payments/routing/paymentRouter'
 import { Link } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
 
 const CATALOG = [
   { code: 'pix' as const, label: 'Pix', priority: 'Prioridade inicial' },
@@ -15,21 +24,46 @@ const CATALOG = [
   { code: 'boleto' as const, label: 'Boleto', priority: 'Conforme viabilidade — não ativo' },
 ] as const
 
-const PROVIDER_LABEL: Record<string, string> = {
-  mercadopago: 'Mercado Pago',
-  asaas: 'Asaas',
-}
+const PROVIDER_OPTIONS: { value: RoutedPaymentProviderId; label: string }[] = [
+  { value: 'mercadopago', label: 'Mercado Pago' },
+  { value: 'asaas', label: 'Asaas' },
+]
 
 export function AdminPaymentMethodsPage() {
   useDocumentTitle('Métodos | Pagamentos | Admin FAL')
   const mpOn = isMercadoPagoCheckoutEnabled()
   const settings = usePaymentDisplay()
   const routing = usePaymentRoutingConfig()
-  const avail = resolveEffectivePaymentAvailability(settings, routing)
+  const [draft, setDraft] = useState<PaymentRoutingConfig>(routing)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [saveErr, setSaveErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDraft(routing)
+  }, [routing])
+
+  const avail = resolveEffectivePaymentAvailability(settings, draft)
   const caps = paymentEngine.getAdapter('mercadopago')?.capabilities()
   const supported = new Set(caps?.methods ?? [])
   const demoMaxInstallments = settings ? falMaxInstallmentsForCheckout(600, settings) : 1
-  const pixLimitBrl = routing.pixMpMaxAmountCents / 100
+  const pixLimitBrl = draft.pixMpMaxAmountCents / 100
+
+  async function saveRouting(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setSaveMsg(null)
+    setSaveErr(null)
+    try {
+      const saved = await savePaymentRoutingConfig(draft)
+      setDraft(saved)
+      setSaveMsg('Roteamento salvo. O checkout passa a usar estas regras.')
+    } catch (err) {
+      setSaveErr(toUserMessage(err, 'Não foi possível salvar o roteamento.'))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -60,26 +94,121 @@ export function AdminPaymentMethodsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
+        <form
+          onSubmit={(e) => void saveRouting(e)}
+          className="rounded-[14px] border border-fal-line bg-white p-4 text-sm"
+        >
           <p className="m-0 font-semibold text-fal-navy">Roteamento FAL PAY</p>
-          <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-fal-muted">
-            <li>
-              Pix até {formatMoney(pixLimitBrl)} →{' '}
-              {PROVIDER_LABEL[routing.pixBelowLimitProvider] ?? routing.pixBelowLimitProvider}
-            </li>
-            <li>
-              Pix acima → {PROVIDER_LABEL[routing.pixAboveLimitProvider] ?? routing.pixAboveLimitProvider}
-            </li>
-            <li>
-              Cartão → {PROVIDER_LABEL[routing.cardProvider] ?? routing.cardProvider}
-            </li>
-            <li>Asaas: {routing.asaasEnabled ? 'ativo' : 'inativo'}</li>
-            <li>Mercado Pago: {routing.mercadopagoEnabled ? 'ativo' : 'inativo'}</li>
-          </ul>
-          {avail.cardBlockedReason ? (
-            <p className="mb-0 mt-2 text-amber-800">{avail.cardBlockedReason}</p>
+          <p className="mb-3 mt-1 text-xs text-fal-muted">
+            Controle real da loja (`payment_routing_config`). Vale no checkout e nas Edges.
+          </p>
+          <label className="mb-2 flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={draft.mercadopagoEnabled}
+              onChange={(e) => setDraft((d) => ({ ...d, mercadopagoEnabled: e.target.checked }))}
+            />
+            Mercado Pago ativo
+          </label>
+          <label className="mb-3 flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={draft.asaasEnabled}
+              onChange={(e) => setDraft((d) => ({ ...d, asaasEnabled: e.target.checked }))}
+            />
+            Asaas ativo
+          </label>
+          <label className="mb-2 block">
+            Limite Pix Mercado Pago (R$)
+            <input
+              type="number"
+              min={1}
+              step={0.01}
+              className="mt-1 w-full rounded-md border border-fal-line px-2 py-1"
+              value={(draft.pixMpMaxAmountCents / 100).toFixed(2)}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  pixMpMaxAmountCents: Math.max(
+                    1,
+                    Math.round(Number(e.target.value || 0) * 100),
+                  ),
+                }))
+              }
+            />
+          </label>
+          <label className="mb-2 block">
+            Pix até {formatMoney(pixLimitBrl)}
+            <select
+              className="mt-1 w-full rounded-md border border-fal-line px-2 py-1"
+              value={draft.pixBelowLimitProvider}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  pixBelowLimitProvider: e.target.value as RoutedPaymentProviderId,
+                }))
+              }
+            >
+              {PROVIDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mb-2 block">
+            Pix acima do limite
+            <select
+              className="mt-1 w-full rounded-md border border-fal-line px-2 py-1"
+              value={draft.pixAboveLimitProvider}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  pixAboveLimitProvider: e.target.value as RoutedPaymentProviderId,
+                }))
+              }
+            >
+              {PROVIDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mb-3 block">
+            Cartão
+            <select
+              className="mt-1 w-full rounded-md border border-fal-line px-2 py-1"
+              value={draft.cardProvider}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  cardProvider: e.target.value as RoutedPaymentProviderId,
+                }))
+              }
+            >
+              {PROVIDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!ASAAS_CARD_CHECKOUT_READY ? (
+            <p className="mb-3 mt-0 text-xs text-amber-800">
+              Cartão Asaas ainda não está no checkout. Se o cartão estiver em Asaas, a loja usa
+              Mercado Pago automaticamente até a liberação.
+            </p>
           ) : null}
-        </div>
+          {avail.cardBlockedReason ? (
+            <p className="mb-3 mt-0 text-amber-800">{avail.cardBlockedReason}</p>
+          ) : null}
+          {saveErr ? <p className="mb-2 mt-0 text-sm text-red-700">{saveErr}</p> : null}
+          {saveMsg ? <p className="mb-2 mt-0 text-sm text-emerald-800">{saveMsg}</p> : null}
+          <Button type="submit" size="sm" disabled={saving}>
+            {saving ? 'Salvando…' : 'Salvar roteamento'}
+          </Button>
+        </form>
         <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
           <p className="m-0 font-semibold text-fal-navy">Parcelas (checkout real)</p>
           <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-fal-muted">
