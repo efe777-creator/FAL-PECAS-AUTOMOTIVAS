@@ -7,7 +7,7 @@
     "context7": {
       "url": "https://mcp.context7.com/mcp",
       "headers": {
-        "Authorization": "Bearer ctx7sk-efcb24f9-3efa-485c-a2fe-0b23c34939fa"
+        "Authorization": "Bearer ${CONTEXT7_API_KEY}"
       }
     },
     "mercadopago-mcp-server": {
@@ -27,6 +27,10 @@
       "env": {
         "NETLIFY_PERSONAL_ACCESS_TOKEN": "${NETLIFY_PERSONAL_ACCESS_TOKEN}"
       }
+    },
+    "netlify": {
+      "type": "http",
+      "url": "https://mcp.netlify.com/mcp"
     },
     "github": {
       "command": "npx",
