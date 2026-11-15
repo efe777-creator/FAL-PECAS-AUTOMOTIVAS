@@ -7,11 +7,12 @@ import {
   asaasDueDateDaysFromNow,
 } from '../_shared/asaasApiCore.ts'
 import {
-  parseCreateMpPaymentClientBody,
-  resolveInternalMethod,
+  parseAsaasCreateClientBody,
+  clientRemoteIp,
   isPaymentExpired,
   pixDateOfExpiration,
 } from '../_shared/asaasCreatePaymentCore.ts'
+import { assertInstallmentsAllowed } from '../_shared/asaasInstallmentsCore.ts'
 import { moneyToAmountCents } from '../_shared/paymentRouterCore.ts'
 import {
   decidePaymentRouteForStore,
@@ -34,6 +35,10 @@ function json(status: number, body: Record<string, unknown>) {
 type AsaasCustomer = { id: string; cpfCnpj?: string }
 type AsaasPayment = { id: string; status?: string; bankSlipUrl?: string; invoiceUrl?: string }
 type AsaasPixQr = { payload?: string; encodedImage?: string; expirationDate?: string }
+
+function isCardMethod(method: string | null | undefined): boolean {
+  return method === 'credit_card' || method === 'debit_card'
+}
 
 async function fetchAsaasPixQr(
   apiKey: string,
@@ -131,14 +136,9 @@ Deno.serve(async (req) => {
       return json(400, { error: 'invalid_json' })
     }
 
-    const { orderId } = parseCreateMpPaymentClientBody((rawBody ?? {}) as Record<string, unknown>)
-    const internalMethod = resolveInternalMethod()
-    const routableMethod =
-      internalMethod === 'credit_card' || internalMethod === 'debit_card'
-        ? internalMethod
-        : internalMethod === 'pix'
-          ? 'pix'
-          : 'pix'
+    const { orderId, method: routableMethod, installments } = parseAsaasCreateClientBody(
+      (rawBody ?? {}) as Record<string, unknown>,
+    )
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
@@ -176,15 +176,28 @@ Deno.serve(async (req) => {
       })
     }
 
-    {
-      const { data: displayRow } = await admin
-        .from('store_payment_display')
-        .select('pix_enabled')
-        .limit(1)
-        .maybeSingle()
+    const { data: displayRow } = await admin
+      .from('store_payment_display')
+      .select(
+        'enabled, max_installments, min_installment_amount, installments_enabled, card_enabled, credit_enabled, debit_enabled, pix_enabled, interest_free_max, allow_interest_installments',
+      )
+      .limit(1)
+      .maybeSingle()
+
+    if (routableMethod === 'pix') {
       const pixEnabled = displayRow?.pix_enabled != null ? Boolean(displayRow.pix_enabled) : true
       if (!pixEnabled) {
         return json(422, { error: 'method_not_allowed', detail: 'pix desativado comercialmente' })
+      }
+    } else {
+      const installmentErr = assertInstallmentsAllowed(
+        routableMethod,
+        installments,
+        amount,
+        displayRow,
+      )
+      if (installmentErr) {
+        return json(422, { error: 'installments_not_allowed', detail: installmentErr })
       }
     }
 
@@ -279,6 +292,25 @@ Deno.serve(async (req) => {
     }
 
     if (existing?.provider_payment_id) {
+      const existingMethod = String(existing.method ?? '')
+      const sameMethod =
+        existingMethod === routableMethod ||
+        (isCardMethod(existingMethod) && isCardMethod(routableMethod))
+      if (!sameMethod) {
+        await admin
+          .from('payments')
+          .update({
+            status: 'expired',
+            cancelled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+          .eq('status', 'pending')
+        existing = null
+      }
+    }
+
+    if (existing?.provider_payment_id) {
       let pixQrCode = existing.pix_qr_code ?? null
       let pixQrCodeBase64 = existing.pix_qr_code_base64 ?? null
       let expiresAt = (existing.expires_at as string | null) ?? null
@@ -332,6 +364,7 @@ Deno.serve(async (req) => {
         metadata: {
           routing: route,
           asaas_billing_type: asaasBillingTypeForMethod(routableMethod),
+          installments: routableMethod === 'pix' ? undefined : installments,
         },
       })
       .select('id')
@@ -343,16 +376,23 @@ Deno.serve(async (req) => {
     }
 
     const billingType = asaasBillingTypeForMethod(routableMethod)
+    const dueDays = billingType === 'BOLETO' ? 7 : billingType === 'CREDIT_CARD' ? 5 : 3
+    const asaasPayload: Record<string, unknown> = {
+      customer: asaasCustomerId,
+      billingType,
+      value: amount,
+      dueDate: asaasDueDateDaysFromNow(dueDays),
+      description: `Pedido FAL ${orderId}`,
+      externalReference: orderId,
+      remoteIp: clientRemoteIp(req.headers),
+    }
+    if (billingType === 'CREDIT_CARD') {
+      const count = routableMethod === 'debit_card' ? 1 : installments
+      if (count > 1) asaasPayload.installmentCount = count
+    }
     const createPay = await asaasApiRequest<AsaasPayment>(apiKey, asaasBase, '/payments', {
       method: 'POST',
-      body: JSON.stringify({
-        customer: asaasCustomerId,
-        billingType,
-        value: amount,
-        dueDate: asaasDueDateDaysFromNow(billingType === 'BOLETO' ? 7 : 3),
-        description: `Pedido FAL ${orderId}`,
-        externalReference: orderId,
-      }),
+      body: JSON.stringify(asaasPayload),
     })
     if (!createPay.ok) {
       await admin
@@ -395,6 +435,7 @@ Deno.serve(async (req) => {
         metadata: {
           routing: route,
           asaas_payment: { id: asaasPay.id, status: asaasPay.status },
+          installments: routableMethod === 'pix' ? undefined : installments,
         },
       })
       .eq('id', paymentId)

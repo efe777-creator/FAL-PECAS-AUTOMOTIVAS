@@ -43,7 +43,7 @@ export async function loadPaymentRoutingConfig(
     ),
     pixBelowLimitProvider: parseProvider(data?.pix_below_limit_provider, 'mercadopago'),
     pixAboveLimitProvider: parseProvider(data?.pix_above_limit_provider, 'asaas'),
-    cardProvider: parseProvider(data?.card_provider, 'mercadopago'),
+    cardProvider: parseProvider(data?.card_provider, 'asaas'),
     boletoProvider: parseProvider(data?.boleto_provider, 'asaas'),
     asaasEnabled: data?.asaas_enabled !== false,
     mercadopagoEnabled: data?.mercadopago_enabled !== false,
@@ -57,8 +57,7 @@ export function storeRoutingOverrides(config: LoadedPaymentRoutingConfig): Store
     pixAboveLimitProvider: config.pixAboveLimitProvider,
     cardProvider: config.cardProvider,
     boletoProvider: config.boletoProvider,
-    // Espelho de falPayCapabilities.ASAAS_CARD_CHECKOUT_READY (false até Edge de cartão).
-    asaasCardCheckoutReady: false,
+    asaasCardCheckoutReady: true,
   }
 }
 

@@ -32,28 +32,28 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
     expect(resolveRoutedPaymentProvider({ method: 'pix', amountCents: limit + 1 })).toBe('asaas')
   })
 
-  it('T5: cartão na marcha → Mercado Pago (Asaas cartão ainda não pronto)', () => {
+  it('T5: cartão → Asaas (planejamento FAL PAY)', () => {
     expect(
       resolveRoutedPaymentProvider({ method: 'credit_card', amountCents: moneyToAmountCents(50) }),
-    ).toBe('mercadopago')
+    ).toBe('asaas')
     expect(
       resolveRoutedPaymentProvider({ method: 'debit_card', amountCents: moneyToAmountCents(5000) }),
-    ).toBe('mercadopago')
+    ).toBe('asaas')
     expect(
       resolveRoutedPaymentProvider(
         { method: 'credit_card', amountCents: 5000 },
-        { cardProvider: 'asaas' },
+        { cardProvider: 'mercadopago' },
       ),
     ).toBe('mercadopago')
   })
 
-  it('cartão Asaas só com checkout ready explícito', () => {
+  it('cartão Asaas cai para MP se checkout ainda não estiver pronto', () => {
     expect(
       resolveRoutedPaymentProvider(
         { method: 'credit_card', amountCents: 5000 },
-        { cardProvider: 'asaas', asaasCardCheckoutReady: true },
+        { cardProvider: 'asaas', asaasCardCheckoutReady: false },
       ),
-    ).toBe('asaas')
+    ).toBe('mercadopago')
   })
 
   it('T6: boleto → Asaas', () => {

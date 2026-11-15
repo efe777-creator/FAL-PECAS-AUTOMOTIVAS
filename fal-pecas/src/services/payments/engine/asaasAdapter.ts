@@ -24,13 +24,14 @@ export const asaasAdapter: FalPaymentAdapter = {
   },
 
   async createPayment(input: FalCreatePaymentInput): Promise<FalCreatePaymentResult> {
-    if (input.method === 'credit_card' || input.method === 'debit_card') {
-      if (!input.card?.token) {
-        throw new Error('Token do cartão é obrigatório para este método (Asaas).')
-      }
-      throw new Error('Cartão Asaas em implementação. O roteador já direciona cartão para Asaas.')
-    }
-    const raw = await createAsaasPayment(input.orderId)
+    const installments =
+      input.method === 'debit_card'
+        ? 1
+        : Math.max(1, Math.floor(input.installments ?? input.card?.installments ?? 1))
+    const raw = await createAsaasPayment(input.orderId, {
+      method: input.method === 'debit_card' || input.method === 'credit_card' ? input.method : 'pix',
+      installments,
+    })
     return mapAsaasResult(raw, input)
   },
 }

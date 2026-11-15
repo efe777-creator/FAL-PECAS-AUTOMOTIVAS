@@ -1,2 +1,2 @@
-/** Cartão tokenizado via Asaas ainda não liberado no checkout (Edge 501). */
-export const ASAAS_CARD_CHECKOUT_READY = false
+/** Cartão via Asaas (invoiceUrl / página segura — sem PAN na FAL). */
+export const ASAAS_CARD_CHECKOUT_READY = true

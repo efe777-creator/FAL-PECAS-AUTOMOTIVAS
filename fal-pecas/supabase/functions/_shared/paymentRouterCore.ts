@@ -44,8 +44,8 @@ export function resolveRoutedPaymentProvider(
   const method = input.method
   if (method === 'boleto') return store?.boletoProvider ?? 'asaas'
   if (method === 'credit_card' || method === 'debit_card') {
-    const wanted = store?.cardProvider ?? 'mercadopago'
-    if (wanted === 'asaas' && store?.asaasCardCheckoutReady !== true) {
+    const wanted = store?.cardProvider ?? 'asaas'
+    if (wanted === 'asaas' && store?.asaasCardCheckoutReady === false) {
       return 'mercadopago'
     }
     return wanted

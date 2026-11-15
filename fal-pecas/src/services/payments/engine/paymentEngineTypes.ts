@@ -11,6 +11,8 @@ export type FalPaymentProviderId = 'mercadopago' | 'simulated' | 'gateway' | str
 export interface FalCreatePaymentInput {
   orderId: string
   method: FalPaymentMethodCode
+  /** Parcelas (cartão Asaas sem token / invoiceUrl). */
+  installments?: number
   /** Token Brick / dados cartão — nunca PAN/CVV na FAL. */
   card?: {
     token: string

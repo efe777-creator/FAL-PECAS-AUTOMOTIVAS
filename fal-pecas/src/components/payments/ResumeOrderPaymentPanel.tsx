@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
+import { AsaasCardPanel } from '@/components/payments/AsaasCardPanel'
 import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
 import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
 import { isUsableMpPublicKey } from '@/lib/mpAdminStatus'
@@ -13,7 +14,8 @@ import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { createFalPayment } from '@/services/payments/engine'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
-import { moneyToAmountCents } from '@/services/payments/routing/paymentRouter'
+import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
+import { decidePaymentRoute, moneyToAmountCents } from '@/services/payments/routing/paymentRouter'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import {
   isCardMpChannel,
@@ -22,7 +24,7 @@ import {
   type MpPayChannel,
 } from '@/services/checkout/checkoutPaymentChannel'
 import type { OrderDetail } from '@/types'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Props {
   order: OrderDetail
@@ -80,6 +82,26 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
     return null
   })
   const [cardReady, setCardReady] = useState(isCardMpChannel(initialChannel))
+
+  const cardRoute = useMemo(
+    () =>
+      decidePaymentRoute(
+        {
+          method: channel === 'debit_card' ? 'debit_card' : 'credit_card',
+          amountCents: moneyToAmountCents(order.total),
+          pixMpMaxAmountCents: paymentRouting.pixMpMaxAmountCents,
+        },
+        {
+          pixMpMaxAmountCents: paymentRouting.pixMpMaxAmountCents,
+          pixBelowLimitProvider: paymentRouting.pixBelowLimitProvider,
+          pixAboveLimitProvider: paymentRouting.pixAboveLimitProvider,
+          cardProvider: paymentRouting.cardProvider,
+          boletoProvider: paymentRouting.boletoProvider,
+          asaasCardCheckoutReady: ASAAS_CARD_CHECKOUT_READY,
+        },
+      ),
+    [channel, order.total, paymentRouting],
+  )
 
   function selectChannel(desired: MpPayChannel) {
     const next = resolveSelectableChannel(desired, payAvail)
@@ -234,11 +256,19 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
       ) : null}
 
       {isCardMpChannel(channel) && payAvail.card ? (
-        !mpPublicKey ? (
+        cardRoute.provider === 'asaas' && cardReady ? (
+          <AsaasCardPanel
+            orderId={order.id}
+            amount={payment?.amount ?? order.total}
+            preferredPaymentType={preferredPaymentTypeFromChannel(channel)}
+            onApproved={onApproved}
+            onError={(message) => setError(message)}
+          />
+        ) : cardRoute.provider !== 'asaas' && !mpPublicKey ? (
           <p className="m-0 text-sm text-fal-danger">
             Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.
           </p>
-        ) : cardReady ? (
+        ) : cardRoute.provider !== 'asaas' && cardReady ? (
           <MercadoPagoCardBrickPanel
             orderId={order.id}
             amount={payment?.amount ?? order.total}

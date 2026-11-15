@@ -26,7 +26,7 @@ export const DEFAULT_PAYMENT_ROUTING_CONFIG: PaymentRoutingConfig = {
   pixMpMaxAmountCents: DEFAULT_PIX_MP_MAX_AMOUNT_CENTS,
   pixBelowLimitProvider: 'mercadopago',
   pixAboveLimitProvider: 'asaas',
-  cardProvider: 'mercadopago',
+  cardProvider: 'asaas',
   boletoProvider: 'asaas',
   asaasEnabled: true,
   mercadopagoEnabled: true,

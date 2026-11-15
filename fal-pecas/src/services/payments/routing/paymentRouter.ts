@@ -58,8 +58,8 @@ export function resolveRoutedPaymentProvider(
   }
 
   if (method === 'credit_card' || method === 'debit_card') {
-    const wanted = store?.cardProvider ?? 'mercadopago'
-    if (wanted === 'asaas' && store?.asaasCardCheckoutReady !== true) {
+    const wanted = store?.cardProvider ?? 'asaas'
+    if (wanted === 'asaas' && store?.asaasCardCheckoutReady === false) {
       return 'mercadopago'
     }
     return wanted
