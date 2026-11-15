@@ -51,7 +51,8 @@ export function MercadoPagoPixPanel({
           id: paymentId,
           orderId,
           status: 'pending',
-          provider: 'mercadopago',
+          // Provedor real vem do ledger (MP ou Asaas); syncCheckoutPayment resolve pelo paymentId.
+          provider: '',
           providerStatus: null,
           amount: initialAmount ?? 0,
           method: 'pix',
