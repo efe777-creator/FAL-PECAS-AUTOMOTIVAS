@@ -16,9 +16,10 @@ export type StorePaymentRoutingOverrides = {
   pixMpMaxAmountCents?: number
   pixBelowLimitProvider?: RoutedPaymentProviderId
   pixAboveLimitProvider?: RoutedPaymentProviderId
+  /** Ignorado para cartão: crédito/débito são sempre Asaas. */
   cardProvider?: RoutedPaymentProviderId
   boletoProvider?: RoutedPaymentProviderId
-  /** false = cartão Asaas ainda não no checkout; cai para Mercado Pago. */
+  /** @deprecated Cartão não cai mais para MP; mantido só por compat de callers. */
   asaasCardCheckoutReady?: boolean
 }
 
@@ -43,12 +44,9 @@ export function resolveRoutedPaymentProvider(
     input.pixMpMaxAmountCents ?? store?.pixMpMaxAmountCents ?? DEFAULT_PIX_MP_MAX_AMOUNT_CENTS
   const method = input.method
   if (method === 'boleto') return store?.boletoProvider ?? 'asaas'
+  // Crédito e débito: sempre Asaas (regra de negócio FAL PAY).
   if (method === 'credit_card' || method === 'debit_card') {
-    const wanted = store?.cardProvider ?? 'asaas'
-    if (wanted === 'asaas' && store?.asaasCardCheckoutReady === false) {
-      return 'mercadopago'
-    }
-    return wanted
+    return 'asaas'
   }
   if (method === 'pix') {
     return input.amountCents <= limit

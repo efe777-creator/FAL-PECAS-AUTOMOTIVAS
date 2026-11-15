@@ -5,8 +5,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { AsaasCardPanel } from '@/components/payments/AsaasCardPanel'
-import { MercadoPagoCardBrickPanel } from '@/components/payments/MercadoPagoCardBrickPanel'
-import { MercadoPagoPixPanel } from '@/components/payments/MercadoPagoPixPanel'
+import { CheckoutPixPanel } from '@/components/payments/CheckoutPixPanel'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import {
@@ -88,7 +87,6 @@ import type {
   StoreShippingOrigin,
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { isUsableMpPublicKey } from '@/lib/mpAdminStatus'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -187,8 +185,6 @@ export function CheckoutPage() {
     paymentRouting,
     checkoutAmountCents,
   )
-  const mpPublicKeyRaw = (import.meta.env.VITE_MP_PUBLIC_KEY as string | undefined)?.trim() ?? ''
-  const mpPublicKey = isUsableMpPublicKey(mpPublicKeyRaw) ? mpPublicKeyRaw : ''
   const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
   const checkoutPayRoute = decidePaymentRoute(
     {
@@ -281,15 +277,6 @@ export function CheckoutPage() {
       if (!carrierDesc.placeOrderReady) {
         return 'Entrega indisponível no momento. Tente novamente mais tarde.'
       }
-    }
-    if (
-      target >= 4 &&
-      mpEnabled &&
-      isCardMpChannel(mpChannel) &&
-      checkoutPayRoute.provider === 'mercadopago' &&
-      !mpPublicKey
-    ) {
-      return 'Pagamento com cartão indisponível no momento. Tente Pix ou volte mais tarde.'
     }
     return null
   }
@@ -889,9 +876,6 @@ export function CheckoutPage() {
 
       if (mpEnabled) {
         if (isCardMpChannel(mpChannel)) {
-          if (checkoutPayRoute.provider === 'mercadopago' && !mpPublicKey) {
-            throw new Error('Pagamento com cartão indisponível no momento.')
-          }
           if (!placed.paymentId && decision.kind === 'order_only') {
             pushError(decision.reason)
             saveCheckoutSession({
@@ -1819,26 +1803,15 @@ export function CheckoutPage() {
                     </div>
                   ) : null}
                   {isCardMpChannel(mpAwaiting.channel) ? (
-                    checkoutPayRoute.provider === 'asaas' ? (
-                      <AsaasCardPanel
-                        orderId={mpAwaiting.orderId}
-                        amount={mpAwaiting.amount}
-                        preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
-                        onApproved={onMpApproved}
-                        onError={onMpError}
-                      />
-                    ) : (
-                      <MercadoPagoCardBrickPanel
-                        orderId={mpAwaiting.orderId}
-                        amount={mpAwaiting.amount}
-                        publicKey={mpPublicKey}
-                        preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
-                        onApproved={onMpApproved}
-                        onError={onMpError}
-                      />
-                    )
+                    <AsaasCardPanel
+                      orderId={mpAwaiting.orderId}
+                      amount={mpAwaiting.amount}
+                      preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
+                      onApproved={onMpApproved}
+                      onError={onMpError}
+                    />
                   ) : mpAwaiting.paymentId ? (
-                    <MercadoPagoPixPanel
+                    <CheckoutPixPanel
                       paymentId={mpAwaiting.paymentId}
                       orderId={mpAwaiting.orderId}
                       onApproved={onMpApproved}

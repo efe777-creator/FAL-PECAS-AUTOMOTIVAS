@@ -125,18 +125,19 @@ Deno.serve(async (req) => {
       })
     }
 
-    if (transition === 'reject') {
+    if (transition === 'reject' || transition === 'expire') {
+      const nextStatus = transition === 'expire' ? 'expired' : 'rejected'
       await admin
         .from('payments')
         .update({
-          status: 'rejected',
+          status: nextStatus,
           cancelled_at: new Date().toISOString(),
         })
         .eq('id', payment.id)
         .eq('status', 'pending')
       return json(200, {
         ok: true,
-        status: 'rejected',
+        status: nextStatus,
         providerStatus,
         orderId: order.id,
       })

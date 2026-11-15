@@ -32,7 +32,7 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
     expect(resolveRoutedPaymentProvider({ method: 'pix', amountCents: limit + 1 })).toBe('asaas')
   })
 
-  it('T5: cartão → Asaas (planejamento FAL PAY)', () => {
+  it('T5: crédito e débito → sempre Asaas', () => {
     expect(
       resolveRoutedPaymentProvider({ method: 'credit_card', amountCents: moneyToAmountCents(50) }),
     ).toBe('asaas')
@@ -44,16 +44,13 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
         { method: 'credit_card', amountCents: 5000 },
         { cardProvider: 'mercadopago' },
       ),
-    ).toBe('mercadopago')
-  })
-
-  it('cartão Asaas cai para MP se checkout ainda não estiver pronto', () => {
+    ).toBe('asaas')
     expect(
       resolveRoutedPaymentProvider(
-        { method: 'credit_card', amountCents: 5000 },
-        { cardProvider: 'asaas', asaasCardCheckoutReady: false },
+        { method: 'debit_card', amountCents: 5000 },
+        { cardProvider: 'mercadopago', asaasCardCheckoutReady: false },
       ),
-    ).toBe('mercadopago')
+    ).toBe('asaas')
   })
 
   it('T6: boleto → Asaas', () => {
@@ -69,24 +66,6 @@ describe('paymentRouter (híbrido FAL PAY)', () => {
     const d = decidePaymentRoute({ method: 'pix', amountCents: 10_000 })
     expect(d.provider).toBe('mercadopago')
     expect(d.ruleVersion).toBe('fal-pay-hybrid-v1')
-  })
-
-  it('card_provider mercadopago mantém parcelas no MP', () => {
-    expect(
-      resolveRoutedPaymentProvider(
-        { method: 'credit_card', amountCents: 5000 },
-        { cardProvider: 'mercadopago' },
-      ),
-    ).toBe('mercadopago')
-  })
-
-  it('cartão Asaas não pronto cai para Mercado Pago', () => {
-    expect(
-      resolveRoutedPaymentProvider(
-        { method: 'credit_card', amountCents: 5000 },
-        { cardProvider: 'asaas', asaasCardCheckoutReady: false },
-      ),
-    ).toBe('mercadopago')
   })
 
   it('limite configurável não altera semântica inclusive', () => {

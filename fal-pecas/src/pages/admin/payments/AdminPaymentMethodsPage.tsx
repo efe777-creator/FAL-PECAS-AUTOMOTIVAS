@@ -5,7 +5,6 @@ import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { falMaxInstallmentsForCheckout } from '@/lib/paymentDisplay'
 import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
-import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
 import { paymentEngine } from '@/services/payments/engine'
 import { isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
@@ -176,30 +175,18 @@ export function AdminPaymentMethodsPage() {
             </select>
           </label>
           <label className="mb-3 block">
-            Cartão
-            <select
-              className="mt-1 w-full rounded-md border border-fal-line px-2 py-1"
-              value={draft.cardProvider}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  cardProvider: e.target.value as RoutedPaymentProviderId,
-                }))
-              }
-            >
-              {PROVIDER_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            Cartão (crédito e débito)
+            <input
+              className="mt-1 w-full rounded-md border border-fal-line bg-fal-bg px-2 py-1"
+              value="Asaas (fixo)"
+              disabled
+              readOnly
+            />
           </label>
-          {!ASAAS_CARD_CHECKOUT_READY ? (
-            <p className="mb-3 mt-0 text-xs text-amber-800">
-              Cartão Asaas ainda não está no checkout. Se o cartão estiver em Asaas, a loja usa
-              Mercado Pago automaticamente até a liberação.
-            </p>
-          ) : null}
+          <p className="mb-3 mt-0 text-xs text-fal-muted">
+            Crédito e débito passam sempre pelo Asaas (página segura / invoiceUrl). Não há fallback
+            Mercado Pago para cartão.
+          </p>
           {avail.cardBlockedReason ? (
             <p className="mb-3 mt-0 text-amber-800">{avail.cardBlockedReason}</p>
           ) : null}
@@ -220,7 +207,7 @@ export function AdminPaymentMethodsPage() {
               Juros comerciais: {settings?.allowInterestInstallments !== false ? 'permitidos' : 'bloqueados'}
             </li>
             <li>
-              Ex. pedido R$ 600 → até <strong>{demoMaxInstallments}x</strong> (política + Edge MP)
+              Ex. pedido R$ 600 → até <strong>{demoMaxInstallments}x</strong> (política + Edge Asaas)
             </li>
           </ul>
           <Link to="/admin/home" className="mt-2 inline-block font-semibold text-fal-navy">

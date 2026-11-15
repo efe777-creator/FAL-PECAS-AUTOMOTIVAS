@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
     const { data: existingAsaas } = await admin
       .from('payments')
       .select(
-        'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider',
+        'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider, metadata, installments',
       )
       .eq('order_id', orderId)
       .eq('provider', 'asaas')
@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
       const { data: stub } = await admin
         .from('payments')
         .select(
-          'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider',
+          'id, provider_payment_id, status, amount, expires_at, method, pix_qr_code, pix_qr_code_base64, payment_url, provider_status, provider, metadata, installments',
         )
         .eq('order_id', orderId)
         .eq('status', 'pending')
@@ -286,16 +286,37 @@ Deno.serve(async (req) => {
 
     if (existing?.provider_payment_id) {
       const existingMethod = String(existing.method ?? '')
-      const sameMethod =
-        existingMethod === routableMethod ||
-        (isCardMethod(existingMethod) && isCardMethod(routableMethod))
-      if (!sameMethod) {
+      // Reuso só com provider + method + amount + installments iguais (crédito ≠ débito).
+      const sameMethod = existingMethod === routableMethod
+      const sameAmount = Number(existing.amount ?? 0) === amount
+      const metaInst = (existing.metadata as { installments?: unknown } | null)?.installments
+      const prevInstallments = Math.max(
+        1,
+        Math.floor(Number(metaInst ?? existing.installments) || 1),
+      )
+      const nextInstallments = routableMethod === 'debit_card' ? 1 : installments
+      const installmentsChanged =
+        isCardMethod(routableMethod) && prevInstallments !== nextInstallments
+      if (!sameMethod || !sameAmount || installmentsChanged) {
         await admin
           .from('payments')
           .update({
-            status: 'expired',
+            status: 'cancelled',
             cancelled_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            metadata: {
+              cancelled_reason: !sameMethod
+                ? 'method_switch'
+                : !sameAmount
+                  ? 'amount_changed'
+                  : 'installments_changed',
+              from_method: existingMethod,
+              to_method: routableMethod,
+              from_amount: existing.amount,
+              to_amount: amount,
+              from_installments: prevInstallments,
+              to_installments: nextInstallments,
+            },
           })
           .eq('id', existing.id)
           .eq('status', 'pending')

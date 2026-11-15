@@ -1,9 +1,9 @@
 /**
- * PG05 — motor FAL: resolve provedor e encaminha operações ao adaptador.
+ * PG05 — motor FAL: create-fal-payment é a única entrada do checkout híbrido.
  */
 import { asaasAdapter } from '@/services/payments/engine/asaasAdapter'
 import { mercadoPagoAdapter } from '@/services/payments/engine/mercadoPagoAdapter'
-import { decidePaymentRouteForOrder } from '@/services/payments/orderPaymentRouting'
+import { invokeCreateFalPayment } from '@/services/payments/createFalPaymentService'
 import { resolvePaymentProviderKey, isMercadoPagoCheckoutEnabled } from '@/services/payments/paymentService'
 import type {
   FalCreatePaymentInput,
@@ -38,18 +38,13 @@ export function createPaymentEngine(
         const fallback = getAdapter()
         if (!fallback) {
           throw new Error(
-            'Nenhum adaptador de pagamento disponível para o provedor configurado. Use Mercado Pago (VITE_PAYMENT_PROVIDER=mercadopago).',
+            'Nenhum adaptador de pagamento disponível. Configure VITE_PAYMENT_PROVIDER=mercadopago.',
           )
         }
         return fallback.createPayment(input)
       }
-
-      const route = await decidePaymentRouteForOrder(input.orderId, input.method)
-      const adapter = getAdapter(route.provider)
-      if (!adapter) {
-        throw new Error(`Nenhum adaptador registrado para o provedor "${route.provider}".`)
-      }
-      return adapter.createPayment(input)
+      // Híbrido: gateway decide MP vs Asaas no servidor.
+      return invokeCreateFalPayment(input)
     },
   }
 }
@@ -57,7 +52,7 @@ export function createPaymentEngine(
 /** Instância default da loja (build). */
 export const paymentEngine = createPaymentEngine()
 
-/** Atalho checkout: cria cobrança via motor (provedor principal). */
+/** Atalho checkout: cria cobrança via motor (gateway híbrido). */
 export async function createFalPayment(
   input: FalCreatePaymentInput,
 ): Promise<FalCreatePaymentResult> {

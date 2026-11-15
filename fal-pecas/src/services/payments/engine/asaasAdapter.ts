@@ -1,5 +1,5 @@
 /**
- * PG — adaptador Asaas (PIX / boleto; cartão em evolução).
+ * Adaptador Asaas — Pix acima do limite, crédito/débito (invoiceUrl) e boleto.
  */
 import { createAsaasPayment } from '@/services/payments/createAsaasPaymentService'
 import type {

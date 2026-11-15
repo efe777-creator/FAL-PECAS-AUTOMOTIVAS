@@ -1,10 +1,6 @@
 /** Status Asaas v3 → ação interna (sync/webhook). */
 
-const APPROVE = new Set([
-  'RECEIVED',
-  'CONFIRMED',
-  'RECEIVED_IN_CASH',
-])
+const APPROVE = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'])
 
 const REJECT = new Set([
   'REFUNDED',
@@ -14,12 +10,18 @@ const REJECT = new Set([
   'AWAITING_CHARGEBACK_REVERSAL',
   'DUNNING_RECEIVED',
   'DUNNING_REQUESTED',
+  'DELETED',
 ])
 
-export function asaasStatusToInternal(providerStatus: string | null | undefined): 'approve' | 'reject' | 'pending' {
+const EXPIRE = new Set(['OVERDUE', 'EXPIRED'])
+
+export function asaasStatusToInternal(
+  providerStatus: string | null | undefined,
+): 'approve' | 'reject' | 'expire' | 'pending' {
   const s = (providerStatus ?? '').toUpperCase()
   if (!s) return 'pending'
   if (APPROVE.has(s)) return 'approve'
   if (REJECT.has(s)) return 'reject'
+  if (EXPIRE.has(s)) return 'expire'
   return 'pending'
 }

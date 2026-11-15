@@ -109,10 +109,14 @@ Deno.serve(async (req) => {
     }
   }
 
-  const confirmEvents = new Set([
-    'PAYMENT_CONFIRMED',
-    'PAYMENT_RECEIVED',
+  const confirmEvents = new Set(['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'])
+  const rejectEvents = new Set([
+    'PAYMENT_REFUNDED',
+    'PAYMENT_DELETED',
+    'PAYMENT_CHARGEBACK_REQUESTED',
+    'PAYMENT_CHARGEBACK_DISPUTE',
   ])
+  const expireEvents = new Set(['PAYMENT_OVERDUE', 'PAYMENT_DELETED'])
 
   if (paymentRow?.id && confirmEvents.has(event) && paymentRow.status === 'pending') {
     const { error: confirmErr } = await admin.rpc('confirm_asaas_payment', {
@@ -128,6 +132,20 @@ Deno.serve(async (req) => {
       .eq('provider', 'asaas')
       .eq('provider_event_id', providerEventId)
     return json(200, { ok: true, approved: true, paymentId: paymentRow.id })
+  }
+
+  if (paymentRow?.id && paymentRow.status === 'pending' && (rejectEvents.has(event) || expireEvents.has(event))) {
+    const nextStatus = expireEvents.has(event) && !rejectEvents.has(event) ? 'expired' : 'rejected'
+    // PAYMENT_DELETED: treat as rejected/cancelled attempt
+    await admin
+      .from('payments')
+      .update({
+        status: event === 'PAYMENT_OVERDUE' ? 'expired' : nextStatus,
+        cancelled_at: new Date().toISOString(),
+        provider_status: payment?.status ?? null,
+      })
+      .eq('id', paymentRow.id)
+      .eq('status', 'pending')
   }
 
   await admin

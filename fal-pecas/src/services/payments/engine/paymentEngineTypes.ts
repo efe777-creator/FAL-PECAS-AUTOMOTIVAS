@@ -6,7 +6,7 @@ import type { FalPaymentStatus } from '@/services/payments/engine/paymentStatuse
 
 export type FalPaymentMethodCode = 'pix' | 'credit_card' | 'debit_card' | 'boleto' | 'other'
 
-export type FalPaymentProviderId = 'mercadopago' | 'simulated' | 'gateway' | string
+export type FalPaymentProviderId = 'mercadopago' | 'asaas' | 'simulated' | 'gateway' | string
 
 export interface FalCreatePaymentInput {
   orderId: string

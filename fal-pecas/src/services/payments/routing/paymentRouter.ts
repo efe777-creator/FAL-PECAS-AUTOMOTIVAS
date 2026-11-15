@@ -1,7 +1,7 @@
 /**
  * FAL PAY — roteamento híbrido Mercado Pago + Asaas (regra única, centavos inteiros).
  * PIX até limite inclusive → MP; PIX acima → Asaas.
- * Cartão → config da loja; se Asaas cartão ainda não está pronto, cai para Mercado Pago.
+ * Cartão (crédito e débito) → sempre Asaas (invoiceUrl; sem PAN na FAL).
  * Boleto → Asaas (ainda fora do checkout).
  */
 export const DEFAULT_PIX_MP_MAX_AMOUNT_CENTS = 20_100
@@ -19,9 +19,10 @@ export type StorePaymentRoutingOverrides = {
   pixMpMaxAmountCents?: number
   pixBelowLimitProvider?: RoutedPaymentProviderId
   pixAboveLimitProvider?: RoutedPaymentProviderId
+  /** Ignorado para cartão: crédito/débito são sempre Asaas. */
   cardProvider?: RoutedPaymentProviderId
   boletoProvider?: RoutedPaymentProviderId
-  /** false = cartão Asaas ainda não no checkout; cai para Mercado Pago. */
+  /** @deprecated Cartão não cai mais para MP; mantido só por compat de callers. */
   asaasCardCheckoutReady?: boolean
 }
 
@@ -57,12 +58,9 @@ export function resolveRoutedPaymentProvider(
     return store?.boletoProvider ?? 'asaas'
   }
 
+  // Crédito e débito: sempre Asaas (regra de negócio FAL PAY).
   if (method === 'credit_card' || method === 'debit_card') {
-    const wanted = store?.cardProvider ?? 'asaas'
-    if (wanted === 'asaas' && store?.asaasCardCheckoutReady === false) {
-      return 'mercadopago'
-    }
-    return wanted
+    return 'asaas'
   }
 
   if (method === 'pix') {

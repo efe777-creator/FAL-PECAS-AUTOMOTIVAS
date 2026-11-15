@@ -76,10 +76,16 @@ Deno.serve(async (req) => {
     const { orderId, card } = parseCreateMpPaymentClientBody(
       (rawBody ?? {}) as Record<string, unknown>,
     )
+    // FAL PAY: create-mp-payment processa somente Pix. Cartão → Asaas (invoiceUrl).
+    if (card) {
+      return json(409, {
+        error: 'payment_route_mismatch',
+        routedProvider: 'asaas',
+        detail: 'Crédito e débito devem ser criados via Asaas (create-fal-payment / create-asaas-payment).',
+      })
+    }
     const internalMethod = resolveInternalMethod(card)
-    const mpPaymentMethodId = card
-      ? alignMpPaymentMethodId(internalMethod, card.paymentMethodId)
-      : 'pix'
+    const mpPaymentMethodId = 'pix'
 
     const { data: customer, error: custErr } = await admin
       .from('customers')
