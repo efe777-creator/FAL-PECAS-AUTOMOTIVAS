@@ -1,7 +1,7 @@
 /**
  * Config operacional FAL PAY (singleton payment_routing_config).
  */
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import {
   decidePaymentRoute,
   DEFAULT_PIX_MP_MAX_AMOUNT_CENTS,
@@ -43,7 +43,7 @@ export async function loadPaymentRoutingConfig(
     ),
     pixBelowLimitProvider: parseProvider(data?.pix_below_limit_provider, 'mercadopago'),
     pixAboveLimitProvider: parseProvider(data?.pix_above_limit_provider, 'asaas'),
-    cardProvider: parseProvider(data?.card_provider, 'asaas'),
+    cardProvider: parseProvider(data?.card_provider, 'mercadopago'),
     boletoProvider: parseProvider(data?.boleto_provider, 'asaas'),
     asaasEnabled: data?.asaas_enabled !== false,
     mercadopagoEnabled: data?.mercadopago_enabled !== false,
