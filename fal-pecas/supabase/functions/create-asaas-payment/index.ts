@@ -143,9 +143,10 @@ Deno.serve(async (req) => {
       (rawBody ?? {}) as Record<string, unknown>,
     )
 
+    // Não selecionar `metadata`: a coluna pode não existir no schema atual (erro → 404 falso).
     const { data: customer, error: custErr } = await admin
       .from('customers')
-      .select('id, cpf, cnpj, metadata')
+      .select('id, cpf, cnpj')
       .eq('profile_id', user.id)
       .maybeSingle()
     if (custErr || !customer) return json(404, { error: 'customer_not_found' })
@@ -204,9 +205,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const meta = (customer.metadata ?? {}) as Record<string, unknown>
-    const existingAsaasId =
-      typeof meta.asaas_customer_id === 'string' ? meta.asaas_customer_id : null
     const doc = customer.cpf
       ? String(customer.cpf).replace(/\D/g, '')
       : customer.cnpj
@@ -222,22 +220,14 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .maybeSingle()
 
+    // Cache Asaas customer via CPF na API Asaas (sem coluna local ainda).
     const asaasCustomerId = await ensureAsaasCustomer(apiKey, asaasBase, {
       customerId: customer.id,
       email,
       name: profile?.full_name ?? 'Cliente FAL',
       cpfCnpj: doc,
-      existingAsaasId,
+      existingAsaasId: null,
     })
-
-    if (!existingAsaasId) {
-      await admin
-        .from('customers')
-        .update({
-          metadata: { ...meta, asaas_customer_id: asaasCustomerId },
-        })
-        .eq('id', customer.id)
-    }
 
     const { data: existingAsaas } = await admin
       .from('payments')
