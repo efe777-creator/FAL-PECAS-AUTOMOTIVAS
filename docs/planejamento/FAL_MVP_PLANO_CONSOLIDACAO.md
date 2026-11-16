@@ -28,8 +28,8 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | Frente | Status | Bloqueia |
 |--------|--------|----------|
 | **P0** Alinhamento pay/deploy | **PASS** (front tip = **draft**; prod Forbidden) · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | — |
-| G1 Produto/fitment | **ABERTA — FAZER AGORA** | G8 |
-| G2 Preço/vitrine | **LIBERADA** (código tip + draft) | G8 |
+| G1 Produto/fitment | **PASS** · [VAL](./FAL_MARCHA_G1_PRODUTO_FITMENT_VAL_2026-11-16.md) | — |
+| G2 Preço/vitrine | **ABERTA — FAZER AGORA** | G8 |
 | G3 Checkout/pay | **LIBERADA** (smoke UI no draft; prod quando crédito) | G8 |
 | G4 Frete | Pode auditar dims em paralelo; ship após G3 | G8 |
 | G5 Ops | Após G3 mínimo (pedido pago existe) | G8 |
@@ -37,7 +37,7 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | G7 E2E | Após G3+G4+G5 mínimos | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** **MARCHA G1** (amostra SKU/PVC + smokes busca/placa). Dívida ops: `--prod` Netlify quando crédito.
+**Próxima ação única:** **MARCHA G2** (preço 5 pontos card→PDP→cart→checkout→order_items + % vitrine). Dívida ops: `--prod` Netlify quando crédito.
 
 ---
 
@@ -245,7 +245,7 @@ G6 (pode adiantar textos em paralelo)
 | Frente | Data | Status | Evidência (VAL / ids) | Responsável |
 |--------|------|--------|------------------------|-------------|
 | P0 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) draft `6afb46f5…` tip · Edges create PASS · prod Forbidden (dívida) | eFe |
-| G1 | | | | |
+| G1 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G1_PRODUTO_FITMENT_VAL_2026-11-16.md) 100/100 PVC · placa FRW0E37 · NL HB20 2015 · SK971 indisponível | eFe |
 | G2 | | | | |
 | G3 | | | | |
 | G4 | | | | |
