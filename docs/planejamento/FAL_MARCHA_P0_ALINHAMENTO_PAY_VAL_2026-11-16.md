@@ -4,65 +4,51 @@
 **Auth:** eFe — `marcha`  
 **Plano:** [FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md) §3  
 **Classe:** MVP-bloqueador  
-**Tip base:** `4e7fab19`
+**Tip base:** `4e7fab19` → tip pós-MARCHA `9804263`  
+**Runtime:** Supabase `wtbpwuiayednvlhvuhbh` · Netlify espelho `fal-pecas-automotivas-efe`
 
 ---
 
-## 0.1 Inventário WT — PASS
+## Resultado geral: **PARCIAL** (bloqueado só em Netlify/smoke front)
 
-### Pacote A — Pay Asaas cartão / Edges / orquestração
+| Passo | Status | Evidência |
+|-------|--------|-----------|
+| 0.1 Inventário A/B/C(+D) | **PASS** | § inventário abaixo |
+| 0.2 Autorização | **PASS** | `marcha` |
+| 0.3 Testes | **PASS** | 127 pay + 10 notif |
+| 0.4 Commits + push | **PASS** | `97bd834` docs · `783de2a` pay A+B · `9804263` notif C → `origin/main` |
+| 0.5 Migration SQL | **PASS** | Colunas `%_adjust_percent` + RPC `apply_payment_condition_to_order` já no remoto wtbp (conteúdo aplicado; lista migration local/remoto segue com drift histórico) |
+| 0.6 Edges | **PASS** | Deployed: `create-fal-payment`, `pay-asaas-credit-card`, `asaas-webhook`, `create-asaas-payment` |
+| 0.7 Flags | **PASS** | `asaas_enabled=true`, `pix_mp_max_amount_cents=20100` |
+| 0.8 Netlify + smoke create | **BLOCKED** | Deploy `6afb44d8…` → *Skipped due to account credit usage exceeded*; CLI `Forbidden` |
 
-- `fal-pecas/src/components/payments/AsaasCardPanel.tsx`
-- `fal-pecas/src/components/payments/AsaasEmbeddedCreditPanel.tsx` (untracked)
-- `fal-pecas/src/services/payments/*` (createFal, createAsaas, falPayCapabilities, payAsaas*, asaas*, falEdgeErrorMessage*)
-- `fal-pecas/supabase/functions/create-fal-payment/`, `create-asaas-payment/`, `asaas-webhook/`, `pay-asaas-credit-card/`
-- `fal-pecas/supabase/functions/_shared/asaas*`
-- `fal-pecas/supabase/config.toml`
-- `fal-pecas/scripts/smoke-asaas-*.mjs`
-- Admin payments pages + VALs marcha cartão
-- `CheckoutPage.tsx` (parcial A)
-
-### Pacote B — Condição % vitrine
-
-- `20261116140000_store_payment_condition_adjust.sql`
-- `PaymentAdjustPercentControl*`, `AdminHomePaymentSection.tsx`
-- `paymentDisplay*`, `PaymentConditionHint`, `StorePaymentMethodsBlock`, `ProductCard`, `CartPage`
-- `applyPaymentConditionToOrderService.ts`, `paymentConditionPricing*`
-- `AdminHomeContentPage` / `AdminHomeSectionTabs`
-- VAL condições + design spec
-- `CheckoutPage.tsx` (parcial B — overlap com A)
-
-### Pacote C — Notificações mobile UI
-
-- `NotificationBell.tsx`, `NotificationInbox.tsx`, `NotificationInboxItem.tsx`
-- `Header.tsx`, `AdminLayout.tsx`
-- VAL notificações mobile
-
-### Pacote D — Docs PRD 4.0 (canônico)
-
-- `docs/entrada/FAL_PRD_4.0.md`, Visão, Índice
-- `docs/arquitetura/*`, `docs/futuro/*`
-- MVP Completo / Mapa / Consolidação / Roadmap / Auditoria consolidada
-- Cabeçalhos históricos PRD 3 / Roadmap 3 / Plano MVP 09/11
-
-### Excluído do commit
-
-- `.deploy-compact.json`, `.deploy-mcp-full-args.json` (possível segredo/ops)
-- `scripts/` raiz (revisar antes — não no tip sem inventário)
-
-### Nota overlap
-
-A+B compartilham `CheckoutPage.tsx` → **um commit de código pay** (A+B juntos).
+**Gate P0 completo:** **NÃO** — falta front prod alinhado + smoke create.  
+**Pode avançar prep G1 dados:** SIM.  
+**G3 smoke humano:** **STOP** até Netlify/crédito ou deploy alternativo.
 
 ---
 
-## 0.2 Autorização — PASS
+## 0.1 Inventário
 
-`marcha` = OK eFe para commit A+B+C+D e seguir migrate/deploy quando possível.
+### A — Pay Asaas cartão / Edges  
+Checkout + AsaasEmbedded + Edges pay-* + shared asaas* + smokes + admin payments + VALs cartão.
+
+### B — Condição %  
+Migration `20261116140000_*` + PaymentAdjust + paymentDisplay + apply_payment_condition + ProductCard/Cart hints.  
+**Overlap A+B:** `CheckoutPage` → commit único A+B.
+
+### C — Notificações mobile  
+Bell/Inbox + Header + AdminLayout + VAL mobile.
+
+### D — Docs PRD 4.0  
+Hierarquia canônica + este VAL.
+
+### Excluído  
+`.deploy-*.json`, `scripts/` raiz (ops).
 
 ---
 
-## 0.3 Testes locais — PASS
+## 0.3 Testes
 
 ```text
 vitest payments + paymentDisplay + paymentCondition + PaymentAdjust + checkoutReturnTo
@@ -74,12 +60,39 @@ vitest notificationDisplay + appNotificationCopy
 
 ---
 
-## 0.4 Commits — (em andamento neste VAL)
+## 0.4 Commits
 
-Ver `git log` após MARCHA.
+| Hash | Mensagem |
+|------|----------|
+| `97bd834` | docs: PRD 4.0, visão 2040 e plano assertivo de consolidação MVP (P0–G8) |
+| `783de2a` | feat(pay): Asaas cartão embutido, condição % vitrine e Edges P0 (A+B) |
+| `9804263` | fix(ui): inbox notificações mobile e admin sem corte (P0 pacote C) |
+
+Push: `4e7fab1..9804263` → `origin/main`.
 
 ---
 
-## 0.5–0.8 Migration / Edges / flags / Netlify
+## 0.5–0.7 Remoto wtbp
 
-Preenchido ao concluir nesta MARCHA ou STOP com motivo.
+- MCP `user-supabase` aponta para `owllmfcpbodqmoerdfxx` (**errado** para FAL) — não usar para migrate FAL.  
+- CLI linked: `wtbpwuiayednvlhvuhbh`.  
+- Read-only: colunas adjust + RPC existem; Asaas **ligado**.
+
+---
+
+## 0.8 Netlify
+
+| Tentativa | Resultado |
+|-----------|-----------|
+| MCP deploy-site `79994809-…` dist | error: credit usage exceeded |
+| `netlify deploy --prod` | Forbidden |
+
+**Ação humana:** liberar crédito Netlify time eFe **ou** publicar `fal-pecas/dist` por caminho autorizado; depois smoke Pix create ≤201 / >201 e cartão create.
+
+---
+
+## Próximo
+
+1. eFe resolve crédito / publish front.  
+2. Smoke create (não approve ainda) → fechar P0.  
+3. Abrir G1/G2 prep conforme consolidação.

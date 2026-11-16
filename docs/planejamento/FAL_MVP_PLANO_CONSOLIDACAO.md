@@ -27,17 +27,17 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 
 | Frente | Status | Bloqueia |
 |--------|--------|----------|
-| **P0** Alinhamento pay/deploy | **ABERTA — FAZER AGORA** | G3+ |
-| G1 Produto/fitment | BLOQUEADA até P0 PASS (pode prep dados) | G8 |
-| G2 Preço/vitrine | BLOQUEADA até P0 PASS (vitrine % está no WT) | G8 |
-| G3 Checkout/pay | BLOQUEADA até P0 PASS | G8 |
+| **P0** Alinhamento pay/deploy | **PARCIAL** — tip/Edges/SQL ok; Netlify **BLOCKED** (crédito) · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | G3 smoke até front prod |
+| G1 Produto/fitment | **LIBERADA prep dados** (smoke loja após Netlify) | G8 |
+| G2 Preço/vitrine | **LIBERADA prep** após front (código já no tip) | G8 |
+| G3 Checkout/pay | **STOP** até P0.8 PASS | G8 |
 | G4 Frete | Pode auditar dims em paralelo; ship após G3 | G8 |
 | G5 Ops | Após G3 mínimo (pedido pago existe) | G8 |
 | G6 Jurídico/pós-venda | Paralelo leve após P0 | G8 |
 | G7 E2E | Após G3+G4+G5 mínimos | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** concluir **P0** (passos 0.1 → 0.8). Nada de feature nova antes.
+**Próxima ação única:** liberar crédito Netlify / publicar `fal-pecas/dist` no espelho eFe → smoke **create** Pix/cartão → fechar P0.8. Nada de feature nova antes.
 
 ---
 
@@ -244,7 +244,7 @@ G6 (pode adiantar textos em paralelo)
 
 | Frente | Data | Status | Evidência (VAL / ids) | Responsável |
 |--------|------|--------|------------------------|-------------|
-| P0 | | ABERTO | | eFe |
+| P0 | 2026-11-16 | PARCIAL | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) tip `9804263` Edges ok Netlify credit | eFe |
 | G1 | | | | |
 | G2 | | | | |
 | G3 | | | | |
