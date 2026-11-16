@@ -34,10 +34,10 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | G4 Frete | **PASS** · [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) | — |
 | G5 Ops | **PASS** · [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) | — |
 | G6 Jurídico/pós-venda | **PASS** · [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) preview `6afb5217…` | — |
-| G7 E2E | **ABERTA — FAZER AGORA** | G8 |
-| G8 Venda controlada | Último | — |
+| G7 E2E | **PASS** · [VAL](./FAL_MARCHA_G7_E2E_ESTABILIDADE_VAL_2026-11-16.md) | — |
+| G8 Venda controlada | **ABERTA — FAZER AGORA** (8.1–8.2 ok; 8.3–8.4 eFe) | — |
 
-**Próxima ação única:** **MARCHA G7** (matriz 14 cenários E2E). Dívida ops: `--prod` Netlify; Pix>201; ME purchase live.
+**Próxima ação única:** **MARCHA G8** — eFe define N vendas reais + monitor 48–72h. Rollback: [plano](./FAL_MARCHA_G8_ROLLBACK_PLAN_2026-11-16.md). Dívida: `--prod`; Pix>201; ME purchase.
 
 ---
 
@@ -251,8 +251,8 @@ G6 (pode adiantar textos em paralelo)
 | G4 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) dims 100/100 · cotação draft CEP 01310-100 · ownq gates · pedido `9619a86c…` enviado `SMOKE-C7-OWN` | eFe |
 | G5 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) trail `dcb929db…` até `pronto_para_envio` · `sem_estoque` · margem admin | eFe |
 | G6 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) WA/tel rodapé preview · origem `store_shipping_origin` | eFe |
-| G7 | | | | |
-| G8 | | | | |
+| G7 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G7_E2E_ESTABILIDADE_VAL_2026-11-16.md) matriz 14 · own out_of_coverage live · preview catálogo | eFe |
+| G8 | 2026-11-16 | **PARCIAL** | 8.1 G1–G7 PASS · 8.2 [rollback](./FAL_MARCHA_G8_ROLLBACK_PLAN_2026-11-16.md) · 8.3–8.4 pendente eFe | eFe |
 
 Modelo de VAL: `docs/planejamento/FAL_MARCHA_<FRENTE>_VAL_YYYY-MM-DD.md` com PASS/FAIL por passo.
 
