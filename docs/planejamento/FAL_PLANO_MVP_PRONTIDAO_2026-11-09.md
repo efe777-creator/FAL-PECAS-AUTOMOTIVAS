@@ -1,7 +1,11 @@
 # FAL — Plano canônico: Prontidão MVP + ajustes 001–034
 
+> **HISTÓRICO (2026-11-16).** Escopo MVP e consolidação canônicos passaram a:  
+> **[FAL_MVP_COMPLETO_4.0.md](./FAL_MVP_COMPLETO_4.0.md)** · **[FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md)** · **[FAL_PRD_4.0.md](../entrada/FAL_PRD_4.0.md)**.  
+> Este arquivo permanece como registro da marcha 001–034 / G1–G8 de nov/2026.
+
 **Data:** 2026-11-09 · **atualizado 2026-11-10**  
-**Status:** CÓDIGO DO PLANO **ENCERRADO** — ver [relatório de conclusão](./FAL_MARCHA_RELATORIO_CONCLUSAO_PLANO_MVP_2026-11-10.md) · G8 / venda plena = gates humanos  
+**Status:** HISTÓRICO — CÓDIGO DO PLANO **ENCERRADO** — ver [relatório de conclusão](./FAL_MARCHA_RELATORIO_CONCLUSAO_PLANO_MVP_2026-11-10.md) · G8 / venda plena = gates humanos  
 **Auth:** eFe — MARCHA concluir plano  
 **Substitui como fila de evolução:** gates soltos do relatório mestre 2026-11-09 (absorvidos em G1–G8 / AJUSTE)  
 **Plano mestre código anterior:** [FAL_PLANO_MESTRE_SITE_2026-11-05.md](./FAL_PLANO_MESTRE_SITE_2026-11-05.md) (código MARCHA encerrado; este doc governa o caminho até venda real)

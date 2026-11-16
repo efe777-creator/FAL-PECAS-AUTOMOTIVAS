@@ -1,0 +1,84 @@
+# FAL — Índice canônico de documentos
+
+**Versão:** 1.1  
+**Data:** 2026-11-16  
+**Status:** CANÔNICO (mapa de autoridade)
+
+Em caso de conflito: **documento proprietário da regra vence**. Docs históricos são evidência, não autoridade.
+
+---
+
+## Como usar (ordem assertiva)
+
+| Se você quer… | Abra |
+|---------------|------|
+| Entender o norte 2040 | [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) |
+| Regra de produto | [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) |
+| Saber o que é MVP / done | [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) |
+| **Executar agora** | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — frente **P0** |
+| Telas e jornadas | [FAL_MVP_MAPA_TELAS_JORNADAS.md](../planejamento/FAL_MVP_MAPA_TELAS_JORNADAS.md) |
+| O que a auditoria achou | [FAL_AUDITORIA_CONSOLIDADA_PRD4.md](../planejamento/FAL_AUDITORIA_CONSOLIDADA_PRD4.md) |
+| Fase futura (Garage etc.) | `docs/futuro/*` — **não implementar** até gate do Roadmap |
+
+**Próximo passo oficial:** P0 do plano de consolidação (alinhar pay WT → deploy → smoke create).
+
+---
+
+## Ordem de autoridade
+
+1. [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) — norte  
+2. [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) — produto  
+3. [FAL_ARQUITETURA_360.md](../arquitetura/FAL_ARQUITETURA_360.md) + [FAL_DADOS_FONTES_VERDADE.md](../arquitetura/FAL_DADOS_FONTES_VERDADE.md) — estrutura  
+4. [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) — escopo MVP  
+5. [FAL_ROADMAP_MESTRE_4.0.md](../planejamento/FAL_ROADMAP_MESTRE_4.0.md) — ordem de maturidade  
+6. Specs/MARCHAs/VALs — execução tática  
+
+Evidência transversal: [FAL_AUDITORIA_CONSOLIDADA_PRD4.md](../planejamento/FAL_AUDITORIA_CONSOLIDADA_PRD4.md)
+
+---
+
+## Documentos canônicos vivos
+
+| Documento | Papel | Status |
+|-----------|-------|--------|
+| [FAL_INDICE_CANONICO.md](./FAL_INDICE_CANONICO.md) | Índice / autoridade | CANÔNICO |
+| [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) | Visão 2040 | CANÔNICO |
+| [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) | PRD produto | CANÔNICO |
+| [FAL_ARQUITETURA_360.md](../arquitetura/FAL_ARQUITETURA_360.md) | Arquitetura | CANÔNICO |
+| [FAL_DADOS_FONTES_VERDADE.md](../arquitetura/FAL_DADOS_FONTES_VERDADE.md) | Dados / SoT | CANÔNICO |
+| [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) | Escopo MVP | CANÔNICO |
+| [FAL_MVP_MAPA_TELAS_JORNADAS.md](../planejamento/FAL_MVP_MAPA_TELAS_JORNADAS.md) | Telas / jornadas | CANÔNICO |
+| [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) | P0 + G1–G8 | CANÔNICO |
+| [FAL_ROADMAP_MESTRE_4.0.md](../planejamento/FAL_ROADMAP_MESTRE_4.0.md) | Roadmap | CANÔNICO |
+| [FAL_AUDITORIA_CONSOLIDADA_PRD4.md](../planejamento/FAL_AUDITORIA_CONSOLIDADA_PRD4.md) | Evidência | CANÔNICO |
+
+---
+
+## Direção futura (não implementação)
+
+| Documento | Ambiente |
+|-----------|----------|
+| [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) | Garage |
+| [FAL_PARCEIROS_VISAO_FUNCIONAL.md](../futuro/FAL_PARCEIROS_VISAO_FUNCIONAL.md) | Parceiros |
+| [FAL_WORKSHOP_VISAO_FUNCIONAL.md](../futuro/FAL_WORKSHOP_VISAO_FUNCIONAL.md) | Workshop |
+| [FAL_FORNECEDORES_VISAO_FUNCIONAL.md](../futuro/FAL_FORNECEDORES_VISAO_FUNCIONAL.md) | Fornecedores |
+| [FAL_INTELLIGENCE_VISAO_FUNCIONAL.md](../futuro/FAL_INTELLIGENCE_VISAO_FUNCIONAL.md) | Intelligence |
+
+---
+
+## Históricos / supersedidos (preservados)
+
+| Documento | Nota |
+|-----------|------|
+| [FAL_PRD_3.0.md](./FAL_PRD_3.0.md) | Histórico — substituído pelo 4.0 |
+| [../FAL_PRD_3.0.md](../FAL_PRD_3.0.md) | Redirect raiz |
+| [ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md) | Histórico — ver Roadmap Mestre 4.0 |
+| [FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md](../planejamento/FAL_PLANO_MVP_PRONTIDAO_2026-11-09.md) | Histórico — ver MVP Completo 4.0 |
+| Auditorias/MARCHAs/VALs datadas | Evidência local; referenciadas pela consolidada |
+
+---
+
+## Regra de uma verdade documental
+
+Cada regra de negócio/arquitetura tem **um** documento proprietário. Outros apenas linkam.  
+Não copiar a mesma regra em três lugares.

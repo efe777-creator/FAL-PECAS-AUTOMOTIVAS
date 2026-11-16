@@ -1,11 +1,15 @@
 # PRD Mestre 2.0 — FAL Peças Automotivas
 
+> **HISTÓRICO (2026-11-16).** Este documento foi **substituído como canônico** pelo **[PRD Mestre 4.0](./FAL_PRD_4.0.md)**.  
+> Visão: [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) · Índice: [FAL_INDICE_CANONICO.md](./FAL_INDICE_CANONICO.md).  
+> Conteúdo abaixo preservado como evidência histórica — **não usar como autoridade de produto**.
+
 **Versão:** 2.0 (consolidado)  
 **Data:** 2026-10-08  
-**Status:** Documento-base de produto — não é autorização para implementar tudo  
+**Status:** HISTÓRICO / SUPERSEDIDO pelo PRD 4.0  
 **Produto:** Plataforma própria FAL Peças Automotivas  
 **Diagnóstico:** [../planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md](../planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md)  
-**Execução de fases:** [../planejamento/ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md)  
+**Execução de fases:** [../planejamento/ROADMAP_FASES_3.0.md](../planejamento/ROADMAP_FASES_3.0.md) (histórico) · canônico: [../planejamento/FAL_ROADMAP_MESTRE_4.0.md](../planejamento/FAL_ROADMAP_MESTRE_4.0.md)  
 **Estado observado (Fase 0):** [../planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md](../planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md) — gate Onda 0; schema-first
 
 ---

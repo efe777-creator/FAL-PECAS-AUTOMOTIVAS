@@ -1,9 +1,12 @@
 # Roadmap de Fases — FAL Peças Automotivas 3.0
 
-**Status:** Fonte oficial de **execução** das fases  
+> **HISTÓRICO (2026-11-16).** Substituído como canônico pelo **[FAL_ROADMAP_MESTRE_4.0.md](./FAL_ROADMAP_MESTRE_4.0.md)**.  
+> PRD canônico: [../entrada/FAL_PRD_4.0.md](../entrada/FAL_PRD_4.0.md) · Índice: [../entrada/FAL_INDICE_CANONICO.md](../entrada/FAL_INDICE_CANONICO.md).
+
+**Status:** HISTÓRICO / SUPERSEDIDO  
 **Atualização:** 2026-11-04 (pós-STOP α — sync PRD/ROADMAP)  
-**PRD de produto:** [../entrada/FAL_PRD_3.0.md](../entrada/FAL_PRD_3.0.md)  
-**Planejamento vigente:** [./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md](./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md) · [Backlog pós-α](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)  
+**PRD de produto (histórico):** [../entrada/FAL_PRD_3.0.md](../entrada/FAL_PRD_3.0.md)  
+**Planejamento vigente à época:** [./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md](./FAL_AUDITORIA_COMPLETA_PENDENCIAS_2026-11-04.md) · [Backlog pós-α](./FAL_BACKLOG_POS_ALPHA_2026-11-04.md)  
 **Fase α (encerrada):** [Estado final](./FAL_ESTADO_FINAL_ALPHA_2026-11-04.md) · [STOP formal](./FAL_STOP_ALPHA_FORMAL_2026-11-04.md)  
 **Diagnóstico (histórico):** [./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md](./DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md)  
 **Stack:** Vite + React + TypeScript + Tailwind + Supabase
