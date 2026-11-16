@@ -37,7 +37,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth()
-  const { items, addItem } = useCart()
+  const { items, addItem, updateQty, removeItem } = useCart()
   const { isFavorite, toggle } = useFavorites()
   const { push } = useToast()
   const navigate = useNavigate()
@@ -93,7 +93,29 @@ export function ProductCard({ product }: { product: Product }) {
     if (!available) return
     saveBuyNowIntent({ ...product, price }, 1)
     saveCheckoutReturnTo(returnFrom)
-    navigate('/checkout', { state: { from: returnFrom } })
+    navigate('/checkout', { state: { from: returnFrom, checkoutMode: 'buyNow' } })
+  }
+
+  function stopCardNav(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  function onDecreaseQty(e: MouseEvent) {
+    stopCardNav(e)
+    if (!available || cartQty <= 0) return
+    if (cartQty <= 1) {
+      removeItem(product.id)
+      push('Removido do carrinho', 'info')
+      return
+    }
+    updateQty(product.id, cartQty - 1)
+  }
+
+  function onIncreaseQty(e: MouseEvent) {
+    stopCardNav(e)
+    if (!available) return
+    addItem(product, 1)
   }
 
   return (
@@ -211,12 +233,38 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {available && inCart ? (
-          <p
-            className="m-0 w-fit max-w-full truncate rounded-full bg-[#fff8db] px-2.5 py-1 text-xs font-bold text-fal-navy"
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-fal border border-[#f0e6a8] bg-[#fff8db] px-2 py-1.5"
             aria-live="polite"
           >
-            No carrinho: {cartQty}
-          </p>
+            <span className="text-xs font-bold text-fal-navy">No carrinho</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded-[7px] border border-fal-line bg-white text-sm font-bold"
+                aria-label={`Diminuir quantidade de ${displayName}`}
+                onClick={onDecreaseQty}
+              >
+                −
+              </button>
+              <span className="min-w-[1.75rem] text-center text-sm font-extrabold">{cartQty}</span>
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded-[7px] border border-fal-line bg-white text-sm font-bold"
+                aria-label={`Aumentar quantidade de ${displayName}`}
+                onClick={onIncreaseQty}
+              >
+                +
+              </button>
+            </div>
+            <Link
+              to="/carrinho"
+              className="text-xs font-bold text-fal-navy underline"
+              onClick={stopCardNav}
+            >
+              Ver carrinho
+            </Link>
+          </div>
         ) : null}
 
         {available ? (

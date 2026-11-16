@@ -11,6 +11,7 @@ import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import type { CartItem } from '@/types'
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { clearBuyNowIntent } from '@/services/checkout/buyNowSession'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 
 export function CartPage() {
@@ -194,8 +195,11 @@ export function CartPage() {
           {user ? (
             <Link
               to="/checkout"
-              state={{ from: '/carrinho' }}
-              onClick={() => saveCheckoutReturnTo('/carrinho')}
+              state={{ from: '/carrinho', checkoutMode: 'cart' }}
+              onClick={() => {
+                clearBuyNowIntent()
+                saveCheckoutReturnTo('/carrinho')
+              }}
               className="mt-4 block"
             >
               <Button variant="primary" fullWidth>
