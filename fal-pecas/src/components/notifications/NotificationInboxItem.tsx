@@ -34,7 +34,7 @@ export function NotificationInboxItem({
 
   const shellClass = compact
     ? [
-        'block w-full px-3 py-2.5 text-left hover:bg-fal-bg/80',
+        'block w-full max-w-full px-3 py-2.5 text-left hover:bg-fal-bg/80',
         actionable && !n.readAt
           ? 'bg-amber-50/80'
           : n.readAt
@@ -42,7 +42,7 @@ export function NotificationInboxItem({
             : 'bg-fal-yellow/10',
       ].join(' ')
     : [
-        'w-full rounded-fal border px-4 py-3 text-left transition hover:border-fal-navy/40',
+        'w-full max-w-full rounded-fal border px-3 py-3 text-left transition hover:border-fal-navy/40 sm:px-4',
         actionable && !n.readAt
           ? 'border-amber-400/70 bg-amber-50/60'
           : n.readAt
@@ -55,27 +55,39 @@ export function NotificationInboxItem({
       type="button"
       disabled={busy}
       onClick={() => onOpen(n)}
-      className={shellClass}
+      className={`${shellClass} box-border min-w-0 overflow-hidden`}
       aria-label={n.title}
     >
-      <span className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-extrabold text-fal-navy">{n.title}</span>
+      <span className="block min-w-0">
+        <span
+          className={`block break-words text-sm font-extrabold text-fal-navy ${
+            compact ? 'line-clamp-2' : ''
+          }`}
+        >
+          {n.title}
+        </span>
         {priority ? (
-          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${badgeClass(priority)}`}>
+          <span
+            className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold ${badgeClass(priority)}`}
+          >
             {priority}
           </span>
         ) : null}
       </span>
       {n.body ? (
         <span
-          className={`mt-1 block text-sm text-fal-muted ${compact ? 'line-clamp-2 text-xs' : ''}`}
+          className={`mt-1 block min-w-0 break-words text-sm text-fal-muted ${
+            compact ? 'line-clamp-2 text-xs' : ''
+          }`}
         >
           {n.body}
         </span>
       ) : orderRef ? (
-        <span className="mt-1 block text-sm text-fal-muted">Pedido #{orderRef}</span>
+        <span className="mt-1 block break-words text-sm text-fal-muted">Pedido #{orderRef}</span>
       ) : null}
-      <span className="mt-2 block text-xs text-fal-muted">{notificationMetaLine(n)}</span>
+      <span className="mt-2 block break-words text-xs text-fal-muted">
+        {notificationMetaLine(n)}
+      </span>
     </button>
   )
 }

@@ -116,6 +116,14 @@ export function AdminLayout() {
     }
   }, [navOpen])
 
+  useEffect(() => {
+    function onCloseNav() {
+      setNavOpen(false)
+    }
+    window.addEventListener('fal:close-mobile-nav', onCloseNav)
+    return () => window.removeEventListener('fal:close-mobile-nav', onCloseNav)
+  }, [])
+
   /** Escape fecha o menu mobile. */
   useEffect(() => {
     if (!navOpen) return
@@ -188,7 +196,10 @@ export function AdminLayout() {
             <p className="mt-1 truncate text-sm text-white/65">Painel operacional</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <NotificationBell allHref="/admin/avisos" audience="staff" variant="dark" />
+            {/* Desktop: sino no sidebar largo. Mobile: só no header sticky (evita corte). */}
+            <div className="hidden lg:block">
+              <NotificationBell allHref="/admin/avisos" audience="staff" variant="dark" />
+            </div>
             <button
               type="button"
               className="grid h-11 w-11 place-items-center rounded-lg text-white/80 hover:bg-white/10 lg:hidden"
@@ -234,7 +245,7 @@ export function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-fal-bg lg:flex">
+    <div className="min-h-screen overflow-x-hidden bg-fal-bg lg:flex">
       <ScrollToTop />
       {navOpen ? (
         <button

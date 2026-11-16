@@ -8,13 +8,21 @@ import { Container } from '@/components/layout/Container'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCategories } from '@/hooks/useCatalog'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const categories = useCategories()
   const { user } = useAuth()
+
+  useEffect(() => {
+    function onCloseNav() {
+      setMenuOpen(false)
+    }
+    window.addEventListener('fal:close-mobile-nav', onCloseNav)
+    return () => window.removeEventListener('fal:close-mobile-nav', onCloseNav)
+  }, [])
 
   return (
     <header className="sticky top-0 z-[100] border-b border-fal-line bg-white">

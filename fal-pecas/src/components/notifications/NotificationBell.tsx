@@ -11,7 +11,8 @@ import {
   type AppNotification,
   type AppNotificationAudience,
 } from '@/services/notifications/appNotificationService'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 
 type Props = {
@@ -19,6 +20,13 @@ type Props = {
   audience: AppNotificationAudience
   variant?: 'light' | 'dark'
   pollMs?: number
+}
+
+type PanelPos = {
+  top: number
+  left: number
+  width: number
+  maxHeight: number
 }
 
 function BellIcon({ className }: { className?: string }) {
@@ -40,6 +48,28 @@ function BellIcon({ className }: { className?: string }) {
   )
 }
 
+function computePanelPos(anchor: DOMRect): PanelPos {
+  const margin = 12
+  const gap = 8
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const narrow = vw < 640
+
+  // Mobile: quase full-bleed. Desktop: até 22rem, alinhado ao sino.
+  const width = narrow
+    ? Math.max(240, vw - margin * 2)
+    : Math.min(22 * 16, Math.max(280, vw - margin * 2))
+
+  let left = narrow ? margin : anchor.right - width
+  if (left < margin) left = margin
+  if (left + width > vw - margin) left = Math.max(margin, vw - margin - width)
+
+  const top = Math.min(anchor.bottom + gap, vh - margin - 120)
+  const maxHeight = Math.max(180, Math.min(vh * 0.7, vh - top - margin))
+
+  return { top, left, width, maxHeight }
+}
+
 export function NotificationBell({
   allHref,
   audience,
@@ -52,7 +82,10 @@ export function NotificationBell({
   const [unread, setUnread] = useState(0)
   const [items, setItems] = useState<AppNotification[]>([])
   const [busy, setBusy] = useState(false)
+  const [panelPos, setPanelPos] = useState<PanelPos | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const realtimeChannelSuffix = useId().replace(/:/g, '')
 
   const refresh = useCallback(async () => {
@@ -73,6 +106,12 @@ export function NotificationBell({
     refreshRef.current = refresh
   }, [refresh])
 
+  const updatePanelPos = useCallback(() => {
+    const el = btnRef.current
+    if (!el) return
+    setPanelPos(computePanelPos(el.getBoundingClientRect()))
+  }, [])
+
   useEffect(() => {
     void refresh()
     const t = window.setInterval(() => void refresh(), pollMs)
@@ -89,8 +128,6 @@ export function NotificationBell({
   useEffect(() => {
     if (!user?.id) return
     const sb = getSupabase()
-    // Nome único por instância: header monta 2 sinos (CSS mobile/desktop); canal
-    // reutilizado pelo Supabase já vem subscribed() e .on() depois disso quebra.
     const channel = sb
       .channel(`app-notif:${audience}:${user.id}:${realtimeChannelSuffix}`)
       .on(
@@ -111,10 +148,30 @@ export function NotificationBell({
     }
   }, [user?.id, audience, realtimeChannelSuffix])
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelPos(null)
+      return
+    }
+    updatePanelPos()
+    function onWin() {
+      updatePanelPos()
+    }
+    window.addEventListener('resize', onWin)
+    window.addEventListener('scroll', onWin, true)
+    return () => {
+      window.removeEventListener('resize', onWin)
+      window.removeEventListener('scroll', onWin, true)
+    }
+  }, [open, updatePanelPos])
+
   useEffect(() => {
     if (!open) return
     function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (rootRef.current?.contains(t)) return
+      if (panelRef.current?.contains(t)) return
+      setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
@@ -161,15 +218,82 @@ export function NotificationBell({
     ? 'relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg text-white/90 hover:bg-white/10'
     : 'relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg border border-fal-line bg-white text-fal-navy hover:bg-fal-bg'
 
+  const panel =
+    open && panelPos
+      ? createPortal(
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Central de notificações"
+            className="fixed z-[300] box-border overflow-x-hidden overflow-y-hidden rounded-[12px] border border-fal-line bg-white shadow-xl"
+            style={{
+              top: panelPos.top,
+              left: panelPos.left,
+              width: panelPos.width,
+              maxWidth: 'calc(100vw - 24px)',
+              maxHeight: panelPos.maxHeight,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div className="flex shrink-0 flex-col gap-2 border-b border-fal-line px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="m-0 text-sm font-extrabold text-fal-navy">Notificações</p>
+                <p className="m-0 text-[11px] text-fal-muted">
+                  {unread > 0 ? `${unread} não lida${unread === 1 ? '' : 's'}` : 'Tudo lido'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="max-w-full self-start break-words text-left text-xs font-bold text-fal-auth-link disabled:opacity-50"
+                disabled={busy || unread === 0}
+                onClick={() => void onMarkAll()}
+              >
+                Marcar todas como lidas
+              </button>
+            </div>
+            <ul className="m-0 min-h-0 min-w-0 flex-1 list-none space-y-0 overflow-x-hidden overflow-y-auto overscroll-contain p-0">
+              {items.length === 0 ? (
+                <li className="px-3 py-4 text-sm text-fal-muted">Nenhum aviso por enquanto.</li>
+              ) : (
+                items.map((n) => (
+                  <li key={n.id} className="border-b border-fal-line last:border-0">
+                    <NotificationInboxItem
+                      notification={n}
+                      busy={busy}
+                      compact
+                      onOpen={(item) => void openItem(item)}
+                    />
+                  </li>
+                ))
+              )}
+            </ul>
+            <div className="shrink-0 border-t border-fal-line px-3 py-2.5">
+              <Link
+                to={allHref}
+                className="text-sm font-bold text-fal-auth-link no-underline"
+                onClick={() => setOpen(false)}
+              >
+                Ver todos →
+              </Link>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
-    <div className="relative" ref={rootRef}>
+    <div className="relative shrink-0" ref={rootRef}>
       <button
+        ref={btnRef}
         type="button"
         className={btnClass}
         aria-label={unread > 0 ? `Notificações, ${unread} não lidas` : 'Notificações'}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => {
+          // Fecha drawer/sidebar mobile se estiver aberto (evita overlap/corte).
+          window.dispatchEvent(new CustomEvent('fal:close-mobile-nav'))
           setOpen((v) => !v)
           if (!open) void refresh()
         }}
@@ -181,56 +305,7 @@ export function NotificationBell({
           </span>
         ) : null}
       </button>
-
-      {open ? (
-        <div
-          role="dialog"
-          aria-label="Central de notificações"
-          className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-[12px] border border-fal-line bg-white shadow-lg"
-        >
-          <div className="flex items-center justify-between gap-2 border-b border-fal-line px-3 py-2">
-            <div>
-              <p className="m-0 text-sm font-extrabold text-fal-navy">Notificações</p>
-              <p className="m-0 text-[11px] text-fal-muted">
-                {unread > 0 ? `${unread} não lida${unread === 1 ? '' : 's'}` : 'Tudo lido'}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="text-xs font-bold text-fal-auth-link disabled:opacity-50"
-              disabled={busy || unread === 0}
-              onClick={() => void onMarkAll()}
-            >
-              Marcar todas como lidas
-            </button>
-          </div>
-          <ul className="m-0 max-h-80 list-none space-y-0 overflow-y-auto p-0">
-            {items.length === 0 ? (
-              <li className="px-3 py-4 text-sm text-fal-muted">Nenhum aviso por enquanto.</li>
-            ) : (
-              items.map((n) => (
-                <li key={n.id} className="border-b border-fal-line last:border-0">
-                  <NotificationInboxItem
-                    notification={n}
-                    busy={busy}
-                    compact
-                    onOpen={(item) => void openItem(item)}
-                  />
-                </li>
-              ))
-            )}
-          </ul>
-          <div className="border-t border-fal-line px-3 py-2">
-            <Link
-              to={allHref}
-              className="text-sm font-bold text-fal-auth-link no-underline"
-              onClick={() => setOpen(false)}
-            >
-              Ver todos →
-            </Link>
-          </div>
-        </div>
-      ) : null}
+      {panel}
     </div>
   )
 }

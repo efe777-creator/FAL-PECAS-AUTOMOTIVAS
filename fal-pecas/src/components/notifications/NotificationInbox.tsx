@@ -57,8 +57,8 @@ export function NotificationInbox({
   }, [sorted, filter])
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
+      <div className="rounded-fal border border-fal-line bg-white p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
@@ -72,8 +72,8 @@ export function NotificationInbox({
           {headerExtra ? <div className="flex flex-wrap gap-2">{headerExtra}</div> : null}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filtrar notificações">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 flex-wrap gap-2" role="tablist" aria-label="Filtrar notificações">
             <Button
               type="button"
               variant={filter === 'all' ? 'primary' : 'outline'}
@@ -93,13 +93,16 @@ export function NotificationInbox({
               variant={filter === 'action' ? 'primary' : 'outline'}
               onClick={() => setFilter('action')}
             >
-              Precisam de ação{actionCount > 0 ? ` (${actionCount})` : ''}
+              <span className="sm:hidden">Ação{actionCount > 0 ? ` (${actionCount})` : ''}</span>
+              <span className="hidden sm:inline">
+                Precisam de ação{actionCount > 0 ? ` (${actionCount})` : ''}
+              </span>
             </Button>
           </div>
           <Button
             type="button"
             variant="light"
-            className="sm:ml-auto"
+            className="w-full sm:ml-auto sm:w-auto"
             disabled={busy || unreadTotal === 0}
             onClick={onMarkAll}
           >
@@ -122,9 +125,9 @@ export function NotificationInbox({
           actionTo={emptyActionTo}
         />
       ) : (
-        <ul className="m-0 list-none space-y-2 p-0">
+        <ul className="m-0 min-w-0 list-none space-y-2 overflow-x-hidden p-0">
           {visible.map((n) => (
-            <li key={n.id}>
+            <li key={n.id} className="min-w-0">
               <NotificationInboxItem notification={n} busy={busy} onOpen={onOpen} />
             </li>
           ))}
