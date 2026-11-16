@@ -21,6 +21,8 @@ describe('checkoutReturnTo', () => {
   it('label conforme origem', () => {
     expect(checkoutBackLabel('/produto/x', true)).toBe('Voltar ao produto')
     expect(checkoutBackLabel('/carrinho', false)).toBe('Voltar ao carrinho')
+    expect(checkoutBackLabel('/', true)).toBe('Voltar ao início')
+    expect(checkoutBackLabel(null, true)).toBe('Voltar ao início')
     expect(checkoutBackLabel(null, false)).toBe('Voltar ao carrinho')
   })
 })

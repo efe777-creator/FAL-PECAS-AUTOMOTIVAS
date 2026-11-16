@@ -16,7 +16,7 @@ const FORBIDDEN_CLIENT_KEYS = [
   'creditCardToken',
 ] as const
 
-export type AsaasRoutableMethod = 'pix' | 'credit_card' | 'debit_card'
+export type AsaasRoutableMethod = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
 export function parseAsaasCreateClientBody(body: Record<string, unknown>): {
   orderId: string
@@ -35,6 +35,7 @@ export function parseAsaasCreateClientBody(body: Record<string, unknown>): {
   let method: AsaasRoutableMethod = 'pix'
   if (rawMethod === 'credit_card' || rawMethod === 'credit') method = 'credit_card'
   else if (rawMethod === 'debit_card' || rawMethod === 'debit') method = 'debit_card'
+  else if (rawMethod === 'boleto' || rawMethod === 'bank_slip') method = 'boleto'
   else if (rawMethod === 'pix') method = 'pix'
   else throw new Error('method inválido')
 

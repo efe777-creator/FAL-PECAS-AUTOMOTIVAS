@@ -1,8 +1,12 @@
 /**
  * FAL PAY — gateway único do checkout.
- * Cliente envia { orderId, method, installments? }. Servidor roteia e encaminha.
+ * Asaas: create in-process (sem Edge→Edge).
+ * Mercado Pago Pix: encaminha create-mp-payment (path legado estável).
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { asaasApiBase } from '../_shared/asaasApiCore.ts'
+import { runAsaasCreateChargeFlow } from '../_shared/asaasCreateChargeFlow.ts'
+import type { AsaasRoutableMethod } from '../_shared/asaasCreatePaymentCore.ts'
 import { moneyToAmountCents, type RoutablePaymentMethod } from '../_shared/paymentRouterCore.ts'
 import {
   decidePaymentRouteForStore,
@@ -28,6 +32,10 @@ function parseMethod(raw: unknown): RoutablePaymentMethod | null {
     .toLowerCase()
   if (m === 'pix' || m === 'credit_card' || m === 'debit_card' || m === 'boleto') return m
   return null
+}
+
+function toAsaasMethod(method: RoutablePaymentMethod): AsaasRoutableMethod {
+  return method
 }
 
 Deno.serve(async (req) => {
@@ -97,7 +105,6 @@ Deno.serve(async (req) => {
       return json(503, { error: blocked, detail: 'Provedor desativado em payment_routing_config.' })
     }
 
-    // Cartão nunca vai ao Mercado Pago.
     if ((method === 'credit_card' || method === 'debit_card') && route.provider !== 'asaas') {
       return json(409, {
         error: 'payment_route_mismatch',
@@ -107,10 +114,29 @@ Deno.serve(async (req) => {
       })
     }
 
-    const targetFn =
-      route.provider === 'mercadopago' ? 'create-mp-payment' : 'create-asaas-payment'
+    if (route.provider === 'asaas') {
+      const apiKey = Deno.env.get('ASAAS_API_KEY')
+      if (!apiKey) return json(503, { error: 'ASAAS_API_KEY missing' })
 
-    if (targetFn === 'create-mp-payment' && method !== 'pix') {
+      const outcome = await runAsaasCreateChargeFlow({
+        admin,
+        apiKey,
+        asaasBase: asaasApiBase(Deno.env.get('ASAAS_ENV')),
+        user: { id: user.id, email: user.email },
+        orderId,
+        method: toAsaasMethod(method),
+        installments: method === 'debit_card' ? 1 : installments,
+        headers: req.headers,
+      })
+      return json(outcome.httpStatus, {
+        ...outcome.body,
+        routedProvider: route.provider,
+        ruleVersion: route.ruleVersion,
+      })
+    }
+
+    // Mercado Pago — somente Pix neste fluxo.
+    if (method !== 'pix') {
       return json(409, {
         error: 'payment_route_mismatch',
         routedProvider: 'asaas',
@@ -119,23 +145,14 @@ Deno.serve(async (req) => {
       })
     }
 
-    const forwardBody: Record<string, unknown> =
-      targetFn === 'create-mp-payment'
-        ? { orderId }
-        : {
-            orderId,
-            method,
-            installments: method === 'debit_card' ? 1 : installments,
-          }
-
-    const forward = await fetch(`${supabaseUrl}/functions/v1/${targetFn}`, {
+    const forward = await fetch(`${supabaseUrl}/functions/v1/create-mp-payment`, {
       method: 'POST',
       headers: {
         Authorization: authHeader,
         apikey: anonKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(forwardBody),
+      body: JSON.stringify({ orderId }),
     })
     const payload = (await forward.json().catch(() => ({}))) as Record<string, unknown>
     return json(forward.status, {

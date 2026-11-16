@@ -1,7 +1,10 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
-import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
+import {
+  PaymentConditionHint,
+  useStorefrontDisplayAmount,
+} from '@/components/product/PaymentConditionHint'
 import { ProductImagePlaceholder } from '@/components/product/ProductImagePlaceholder'
 import {
   ProductMediaFrame,
@@ -45,6 +48,7 @@ export function ProductCard({ product }: { product: Product }) {
   const presentation = useHomePresentation()
   const liked = isFavorite(product.id)
   const price = displayPrice(product)
+  const storefrontPrice = useStorefrontDisplayAmount(price)
   const listPrice = product.listPrice ?? product.price
   const offer = resolvePromoOffer(listPrice, price)
   const displayName = toCommercialTitleCase(product.name)
@@ -199,7 +203,7 @@ export function ProductCard({ product }: { product: Product }) {
         ) : (
           <>
             <p className="m-0 truncate text-lg font-black sm:text-[22px]">
-              {formatStorePriceLabel(price, listPrice)}
+              {formatStorePriceLabel(storefrontPrice, listPrice)}
             </p>
             {offer.isOffer ? (
               <p className="m-0 -mt-1 truncate text-xs text-fal-muted line-through">

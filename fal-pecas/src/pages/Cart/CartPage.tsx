@@ -7,9 +7,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney } from '@/lib/money'
+import {
+  applyPaymentCondition,
+  formatPixConditionLine,
+  storefrontPrimaryAmount,
+} from '@/lib/paymentDisplay'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
+import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import type { CartItem } from '@/types'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 
@@ -28,9 +34,21 @@ export function CartPage() {
     syncPending,
   } = useCart()
   const [shippingAmount, setShippingAmount] = useState<number | null>(null)
+  const paymentDisplay = usePaymentDisplay()
   const onShippingAmountChange = useCallback((amount: number | null) => {
     setShippingAmount(amount)
   }, [])
+  const storefrontSubtotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, i) => sum + storefrontPrimaryAmount(i.price, paymentDisplay).amount * i.quantity,
+        0,
+      ),
+    [items, paymentDisplay],
+  )
+  const pixHint = formatPixConditionLine(subtotal, paymentDisplay)
+  const primary = storefrontPrimaryAmount(subtotal, paymentDisplay)
+  const creditCart = applyPaymentCondition(subtotal, 'credit_card', paymentDisplay)
 
   function onRemove(item: CartItem) {
     const snapshot: CartItem = { ...item }
@@ -125,7 +143,10 @@ export function CartPage() {
                     </Link>
                   </p>
                   <p className="mb-0 mt-1 text-xs text-fal-muted">
-                    {formatMoney(item.price)} cada
+                    {formatMoney(item.price)} cada (lista)
+                    {paymentDisplay
+                      ? ` · ${formatMoney(storefrontPrimaryAmount(item.price, paymentDisplay).amount)} à vista`
+                      : ''}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -173,11 +194,32 @@ export function CartPage() {
         </div>
         <aside className="h-max rounded-fal border border-fal-line bg-white p-5">
           <div className="mb-3 flex justify-between">
-            <span>Subtotal</span>
-            <strong>
-              {formatMoney(subtotal)}
-            </strong>
+            <span>Subtotal (lista)</span>
+            <strong>{formatMoney(subtotal)}</strong>
           </div>
+          {primary.adjustPercent !== 0 ? (
+            <div className="mb-3 flex justify-between text-sm text-emerald-900">
+              <span>
+                {primary.method === 'pix' ? 'À vista no Pix' : 'À vista'}
+                {primary.adjustPercent < 0
+                  ? ` (${primary.adjustPercent}%)`
+                  : ` (+${primary.adjustPercent}%)`}
+              </span>
+              <strong>{formatMoney(storefrontSubtotal)}</strong>
+            </div>
+          ) : null}
+          {pixHint && primary.method !== 'pix' ? (
+            <p className="mb-3 mt-0 text-xs text-fal-muted">{pixHint}</p>
+          ) : null}
+          {paymentDisplay?.creditEnabled !== false &&
+          Math.abs(creditCart.amount - storefrontSubtotal) > 0.009 ? (
+            <p className="mb-3 mt-0 text-xs text-fal-muted">
+              No crédito: {formatMoney(creditCart.amount)}
+              {creditCart.adjustPercent
+                ? ` (${creditCart.adjustPercent > 0 ? '+' : ''}${creditCart.adjustPercent}%)`
+                : ''}
+            </p>
+          ) : null}
           <CartShippingQuoteBlock
             items={items}
             subtotal={subtotal}
@@ -188,9 +230,12 @@ export function CartPage() {
             <span>{shippingAmount != null ? formatMoney(shippingAmount) : 'A calcular'}</span>
           </div>
           <div className="flex justify-between border-t border-fal-line pt-3 text-2xl font-black">
-            <span>Total</span>
-            <span>{formatMoney(subtotal + (shippingAmount ?? 0))}</span>
+            <span>Total estimado</span>
+            <span>{formatMoney(storefrontSubtotal + (shippingAmount ?? 0))}</span>
           </div>
+          <p className="mt-2 mb-0 text-xs text-fal-muted">
+            No checkout o total muda conforme Pix, débito ou crédito.
+          </p>
           {user ? (
             <Link
               to="/checkout"

@@ -1,12 +1,12 @@
-# FAL PAY — Auditoria e planejamento da arquitetura híbrida (Mercado Pago + Asaas)
+# FAL PAY — Auditoria assertiva e planejamento da arquitetura híbrida (Mercado Pago + Asaas)
 
 **Projeto:** FAL Peças Automotivas  
-**Data:** 2026-11-15  
-**Auth:** eFe — evolução arquitetura financeira  
+**Data / horário:** 2026-11-16T12:14:00-03:00  
+**Auth:** eFe — auditoria assertiva cartão / híbrido  
 **Protocolo:** AUDITAR → EVIDENCIAR → CONFIRMAR CAUSA → PROPOR → **GATE**  
-**Status:** Auditoria e planejamento concluídos — **implementação bloqueada** até aprovação expressa da direção
+**Status:** Auditoria e planejamento concluídos — **implementação bloqueada** até aprovação expressa da direção  
 
-**Refs:** [Plano mestre pagamentos](./FAL_PLANO_MESTRE_PAGAMENTOS_INTEGRACOES_2026-11-09.md) · [PG08 modelo](./FAL_MARCHA_PAGAMENTOS_PG08_MODELO_2026-11-09.md) · [Auditoria PAY consolidada](./FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md) · [Inventário secrets MP/ME](./FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md) · [Documentação Asaas](https://docs.asaas.com/)
+**Refs:** [Protocolo operacional](./PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md) · [Plano mestre pagamentos](./FAL_PLANO_MESTRE_PAGAMENTOS_INTEGRACOES_2026-11-09.md) · [Auditoria PAY consolidada 13/11](./FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md) · [Inventário secrets](./FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md) · [Docs Asaas](https://docs.asaas.com/) · [Docs Mercado Pago MLB](https://www.mercadopago.com.br/developers)
 
 ---
 
@@ -14,249 +14,394 @@
 
 | Campo | Valor |
 |-------|--------|
-| Branch no momento da auditoria | `main` |
-| Commit-base | `98124877fc2b7f55a99e7c88f894a238c218d857` |
-| Estado do working tree | Limpo (`## main...origin/main`) |
-| Arquivos modificados antes da auditoria | Nenhum |
-| Data/horário UTC | 2026-11-15T00:59:05Z |
-| Asaas no repositório | **Ausente** (0 referências em código) |
+| Branch | `main` |
+| Commit-base | `4e7fab19b61c8006237f05b718d1f9b3ffa72c08` (`fix(admin): exibir capacidades de cartao Asaas`) |
+| Tracking | `origin/main` sincronizado |
+| Working tree | Sem arquivos modificados rastreados |
+| Untracked preservados | `.deploy-compact.json`, `.deploy-mcp-full-args.json`, `scripts/` |
+| Runtime loja (canônico) | Supabase `wtbpwuiayednvlhvuhbh` |
+| Runtime MCP genérico (não loja) | Supabase `owllmfcpbodqmoerdfxx` — **sem** ledger PAY / Edges PAY |
+| Netlify site | `fal-pecas-automotivas` (`e526b236-88b4-406c-9978-782dd92d287a`) |
+| Ambiente local auditado | `localhost:5173` + `.env.local` apontando para `wtbp…` |
+| Ações nesta fase | **Nenhuma** alteração de código, migration, secret, env ou deploy |
 
-Nesta atividade **não** foram criadas migrations, **não** foram editados arquivos de aplicação, **não** foram alteradas variáveis de ambiente nem configurações de deploy.
+**Supersede:** a versão documental de 2026-11-15 (commit-base `9812487…`, “Asaas ausente no repositório”) descreve o estado **pré-implementação**. O código em `main` **já contém** roteamento híbrido e Edges Asaas; o problema atual é **desalinhamento produção + falha de orquestração**, não ausência de Asaas no repositório.
 
 ---
 
 ## 1. Resumo executivo
 
-A FAL dispõe de fundação sólida para pagamentos: ledger (`payments` + `payment_events`), motor TypeScript (PG05–PG11b), integração Mercado Pago operacional (Pix e cartão via Edge + webhook endurecido) e hub administrativo em evolução. O modelo híbrido definido pela direção — **PIX até R$ 201,00 no Mercado Pago; PIX acima no Asaas; cartão e boleto sempre no Asaas** — **não é implementável no estado atual** sem uma camada central de roteamento no backend, adaptador Asaas, orquestração unificada de criação/confirmação e evolução do checkout.
+### Veredito
 
-**Veredito técnico:** reutilizar motor, ledger e padrões de idempotência do MP; introduzir `PaymentRouter`, `AsaasProvider`, Edge `create-payment` + `asaas-webhook`, RPC de confirmação genérica e configuração administrativa de roteamento. Preservar o **histórico de tentativas** como múltiplas linhas em `payments` (política F9-C já adotada) — **nunca** reatribuir `provider` em cobranças pendentes.
+O cartão **não funciona de ponta a ponta** por duas causas **confirmadas** e independentes:
 
-**Gate:** a implementação somente inicia após revisão deste documento e aprovação expressa da direção FAL.
+1. **Frontend publicado desalinhado** do backend/código atual (bundle sem Asaas / sem `create-fal-payment`).
+2. **Orquestração Edge→Edge quebrada**: `create-fal-payment` espera `create-asaas-payment` até ~150 s e morre com HTTP **546** `WORKER_RESOURCE_LIMIT`; a filha encerra por **`WallClockTime`**. O pedido fica com stub `payments` `pending` Asaas, **sem** `provider_payment_id` / `invoiceUrl`.
 
----
+### O que já existe e vale aproveitar
 
-## 2. Arquitetura atual
+- Ledger `payments` + `payment_events`.
+- Router híbrido em **centavos** (FE + Deno).
+- `payment_routing_config` com regra estratégica ativa (PIX ≤ R$ 201 MP; cartão/boleto Asaas).
+- Edges: `create-fal-payment`, `create-mp-payment`, `create-asaas-payment`, webhooks e syncs.
+- RPCs `confirm_mercadopago_payment` / `confirm_asaas_payment`.
+- Checkout atual em `main`: pedido primeiro → depois cobrança; cartão via `AsaasCardPanel` + `invoiceUrl` (sem PAN).
+- PIX Mercado Pago operacional (aprovados recentes no ledger).
+- Secrets Asaas/MP **presentes** no projeto `wtbp…` (valores não expostos nesta auditoria).
 
-### 2.1 Visão em camadas
+### O que deve ser recriado (reconstrução controlada)
 
-```mermaid
-flowchart LR
-  subgraph checkout [Checkout_Vite]
-    CP[CheckoutPage]
-    Brick[MercadoPagoCardBrickPanel]
-    Pix[MercadoPagoPixPanel]
-    EngineFE[paymentEngine.createFalPayment]
-  end
-  subgraph edge [Supabase_Edge]
-    CreateMP[create-mp-payment]
-    WebMP[mercado-pago-webhook]
-    SyncMP[sync-mp-payment]
-  end
-  subgraph db [Postgres]
-    Orders[orders]
-    Payments[payments]
-    Events[payment_events]
-    Display[store_payment_display]
-  end
-  CP --> placeOrder[place_order_RPC]
-  placeOrder --> Orders
-  placeOrder --> Payments
-  CP --> EngineFE
-  EngineFE --> mercadoPagoAdapter
-  mercadoPagoAdapter --> CreateMP
-  CreateMP --> Payments
-  CreateMP --> MPAPI[MercadoPago_API]
-  WebMP --> Events
-  WebMP --> confirmMP[confirm_mercadopago_payment]
-  confirmMP --> Orders
-  SyncMP --> MPAPI
-  Display -.-> CreateMP
-  Display -.-> effectiveAvail[effectivePaymentAvailability]
-```
+- **Somente** a orquestração crítica Asaas no caminho de criação de cobrança:
+  - eliminar dependência HTTP Edge→Edge no hot path;
+  - timeout explícito nas chamadas Asaas;
+  - estado `creating` / `inconclusive`;
+  - lock por tentativa;
+  - reconciliação por `externalReference` **antes** de retry (doc oficial Asaas).
 
-### 2.2 Componentes e responsabilidades
+### Gate
 
-| Camada | Local | Responsabilidade |
-|--------|--------|------------------|
-| Contrato motor | `fal-pecas/src/services/payments/engine/paymentEngineTypes.ts` | `FalPaymentAdapter`, métodos incl. `boleto` no tipo; MP rejeita boleto em runtime |
-| Motor | `fal-pecas/src/services/payments/engine/paymentEngine.ts` | Um adaptador registrado (`mercadoPagoAdapter`); `createPayment` → `primaryProviderId()` |
-| Adaptador MP (FE) | `fal-pecas/src/services/payments/engine/mercadoPagoAdapter.ts` | Delega à Edge `create-mp-payment` |
-| Env / simulado | `fal-pecas/src/services/payments/paymentService.ts` | `VITE_PAYMENT_PROVIDER`: `mercadopago` \| `gateway` \| `simulated` |
-| Disponibilidade | `fal-pecas/src/services/payments/effectivePaymentAvailability.ts` | Integração técnica = Mercado Pago + `store_payment_display` |
-| Criação cobrança | `fal-pecas/supabase/functions/create-mp-payment/index.ts` | Valor do `orders.total`; reuso/cancelamento de pending; enforce comercial |
-| Webhook | `fal-pecas/supabase/functions/mercado-pago-webhook/index.ts` | HMAC `x-signature`, ledger, approve via RPC |
-| Sync cliente | `fal-pecas/supabase/functions/sync-mp-payment/index.ts` | Poll MP quando webhook atrasa; **só** `provider = mercadopago` |
-| Núcleo compartilhado | `fal-pecas/supabase/functions/_shared/mpCreatePaymentCore.ts`, `mpWebhookCore.ts` | Parse body, mapa de status, assinatura |
-| Leitura cobrança (RLS) | `fal-pecas/src/services/payments/ownPaymentService.ts` | `getOwnPayment`, `listOwnPaymentStatusesByOrder` |
-| Confirmação pedido | `confirm_mercadopago_payment` (migration F9-C) | Ciclo F7: `pagamento_aprovado` → `recebido` → `em_analise`; gate `provider = mercadopago` |
-| Pedido | `place_order` (ex.: `20261112190100_place_order_idempotent_payment_id.sql`) | Cria stub `payments` com `provider = 'mercadopago'` para métodos reais |
-| Admin pagamentos | `fal-pecas/src/pages/admin/payments/*` | Hub, provedores, métodos MP, webhooks (referência) |
-
-### 2.3 Métodos suportados hoje
-
-| Método | Provedor | Checkout | Confirmação |
-|--------|----------|----------|-------------|
-| PIX | Mercado Pago | Sim | Webhook + `sync-mp-payment` + `confirm_mercadopago_payment` |
-| Cartão crédito/débito | Mercado Pago (Brick) | Sim | Idem; homologação cartão E2E documentada como pendente em [PAY consolidada](./FAL_AUDITORIA_PAY_CONSOLIDACAO_2026-11-13.md) |
-| Boleto | — | Não | Placeholder admin apenas |
-| Simulado / gateway sandbox | simulated / gateway | Dev | `confirm_simulated_payment` |
+**Não implementar** até aprovação expressa da direção FAL após revisão deste documento.
 
 ---
 
-## 3. Mapa de arquivos e dependências
+## 2. Arquitetura atual (evidência 2026-11-16)
 
-### 3.1 Integração Mercado Pago (inventário)
-
-| Área | Arquivos |
-|------|-----------|
-| Front checkout | `CheckoutPage.tsx`, `MercadoPagoPixPanel.tsx`, `MercadoPagoCardBrickPanel.tsx`, `MpCardSecureFields.tsx`, `ResumeOrderPaymentPanel.tsx`, `mpInstance.ts` |
-| Serviços FE | `mpCreatePaymentService.ts`, `mpSyncPaymentService.ts`, `createMpPaymentFlow.ts`, `mpWebhookCore.ts` (espelho testável) |
-| Edge Functions | `create-mp-payment`, `mercado-pago-webhook`, `sync-mp-payment` |
-| Migrations pagamentos | `20261006200000_fase9a_*`, `20261006210000_fase9c_*`, `20261010183109_fase9f_*`, `20261104191000_payments_status_*`, `20261112190100_place_order_idempotent_payment_id.sql` |
-| Admin | `AdminMercadoPagoPage.tsx`, `AdminPaymentWebhooksPage.tsx`, `mpAdminStatus.ts` |
-| Config CLI | `supabase/config.toml` — JWT em create/sync; webhook sem JWT |
-
-### 3.2 Acoplamentos críticos ao modelo mono-gateway
-
-| Ponto | Impacto no híbrido |
-|-------|---------------------|
-| `paymentEngine.ts` | Sem router; um `primaryProviderId()` por env |
-| `place_order` | `provider = 'mercadopago'` antes de qualquer decisão de valor |
-| `create-mp-payment` | Assume MP em insert/update de `payments` |
-| `sync-mp-payment` L75–77 | Rejeita não-MP (`not_mercadopago`) |
-| `confirm_mercadopago_payment` | RPC exclusiva MP |
-| `useCheckoutOrderPaymentWatch` | Chama só `syncMercadoPagoPayment` |
-| `effectivePaymentAvailability` | Capabilities só do adaptador MP |
-| Checkout UI | SDK MP, public key, painéis nomeados Mercado Pago |
-
-### 3.3 Dependências reutilizáveis
-
-- Tabelas `payments` / `payment_events` e índice idempotente `(provider, provider_event_id)`.
-- `decideWebhookTransition`, `mapMpProviderStatusToInternal`, política de reuso/expiração em `create-mp-payment`.
-- `store_payment_display` (comercial) + enforce na Edge.
-- `pickActivePayment` (`fal-pecas/src/services/orders/pickActivePayment.ts`) — UI de retomada prefere pending mais recente.
-- Motor PG05 e páginas admin como casca para provedores/métodos.
-
----
-
-## 4. Mapa do fluxo financeiro atual
+### 2.1 Fluxo desejado pelo produto (código `main`)
 
 ```mermaid
 sequenceDiagram
   participant C as Cliente
   participant CH as Checkout
   participant PO as place_order
-  participant P as payments
-  participant E as create_mp_payment
-  participant GW as MercadoPago
-  participant WH as webhook
-  participant RPC as confirm_mercadopago_payment
+  participant GW as create_fal_payment
+  participant MP as create_mp_payment
+  participant AS as create_asaas_payment
+  participant Ext as MP_ou_Asaas
+  participant WH as webhooks
+  participant Sync as sync_mp_ou_asaas
 
   C->>CH: finaliza pedido
   CH->>PO: payment_method + idempotency_key
-  PO->>P: INSERT pending provider=mercadopago
-  CH->>E: orderId + token cartão opcional
-  E->>GW: POST /v1/payments
-  E->>P: UPDATE provider_payment_id pix fields
-  GW-->>WH: notificação
-  WH->>P: status terminal ou approve
-  WH->>RPC: se approved
-  RPC->>PO: order em_analise
+  PO->>PO: stub payments com provider roteado
+  Note over CH: Cartao: nao cria cobranca no finalize; abre AsaasCardPanel
+  CH->>GW: createFalPayment orderId method
+  GW->>MP: forward se Pix roteado MP
+  GW->>AS: forward se Pix alto cartao boleto
+  MP->>Ext: POST MP payments
+  AS->>Ext: POST Asaas payments
+  Ext-->>WH: eventos
+  WH->>PO: confirm_* RPC
+  CH->>Sync: poll se webhook atrasa
 ```
 
-### 4.1 Separação pedido × cobrança × evento (confirmada)
+**Regra de roteamento (obrigatória, já no código):**
 
-| Conceito lógico | Implementação FAL | Nota |
-|-----------------|-------------------|------|
-| Pedido | `orders` + lifecycle F7 | Status operacional independente do gateway |
-| Cobrança / transação FAL | Linha em `payments` | Uma linha por tentativa; reuso do mesmo `id` enquanto pending válido |
-| Evento provedor | `payment_events` | Auditoria + idempotência webhook |
-| Tentativa | `metadata.mp_attempt` + linhas `expired`/`cancelled` | **Não** há tabela `payment_attempts` |
-| Provedor processador | `payments.provider` | Deve permanecer imutável após criação no gateway |
+| Método | Valor | Provedor |
+|--------|------:|----------|
+| PIX | ≤ R$ 201,00 inclusive | Mercado Pago |
+| PIX | > R$ 201,00 | Asaas |
+| Cartão crédito/débito | qualquer | Asaas (`invoiceUrl`) |
+| Boleto | qualquer | Asaas |
 
-### 4.2 Idempotência `place_order`
+Limite em centavos: `20100`. Decisão no backend; FE espelha para UX.
 
-Retorno idempotente inclui `payment_id` e `payment_status` da cobrança mais recente (`order by created_at desc limit 1`). Retomada de checkout deve usar `pickActivePayment` / pending mais recente, não “o provider do pedido”.
+### 2.2 Componentes e responsabilidades (`main`)
+
+| Camada | Local | Responsabilidade |
+|--------|--------|------------------|
+| Checkout | `fal-pecas/src/pages/Checkout/CheckoutPage.tsx` | Pedido → método → `createFalPayment` (Pix) ou `AsaasCardPanel` (cartão) |
+| Cartão UI | `components/payments/AsaasCardPanel.tsx` | Cria cobrança + `window.open(paymentUrl)` |
+| Brick MP | `MercadoPagoCardBrickPanel.tsx` | **Fora** do checkout de produção (DEV / legado) |
+| Motor | `services/payments/engine/paymentEngine.ts` | Híbrido → `invokeCreateFalPayment` |
+| Gateway FE | `createFalPaymentService.ts` | Invoke Edge `create-fal-payment` |
+| Router | `routing/paymentRouter.ts` + `_shared/paymentRouterCore.ts` | Regra única em centavos |
+| Config | `payment_routing_config` + `paymentRoutingService.ts` | Flags provedores / limite |
+| Comercial | `store_payment_display` + `effectivePaymentAvailability.ts` | Toggles Pix/cartão/parcelas |
+| Edges | `create-fal-payment`, `create-mp-payment`, `create-asaas-payment`, `*-webhook`, `sync-*` | Criação / confirmação / poll |
+| Confirmação | RPCs `confirm_*` (service_role) | Ciclo pedido pós-aprovação |
+
+### 2.3 Separação conceitual (confirmada)
+
+| Conceito | Implementação | Nota |
+|----------|---------------|------|
+| Pedido | `orders` | Status operacional F7 |
+| Cobrança / tentativa | linha em `payments` | Stub pode existir antes do charge no gateway |
+| Evento provedor | `payment_events` | Idempotência webhook |
+| Provedor | `payments.provider` | Deve permanecer imutável após charge criado |
+| Tentativa | múltiplas linhas `payments` + `metadata` | **Não** há tabela `payment_attempts` |
+
+### 2.4 Estado remoto `wtbpwuiayednvlhvuhbh` (produção loja)
+
+**Fatos confirmados (SQL / CLI / logs):**
+
+- `payment_routing_config`: `asaas_enabled=true`, `mercadopago_enabled=true`, `pix_mp_max_amount_cents=20100`, `card_provider=asaas`, `rule_version=fal-pay-hybrid-v1`.
+- `store_payment_display`: cartão/crédito/débito/Pix comerciais ON; parcelas até 3× sem juros.
+- Edges PAY ativas: `create-fal-payment` (v2), `create-asaas-payment` (v31), `create-mp-payment` (v56), `asaas-webhook`, `sync-asaas-payment`, `mercado-pago-webhook`, `sync-mp-payment`.
+- Secrets presentes (somente nomes auditados): `ASAAS_API_KEY`, `ASAAS_ENV`, `ASAAS_WEBHOOK_TOKEN`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_ENV`.
+- Migrations PAY aplicadas sob versões remotas com timestamps distintos dos arquivos locais (histórico de apply via MCP/CLI — ver §8).
+- Tentativas Asaas recentes (débito R$ 31,97 e R$ 1,00): `provider=asaas`, `status=pending`, `provider_payment_id` **null**, metadata `awaiting_provider_charge=true`.
+- CPF 11 dígitos + e-mail auth + nome: **OK** nesses stubs (não é falha de cadastro).
+- `payment_events` recentes: **apenas Mercado Pago** — zero eventos Asaas no intervalo auditado.
+- PIX MP: múltiplos `approved` nos últimos 14 dias.
+
+**`owllmfcpbodqmoerdfxx`:** projeto MCP genérico **sem** tabelas PAY / Edges PAY — não usar como runtime da loja.
+
+### 2.5 Netlify / frontend publicado
+
+| Evidência | Resultado |
+|-----------|-----------|
+| Site | `https://fal-pecas-automotivas.netlify.app/` |
+| Bundle `assets/index-*.js` | **Sem** strings `asaas`, `create-fal-payment`, `create-asaas-payment`, `invoiceUrl` |
+| Deploys recentes (MCP) | Predominantemente `deploy-preview` (branch `cursor/fal-pay-hibrido-impl-14df` e `main` preview) |
+| Commit conhecido no ciclo híbrido inicial | `5638f33…` — adaptador Asaas ainda lançava *"Cartão Asaas em implementação"* e checkout usava Brick MP |
+| `main` local | 12 commits à frente de `5638f33` com cartão `invoiceUrl` + gateway único |
+
+**Causa confirmada P0-A:** frontend publicado **não** carrega o fluxo Asaas do código atual.
+
+### 2.6 Falha runtime cartão no código atual (`localhost`)
+
+| Evidência | Resultado |
+|-----------|-----------|
+| UI | Checkout local: “Continuar pagamento com cartão” → alerta `Edge Function returned a non-2xx status code` |
+| Pedido | `b0304f49-…` / payment `0712bdf3-…` stub Asaas sem charge |
+| Log `create-fal-payment` | POST **546**, `execution_time_ms≈149952`, `sb_error_code=WORKER_RESOURCE_LIMIT` |
+| Log `create-asaas-payment` | Shutdown `reason=WallClockTime` (~mesmo request_id / janela) |
+| Cliente HTTP Asaas | `asaasApiCore.ts` — `fetch` **sem timeout** |
+
+**Causa confirmada P0-B:** orquestração Edge→Edge + chamada Asaas sem timeout estoura wall clock; cobrança não é gravada no ledger mesmo com roteamento e dados do pagador corretos.
+
+---
+
+## 3. Mapa de arquivos e dependências
+
+### 3.1 Mercado Pago (inventário)
+
+| Área | Arquivos |
+|------|----------|
+| Front Pix | `MercadoPagoPixPanel.tsx` / `CheckoutPixPanel.tsx` |
+| Front cartão legado | `MercadoPagoCardBrickPanel.tsx`, `MpCardSecureFields.tsx`, `mpInstance.ts` |
+| Serviços | `mpCreatePaymentService.ts`, `mpSyncPaymentService.ts`, `createMpPaymentFlow.ts`, `mpWebhookCore.ts` |
+| Edges | `create-mp-payment`, `mercado-pago-webhook`, `sync-mp-payment` |
+| Shared | `_shared/mpCreatePaymentCore.ts`, `mpWebhookCore.ts` |
+| Admin | `AdminMercadoPagoPage.tsx`, `AdminPaymentWebhooksPage.tsx` |
+| Env | `VITE_MP_PUBLIC_KEY`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_ENV` |
+
+### 3.2 Asaas (inventário)
+
+| Área | Arquivos |
+|------|----------|
+| Front cartão | `AsaasCardPanel.tsx` |
+| Serviços | `createAsaasPaymentService.ts`, `asaasSyncPaymentService.ts`, `asaasAdapter.ts` |
+| Edges | `create-asaas-payment`, `asaas-webhook`, `sync-asaas-payment` |
+| Shared | `asaasApiCore.ts`, `asaasCreatePaymentCore.ts`, `asaasInstallmentsCore.ts`, `asaasPaymentStatusCore.ts` |
+| Env | `ASAAS_API_KEY`, `ASAAS_ENV`, `ASAAS_WEBHOOK_TOKEN` |
+
+### 3.3 Orquestração / roteamento
+
+| Área | Arquivos |
+|------|----------|
+| Gateway único | `create-fal-payment/index.ts`, `createFalPaymentService.ts` |
+| Router | `paymentRouter.ts`, `paymentRouterCore.ts`, `paymentRoutingConfigCore.ts` |
+| Config DB | migrations `2026111501*`, `2026111514*`, `2026111516*`, `2026111520*` |
+| Pedido | `placeOrderService.ts` + `place_order` (ledger gateway) |
+
+### 3.4 Acoplamentos críticos (ainda problemáticos)
+
+| Ponto | Impacto |
+|-------|---------|
+| `create-fal-payment` faz `fetch` interno para outra Edge | Duplo wall clock; 546 no pai |
+| `asaasApiRequest` sem timeout / AbortSignal | Travamento até kill runtime |
+| Retry de create sem reconciliar Asaas por `externalReference` | Risco de cobrança duplicada (doc oficial) |
+| Webhook Asaas: token opcional; sem re-fetch/valor | Segurança inferior ao MP |
+| Deploy Netlify desalinhado de `main` | Cliente nunca chega ao fluxo Asaas publicado |
+| Brick MP ainda no repo | Confusão operacional se alguém publicar build antigo |
+
+### 3.5 Dependências reutilizáveis (não recriar)
+
+- Tabelas `payments` / `payment_events` + UK `(provider, provider_event_id)`.
+- Política multi-tentativa (várias linhas por pedido).
+- `store_payment_display` + enforce comercial.
+- `pickActivePayment` / retomada.
+- PIX MP create + webhook HMAC + sync.
+- Admin hub de pagamentos (casca).
+
+---
+
+## 4. Mapa do fluxo financeiro atual
+
+### 4.1 Happy path (código) vs realidade observada
+
+| Etapa | Esperado | Observado cartão |
+|-------|----------|------------------|
+| `place_order` | Stub `payments` com provider roteado | OK — Asaas + `awaiting_provider_charge` |
+| Create charge | `provider_payment_id` + `payment_url`/`pix_*` | **Falha** — timeout 546 / WallClock |
+| Cliente paga | Fatural Asaas / Pix | Não alcança |
+| Webhook | `payment_events` + `confirm_*` | Sem eventos Asaas |
+| Pedido | `pagamento_aprovado` → `em_analise` | Fica `aguardando_pagamento` |
+
+### 4.2 Idempotência atual
+
+| Camada | Comportamento |
+|--------|---------------|
+| Pedido | `idempotency_key` → `already_existed` + payment mais recente |
+| MP create | `X-Idempotency-Key` + reuso pending |
+| Asaas create | Reuso se `provider_payment_id` + mesmo método/valor/parcelas |
+| MP webhook | HMAC + claim `payment_events` |
+| Asaas webhook | Insert evento; token **só se** secret definido |
+
+**Lacuna confirmada:** se Asaas criou cobrança mas a Edge morreu antes do UPDATE local, o stub permanece sem `provider_payment_id` e um novo create pode **duplicar** cobrança (mesmo `externalReference=orderId`).
 
 ---
 
 ## 5. Diagnóstico Mercado Pago
 
-### 5.1 Capacidades implementadas
+### 5.1 Capacidades
 
 | Recurso | Situação | Evidência |
 |---------|----------|-----------|
-| Criação Pix | OK | `paymentMethodId: 'pix'` em `mpCreatePaymentCore` |
-| QR + copia/cola | OK | `pix_qr_code`, `pix_qr_code_base64` |
-| Cartão tokenizado | OK | Brick; campos proibidos no client em `parseCreateMpPaymentClientBody` |
-| Valor | Servidor only | Rejeita `amount` no body do client |
-| Webhook | Assinatura HMAC + ts freshness | `verifyMpWebhookSignature` |
-| Idempotência eventos | Unique `(provider, provider_event_id)` | `payment_events` |
-| Reuso cobrança | Pix pending válido; troca método cancela pending | `create-mp-payment` ~L211–315 |
-| Expiração Pix | Marca `expired`, nova tentativa | `isPaymentExpired` |
-| Sync atrasado | Edge autenticada | `sync-mp-payment` |
-| Reembolso gateway | Parcial | `admin_mark_payment_refunded` (admin); API MP refund = futuro PG15 |
+| PIX create + QR | OK | Edges + ledger approved |
+| Webhook HMAC | OK | `mpWebhookCore` + eventos processados |
+| Sync atrasado | OK | `sync-mp-payment` |
+| Cartão Brick | Desligado no gateway híbrido | 409 `payment_route_mismatch` se forçar cartão no MP |
+| Reembolso API | Parcial / futuro | Admin mark; não é bloqueador cartão Asaas |
 
-### 5.2 Problemas confirmados (impacto no híbrido)
+### 5.2 Segurança MP
 
-| ID | Classificação | Descrição | Impacto operacional |
-|----|---------------|-----------|---------------------|
-| R-01 | **Confirmado** | Sem roteamento por valor/método | PIX R$ 500 sempre MP hoje |
-| R-02 | **Confirmado** | `place_order` grava `mercadopago` no stub | Router no create não corrige provider já persistido errado para PIX alto |
-| R-03 | **Confirmado** | RPC approve só MP | Asaas não promove pedido |
-| R-04 | **Confirmado** | Sync e watch MP-only | Cliente Asaas sem fallback de poll |
-| R-05 | **Confirmado** | `payments_method_check` sem `boleto` | Migration necessária para boleto |
-| R-06 | Hipótese | Cartão Asaas pode exigir UX diferente do Brick | Spike antes da onda cartão Asaas |
+- Secrets só Edge; public key só Vite.
+- Valor cobrado = `orders.total` no servidor.
+- Customer sem UPDATE em `payments`.
+- Webhook: assinatura + freshness + re-fetch + `amountsMatch`.
 
-### 5.3 Segurança (MP)
+### 5.3 Papel no híbrido
 
-- Secrets: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` (Edge only) — ver [PG02](./FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md).
-- Public key: `VITE_MP_PUBLIC_KEY` apenas no front.
-- Customer não escreve em `payments` / `payment_events` (RLS + revoke).
-- FE nunca interpreta create como aprovação (`ownPaymentService` comentário explícito).
+MP permanece **somente PIX ≤ R$ 201**. Não deve voltar a processar cartão no checkout.
 
 ---
 
-## 6. Lacunas para integração Asaas
+## 6. Lacunas e diagnóstico Asaas
 
-### 6.1 Estado do repositório
+### 6.1 Capacidades API (documentação oficial — confirmadas)
 
-Nenhum código, secret ou migration Asaas. Admin lista PagBank/Pagar.me como “futuro”, não Asaas.
+| Necessidade FAL | Recurso Asaas | Notas |
+|-----------------|---------------|-------|
+| Cobrança Pix/boleto/cartão | `POST /v3/payments` | `billingType` PIX / BOLETO / CREDIT_CARD |
+| QR Pix | `GET /v3/payments/{id}/pixQrCode` | GET **sem body** |
+| Cartão via fatura | criar sem PAN → `invoiceUrl` | Alinhado ao checkout atual |
+| Cartão via API | `creditCard` + holder + `remoteIp` | Exige HTTPS; FAL optou por fatura |
+| Débito | via fatura (`CREDIT_CARD` / `UNDEFINED`) | Dados de débito **não** vão na API |
+| Parcelas | `installmentCount` + value/total | Limites por bandeira |
+| Webhooks | eventos `PAYMENT_CONFIRMED` / `RECEIVED` / risco / etc. | Entrega **at least once** |
+| Idempotência webhook | campo `id` do evento | Persistência antes de processar |
+| Retry create | **não** repetir após timeout sem consultar | Usar `externalReference` + verificação |
 
-### 6.2 Matriz API Asaas → necessidades FAL
+Fontes: [Cobranças cartão](https://docs.asaas.com/docs/cobrancas-via-cartao-de-credito), [Webhooks](https://docs.asaas.com/docs/webhooks-e-eventos), [Idempotência webhooks](https://docs.asaas.com/docs/como-implementar-idempotencia-em-webhooks), [Retries](https://docs.asaas.com/docs/retries-e-idempotência), [Cobrança duplicada](https://docs.asaas.com/docs/cobrança-duplicada-após-retry-sem-idempotência).
 
-Fonte: [docs.asaas.com](https://docs.asaas.com/) (consultado 2026-11-15). Base URL sandbox: `https://api-sandbox.asaas.com/v3`.
+### 6.2 Findings (template protocolo)
 
-| Necessidade FAL | Operação Asaas | Endpoint / notas |
-|-----------------|----------------|------------------|
-| Criar cobrança Pix / boleto / cartão | Criar nova cobrança | `POST /v3/payments` — `billingType`: `PIX`, `BOLETO`, `CREDIT_CARD` ([criar cobrança](https://docs.asaas.com/reference/criar-nova-cobranca)) |
-| QR Pix + copia/cola | Obter QR Code Pix | `GET /v3/payments/{id}/pixQrCode` — `encodedImage`, `payload`, `expirationDate` ([obter QR Pix](https://docs.asaas.com/reference/obter-qr-code-para-pagamentos-via-pix)) |
-| Consultar status | Recuperar cobrança | `GET /v3/payments/{id}` |
-| Boleto linha digitável | Obter linha digitável | `GET /v3/payments/{id}/identificationField` (sibling pages da doc) |
-| Boleto URL/PDF | Resposta criação / `bankSlipUrl` | Campo `bankSlipUrl` no DTO de cobrança |
-| Cartão | Criar cobrança com cartão | [Criar cobrança com cartão de crédito](https://docs.asaas.com/reference/criar-cobranca-com-cartao-de-credito) — validar fluxo de token/dados na conta FAL |
-| Estorno | Estorno de cobrança | Endpoints de refund na família Cobranças (mapear na impl.) |
-| Webhooks | Configurar + receber | `POST /v3/webhooks`; eventos `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_REFUNDED`, etc. ([webhook config](https://docs.asaas.com/reference/recuperar-um-unico-webhook)) |
-| Autenticação API | Header | `access_token` (API key) — **não** enviar no browser |
-| Autenticação webhook | Token no webhook | `hasAuthToken` na config; validar header/token em cada POST |
+### FIND-PAY-001
 
-### 6.3 Normalização de estados (planejado)
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-001 |
+| Área | Checkout / Deploy |
+| Problema | Frontend publicado sem fluxo Asaas / `create-fal-payment` |
+| Comportamento atual | Bundle produção sem Asaas; deploys recentes em preview |
+| Esperado | Produção alinhada a `main` com `AsaasCardPanel` + gateway |
+| Causa confirmada | Deploy Netlify desalinhado do commit de cartão Asaas |
+| Impacto | Cliente em produção **não** executa o fluxo híbrido atual |
+| Severidade | **P0** |
+| Status | proposto |
+| Evidência | Fetch bundle site; MCP deploys; diff `5638f33..4e7fab1` |
 
-Mapear status Asaas (ex.: `PENDING`, `RECEIVED`, `CONFIRMED`, `OVERDUE`, `REFUNDED`) para estados FAL via função compartilhada análoga a `mapMpProviderStatusToInternal`, reutilizando `decideWebhookTransition` quando semântica compatível.
+### FIND-PAY-002
 
-### 6.4 Secrets previstos (não aplicados nesta fase)
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-002 |
+| Área | Orquestração Edge |
+| Problema | Create cartão falha com non-2xx / stub sem charge |
+| Comportamento atual | HTTP 546 `WORKER_RESOURCE_LIMIT` (~150 s); filha `WallClockTime` |
+| Esperado | Cobrança Asaas criada em segundos com `invoiceUrl` |
+| Causa confirmada | `create-fal-payment` aguarda HTTP de `create-asaas-payment`; Asaas fetch sem timeout |
+| Impacto | Cartão bloqueado mesmo no código local atual |
+| Severidade | **P0** |
+| Status | proposto |
+| Evidência | Logs Supabase 2026-11-16 ~14:56Z; UI localhost; SQL stubs |
 
-| Secret Edge (proposta) | Uso |
-|------------------------|-----|
-| `ASAAS_API_KEY` | create/sync Asaas |
-| `ASAAS_WEBHOOK_TOKEN` ou validação configurada no painel | `asaas-webhook` |
-| `ASAAS_ENV` | `sandbox` \| `production` — parear com URL base |
+### FIND-PAY-003
 
-Atualizar `.env.example` e [PG02](./FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md) na onda de implementação.
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-003 |
+| Área | Integridade financeira Asaas |
+| Problema | Timeout tratado como falha sem reconciliação |
+| Comportamento atual | Stub pending sem `provider_payment_id`; retry pode POST novamente |
+| Esperado | Timeout = inconclusivo → consultar por `externalReference` → reutilizar ou criar uma vez |
+| Causa confirmada | Ausência de fluxo inconclusivo no create Asaas |
+| Impacto | Risco de cobrança duplicada |
+| Severidade | **P1** |
+| Status | proposto |
+| Evidência | Código `create-asaas-payment`; docs Asaas retries/duplicidade |
+
+### FIND-PAY-004
+
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-004 |
+| Área | Segurança webhook Asaas |
+| Problema | Autenticação e prova de pagamento mais fracas que MP |
+| Comportamento atual | Token só se `ASAAS_WEBHOOK_TOKEN` setado; confia no JSON; payload bruto no ledger |
+| Esperado | Token obrigatório; re-fetch cobrança; validar valor; sanitizar payload |
+| Causa confirmada | Implementação atual de `asaas-webhook` |
+| Impacto | Risco de spoof / exposição se secret omitido |
+| Severidade | **P1** |
+| Status | proposto |
+
+### FIND-PAY-005
+
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-005 |
+| Área | Observabilidade / testes |
+| Problema | Sem testes Edge Asaas; admin sem reprocessamento; conciliação extrato ausente |
+| Severidade | **P2** |
+| Status | proposto |
+| Evidência | Inventário Vitest; `AdminPaymentWebhooksPage` só URL |
+
+### FIND-PAY-006
+
+| Campo | Valor |
+|-------|-------|
+| ID | FIND-PAY-006 |
+| Área | Produto boleto |
+| Problema | Backend/roteamento aceitam boleto; checkout/`place_order`/tipos TS incompletos |
+| Severidade | **P2** |
+| Status | proposto (fase posterior ao cartão) |
+
+### 6.3 Hipóteses (não confirmadas como causa do cartão atual)
+
+| ID | Hipótese | Por que não é causa confirmada agora |
+|----|----------|--------------------------------------|
+| H-01 | `ASAAS_API_KEY` ausente | Secret existe; falha é timeout, não 503 missing |
+| H-02 | CPF/e-mail faltando | SQL mostra CPF 11 + e-mail |
+| H-03 | `asaas_enabled=false` | SQL mostra `true` |
+| H-04 | Popup bloqueado | Falha ocorre **antes** de obter `paymentUrl` |
+| H-05 | Ambiente sandbox vs produção inconsistente | Valores de secret não lidos; validar na onda ops (hipótese operacional) |
 
 ---
 
 ## 7. Arquitetura híbrida proposta
+
+### 7.1 Decisão: reaproveitar × recriar
+
+| Bloco | Decisão | Motivo |
+|-------|---------|--------|
+| Ledger / RPCs / router / comercial / PIX MP / UI cartão fatura | **Reaproveitar** | Já alinhados à regra estratégica |
+| Orquestração create Asaas (Edge→Edge + fetch sem timeout) | **Recriar (controlado)** | Causa raiz P0-B |
+| Brick MP no checkout | **Não reativar** | Cartão = Asaas |
+| Boleto / conciliação admin / painel avançado | **Incremental** após cartão estável | YAGNI até cartão OK |
+
+### 7.2 Camadas alvo
 
 ```mermaid
 flowchart TB
@@ -264,74 +409,84 @@ flowchart TB
     CH[Checkout metodo-agnostico]
     ADM[Admin roteamento]
   end
-  subgraph core [Backend_FAL]
-    ORCH[PaymentOrchestrator]
+  subgraph edge [Edge_Orquestrador]
+    ORCH[create-fal-payment Orchestrator]
     ROUTER[PaymentRouter]
     CFG[PaymentConfiguration]
   end
-  subgraph providers [Providers]
+  subgraph providers [Provider_Modules_Shared]
     MP[MercadoPagoProvider]
     ASA[AsaasProvider]
   end
-  CH --> CreatePay[Edge create-payment]
-  CreatePay --> ORCH
+  CH --> ORCH
   ORCH --> ROUTER
   ROUTER --> CFG
   ORCH --> MP
   ORCH --> ASA
-  WH[asaas-webhook + mercado-pago-webhook] --> ORCH
-  SyncPay[sync-payment] --> ORCH
+  WH[webhooks MP + Asaas] --> ORCH
+  Sync[sync por provider] --> ORCH
 ```
 
-### 7.1 Payment Router
+**Mudança estrutural obrigatória:** `create-fal-payment` **não** deve `fetch` outra Edge no hot path. Deve importar módulos `_shared` (MP/Asaas) e executar create in-process, com timeout por etapa.
 
-- **Única** implementação (módulo puro, testes Vitest).
-- Entrada: `method`, `amountCents` (inteiro, `Math.round(total * 100)`).
-- Limite **inclusive**: `amountCents <= 20100` → MP para PIX; `> 20100` → Asaas para PIX.
-- Cartão e boleto → Asaas sempre.
-- Persistir decisão na cobrança (`metadata.routing` ou colunas dedicadas) no momento da criação — alteração futura do limite **não** retroage.
+### 7.3 Payment Router
 
-### 7.2 Payment Provider Interface
+- Única implementação (Vitest T1–T6).
+- Entrada: `method`, `amountCents` inteiro.
+- PIX ≤ 20100 → MP; > → Asaas; cartão/boleto → Asaas.
+- Persistir `routed_provider` + `rule_version` na tentativa no momento da decisão.
+- Alteração futura do limite **não** retroage.
 
-Estender `FalPaymentAdapter` + espelho Deno em `_shared`:
+### 7.4 Payment Provider Interface
 
-- `createCharge`, `getCharge`, `cancelCharge`, `refundCharge` (onde suportado)
-- `parseWebhook`, `normalizeStatus`
+Contrato comum (FE types + Deno shared):
 
-Checkout chama **apenas** `create-payment` (orquestrador), não `create-mp-payment` diretamente.
+- `createCharge`
+- `getCharge`
+- `findChargeByExternalReference` (**obrigatório Asaas**)
+- `cancelCharge` / `refundCharge` (onde suportado)
+- `parseWebhook` / `normalizeStatus`
 
-### 7.3 Payment Orchestrator
+### 7.5 Payment Orchestrator
 
-- Dono da política de reuso/cancelamento (generalizar lógica atual do MP).
-- Aprovação de pedido via `confirm_payment_approved(p_payment_id)` genérica ou facade que valida `payments.provider` e executa ciclo F7 comum.
-- Idempotência: approved não reprocessa; webhook duplicado → noop.
+Garantias:
 
-### 7.4 Webhook Handler
+1. Pedido criado **antes** da cobrança.
+2. Cobrança só no provider roteado; `provider` imutável após charge.
+3. Estado local: `pending_stub` → `creating` → `pending_gateway` | `inconclusive` | `rejected` | `approved`…
+4. Timeout Asaas → marcar `inconclusive` → **nunca** create cego.
+5. Antes de novo POST: lock + busca Asaas por `externalReference`/`payment.id` interno.
+6. Aprovação do pedido **somente** via evidência webhook/sync + RPC — nunca só pela resposta create.
+7. Multi-tentativa = nova linha `payments`, sem sobrescrever histórico.
 
-- Manter `mercado-pago-webhook`.
-- Adicionar `asaas-webhook` com validação de token e ledger em `payment_events` (`provider = 'asaas'`).
-- Admin [`AdminPaymentWebhooksPage`](fal-pecas/src/pages/admin/payments/AdminPaymentWebhooksPage.tsx): estender com URL Asaas (hoje só MP).
+### 7.6 Webhook Handler
 
-### 7.5 Conciliação e monitoramento
+- Manter MP endurecido.
+- Asaas: token **obrigatório**; persistir `event.id` com UK; responder 200 após persistir; processar efeitos depois; re-fetch cobrança + validar valor; sanitizar payload.
 
-Views/agregações sobre `payments` + `payment_events`: totais por provedor, método, status, período; futura cruzamento com extratos API (PG12+).
+### 7.7 Reconciliation
+
+- Sync cliente por `payments.provider`.
+- Job/admin futuro: pendentes Asaas sem `provider_payment_id` → consulta API.
+- Totais por provedor/método/status/período (visão admin).
 
 ---
 
 ## 8. Modelo de dados proposto
 
-**Diretriz:** reutilizar `payments` + `payment_events` ([PG08](./FAL_MARCHA_PAGAMENTOS_PG08_MODELO_2026-11-09.md)).
+**Diretriz:** evoluir `payments` + `payment_events` (não criar banco paralelo).
 
 | Mudança | Motivo |
 |---------|--------|
-| `payments_method_check` incluir `boleto` | Boleto Asaas |
-| `provider` valores `mercadopago` \| `asaas` | Já `text` livre |
-| Tabela `payment_routing_config` (singleton versionada) | Limite centavos, provedor por método, flags ativo, audit |
-| Tabela `payment_provider_config` (opcional) | Saúde, ambiente, último webhook — sem secrets |
-| `place_order`: stub neutro **ou** provider definido só após router | Evitar R-02 |
-| Colunas opcionais: `routed_at`, `route_rule_version` | Rastreabilidade |
+| Manter multi-linhas por pedido | Histórico de tentativas |
+| Colunas/metadata: `route_rule_version`, `charge_phase` (`stub`/`creating`/`gateway`/`inconclusive`) | Rastreio timeout |
+| Índice/consulta por `external_ref` + provider | Reconciliação |
+| UK parcial “uma cobrança gateway aberta” já existe com `provider_payment_id NOT NULL` | Completar política para stubs/creating |
+| Não UPDATE `provider` após charge | Imutabilidade |
+| `payment_routing_config` + audit de alteração | Admin |
+| Boleto em `method` (já SQL) + alinhamento `place_order`/TS | Fase boleto |
 
-**Histórico de transações (requisito eFe):** manter múltiplas linhas `payments` por pedido; proibir UPDATE de `provider` em cobranças `pending` com `provider_payment_id` setado.
+**Histórico migrations:** remotas PAY usam timestamps diferentes dos arquivos locais (`20261115014134` vs `20261115010000`, etc.). Próximas mudanças devem **não** reaplicar DDL já presente; preferir migrations novas idempotentes e inventário de schema remoto antes do apply.
 
 ---
 
@@ -341,25 +496,30 @@ Views/agregações sobre `payments` + `payment_events`: totais por provedor, mé
 |--------|------------|----------|
 | PIX | ≤ 201,00 inclusive | Mercado Pago |
 | PIX | > 201,00 | Asaas |
-| Cartão crédito/débito | Qualquer | Asaas |
-| Boleto | Qualquer | Asaas |
+| Cartão | qualquer | Asaas |
+| Boleto | qualquer | Asaas |
 
-**Exemplos de teste obrigatórios:** R$ 50 / 200 / 201,00 → MP; R$ 201,01 / 500 → Asaas; cartão e boleto em valores baixos e altos → Asaas.
+Exemplos de teste: 50 / 200 / 201,00 → MP; 201,01 / 500 → Asaas; cartão e boleto qualquer valor → Asaas.
 
-Decisão **somente no backend** (Edge `create-payment`), nunca só no checkout.
+Decisão **somente no backend**; FE apenas espelha.
 
 ---
 
 ## 10. Planejamento do checkout
 
-- Exibir métodos sem revelar gateway (manter copy atual de canais Pix/cartão; adicionar boleto quando ativo comercialmente).
-- `createFalPayment` → invoke `create-payment`; resposta unificada (`pixQrCode`, `paymentUrl`, boleto fields).
-- **Pix MP:** manter painéis atuais quando router retornar MP.
-- **Pix Asaas:** mesmo shell UI; dados de `pixQrCode`/`encodedImage` mapeados para colunas existentes.
-- **Cartão:** novo fluxo Asaas (spike); desacoplar `MercadoPagoCardBrickPanel` atrás de interface `CardPaymentPanel`.
-- **Boleto:** nova etapa pós-criação (linha digitável, link PDF, vencimento).
-- `effectivePaymentAvailability`: união de capabilities dos provedores **ativos** ∩ `store_payment_display`.
-- `useCheckoutOrderPaymentWatch`: `sync-payment` genérico por `payment.provider`.
+Fluxo alvo (já pretendido no código `main`):
+
+1. Cliente monta carrinho / compra direta.
+2. `place_order` cria pedido + stub de pagamento com provider roteado.
+3. Checkout chama gateway único `create-fal-payment`.
+4. UI:
+   - Pix: painel QR agnóstico de marca do gateway.
+   - Cartão: `AsaasCardPanel` (fatura segura) — **sem** revelar “Asaas” ao cliente além do necessário operacional.
+   - Boleto (fase posterior): linha digitável + PDF.
+5. Confirmação: webhook + sync; UI “Já paguei — verificar”.
+6. Erros: mensagens amigáveis; timeout → “pagamento em verificação”, não “tente criar de novo” cego.
+
+**Não reintroduzir** Brick MP no checkout de produção.
 
 ---
 
@@ -367,109 +527,126 @@ Decisão **somente no backend** (Edge `create-payment`), nunca só no checkout.
 
 | Área | Entrega |
 |------|---------|
-| Provedores | Asaas na lista com ativo/inativo; manutenção MP |
-| Roteamento | Tela: limite PIX (default 20100 centavos), provedor cartão/boleto, audit log |
-| Métodos | Toggles Pix/cartão/boleto (comercial + integração) |
-| Webhooks | URLs MP + Asaas; último evento / falhas (PG13) |
-| Secrets | Só flags “configurado” no admin; valores via Supabase secrets |
+| Provedores | MP/Asaas ativo; ambiente; saúde webhook |
+| Métodos | Pix/cartão/boleto comerciais |
+| Roteamento | Limite PIX, providers; audit; **não** altera pendentes |
+| Webhooks | URLs + últimos eventos + reprocessamento (PG13) |
+| Secrets | Só flags “configurado”; valores via Supabase secrets |
+| Conciliação | Totais por provider/método/status; lista inconclusivos |
 
-Desativar provedor: bloqueia **novas** cobranças; pendentes inalteradas.
+Desativar provedor: bloqueia **novas** cobranças; pendentes intactas.
 
 ---
 
 ## 12. Segurança e integridade financeira
 
-| Controle | Atual | Híbrido |
-|----------|-------|---------|
-| Valor cobrado | `orders.total` no servidor | Igual |
-| Webhook MP | HMAC + request-id | Manter |
-| Webhook Asaas | — | Validar token configurado; rejeitar anon |
-| Idempotência | `payment_events` | Mesmo padrão por `provider` |
-| Aprovação pedido | Evidência webhook/RPC | Não aprovar só na resposta create |
-| PCI | Token Brick | Token/campos Asaas; sem PAN na FAL |
-| RLS | Customer read own | Manter |
+| Controle | Atual | Alvo |
+|----------|-------|------|
+| Valor | `orders.total` servidor | Manter |
+| PAN | Não na FAL (fatura) | Manter |
+| Webhook MP | HMAC + re-fetch + amount | Manter |
+| Webhook Asaas | Token opcional / trust JSON | Token obrigatório + re-fetch + amount |
+| Idempotência eventos | UK provider+event | Manter; Asaas = `body.id` |
+| Timeout create | Kill 546 | Timeout curto + fase `inconclusive` + reconcile |
+| Retry | Pode POST cego | Consultar antes |
+| RLS | Customer read own | Manter; sanitizar eventos Asaas |
+| Deploy | Preview/desalinhado | Produção = `main` validado |
 
 ---
 
 ## 13. Matriz de testes e cenários críticos
 
-### 13.1 Roteamento
+### 13.1 Roteamento (automatizado)
 
-| ID | Valor | Método | Provedor esperado |
-|----|------:|--------|-------------------|
-| T1 | 200,00 | PIX | MP |
-| T2 | 201,00 | PIX | MP |
-| T3 | 201,01 | PIX | Asaas |
-| T4 | 500,00 | PIX | Asaas |
-| T5 | 50 / 5000 | Cartão | Asaas |
-| T6 | 100 / 2000 | Boleto | Asaas |
+| ID | Caso | Esperado |
+|----|------|----------|
+| T1 | PIX 200,00 | MP |
+| T2 | PIX 201,00 | MP |
+| T3 | PIX 201,01 | Asaas |
+| T4 | PIX 500,00 | Asaas |
+| T5 | Cartão 50 / 5000 | Asaas |
+| T6 | Boleto 100 / 2000 | Asaas |
 
-### 13.2 Fluxo financeiro
+### 13.2 Cartão (aceitação — bloqueador atual)
 
-Aprovar, pendente, recusado, expirado, cancelado, reembolso, nova tentativa, duplo clique, dupla cobrança, webhook duplicado/atrasado/fora de ordem, gateway indisponível, perda de comunicação pós-create.
+| ID | Caso | Esperado |
+|----|------|----------|
+| C1 | Create cartão sandbox/prod homolog | `< 10s`, `paymentUrl` preenchida, `provider_payment_id` set |
+| C2 | Timeout simulado Asaas | `inconclusive`; **sem** segundo POST até reconcile |
+| C3 | Retry após inconclusivo com cobrança já criada | Reutiliza ID Asaas |
+| C4 | Pagar fatura → webhook | Pedido `em_analise`; evento ledger |
+| C5 | Sync “Já paguei” | Idempotente |
+| C6 | Duplo clique Continuar | Uma cobrança gateway |
+| C7 | Deploy produção | Bundle contém fluxo cartão Asaas |
 
-**Comportamento esperado:** transições via `decideWebhookTransition`; pedido só avança em `approved` com RPC idempotente; pending expirado permite nova linha `payments` sem alterar provider da tentativa anterior.
+### 13.3 Fluxo financeiro geral
 
-### 13.3 Integridade
+Aprovado, pendente, recusado, expirado, cancelado, reembolso, nova tentativa, webhook duplicado/atrasado/fora de ordem, gateway indisponível, perda pós-create.
 
-Pedido com duas tentativas; pedido pago + nova tentativa bloqueada; evento sem pedido → log + não approve; divergência status DB vs gateway → sync corrige ou alerta staff.
+### 13.4 Integridade
 
-### 13.4 Testes automatizados existentes (baseline)
+Duas tentativas; pedido pago + nova tentativa bloqueada; evento sem pedido; stub sem charge; divergência DB↔gateway.
 
-Cobertura atual **não** inclui router híbrido:
+### 13.5 Baseline testes existentes
 
-- `paymentEngine.test.ts`, `paymentStatuses.test.ts`, `mpCreatePaymentCore.test.ts`, `mpWebhookCore.test.ts`
-- `pickActivePayment.test.ts` — retomada multi-tentativa
-- `checkoutPaymentChannel.test.ts`, `isCheckoutPaymentSettled.test.ts`
-- `fase9aPaymentsFoundation.test.ts`, `gatewaySandboxPaymentProvider.test.ts`
-
-**Próxima onda:** `paymentRouter.test.ts` com casos T1–T6; testes de integração Edge mockadas.
+Vitest cobre router, engine, MP webhook/create cores, disponibilidade, parcelas Asaas — **não** cobre Edge Deno Asaas/create-fal nem E2E cartão.
 
 ---
 
 ## 14. Análise de custos
 
-**Não utilizar taxas públicas como contratadas.** Informações a solicitar à direção/contabilidade:
+**Não usar taxas públicas como contratadas.** Solicitar à direção:
 
-- Taxa PIX MP (faixa ≤ R$ 201) vs Asaas (faixa > R$ 201) — impacto direto da regra estratégica.
-- MDR cartão Asaas por banda/modalidade; parcelamento; antecipação.
-- Boleto: emissão, compensação, prazo.
-- Estornos e chargebacks.
-- Prazo de recebimento líquido por provedor.
+- PIX MP (faixa ≤ 201) vs Asaas (faixa > 201)
+- MDR cartão Asaas / parcelamento / antecipação
+- Boleto emissão + compensação
+- Estorno / chargeback
+- Prazo de recebimento líquido
 
-Comparativo só após receber tabela contratual FAL.
+Comparativo só após tabela contratual FAL.
 
 ---
 
-## 15. Plano de implantação por etapas
+## 15. Plano de implantação por etapas (gated)
 
-| # | Etapa | Dependências | Critério de conclusão |
-|---|--------|--------------|------------------------|
-| 1 | Contratos + `PaymentRouter` + testes centavos | — | T1–T6 verdes em Vitest |
-| 2 | Modelo dados (`boleto`, routing config, `place_order`) | 1 | Migration aplicável em homolog |
-| 3 | `AsaasProvider` + create sandbox | 2 | Cobrança Pix Asaas em sandbox |
-| 4 | Edge `create-payment` + refator checkout | 1–3 | Checkout não chama `create-mp-payment` direto |
-| 5 | Webhooks Asaas + RPC approve genérica | 3–4 | PAYMENT_RECEIVED promove pedido teste |
-| 6 | Boleto checkout | 4–5 | Linha digitável exibida |
-| 7 | Cartão Asaas | 4–5 | Smoke cartão sandbox |
-| 8 | PIX Asaas faixa alta | 4–5 | T3–T4 E2E |
-| 9 | Conciliação admin | 5 | Relatório por provedor |
-| 10 | Painel roteamento + audit | 2 | Alteração limite com log |
-| 11 | Testes + CI | 1–10 | Matriz 13 coberta |
-| 12 | Homologação | 11 | Checklist assinado |
-| 13 | Ativação gradual | 12 | Flag por método/provedor |
-| 14 | Monitoramento pós-go-live | 13 | Dashboard eventos / alertas |
+> **STOP global:** nenhuma etapa abaixo foi executada nesta auditoria. Cada etapa exige gate explícito do eFe.
+
+| # | Etapa | Dependências | Critério de conclusão | Evidência |
+|---|--------|--------------|------------------------|-----------|
+| 0 | Contenção: alinhar produção Netlify a `main` validado **ou** isolar smoke só em preview/local documentado | — | Bundle contém `create-fal-payment` + cartão fatura | Diff deploy commit == HEAD; strings no bundle |
+| 1 | Instrumentação create Asaas (logs etapa: customer/create/update) **sem** mudar regra | 0 | Cada falha mostra etapa | Log Edge |
+| 2 | Timeout + AbortSignal no cliente Asaas; falha rápida | 1 | Sem wall clock 150s; erro tipado | C1/C2 |
+| 3 | Orquestrador in-process (remover Edge→Edge hot path) | 2 | Uma Edge cria cobrança | Latência + ausência 546 |
+| 4 | Fase `inconclusive` + lock + reconcile por `externalReference` | 3 | Retry não duplica | C2/C3 + conta Asaas |
+| 5 | Webhook Asaas endurecido (token obrigatório, re-fetch, amount, sanitize) | 4 | Evento promove pedido | C4 |
+| 6 | Smoke cartão homologado (crédito + débito via fatura) | 5 | Pedido `em_analise` | Checklist humano + SQL |
+| 7 | Regressão PIX MP T1–T2 | 6 | Zero regressão | Ledger Pix approved |
+| 8 | PIX Asaas T3–T4 | 6 | QR Asaas OK | Smoke |
+| 9 | Boleto checkout (se direção autorizar) | 6 | Linha digitável | Smoke |
+| 10 | Admin: eventos/reprocessamento/inconclusive | 5 | Operador resolve sem SQL | UI |
+| 11 | Conciliação unificada (totais) | 10 | Relatório período | Admin |
+| 12 | Testes automatizados Edge/orquestrador | 3–5 | CI verde | Vitest/Deno |
+| 13 | Homologação + rollout gradual | 6–12 | Checklist assinado | VAL |
+| 14 | Monitoramento pós-go-live | 13 | Alertas 546/inconclusivos | Dashboard |
+
+**Ordem recomendada para destravar cartão rápido:** 0 → 2 → 3 → 4 → 5 → 6 → 7.
+
+Não propor big-bang de reescrita do ledger ou troca de provedor de cartão de volta ao MP.
 
 ---
 
 ## 16. Critérios de aceite
 
-- Router único; regras da seção 9 sem duplicação no FE.
-- `payments.provider` imutável após charge criada; histórico de tentativas preservado.
-- Cliente não vê nome de gateway.
-- Webhooks idempotentes MP + Asaas.
-- Admin altera limite sem migrar pendentes.
-- PIX ≤ R$ 201 permanece MP após go-live híbrido (regressão zero nos casos T1–T2).
+- [ ] Cliente cria pedido e, no checkout, o gateway correto é escolhido no **backend**.
+- [ ] PIX ≤ R$ 201 continua MP (T1–T2).
+- [ ] Cartão qualquer valor → Asaas fatura; sem PAN na FAL.
+- [ ] Create cartão retorna `paymentUrl` + `provider_payment_id` em tempo operacional (< 10 s típico).
+- [ ] Timeout não gera segundo POST sem reconcile.
+- [ ] Webhook/sync Asaas confirma pedido sem duplicar efeitos.
+- [ ] Frontend produção = commit validado (não preview órfão).
+- [ ] `payments.provider` imutável após charge; histórico multi-tentativa preservado.
+- [ ] Cliente não depende de conhecer o nome técnico do gateway.
+- [ ] Admin consegue ver pendentes/inconclusivos.
 
 ---
 
@@ -477,48 +654,41 @@ Comparativo só após receber tabela contratual FAL.
 
 | Risco | Mitigação |
 |-------|-----------|
-| Regressão Pix MP | Feature flags; deploy router antes de desviar cartão; smoke T1–T2 contínuo |
-| UX cartão Asaas diferente | Spike + homologação antes onda 7 |
-| Provider errado no stub | Migration `place_order` + orchestrator único escritor |
-| Sync inexistente Asaas | `sync-payment` por provider |
-| Conciliação divergente | `provider_payment_id` + eventos ledger |
-| Atraso homologação Asaas | MP mantém faixa baixa PIX independente |
+| Publicar frontend antigo | Gate deploy: checklist strings + commit SHA |
+| Duplicar cobrança Asaas | Reconcile obrigatório pós-timeout |
+| Regressão PIX MP | Smoke T1–T2 a cada release PAY |
+| Secret Asaas ambiente errado | Validar `ASAAS_ENV` vs chave na onda ops (sem expor valor) |
+| Webhook Asaas sem token | Fail-closed |
+| Migrations timestamp divergente | Inventário remoto antes de qualquer DDL |
+| Confundir `owll…` com prod | Runtime canônico = `wtbp…` |
 
 ---
 
 ## 18. Questões para decisão da direção FAL
 
-1. **`place_order`:** stub com `provider` neutro (`pending_route`) até `create-payment` **vs.** calcular router dentro do RPC (preferência técnica: neutro + orchestrator).
-2. **Débito:** regra “cartão → Asaas” inclui débito na mesma data que crédito?
-3. **Cartão MP:** desligamento total após Asaas ou janela de rollback?
-4. **Conta Asaas:** sandbox, KYC, URL webhook produção.
-5. **Taxas contratadas** para análise de custos (seção 14).
-6. **Boleto:** prazo de vencimento padrão e política de expiração/cancelamento do pedido.
-7. **Limite R$ 201:** permanece fixo inicial ou apenas default na config admin?
+1. **Deploy produção:** publicar `main@4e7fab1` (ou HEAD validado) agora, ou manter smoke só em ambiente controlado até o orquestrador?
+2. **Cartão:** manter exclusivamente fatura Asaas (`invoiceUrl`) na v1, ou evoluir para tokenização na loja (exige liberação Asaas)?
+3. **Débito:** confirmar que débito segue fatura Asaas (sem dados de débito na API).
+4. **Boleto:** prazo de vencimento padrão e se entra na mesma onda do cartão ou depois.
+5. **Limite PIX R$ 201:** fixo inicial ou editável no admin com audit desde o dia 1?
+6. **Taxas contratadas** MP/Asaas para fechar §14.
+7. **Conta Asaas:** sandbox vs produção no smoke de homologação; URL webhook produção confirmada.
+8. **Rollback cartão MP:** **não recomendado**; confirmar desligamento definitivo do Brick no checkout.
 
 ---
 
-## Anexo A — Varredura complementar (ownPayment, sync, admin, testes)
+## Anexo A — Evidências-chave (caminhos)
 
-### A.1 `ownPaymentService`
-
-- `listOwnPaymentStatusesByOrder`: todas as linhas do pedido (suporta multi-tentativa no watcher).
-- `getOwnPayment`: campos Pix/URL; **não** promove status no FE.
-
-### A.2 `sync-mp-payment`
-
-- Autenticação JWT (`verify_jwt = true`).
-- Recusa `provider !== 'mercadopago'`.
-- Usa mesma máquina de estados que webhook; chama `confirm_mercadopago_payment` em approve.
-
-### A.3 Admin webhooks
-
-- `AdminPaymentWebhooksPage`: documentação operacional MP; PG13 prevê reprocessamento.
-- URL: `mpWebhookUrlHint()` a partir de `VITE_SUPABASE_URL`.
-
-### A.4 Inventário secrets (resumo)
-
-Ver [FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md](./FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md). Híbrido adicionará `ASAAS_*` sem `VITE_`.
+| Evidência | Onde |
+|-----------|------|
+| Router FE | `fal-pecas/src/services/payments/routing/paymentRouter.ts` |
+| Gateway Edge | `fal-pecas/supabase/functions/create-fal-payment/index.ts` |
+| Create Asaas | `fal-pecas/supabase/functions/create-asaas-payment/index.ts` |
+| HTTP Asaas sem timeout | `fal-pecas/supabase/functions/_shared/asaasApiCore.ts` |
+| Painel cartão | `fal-pecas/src/components/payments/AsaasCardPanel.tsx` |
+| Checkout | `fal-pecas/src/pages/Checkout/CheckoutPage.tsx` |
+| Runtime local | `fal-pecas/.env.local` → `wtbpwuiayednvlhvuhbh` |
+| Site | `https://fal-pecas-automotivas.netlify.app/` |
 
 ---
 
@@ -526,15 +696,30 @@ Ver [FAL_INVENTARIO_VARS_SECRETS_MP_ME_PG02_2026-11-09.md](./FAL_INVENTARIO_VARS
 
 | Entregável | Status |
 |------------|--------|
-| Diagnóstico consolidado | Este documento |
-| Arquitetura recomendada | Seção 7 |
-| Plano de implementação | Seção 15 |
-| Riscos / dependências | Seções 17, 6 |
-| Decisões pendentes | Seção 18 |
-| Ordem de execução | Seção 15 |
+| Diagnóstico consolidado | Este documento §§1–6 |
+| Arquitetura recomendada | §7 |
+| Modelo de dados | §8 |
+| Regras roteamento | §9 |
+| Checkout / admin | §§10–11 |
+| Segurança | §12 |
+| Matriz testes | §13 |
+| Custos | §14 |
+| Plano implantação | §15 |
+| Aceite / riscos / decisões | §§16–18 |
+| Implementação | **BLOQUEADA** até aprovação expressa |
 
-**Implementação:** aguardando aprovação expressa da direção FAL após revisão técnica com eFe.
+### Diagnóstico consolidado (uma frase)
 
----
+**O híbrido já está no código e no banco `wtbp…`, mas o cartão falha porque o frontend publicado não carrega esse fluxo e, no código atual, a criação Asaas estoura o limite de tempo da Edge antes de gravar a cobrança — e o retry sem reconciliação ainda pode duplicar cobrança.**
 
-**Assinatura:** FAL PAY auditoria + planejamento híbrido MP/Asaas · gate documental · 2026-11-15.
+### Ordem de execução recomendada
+
+1. Gate direção.  
+2. Alinhar deploy.  
+3. Timeout + orquestrador in-process + reconcile.  
+4. Webhook Asaas endurecido.  
+5. Smoke cartão.  
+6. Regressão PIX.  
+7. Boleto/admin/conciliação.
+
+**Assinatura:** FAL PAY auditoria assertiva MP/Asaas · gate documental · 2026-11-16 · implementação não iniciada.

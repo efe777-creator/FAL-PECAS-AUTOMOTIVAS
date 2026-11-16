@@ -24,6 +24,9 @@ const base: PaymentDisplaySettings = {
   showOnCards: true,
   showOnPdp: true,
   footnote: null,
+  pixAdjustPercent: 0,
+  debitAdjustPercent: 0,
+  creditAdjustPercent: 0,
 }
 
 describe('paymentDisplay', () => {

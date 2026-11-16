@@ -4,33 +4,7 @@ import type {
   FalCreatePaymentResult,
 } from '@/services/payments/engine/paymentEngineTypes'
 import { normalizeFalPaymentStatus } from '@/services/payments/engine/paymentStatuses'
-
-function edgeErrorMessage(data: unknown, fallback: string): string {
-  if (data && typeof data === 'object') {
-    const row = data as { error?: string; detail?: string; message?: string }
-    if (row.error === 'ASAAS_API_KEY missing' || row.error === 'MP_ACCESS_TOKEN missing') {
-      return 'Pagamento indisponível no momento. Tente mais tarde.'
-    }
-    if (row.error === 'payment_route_mismatch') {
-      return row.detail
-        ? String(row.detail)
-        : 'Este pagamento deve ser processado por outro provedor.'
-    }
-    if (row.error === 'installments_not_allowed') {
-      return row.detail ? String(row.detail) : 'Parcelamento não permitido para este pedido.'
-    }
-    if (row.error === 'payer_document_required') {
-      return 'Informe CPF ou CNPJ na conta para continuar.'
-    }
-    if (row.error === 'method_not_allowed') {
-      return row.detail ? String(row.detail) : 'Meio de pagamento indisponível.'
-    }
-    if (row.error) {
-      return row.detail ? `${row.error}: ${row.detail}` : row.error
-    }
-  }
-  return fallback
-}
+import { falEdgeErrorMessage } from '@/services/payments/falEdgeErrorMessage'
 
 /** Única entrada do checkout FAL PAY → Edge create-fal-payment. */
 export async function invokeCreateFalPayment(
@@ -44,14 +18,14 @@ export async function invokeCreateFalPayment(
   // Cartão Asaas não envia token/PAN — só method + parcelas.
 
   const { data, error } = await getSupabase().functions.invoke('create-fal-payment', { body })
-  let bodyRow = data as (FalCreatePaymentResult & { error?: string; detail?: string }) | null
+  let bodyRow = data as (FalCreatePaymentResult & { error?: string; detail?: unknown }) | null
   if (error && !bodyRow) {
     try {
       const ctx = (error as { context?: Response }).context
       if (ctx && typeof ctx.json === 'function') {
         bodyRow = (await ctx.json()) as FalCreatePaymentResult & {
           error?: string
-          detail?: string
+          detail?: unknown
         }
       }
     } catch {
@@ -59,9 +33,9 @@ export async function invokeCreateFalPayment(
     }
   }
   if (error) {
-    throw new Error(edgeErrorMessage(bodyRow, error.message || 'Falha ao criar pagamento'))
+    throw new Error(falEdgeErrorMessage(bodyRow, error.message || 'Falha ao criar pagamento'))
   }
-  if (bodyRow?.error) throw new Error(edgeErrorMessage(bodyRow, bodyRow.error))
+  if (bodyRow?.error) throw new Error(falEdgeErrorMessage(bodyRow, bodyRow.error))
   if (!bodyRow?.paymentId) throw new Error('Resposta create-fal-payment inválida')
 
   return {

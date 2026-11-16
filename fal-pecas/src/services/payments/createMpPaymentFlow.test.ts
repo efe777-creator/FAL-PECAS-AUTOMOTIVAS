@@ -22,6 +22,9 @@ const displayOn6 = {
   showOnCards: true,
   showOnPdp: true,
   footnote: null,
+  pixAdjustPercent: 0,
+  debitAdjustPercent: 0,
+  creditAdjustPercent: 0,
 } as const
 // creditEnabled/debitEnabled required by PaymentDisplaySettings
 
@@ -210,6 +213,9 @@ describe('executeCreateMpPayment — casos A–I', () => {
           showOnCards: true,
           showOnPdp: true,
           footnote: null,
+          pixAdjustPercent: 0,
+          debitAdjustPercent: 0,
+          creditAdjustPercent: 0,
         }),
       }),
     )

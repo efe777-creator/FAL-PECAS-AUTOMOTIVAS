@@ -72,10 +72,14 @@ export function AdminPaymentMethodsPage() {
         <Link to="/admin/pagamentos" className="text-sm font-semibold text-fal-navy no-underline">
           ← Pagamentos
         </Link>
-        <h1 className="mt-2 text-[28px] font-extrabold text-fal-navy">Métodos de pagamento</h1>
+        <h1 className="mt-2 text-[28px] font-extrabold text-fal-navy">Roteamento e saúde</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Leitura efetiva = integração técnica + Home da loja (comercial) +{' '}
-          <code className="text-xs">payment_routing_config</code> (roteamento).
+          Edite só o roteamento FAL PAY aqui. Condições (% Pix, parcelas, ligar meios na loja)
+          ficam na{' '}
+          <Link to="/admin/home?tab=payment" className="font-semibold text-fal-navy">
+            Home → Pagamentos
+          </Link>
+          . Diagnóstico abaixo explica o que o cliente vê.
         </p>
       </div>
 
@@ -85,9 +89,9 @@ export function AdminPaymentMethodsPage() {
           className="flex items-center justify-between gap-3 no-underline"
         >
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Mercado Pago</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Status Mercado Pago</h2>
             <p className="mb-0 mt-1 text-sm text-fal-muted">
-              API, ambiente, opções Pix/cartão e status da integração.
+              Public Key, ambiente e capacidade do adaptador (somente leitura).
             </p>
           </div>
           <span className="shrink-0 text-sm font-bold text-fal-navy">Abrir →</span>
@@ -199,31 +203,33 @@ export function AdminPaymentMethodsPage() {
           </Button>
         </form>
         <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-          <p className="m-0 font-semibold text-fal-navy">Parcelas (checkout real)</p>
+          <p className="m-0 font-semibold text-fal-navy">Condições na Home (leitura)</p>
           <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-fal-muted">
+            <li>Pix %: {settings?.pixAdjustPercent ?? 0}</li>
+            <li>Crédito %: {settings?.creditAdjustPercent ?? 0}</li>
+            <li>Débito %: {settings?.debitAdjustPercent ?? 0}</li>
             <li>Parcelamento: {settings?.installmentsEnabled ? 'ligado' : 'só 1x'}</li>
             <li>Máx. parcelas: {settings?.maxInstallments ?? '—'}</li>
-            <li>Parcela mínima: {formatMoney(settings?.minInstallmentAmount ?? 0)}</li>
-            <li>Sem juros até: {settings?.interestFreeMax ?? 0}x</li>
             <li>
-              Juros comerciais: {settings?.allowInterestInstallments !== false ? 'permitidos' : 'bloqueados'}
-            </li>
-            <li>
-              Ex. pedido R$ 600 → até <strong>{demoMaxInstallments}x</strong> (política + Edge Asaas)
+              Ex. R$ 600 → até <strong>{demoMaxInstallments}x</strong> no crédito
             </li>
           </ul>
-          <Link to="/admin/home" className="mt-2 inline-block font-semibold text-fal-navy">
-            Editar na Home da loja →
+          <Link
+            to="/admin/home?tab=payment&meio=credit"
+            className="mt-2 inline-block font-semibold text-fal-navy"
+          >
+            Editar condições na Home →
           </Link>
         </div>
       </div>
 
       <div className="rounded-[14px] border border-dashed border-fal-line bg-fal-bg/40 p-4 text-sm">
-        <p className="m-0 font-semibold text-fal-navy">Disponibilidade efetiva agora</p>
+        <p className="m-0 font-semibold text-fal-navy">Por que o cliente vê / não vê</p>
         <p className="mb-0 mt-1 text-fal-muted">
-          Integração: {mpOn ? 'ligada' : 'desligada'} · Pix: {avail.pix ? 'visível' : 'oculto'} ·
+          Motor: {mpOn ? 'ligado' : 'desligado'} · Pix: {avail.pix ? 'visível' : 'oculto'} ·
           Crédito: {avail.credit ? 'visível' : 'oculto'} · Débito:{' '}
           {avail.debit ? 'visível' : 'oculto'}
+          {avail.cardBlockedReason ? ` · ${avail.cardBlockedReason}` : ''}
         </p>
       </div>
 

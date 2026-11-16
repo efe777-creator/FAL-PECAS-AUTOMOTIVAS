@@ -47,6 +47,10 @@ export function AsaasCardPanel({
   const conditionLine = formatPaymentConditionLine(amount, paymentDisplay, 'pdp')
 
   async function openPayment() {
+    if (!(amount >= 5)) {
+      onError('O valor mínimo para pagamento com cartão é R$ 5,00. Use Pix ou aumente o pedido.')
+      return
+    }
     setBusy(true)
     try {
       const res = await createFalPayment({

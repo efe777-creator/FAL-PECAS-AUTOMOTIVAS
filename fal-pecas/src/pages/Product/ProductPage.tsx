@@ -4,7 +4,10 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
-import { PaymentConditionHint } from '@/components/product/PaymentConditionHint'
+import {
+  PaymentConditionHint,
+  useStorefrontDisplayAmount,
+} from '@/components/product/PaymentConditionHint'
 import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMethodsBlock'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
@@ -329,6 +332,7 @@ export function ProductPage() {
   const displayName = toCommercialTitleCase(current.name)
   const brandName = current.brand ? toCommercialTitleCase(current.brand) : null
   const price = displayPrice(current)
+  const storefrontPrice = useStorefrontDisplayAmount(price)
   const listPrice = current.listPrice ?? current.price
   const offer = resolvePromoOffer(listPrice, price)
   const shortDesc = current.shortDescription?.trim() || ''
@@ -506,7 +510,9 @@ export function ProductPage() {
               offer.isOffer && presentation.showOfertaBadge ? 'mt-2' : 'mt-4'
             } text-3xl font-black`}
           >
-            {current.available === false ? '—' : formatStorePriceLabel(price, listPrice)}
+            {current.available === false
+              ? '—'
+              : formatStorePriceLabel(storefrontPrice, listPrice)}
           </p>
           {current.available !== false && offer.isOffer ? (
             <p className="mt-1 text-sm text-fal-muted line-through">

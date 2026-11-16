@@ -1,11 +1,12 @@
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { PaymentDisplaySettings } from '@/lib/paymentDisplay'
 
-const CACHE_TTL_MS = 5 * 60_000
+/** Cache curto: mudanças na Home de condições refletem rápido na loja. */
+const CACHE_TTL_MS = 45_000
 let cache: { at: number; data: PaymentDisplaySettings | null } | null = null
 
 const SELECT_COLS =
-  'id, enabled, max_installments, min_installment_amount, interest_free, interest_free_max, allow_interest_installments, installments_enabled, card_enabled, credit_enabled, debit_enabled, pix_enabled, show_on_cards, show_on_pdp, footnote'
+  'id, enabled, max_installments, min_installment_amount, interest_free, interest_free_max, allow_interest_installments, installments_enabled, card_enabled, credit_enabled, debit_enabled, pix_enabled, show_on_cards, show_on_pdp, footnote, pix_adjust_percent, debit_adjust_percent, credit_adjust_percent'
 
 type Row = {
   id: string
@@ -23,6 +24,15 @@ type Row = {
   show_on_cards: boolean
   show_on_pdp: boolean
   footnote: string | null
+  pix_adjust_percent?: number | string | null
+  debit_adjust_percent?: number | string | null
+  credit_adjust_percent?: number | string | null
+}
+
+function clampPct(raw: unknown): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return 0
+  return Math.min(100, Math.max(-90, Math.round(n * 1000) / 1000))
 }
 
 function mapRow(row: Row): PaymentDisplaySettings {
@@ -65,6 +75,9 @@ function mapRow(row: Row): PaymentDisplaySettings {
     showOnCards: Boolean(row.show_on_cards),
     showOnPdp: Boolean(row.show_on_pdp),
     footnote: row.footnote?.trim() || null,
+    pixAdjustPercent: clampPct(row.pix_adjust_percent),
+    debitAdjustPercent: clampPct(row.debit_adjust_percent),
+    creditAdjustPercent: clampPct(row.credit_adjust_percent),
   }
 }
 
@@ -140,6 +153,9 @@ export async function adminUpsertPaymentDisplaySettings(
     show_on_cards: input.showOnCards,
     show_on_pdp: input.showOnPdp,
     footnote: input.footnote?.trim() || null,
+    pix_adjust_percent: clampPct(input.pixAdjustPercent),
+    debit_adjust_percent: clampPct(input.debitAdjustPercent),
+    credit_adjust_percent: clampPct(input.creditAdjustPercent),
     updated_at: new Date().toISOString(),
   }
 

@@ -27,6 +27,24 @@ export type PaymentDisplaySettings = {
   showOnCards: boolean
   showOnPdp: boolean
   footnote: string | null
+  /**
+   * Ajuste % sobre o preço já resolvido da lista (promo ou padrão).
+   * Negativo = desconto (ex. -5 = Pix −5%).
+   */
+  pixAdjustPercent: number
+  debitAdjustPercent: number
+  creditAdjustPercent: number
+}
+
+export type PaymentConditionMethod = 'pix' | 'debit_card' | 'credit_card'
+
+export type PaymentConditionResult = {
+  amount: number
+  baseAmount: number
+  adjustPercent: number
+  adjustmentAmount: number
+  method: PaymentConditionMethod
+  label: string
 }
 
 /** Opção de parcela vinda do MP (ou sintética). */
@@ -213,7 +231,72 @@ export function assertCardInstallmentsAllowed(
   }
 }
 
-/** Linha curta para card/PDP. Null = não mostrar. */
+function clampAdjustPercent(raw: unknown): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return 0
+  return Math.min(100, Math.max(-90, Math.round(n * 1000) / 1000))
+}
+
+export function paymentAdjustPercentForMethod(
+  settings: PaymentDisplaySettings | null | undefined,
+  method: PaymentConditionMethod,
+): number {
+  if (!settings) return 0
+  if (method === 'pix') return clampAdjustPercent(settings.pixAdjustPercent)
+  if (method === 'debit_card') return clampAdjustPercent(settings.debitAdjustPercent)
+  return clampAdjustPercent(settings.creditAdjustPercent)
+}
+
+/**
+ * Aplica condição de pagamento sobre o preço já resolvido da lista
+ * (padrão ou promocional — Promoções só escolhe a base).
+ */
+export function applyPaymentCondition(
+  baseAmount: number,
+  method: PaymentConditionMethod,
+  settings: PaymentDisplaySettings | null | undefined,
+): PaymentConditionResult {
+  const base = Number.isFinite(baseAmount) && baseAmount > 0 ? baseAmount : 0
+  const adjustPercent = paymentAdjustPercentForMethod(settings, method)
+  const amount = Math.round(base * (1 + adjustPercent / 100) * 100) / 100
+  const safeAmount = amount < 0 ? 0 : amount
+  const adjustmentAmount = Math.round((safeAmount - base) * 100) / 100
+  const methodLabel =
+    method === 'pix' ? 'Pix' : method === 'debit_card' ? 'Débito' : 'Crédito'
+  const pctLabel =
+    adjustPercent === 0
+      ? methodLabel
+      : adjustPercent < 0
+        ? `${methodLabel} (${adjustPercent}%)`
+        : `${methodLabel} (+${adjustPercent}%)`
+  return {
+    amount: safeAmount,
+    baseAmount: base,
+    adjustPercent,
+    adjustmentAmount,
+    method,
+    label: pctLabel,
+  }
+}
+
+/** Preço principal da vitrine: melhor à vista (Pix se ativo), senão crédito/base. */
+export function storefrontPrimaryAmount(
+  baseAmount: number,
+  settings: PaymentDisplaySettings | null | undefined,
+): PaymentConditionResult {
+  if (settings?.pixEnabled !== false) {
+    return applyPaymentCondition(baseAmount, 'pix', settings)
+  }
+  if (settings?.creditEnabled !== false || settings?.cardEnabled !== false) {
+    return applyPaymentCondition(baseAmount, 'credit_card', settings)
+  }
+  if (settings?.debitEnabled !== false) {
+    return applyPaymentCondition(baseAmount, 'debit_card', settings)
+  }
+  return applyPaymentCondition(baseAmount, 'pix', settings)
+}
+
+/** Linha curta para card/PDP. Null = não mostrar. Usa preço da condição crédito. */
 export function formatPaymentConditionLine(
   amount: number,
   settings: PaymentDisplaySettings | null | undefined,
@@ -225,12 +308,36 @@ export function formatPaymentConditionLine(
   if (surface === 'pdp' && !settings.showOnPdp) return null
   if (!(amount > 0)) return null
 
-  const n = falMaxInstallmentsForCheckout(amount, settings)
+  const creditAmt = applyPaymentCondition(amount, 'credit_card', settings).amount
+  const n = falMaxInstallmentsForCheckout(creditAmt, settings)
   if (n <= 1) return null
 
-  const parcel = amount / n
+  const parcel = creditAmt / n
   const freeMax = Math.max(0, Math.floor(settings.interestFreeMax))
   const juros =
     settings.interestFree || (freeMax > 0 && n <= freeMax) ? ' sem juros' : ''
   return `em até ${n}x de ${formatMoney(parcel)}${juros}`
+}
+
+/** Linha Pix na vitrine (se houver ajuste ou só rótulo à vista). */
+export function formatPixConditionLine(
+  baseAmount: number,
+  settings: PaymentDisplaySettings | null | undefined,
+): string | null {
+  if (!settings || settings.pixEnabled === false) return null
+  if (!(baseAmount > 0)) return null
+  const r = applyPaymentCondition(baseAmount, 'pix', settings)
+  if (r.adjustPercent === 0) return `Pix ${formatMoney(r.amount)}`
+  return `Pix ${formatMoney(r.amount)} (${r.adjustPercent}%)`
+}
+
+/** Texto curto do ajuste para resumo (checkout/carrinho). Null se 0%. */
+export function formatPaymentAdjustLine(result: PaymentConditionResult): string | null {
+  if (!result.adjustPercent) return null
+  const methodLabel =
+    result.method === 'pix' ? 'Pix' : result.method === 'debit_card' ? 'Débito' : 'Crédito'
+  if (result.adjustPercent < 0) {
+    return `Condição ${methodLabel} (${result.adjustPercent}%)`
+  }
+  return `Condição ${methodLabel} (+${result.adjustPercent}%)`
 }

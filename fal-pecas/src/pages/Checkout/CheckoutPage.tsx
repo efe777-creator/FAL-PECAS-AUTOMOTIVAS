@@ -1,10 +1,12 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { AsaasCardPanel } from '@/components/payments/AsaasCardPanel'
+import { AsaasEmbeddedCreditPanel } from '@/components/payments/AsaasEmbeddedCreditPanel'
 import { CheckoutPixPanel } from '@/components/payments/CheckoutPixPanel'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -26,7 +28,10 @@ import {
   isMercadoPagoCheckoutEnabled,
 } from '@/services/payments/paymentService'
 import { resolveEffectivePaymentAvailability } from '@/services/payments/effectivePaymentAvailability'
-import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
+import {
+  ASAAS_CARD_CHECKOUT_READY,
+  ASAAS_EMBEDDED_CREDIT_READY,
+} from '@/services/payments/falPayCapabilities'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
 import { usePaymentRoutingConfig } from '@/hooks/usePaymentRoutingConfig'
 import { paymentProviderLabel } from '@/lib/paymentLabels'
@@ -34,7 +39,17 @@ import {
   decidePaymentRoute,
   moneyToAmountCents,
 } from '@/services/payments/routing/paymentRouter'
-import { formatPaymentConditionLine } from '@/lib/paymentDisplay'
+import { buildBuyAgainCart } from '@/services/orders/buyAgainService'
+import { customerCancelUnpaidOrder } from '@/services/orders/customerOrderActions'
+import { applyPaymentConditionToOrder } from '@/services/orders/applyPaymentConditionToOrderService'
+import {
+  applyPaymentCondition,
+  formatPaymentAdjustLine,
+  formatPaymentConditionLine,
+  formatPixConditionLine,
+  type PaymentConditionMethod,
+} from '@/lib/paymentDisplay'
+import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import { placeOrder } from '@/services/orders/placeOrderService'
 import {
   buyNowIntentToCartItems,
@@ -125,10 +140,11 @@ function momentSubtitle(step: number, paymentAwaiting: boolean): string {
 export function CheckoutPage() {
   useDocumentTitle('Checkout | FAL Peças Automotivas')
   const { user } = useAuth()
-  const { items: cartItems, clear: clearCart } = useCart()
+  const { items: cartItems, clear: clearCart, addItem } = useCart()
   const { push } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
+  const [cancelBusy, setCancelBusy] = useState(false)
 
   const [buyNowItems] = useState<CartItem[] | null>(() => {
     const intent = loadBuyNowIntent()
@@ -179,13 +195,25 @@ export function CheckoutPage() {
   const paymentRouting = usePaymentRoutingConfig()
   const shippingPreviewAmount =
     shippingOptions.find((o) => o.id === shippingOptionId)?.amount ?? 0
-  const checkoutAmountCents = moneyToAmountCents(subtotal + shippingPreviewAmount)
+  const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
+  const payMethodForPreview: PaymentConditionMethod =
+    mpChannel === 'debit_card'
+      ? 'debit_card'
+      : mpChannel === 'credit_card'
+        ? 'credit_card'
+        : 'pix'
+  const productsCondition = applyPaymentCondition(
+    subtotal,
+    payMethodForPreview,
+    paymentDisplay,
+  )
+  const productsAdjusted = productsCondition.amount
+  const checkoutAmountCents = moneyToAmountCents(productsAdjusted + shippingPreviewAmount)
   const payAvail = resolveEffectivePaymentAvailability(
     paymentDisplay,
     paymentRouting,
     checkoutAmountCents,
   )
-  const [mpChannel, setMpChannel] = useState<MpPayChannel>('pix')
   const checkoutPayRoute = decidePaymentRoute(
     {
       method:
@@ -234,6 +262,17 @@ export function CheckoutPage() {
             amount: prev.amount,
             allowRetry: next === 'pix' ? true : undefined,
           }
+      const method: PaymentConditionMethod =
+        next === 'debit_card' ? 'debit_card' : next === 'credit_card' ? 'credit_card' : 'pix'
+      void applyPaymentConditionToOrder(updated.orderId, method)
+        .then((adj) => {
+          setMpAwaiting((cur) =>
+            cur && cur.orderId === updated.orderId ? { ...cur, amount: adj.total } : cur,
+          )
+        })
+        .catch(() => {
+          /* best-effort: total base permanece */
+        })
       saveCheckoutSession({
         orderId: updated.orderId,
         paymentId: updated.paymentId,
@@ -358,15 +397,23 @@ export function CheckoutPage() {
     setSubmitting(true)
     setError(null)
     try {
+      let chargeAmount = mpAwaiting.amount
+      try {
+        const adj = await applyPaymentConditionToOrder(mpAwaiting.orderId, 'pix')
+        chargeAmount = adj.total
+      } catch {
+        /* mantém amount atual se RPC indisponível */
+      }
       const mp = await createFalPayment({ orderId: mpAwaiting.orderId, method: 'pix' })
       if (!mp.pixQrCode && !mp.pixQrCodeBase64) {
         throw new Error('Não foi possível gerar o Pix. Tente novamente ou escolha cartão.')
       }
+      const finalAmount = mp.amount ?? chargeAmount
       setMpAwaiting({
         channel: 'pix',
         orderId: mpAwaiting.orderId,
         paymentId: mp.paymentId,
-        amount: mp.amount ?? mpAwaiting.amount,
+        amount: finalAmount,
         pixQrCode: mp.pixQrCode,
         pixQrCodeBase64: mp.pixQrCodeBase64,
         expiresAt: mp.expiresAt ?? null,
@@ -376,7 +423,7 @@ export function CheckoutPage() {
         paymentId: mp.paymentId,
         idempotencyKey,
         channel: 'pix',
-        amount: mp.amount ?? mpAwaiting.amount,
+        amount: finalAmount,
       })
       push('Nova cobrança Pix gerada', 'success')
     } catch (e) {
@@ -636,7 +683,15 @@ export function CheckoutPage() {
 
   const itemCount = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items])
   const shippingAmount = selectedShipping?.amount ?? 0
-  const total = subtotal + shippingAmount
+  const total = productsAdjusted + shippingAmount
+  const adjustLine = formatPaymentAdjustLine(productsCondition)
+  const creditPreviewAmount = applyPaymentCondition(
+    subtotal,
+    'credit_card',
+    paymentDisplay,
+  ).amount
+  const pixChannelHint = formatPixConditionLine(subtotal, paymentDisplay)
+  const debitPreview = applyPaymentCondition(subtotal, 'debit_card', paymentDisplay)
 
   async function loadQuotes(force = false) {
     if (!selectedAddress) return
@@ -822,6 +877,13 @@ export function CheckoutPage() {
         pushError('Pix não está disponível no momento.')
         return
       }
+      // Asaas: mínimo R$ 5,00 no cartão (crédito/débito).
+      if (isCardMpChannel(mpChannel) && total < 5) {
+        pushError(
+          'O valor mínimo para pagamento com cartão é R$ 5,00. Use Pix ou aumente o pedido.',
+        )
+        return
+      }
     }
     // C4 — trava concorrência no cliente
     if (submitLockRef.current || submitting) return
@@ -829,22 +891,37 @@ export function CheckoutPage() {
     setSubmitting(true)
     setError(null)
     try {
+      const payMethod = mpEnabled
+        ? isCardMpChannel(mpChannel)
+          ? mpChannel === 'debit_card'
+            ? 'debit_card'
+            : 'credit_card'
+          : 'pix'
+        : paymentMethod
+
       const placed = await placeOrder({
         idempotencyKey,
         addressId,
         shippingOptionId,
-        paymentMethod: mpEnabled
-          ? isCardMpChannel(mpChannel)
-            ? mpChannel === 'debit_card'
-              ? 'debit_card'
-              : 'credit_card'
-            : 'pix'
-          : paymentMethod,
+        paymentMethod: payMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
         clearCart: !isBuyNow,
       })
+
+      let orderTotal = placed.total
+      if (
+        mpEnabled &&
+        (payMethod === 'pix' || payMethod === 'credit_card' || payMethod === 'debit_card')
+      ) {
+        try {
+          const adj = await applyPaymentConditionToOrder(placed.orderId, payMethod)
+          orderTotal = adj.total
+        } catch {
+          /* mantém total da lista se RPC ainda não existir */
+        }
+      }
 
       const decision = resolveCheckoutPaymentOutcome({
         orderId: placed.orderId,
@@ -882,12 +959,12 @@ export function CheckoutPage() {
               orderId: placed.orderId,
               idempotencyKey,
               channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
-              amount: placed.total,
+              amount: orderTotal,
             })
             setMpAwaiting({
               channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
               orderId: placed.orderId,
-              amount: placed.total,
+              amount: orderTotal,
               allowRetry: true,
             })
             goToStepIndex(4)
@@ -897,14 +974,14 @@ export function CheckoutPage() {
             channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
             orderId: placed.orderId,
             paymentId: placed.paymentId,
-            amount: placed.total,
+            amount: orderTotal,
           })
           saveCheckoutSession({
             orderId: placed.orderId,
             paymentId: placed.paymentId,
             idempotencyKey,
             channel: mpChannel === 'debit_card' ? 'debit_card' : 'credit_card',
-            amount: placed.total,
+            amount: orderTotal,
           })
           goToStepIndex(4)
           finishLocalCartState()
@@ -929,7 +1006,7 @@ export function CheckoutPage() {
             channel: 'pix',
             orderId: placed.orderId,
             paymentId: mp.paymentId,
-            amount: placed.total,
+            amount: orderTotal,
             pixQrCode: mp.pixQrCode,
             pixQrCodeBase64: mp.pixQrCodeBase64,
             expiresAt: mp.expiresAt ?? null,
@@ -939,7 +1016,7 @@ export function CheckoutPage() {
             paymentId: mp.paymentId,
             idempotencyKey,
             channel: 'pix',
-            amount: placed.total,
+            amount: orderTotal,
           })
           goToStepIndex(4)
           finishLocalCartState()
@@ -957,7 +1034,7 @@ export function CheckoutPage() {
           channel: 'pix',
           orderId: placed.orderId,
           paymentId: mp.paymentId,
-          amount: placed.total,
+          amount: orderTotal,
           pixQrCode: mp.pixQrCode,
           pixQrCodeBase64: mp.pixQrCodeBase64,
           expiresAt: mp.expiresAt ?? null,
@@ -967,7 +1044,7 @@ export function CheckoutPage() {
           paymentId: mp.paymentId,
           idempotencyKey,
           channel: 'pix',
-          amount: placed.total,
+          amount: orderTotal,
         })
         goToStepIndex(4)
         finishLocalCartState()
@@ -1071,14 +1148,60 @@ export function CheckoutPage() {
   const backLeaveTo =
     safeCheckoutReturnTo((location.state as { from?: unknown } | null)?.from) ??
     loadCheckoutReturnTo() ??
-    (isBuyNow ? '/catalogo' : '/carrinho')
+    (isBuyNow ? '/' : '/carrinho')
   const backLeaveLabel = checkoutBackLabel(
     safeCheckoutReturnTo(backLeaveTo) ?? backLeaveTo,
     isBuyNow,
   )
 
+  async function onCancelPurchase() {
+    const orderId = mpAwaiting?.orderId
+    if (!orderId || cancelBusy || submitting) return
+    const { confirmed } = await confirmDialog({
+      title: 'Cancelar compra?',
+      message: isBuyNow
+        ? 'O pedido será cancelado e a reserva liberada. Você volta para onde estava.'
+        : 'O pedido será cancelado, a reserva liberada e os itens voltam ao carrinho (preços atuais).',
+      confirmLabel: 'Cancelar compra',
+      danger: true,
+    })
+    if (!confirmed) return
+    setCancelBusy(true)
+    setError(null)
+    try {
+      await customerCancelUnpaidOrder(orderId)
+      if (!isBuyNow) {
+        const detail = await getMyOrderDetail(orderId)
+        if (detail?.items?.length) {
+          const restored = await buildBuyAgainCart(detail.items)
+          for (const row of restored.products) {
+            addItem(row.product, row.quantity)
+          }
+        }
+      }
+      clearCheckoutSession()
+      clearCheckoutIdempotencyKey()
+      clearBuyNowIntent()
+      setMpAwaiting(null)
+      submitLockRef.current = false
+      push('Compra cancelada', 'success')
+      navigate(backLeaveTo)
+    } catch (e) {
+      push(toUserMessage(e, 'Não foi possível cancelar a compra.'), 'error')
+    } finally {
+      setCancelBusy(false)
+    }
+  }
+
   return (
     <Container className="py-8">
+      <Link
+        to={backLeaveTo}
+        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
+        aria-label={backLeaveLabel}
+      >
+        ← {backLeaveLabel}
+      </Link>
       <h1 className="mt-0 text-[28px] font-extrabold sm:text-[34px]">Finalizar compra</h1>
       <p className="mt-1 text-sm font-semibold text-fal-muted">
         Etapa {momentIndex + 1} de 3 — {MOMENT_LABELS[momentIndex]}
@@ -1664,7 +1787,9 @@ export function CheckoutPage() {
                       />
                       <span>
                         <span className="block text-sm font-semibold">Pix</span>
-                        <span className="block text-xs text-fal-muted">Pagamento instantâneo</span>
+                        <span className="block text-xs text-fal-muted">
+                          {pixChannelHint ?? 'Pagamento instantâneo'}
+                        </span>
                       </span>
                     </label>
                   ) : null}
@@ -1680,13 +1805,13 @@ export function CheckoutPage() {
                         <span className="block text-sm font-semibold">Cartão de crédito</span>
                         <span className="block text-xs text-fal-muted">
                           {formatPaymentConditionLine(
-                            subtotal + shippingAmount,
+                            creditPreviewAmount,
                             paymentDisplay,
                             'pdp',
                           ) ??
                             (payAvail.installmentsEnabled
-                              ? 'Consulte as parcelas após informar o cartão.'
-                              : 'Somente à vista (parcelamento desligado na loja).')}
+                              ? `À vista ${money(creditPreviewAmount)} · consulte parcelas no cartão`
+                              : `À vista ${money(creditPreviewAmount)}`)}
                         </span>
                       </span>
                     </label>
@@ -1702,7 +1827,10 @@ export function CheckoutPage() {
                       <span>
                         <span className="block text-sm font-semibold">Cartão de débito</span>
                         <span className="block text-xs text-fal-muted">
-                          Cobrança à vista no débito.
+                          À vista {money(debitPreview.amount)}
+                          {debitPreview.adjustPercent
+                            ? ` (${debitPreview.adjustPercent}%)`
+                            : ''}
                         </span>
                       </span>
                     </label>
@@ -1803,13 +1931,35 @@ export function CheckoutPage() {
                     </div>
                   ) : null}
                   {isCardMpChannel(mpAwaiting.channel) ? (
-                    <AsaasCardPanel
-                      orderId={mpAwaiting.orderId}
-                      amount={mpAwaiting.amount}
-                      preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
-                      onApproved={onMpApproved}
-                      onError={onMpError}
-                    />
+                    preferredPaymentTypeFromChannel(mpAwaiting.channel) === 'credit_card' &&
+                    ASAAS_EMBEDDED_CREDIT_READY ? (
+                      <AsaasEmbeddedCreditPanel
+                        orderId={mpAwaiting.orderId}
+                        amount={mpAwaiting.amount}
+                        holderDefaults={{
+                          name: user?.fullName ?? null,
+                          email: user?.email ?? null,
+                          cpfCnpj: onlyDigits(docValue) || user?.cpf || user?.cnpj || null,
+                          postalCode: selectedAddress?.postalCode ?? null,
+                          addressNumber: selectedAddress?.number ?? null,
+                          phone: user?.phone ?? null,
+                          address: selectedAddress
+                            ? `${selectedAddress.street}`.trim()
+                            : null,
+                          province: selectedAddress?.district ?? null,
+                        }}
+                        onApproved={onMpApproved}
+                        onError={onMpError}
+                      />
+                    ) : (
+                      <AsaasCardPanel
+                        orderId={mpAwaiting.orderId}
+                        amount={mpAwaiting.amount}
+                        preferredPaymentType={preferredPaymentTypeFromChannel(mpAwaiting.channel)}
+                        onApproved={onMpApproved}
+                        onError={onMpError}
+                      />
+                    )
                   ) : mpAwaiting.paymentId ? (
                     <CheckoutPixPanel
                       paymentId={mpAwaiting.paymentId}
@@ -1845,6 +1995,19 @@ export function CheckoutPage() {
                   ) : (
                     <Loading label="Preparando Pix…" />
                   )}
+                  <div className="border-t border-fal-line pt-4">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={cancelBusy || submitting}
+                      onClick={() => void onCancelPurchase()}
+                    >
+                      {cancelBusy ? 'Cancelando…' : 'Cancelar compra'}
+                    </Button>
+                    <p className="mb-0 mt-2 text-xs text-fal-muted">
+                      Cancela o pedido e volta para onde você estava.
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
@@ -1958,14 +2121,14 @@ export function CheckoutPage() {
               </Button>
             ) : !mpAwaiting && step > 0 ? (
               <Button type="button" variant="light" onClick={() => void onCheckoutBack()}>
-                Voltar
+                Etapa anterior
               </Button>
             ) : null}
-            {/* Com cobrança aberta o leave para PDP/carrinho fica no resumo lateral. */}
+            {/* Leave ao lado de Continuar na Identificação — mesma origem do topo. */}
             {!mpAwaiting && step === 0 ? (
               <Link to={backLeaveTo}>
                 <Button type="button" variant="light">
-                  {backLeaveLabel}
+                  ← {backLeaveLabel}
                 </Button>
               </Link>
             ) : null}
@@ -2041,9 +2204,18 @@ export function CheckoutPage() {
                 ))}
               </ul>
               <div className="mb-3 flex justify-between border-t border-fal-line pt-3 text-sm">
-                <span>Subtotal</span>
+                <span>Produtos (lista)</span>
                 <strong>{money(subtotal)}</strong>
               </div>
+              {adjustLine && productsCondition.adjustmentAmount !== 0 ? (
+                <div className="mb-3 flex justify-between text-sm text-fal-muted">
+                  <span>{adjustLine}</span>
+                  <span>
+                    {productsCondition.adjustmentAmount > 0 ? '+' : ''}
+                    {money(productsCondition.adjustmentAmount)}
+                  </span>
+                </div>
+              ) : null}
               <div className="mb-3 flex justify-between text-sm text-fal-muted">
                 <span>Frete</span>
                 <span>{selectedShipping ? money(shippingAmount) : 'A calcular'}</span>
@@ -2053,7 +2225,8 @@ export function CheckoutPage() {
                 <span>{money(total)}</span>
               </div>
               <p className="mt-3 text-xs text-fal-muted">
-                Totais definitivos são recalculados no servidor ao finalizar.
+                Total = produtos com condição do meio selecionado + frete. Confirmado no servidor ao
+                finalizar.
               </p>
             </>
           )}

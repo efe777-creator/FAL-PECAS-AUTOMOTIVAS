@@ -41,7 +41,8 @@ export function clearCheckoutReturnTo(): void {
 }
 
 export function checkoutBackLabel(path: string | null, isBuyNow: boolean): string {
-  if (!path) return isBuyNow ? 'Voltar' : 'Voltar ao carrinho'
+  if (!path) return isBuyNow ? 'Voltar ao início' : 'Voltar ao carrinho'
+  if (path === '/') return 'Voltar ao início'
   if (path.startsWith('/produto/')) return 'Voltar ao produto'
   if (path.startsWith('/carrinho')) return 'Voltar ao carrinho'
   if (path.startsWith('/catalogo') || path.startsWith('/busca')) return 'Voltar'

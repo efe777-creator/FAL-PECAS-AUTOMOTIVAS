@@ -68,7 +68,7 @@ export function AdminPaymentProvidersPage() {
               ) : null}
               {a.id === 'asaas' ? (
                 <p className="mb-0 mt-2 text-xs text-fal-muted">
-                  Roteamento: PIX &gt; R$ 201, cartão e boleto. Secrets:{' '}
+                  Limite Pix e provedores: editar em Roteamento e saúde. Secrets:{' '}
                   <code className="text-xs">ASAAS_API_KEY</code> no Edge.
                 </p>
               ) : null}

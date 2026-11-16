@@ -76,7 +76,7 @@ export function AdminHomeSectionTabs({
         variant={active === 'payment' ? 'primary' : 'outline'}
         onClick={() => goHomeTab('payment')}
       >
-        Pagamento
+        Pagamentos
       </Button>
       <Button
         type="button"
