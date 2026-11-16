@@ -33,11 +33,11 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | G3 Checkout/pay | **PASS** · [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) | — |
 | G4 Frete | **PASS** · [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) | — |
 | G5 Ops | **PASS** · [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) | — |
-| G6 Jurídico/pós-venda | **ABERTA — FAZER AGORA** | G8 |
-| G7 E2E | Após G3+G4+G5 mínimos | G8 |
+| G6 Jurídico/pós-venda | **FAIL — STOP 6.5** · [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) | G7/G8 |
+| G7 E2E | Após G6 PASS | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** **MARCHA G6** (termos/RLS/pós-venda mínimo + canal humano). Dívida ops: `--prod` Netlify; Pix>201 live; ME purchase live.
+**Próxima ação única:** eFe seta `VITE_WHATSAPP_PHONE` (+ e-mail/tel) no Netlify → redeploy → **reabrir MARCHA G6.5**. Dívida ops: `--prod`; Pix>201; ME purchase live.
 
 ---
 
@@ -250,7 +250,7 @@ G6 (pode adiantar textos em paralelo)
 | G3 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) Pix create+idem+sync · card Asaas · cancel unpaid · router >201 unit | eFe |
 | G4 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) dims 100/100 · cotação draft CEP 01310-100 · ownq gates · pedido `9619a86c…` enviado `SMOKE-C7-OWN` | eFe |
 | G5 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) trail `dcb929db…` até `pronto_para_envio` · `sem_estoque` · margem admin | eFe |
-| G6 | | | | |
+| G6 | 2026-11-16 | **FAIL** (6.5) | [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) 6.1–6.4 PASS · sem WA/tel/e-mail no Netlify | eFe |
 | G7 | | | | |
 | G8 | | | | |
 
