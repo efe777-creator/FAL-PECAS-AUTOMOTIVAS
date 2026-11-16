@@ -43,8 +43,10 @@ export function AdminPaymentMethodsPage() {
   }, [routing])
 
   const avail = resolveEffectivePaymentAvailability(settings, draft)
-  const caps = paymentEngine.getAdapter('mercadopago')?.capabilities()
-  const supported = new Set(caps?.methods ?? [])
+  const mpSupported = new Set(
+    paymentEngine.getAdapter('mercadopago')?.capabilities().methods ?? [],
+  )
+  const asaasSupported = new Set(paymentEngine.getAdapter('asaas')?.capabilities().methods ?? [])
   const demoMaxInstallments = settings ? falMaxInstallmentsForCheckout(600, settings) : 1
   const pixLimitBrl = draft.pixMpMaxAmountCents / 100
 
@@ -227,7 +229,10 @@ export function AdminPaymentMethodsPage() {
 
       <ul className="m-0 list-none space-y-3 p-0">
         {CATALOG.map((m) => {
-          const adapterOk = supported.has(m.code)
+          const adapterOk =
+            m.code === 'pix'
+              ? mpSupported.has(m.code) || asaasSupported.has(m.code)
+              : asaasSupported.has(m.code)
           let active = false
           let detail = 'Desativado / indisponível'
           if (m.code === 'boleto') {
@@ -245,22 +250,22 @@ export function AdminPaymentMethodsPage() {
           } else if (m.code === 'credit_card') {
             active = avail.credit && adapterOk
             detail = active
-              ? 'MP + política de parcelas + roteamento cartão=MP'
+              ? 'Asaas + política de parcelas + roteamento fixo'
               : avail.cardBlockedReason
                 ? avail.cardBlockedReason
-                : !mpOn
-                  ? 'Integração MP off'
+                : !draft.asaasEnabled
+                  ? 'Asaas desativado no roteamento'
                   : settings?.creditEnabled === false
                     ? 'Crédito desativado na Home da loja'
                     : 'Indisponível (adaptador ou roteamento)'
           } else if (m.code === 'debit_card') {
             active = avail.debit && adapterOk
             detail = active
-              ? 'Débito à vista via MP'
+              ? 'Débito à vista via Asaas'
               : avail.cardBlockedReason
                 ? avail.cardBlockedReason
-                : !mpOn
-                  ? 'Integração MP off'
+                : !draft.asaasEnabled
+                  ? 'Asaas desativado no roteamento'
                   : settings?.debitEnabled === false
                     ? 'Débito desativado na Home da loja'
                     : 'Indisponível'
