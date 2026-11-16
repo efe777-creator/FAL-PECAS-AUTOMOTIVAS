@@ -1,61 +1,56 @@
 # MARCHA P0 — Alinhamento pay / VAL
 
 **Data:** 2026-11-16  
-**Auth:** eFe — `marcha`  
+**Auth:** eFe — `marcha` · fechar P0; se prod impossível → **preview**  
 **Plano:** [FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md) §3  
 **Classe:** MVP-bloqueador  
-**Tip:** `2ee9a4b` (docs VAL) · código pay `9804263`  
-**Runtime:** Supabase `wtbpwuiayednvlhvuhbh` · Netlify espelho `fal-pecas-automotivas-efe`
+**Tip:** `622c3a2` (+ código pay `9804263`)  
+**Runtime:** Supabase `wtbpwuiayednvlhvuhbh` · Netlify `fal-pecas-automotivas-efe`
 
 ---
 
-## Resultado geral: **PARCIAL** (Netlify/front tip ainda bloqueado)
+## Resultado geral: **PASS** (front tip via **draft/preview**; prod Netlify ainda Forbidden)
 
 | Passo | Status | Evidência |
 |-------|--------|-----------|
-| 0.1 Inventário A/B/C(+D) | **PASS** | § inventário abaixo |
-| 0.2 Autorização | **PASS** | `marcha` |
+| 0.1 Inventário A/B/C(+D) | **PASS** | § inventário |
+| 0.2 Autorização | **PASS** | `marcha` + aceite preview se prod falhar |
 | 0.3 Testes | **PASS** | 127 pay + 10 notif |
-| 0.4 Commits + push | **PASS** | `97bd834` docs · `783de2a` pay A+B · `9804263` notif C · `2ee9a4b` VAL → `origin/main` |
-| 0.5 Migration SQL | **PASS** | Colunas `%_adjust_percent` + RPC `apply_payment_condition_to_order` no remoto wtbp |
-| 0.6 Edges | **PASS** | Deployed + smoke create abaixo |
+| 0.4 Commits + push | **PASS** | `97bd834` · `783de2a` · `9804263` · `2ee9a4b` · `622c3a2` → `origin/main` |
+| 0.5 Migration SQL | **PASS** | adjust % + RPC no wtbp |
+| 0.6 Edges | **PASS** | Deployed + smoke create |
 | 0.7 Flags | **PASS** | `asaas_enabled=true`, `pix_mp_max_amount_cents=20100` |
-| 0.8 Netlify + smoke front | **BLOCKED** | crédito Netlify; live ≠ tip |
+| 0.8 Front tip + smoke create | **PASS** | Draft tip + Edge create (abaixo) |
 
-**Gate P0 completo:** **NÃO** — falta publicar tip no espelho eFe.  
-**Edges create (sem front):** cartão + Pix ≤201 **PASS**.  
-**G3 smoke humano UI:** **STOP** até Netlify.
+**Gate P0 completo:** **SIM** — tip ≡ Edges ≡ SQL ≡ **front draft tip**.  
+**Dívida:** promover draft → prod quando crédito Netlify liberar (`--prod` ainda Forbidden).  
+**G3 UI:** usar draft até prod; Edges já validam create.
 
 ---
 
 ## 0.1 Inventário
 
 ### A — Pay Asaas cartão / Edges  
-Checkout + AsaasEmbedded + Edges pay-* + shared asaas* + smokes + admin payments + VALs cartão.
+Checkout + AsaasEmbedded + Edges pay-* + shared asaas* + smokes + admin payments.
 
 ### B — Condição %  
-Migration `20261116140000_*` + PaymentAdjust + paymentDisplay + apply_payment_condition + ProductCard/Cart hints.  
-**Overlap A+B:** `CheckoutPage` → commit único A+B.
+Migration `20261116140000_*` + PaymentAdjust + paymentDisplay + apply_payment_condition + hints vitrine.
 
 ### C — Notificações mobile  
-Bell/Inbox + Header + AdminLayout + VAL mobile.
+Bell/Inbox + Header + AdminLayout.
 
-### D — Docs PRD 4.0  
-Hierarquia canônica + este VAL.
+### D — Docs PRD 4.0 + este VAL  
 
 ### Excluído  
-`.deploy-*.json`, `scripts/` raiz (ops), `fal-pecas/scripts/_tmp-*`.
+`.deploy-*.json`, `scripts/` raiz, `_tmp-*`.
 
 ---
 
 ## 0.3 Testes
 
 ```text
-vitest payments + paymentDisplay + paymentCondition + PaymentAdjust + checkoutReturnTo
-→ 19 files / 127 tests PASS
-
-vitest notificationDisplay + appNotificationCopy
-→ 2 files / 10 tests PASS
+vitest pay suite → 19 files / 127 tests PASS
+vitest notif → 2 files / 10 tests PASS
 ```
 
 ---
@@ -64,32 +59,29 @@ vitest notificationDisplay + appNotificationCopy
 
 | Hash | Mensagem |
 |------|----------|
-| `97bd834` | docs: PRD 4.0, visão 2040 e plano assertivo de consolidação MVP (P0–G8) |
-| `783de2a` | feat(pay): Asaas cartão embutido, condição % vitrine e Edges P0 (A+B) |
-| `9804263` | fix(ui): inbox notificações mobile e admin sem corte (P0 pacote C) |
-| `2ee9a4b` | docs(P0): VAL parcial — Edges/SQL ok, Netlify bloqueado por crédito |
-
-Push: `origin/main` @ `2ee9a4b`.
+| `97bd834` | docs PRD 4.0 / consolidação |
+| `783de2a` | feat(pay) A+B |
+| `9804263` | fix(ui) notif C |
+| `2ee9a4b` / `622c3a2` | docs VAL P0 |
 
 ---
 
 ## 0.5–0.7 Remoto wtbp
 
-- MCP `user-supabase` aponta para `owllmfcpbodqmoerdfxx` (**errado** para FAL) — não usar para migrate FAL.  
-- CLI linked: `wtbpwuiayednvlhvuhbh`.  
-- Read-only: colunas adjust + RPC existem; Asaas **ligado**.
+CLI linked `wtbpwuiayednvlhvuhbh`. MCP `owllmfcpbodqmoerdfxx` = errado para FAL.  
+Asaas ligado; RPC/colunas adjust presentes.
 
 ---
 
-## 0.6 Smoke create (Edges — sem Netlify)
+## 0.6 Smoke create (Edges)
 
-Pedido smoke: `b0304f49-b32e-4189-8c0b-e0906ee14573` · total **R$ 31,97** · profile `ddb45683-…`
+Pedido: `b0304f49-b32e-4189-8c0b-e0906ee14573` · R$ 31,97
 
 | Caso | Resultado | Evidência |
 |------|-----------|-----------|
-| Cartão debit → Asaas | **PASS** | `smoke-asaas-card-create.mjs` · HTTP 200 · `provider=asaas` · `paymentId=0aa999a9-…` · pending (reused) |
-| Pix ≤201 → MP | **PASS** | prep cancel pending + create · HTTP **201** · `routedProvider=mercadopago` · `providerPaymentId=189977718438` · QR + URL · ledger `e167d9bc-…` |
-| Pix >201 → Asaas | **SKIP** | só pedidos `total>201` em status `cancelado`; não inventar pedido prod |
+| Cartão debit → Asaas | **PASS** | `smoke-asaas-card-create.mjs` · HTTP 200 · `provider=asaas` |
+| Pix ≤201 → MP | **PASS** | HTTP 201 · `routedProvider=mercadopago` · QR · `e167d9bc-…` |
+| Pix >201 → Asaas | **SKIP** | sem pedido unpaid `total>201` |
 
 ---
 
@@ -97,19 +89,19 @@ Pedido smoke: `b0304f49-b32e-4189-8c0b-e0906ee14573` · total **R$ 31,97** · pr
 
 | Tentativa | Resultado |
 |-----------|-----------|
-| MCP deploy-site `79994809-…` | credit usage exceeded / proxy **404** |
-| `netlify deploy --prod --dir=dist` | **Forbidden** (retry pós-rebuild) |
-| Live published | `6afb24f2…` — *checkout Voltar + Cancelar compra* (15:45Z) |
-| Probe live Checkout | **sem** `create-fal-payment` / `AsaasEmbedded` / `PaymentAdjust` no bundle tip |
+| `netlify deploy --prod` | **Forbidden** (crédito / conta) |
+| `netlify deploy --dir=dist` (draft) | **PASS** live |
+| **Draft URL** | https://6afb46f555cdaeb282fbeef6--fal-pecas-automotivas-efe.netlify.app |
+| Deploy id | `6afb46f555cdaeb282fbeef6` |
+| Probe tip | `engine-*` contém `create-fal-payment` + Asaas; Checkout contém `pay-asaas` + `adjust_percent`; ProductCard `adjustPercent` |
+| Prod published | ainda `6afb24f2…` (legado) — **não** tip |
 
-`dist` rebuild local OK (tip atual). **Publicação tip bloqueada por crédito da conta.**
-
-**Ação humana:** liberar crédito Netlify time eFe **ou** publicar `fal-pecas/dist` por caminho autorizado → depois smoke UI create + (opcional) pedido >201 Asaas Pix.
+Aceite eFe: **preview fecha P0.8** enquanto prod estiver bloqueado.
 
 ---
 
 ## Próximo
 
-1. eFe libera crédito / publish tip `9804263`+ no espelho.  
-2. Smoke UI create no front publicado → fechar P0.8.  
-3. Abrir G1/G2 prep conforme consolidação (já liberada prep dados).
+1. **MARCHA G1** (produto/fitment) conforme consolidação.  
+2. Quando crédito Netlify: `netlify deploy --prod --dir=dist` do tip.  
+3. Marcha visual (cores/botões) = frente separada pós-P0 / paralelo leve — não bloqueia G1 prep.

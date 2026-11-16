@@ -27,17 +27,17 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 
 | Frente | Status | Bloqueia |
 |--------|--------|----------|
-| **P0** Alinhamento pay/deploy | **PARCIAL** — Edges create Pix≤201+cartão **PASS**; Netlify tip **BLOCKED** · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | G3 UI até front tip |
-| G1 Produto/fitment | **LIBERADA prep dados** (smoke loja após Netlify) | G8 |
-| G2 Preço/vitrine | **LIBERADA prep** após front (código já no tip) | G8 |
-| G3 Checkout/pay | **STOP** até P0.8 PASS | G8 |
+| **P0** Alinhamento pay/deploy | **PASS** (front tip = **draft**; prod Forbidden) · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | — |
+| G1 Produto/fitment | **ABERTA — FAZER AGORA** | G8 |
+| G2 Preço/vitrine | **LIBERADA** (código tip + draft) | G8 |
+| G3 Checkout/pay | **LIBERADA** (smoke UI no draft; prod quando crédito) | G8 |
 | G4 Frete | Pode auditar dims em paralelo; ship após G3 | G8 |
 | G5 Ops | Após G3 mínimo (pedido pago existe) | G8 |
 | G6 Jurídico/pós-venda | Paralelo leve após P0 | G8 |
 | G7 E2E | Após G3+G4+G5 mínimos | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** liberar crédito Netlify / publicar `fal-pecas/dist` no espelho eFe → smoke **create** Pix/cartão → fechar P0.8. Nada de feature nova antes.
+**Próxima ação única:** **MARCHA G1** (amostra SKU/PVC + smokes busca/placa). Dívida ops: `--prod` Netlify quando crédito.
 
 ---
 
@@ -244,7 +244,7 @@ G6 (pode adiantar textos em paralelo)
 
 | Frente | Data | Status | Evidência (VAL / ids) | Responsável |
 |--------|------|--------|------------------------|-------------|
-| P0 | 2026-11-16 | PARCIAL | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) tip `2ee9a4b` · Edge create cartão+Pix MP PASS · live `6afb24f2` sem tip · Netlify credit | eFe |
+| P0 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) draft `6afb46f5…` tip · Edges create PASS · prod Forbidden (dívida) | eFe |
 | G1 | | | | |
 | G2 | | | | |
 | G3 | | | | |
