@@ -27,7 +27,7 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 
 | Frente | Status | Bloqueia |
 |--------|--------|----------|
-| **P0** Alinhamento pay/deploy | **PARCIAL** — tip/Edges/SQL ok; Netlify **BLOCKED** (crédito) · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | G3 smoke até front prod |
+| **P0** Alinhamento pay/deploy | **PARCIAL** — Edges create Pix≤201+cartão **PASS**; Netlify tip **BLOCKED** · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | G3 UI até front tip |
 | G1 Produto/fitment | **LIBERADA prep dados** (smoke loja após Netlify) | G8 |
 | G2 Preço/vitrine | **LIBERADA prep** após front (código já no tip) | G8 |
 | G3 Checkout/pay | **STOP** até P0.8 PASS | G8 |
@@ -244,7 +244,7 @@ G6 (pode adiantar textos em paralelo)
 
 | Frente | Data | Status | Evidência (VAL / ids) | Responsável |
 |--------|------|--------|------------------------|-------------|
-| P0 | 2026-11-16 | PARCIAL | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) tip `9804263` Edges ok Netlify credit | eFe |
+| P0 | 2026-11-16 | PARCIAL | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) tip `2ee9a4b` · Edge create cartão+Pix MP PASS · live `6afb24f2` sem tip · Netlify credit | eFe |
 | G1 | | | | |
 | G2 | | | | |
 | G3 | | | | |
