@@ -250,7 +250,7 @@ G6 (pode adiantar textos em paralelo)
 | G3 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) Pix create+idem+sync · card Asaas · cancel unpaid · router >201 unit | eFe |
 | G4 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) dims 100/100 · cotação draft CEP 01310-100 · ownq gates · pedido `9619a86c…` enviado `SMOKE-C7-OWN` | eFe |
 | G5 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) trail `dcb929db…` até `pronto_para_envio` · `sem_estoque` · margem admin | eFe |
-| G6 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) WA/tel rodapé preview · origem `store_shipping_origin` | eFe |
+| G6 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G6_JURIDICO_POSVENDA_VAL_2026-11-16.md) WA `+5511992935688` preview `6afb53c8…` | eFe |
 | G7 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G7_E2E_ESTABILIDADE_VAL_2026-11-16.md) matriz 14 · own out_of_coverage live · preview catálogo | eFe |
 | G8 | 2026-11-16 | **PARCIAL** | 8.1 G1–G7 PASS · 8.2 [rollback](./FAL_MARCHA_G8_ROLLBACK_PLAN_2026-11-16.md) · 8.3–8.4 pendente eFe | eFe |
 
