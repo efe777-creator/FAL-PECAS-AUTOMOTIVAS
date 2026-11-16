@@ -99,6 +99,9 @@ export function ProductPage() {
   const cartQty = product ? (items.find((i) => i.productId === product.id)?.quantity ?? 0) : 0
   const inCart = cartQty > 0
   const liked = product ? isFavorite(product.id) : false
+  /** Hooks antes de qualquer early-return (React #310). */
+  const resolvedForHooks = product ? displayPrice(product) : 0
+  const storefrontPrice = useStorefrontDisplayAmount(resolvedForHooks)
 
   useDocumentTitle(
     product
@@ -332,7 +335,6 @@ export function ProductPage() {
   const displayName = toCommercialTitleCase(current.name)
   const brandName = current.brand ? toCommercialTitleCase(current.brand) : null
   const price = displayPrice(current)
-  const storefrontPrice = useStorefrontDisplayAmount(price)
   const listPrice = current.listPrice ?? current.price
   const offer = resolvePromoOffer(listPrice, price)
   const shortDesc = current.shortDescription?.trim() || ''
