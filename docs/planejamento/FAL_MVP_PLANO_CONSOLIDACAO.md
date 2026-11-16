@@ -30,14 +30,14 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | **P0** Alinhamento pay/deploy | **PASS** (front tip = **draft**; prod Forbidden) · [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) | — |
 | G1 Produto/fitment | **PASS** · [VAL](./FAL_MARCHA_G1_PRODUTO_FITMENT_VAL_2026-11-16.md) | — |
 | G2 Preço/vitrine | **PASS** · [VAL](./FAL_MARCHA_G2_PRECO_VITRINE_VAL_2026-11-16.md) | — |
-| G3 Checkout/pay | **ABERTA — FAZER AGORA** | G8 |
-| G4 Frete | Pode auditar dims em paralelo; ship após G3 | G8 |
+| G3 Checkout/pay | **PASS** · [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) | — |
+| G4 Frete | **ABERTA — FAZER AGORA** | G8 |
 | G5 Ops | Após G3 mínimo (pedido pago existe) | G8 |
 | G6 Jurídico/pós-venda | Paralelo leve após P0 | G8 |
 | G7 E2E | Após G3+G4+G5 mínimos | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** **MARCHA G3** (Pix/cartão create→sync/approve path no draft). Dívida ops: `--prod` Netlify quando crédito.
+**Próxima ação única:** **MARCHA G4** (dims/cotação frete · ownq · ME etiqueta). Dívida ops: `--prod` Netlify; Pix>201 live.
 
 ---
 
@@ -247,7 +247,7 @@ G6 (pode adiantar textos em paralelo)
 | P0 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_P0_ALINHAMENTO_PAY_VAL_2026-11-16.md) draft `6afb46f5…` tip · Edges create PASS · prod Forbidden (dívida) | eFe |
 | G1 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G1_PRODUTO_FITMENT_VAL_2026-11-16.md) 100/100 PVC · placa FRW0E37 · NL HB20 2015 · SK971 indisponível | eFe |
 | G2 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G2_PRECO_VITRINE_VAL_2026-11-16.md) BRD2109 61,45 em 5 pontos · fix PDP hooks #310 · draft `6afb4b44…` | eFe |
-| G3 | | | | |
+| G3 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) Pix create+idem+sync · card Asaas · cancel unpaid · router >201 unit | eFe |
 | G4 | | | | |
 | G5 | | | | |
 | G6 | | | | |
