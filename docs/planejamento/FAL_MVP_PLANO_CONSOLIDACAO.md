@@ -32,12 +32,12 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | G2 Preço/vitrine | **PASS** · [VAL](./FAL_MARCHA_G2_PRECO_VITRINE_VAL_2026-11-16.md) | — |
 | G3 Checkout/pay | **PASS** · [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) | — |
 | G4 Frete | **PASS** · [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) | — |
-| G5 Ops | **ABERTA — FAZER AGORA** | G8 |
-| G6 Jurídico/pós-venda | Paralelo leve após P0 | G8 |
+| G5 Ops | **PASS** · [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) | — |
+| G6 Jurídico/pós-venda | **ABERTA — FAZER AGORA** | G8 |
 | G7 E2E | Após G3+G4+G5 mínimos | G8 |
 | G8 Venda controlada | Último | — |
 
-**Próxima ação única:** **MARCHA G5** (fila pago → separação → pronto_para_envio). Dívida ops: `--prod` Netlify; Pix>201 live; ME purchase live.
+**Próxima ação única:** **MARCHA G6** (termos/RLS/pós-venda mínimo + canal humano). Dívida ops: `--prod` Netlify; Pix>201 live; ME purchase live.
 
 ---
 
@@ -249,7 +249,7 @@ G6 (pode adiantar textos em paralelo)
 | G2 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G2_PRECO_VITRINE_VAL_2026-11-16.md) BRD2109 61,45 em 5 pontos · fix PDP hooks #310 · draft `6afb4b44…` | eFe |
 | G3 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G3_CHECKOUT_PAY_VAL_2026-11-16.md) Pix create+idem+sync · card Asaas · cancel unpaid · router >201 unit | eFe |
 | G4 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G4_FRETE_ENTREGA_VAL_2026-11-16.md) dims 100/100 · cotação draft CEP 01310-100 · ownq gates · pedido `9619a86c…` enviado `SMOKE-C7-OWN` | eFe |
-| G5 | | | | |
+| G5 | 2026-11-16 | **PASS** | [VAL](./FAL_MARCHA_G5_OPS_VAL_2026-11-16.md) trail `dcb929db…` até `pronto_para_envio` · `sem_estoque` · margem admin | eFe |
 | G6 | | | | |
 | G7 | | | | |
 | G8 | | | | |
