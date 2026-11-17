@@ -157,6 +157,29 @@ input.fal-plate-input {
   text-transform: uppercase;
 }
 
+/** Scrollbar perceptível em listas admin (Central de Pedidos, etc.). */
+.fal-admin-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fal-muted) var(--fal-surface-2);
+}
+
+.fal-admin-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.fal-admin-scroll::-webkit-scrollbar-track {
+  background: var(--fal-surface-2);
+  border-radius: 999px;
+}
+
+.fal-admin-scroll::-webkit-scrollbar-thumb {
+  background: var(--fal-muted);
+  border-radius: 999px;
+  border: 2px solid var(--fal-surface-2);
+}
+
 /* Espaço para bottom nav mobile (< md) */
 @media (max-width: 767px) {
   body {

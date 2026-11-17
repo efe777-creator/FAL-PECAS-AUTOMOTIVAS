@@ -122,7 +122,7 @@ export function AdminOrdersListPanel({
       ) : null}
 
       {!loading && !error && rows.length > 0 ? (
-        <div className="max-h-[min(58vh,560px)] overflow-auto rounded-[14px] border border-fal-line bg-fal-surface">
+        <div className="fal-admin-scroll max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <div className="space-y-3 p-3 md:hidden">
             {rows.map((o) => {
               const next = nextActionLabel(o)
@@ -213,7 +213,7 @@ export function AdminOrdersListPanel({
 
           <div className="hidden md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
+              <thead className="sticky top-0 z-10 border-b border-fal-line bg-fal-surface text-xs uppercase text-fal-muted shadow-sm">
                 <tr>
                   <th className="px-3 py-2">Pedido</th>
                   <th className="px-3 py-2">Cliente</th>

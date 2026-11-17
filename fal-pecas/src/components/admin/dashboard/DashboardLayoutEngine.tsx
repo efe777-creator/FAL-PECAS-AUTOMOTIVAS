@@ -1,5 +1,8 @@
+import { DashboardEditingProvider } from '@/components/admin/dashboard/DashboardEditingContext'
 import { renderDashboardWidget } from '@/components/admin/dashboard/widgets/DashboardWidgets'
 import {
+  applyBreakpointOrderToLgLayout,
+  dashboardBreakpointFromWidth,
   fromRglLayout,
   toRglLayout,
   type DashboardLayoutItem,
@@ -9,7 +12,7 @@ import {
   type WidgetMeta,
 } from '@/lib/adminDashboardWidgets'
 import { useElementWidth } from '@/hooks/useElementWidth'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { verticalCompactor } from 'react-grid-layout/core'
 import {
   ResponsiveGridLayout,
@@ -98,15 +101,17 @@ export function DashboardLayoutEngine({
   onRemove,
 }: Props) {
   const { width, containerRef, mounted } = useElementWidth(1280)
-  const [breakpoint, setBreakpoint] = useState<'lg' | 'md' | 'sm'>('lg')
   const interactingRef = useRef(false)
   const pendingLgRef = useRef<LayoutItem[] | null>(null)
+  const pendingCurrentRef = useRef<LayoutItem[] | null>(null)
   const itemsRef = useRef(items)
   itemsRef.current = items
 
-  const isMobile = breakpoint === 'sm'
-  const dragEnabled = editing && !isMobile
-  const resizeEnabled = editing && !isMobile
+  // Largura do container — não o viewport. Drag NÃO depende disso (sintoma A).
+  const breakpoint = dashboardBreakpointFromWidth(width)
+  const isNarrow = breakpoint === 'sm'
+  const dragEnabled = editing
+  const resizeEnabled = editing && !isNarrow
 
   const layouts = useMemo(() => {
     const lgItems = items
@@ -119,11 +124,23 @@ export function DashboardLayoutEngine({
     }
   }, [items, boundsByWidgetId])
 
-  function commitLgLayout(lg: LayoutItem[] | null | undefined) {
-    if (!editing || isMobile) return
-    if (!lg || lg.length === 0) return
-    const next = fromRglLayout(lg, itemsRef.current)
-    if (next.length === 0) return
+  function commitFromPending() {
+    if (!editing) return
+    if (breakpoint === 'lg') {
+      const lg = pendingLgRef.current
+      if (!lg || lg.length === 0) return
+      const next = fromRglLayout(lg, itemsRef.current)
+      if (next.length === 0) return
+      if (layoutsEqual(next, itemsRef.current)) return
+      onItemsChange(next)
+      return
+    }
+    const cur = pendingCurrentRef.current
+    if (!cur || cur.length === 0) return
+    const ordered = [...cur]
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .map((c) => c.i)
+    const next = applyBreakpointOrderToLgLayout(ordered, itemsRef.current)
     if (layoutsEqual(next, itemsRef.current)) return
     onItemsChange(next)
   }
@@ -132,11 +149,13 @@ export function DashboardLayoutEngine({
     current: Layout,
     all: Partial<Record<string, Layout>>,
   ) {
-    const lg = [...(all.lg ?? (breakpoint === 'lg' ? current : []))] as LayoutItem[]
+    pendingCurrentRef.current = [...current] as LayoutItem[]
+    const lg = [
+      ...(all.lg ?? (breakpoint === 'lg' ? current : [])),
+    ] as LayoutItem[]
     if (lg.length > 0) pendingLgRef.current = lg
-    // Durante arraste/resize não persiste — evita reset do controlled layout
     if (interactingRef.current) return
-    commitLgLayout(pendingLgRef.current)
+    commitFromPending()
   }
 
   function beginInteract() {
@@ -145,7 +164,7 @@ export function DashboardLayoutEngine({
 
   function endInteract() {
     interactingRef.current = false
-    commitLgLayout(pendingLgRef.current)
+    commitFromPending()
   }
 
   return (
@@ -153,6 +172,7 @@ export function DashboardLayoutEngine({
       {!mounted || width <= 0 ? (
         <p className="text-sm text-fal-muted">Preparando grade…</p>
       ) : (
+        <DashboardEditingProvider editing={editing}>
         <ResponsiveGridLayout
           width={width}
           layouts={layouts}
@@ -165,17 +185,14 @@ export function DashboardLayoutEngine({
           dragConfig={{
             enabled: dragEnabled,
             bounded: true,
-            // Handle NÃO pode ser <button> se cancel incluir button
             handle: '.fal-dash-drag-handle',
             cancel: '.fal-dash-no-drag,a,input,textarea,select',
             threshold: 3,
+            allowMobileScroll: true,
           }}
           resizeConfig={{
             enabled: resizeEnabled,
             handles: ['se', 'e', 's'],
-          }}
-          onBreakpointChange={(bp) => {
-            if (bp === 'lg' || bp === 'md' || bp === 'sm') setBreakpoint(bp)
           }}
           onLayoutChange={handleLayoutChange}
           onDragStart={beginInteract}
@@ -192,20 +209,24 @@ export function DashboardLayoutEngine({
                   'rounded-[14px] border bg-fal-surface',
                   editing ? 'overflow-visible' : 'overflow-hidden',
                   editing
-                    ? 'border-fal-accent/35 shadow-sm ring-1 ring-fal-accent/15'
+                    ? 'border-fal-accent/45 bg-fal-accent/[0.04] shadow-md ring-1 ring-fal-accent/20'
                     : 'border-fal-line/80 shadow-sm',
                 ].join(' ')}
               >
                 {editing ? (
-                  <div className="flex items-center justify-between gap-2 border-b border-fal-line bg-fal-bg/80 px-1.5 py-1.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-fal-accent/25 bg-fal-bg/90 px-1.5 py-1.5">
                     <div
-                      className="fal-dash-drag-handle flex min-h-9 min-w-0 flex-1 cursor-grab items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold text-fal-fg select-none hover:bg-fal-surface-2 active:cursor-grabbing"
+                      className="fal-dash-drag-handle flex min-h-11 min-w-0 flex-1 cursor-grab touch-none items-center gap-2 rounded-md px-2 py-1.5 text-xs font-bold text-fal-fg select-none hover:bg-fal-surface-2 active:cursor-grabbing"
                       title="Arrastar para reorganizar"
                       aria-label={`Mover ${meta?.title ?? item.widgetId}`}
                       role="button"
                       tabIndex={0}
+                      style={{ touchAction: 'none' }}
                     >
-                      <span className="text-base leading-none text-fal-muted" aria-hidden>
+                      <span
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-fal-line bg-fal-surface text-base leading-none text-fal-muted"
+                        aria-hidden
+                      >
                         ⋮⋮
                       </span>
                       <span className="truncate">
@@ -238,6 +259,7 @@ export function DashboardLayoutEngine({
             )
           })}
         </ResponsiveGridLayout>
+        </DashboardEditingProvider>
       )}
     </div>
   )

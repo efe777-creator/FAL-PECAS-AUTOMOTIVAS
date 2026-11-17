@@ -1,5 +1,6 @@
 import { useDashboardData } from '@/components/admin/dashboard/DashboardDataProvider'
 import { useDashboardContextual } from '@/components/admin/dashboard/DashboardContextualContext'
+import { useDashboardEditing } from '@/components/admin/dashboard/DashboardEditingContext'
 import {
   labelForShortcutPath,
   listDashboardShortcutsForRole,
@@ -332,6 +333,7 @@ export function WidgetQuickControls() {
 
 export function WidgetShortcutsPinned() {
   const { role } = useDashboardData()
+  const editing = useDashboardEditing()
   const catalog = useMemo(() => listDashboardShortcutsForRole(role), [role])
   const allowedPaths = useMemo(() => catalog.map((s) => s.to), [catalog])
   const [pinned, setPinned] = useState<string[]>([])
@@ -352,7 +354,11 @@ export function WidgetShortcutsPinned() {
           Fixados
         </h3>
         {pinned.length === 0 ? (
-          <p className="mt-1.5 text-xs text-fal-muted">Nenhum atalho fixado neste dispositivo.</p>
+          <p className="mt-1.5 text-xs text-fal-muted">
+            {editing
+              ? 'Nenhum atalho fixado neste dispositivo.'
+              : 'Nenhum atalho fixado. Use Personalizar para escolher.'}
+          </p>
         ) : (
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {pinned.map((path) => (
@@ -366,47 +372,51 @@ export function WidgetShortcutsPinned() {
                 >
                   <span className="truncate">{labelForShortcutPath(path)}</span>
                 </Link>
-                <button
-                  type="button"
-                  aria-label={`Desafixar ${labelForShortcutPath(path)}`}
-                  onClick={() => onTogglePin(path)}
-                  className="shrink-0 border-l border-fal-accent/30 px-2.5 text-sm font-bold text-fal-muted hover:bg-fal-accent/20"
-                >
-                  ×
-                </button>
+                {editing ? (
+                  <button
+                    type="button"
+                    aria-label={`Desafixar ${labelForShortcutPath(path)}`}
+                    onClick={() => onTogglePin(path)}
+                    className="fal-dash-no-drag shrink-0 border-l border-fal-accent/30 px-2.5 text-sm font-bold text-fal-muted hover:bg-fal-accent/20"
+                  >
+                    ×
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div>
-        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
-          Disponíveis
-        </h3>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {catalog.map((s) => {
-            const isPinned = pinned.includes(s.to)
-            return (
-              <button
-                key={s.to}
-                type="button"
-                aria-pressed={isPinned}
-                onClick={() => onTogglePin(s.to)}
-                className={[
-                  'inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold',
-                  isPinned
-                    ? 'border-fal-accent bg-fal-accent text-white'
-                    : 'border-fal-line bg-fal-bg text-fal-muted hover:border-fal-accent/40 hover:text-fal-fg',
-                ].join(' ')}
-              >
-                {isPinned ? '✓ ' : '+ '}
-                {s.label}
-              </button>
-            )
-          })}
+      {editing ? (
+        <div>
+          <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+            Disponíveis
+          </h3>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {catalog.map((s) => {
+              const isPinned = pinned.includes(s.to)
+              return (
+                <button
+                  key={s.to}
+                  type="button"
+                  aria-pressed={isPinned}
+                  onClick={() => onTogglePin(s.to)}
+                  className={[
+                    'fal-dash-no-drag inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold',
+                    isPinned
+                      ? 'border-fal-accent bg-fal-accent text-white'
+                      : 'border-fal-line bg-fal-bg text-fal-muted hover:border-fal-accent/40 hover:text-fal-fg',
+                  ].join(' ')}
+                >
+                  {isPinned ? '✓ ' : '+ '}
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

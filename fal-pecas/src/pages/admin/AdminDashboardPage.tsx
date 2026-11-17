@@ -67,13 +67,23 @@ function DashboardShell({
     return readDashboardLayout(b, a, d, undefined, DEFAULT_LAYOUT_PLACEMENTS)
   })
   const [editing, setEditing] = useState(false)
+  const [draftItems, setDraftItems] = useState<DashboardLayoutItem[] | null>(
+    null,
+  )
+  const [baselineItems, setBaselineItems] = useState<DashboardLayoutItem[]>(
+    [],
+  )
   const [addOpen, setAddOpen] = useState(false)
 
   useEffect(() => {
     const b = boundsMapForRole(role)
     const a = allowedWidgetIdSet(role)
     const d = defaultWidgetIdsForRole(role)
-    setLayoutFile(readDashboardLayout(b, a, d, undefined, DEFAULT_LAYOUT_PLACEMENTS))
+    const next = readDashboardLayout(b, a, d, undefined, DEFAULT_LAYOUT_PLACEMENTS)
+    setLayoutFile(next)
+    setEditing(false)
+    setDraftItems(null)
+    setBaselineItems([])
   }, [role])
 
   const persist = useCallback(
@@ -90,33 +100,94 @@ function DashboardShell({
         a,
       )
       setLayoutFile(next)
+      return next
     },
     [role],
   )
 
+  const workingItems = editing && draftItems ? draftItems : layoutFile.items
+
+  const dirty = useMemo(() => {
+    if (!editing || !draftItems) return false
+    if (draftItems.length !== baselineItems.length) return true
+    const byId = new Map(baselineItems.map((it) => [it.instanceId, it]))
+    for (const it of draftItems) {
+      const b = byId.get(it.instanceId)
+      if (!b) return true
+      if (
+        b.x !== it.x ||
+        b.y !== it.y ||
+        b.w !== it.w ||
+        b.h !== it.h ||
+        b.widgetId !== it.widgetId
+      ) {
+        return true
+      }
+    }
+    return false
+  }, [editing, draftItems, baselineItems])
+
   const activeIds = useMemo(
-    () => new Set(layoutFile.items.map((i) => i.widgetId)),
-    [layoutFile.items],
+    () => new Set(workingItems.map((i) => i.widgetId)),
+    [workingItems],
   )
 
-  function handleItemsChange(items: DashboardLayoutItem[]) {
-    // Revalidação de permissão na montagem/persistência
-    const filtered = items.filter((it) => {
+  function filterAllowed(items: DashboardLayoutItem[]) {
+    return items.filter((it) => {
       const meta = getWidgetMeta(it.widgetId)
       return meta ? widgetAllowedForRole(meta, role) : false
     })
+  }
+
+  function beginEdit() {
+    const snap = layoutFile.items.map((it) => ({ ...it }))
+    setBaselineItems(snap)
+    setDraftItems(snap)
+    setEditing(true)
+  }
+
+  function handleCancelEdit() {
+    setDraftItems(null)
+    setBaselineItems([])
+    setEditing(false)
+    setAddOpen(false)
+  }
+
+  function handleSaveEdit() {
+    if (!draftItems) {
+      handleCancelEdit()
+      return
+    }
+    persist(filterAllowed(draftItems))
+    setDraftItems(null)
+    setBaselineItems([])
+    setEditing(false)
+    setAddOpen(false)
+  }
+
+  function handleItemsChange(items: DashboardLayoutItem[]) {
+    const filtered = filterAllowed(items)
+    if (editing) {
+      setDraftItems(filtered)
+      return
+    }
     persist(filtered)
   }
 
   function handleRemove(instanceId: string) {
-    persist(layoutFile.items.filter((i) => i.instanceId !== instanceId))
+    const next = workingItems.filter((i) => i.instanceId !== instanceId)
+    if (editing) {
+      setDraftItems(next)
+      return
+    }
+    persist(next)
   }
 
   function handleAdd(widgetId: string) {
     const meta = getWidgetMeta(widgetId)
     if (!meta || !widgetAllowedForRole(meta, role)) return
     if (activeIds.has(widgetId)) return
-    const slot = nextShelfSlot(layoutFile.items, meta.defaultSize)
+    const slot = nextShelfSlot(workingItems, meta.defaultSize)
     const item: DashboardLayoutItem = {
       instanceId: createInstanceId(widgetId),
       widgetId,
@@ -125,7 +196,12 @@ function DashboardShell({
       w: slot.w,
       h: slot.h,
     }
-    persist([...layoutFile.items, item])
+    const next = [...workingItems, item]
+    if (editing) {
+      setDraftItems(next)
+      return
+    }
+    persist(next)
   }
 
   function handleReset() {
@@ -136,6 +212,8 @@ function DashboardShell({
     const fresh = buildDefaultLayout(d, b, DEFAULT_LAYOUT_PLACEMENTS)
     const saved = writeDashboardLayout(fresh, b, a)
     setLayoutFile(saved)
+    setDraftItems(null)
+    setBaselineItems([])
     setEditing(false)
   }
 
@@ -145,14 +223,26 @@ function DashboardShell({
   }
 
   const primary = (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div
+      className={[
+        'mx-auto max-w-7xl space-y-5',
+        editing ? 'pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-5' : '',
+      ].join(' ')}
+    >
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg md:text-3xl">
-            Painel
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg md:text-3xl">
+              Painel
+            </h1>
+            {editing ? (
+              <span className="rounded-md bg-fal-accent/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-fal-accent">
+                Editando
+              </span>
+            ) : null}
+          </div>
           <p className="mt-0.5 text-sm text-fal-muted">
-            Centro de comando operacional
+            {editing ? 'Personalizar painel' : 'Centro de comando operacional'}
           </p>
           <p
             className="mt-2 inline-flex items-center gap-1.5 text-xs text-fal-muted"
@@ -207,37 +297,48 @@ function DashboardShell({
           >
             Atualizar
           </button>
-          <button
-            type="button"
-            className={[
-              'inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-semibold shadow-sm',
-              editing
-                ? 'border-fal-accent bg-fal-accent text-white'
-                : 'border-fal-navy bg-fal-navy text-white hover:opacity-95',
-            ].join(' ')}
-            aria-pressed={editing}
-            onClick={() => setEditing((e) => !e)}
-          >
-            {editing ? 'Concluir' : 'Personalizar'}
-          </button>
-          {editing ? (
+          {!editing ? (
+            <button
+              type="button"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-fal-navy bg-fal-navy px-3.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+              aria-pressed={false}
+              onClick={beginEdit}
+            >
+              Personalizar
+            </button>
+          ) : (
             <>
               <button
                 type="button"
-                className="inline-flex min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
+                className="hidden min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg sm:inline-flex"
                 onClick={() => setAddOpen(true)}
               >
                 + Widget
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-10 items-center rounded-xl border border-fal-line px-3 text-sm font-semibold text-fal-muted"
+                className="hidden min-h-10 items-center rounded-xl border border-fal-line px-3 text-sm font-semibold text-fal-muted sm:inline-flex"
                 onClick={handleReset}
               >
                 Reset
               </button>
+              <button
+                type="button"
+                className="hidden min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3.5 text-sm font-semibold text-fal-fg sm:inline-flex"
+                onClick={handleCancelEdit}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="hidden min-h-10 items-center rounded-xl border border-fal-accent bg-fal-accent px-3.5 text-sm font-semibold text-white sm:inline-flex disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!dirty}
+                onClick={handleSaveEdit}
+              >
+                Salvar
+              </button>
             </>
-          ) : null}
+          )}
         </div>
       </header>
 
@@ -246,19 +347,20 @@ function DashboardShell({
           className="rounded-xl border border-fal-accent/40 bg-fal-accent/10 px-3 py-2 text-sm text-fal-fg"
           role="status"
         >
-          Arraste pela barra ⋮⋮ do widget · solte para gravar · redimensione pelos
-          cantos · + Widget · Reset. No mobile o arraste fica desligado.
+          Segure o ícone ⋮⋮ e arraste para mudar a posição. No celular a grade fica
+          em coluna; no desktop também dá para redimensionar. Alterações só gravam
+          ao tocar em Salvar.
         </p>
       ) : null}
 
-      {layoutFile.items.length === 0 ? (
+      {workingItems.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-fal-line bg-fal-surface px-4 py-8 text-center">
           <p className="m-0 text-sm text-fal-muted">Nenhum widget no layout.</p>
           <button
             type="button"
             className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-fal-accent px-4 text-sm font-bold text-white"
             onClick={() => {
-              setEditing(true)
+              beginEdit()
               setAddOpen(true)
             }}
           >
@@ -267,7 +369,7 @@ function DashboardShell({
         </div>
       ) : (
         <DashboardLayoutEngine
-          items={layoutFile.items}
+          items={workingItems}
           boundsByWidgetId={bounds}
           editing={editing}
           onItemsChange={handleItemsChange}
@@ -282,6 +384,38 @@ function DashboardShell({
         activeIds={activeIds}
         onAdd={handleAdd}
       />
+
+      {editing ? (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-fal-line bg-fal-surface/95 px-3 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur sm:hidden"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="mx-auto flex max-w-7xl gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-fal-line bg-fal-bg text-sm font-bold text-fal-fg"
+              onClick={handleCancelEdit}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-fal-line px-3 text-sm font-semibold text-fal-fg"
+              onClick={() => setAddOpen(true)}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-fal-accent text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!dirty}
+              onClick={handleSaveEdit}
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   ADMIN_DASHBOARD_LAYOUT_KEY,
+  applyBreakpointOrderToLgLayout,
   buildDefaultLayout,
   clearDashboardLayout,
+  dashboardBreakpointFromWidth,
   dedupeLayoutItems,
   migrateLayoutRaw,
   readDashboardLayout,
   sanitizeLayoutFile,
   writeDashboardLayout,
+  type DashboardLayoutItem,
   type WidgetSizeBounds,
 } from '@/lib/adminDashboardLayout'
 
@@ -234,5 +237,49 @@ describe('adminDashboardLayout', () => {
     })
     clearDashboardLayout(storage)
     expect(storage.getItem(ADMIN_DASHBOARD_LAYOUT_KEY)).toBeNull()
+  })
+
+  it('dashboardBreakpointFromWidth alinha aos cortes do engine', () => {
+    expect(dashboardBreakpointFromWidth(500)).toBe('sm')
+    expect(dashboardBreakpointFromWidth(800)).toBe('md')
+    expect(dashboardBreakpointFromWidth(1280)).toBe('lg')
+  })
+
+  it('applyBreakpointOrderToLgLayout reordena preservando w/h', () => {
+    const lg: DashboardLayoutItem[] = [
+      {
+        instanceId: 'a__1',
+        widgetId: 'pipeline-flow',
+        x: 0,
+        y: 0,
+        w: 12,
+        h: 3,
+      },
+      {
+        instanceId: 'b__1',
+        widgetId: 'cash-box',
+        x: 0,
+        y: 3,
+        w: 6,
+        h: 3,
+      },
+      {
+        instanceId: 'c__1',
+        widgetId: 'shortcuts',
+        x: 6,
+        y: 3,
+        w: 6,
+        h: 3,
+      },
+    ]
+    const next = applyBreakpointOrderToLgLayout(
+      ['c__1', 'a__1', 'b__1'],
+      lg,
+    )
+    expect(next.map((i) => i.instanceId)).toEqual(['c__1', 'a__1', 'b__1'])
+    expect(next[0]?.w).toBe(6)
+    expect(next[1]?.w).toBe(12)
+    expect(next[0]?.y).toBe(0)
+    expect(next[1]?.y).toBeGreaterThanOrEqual(next[0]!.y)
   })
 })

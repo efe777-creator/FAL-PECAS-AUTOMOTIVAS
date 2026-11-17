@@ -388,3 +388,41 @@ export function fromRglLayout(
   }
   return dedupeLayoutItems(out)
 }
+
+/**
+ * Reaplica a ordem visual de um breakpoint (sm/md) sobre o layout canônico lg,
+ * preservando w/h e recalculando x/y com shelf pack 12-col.
+ */
+export function applyBreakpointOrderToLgLayout(
+  orderedInstanceIds: readonly string[],
+  lgItems: readonly DashboardLayoutItem[],
+): DashboardLayoutItem[] {
+  const byId = new Map(lgItems.map((it) => [it.instanceId, it]))
+  const ordered: DashboardLayoutItem[] = []
+  for (const id of orderedInstanceIds) {
+    const it = byId.get(id)
+    if (it) ordered.push(it)
+  }
+  for (const it of lgItems) {
+    if (!ordered.some((o) => o.instanceId === it.instanceId)) ordered.push(it)
+  }
+  const positions = shelfPackPositions(
+    ordered.map((o) => ({ w: o.w, h: o.h })),
+  )
+  return ordered.map((o, i) => ({
+    ...o,
+    x: positions[i]?.x ?? 0,
+    y: positions[i]?.y ?? 0,
+    w: positions[i]?.w ?? o.w,
+    h: positions[i]?.h ?? o.h,
+  }))
+}
+
+/** Breakpoint do motor a partir da largura do container (alinhado ao engine). */
+export function dashboardBreakpointFromWidth(
+  width: number,
+): 'lg' | 'md' | 'sm' {
+  if (width >= 1024) return 'lg'
+  if (width >= 768) return 'md'
+  return 'sm'
+}
