@@ -61,7 +61,11 @@ export type AdminOrderListRow = {
   total: number
   createdAt: string
   customerName: string | null
+  /** CPF ou CNPJ do cliente (quando houver no join). */
+  customerDoc: string | null
   itemCount: number
+  /** SKUs + nomes dos itens — busca client-side na lista. */
+  itemSearchText: string
   paymentStatus: string | null
   paymentExpiresAt: string | null
   customerDecision: CustomerDecisionValue | null
@@ -180,7 +184,7 @@ export async function adminListOrders(
       id, status, total, created_at, customer_id, customer_decision,
       cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
-      order_items ( id ),
+      order_items ( id, sku, name_snapshot ),
       payments ( status, expires_at, created_at ),
       shipments ( provider, metadata, carrier, service )
     `,
@@ -543,7 +547,17 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
   const c = Array.isArray(cust) ? cust[0] : cust
   const profiles = c?.profiles as { full_name?: string } | { full_name?: string }[] | null | undefined
   const prof = Array.isArray(profiles) ? profiles[0] : profiles
-  const items = row.order_items as unknown[] | null
+  const items = row.order_items as
+    | { id?: string; sku?: string; name_snapshot?: string }[]
+    | null
+  const customerDoc = c?.cpf ? String(c.cpf) : c?.cnpj ? String(c.cnpj) : null
+  const itemSearchText = Array.isArray(items)
+    ? items
+        .map((it) => [it.sku, it.name_snapshot].filter(Boolean).join(' '))
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+    : ''
   const pays = row.payments as { status?: string; expires_at?: string; created_at?: string }[] | null
   const pay = pickCanonicalPayment(pays)
   const ships = row.shipments as
@@ -587,7 +601,9 @@ function mapLogisticsListRow(row: Record<string, unknown>): AdminOrderListRow {
     total: Number(row.total ?? 0),
     createdAt: String(row.created_at),
     customerName: prof?.full_name != null ? String(prof.full_name) : null,
+    customerDoc,
     itemCount: Array.isArray(items) ? items.length : 0,
+    itemSearchText,
     paymentStatus,
     paymentExpiresAt: pay?.expires_at != null ? String(pay.expires_at) : null,
     customerDecision: decision,
@@ -622,7 +638,7 @@ export async function adminListLogisticsQueue(
         id, status, total, created_at, customer_id, customer_decision,
         cancellation_request, cancellation_reason,
         customers ( cpf, cnpj, profiles ( full_name ) ),
-        order_items ( id ),
+        order_items ( id, sku, name_snapshot ),
         payments ( status, expires_at, created_at ),
         shipments ( provider, metadata, carrier, service )
       `,
@@ -659,7 +675,7 @@ export async function adminListLogisticsQueue(
         id, status, total, created_at, customer_id, customer_decision,
         cancellation_request, cancellation_reason,
         customers ( cpf, cnpj, profiles ( full_name ) ),
-        order_items ( id ),
+        order_items ( id, sku, name_snapshot ),
         payments ( status, expires_at, created_at ),
         shipments ( provider, metadata, carrier, service )
       `,
@@ -685,7 +701,7 @@ export async function adminListLogisticsQueue(
       id, status, total, created_at, customer_id, customer_decision,
       cancellation_request, cancellation_reason,
       customers ( cpf, cnpj, profiles ( full_name ) ),
-      order_items ( id ),
+      order_items ( id, sku, name_snapshot ),
       payments ( status, expires_at, created_at ),
       shipments ( provider, metadata, carrier, service )
     `,

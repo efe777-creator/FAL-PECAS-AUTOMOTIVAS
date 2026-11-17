@@ -14,14 +14,15 @@ import {
   resolveWidgetContextual,
 } from '@/lib/adminDashboardDeepLinks'
 import {
-  badgeClass,
-  toneForOrderStatus,
-} from '@/components/admin/orders/orderStatusTone'
-import {
   ADMIN_ORDER_GROUPS,
+  adminActorBadgeLabel,
+  adminActorKind,
   adminNextActionLabel,
+  adminOrderGroupId,
   orderStatusOperatorLabel,
   sumGroupCount,
+  visibleStatusesInGroup,
+  type AdminActorKind,
   type AdminOrderGroupId,
 } from '@/lib/adminOrderOps'
 import { ADMIN_LOGISTICS_QUEUES } from '@/lib/adminLogisticsQueues'
@@ -32,11 +33,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -49,6 +49,12 @@ const PIPELINE_BAR: Record<string, string> = {
   preparacao: 'bg-fal-navy',
   expedicao: 'bg-fal-success',
   finalizados: 'bg-fal-muted',
+}
+
+const DASH_CHART = {
+  accent: 'var(--color-fal-accent, #2563eb)',
+  success: 'var(--color-fal-success, #16a34a)',
+  navy: 'var(--color-fal-navy, #0f172a)',
 }
 
 const DASHBOARD_LOGISTICS_QUEUE_IDS = [
@@ -91,37 +97,178 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   )
 }
 
+function actorClass(kind: AdminActorKind): string {
+  switch (kind) {
+    case 'team':
+      return 'bg-fal-danger/15 text-fal-fg border border-fal-danger/40'
+    case 'customer':
+      return 'bg-fal-accent/15 text-fal-fg border border-fal-accent/40'
+    case 'wait_payment':
+      return 'bg-fal-warning/15 text-fal-fg border border-fal-warning/40'
+    case 'done':
+      return 'bg-fal-success/15 text-fal-fg border border-fal-success/40'
+  }
+}
+
 function KpiCard({
   label,
   value,
   onOpen,
   tone = 'neutral',
+  hint,
+  icon,
 }: {
   label: string
   value: string
   onOpen: () => void
   tone?: KpiTone
+  hint?: string
+  icon?: string
 }) {
   const toneCls: Record<KpiTone, string> = {
     neutral: 'border-fal-line',
-    warning: 'border-fal-warning/40 bg-fal-warning/10',
-    danger: 'border-fal-danger/40 bg-fal-danger/10',
-    success: 'border-fal-success/40 bg-fal-success/10',
-    info: 'border-fal-accent/40 bg-fal-accent/10',
+    warning: 'border-fal-warning/35',
+    danger: 'border-fal-danger/35',
+    success: 'border-fal-success/35',
+    info: 'border-fal-accent/35',
+  }
+  const iconCls: Record<KpiTone, string> = {
+    neutral: 'bg-fal-bg text-fal-muted',
+    warning: 'bg-fal-warning/15 text-fal-warning',
+    danger: 'bg-fal-danger/15 text-fal-danger',
+    success: 'bg-fal-success/15 text-fal-success',
+    info: 'bg-fal-accent/15 text-fal-accent',
   }
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`block h-full w-full rounded-[12px] border bg-fal-surface px-3 py-3 text-left shadow-sm transition hover:border-fal-accent/50 ${toneCls[tone]}`}
+      className={`flex h-full w-full flex-col justify-between rounded-[14px] border bg-fal-surface px-3.5 py-3.5 text-left shadow-sm transition hover:border-fal-accent/45 hover:shadow-md ${toneCls[tone]}`}
     >
-      <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">
-        {label}
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+          {label}
+        </div>
+        {icon ? (
+          <span
+            className={`inline-flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-black ${iconCls[tone]}`}
+            aria-hidden
+          >
+            {icon}
+          </span>
+        ) : null}
       </div>
-      <div className="mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
+      <div className="mt-2 text-2xl font-extrabold tabular-nums tracking-tight text-fal-fg md:text-[1.65rem]">
         {value}
       </div>
+      {hint ? (
+        <p className="mb-0 mt-1.5 text-[11px] leading-snug text-fal-muted">{hint}</p>
+      ) : null}
     </button>
+  )
+}
+
+export function WidgetExecSummary() {
+  const {
+    statusCounts,
+    teamCount,
+    customerCount,
+    attention,
+    basicTotals,
+    centralIndicators,
+    period,
+    role,
+  } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
+  const showGmv = canAccessAdminPath('/admin/relatorios', role)
+  const showCash =
+    canAccessAdminPath('/admin/pagamentos', role) ||
+    canAccessAdminPath('/admin/relatorios', role)
+
+  const counts = statusCounts.data ?? {}
+  const activeOrders = ADMIN_ORDER_GROUPS.filter((g) => g.id !== 'finalizados').reduce(
+    (acc, g) => acc + sumGroupCount(counts, g),
+    0,
+  )
+  const attentionTotal = teamCount + customerCount
+
+  const loading =
+    statusCounts.status === 'loading' ||
+    attention.status === 'loading' ||
+    (showGmv && basicTotals.status === 'loading') ||
+    (showCash && centralIndicators.status === 'loading')
+
+  const gmv =
+    basicTotals.data != null
+      ? formatMoney(basicTotals.data.revenueDelivered)
+      : '—'
+  const cash =
+    centralIndicators.data != null
+      ? formatMoney(centralIndicators.data.financial.captured)
+      : '—'
+
+  const cols =
+    showGmv || showCash
+      ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
+      : 'grid-cols-1 sm:grid-cols-2'
+
+  return (
+    <div className="flex h-full flex-col gap-2 p-0.5">
+      {loading ? (
+        <p className="m-0 text-sm text-fal-muted">Carregando resumo…</p>
+      ) : (
+        <div className={`grid flex-1 gap-3 ${cols}`}>
+          <KpiCard
+            label="Pedidos ativos"
+            value={
+              statusCounts.status === 'loading' ? '…' : String(activeOrders)
+            }
+            onOpen={() =>
+              setContextual(
+                resolveWidgetContextual('pipeline-flow', {
+                  pipelineGrupo: 'expedicao',
+                }),
+              )
+            }
+            tone="neutral"
+            hint={period.label}
+            icon="☰"
+          />
+          <KpiCard
+            label="Exigem atenção"
+            value={attention.status === 'loading' ? '…' : String(attentionTotal)}
+            onOpen={() =>
+              setContextual(resolveWidgetContextual('attention-table'))
+            }
+            tone={attentionTotal > 0 ? 'warning' : 'neutral'}
+            hint={`${teamCount} equipe · ${customerCount} cliente`}
+            icon="!"
+          />
+          {showGmv ? (
+            <KpiCard
+              label="GMV entregue"
+              value={gmv}
+              onOpen={() =>
+                setContextual(resolveWidgetContextual('gmv-delivered'))
+              }
+              tone="info"
+              hint="≠ caixa payments"
+              icon="R$"
+            />
+          ) : null}
+          {showCash ? (
+            <KpiCard
+              label="Caixa capturado"
+              value={cash}
+              onOpen={() => setContextual(resolveWidgetContextual('cash-box'))}
+              tone="success"
+              hint="payments · ≠ GMV"
+              icon="◇"
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -132,48 +279,52 @@ export function WidgetQuickControls() {
   const controls: Array<{
     id: Parameters<typeof resolveQuickControl>[0]
     label: string
-    hint?: string
+    hint: string
   }> = [
     { id: 'analise', label: 'Análise', hint: 'Conferir pedidos' },
     { id: 'separacao', label: 'Separação', hint: 'Preparar itens' },
     { id: 'expedicao', label: 'Expedição', hint: 'Filas logísticas' },
-    { id: 'atencao-equipe', label: 'Atenção equipe', hint: 'Central' },
-    { id: 'aguardando-pag', label: 'Aguardando pag.' },
+    { id: 'atencao-equipe', label: 'Atenção equipe', hint: 'Ação na Central' },
+    { id: 'aguardando-pag', label: 'Aguardando pag.', hint: 'Cobrança pendente' },
   ]
-  if (showReports) controls.push({ id: 'relatorios', label: 'Relatórios' })
+  if (showReports) {
+    controls.push({ id: 'relatorios', label: 'Relatórios', hint: 'Visão F8' })
+  }
 
   return (
     <div className="flex h-full flex-col gap-2 p-1">
-      <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+      <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         Controles rápidos
       </h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {controls.map((c) => (
           <button
             key={c.id}
             type="button"
-            title={c.hint}
-            className="inline-flex min-h-10 items-center rounded-lg border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg transition hover:border-fal-accent/50"
+            className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-left transition hover:border-fal-accent/45 hover:bg-fal-surface-2"
             onClick={() => {
               const { contextual } = resolveQuickControl(c.id)
               if (contextual) setContextual(contextual)
             }}
           >
-            {c.label}
+            <span className="text-sm font-extrabold text-fal-fg">{c.label}</span>
+            <span className="text-[11px] leading-snug text-fal-muted">{c.hint}</span>
           </button>
         ))}
         {firstAttention ? (
           <button
             type="button"
-            className="inline-flex min-h-10 items-center rounded-lg border border-fal-warning/50 bg-fal-warning/10 px-3 text-sm font-bold text-fal-fg"
+            className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-fal-warning/55 bg-fal-warning/15 px-3 py-2 text-left transition hover:bg-fal-warning/25"
             onClick={() => openOrder(firstAttention.id)}
           >
-            Preview 1º da fila
+            <span className="text-sm font-extrabold text-fal-fg">Preview 1º da fila</span>
+            <span className="text-[11px] leading-snug text-fal-muted">Abrir atenção</span>
           </button>
         ) : (
-          <span className="inline-flex min-h-10 items-center rounded-lg border border-dashed border-fal-line px-3 text-sm text-fal-muted">
-            Fila vazia
-          </span>
+          <div className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-dashed border-fal-line bg-fal-bg/50 px-3 py-2">
+            <span className="text-sm font-semibold text-fal-muted">Fila vazia</span>
+            <span className="text-[11px] text-fal-muted">Sem preview</span>
+          </div>
         )}
       </div>
     </div>
@@ -196,121 +347,286 @@ export function WidgetShortcutsPinned() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-auto p-1">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-          Atalhos
+    <div className="flex h-full flex-col gap-3 overflow-auto p-1">
+      <div>
+        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+          Fixados
         </h3>
-        <p className="m-0 text-xs text-fal-muted">Pin local neste dispositivo</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {pinned.map((path) => (
-          <div
-            key={path}
-            className="inline-flex min-h-10 items-stretch overflow-hidden rounded-lg border border-fal-accent/40 bg-fal-accent/10"
-          >
-            <Link
-              to={path}
-              className="inline-flex items-center px-3 text-sm font-semibold text-fal-fg hover:underline"
-            >
-              {labelForShortcutPath(path)}
-            </Link>
-            <button
-              type="button"
-              aria-label={`Desafixar ${labelForShortcutPath(path)}`}
-              onClick={() => onTogglePin(path)}
-              className="border-l border-fal-accent/30 px-2 text-xs font-bold text-fal-muted hover:bg-fal-accent/20"
-            >
-              ×
-            </button>
+        {pinned.length === 0 ? (
+          <p className="mt-1.5 text-xs text-fal-muted">Nenhum atalho fixado neste dispositivo.</p>
+        ) : (
+          <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {pinned.map((path) => (
+              <div
+                key={path}
+                className="flex min-h-11 items-stretch overflow-hidden rounded-[12px] border border-fal-accent/40 bg-fal-accent/10"
+              >
+                <Link
+                  to={path}
+                  className="flex min-w-0 flex-1 items-center px-3 text-sm font-extrabold text-fal-fg hover:underline"
+                >
+                  <span className="truncate">{labelForShortcutPath(path)}</span>
+                </Link>
+                <button
+                  type="button"
+                  aria-label={`Desafixar ${labelForShortcutPath(path)}`}
+                  onClick={() => onTogglePin(path)}
+                  className="shrink-0 border-l border-fal-accent/30 px-2.5 text-sm font-bold text-fal-muted hover:bg-fal-accent/20"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {catalog.map((s) => {
-          const isPinned = pinned.includes(s.to)
-          return (
-            <button
-              key={s.to}
-              type="button"
-              aria-pressed={isPinned}
-              onClick={() => onTogglePin(s.to)}
-              className={[
-                'inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold',
-                isPinned
-                  ? 'border-fal-accent bg-fal-accent text-white'
-                  : 'border-fal-line bg-fal-bg text-fal-muted hover:text-fal-fg',
-              ].join(' ')}
-            >
-              {isPinned ? '✓ ' : '+ '}
-              {s.label}
-            </button>
-          )
-        })}
+
+      <div>
+        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+          Disponíveis
+        </h3>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {catalog.map((s) => {
+            const isPinned = pinned.includes(s.to)
+            return (
+              <button
+                key={s.to}
+                type="button"
+                aria-pressed={isPinned}
+                onClick={() => onTogglePin(s.to)}
+                className={[
+                  'inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold',
+                  isPinned
+                    ? 'border-fal-accent bg-fal-accent text-white'
+                    : 'border-fal-line bg-fal-bg text-fal-muted hover:border-fal-accent/40 hover:text-fal-fg',
+                ].join(' ')}
+              >
+                {isPinned ? '✓ ' : '+ '}
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
 
 export function WidgetPipelineFlow() {
-  const { statusCounts } = useDashboardData()
+  const { statusCounts, attention, customerCount, logisticsQueues } =
+    useDashboardData()
   const { setContextual } = useDashboardContextual()
   const counts = statusCounts.data ?? {}
-  const total = ADMIN_ORDER_GROUPS.reduce(
+  const totalActive = ADMIN_ORDER_GROUPS.filter((g) => g.id !== 'finalizados').reduce(
     (acc, g) => acc + sumGroupCount(counts, g),
     0,
   )
+  const [selected, setSelected] = useState<AdminOrderGroupId>('analise')
+
+  const group = ADMIN_ORDER_GROUPS.find((g) => g.id === selected) ?? null
+  const groupCount = group ? sumGroupCount(counts, group) : 0
+  const statuses = group ? visibleStatusesInGroup(group, counts) : []
+  const attentionRows = attention.data ?? []
+  const topInGroup = attentionRows
+    .filter((o) => adminOrderGroupId(o.status) === selected)
+    .slice(0, 4)
+  const waitPayment = counts['aguardando_pagamento'] ?? 0
+  const revisao = logisticsQueues.data?.revisao ?? 0
+
+  function attentionInGroup(groupId: AdminOrderGroupId): number {
+    return attentionRows.filter((o) => adminOrderGroupId(o.status) === groupId)
+      .length
+  }
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-auto p-1">
-      <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-        Fluxo do pedido
-      </h3>
+    <div className="flex h-full flex-col gap-3 overflow-auto p-0.5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+          Fluxo do pedido
+        </h3>
+        <span className="text-[11px] tabular-nums text-fal-muted">
+          {totalActive} em andamento
+        </span>
+      </div>
       <SourceBanner
         status={statusCounts.status}
         error={statusCounts.error}
         loadingLabel="Carregando fluxo…"
       />
       {statusCounts.status === 'success' || statusCounts.status === 'empty' ? (
-        <div className="grid flex-1 gap-2 sm:grid-cols-5">
-          {ADMIN_ORDER_GROUPS.map((group) => {
-            const n = sumGroupCount(counts, group)
-            const pct = total > 0 ? Math.round((n / total) * 100) : 0
-            return (
-              <button
-                key={group.id}
-                type="button"
-                className="flex flex-col gap-2 rounded-lg p-2 text-left transition hover:bg-fal-bg"
-                title={group.description}
-                onClick={() =>
-                  setContextual(
-                    resolveWidgetContextual('pipeline-flow', {
-                      pipelineGrupo: group.id as AdminOrderGroupId,
-                    }),
-                  )
-                }
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wide text-fal-muted">
-                    {group.title}
-                  </span>
-                  <span className="text-lg font-black tabular-nums text-fal-fg">
+        <>
+          <div className="grid gap-2 sm:grid-cols-5">
+            {ADMIN_ORDER_GROUPS.map((g, idx) => {
+              const n = sumGroupCount(counts, g)
+              const active = selected === g.id
+              const attn = attentionInGroup(g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setSelected(g.id)}
+                  title={g.description}
+                  className={[
+                    'relative flex flex-col gap-1.5 rounded-[14px] border px-3 py-3 text-left transition',
+                    active
+                      ? 'border-fal-accent bg-fal-accent/10 shadow-sm ring-1 ring-fal-accent/25'
+                      : 'border-fal-line bg-fal-surface hover:border-fal-accent/40',
+                  ].join(' ')}
+                >
+                  {idx < ADMIN_ORDER_GROUPS.length - 1 ? (
+                    <span
+                      className="pointer-events-none absolute -right-1.5 top-1/2 z-10 hidden -translate-y-1/2 text-fal-muted sm:block"
+                      aria-hidden
+                    >
+                      ›
+                    </span>
+                  ) : null}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+                      {g.title}
+                    </span>
+                    {attn > 0 ? (
+                      <span className="rounded-md bg-fal-warning/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-fal-fg">
+                        {attn} atenção
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="text-2xl font-black tabular-nums tracking-tight text-fal-fg">
                     {n}
                   </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-fal-bg" aria-hidden>
-                  <div
-                    className={`h-full rounded-full ${PIPELINE_BAR[group.id] ?? 'bg-fal-accent'}`}
-                    style={{ width: `${Math.max(pct, n > 0 ? 8 : 0)}%` }}
-                  />
-                </div>
-                <span className="text-[11px] text-fal-muted tabular-nums">
-                  {pct}% do fluxo
-                </span>
-              </button>
-            )
-          })}
-        </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-fal-bg" aria-hidden>
+                    <div
+                      className={`h-full rounded-full ${PIPELINE_BAR[g.id] ?? 'bg-fal-accent'}`}
+                      style={{
+                        width: `${Math.min(100, Math.max(n > 0 ? 12 : 0, totalActive > 0 && g.id !== 'finalizados' ? (n / totalActive) * 100 : n > 0 ? 40 : 0))}%`,
+                      }}
+                    />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-fal-line bg-fal-bg/80 px-3 py-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+              Exceções e desvios
+            </span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-warning/40 bg-fal-warning/10 px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              onClick={() =>
+                setContextual(resolveWidgetContextual('kpi-awaiting-pay'))
+              }
+            >
+              Pag. pendente
+              <span className="tabular-nums font-extrabold">{waitPayment}</span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-accent/40 bg-fal-accent/10 px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              onClick={() =>
+                setContextual(
+                  resolveWidgetContextual('kpi-customer-action', {
+                    actor: 'customer',
+                  }),
+                )
+              }
+            >
+              Ação cliente
+              <span className="tabular-nums font-extrabold">{customerCount}</span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-line bg-fal-surface px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              onClick={() =>
+                setContextual(
+                  resolveWidgetContextual('logistics-queues', {
+                    logisticsFila: 'revisao',
+                  }),
+                )
+              }
+            >
+              Revisão
+              <span className="tabular-nums font-extrabold">{revisao}</span>
+            </button>
+          </div>
+
+          {group ? (
+            <div className="grid flex-1 gap-4 rounded-[14px] border border-fal-line bg-fal-surface p-4 lg:grid-cols-[1fr_1.15fr]">
+              <div>
+                <h4 className="m-0 text-sm font-extrabold text-fal-fg">{group.title}</h4>
+                <p className="mt-1 mb-3 text-xs leading-relaxed text-fal-muted">
+                  {group.description}
+                </p>
+                <p className="m-0 text-3xl font-black tabular-nums tracking-tight text-fal-fg">
+                  {groupCount}
+                  <span className="ml-2 text-xs font-semibold text-fal-muted">
+                    na fila
+                  </span>
+                </p>
+                <ul className="mt-3 mb-0 list-none space-y-1.5 p-0">
+                  {statuses.map((st) => (
+                    <li
+                      key={st}
+                      className="flex justify-between gap-2 border-b border-fal-line/60 py-1 text-xs last:border-0"
+                    >
+                      <span className="text-fal-muted">
+                        {orderStatusOperatorLabel[st] ?? st}
+                      </span>
+                      <span className="font-bold tabular-nums text-fal-fg">
+                        {counts[st] ?? 0}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="mt-4 inline-flex text-xs font-bold text-fal-accent underline"
+                  onClick={() =>
+                    setContextual(
+                      resolveWidgetContextual('pipeline-flow', {
+                        pipelineGrupo: group.id,
+                      }),
+                    )
+                  }
+                >
+                  Abrir fila →
+                </button>
+              </div>
+              <div>
+                <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+                  Prioridades neste grupo
+                </p>
+                {topInGroup.length === 0 ? (
+                  <p className="mt-2 mb-0 text-xs text-fal-muted">
+                    Nenhum na amostra de atenção.
+                  </p>
+                ) : (
+                  <ul className="mt-2 mb-0 list-none space-y-2 p-0">
+                    {topInGroup.map((o) => (
+                      <li key={o.id}>
+                        <button
+                          type="button"
+                          className="block w-full rounded-xl border border-fal-line px-3 py-2 text-left text-xs transition hover:border-fal-accent/50"
+                          onClick={() =>
+                            setContextual({ kind: 'order', orderId: o.id })
+                          }
+                        >
+                          <span className="font-mono font-semibold text-fal-fg">
+                            {o.id.slice(0, 8)}…
+                          </span>
+                          <span className="mt-0.5 block text-fal-muted">
+                            {adminNextActionLabel(o.status, o.customerDecision)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   )
@@ -325,12 +641,12 @@ export function WidgetAttentionTable() {
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-auto p-1">
+    <div className="flex h-full flex-col gap-2 overflow-auto p-0.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-          Pedidos que precisam de atenção
+        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+          Fila de atenção
         </h3>
-        <p className="m-0 text-xs text-fal-muted" aria-live="polite">
+        <p className="m-0 text-[11px] text-fal-muted" aria-live="polite">
           {attention.status === 'loading'
             ? 'Carregando…'
             : `${teamCount} equipe · ${customerCount} cliente`}
@@ -342,55 +658,52 @@ export function WidgetAttentionTable() {
         loadingLabel="Carregando pendências…"
       />
       {attention.status === 'empty' ? (
-        <p className="rounded-[12px] border border-fal-line bg-fal-surface px-4 py-3 text-sm text-fal-muted">
+        <p className="rounded-[14px] border border-fal-line bg-fal-surface px-4 py-3 text-sm text-fal-muted">
           Nenhuma pendência operacional na amostra recente.
         </p>
       ) : null}
       {attention.status === 'success' ? (
         <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-fal-bg text-fal-muted">
+            <thead className="bg-fal-bg text-[11px] uppercase tracking-wide text-fal-muted">
               <tr>
-                <th className="px-3 py-2">Pedido</th>
-                <th className="px-3 py-2">Cliente</th>
-                <th className="px-3 py-2">Quando</th>
-                <th className="px-3 py-2">Situação</th>
-                <th className="px-3 py-2">Próxima ação</th>
+                <th className="px-3 py-2.5 font-bold">Pedido</th>
+                <th className="px-3 py-2.5 font-bold">Situação</th>
+                <th className="px-3 py-2.5 font-bold">Próxima ação</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((o) => {
                 const selected = selectedOrderId === o.id
+                const kind = adminActorKind(o.status, o.customerDecision)
                 return (
                   <tr
                     key={o.id}
                     className={[
-                      'cursor-pointer border-t border-fal-line',
-                      selected ? 'bg-fal-accent/10' : '',
+                      'cursor-pointer border-t border-fal-line transition',
+                      selected ? 'bg-fal-accent/10' : 'hover:bg-fal-bg/60',
                     ].join(' ')}
                     onClick={() => openOrder(o.id)}
                   >
-                    <td className="px-3 py-2 font-mono text-xs">
-                      <Link
-                        to={`/admin/pedidos/${o.id}`}
-                        className="font-semibold text-fal-fg underline-offset-2 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                    <td className="px-3 py-2.5 font-mono text-xs">
+                      <span className="font-semibold text-fal-fg">
                         {o.id.slice(0, 8)}…
-                      </Link>
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-fal-muted">
+                        {o.customerName ?? '—'}
+                      </span>
                     </td>
-                    <td className="px-3 py-2 text-fal-fg">
-                      {o.customerName ?? '—'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-fal-muted">
-                      {formatDateTime(o.createdAt)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={badgeClass(toneForOrderStatus(o.status))}>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
+                      >
+                        {adminActorBadgeLabel(kind)}
+                      </span>
+                      <span className="mt-1 block text-xs text-fal-fg">
                         {orderStatusOperatorLabel[o.status] ?? o.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-xs font-semibold text-fal-fg">
+                    <td className="px-3 py-2.5 text-xs font-semibold text-fal-fg">
                       {adminNextActionLabel(o.status, o.customerDecision)}
                     </td>
                   </tr>
@@ -439,6 +752,7 @@ export function WidgetKpiAwaitingPay() {
       value={v}
       onOpen={() => setContextual(resolveWidgetContextual('kpi-awaiting-pay'))}
       tone="warning"
+      icon="R$"
     />
   )
 }
@@ -452,6 +766,7 @@ export function WidgetKpiTeamAction() {
       value={attention.status === 'loading' ? '…' : String(teamCount)}
       onOpen={() => setContextual(resolveWidgetContextual('kpi-team-action'))}
       tone="danger"
+      icon="!"
     />
   )
 }
@@ -465,6 +780,7 @@ export function WidgetKpiCustomerAction() {
       value={attention.status === 'loading' ? '…' : String(customerCount)}
       onOpen={() => setContextual(resolveWidgetContextual('kpi-customer-action'))}
       tone="info"
+      icon="◎"
     />
   )
 }
@@ -520,6 +836,7 @@ export function WidgetGmvDelivered() {
       value={v}
       onOpen={() => setContextual(resolveWidgetContextual('gmv-delivered'))}
       tone="info"
+      hint="≠ caixa"
     />
   )
 }
@@ -566,56 +883,91 @@ export function WidgetLogisticsQueues() {
   const { logisticsQueues } = useDashboardData()
   const { setContextual } = useDashboardContextual()
   const counts = logisticsQueues.data
+
+  const cells: Array<{
+    id: (typeof DASHBOARD_LOGISTICS_QUEUE_IDS)[number]
+    label: string
+    value: number
+    warning?: boolean
+  }> = [
+    {
+      id: 'etiquetas-me',
+      label: 'Aguardando expedição',
+      value: counts?.['etiquetas-me'] ?? 0,
+    },
+    {
+      id: 'volumes',
+      label: 'Volumes',
+      value: counts?.volumes ?? 0,
+    },
+    {
+      id: 'entregas-proprias',
+      label: 'Entregas próprias',
+      value: counts?.['entregas-proprias'] ?? 0,
+    },
+    {
+      id: 'revisao',
+      label: 'Em revisão',
+      value: counts?.revisao ?? 0,
+      warning: (counts?.revisao ?? 0) > 0,
+    },
+  ]
+
   return (
-    <div className="flex h-full flex-col overflow-auto p-1">
-      <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-        Filas logística
+    <div className="flex h-full flex-col overflow-auto p-0.5">
+      <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        Logística
       </h3>
-      <p className="mt-1 mb-2 text-xs text-fal-muted">Mesmas contagens da Central.</p>
       <SourceBanner
         status={logisticsQueues.status}
         error={logisticsQueues.error}
         loadingLabel="Carregando filas…"
       />
       {counts ? (
-        <ul className="m-0 grid list-none gap-1.5 p-0 sm:grid-cols-2">
-          {DASHBOARD_LOGISTICS_QUEUE_IDS.map((id) => {
-            const q = ADMIN_LOGISTICS_QUEUES.find((x) => x.id === id)
-            if (!q) return null
+        <div className="mt-2 grid flex-1 grid-cols-2 gap-2">
+          {cells.map((c) => {
+            const q = ADMIN_LOGISTICS_QUEUES.find((x) => x.id === c.id)
+            const body = (
+              <>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+                  {c.label}
+                </span>
+                <span className="mt-1.5 text-xl font-extrabold tabular-nums text-fal-fg">
+                  {c.value}
+                </span>
+              </>
+            )
+            const cls = [
+              'flex flex-col justify-center rounded-[14px] border px-3 py-3 transition hover:border-fal-accent/50',
+              c.warning
+                ? 'border-fal-warning/40 bg-fal-warning/10'
+                : 'border-fal-line bg-fal-surface',
+            ].join(' ')
+            if (c.id === 'revisao' && q) {
+              return (
+                <Link key={c.id} to={q.path} className={cls}>
+                  {body}
+                </Link>
+              )
+            }
             return (
-              <li key={id}>
-                {id === 'revisao' ? (
-                  <Link
-                    to={q.path}
-                    className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
-                  >
-                    <span className="text-fal-fg">{q.title}</span>
-                    <span className="font-extrabold tabular-nums text-fal-fg">
-                      {counts[id] ?? 0}
-                    </span>
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-fal-bg"
-                    onClick={() =>
-                      setContextual(
-                        resolveWidgetContextual('logistics-queues', {
-                          logisticsFila: id,
-                        }),
-                      )
-                    }
-                  >
-                    <span className="text-fal-fg">{q.title}</span>
-                    <span className="font-extrabold tabular-nums text-fal-fg">
-                      {counts[id] ?? 0}
-                    </span>
-                  </button>
-                )}
-              </li>
+              <button
+                key={c.id}
+                type="button"
+                className={`${cls} w-full text-left`}
+                onClick={() =>
+                  setContextual(
+                    resolveWidgetContextual('logistics-queues', {
+                      logisticsFila: c.id,
+                    }),
+                  )
+                }
+              >
+                {body}
+              </button>
             )
           })}
-        </ul>
+        </div>
       ) : null}
     </div>
   )
@@ -625,6 +977,90 @@ function shortDate(iso: string): string {
   const parts = iso.split('-')
   if (parts.length !== 3) return iso
   return `${parts[2]}/${parts[1]}`
+}
+
+export function WidgetChartPerformance() {
+  const { dailySeries, period, role } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
+  const canGmv = canAccessAdminPath('/admin/relatorios', role)
+  const days = dailySeries.data?.days ?? []
+  const chartData = days.map((d) => ({
+    label: shortDate(d.date),
+    gmv: canGmv ? (d.gmvDelivered ?? 0) : undefined,
+    capturado: d.captured,
+  }))
+
+  return (
+    <div className="flex h-full flex-col gap-2 p-0.5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+            Desempenho
+          </h3>
+          <p className="m-0 text-xs text-fal-muted">
+            {period.label}
+            {canGmv ? ' · GMV entregue ≠ caixa capturado' : ' · caixa capturado'}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="text-xs font-semibold text-fal-accent underline"
+          onClick={() =>
+            setContextual(resolveWidgetContextual('chart-performance'))
+          }
+        >
+          Ver detalhes →
+        </button>
+      </div>
+      <SourceBanner
+        status={dailySeries.status}
+        error={dailySeries.error}
+        loadingLabel="Carregando série…"
+      />
+      {dailySeries.status === 'empty' ? (
+        <p className="m-0 text-sm text-fal-muted">Sem dados no período selecionado.</p>
+      ) : null}
+      {dailySeries.status === 'success' ? (
+        <div className="min-h-[200px] flex-1">
+          <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+            <ComposedChart data={chartData} accessibilityLayer>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} width={56} />
+              <Tooltip
+                formatter={(value, name) => [
+                  typeof value === 'number'
+                    ? formatMoney(value)
+                    : String(value ?? ''),
+                  String(name),
+                ]}
+              />
+              <Legend />
+              {canGmv ? (
+                <Area
+                  type="monotone"
+                  dataKey="gmv"
+                  name="GMV entregue"
+                  stroke={DASH_CHART.accent}
+                  fill={DASH_CHART.accent}
+                  fillOpacity={0.15}
+                  isAnimationActive={false}
+                />
+              ) : null}
+              <Line
+                type="monotone"
+                dataKey="capturado"
+                name="Caixa capturado"
+                stroke={DASH_CHART.success}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 export function WidgetChartGmvSeries() {
@@ -670,7 +1106,7 @@ export function WidgetChartGmvSeries() {
       {dailySeries.status === 'success' ? (
         <div className="min-h-[180px] flex-1">
           <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-            <AreaChart data={chartData} accessibilityLayer>
+            <ComposedChart data={chartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} width={56} />
@@ -680,12 +1116,12 @@ export function WidgetChartGmvSeries() {
                 type="monotone"
                 dataKey="gmv"
                 name="GMV entregue"
-                stroke="var(--color-fal-accent, #2563eb)"
-                fill="var(--color-fal-accent, #2563eb)"
+                stroke={DASH_CHART.accent}
+                fill={DASH_CHART.accent}
                 fillOpacity={0.2}
                 isAnimationActive={false}
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       ) : null}
@@ -732,7 +1168,7 @@ export function WidgetChartCashSeries() {
       {dailySeries.status === 'success' ? (
         <div className="min-h-[180px] flex-1">
           <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-            <LineChart data={chartData} accessibilityLayer>
+            <ComposedChart data={chartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} width={56} />
@@ -742,7 +1178,7 @@ export function WidgetChartCashSeries() {
                 type="monotone"
                 dataKey="capturado"
                 name="Capturado"
-                stroke="var(--color-fal-success, #16a34a)"
+                stroke={DASH_CHART.success}
                 dot={false}
                 isAnimationActive={false}
               />
@@ -750,11 +1186,11 @@ export function WidgetChartCashSeries() {
                 type="monotone"
                 dataKey="liquido"
                 name="Líquido do dia"
-                stroke="var(--color-fal-navy, #0f172a)"
+                stroke={DASH_CHART.navy}
                 dot={false}
                 isAnimationActive={false}
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       ) : null}
@@ -763,6 +1199,7 @@ export function WidgetChartCashSeries() {
 }
 
 const WIDGET_COMPONENTS: Record<string, () => ReactNode> = {
+  'exec-summary': () => <WidgetExecSummary />,
   'quick-controls': () => <WidgetQuickControls />,
   'shortcuts-pinned': () => <WidgetShortcutsPinned />,
   'attention-table': () => <WidgetAttentionTable />,
@@ -775,6 +1212,7 @@ const WIDGET_COMPONENTS: Record<string, () => ReactNode> = {
   'gmv-delivered': () => <WidgetGmvDelivered />,
   'cash-box': () => <WidgetCashBox />,
   'logistics-queues': () => <WidgetLogisticsQueues />,
+  'chart-performance': () => <WidgetChartPerformance />,
   'chart-gmv-series': () => <WidgetChartGmvSeries />,
   'chart-cash-series': () => <WidgetChartCashSeries />,
 }

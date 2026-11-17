@@ -1,3 +1,4 @@
+import { CustomerCadastroPreviewModal } from '@/components/admin/customers/CustomerCadastroPreviewModal'
 import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
 import { OrdersFinanceIndicatorsPanel } from '@/components/admin/orders/OrdersFinanceIndicatorsPanel'
 import { OrdersHubAreaCards } from '@/components/admin/orders/OrdersHubAreaCards'
@@ -133,6 +134,7 @@ export function AdminOrdersHubPage() {
   const [search, setSearch] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [overviewChip, setOverviewChip] = useState<OverviewChip>('todos')
+  const [customerModalOpen, setCustomerModalOpen] = useState(false)
 
   const setHubParams = useCallback(
     (next: { tab?: OrdersHubTab; area?: OrdersHubArea; fila?: string | null }) => {
@@ -390,15 +392,23 @@ export function AdminOrdersHubPage() {
             Gestão comercial, financeira e logística — preview na lateral, operação no detalhe.
           </p>
         </div>
-        <div className="flex w-full max-w-md flex-wrap items-end gap-2 sm:w-auto">
+        <div className="flex w-full max-w-xl flex-wrap items-end gap-2 sm:w-auto">
           <div className="min-w-[12rem] flex-1">
             <Input
               label="Buscar pedidos"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Número, cliente, frete…"
+              placeholder="nº, cliente, CPF, item, valor…"
             />
           </div>
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            onClick={() => setCustomerModalOpen(true)}
+          >
+            Clientes
+          </Button>
           <Button
             type="button"
             variant="light"
@@ -603,37 +613,43 @@ export function AdminOrdersHubPage() {
   )
 
   return (
-    <AdaptiveWorkspace
-      moduleKey="orders"
-      primary={primary}
-      contextualOpen={!!selectedOrderId}
-      onContextualOpenChange={(open) => {
-        if (!open) setSelectedOrderId(null)
-      }}
-      contextualTitle={
-        selectedOrderId ? `Pedido #${selectedOrderId.slice(0, 8)}` : 'Pedido'
-      }
-      contextualStatusBadge={
-        selectedRow ? (
-          <span className={badgeClass(toneForOrderStatus(selectedRow.status))}>
-            {listStatusLabel(selectedRow)}
-          </span>
-        ) : null
-      }
-      contextualExtraActions={
-        selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
-      }
-      contextual={
-        selectedOrderId ? (
-          <OrderPreviewPanel
-            orderId={selectedOrderId}
-            listRow={selectedRow}
-            hideStatusChip
-            onClose={() => setSelectedOrderId(null)}
-            onOpenFull={() => openFull(selectedOrderId)}
-          />
-        ) : null
-      }
-    />
+    <>
+      <AdaptiveWorkspace
+        moduleKey="orders"
+        primary={primary}
+        contextualOpen={!!selectedOrderId}
+        onContextualOpenChange={(open) => {
+          if (!open) setSelectedOrderId(null)
+        }}
+        contextualTitle={
+          selectedOrderId ? `Pedido #${selectedOrderId.slice(0, 8)}` : 'Pedido'
+        }
+        contextualStatusBadge={
+          selectedRow ? (
+            <span className={badgeClass(toneForOrderStatus(selectedRow.status))}>
+              {listStatusLabel(selectedRow)}
+            </span>
+          ) : null
+        }
+        contextualExtraActions={
+          selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
+        }
+        contextual={
+          selectedOrderId ? (
+            <OrderPreviewPanel
+              orderId={selectedOrderId}
+              listRow={selectedRow}
+              hideStatusChip
+              onClose={() => setSelectedOrderId(null)}
+              onOpenFull={() => openFull(selectedOrderId)}
+            />
+          ) : null
+        }
+      />
+      <CustomerCadastroPreviewModal
+        open={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+      />
+    </>
   )
 }

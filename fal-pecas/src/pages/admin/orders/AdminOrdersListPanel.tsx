@@ -11,7 +11,7 @@ import { Loading } from '@/components/common/Loading'
 import { adminNextActionLabel, orderStatusOperatorLabel } from '@/lib/adminOrderOps'
 import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
@@ -106,10 +106,10 @@ export function AdminOrdersListPanel({
       {!hideSearch ? (
         <div className="max-w-md">
           <Input
-            label="Busca (número / cliente / frete)"
+            label="Buscar: nº, cliente, CPF, item, valor…"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Ex.: a1b2c3d4, nome ou PAC"
+            placeholder="Ex.: CPF, SKU, 150,90…"
           />
         </div>
       ) : null}
@@ -122,8 +122,8 @@ export function AdminOrdersListPanel({
       ) : null}
 
       {!loading && !error && rows.length > 0 ? (
-        <>
-          <div className="space-y-3 md:hidden">
+        <div className="max-h-[min(58vh,560px)] overflow-auto rounded-[14px] border border-fal-line bg-fal-surface">
+          <div className="space-y-3 p-3 md:hidden">
             {rows.map((o) => {
               const next = nextActionLabel(o)
               const selected = selectedOrderId === o.id
@@ -211,9 +211,9 @@ export function AdminOrdersListPanel({
             })}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+          <div className="hidden md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
+              <thead className="sticky top-0 z-10 border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
                   <th className="px-3 py-2">Pedido</th>
                   <th className="px-3 py-2">Cliente</th>
@@ -315,10 +315,29 @@ export function AdminOrdersListPanel({
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   )
+}
+
+function matchesCustomerDoc(doc: string | null | undefined, q: string): boolean {
+  if (!doc) return false
+  const lower = doc.toLowerCase()
+  if (lower.includes(q)) return true
+  const docDigits = doc.replace(/\D/g, '')
+  const qDigits = q.replace(/\D/g, '')
+  return qDigits.length >= 3 && docDigits.includes(qDigits)
+}
+
+function matchesOrderTotal(total: number, q: string): boolean {
+  const plain = q.replace(/r\$\s?/gi, '').trim()
+  if (!plain) return false
+  if (formatMoneyInput(total).toLowerCase().includes(plain)) return true
+  if (formatMoney(total).toLowerCase().includes(q)) return true
+  const parsed = parseMoneyBr(plain)
+  if (parsed == null) return false
+  return Math.round(parsed * 100) === Math.round(total * 100)
 }
 
 export function filterOrdersBySearch(rows: AdminOrderListRow[], raw: string): AdminOrderListRow[] {
@@ -328,6 +347,9 @@ export function filterOrdersBySearch(rows: AdminOrderListRow[], raw: string): Ad
     (o) =>
       o.id.toLowerCase().includes(q) ||
       (o.customerName?.toLowerCase().includes(q) ?? false) ||
+      matchesCustomerDoc(o.customerDoc, q) ||
+      (o.itemSearchText?.includes(q) ?? false) ||
+      matchesOrderTotal(o.total, q) ||
       (o.paymentStatus?.toLowerCase().includes(q) ?? false) ||
       (o.shippingChoiceLabel?.toLowerCase().includes(q) ?? false) ||
       listStatusLabel(o).toLowerCase().includes(q) ||

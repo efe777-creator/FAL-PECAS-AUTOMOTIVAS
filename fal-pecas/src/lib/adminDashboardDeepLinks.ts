@@ -72,7 +72,9 @@ export function resolveWidgetDeepLink(
     case 'kpi-reports-delivered':
     case 'gmv-delivered':
     case 'chart-gmv-series':
+    case 'chart-performance':
       return '/admin/relatorios'
+    case 'exec-summary':
     case 'quick-controls':
       return buildOrdersHubPath({ tab: 'visao-geral' })
     default: {
@@ -122,6 +124,10 @@ export function resolveWidgetContextual(
       return { kind: 'reports-summary', focus: 'gmv' }
     case 'chart-gmv-series':
       return { kind: 'reports-summary', focus: 'series-gmv' }
+    case 'chart-performance':
+      return { kind: 'reports-summary', focus: 'series-gmv' }
+    case 'exec-summary':
+      return { kind: 'hub-attention', actor: 'all' }
     case 'quick-controls':
       return { kind: 'hub-attention', actor: 'all' }
     default:

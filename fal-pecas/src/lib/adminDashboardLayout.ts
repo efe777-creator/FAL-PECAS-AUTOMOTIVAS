@@ -134,27 +134,134 @@ export function migrateLayoutRaw(raw: unknown): unknown {
   return raw
 }
 
+/**
+ * Shelf packer na grade 12-col: encaixa na mesma y se couber; senão nova linha.
+ * Evita o empilhamento vertical (x:0) que deixava KPIs e pares w:6 “desorganizados”.
+ */
+export function shelfPackPositions(
+  sizes: ReadonlyArray<{ w: number; h: number }>,
+  cols: number = DASHBOARD_GRID_COLS,
+): Array<{ x: number; y: number; w: number; h: number }> {
+  const out: Array<{ x: number; y: number; w: number; h: number }> = []
+  let rowX = 0
+  let rowY = 0
+  let rowH = 0
+  for (const size of sizes) {
+    const w = clamp(size.w, 1, cols)
+    const h = Math.max(1, size.h)
+    if (rowX + w > cols) {
+      rowY += rowH
+      rowX = 0
+      rowH = 0
+    }
+    out.push({ x: rowX, y: rowY, w, h })
+    rowX += w
+    rowH = Math.max(rowH, h)
+  }
+  return out
+}
+
+/** Próxima célula livre abaixo do layout atual (mesmo packer, 1 item). */
+export function nextShelfSlot(
+  existing: readonly Pick<DashboardLayoutItem, 'x' | 'y' | 'w' | 'h'>[],
+  size: { w: number; h: number },
+  cols: number = DASHBOARD_GRID_COLS,
+): { x: number; y: number; w: number; h: number } {
+  const w = clamp(size.w, 1, cols)
+  const h = Math.max(1, size.h)
+  if (existing.length === 0) return { x: 0, y: 0, w, h }
+
+  let maxBottom = 0
+  let bottomRowY = 0
+  let bottomRowH = 0
+  for (const it of existing) {
+    const bottom = it.y + it.h
+    if (bottom > maxBottom) {
+      maxBottom = bottom
+      bottomRowY = it.y
+      bottomRowH = it.h
+    } else if (bottom === maxBottom) {
+      bottomRowY = Math.min(bottomRowY, it.y)
+      bottomRowH = Math.max(bottomRowH, it.h)
+    }
+  }
+
+  // Tenta encaixar na última “prateleira” ocupada
+  let rowY = bottomRowY
+  let rowH = bottomRowH
+  let rowX = 0
+  const onRow = existing.filter((it) => it.y === rowY)
+  for (const it of onRow) {
+    rowX = Math.max(rowX, it.x + it.w)
+    rowH = Math.max(rowH, it.h)
+  }
+  if (rowX + w <= cols) {
+    return { x: rowX, y: rowY, w, h }
+  }
+  return { x: 0, y: maxBottom, w, h }
+}
+
+export type LayoutPlacement = { x: number; y: number; w: number; h: number }
+
 export function buildDefaultLayout(
   widgetIdsInOrder: readonly string[],
   boundsByWidgetId: ReadonlyMap<string, WidgetSizeBounds>,
+  placements?: Readonly<Record<string, LayoutPlacement>>,
 ): DashboardLayoutFileV1 {
-  const items: DashboardLayoutItem[] = []
-  let cursorY = 0
+  if (placements) {
+    const items: DashboardLayoutItem[] = []
+    for (const widgetId of widgetIdsInOrder) {
+      const bounds = boundsByWidgetId.get(widgetId)
+      if (!bounds) continue
+      const p = placements[widgetId]
+      if (!p) continue
+      const maxW = Math.min(DASHBOARD_GRID_COLS, bounds.maxSize.w)
+      const w = clamp(p.w, bounds.minSize.w, maxW)
+      const h = clamp(p.h, bounds.minSize.h, bounds.maxSize.h)
+      const x = clamp(p.x, 0, DASHBOARD_GRID_COLS - w)
+      const y = Math.max(0, p.y)
+      items.push({
+        instanceId: createInstanceId(widgetId),
+        widgetId,
+        x,
+        y,
+        w,
+        h,
+      })
+    }
+    if (items.length > 0) {
+      return {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        items,
+      }
+    }
+  }
+
+  const prepared: Array<{ widgetId: string; w: number; h: number }> = []
   for (const widgetId of widgetIdsInOrder) {
     const bounds = boundsByWidgetId.get(widgetId)
     if (!bounds) continue
-    const w = clamp(bounds.defaultSize.w, bounds.minSize.w, Math.min(DASHBOARD_GRID_COLS, bounds.maxSize.w))
+    const w = clamp(
+      bounds.defaultSize.w,
+      bounds.minSize.w,
+      Math.min(DASHBOARD_GRID_COLS, bounds.maxSize.w),
+    )
     const h = clamp(bounds.defaultSize.h, bounds.minSize.h, bounds.maxSize.h)
-    items.push({
-      instanceId: createInstanceId(widgetId),
-      widgetId,
-      x: 0,
-      y: cursorY,
-      w,
-      h,
-    })
-    cursorY += h
+    prepared.push({ widgetId, w, h })
   }
+  const positions = shelfPackPositions(prepared)
+  const items: DashboardLayoutItem[] = prepared.map((p, i) => {
+    const pos = positions[i]!
+    return {
+      instanceId: createInstanceId(p.widgetId),
+      widgetId: p.widgetId,
+      x: pos.x,
+      y: pos.y,
+      w: pos.w,
+      h: pos.h,
+    }
+  })
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
@@ -167,9 +274,10 @@ export function readDashboardLayout(
   allowedWidgetIds: ReadonlySet<string>,
   defaultWidgetIds: readonly string[],
   storage: StorageLike | null = defaultStorage(),
+  placements?: Readonly<Record<string, LayoutPlacement>>,
 ): DashboardLayoutFileV1 {
   const fallback = () =>
-    buildDefaultLayout(defaultWidgetIds, boundsByWidgetId)
+    buildDefaultLayout(defaultWidgetIds, boundsByWidgetId, placements)
 
   if (!storage) return fallback()
   try {

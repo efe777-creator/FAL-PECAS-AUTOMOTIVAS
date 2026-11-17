@@ -9,7 +9,8 @@ import {
   type WidgetMeta,
 } from '@/lib/adminDashboardWidgets'
 import { useElementWidth } from '@/hooks/useElementWidth'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { verticalCompactor } from 'react-grid-layout/core'
 import {
   ResponsiveGridLayout,
   type Layout,
@@ -67,6 +68,28 @@ function scaleForBreakpoint(
   })
 }
 
+function layoutsEqual(
+  a: readonly DashboardLayoutItem[],
+  b: readonly DashboardLayoutItem[],
+): boolean {
+  if (a.length !== b.length) return false
+  const byId = new Map(b.map((it) => [it.instanceId, it]))
+  for (const item of a) {
+    const other = byId.get(item.instanceId)
+    if (!other) return false
+    if (
+      item.x !== other.x ||
+      item.y !== other.y ||
+      item.w !== other.w ||
+      item.h !== other.h ||
+      item.widgetId !== other.widgetId
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
 export function DashboardLayoutEngine({
   items,
   boundsByWidgetId,
@@ -76,6 +99,10 @@ export function DashboardLayoutEngine({
 }: Props) {
   const { width, containerRef, mounted } = useElementWidth(1280)
   const [breakpoint, setBreakpoint] = useState<'lg' | 'md' | 'sm'>('lg')
+  const interactingRef = useRef(false)
+  const pendingLgRef = useRef<LayoutItem[] | null>(null)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   const isMobile = breakpoint === 'sm'
   const dragEnabled = editing && !isMobile
@@ -92,16 +119,33 @@ export function DashboardLayoutEngine({
     }
   }, [items, boundsByWidgetId])
 
+  function commitLgLayout(lg: LayoutItem[] | null | undefined) {
+    if (!editing || isMobile) return
+    if (!lg || lg.length === 0) return
+    const next = fromRglLayout(lg, itemsRef.current)
+    if (next.length === 0) return
+    if (layoutsEqual(next, itemsRef.current)) return
+    onItemsChange(next)
+  }
+
   function handleLayoutChange(
     current: Layout,
     all: Partial<Record<string, Layout>>,
   ) {
-    if (!editing || isMobile) return
-    // Persist from lg layout (canonical 12-col)
-    const lg = [...(all.lg ?? current)] as LayoutItem[]
-    const next = fromRglLayout(lg, items)
-    if (next.length === 0) return
-    onItemsChange(next)
+    const lg = [...(all.lg ?? (breakpoint === 'lg' ? current : []))] as LayoutItem[]
+    if (lg.length > 0) pendingLgRef.current = lg
+    // Durante arraste/resize não persiste — evita reset do controlled layout
+    if (interactingRef.current) return
+    commitLgLayout(pendingLgRef.current)
+  }
+
+  function beginInteract() {
+    interactingRef.current = true
+  }
+
+  function endInteract() {
+    interactingRef.current = false
+    commitLgLayout(pendingLgRef.current)
   }
 
   return (
@@ -115,13 +159,15 @@ export function DashboardLayoutEngine({
           breakpoints={BREAKPOINTS}
           cols={COLS}
           rowHeight={56}
-          margin={[12, 12] as const}
+          margin={[14, 14] as const}
           containerPadding={[0, 0] as const}
+          compactor={verticalCompactor}
           dragConfig={{
             enabled: dragEnabled,
             bounded: true,
+            // Handle NÃO pode ser <button> se cancel incluir button
             handle: '.fal-dash-drag-handle',
-            cancel: 'a,button,input,textarea,select',
+            cancel: '.fal-dash-no-drag,a,input,textarea,select',
             threshold: 3,
           }}
           resizeConfig={{
@@ -132,34 +178,60 @@ export function DashboardLayoutEngine({
             if (bp === 'lg' || bp === 'md' || bp === 'sm') setBreakpoint(bp)
           }}
           onLayoutChange={handleLayoutChange}
+          onDragStart={beginInteract}
+          onDragStop={endInteract}
+          onResizeStart={beginInteract}
+          onResizeStop={endInteract}
         >
           {items.map((item) => {
             const meta = getWidgetMeta(item.widgetId) as WidgetMeta | undefined
             return (
               <div
                 key={item.instanceId}
-                className="overflow-hidden rounded-[14px] border border-fal-line bg-fal-surface shadow-sm"
+                className={[
+                  'rounded-[14px] border bg-fal-surface',
+                  editing ? 'overflow-visible' : 'overflow-hidden',
+                  editing
+                    ? 'border-fal-accent/35 shadow-sm ring-1 ring-fal-accent/15'
+                    : 'border-fal-line/80 shadow-sm',
+                ].join(' ')}
               >
                 {editing ? (
-                  <div className="flex items-center justify-between gap-2 border-b border-fal-line bg-fal-bg px-2 py-1">
-                    <button
-                      type="button"
-                      className="fal-dash-drag-handle cursor-grab px-2 py-1 text-xs font-bold text-fal-muted active:cursor-grabbing"
+                  <div className="flex items-center justify-between gap-2 border-b border-fal-line bg-fal-bg/80 px-1.5 py-1.5">
+                    <div
+                      className="fal-dash-drag-handle flex min-h-9 min-w-0 flex-1 cursor-grab items-center gap-1.5 rounded-md px-2 py-1 text-xs font-bold text-fal-fg select-none hover:bg-fal-surface-2 active:cursor-grabbing"
+                      title="Arrastar para reorganizar"
                       aria-label={`Mover ${meta?.title ?? item.widgetId}`}
+                      role="button"
+                      tabIndex={0}
                     >
-                      ⋮⋮ {meta?.title ?? item.widgetId}
-                    </button>
+                      <span className="text-base leading-none text-fal-muted" aria-hidden>
+                        ⋮⋮
+                      </span>
+                      <span className="truncate">
+                        {meta?.title ?? item.widgetId}
+                      </span>
+                      <span className="ml-auto hidden text-[10px] font-semibold uppercase tracking-wide text-fal-muted sm:inline">
+                        Arrastar
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      className="rounded px-2 py-1 text-xs font-bold text-fal-danger hover:bg-fal-danger/10"
+                      className="fal-dash-no-drag shrink-0 rounded px-2 py-1 text-xs font-bold text-fal-danger hover:bg-fal-danger/10"
                       aria-label={`Remover ${meta?.title ?? item.widgetId}`}
                       onClick={() => onRemove(item.instanceId)}
+                      onPointerDown={(e) => e.stopPropagation()}
                     >
                       Remover
                     </button>
                   </div>
                 ) : null}
-                <div className={editing ? 'p-2' : 'h-full p-2'}>
+                <div
+                  className={[
+                    editing ? 'fal-dash-no-drag p-2.5' : 'h-full p-3',
+                    editing ? 'overflow-auto' : '',
+                  ].join(' ')}
+                >
                   {renderDashboardWidget(item.widgetId)}
                 </div>
               </div>

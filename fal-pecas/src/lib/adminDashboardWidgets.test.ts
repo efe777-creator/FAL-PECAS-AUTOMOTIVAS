@@ -7,12 +7,14 @@ import {
 } from '@/lib/adminDashboardWidgets'
 
 describe('adminDashboardWidgets auth', () => {
-  it('admin vê caixa, GMV e charts', () => {
+  it('admin vê caixa, GMV, charts e layout interpretação', () => {
     const ids = allowedWidgetIdSet('administrador')
     expect(ids.has('cash-box')).toBe(true)
     expect(ids.has('gmv-delivered')).toBe(true)
     expect(ids.has('chart-gmv-series')).toBe(true)
     expect(ids.has('chart-cash-series')).toBe(true)
+    expect(ids.has('chart-performance')).toBe(true)
+    expect(ids.has('exec-summary')).toBe(true)
     expect(ids.has('attention-table')).toBe(true)
   })
 
@@ -22,8 +24,10 @@ describe('adminDashboardWidgets auth', () => {
     expect(ids.has('cash-box')).toBe(false)
     expect(ids.has('chart-gmv-series')).toBe(false)
     expect(ids.has('chart-cash-series')).toBe(false)
+    expect(ids.has('chart-performance')).toBe(false)
     expect(ids.has('kpi-reports-open')).toBe(false)
     expect(ids.has('pipeline-flow')).toBe(true)
+    expect(ids.has('exec-summary')).toBe(true)
   })
 
   it('atendimento não vê estoque-only mas vê pedidos', () => {

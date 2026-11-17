@@ -16,6 +16,7 @@ import {
   buildDefaultLayout,
   clearDashboardLayout,
   createInstanceId,
+  nextShelfSlot,
   readDashboardLayout,
   writeDashboardLayout,
   type DashboardLayoutFileV1,
@@ -24,6 +25,7 @@ import {
 import {
   allowedWidgetIdSet,
   boundsMapForRole,
+  DEFAULT_LAYOUT_PLACEMENTS,
   defaultWidgetIdsForRole,
   getWidgetMeta,
   listAvailableWidgets,
@@ -62,7 +64,7 @@ function DashboardShell({
     const b = boundsMapForRole(role)
     const a = allowedWidgetIdSet(role)
     const d = defaultWidgetIdsForRole(role)
-    return readDashboardLayout(b, a, d)
+    return readDashboardLayout(b, a, d, undefined, DEFAULT_LAYOUT_PLACEMENTS)
   })
   const [editing, setEditing] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -71,7 +73,7 @@ function DashboardShell({
     const b = boundsMapForRole(role)
     const a = allowedWidgetIdSet(role)
     const d = defaultWidgetIdsForRole(role)
-    setLayoutFile(readDashboardLayout(b, a, d))
+    setLayoutFile(readDashboardLayout(b, a, d, undefined, DEFAULT_LAYOUT_PLACEMENTS))
   }, [role])
 
   const persist = useCallback(
@@ -114,13 +116,14 @@ function DashboardShell({
     const meta = getWidgetMeta(widgetId)
     if (!meta || !widgetAllowedForRole(meta, role)) return
     if (activeIds.has(widgetId)) return
+    const slot = nextShelfSlot(layoutFile.items, meta.defaultSize)
     const item: DashboardLayoutItem = {
       instanceId: createInstanceId(widgetId),
       widgetId,
-      x: 0,
-      y: layoutFile.items.reduce((max, i) => Math.max(max, i.y + i.h), 0),
-      w: meta.defaultSize.w,
-      h: meta.defaultSize.h,
+      x: slot.x,
+      y: slot.y,
+      w: slot.w,
+      h: slot.h,
     }
     persist([...layoutFile.items, item])
   }
@@ -130,7 +133,7 @@ function DashboardShell({
     const b = boundsMapForRole(role)
     const a = allowedWidgetIdSet(role)
     const d = defaultWidgetIdsForRole(role)
-    const fresh = buildDefaultLayout(d, b)
+    const fresh = buildDefaultLayout(d, b, DEFAULT_LAYOUT_PLACEMENTS)
     const saved = writeDashboardLayout(fresh, b, a)
     setLayoutFile(saved)
     setEditing(false)
@@ -142,28 +145,38 @@ function DashboardShell({
   }
 
   const primary = (
-    <div className="mx-auto max-w-6xl space-y-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-fal-fg md:text-3xl">Painel</h1>
-          <p className="mt-1 max-w-2xl text-sm text-fal-muted md:text-base">
-            Centro de comando modular — ver, priorizar e abrir a fila certa. Mutações
-            ficam na Central e no detalhe.
+    <div className="mx-auto max-w-7xl space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg md:text-3xl">
+            Painel
+          </h1>
+          <p className="mt-0.5 text-sm text-fal-muted">
+            Centro de comando operacional
           </p>
-          <p className="mt-1 text-xs text-fal-muted" aria-live="polite">
+          <p
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-fal-muted"
+            aria-live="polite"
+          >
+            <span
+              className={[
+                'inline-block size-1.5 rounded-full',
+                data.refreshing ? 'animate-pulse bg-fal-warning' : 'bg-fal-success',
+              ].join(' ')}
+              aria-hidden
+            />
             {data.refreshing
               ? 'Atualizando…'
               : data.lastUpdatedAt
                 ? `Atualizado ${formatDateTime(data.lastUpdatedAt)}`
                 : '—'}
-            {role ? ` · ${role}` : null}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div
-            className="flex flex-wrap items-center gap-1 rounded-lg border border-fal-line bg-fal-surface p-1"
+            className="flex flex-wrap items-center gap-0.5 rounded-xl border border-fal-line bg-fal-surface p-1 shadow-sm"
             role="group"
-            aria-label="Período da série"
+            aria-label="Período"
           >
             {DASHBOARD_PERIOD_PRESETS.map((p) => {
               const meta = resolveDashboardPeriod(p)
@@ -174,10 +187,10 @@ function DashboardShell({
                   type="button"
                   aria-pressed={active}
                   className={[
-                    'min-h-9 rounded-md px-2.5 text-xs font-semibold',
+                    'min-h-9 rounded-lg px-3 text-xs font-semibold transition',
                     active
-                      ? 'bg-fal-accent text-white'
-                      : 'text-fal-muted hover:text-fal-fg',
+                      ? 'bg-fal-accent text-white shadow-sm'
+                      : 'text-fal-muted hover:bg-fal-bg hover:text-fal-fg',
                   ].join(' ')}
                   onClick={() => onPeriodPreset(p)}
                 >
@@ -188,7 +201,7 @@ function DashboardShell({
           </div>
           <button
             type="button"
-            className="inline-flex min-h-11 items-center rounded-lg border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
+            className="inline-flex min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3.5 text-sm font-semibold text-fal-fg shadow-sm hover:border-fal-accent/40"
             onClick={() => data.refresh()}
             disabled={data.refreshing}
           >
@@ -197,10 +210,10 @@ function DashboardShell({
           <button
             type="button"
             className={[
-              'inline-flex min-h-11 items-center rounded-lg border px-3 text-sm font-semibold',
+              'inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-3.5 text-sm font-semibold shadow-sm',
               editing
                 ? 'border-fal-accent bg-fal-accent text-white'
-                : 'border-fal-line bg-fal-surface text-fal-fg',
+                : 'border-fal-navy bg-fal-navy text-white hover:opacity-95',
             ].join(' ')}
             aria-pressed={editing}
             onClick={() => setEditing((e) => !e)}
@@ -211,36 +224,30 @@ function DashboardShell({
             <>
               <button
                 type="button"
-                className="inline-flex min-h-11 items-center rounded-lg border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
+                className="inline-flex min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
                 onClick={() => setAddOpen(true)}
               >
                 + Widget
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-11 items-center rounded-lg border border-fal-line px-3 text-sm font-semibold text-fal-muted"
+                className="inline-flex min-h-10 items-center rounded-xl border border-fal-line px-3 text-sm font-semibold text-fal-muted"
                 onClick={handleReset}
               >
-                Reset layout
+                Reset
               </button>
             </>
           ) : null}
-          <Link
-            to="/admin/pedidos"
-            className="inline-flex min-h-11 items-center rounded-lg bg-fal-accent px-4 text-sm font-bold text-white hover:opacity-95"
-          >
-            Abrir Central
-          </Link>
         </div>
       </header>
 
       {editing ? (
         <p
-          className="rounded-lg border border-fal-accent/40 bg-fal-accent/10 px-3 py-2 text-sm text-fal-fg"
+          className="rounded-xl border border-fal-accent/40 bg-fal-accent/10 px-3 py-2 text-sm text-fal-fg"
           role="status"
         >
-          Modo personalizar: arraste pelo handle ⋮⋮, redimensione e remova widgets. No
-          mobile o arraste fica desligado.
+          Arraste pela barra ⋮⋮ do widget · solte para gravar · redimensione pelos
+          cantos · + Widget · Reset. No mobile o arraste fica desligado.
         </p>
       ) : null}
 

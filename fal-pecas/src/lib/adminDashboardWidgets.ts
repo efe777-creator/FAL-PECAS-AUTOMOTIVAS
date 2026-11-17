@@ -41,6 +41,29 @@ export type WidgetMeta = {
 
 export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
   {
+    id: 'exec-summary',
+    title: 'Resumo executivo',
+    description:
+      'Faixa KPI — pedidos ativos, atenção, GMV e caixa (quando autorizado).',
+    category: 'sistema',
+    icon: 'summary',
+    requiredPaths: ['/admin/pedidos'],
+    requiresReports: false,
+    requiresCash: false,
+    defaultSize: { w: 12, h: 3 },
+    minSize: { w: 6, h: 2 },
+    maxSize: { w: 12, h: 4 },
+    dataDependencies: [
+      'statusCounts',
+      'attention',
+      'basicTotals',
+      'centralIndicators',
+    ],
+    deepLink: '/admin/pedidos',
+    status: 'available',
+    configurable: false,
+  },
+  {
     id: 'quick-controls',
     title: 'Controles rápidos',
     description: 'Atalhos do funil operacional (deep-link).',
@@ -82,8 +105,8 @@ export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
     requiredPaths: ['/admin/pedidos'],
     requiresReports: false,
     requiresCash: false,
-    defaultSize: { w: 12, h: 5 },
-    minSize: { w: 6, h: 3 },
+    defaultSize: { w: 8, h: 5 },
+    minSize: { w: 4, h: 3 },
     maxSize: { w: 12, h: 10 },
     dataDependencies: ['attention'],
     deepLink: '/admin/pedidos',
@@ -93,16 +116,16 @@ export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
   {
     id: 'pipeline-flow',
     title: 'Fluxo do pedido',
-    description: 'Pipeline por grupo operacional.',
+    description: 'Pipeline horizontal por grupo + exceções + detalhe.',
     category: 'operacional',
     icon: 'flow',
     requiredPaths: ['/admin/pedidos'],
     requiresReports: false,
     requiresCash: false,
-    defaultSize: { w: 12, h: 3 },
-    minSize: { w: 6, h: 2 },
-    maxSize: { w: 12, h: 5 },
-    dataDependencies: ['statusCounts'],
+    defaultSize: { w: 12, h: 6 },
+    minSize: { w: 6, h: 4 },
+    maxSize: { w: 12, h: 10 },
+    dataDependencies: ['statusCounts', 'attention', 'logisticsQueues'],
     status: 'available',
     configurable: false,
   },
@@ -228,17 +251,34 @@ export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
   {
     id: 'logistics-queues',
     title: 'Filas logística',
-    description: 'Contagens das filas da Expedição.',
+    description: 'Contagens das filas da Expedição (grid 2×2).',
     category: 'operacional',
     icon: 'truck',
     requiredPaths: ['/admin/pedidos'],
     requiresReports: false,
     requiresCash: false,
-    defaultSize: { w: 6, h: 3 },
-    minSize: { w: 4, h: 2 },
-    maxSize: { w: 12, h: 5 },
+    defaultSize: { w: 4, h: 5 },
+    minSize: { w: 3, h: 3 },
+    maxSize: { w: 12, h: 8 },
     dataDependencies: ['logisticsQueues'],
     deepLink: '/admin/pedidos?tab=logistica',
+    status: 'available',
+    configurable: false,
+  },
+  {
+    id: 'chart-performance',
+    title: 'Desempenho',
+    description: 'GMV entregue e caixa capturado no período (eixos distintos).',
+    category: 'comercial',
+    icon: 'chart',
+    requiredPaths: [],
+    requiresReports: false,
+    requiresCash: true,
+    defaultSize: { w: 12, h: 5 },
+    minSize: { w: 6, h: 3 },
+    maxSize: { w: 12, h: 8 },
+    dataDependencies: ['dailySeries'],
+    deepLink: '/admin/relatorios',
     status: 'available',
     configurable: false,
   },
@@ -278,23 +318,28 @@ export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
   },
 ] as const
 
-/** Ordem Ops-first do layout padrão. */
+/**
+ * Layout padrão visual (mock FAL): KPIs → fluxo → atenção+logística → desempenho.
+ * Widgets antigos (kpi-*, charts soltos) permanecem no catálogo para + Widget.
+ */
 export const DEFAULT_LAYOUT_WIDGET_ORDER: readonly string[] = [
-  'quick-controls',
-  'shortcuts-pinned',
-  'attention-table',
+  'exec-summary',
   'pipeline-flow',
-  'kpi-awaiting-pay',
-  'kpi-team-action',
-  'kpi-customer-action',
-  'kpi-reports-open',
-  'kpi-reports-delivered',
-  'gmv-delivered',
-  'cash-box',
+  'attention-table',
   'logistics-queues',
-  'chart-gmv-series',
-  'chart-cash-series',
+  'chart-performance',
 ]
+
+/** Posições default 12-col (1ª visita / Reset). Layout salvo não é sobrescrito. */
+export const DEFAULT_LAYOUT_PLACEMENTS: Readonly<
+  Record<string, { x: number; y: number; w: number; h: number }>
+> = {
+  'exec-summary': { x: 0, y: 0, w: 12, h: 3 },
+  'pipeline-flow': { x: 0, y: 3, w: 12, h: 6 },
+  'attention-table': { x: 0, y: 9, w: 8, h: 5 },
+  'logistics-queues': { x: 8, y: 9, w: 4, h: 5 },
+  'chart-performance': { x: 0, y: 14, w: 12, h: 5 },
+}
 
 export function getWidgetMeta(id: string): WidgetMeta | undefined {
   return ADMIN_DASHBOARD_WIDGET_CATALOG.find((w) => w.id === id)
