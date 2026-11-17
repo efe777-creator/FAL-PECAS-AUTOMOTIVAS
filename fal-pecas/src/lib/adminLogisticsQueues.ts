@@ -54,21 +54,21 @@ export const ADMIN_LOGISTICS_QUEUES: readonly AdminLogisticsQueue[] = [
     title: 'Preparar volumes',
     description:
       'Melhor Envio: separação concluída — falta confirmar medidas/peso e alocação. Frete próprio e retirada não entram nesta fila.',
-    path: '/admin/pedidos/expedicao?fila=volumes',
+    path: '/admin/pedidos?tab=logistica&fila=volumes',
     primaryCta: 'Registrar volumes e peso',
   },
   {
     id: 'etiquetas-me',
     title: 'Emitir etiquetas (Melhor Envio)',
     description: 'Embalados, pagos, modalidade Melhor Envio — aguardando compra da etiqueta.',
-    path: '/admin/pedidos/expedicao?fila=etiquetas-me',
+    path: '/admin/pedidos?tab=logistica&fila=etiquetas-me',
     primaryCta: 'Comprar / imprimir etiqueta',
   },
   {
     id: 'entregas-proprias',
     title: 'Entregas próprias FAL',
     description: 'Embalados, pagos, provider own — organizar motorista e saída.',
-    path: '/admin/pedidos/expedicao?fila=entregas-proprias',
+    path: '/admin/pedidos?tab=logistica&fila=entregas-proprias',
     primaryCta: 'Organizar entrega própria',
   },
   {
@@ -82,14 +82,14 @@ export const ADMIN_LOGISTICS_QUEUES: readonly AdminLogisticsQueue[] = [
     id: 'transito',
     title: 'Em trânsito',
     description: 'Postagem ou saída confirmada (status enviado).',
-    path: '/admin/pedidos/expedicao?fila=transito',
+    path: '/admin/pedidos?tab=logistica&fila=transito',
     primaryCta: 'Acompanhar entrega',
   },
   {
     id: 'entregues',
     title: 'Entregues',
     description: 'Entrega confirmada ao cliente.',
-    path: '/admin/pedidos/expedicao?fila=entregues',
+    path: '/admin/pedidos?tab=logistica&fila=entregues',
     primaryCta: 'Consultar histórico',
   },
 ] as const

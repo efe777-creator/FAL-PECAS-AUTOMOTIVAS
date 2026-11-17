@@ -83,7 +83,7 @@ export function AdminPaymentsHubPage() {
           Cobranças, fila e reembolso não se configuram aqui.
         </p>
         <Link
-          to="/admin/pedidos/aguardando-pagamento"
+          to="/admin/pedidos?tab=comercial&area=aguardando-pagamento"
           className="text-sm font-semibold text-fal-fg"
         >
           Pedidos aguardando pagamento →

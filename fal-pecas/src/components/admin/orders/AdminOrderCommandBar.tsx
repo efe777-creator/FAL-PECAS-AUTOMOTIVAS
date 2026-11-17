@@ -1,4 +1,5 @@
 import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
+import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
 import { Link } from 'react-router-dom'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 
@@ -80,6 +81,7 @@ export function AdminOrderCommandBar({
             </span>
           </div>
         </div>
+        <OrderRowActionsMenu orderId={order.id} />
       </div>
 
       {nextStep ? (

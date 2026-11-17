@@ -93,9 +93,9 @@ const AdminOrdersHubPage = lazy(() =>
 const AdminOrdersPage = lazy(() =>
   import('@/pages/admin/orders/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
 )
-const AdminOrdersAreaPage = lazy(() =>
-  import('@/pages/admin/orders/AdminOrdersAreaPage').then((m) => ({
-    default: m.AdminOrdersAreaPage,
+const RedirectLegacyOrdersArea = lazy(() =>
+  import('@/pages/admin/orders/RedirectLegacyOrdersArea').then((m) => ({
+    default: m.RedirectLegacyOrdersArea,
   })),
 )
 const AdminOrdersViewPage = lazy(() =>
@@ -380,10 +380,10 @@ export const router = createBrowserRouter([
       { path: 'pedidos', element: <AdminOrdersHubPage /> },
       { path: 'avisos', element: <AdminNotificationsPage /> },
       { path: 'pedidos/lista', element: <AdminOrdersPage /> },
-      { path: 'pedidos/aguardando-pagamento', element: <AdminOrdersAreaPage /> },
-      { path: 'pedidos/analise', element: <AdminOrdersAreaPage /> },
-      { path: 'pedidos/separacao', element: <AdminOrdersAreaPage /> },
-      { path: 'pedidos/expedicao', element: <AdminOrdersAreaPage /> },
+      { path: 'pedidos/aguardando-pagamento', element: <RedirectLegacyOrdersArea /> },
+      { path: 'pedidos/analise', element: <RedirectLegacyOrdersArea /> },
+      { path: 'pedidos/separacao', element: <RedirectLegacyOrdersArea /> },
+      { path: 'pedidos/expedicao', element: <RedirectLegacyOrdersArea /> },
       { path: 'pedidos/visao/:viewId', element: <AdminOrdersViewPage /> },
       { path: 'pedidos/:id', element: <AdminOrderDetailPage /> },
       { path: 'clientes', element: <AdminCustomersPage /> },

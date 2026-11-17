@@ -1,3 +1,4 @@
+import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
@@ -12,7 +13,7 @@ import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 function actorClass(kind: ReturnType<typeof adminActorKind>): string {
   switch (kind) {
@@ -74,14 +75,14 @@ type Props = {
   error: string | null
   search: string
   onSearch: (v: string) => void
-  /** Extra column for separation preview */
   showItemPreview?: boolean
   itemPreviewByOrderId?: Record<string, string>
   emptyTitle?: string
   emptyDescription?: string
   showWaitingTime?: boolean
-  /** Coluna com contagem de itens (lista avançada). */
   showItemCount?: boolean
+  selectedOrderId?: string | null
+  onSelectOrder?: (orderId: string) => void
 }
 
 export function AdminOrdersListPanel({
@@ -96,10 +97,18 @@ export function AdminOrdersListPanel({
   emptyDescription = 'Altere a busca ou volte ao hub.',
   showWaitingTime,
   showItemCount,
+  selectedOrderId,
+  onSelectOrder,
 }: Props) {
   const location = useLocation()
+  const navigate = useNavigate()
   function rememberReturn() {
     rememberOrdersReturnPath(`${location.pathname}${location.search}`)
+  }
+
+  function openFull(id: string) {
+    rememberReturn()
+    navigate(`/admin/pedidos/${id}`)
   }
 
   return (
@@ -126,10 +135,16 @@ export function AdminOrdersListPanel({
             {rows.map((o) => {
               const kind = adminActorKind(o.status, o.customerDecision)
               const next = nextActionLabel(o)
+              const selected = selectedOrderId === o.id
               return (
                 <article
                   key={o.id}
-                  className="rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm"
+                  className={[
+                    'rounded-[14px] border bg-fal-surface p-3 shadow-sm',
+                    selected ? 'border-fal-accent ring-2 ring-fal-accent/30' : 'border-fal-line',
+                    onSelectOrder ? 'cursor-pointer' : '',
+                  ].join(' ')}
+                  onClick={() => onSelectOrder?.(o.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -174,13 +189,23 @@ export function AdminOrdersListPanel({
                   {showItemCount && !showItemPreview ? (
                     <p className="mb-0 mt-1 text-xs text-fal-muted">{o.itemCount} item(ns)</p>
                   ) : null}
-                  <Link
-                    to={`/admin/pedidos/${o.id}`}
-                    onClick={rememberReturn}
-                    className="mt-3 inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white no-underline"
+                  <div
+                    className="mt-3 flex flex-wrap items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    Abrir pedido
-                  </Link>
+                    <Link
+                      to={`/admin/pedidos/${o.id}`}
+                      onClick={rememberReturn}
+                      className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white no-underline"
+                    >
+                      Abrir pedido
+                    </Link>
+                    <OrderRowActionsMenu
+                      orderId={o.id}
+                      onOpenPreview={onSelectOrder ? () => onSelectOrder(o.id) : undefined}
+                      onOpenFull={() => openFull(o.id)}
+                    />
+                  </div>
                 </article>
               )
             })}
@@ -200,16 +225,22 @@ export function AdminOrdersListPanel({
                   {showItemCount ? <th className="px-3 py-2">Itens</th> : null}
                   <th className="px-3 py-2">Pagamento</th>
                   <th className="px-3 py-2">Total</th>
-                  <th className="px-3 py-2" />
+                  <th className="px-3 py-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((o) => {
                   const kind = adminActorKind(o.status, o.customerDecision)
+                  const selected = selectedOrderId === o.id
                   return (
                     <tr
                       key={o.id}
-                      className="border-b border-fal-line last:border-0 hover:bg-fal-bg/60"
+                      className={[
+                        'border-b border-fal-line last:border-0',
+                        selected ? 'bg-fal-accent/10' : 'hover:bg-fal-bg/60',
+                        onSelectOrder ? 'cursor-pointer' : '',
+                      ].join(' ')}
+                      onClick={() => onSelectOrder?.(o.id)}
                     >
                       <td className="px-3 py-2">
                         <span className="font-mono text-xs">{o.id.slice(0, 8)}…</span>
@@ -255,14 +286,21 @@ export function AdminOrdersListPanel({
                       ) : null}
                       <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
                       <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
-                      <td className="px-3 py-2">
-                        <Link
-                          to={`/admin/pedidos/${o.id}`}
-                          onClick={rememberReturn}
-                          className="text-sm font-semibold text-fal-fg underline"
-                        >
-                          Abrir
-                        </Link>
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/admin/pedidos/${o.id}`}
+                            onClick={rememberReturn}
+                            className="text-sm font-semibold text-fal-fg underline"
+                          >
+                            Abrir
+                          </Link>
+                          <OrderRowActionsMenu
+                            orderId={o.id}
+                            onOpenPreview={onSelectOrder ? () => onSelectOrder(o.id) : undefined}
+                            onOpenFull={() => openFull(o.id)}
+                          />
+                        </div>
                       </td>
                     </tr>
                   )
