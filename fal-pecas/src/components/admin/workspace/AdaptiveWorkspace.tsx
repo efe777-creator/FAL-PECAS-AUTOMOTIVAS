@@ -24,6 +24,8 @@ export type AdaptiveWorkspaceProps = {
   onContextualOpenChange: (open: boolean) => void
   contextualTitle?: string
   contextualExtraActions?: ReactNode
+  /** Badge de status no chrome do painel (ex.: etapa do pedido). */
+  contextualStatusBadge?: ReactNode
 }
 
 export function AdaptiveWorkspace({
@@ -34,6 +36,7 @@ export function AdaptiveWorkspace({
   onContextualOpenChange,
   contextualTitle = 'Detalhe',
   contextualExtraActions,
+  contextualStatusBadge,
 }: AdaptiveWorkspaceProps) {
   const [prefs, setPrefs] = useState(() => readModulePrefs(moduleKey))
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -142,6 +145,7 @@ export function AdaptiveWorkspace({
         onModeChange={handleModeChange}
         onClose={handleClose}
         extraActions={contextualExtraActions}
+        statusBadge={contextualStatusBadge}
       />
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto">{contextual}</div>
     </aside>

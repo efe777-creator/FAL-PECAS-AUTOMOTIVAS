@@ -1,13 +1,14 @@
 import { AddWidgetPanel } from '@/components/admin/dashboard/AddWidgetPanel'
+import { DashboardContextualPanel } from '@/components/admin/dashboard/DashboardContextualPanel'
 import { DashboardDataProvider, useDashboardData } from '@/components/admin/dashboard/DashboardDataProvider'
 import { DashboardLayoutEngine } from '@/components/admin/dashboard/DashboardLayoutEngine'
 import {
-  DashboardOrderPreviewProvider,
-  useDashboardOrderPreview,
-} from '@/components/admin/dashboard/DashboardOrderPreviewContext'
-import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
+  DashboardContextualProvider,
+  useDashboardContextual,
+} from '@/components/admin/dashboard/DashboardContextualContext'
 import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
 import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { contextualTitle } from '@/lib/adminDashboardDeepLinks'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
@@ -49,7 +50,10 @@ function DashboardShell({
   const role = user?.role
   const data = useDashboardData()
   const navigate = useNavigate()
-  const { selectedOrderId, setSelectedOrderId } = useDashboardOrderPreview()
+  const { contextual, setContextual, openOrder, clearContextual } =
+    useDashboardContextual()
+  const selectedOrderId =
+    contextual?.kind === 'order' ? contextual.orderId : null
 
   const available = useMemo(() => listAvailableWidgets(role), [role])
   const bounds = useMemo(() => boundsMapForRole(role), [role])
@@ -278,27 +282,24 @@ function DashboardShell({
     <AdaptiveWorkspace
       moduleKey="dashboard"
       primary={primary}
-      contextualOpen={!!selectedOrderId}
+      contextualOpen={!!contextual}
       onContextualOpenChange={(open) => {
-        if (!open) setSelectedOrderId(null)
+        if (!open) clearContextual()
       }}
-      contextualTitle={
-        selectedOrderId ? `Pedido ${selectedOrderId.slice(0, 8)}…` : 'Pedido'
-      }
+      contextualTitle={contextual ? contextualTitle(contextual) : 'Detalhe'}
       contextualExtraActions={
-        selectedOrderId ? (
-          <OrderRowActionsMenu
-            orderId={selectedOrderId}
-            onOpenFull={() => openFull(selectedOrderId)}
-          />
-        ) : null
+        selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
       }
       contextual={
-        selectedOrderId ? (
-          <OrderPreviewPanel
-            orderId={selectedOrderId}
-            onClose={() => setSelectedOrderId(null)}
-            onOpenFull={() => openFull(selectedOrderId)}
+        contextual ? (
+          <DashboardContextualPanel
+            contextual={contextual}
+            onClose={clearContextual}
+            onOpenOrder={openOrder}
+            onOpenFullOrder={openFull}
+            onChangeLogisticsFila={(fila) =>
+              setContextual({ kind: 'hub-logistics', fila })
+            }
           />
         ) : null
       }
@@ -317,9 +318,9 @@ export function AdminDashboardPage() {
 
   return (
     <DashboardDataProvider role={user?.role} period={period}>
-      <DashboardOrderPreviewProvider>
+      <DashboardContextualProvider>
         <DashboardShell period={period} onPeriodPreset={onPeriodPreset} />
-      </DashboardOrderPreviewProvider>
+      </DashboardContextualProvider>
     </DashboardDataProvider>
   )
 }

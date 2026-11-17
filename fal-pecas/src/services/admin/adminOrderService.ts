@@ -13,6 +13,7 @@ import {
 import { isOrderStorePickup } from '@/lib/orderShippingKind'
 import { isStorePickupAuthorized } from '@/lib/storePickupOps'
 import { getSupabase } from '@/lib/supabase'
+import { pickPrimaryStoragePath } from '@/services/products/productImages'
 import { transitionOrderStatus } from '@/services/orders/orderTransitionService'
 
 export type OrderItemAvailability = 'disponivel' | 'disponivel_com_prazo' | 'indisponivel'
@@ -92,6 +93,8 @@ export type AdminOrderItem = {
   /** Snapshot de estoque do SKU (quando modo com_estoque). */
   quantityOnHand?: number | null
   quantityReserved?: number | null
+  /** URL pública da imagem primária (quando houver em product_images). */
+  imageUrl?: string | null
 }
 
 export type AdminOrderDetail = {
@@ -209,6 +212,65 @@ export async function adminListOrders(
   return (data ?? []).map((row) => mapLogisticsListRow(row as Record<string, unknown>))
 }
 
+async function mapAdminOrderItemsWithImages(
+  items: Record<string, unknown>[],
+): Promise<AdminOrderItem[]> {
+  const mapped: AdminOrderItem[] = items.map((i) => {
+    const prod = i.products as Record<string, unknown> | Record<string, unknown>[] | null
+    const p = (Array.isArray(prod) ? prod[0] : prod) ?? null
+    const invRaw = p?.inventory as Record<string, unknown> | Record<string, unknown>[] | null
+    const inv = (Array.isArray(invRaw) ? invRaw[0] : invRaw) ?? null
+    return {
+      id: String(i.id),
+      productId: i.product_id != null ? String(i.product_id) : null,
+      sku: String(i.sku),
+      nameSnapshot: String(i.name_snapshot),
+      unitPrice: Number(i.unit_price),
+      quantity: Number(i.quantity),
+      availability: (i.availability as OrderItemAvailability | null) ?? null,
+      leadDays: i.lead_days != null ? Number(i.lead_days) : null,
+      staffNote: i.staff_note != null ? String(i.staff_note) : null,
+      separated: i.separated === true,
+      quantityOnHand: inv?.quantity_on_hand != null ? Number(inv.quantity_on_hand) : null,
+      quantityReserved: inv?.quantity_reserved != null ? Number(inv.quantity_reserved) : null,
+      imageUrl: null,
+    }
+  })
+
+  const productIds = [
+    ...new Set(mapped.map((it) => it.productId).filter((id): id is string => Boolean(id))),
+  ]
+  if (!productIds.length) return mapped
+
+  const sb = getSupabase()
+  const { data, error } = await sb
+    .from('product_images')
+    .select('product_id, storage_path, sort_order, is_primary')
+    .in('product_id', productIds)
+  if (error || !data?.length) return mapped
+
+  type ImageRow = {
+    product_id: string
+    storage_path: string
+    sort_order: number
+    is_primary: boolean
+  }
+  const byProduct = new Map<string, ImageRow[]>()
+  for (const row of data as ImageRow[]) {
+    const list = byProduct.get(row.product_id) ?? []
+    list.push(row)
+    byProduct.set(row.product_id, list)
+  }
+
+  return mapped.map((it) => {
+    if (!it.productId) return it
+    const path = pickPrimaryStoragePath(byProduct.get(it.productId) ?? [])
+    if (!path) return it
+    const { data: pub } = sb.storage.from('product-images').getPublicUrl(path)
+    return { ...it, imageUrl: pub.publicUrl || null }
+  })
+}
+
 export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDetail | null> {
   const { data, error } = await getSupabase()
     .from('orders')
@@ -284,28 +346,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
       r.cancellation_resolve_note != null ? String(r.cancellation_resolve_note) : null,
     inventoryModeAtOrder:
       r.inventory_mode_at_order != null ? String(r.inventory_mode_at_order) : null,
-    items: items.map((i: Record<string, unknown>) => {
-      const prod = i.products as Record<string, unknown> | Record<string, unknown>[] | null
-      const p = (Array.isArray(prod) ? prod[0] : prod) ?? null
-      const invRaw = p?.inventory as Record<string, unknown> | Record<string, unknown>[] | null
-      const inv = (Array.isArray(invRaw) ? invRaw[0] : invRaw) ?? null
-      return {
-        id: String(i.id),
-        productId: i.product_id != null ? String(i.product_id) : null,
-        sku: String(i.sku),
-        nameSnapshot: String(i.name_snapshot),
-        unitPrice: Number(i.unit_price),
-        quantity: Number(i.quantity),
-        availability: (i.availability as OrderItemAvailability | null) ?? null,
-        leadDays: i.lead_days != null ? Number(i.lead_days) : null,
-        staffNote: i.staff_note != null ? String(i.staff_note) : null,
-        separated: i.separated === true,
-        quantityOnHand:
-          inv?.quantity_on_hand != null ? Number(inv.quantity_on_hand) : null,
-        quantityReserved:
-          inv?.quantity_reserved != null ? Number(inv.quantity_reserved) : null,
-      }
-    }),
+    items: await mapAdminOrderItemsWithImages(items),
     events: events
       .map((e: Record<string, unknown>) => ({
         id: String(e.id),

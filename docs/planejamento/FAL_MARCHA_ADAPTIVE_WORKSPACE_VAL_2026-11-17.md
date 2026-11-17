@@ -44,6 +44,18 @@ rg "admin(Ship|Cancel|CompleteSeparation|SetOrderPacking|AdvanceOrder|MarkPaymen
 - [ ] `/admin` — clique linha atenção abre preview; link “Abrir” vai ao detalhe; Voltar `/admin`
 - [ ] Reset layout do Painel não zera modo do workspace
 
+## UI referência (2026-11-17, opção B)
+
+Visão geral alinhada à composição da referência (tema claro): KPIs → faixa financeira → abas → áreas (`setHubParams`) → chips + tabela → drawer com abas Resumo/Produtos/Pagamento/Histórico. Adaptive Workspace preservado.
+
+### Correções pós-análise (mesmo dia)
+
+- `sanitizeOrdersHubState` + rewrite de query: area/fila órfãs ao trocar aba (`?tab=pedidos&area=analise` etc.)
+- Stack Visão geral: KPIs/financeiro **antes** das abas L1
+- Financeiro sem indicadores: `ErrorState` em vez de tela vazia
+- Badge de status no `PanelChrome` (`contextualStatusBadge`); preview sem chip duplicado no hub
+- KPIs clicáveis → chips da tabela; fetch morto de atenção removido do hub
+
 ## Resultado
 
-**Implementação Fase 1 entregue na `dev`.** Smoke visual pendente de homologação no browser do operador.
+**Implementação Fase 1 + UI referência + correções de análise na `dev`.** Smoke visual pendente de homologação no browser do operador.

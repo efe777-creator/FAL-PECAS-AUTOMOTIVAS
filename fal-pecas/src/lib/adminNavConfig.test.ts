@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest'
+import { ADMIN_NAV_HOME, ADMIN_NAV_SECTIONS, adminNavLinkOrder } from './adminNavConfig'
+
+describe('adminNavConfig', () => {
+  it('ordena: Painel → Dia a dia → Loja → Comercial → Catálogo → Veículos → Sistema', () => {
+    const order = adminNavLinkOrder()
+    expect(order[0]).toBe('/admin')
+    expect(order.indexOf('/admin/pedidos')).toBeLessThan(order.indexOf('/admin/home'))
+    expect(order.indexOf('/admin/home')).toBeLessThan(order.indexOf('/admin/clientes'))
+    expect(order.indexOf('/admin/clientes')).toBeLessThan(order.indexOf('/admin/produtos'))
+    expect(order.indexOf('/admin/produtos')).toBeLessThan(order.indexOf('/admin/montadoras'))
+    expect(order.indexOf('/admin/montadoras')).toBeLessThan(order.indexOf('/admin/operadores'))
+    expect(order[order.length - 1]).toBe('/admin/operadores')
+  })
+
+  it('mantém home e seções sem to duplicado', () => {
+    const order = adminNavLinkOrder()
+    expect(new Set(order).size).toBe(order.length)
+    expect(ADMIN_NAV_HOME.label).toBe('Painel')
+    expect(ADMIN_NAV_SECTIONS.map((s) => s.id)).toEqual([
+      'dia-a-dia',
+      'loja',
+      'comercial',
+      'catalogo',
+      'veiculos',
+      'sistema',
+    ])
+  })
+})

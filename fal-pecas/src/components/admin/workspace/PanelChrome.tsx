@@ -1,4 +1,3 @@
-import { DropdownMenu } from '@/components/common/DropdownMenu'
 import type { WorkspaceMode } from '@/lib/adminWorkspacePrefs'
 import type { ReactNode } from 'react'
 
@@ -8,6 +7,8 @@ export type PanelChromeProps = {
   onModeChange: (m: WorkspaceMode) => void
   onClose: () => void
   extraActions?: ReactNode
+  /** Badge de status ao lado do título (ex.: etapa do pedido). */
+  statusBadge?: ReactNode
 }
 
 export function PanelChrome({
@@ -16,24 +17,15 @@ export function PanelChrome({
   onModeChange,
   onClose,
   extraActions,
+  statusBadge,
 }: PanelChromeProps) {
-  const rareItems = [
-    {
-      id: 'expand',
-      label: mode === 'expanded' ? 'Dividir (50/50)' : 'Expandir painel',
-      onSelect: () => onModeChange(mode === 'expanded' ? 'split' : 'expanded'),
-    },
-    {
-      id: 'fullscreen',
-      label: mode === 'fullscreen' ? 'Restaurar composição' : 'Tela cheia',
-      onSelect: () => onModeChange(mode === 'fullscreen' ? 'split' : 'fullscreen'),
-    },
-  ]
-
   return (
     <header className="flex flex-wrap items-start justify-between gap-2 border-b border-fal-line pb-3">
       <div className="min-w-0">
-        <h2 className="m-0 truncate text-base font-extrabold text-fal-fg">{title}</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="m-0 truncate text-base font-extrabold text-fal-fg">{title}</h2>
+          {statusBadge}
+        </div>
         {mode === 'fullscreen' ? (
           <p className="mb-0 mt-1 text-xs text-fal-muted">Modo tela cheia do painel</p>
         ) : null}
@@ -43,15 +35,24 @@ export function PanelChrome({
         <button
           type="button"
           className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
+          onClick={() => onModeChange(mode === 'expanded' ? 'split' : 'expanded')}
+        >
+          {mode === 'expanded' ? 'Dividir' : 'Expandir'}
+        </button>
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
+          onClick={() => onModeChange(mode === 'fullscreen' ? 'split' : 'fullscreen')}
+        >
+          {mode === 'fullscreen' ? 'Composição' : 'Tela cheia'}
+        </button>
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
           onClick={() => onModeChange('collapsed')}
         >
           Recolher
         </button>
-        <DropdownMenu
-          aria-label="Controles do painel"
-          trigger={<span aria-hidden>⋯</span>}
-          items={rareItems}
-        />
         <button
           type="button"
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg"

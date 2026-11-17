@@ -138,6 +138,7 @@ export const orderStatusLabel: Record<string, string> = {
   enviado: 'Enviado',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
+  expirado: 'Expirado',
 }
 
 type CustomerStatusCtx = {
@@ -207,6 +208,7 @@ export const orderStatusAdminLabel: Record<string, string> = {
   enviado: 'Enviado',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
+  expirado: 'Expirado',
 }
 
 /** Alias canônico — mesmo mapa que `orderStatusAdminLabel` (O1-A). */

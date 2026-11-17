@@ -1,27 +1,32 @@
 import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
+import { OrdersFinanceIndicatorsPanel } from '@/components/admin/orders/OrdersFinanceIndicatorsPanel'
+import { OrdersHubAreaCards } from '@/components/admin/orders/OrdersHubAreaCards'
+import { OrdersHubFinanceStrip } from '@/components/admin/orders/OrdersHubFinanceStrip'
+import { OrdersHubKpiRow } from '@/components/admin/orders/OrdersHubKpiRow'
+import { OrdersLogisticsQueuesBar } from '@/components/admin/orders/OrdersLogisticsQueuesBar'
 import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
+import {
+  badgeClass,
+  toneForOrderStatus,
+} from '@/components/admin/orders/orderStatusTone'
 import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button } from '@/components/common/Button'
 import { ErrorState } from '@/components/common/ErrorState'
+import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
-import {
-  ADMIN_LOGISTICS_QUEUES,
-  type AdminLogisticsQueueId,
-} from '@/lib/adminLogisticsQueues'
+import { type AdminLogisticsQueueId } from '@/lib/adminLogisticsQueues'
 import {
   ADMIN_ORDER_AREAS,
   ADMIN_ORDER_VIEWS,
-  adminNextActionLabel,
-  attentionSortKey,
+  adminOrderAreaId,
   getAdminOrderArea,
-  isAttentionOrder,
   sumAreaCount,
 } from '@/lib/adminOrderOps'
 import {
   filterOrdersBySearch,
-  listStatusLabel,
   AdminOrdersListPanel,
+  listStatusLabel,
 } from './AdminOrdersListPanel'
 import {
   confirmExpireUnpaidIntent,
@@ -37,8 +42,6 @@ import {
   type OrdersHubArea,
   type OrdersHubTab,
 } from '@/lib/adminOrdersUrl'
-import { formatDateTime } from '@/lib/datetime'
-import { formatMoney } from '@/lib/money'
 import {
   ADMIN_LIST_PAGE_SIZE,
   adminCentralIndicators,
@@ -69,22 +72,46 @@ const EXPEDICAO_FILAS: AdminLogisticsQueueId[] = [
   'entregues',
 ]
 
-const ATTENTION_STATUSES = [
-  'pagamento_aprovado',
-  'recebido',
-  'em_analise',
-  'aguardando_disponibilidade',
-  'aguardando_decisao',
-  'confirmado',
-  'em_separacao',
-  'pronto_para_envio',
-] as const
+type OverviewChip =
+  | 'todos'
+  | 'aguardando'
+  | 'analise'
+  | 'separacao'
+  | 'expedicao'
+  | 'cancelados'
+
+const OVERVIEW_CHIPS: { id: OverviewChip; label: string }[] = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'aguardando', label: 'Aguardando' },
+  { id: 'analise', label: 'Em análise' },
+  { id: 'separacao', label: 'Separação' },
+  { id: 'expedicao', label: 'Expedição' },
+  { id: 'cancelados', label: 'Cancelados' },
+]
+
+const KPI_TO_CHIP: Record<string, OverviewChip> = {
+  pedidos: 'todos',
+  pendencias: 'analise',
+  expedicao: 'expedicao',
+  cancelados: 'cancelados',
+}
 
 function parseFila(raw: string | null): AdminLogisticsQueueId {
   if (raw && EXPEDICAO_FILAS.includes(raw as AdminLogisticsQueueId)) {
     return raw as AdminLogisticsQueueId
   }
   return 'volumes'
+}
+
+function matchesOverviewChip(row: AdminOrderListRow, chip: OverviewChip): boolean {
+  if (chip === 'todos') return true
+  if (chip === 'cancelados') return row.status === 'cancelado' || row.status === 'expirado'
+  const area = adminOrderAreaId(row.status)
+  if (chip === 'aguardando') return area === 'aguardando-pagamento'
+  if (chip === 'analise') return area === 'analise'
+  if (chip === 'separacao') return area === 'separacao'
+  if (chip === 'expedicao') return area === 'expedicao'
+  return true
 }
 
 export function AdminOrdersHubPage() {
@@ -94,8 +121,6 @@ export function AdminOrdersHubPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const hub = parseOrdersHubSearch(searchParams.toString())
 
-  const [attentionRows, setAttentionRows] = useState<AdminOrderListRow[]>([])
-  const [recent, setRecent] = useState<AdminOrderListRow[]>([])
   const [tableRows, setTableRows] = useState<AdminOrderListRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [logisticsCounts, setLogisticsCounts] = useState<LogisticsQueueCounts | null>(null)
@@ -107,6 +132,7 @@ export function AdminOrdersHubPage() {
   const [busyExpire, setBusyExpire] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [overviewChip, setOverviewChip] = useState<OverviewChip>('todos')
 
   const setHubParams = useCallback(
     (next: { tab?: OrdersHubTab; area?: OrdersHubArea; fila?: string | null }) => {
@@ -121,19 +147,30 @@ export function AdminOrdersHubPage() {
     [hub.area, hub.fila, hub.tab, setSearchParams],
   )
 
+  // Reescreve query suja (ex.: ?tab=pedidos&area=analise) para a forma canônica.
+  useEffect(() => {
+    const canonical = buildOrdersHubPath({
+      tab: hub.tab,
+      area: hub.area,
+      fila: hub.fila,
+    })
+    const nextQs = canonical.includes('?') ? canonical.slice(canonical.indexOf('?') + 1) : ''
+    if (nextQs !== searchParams.toString()) {
+      setSearchParams(nextQs ? new URLSearchParams(nextQs) : new URLSearchParams(), {
+        replace: true,
+      })
+    }
+  }, [hub.tab, hub.area, hub.fila, searchParams, setSearchParams])
+
   async function reloadHub() {
     setLoading(true)
     setError(null)
     try {
-      const [attentionList, recentList, c, ind, lq] = await Promise.all([
-        adminListOrders(null, { statuses: [...ATTENTION_STATUSES], limit: ADMIN_LIST_PAGE_SIZE }),
-        adminListOrders(null, { limit: 6 }),
+      const [c, ind, lq] = await Promise.all([
         adminOrderStatusCounts(),
         adminCentralIndicators().catch(() => null),
         adminLogisticsQueueCounts().catch(() => null),
       ])
-      setAttentionRows(attentionList)
-      setRecent(recentList)
       setCounts(c)
       setIndicators(ind)
       setLogisticsCounts(lq)
@@ -149,7 +186,7 @@ export function AdminOrdersHubPage() {
   }, [])
 
   useEffect(() => {
-    if (hub.tab === 'visao-geral' || hub.tab === 'financeiro') {
+    if (hub.tab === 'financeiro') {
       setTableRows([])
       setTableError(null)
       return
@@ -162,7 +199,9 @@ export function AdminOrdersHubPage() {
     async function loadTable() {
       try {
         let rows: AdminOrderListRow[] = []
-        if (hub.tab === 'logistica') {
+        if (hub.tab === 'visao-geral') {
+          rows = await adminListOrders(null, { limit: ADMIN_LIST_PAGE_SIZE })
+        } else if (hub.tab === 'logistica') {
           const fila = parseFila(hub.fila)
           rows = await adminListLogisticsQueue(fila, { limit: ADMIN_LIST_PAGE_SIZE })
         } else if (hub.tab === 'comercial') {
@@ -197,30 +236,88 @@ export function AdminOrdersHubPage() {
     }
   }, [hub.tab, hub.area, hub.fila])
 
-  const attention = useMemo(() => {
-    return attentionRows
-      .filter((o) => isAttentionOrder(o.status, o.customerDecision))
-      .sort(
-        (a, b) =>
-          attentionSortKey(a.status, a.customerDecision) -
-          attentionSortKey(b.status, b.customerDecision),
-      )
-      .slice(0, 8)
-  }, [attentionRows])
-
-  const filteredTable = useMemo(
-    () => filterOrdersBySearch(tableRows, search),
-    [tableRows, search],
-  )
+  const filteredTable = useMemo(() => {
+    const base =
+      hub.tab === 'visao-geral'
+        ? tableRows.filter((r) => matchesOverviewChip(r, overviewChip))
+        : tableRows
+    return filterOrdersBySearch(base, search)
+  }, [tableRows, search, hub.tab, overviewChip])
 
   const selectedRow = useMemo(
-    () =>
-      tableRows.find((r) => r.id === selectedOrderId) ??
-      attentionRows.find((r) => r.id === selectedOrderId) ??
-      recent.find((r) => r.id === selectedOrderId) ??
-      null,
-    [tableRows, attentionRows, recent, selectedOrderId],
+    () => tableRows.find((r) => r.id === selectedOrderId) ?? null,
+    [tableRows, selectedOrderId],
   )
+
+  const kpiItems = useMemo(() => {
+    const created =
+      indicators?.operational.ordersCreated ?? Object.values(counts).reduce((a, b) => a + b, 0)
+    const pendencias =
+      (indicators?.operational.awaitingDecision ?? 0) +
+      (indicators?.operational.cancellationPending ?? 0)
+    const expedicao =
+      (logisticsCounts?.volumes ?? 0) +
+      (logisticsCounts?.['etiquetas-me'] ?? 0) +
+      (logisticsCounts?.['entregas-proprias'] ?? 0) +
+      (counts.pronto_para_envio ?? 0) +
+      (counts.preparando_envio ?? 0) +
+      (counts.enviado ?? 0)
+    const cancelados = indicators?.operational.cancelled ?? counts.cancelado ?? 0
+    return [
+      { id: 'pedidos', label: 'Pedidos', value: created, tone: 'info' as const },
+      { id: 'pendencias', label: 'Pendências', value: pendencias, tone: 'warning' as const },
+      { id: 'expedicao', label: 'Expedição', value: expedicao, tone: 'success' as const },
+      { id: 'cancelados', label: 'Cancelados', value: cancelados, tone: 'danger' as const },
+    ]
+  }, [indicators, counts, logisticsCounts])
+
+  const areaCards = useMemo(() => {
+    return ADMIN_ORDER_AREAS.map((area) => {
+      const n = sumAreaCount(counts, area)
+      if (area.id === 'aguardando-pagamento') {
+        return {
+          id: area.id,
+          title: area.title,
+          description: area.description,
+          count: n,
+          tone: 'warning' as const,
+          hub: {
+            tab: 'comercial' as const,
+            area: 'aguardando-pagamento' as const,
+            fila: null,
+          },
+        }
+      }
+      if (area.id === 'analise') {
+        return {
+          id: area.id,
+          title: area.title,
+          description: area.description,
+          count: n,
+          tone: 'info' as const,
+          hub: { tab: 'comercial' as const, area: 'analise' as const, fila: null },
+        }
+      }
+      if (area.id === 'separacao') {
+        return {
+          id: area.id,
+          title: area.title,
+          description: area.description,
+          count: n,
+          tone: 'navy' as const,
+          hub: { tab: 'pedidos' as const, area: 'separacao' as const, fila: null },
+        }
+      }
+      return {
+        id: area.id,
+        title: area.title,
+        description: area.description,
+        count: n,
+        tone: 'success' as const,
+        hub: { tab: 'logistica' as const, area: null, fila: 'volumes' },
+      }
+    })
+  }, [counts])
 
   async function runExpireUnpaid() {
     if (!(await confirmExpireUnpaidIntent())) return
@@ -237,202 +334,166 @@ export function AdminOrdersHubPage() {
   }
 
   function openFull(id: string) {
-    rememberOrdersReturnPath(
-      `${window.location.pathname}${window.location.search}`,
-    )
+    rememberOrdersReturnPath(`${window.location.pathname}${window.location.search}`)
     navigate(`/admin/pedidos/${id}`)
   }
 
+  const tabsNav = (
+    <nav
+      className="flex flex-wrap gap-1 rounded-[12px] border border-fal-line bg-fal-surface p-1 shadow-sm"
+      aria-label="Navegação da Central"
+    >
+      {TABS.map((t) => {
+        const active = hub.tab === t.id
+        return (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={active}
+            className={[
+              'min-h-11 rounded-[10px] px-3 text-sm font-bold transition',
+              active ? 'bg-fal-navy text-white shadow-sm' : 'text-fal-fg hover:bg-fal-bg',
+            ].join(' ')}
+            onClick={() => {
+              setSelectedOrderId(null)
+              setHubParams({
+                tab: t.id,
+                area:
+                  t.id === 'comercial'
+                    ? hub.area === 'analise' || hub.area === 'aguardando-pagamento'
+                      ? hub.area
+                      : 'aguardando-pagamento'
+                    : t.id === 'pedidos'
+                      ? hub.area === 'separacao'
+                        ? 'separacao'
+                        : null
+                      : null,
+                fila: t.id === 'logistica' ? hub.fila ?? 'volumes' : null,
+              })
+            }}
+          >
+            {t.label}
+          </button>
+        )
+      })}
+    </nav>
+  )
+
   const primary = (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-fal-fg">Central de Pedidos</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg">
+            Central de Pedidos
+          </h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Workspace adaptativo — abas, preview e página completa. Operações pesadas só no
-            detalhe.
+            Gestão comercial, financeira e logística — preview na lateral, operação no detalhe.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full max-w-md flex-wrap items-end gap-2 sm:w-auto">
+          <div className="min-w-[12rem] flex-1">
+            <Input
+              label="Buscar pedidos"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Número, cliente, frete…"
+            />
+          </div>
           <Button
             type="button"
             variant="light"
+            size="sm"
             disabled={busyExpire || loading}
             onClick={() => void runExpireUnpaid()}
           >
-            {busyExpire ? 'Expirando…' : 'Retirar não pagos (48 h)'}
+            {busyExpire ? 'Expirando…' : 'Retirar não pagos'}
           </Button>
           <Link
             to="/admin/pedidos/lista"
-            className="inline-flex items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
           >
             Lista avançada
           </Link>
         </div>
       </header>
 
-      <nav
-        className="flex flex-wrap gap-1 rounded-[12px] border border-fal-line bg-fal-surface p-1"
-        aria-label="Navegação da Central"
-      >
-        {TABS.map((t) => {
-          const active = hub.tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              aria-pressed={active}
-              className={[
-                'min-h-11 rounded-[10px] px-3 text-sm font-bold transition',
-                active
-                  ? 'bg-fal-navy text-white'
-                  : 'text-fal-fg hover:bg-fal-bg',
-              ].join(' ')}
-              onClick={() => {
-                setSelectedOrderId(null)
-                setHubParams({
-                  tab: t.id,
-                  area: t.id === 'comercial' ? hub.area ?? 'aguardando-pagamento' : t.id === 'pedidos' ? hub.area : null,
-                  fila: t.id === 'logistica' ? hub.fila ?? 'volumes' : null,
-                })
-              }}
-            >
-              {t.label}
-            </button>
-          )
-        })}
-      </nav>
-
       {loading ? <Loading label="Carregando central…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
 
+      {/* Stack referência: KPIs → financeiro → abas → áreas → tabela */}
       {!loading && !error && hub.tab === 'visao-geral' ? (
         <>
+          <OrdersHubKpiRow
+            items={kpiItems}
+            onSelect={(id) => {
+              const chip = KPI_TO_CHIP[id]
+              if (chip) setOverviewChip(chip)
+            }}
+          />
           {indicators ? (
-            <section className="space-y-3" aria-label="Indicadores">
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-                    Pedidos criados
-                  </p>
-                  <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
-                    {indicators.operational.ordersCreated}
-                  </p>
-                </div>
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-                    Aguardando decisão
-                  </p>
-                  <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
-                    {indicators.operational.awaitingDecision}
-                  </p>
-                </div>
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-                    Cancel. pendente
-                  </p>
-                  <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
-                    {indicators.operational.cancellationPending}
-                  </p>
-                </div>
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-                    Cancelados
-                  </p>
-                  <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
-                    {indicators.operational.cancelled}
-                  </p>
-                </div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase text-fal-muted">Capturado</p>
-                  <p className="m-0 mt-1 text-base font-extrabold tabular-nums">
-                    {formatMoney(indicators.financial.captured)}
-                  </p>
-                </div>
-                <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase text-fal-muted">Devolvido</p>
-                  <p className="m-0 mt-1 text-base font-extrabold tabular-nums">
-                    {formatMoney(indicators.financial.refunded)}
-                  </p>
-                </div>
-                <div className="rounded-[12px] border border-fal-navy/40 bg-fal-surface px-3 py-2">
-                  <p className="m-0 text-[11px] font-semibold uppercase text-fal-muted">
-                    Recebido líquido
-                  </p>
-                  <p className="m-0 mt-1 text-base font-extrabold tabular-nums">
-                    {formatMoney(indicators.financial.netReceived)}
-                  </p>
-                </div>
-              </div>
-            </section>
+            <OrdersHubFinanceStrip
+              captured={indicators.financial.captured}
+              refunded={indicators.financial.refunded}
+              netReceived={indicators.financial.netReceived}
+            />
           ) : null}
+        </>
+      ) : null}
 
-          <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
-              <h2 className="mt-0 text-base font-extrabold text-fal-fg">Exigem atenção</h2>
-              {attention.length === 0 ? (
-                <p className="text-sm text-fal-muted">Nenhuma pendência operacional agora.</p>
-              ) : (
-                <ul className="mt-2 space-y-2">
-                  {attention.map((o) => (
-                    <li key={o.id} className="flex items-start justify-between gap-2 text-sm">
-                      <button
-                        type="button"
-                        className="min-w-0 text-left"
-                        onClick={() => setSelectedOrderId(o.id)}
-                      >
-                        <span className="font-semibold text-fal-fg">
-                          {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
-                        </span>
-                        <p className="mb-0 mt-0.5 text-xs font-extrabold text-fal-fg">
-                          Faça agora:{' '}
-                          {o.logisticsNextActionLabel ??
-                            adminNextActionLabel(o.status, o.customerDecision)}
-                        </p>
-                        <p className="mb-0 mt-0.5 text-xs text-fal-muted">
-                          {listStatusLabel(o)}
-                          {o.shippingChoiceLabel ? ` · ${o.shippingChoiceLabel}` : ''}
-                        </p>
-                      </button>
-                      <span className="shrink-0 font-semibold">{formatMoney(o.total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+      {!loading && !error ? tabsNav : null}
 
-            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
-              <h2 className="mt-0 text-base font-extrabold text-fal-fg">Mais recentes</h2>
-              <ul className="mt-2 space-y-2">
-                {recent.map((o) => (
-                  <li key={o.id} className="flex items-start justify-between gap-2 text-sm">
-                    <button
-                      type="button"
-                      className="min-w-0 text-left"
-                      onClick={() => setSelectedOrderId(o.id)}
-                    >
-                      <span className="font-semibold text-fal-fg">
-                        {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
-                      </span>
-                      <p className="mb-0 mt-0.5 text-xs text-fal-muted">
-                        {formatDateTime(o.createdAt)} · {listStatusLabel(o)}
-                      </p>
-                    </button>
-                    <span className="shrink-0 font-semibold">{formatMoney(o.total)}</span>
-                  </li>
-                ))}
-              </ul>
+      {!loading && !error && hub.tab === 'visao-geral' ? (
+        <>
+          <OrdersHubAreaCards
+            cards={areaCards}
+            onNavigate={(next) => {
+              setSelectedOrderId(null)
+              setHubParams(next)
+            }}
+          />
+
+          <section className="space-y-3" aria-label="Pedidos">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtro rápido">
+              {OVERVIEW_CHIPS.map((chip) => {
+                const pressed = overviewChip === chip.id
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    aria-pressed={pressed}
+                    className={[
+                      'min-h-10 rounded-full border px-3 text-xs font-bold transition',
+                      pressed
+                        ? 'border-fal-navy bg-fal-navy text-white'
+                        : 'border-fal-line bg-fal-surface text-fal-fg hover:bg-fal-bg',
+                    ].join(' ')}
+                    onClick={() => setOverviewChip(chip.id)}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
             </div>
+            <AdminOrdersListPanel
+              rows={filteredTable}
+              loading={tableLoading}
+              error={tableError}
+              search={search}
+              onSearch={setSearch}
+              selectedOrderId={selectedOrderId}
+              onSelectOrder={setSelectedOrderId}
+              hideSearch
+              emptyTitle="Nenhum pedido neste filtro"
+              emptyDescription="Troque o chip ou abra uma área de trabalho."
+            />
           </section>
 
           <p className="text-xs text-fal-muted">
-            Visões e atalhos:{' '}
+            Atalhos:{' '}
             <Link to="/admin/avisos" className="font-semibold text-fal-accent">
               Notificações
             </Link>
-            {ADMIN_ORDER_VIEWS.slice(0, 4).map((v) => (
+            {ADMIN_ORDER_VIEWS.slice(0, 3).map((v) => (
               <span key={v.id}>
                 {' · '}
                 <Link to={v.path} className="font-semibold text-fal-accent">
@@ -444,34 +505,12 @@ export function AdminOrdersHubPage() {
         </>
       ) : null}
 
-      {!loading && !error && hub.tab === 'financeiro' && indicators ? (
-        <section className="space-y-3" aria-label="Financeiro">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {(
-              [
-                ['Capturado', indicators.financial.captured],
-                ['Devolvido', indicators.financial.refunded],
-                ['Recebido líquido', indicators.financial.netReceived],
-                ['Bruto vendido', indicators.financial.grossSold],
-                ['Valor cancelados', indicators.financial.cancelledAmount],
-                ['Pag. pendente', indicators.financial.pendingPayment],
-              ] as const
-            ).map(([label, value]) => (
-              <div
-                key={label}
-                className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2"
-              >
-                <p className="m-0 text-[11px] font-semibold uppercase text-fal-muted">{label}</p>
-                <p className="m-0 mt-1 text-base font-extrabold tabular-nums">
-                  {formatMoney(value)}
-                </p>
-              </div>
-            ))}
-          </div>
-          <Link to="/admin/pedidos/lista" className="text-sm font-semibold text-fal-accent">
-            Ver pedidos na lista avançada →
-          </Link>
-        </section>
+      {!loading && !error && hub.tab === 'financeiro' ? (
+        indicators ? (
+          <OrdersFinanceIndicatorsPanel indicators={indicators} />
+        ) : (
+          <ErrorState message="Indicadores financeiros indisponíveis no momento." />
+        )
       ) : null}
 
       {!loading && !error && (hub.tab === 'pedidos' || hub.tab === 'comercial') ? (
@@ -536,43 +575,18 @@ export function AdminOrdersHubPage() {
             selectedOrderId={selectedOrderId}
             onSelectOrder={setSelectedOrderId}
             showWaitingTime={hub.area === 'aguardando-pagamento'}
+            hideSearch
           />
         </section>
       ) : null}
 
       {!loading && !error && hub.tab === 'logistica' ? (
         <section className="space-y-3">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filas logísticas">
-            {ADMIN_LOGISTICS_QUEUES.filter((q) => q.id !== 'revisao').map((q) => {
-              const active = parseFila(hub.fila) === q.id
-              const n = logisticsCounts?.[q.id] ?? null
-              return (
-                <button
-                  key={q.id}
-                  type="button"
-                  aria-pressed={active}
-                  className={[
-                    'min-h-11 rounded-[10px] border px-3 text-sm font-bold',
-                    active
-                      ? 'border-fal-navy bg-fal-navy text-white'
-                      : 'border-fal-line bg-fal-surface text-fal-fg',
-                  ].join(' ')}
-                  onClick={() =>
-                    setHubParams({ tab: 'logistica', area: null, fila: q.id })
-                  }
-                >
-                  {q.title}
-                  {n != null ? ` (${n})` : ''}
-                </button>
-              )
-            })}
-            <Link
-              to="/admin/pedidos/visao/revisao-logistica"
-              className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 text-sm font-bold text-fal-fg"
-            >
-              Revisão
-            </Link>
-          </div>
+          <OrdersLogisticsQueuesBar
+            activeFila={parseFila(hub.fila)}
+            counts={logisticsCounts}
+            onSelectFila={(fila) => setHubParams({ tab: 'logistica', area: null, fila })}
+          />
           <AdminOrdersListPanel
             rows={filteredTable}
             loading={tableLoading}
@@ -581,6 +595,7 @@ export function AdminOrdersHubPage() {
             onSearch={setSearch}
             selectedOrderId={selectedOrderId}
             onSelectOrder={setSelectedOrderId}
+            hideSearch
           />
         </section>
       ) : null}
@@ -596,21 +611,24 @@ export function AdminOrdersHubPage() {
         if (!open) setSelectedOrderId(null)
       }}
       contextualTitle={
-        selectedOrderId ? `Pedido ${selectedOrderId.slice(0, 8)}…` : 'Pedido'
+        selectedOrderId ? `Pedido #${selectedOrderId.slice(0, 8)}` : 'Pedido'
+      }
+      contextualStatusBadge={
+        selectedRow ? (
+          <span className={badgeClass(toneForOrderStatus(selectedRow.status))}>
+            {listStatusLabel(selectedRow)}
+          </span>
+        ) : null
       }
       contextualExtraActions={
-        selectedOrderId ? (
-          <OrderRowActionsMenu
-            orderId={selectedOrderId}
-            onOpenFull={() => openFull(selectedOrderId)}
-          />
-        ) : null
+        selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
       }
       contextual={
         selectedOrderId ? (
           <OrderPreviewPanel
             orderId={selectedOrderId}
             listRow={selectedRow}
+            hideStatusChip
             onClose={() => setSelectedOrderId(null)}
             onOpenFull={() => openFull(selectedOrderId)}
           />

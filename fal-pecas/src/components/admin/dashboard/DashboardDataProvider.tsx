@@ -27,6 +27,7 @@ import {
 } from '@/services/admin/adminReportsService'
 import type { LogisticsQueueCounts } from '@/lib/adminLogisticsQueues'
 import {
+  ATTENTION_STATUSES,
   adminActorKind,
   attentionSortKey,
   isAttentionOrder,
@@ -34,16 +35,7 @@ import {
 import type { DashboardDataSourceId } from '@/lib/adminDashboardWidgets'
 import type { DashboardPeriodRange } from '@/lib/adminDashboardPeriod'
 
-export const ATTENTION_STATUSES = [
-  'pagamento_aprovado',
-  'recebido',
-  'em_analise',
-  'aguardando_disponibilidade',
-  'aguardando_decisao',
-  'confirmado',
-  'em_separacao',
-  'pronto_para_envio',
-] as const
+export { ATTENTION_STATUSES }
 
 export type SourceStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error'
 

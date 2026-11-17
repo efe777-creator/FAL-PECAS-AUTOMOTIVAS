@@ -1,5 +1,5 @@
 import { useDashboardData } from '@/components/admin/dashboard/DashboardDataProvider'
-import { useDashboardOrderPreview } from '@/components/admin/dashboard/DashboardOrderPreviewContext'
+import { useDashboardContextual } from '@/components/admin/dashboard/DashboardContextualContext'
 import {
   labelForShortcutPath,
   listDashboardShortcutsForRole,
@@ -10,12 +10,19 @@ import {
   writeAdminDashboardPrefs,
 } from '@/lib/adminDashboardPrefs'
 import {
+  resolveQuickControl,
+  resolveWidgetContextual,
+} from '@/lib/adminDashboardDeepLinks'
+import {
+  badgeClass,
+  toneForOrderStatus,
+} from '@/components/admin/orders/orderStatusTone'
+import {
   ADMIN_ORDER_GROUPS,
-  adminActorBadgeLabel,
-  adminActorKind,
   adminNextActionLabel,
   orderStatusOperatorLabel,
   sumGroupCount,
+  type AdminOrderGroupId,
 } from '@/lib/adminOrderOps'
 import { ADMIN_LOGISTICS_QUEUES } from '@/lib/adminLogisticsQueues'
 import { canAccessAdminPath } from '@/lib/adminNavAccess'
@@ -87,12 +94,12 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 function KpiCard({
   label,
   value,
-  to,
+  onOpen,
   tone = 'neutral',
 }: {
   label: string
   value: string
-  to: string
+  onOpen: () => void
   tone?: KpiTone
 }) {
   const toneCls: Record<KpiTone, string> = {
@@ -103,9 +110,10 @@ function KpiCard({
     info: 'border-fal-accent/40 bg-fal-accent/10',
   }
   return (
-    <Link
-      to={to}
-      className={`block h-full rounded-[12px] border bg-fal-surface px-3 py-3 shadow-sm transition hover:border-fal-accent/50 ${toneCls[tone]}`}
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`block h-full w-full rounded-[12px] border bg-fal-surface px-3 py-3 text-left shadow-sm transition hover:border-fal-accent/50 ${toneCls[tone]}`}
     >
       <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         {label}
@@ -113,38 +121,26 @@ function KpiCard({
       <div className="mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
         {value}
       </div>
-    </Link>
+    </button>
   )
-}
-
-function actorClass(kind: ReturnType<typeof adminActorKind>): string {
-  switch (kind) {
-    case 'team':
-      return 'bg-fal-warning/15 text-fal-fg border border-fal-warning/40'
-    case 'customer':
-      return 'bg-fal-accent/15 text-fal-fg border border-fal-accent/40'
-    case 'wait_payment':
-      return 'bg-fal-bg text-fal-muted border border-fal-line'
-    case 'done':
-      return 'bg-fal-success/15 text-fal-fg border border-fal-success/40'
-  }
 }
 
 export function WidgetQuickControls() {
   const { firstAttention, role } = useDashboardData()
-  const { setSelectedOrderId } = useDashboardOrderPreview()
+  const { setContextual, openOrder } = useDashboardContextual()
   const showReports = canAccessAdminPath('/admin/relatorios', role)
-  const controls: Array<{ label: string; to: string; hint?: string }> = [
-    { label: 'Análise', to: '/admin/pedidos?tab=comercial&area=analise', hint: 'Conferir pedidos' },
-    { label: 'Separação', to: '/admin/pedidos?tab=pedidos&area=separacao', hint: 'Preparar itens' },
-    { label: 'Expedição', to: '/admin/pedidos?tab=logistica', hint: 'Filas logísticas' },
-    { label: 'Atenção equipe', to: '/admin/pedidos', hint: 'Central' },
-    {
-      label: 'Aguardando pag.',
-      to: '/admin/pedidos/lista?status=aguardando_pagamento',
-    },
+  const controls: Array<{
+    id: Parameters<typeof resolveQuickControl>[0]
+    label: string
+    hint?: string
+  }> = [
+    { id: 'analise', label: 'Análise', hint: 'Conferir pedidos' },
+    { id: 'separacao', label: 'Separação', hint: 'Preparar itens' },
+    { id: 'expedicao', label: 'Expedição', hint: 'Filas logísticas' },
+    { id: 'atencao-equipe', label: 'Atenção equipe', hint: 'Central' },
+    { id: 'aguardando-pag', label: 'Aguardando pag.' },
   ]
-  if (showReports) controls.push({ label: 'Relatórios', to: '/admin/relatorios' })
+  if (showReports) controls.push({ id: 'relatorios', label: 'Relatórios' })
 
   return (
     <div className="flex h-full flex-col gap-2 p-1">
@@ -153,20 +149,24 @@ export function WidgetQuickControls() {
       </h3>
       <div className="flex flex-wrap gap-2">
         {controls.map((c) => (
-          <Link
-            key={c.to + c.label}
-            to={c.to}
+          <button
+            key={c.id}
+            type="button"
             title={c.hint}
             className="inline-flex min-h-10 items-center rounded-lg border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg transition hover:border-fal-accent/50"
+            onClick={() => {
+              const { contextual } = resolveQuickControl(c.id)
+              if (contextual) setContextual(contextual)
+            }}
           >
             {c.label}
-          </Link>
+          </button>
         ))}
         {firstAttention ? (
           <button
             type="button"
             className="inline-flex min-h-10 items-center rounded-lg border border-fal-warning/50 bg-fal-warning/10 px-3 text-sm font-bold text-fal-fg"
-            onClick={() => setSelectedOrderId(firstAttention.id)}
+            onClick={() => openOrder(firstAttention.id)}
           >
             Preview 1º da fila
           </button>
@@ -254,6 +254,7 @@ export function WidgetShortcutsPinned() {
 
 export function WidgetPipelineFlow() {
   const { statusCounts } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const counts = statusCounts.data ?? {}
   const total = ADMIN_ORDER_GROUPS.reduce(
     (acc, g) => acc + sumGroupCount(counts, g),
@@ -276,11 +277,18 @@ export function WidgetPipelineFlow() {
             const n = sumGroupCount(counts, group)
             const pct = total > 0 ? Math.round((n / total) * 100) : 0
             return (
-              <Link
+              <button
                 key={group.id}
-                to={`/admin/pedidos/lista?grupo=${group.id}`}
-                className="flex flex-col gap-2 rounded-lg p-2 transition hover:bg-fal-bg"
+                type="button"
+                className="flex flex-col gap-2 rounded-lg p-2 text-left transition hover:bg-fal-bg"
                 title={group.description}
+                onClick={() =>
+                  setContextual(
+                    resolveWidgetContextual('pipeline-flow', {
+                      pipelineGrupo: group.id as AdminOrderGroupId,
+                    }),
+                  )
+                }
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-xs font-bold uppercase tracking-wide text-fal-muted">
@@ -299,7 +307,7 @@ export function WidgetPipelineFlow() {
                 <span className="text-[11px] text-fal-muted tabular-nums">
                   {pct}% do fluxo
                 </span>
-              </Link>
+              </button>
             )
           })}
         </div>
@@ -310,7 +318,9 @@ export function WidgetPipelineFlow() {
 
 export function WidgetAttentionTable() {
   const { attention, teamCount, customerCount, role } = useDashboardData()
-  const { selectedOrderId, setSelectedOrderId } = useDashboardOrderPreview()
+  const { contextual, openOrder, setContextual } = useDashboardContextual()
+  const selectedOrderId =
+    contextual?.kind === 'order' ? contextual.orderId : null
   const rows = attention.data ?? []
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
@@ -350,7 +360,6 @@ export function WidgetAttentionTable() {
             </thead>
             <tbody>
               {rows.map((o) => {
-                const kind = adminActorKind(o.status, o.customerDecision)
                 const selected = selectedOrderId === o.id
                 return (
                   <tr
@@ -359,7 +368,7 @@ export function WidgetAttentionTable() {
                       'cursor-pointer border-t border-fal-line',
                       selected ? 'bg-fal-accent/10' : '',
                     ].join(' ')}
-                    onClick={() => setSelectedOrderId(o.id)}
+                    onClick={() => openOrder(o.id)}
                   >
                     <td className="px-3 py-2 font-mono text-xs">
                       <Link
@@ -377,12 +386,7 @@ export function WidgetAttentionTable() {
                       {formatDateTime(o.createdAt)}
                     </td>
                     <td className="px-3 py-2">
-                      <span
-                        className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
-                      >
-                        {adminActorBadgeLabel(kind)}
-                      </span>
-                      <span className="mt-1 block text-xs text-fal-fg">
+                      <span className={badgeClass(toneForOrderStatus(o.status))}>
                         {orderStatusOperatorLabel[o.status] ?? o.status}
                       </span>
                     </td>
@@ -397,16 +401,25 @@ export function WidgetAttentionTable() {
         </div>
       ) : null}
       <p className="m-0 flex flex-wrap gap-3 text-xs">
-        <Link to="/admin/pedidos" className="font-semibold text-fal-accent underline">
-          Abrir Central →
-        </Link>
+        <button
+          type="button"
+          className="font-semibold text-fal-accent underline"
+          onClick={() =>
+            setContextual(resolveWidgetContextual('attention-table'))
+          }
+        >
+          Abrir atenção →
+        </button>
         {showReports ? (
-          <Link
-            to="/admin/relatorios"
+          <button
+            type="button"
             className="font-semibold text-fal-accent underline"
+            onClick={() =>
+              setContextual(resolveWidgetContextual('kpi-reports-open'))
+            }
           >
             Relatórios →
-          </Link>
+          </button>
         ) : null}
       </p>
     </div>
@@ -415,6 +428,7 @@ export function WidgetAttentionTable() {
 
 export function WidgetKpiAwaitingPay() {
   const { statusCounts } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const v =
     statusCounts.status === 'loading'
       ? '…'
@@ -423,7 +437,7 @@ export function WidgetKpiAwaitingPay() {
     <KpiCard
       label="Aguardando pagamento"
       value={v}
-      to="/admin/pedidos/lista?status=aguardando_pagamento"
+      onOpen={() => setContextual(resolveWidgetContextual('kpi-awaiting-pay'))}
       tone="warning"
     />
   )
@@ -431,11 +445,12 @@ export function WidgetKpiAwaitingPay() {
 
 export function WidgetKpiTeamAction() {
   const { teamCount, attention } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   return (
     <KpiCard
       label="Ação da equipe"
       value={attention.status === 'loading' ? '…' : String(teamCount)}
-      to="/admin/pedidos"
+      onOpen={() => setContextual(resolveWidgetContextual('kpi-team-action'))}
       tone="danger"
     />
   )
@@ -443,11 +458,12 @@ export function WidgetKpiTeamAction() {
 
 export function WidgetKpiCustomerAction() {
   const { customerCount, attention } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   return (
     <KpiCard
       label="Ação do cliente"
       value={attention.status === 'loading' ? '…' : String(customerCount)}
-      to="/admin/pedidos"
+      onOpen={() => setContextual(resolveWidgetContextual('kpi-customer-action'))}
       tone="info"
     />
   )
@@ -455,26 +471,43 @@ export function WidgetKpiCustomerAction() {
 
 export function WidgetKpiReportsOpen() {
   const { basicTotals } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const v =
     basicTotals.status === 'loading'
       ? '…'
       : String(basicTotals.data?.ordersOpen ?? '—')
-  return <KpiCard label="Em aberto" value={v} to="/admin/relatorios" tone="neutral" />
+  return (
+    <KpiCard
+      label="Em aberto"
+      value={v}
+      onOpen={() => setContextual(resolveWidgetContextual('kpi-reports-open'))}
+      tone="neutral"
+    />
+  )
 }
 
 export function WidgetKpiReportsDelivered() {
   const { basicTotals } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const v =
     basicTotals.status === 'loading'
       ? '…'
       : String(basicTotals.data?.ordersDelivered ?? '—')
   return (
-    <KpiCard label="Entregues" value={v} to="/admin/relatorios" tone="success" />
+    <KpiCard
+      label="Entregues"
+      value={v}
+      onOpen={() =>
+        setContextual(resolveWidgetContextual('kpi-reports-delivered'))
+      }
+      tone="success"
+    />
   )
 }
 
 export function WidgetGmvDelivered() {
   const { basicTotals } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const v =
     basicTotals.status === 'loading'
       ? '…'
@@ -485,22 +518,27 @@ export function WidgetGmvDelivered() {
     <KpiCard
       label="Receita entregue (GMV)"
       value={v}
-      to="/admin/relatorios"
+      onOpen={() => setContextual(resolveWidgetContextual('gmv-delivered'))}
       tone="info"
     />
   )
 }
 
 export function WidgetCashBox() {
-  const { centralIndicators, role } = useDashboardData()
+  const { centralIndicators } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const ind = centralIndicators.data
   return (
-    <div className="flex h-full flex-col p-1">
+    <button
+      type="button"
+      className="flex h-full w-full flex-col p-1 text-left"
+      onClick={() => setContextual(resolveWidgetContextual('cash-box'))}
+    >
       <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
         Caixa (payments)
       </h3>
       <p className="mt-1 mb-2 text-xs text-fal-muted">
-        Distinto da receita GMV entregue.
+        Distinto da receita GMV entregue. Abre Financeiro da Central.
       </p>
       <SourceBanner
         status={centralIndicators.status}
@@ -517,22 +555,16 @@ export function WidgetCashBox() {
           />
         </div>
       ) : null}
-      {canAccessAdminPath('/admin/pagamentos', role) ? (
-        <p className="mb-0 mt-auto pt-2 text-xs">
-          <Link
-            to="/admin/pagamentos"
-            className="font-semibold text-fal-accent underline-offset-2 hover:underline"
-          >
-            Pagamentos →
-          </Link>
-        </p>
-      ) : null}
-    </div>
+      <p className="mb-0 mt-auto pt-2 text-xs font-semibold text-fal-accent">
+        Ver financeiro →
+      </p>
+    </button>
   )
 }
 
 export function WidgetLogisticsQueues() {
   const { logisticsQueues } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const counts = logisticsQueues.data
   return (
     <div className="flex h-full flex-col overflow-auto p-1">
@@ -552,15 +584,34 @@ export function WidgetLogisticsQueues() {
             if (!q) return null
             return (
               <li key={id}>
-                <Link
-                  to={q.path}
-                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
-                >
-                  <span className="text-fal-fg">{q.title}</span>
-                  <span className="font-extrabold tabular-nums text-fal-fg">
-                    {counts[id] ?? 0}
-                  </span>
-                </Link>
+                {id === 'revisao' ? (
+                  <Link
+                    to={q.path}
+                    className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
+                  >
+                    <span className="text-fal-fg">{q.title}</span>
+                    <span className="font-extrabold tabular-nums text-fal-fg">
+                      {counts[id] ?? 0}
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-fal-bg"
+                    onClick={() =>
+                      setContextual(
+                        resolveWidgetContextual('logistics-queues', {
+                          logisticsFila: id,
+                        }),
+                      )
+                    }
+                  >
+                    <span className="text-fal-fg">{q.title}</span>
+                    <span className="font-extrabold tabular-nums text-fal-fg">
+                      {counts[id] ?? 0}
+                    </span>
+                  </button>
+                )}
               </li>
             )
           })}
@@ -578,6 +629,7 @@ function shortDate(iso: string): string {
 
 export function WidgetChartGmvSeries() {
   const { dailySeries, period } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const days = dailySeries.data?.days ?? []
   const chartData = days.map((d) => ({
     label: shortDate(d.date),
@@ -600,12 +652,15 @@ export function WidgetChartGmvSeries() {
             {ticket != null ? ` · ticket médio ${formatMoney(ticket)}` : null}
           </p>
         </div>
-        <Link
-          to="/admin/relatorios"
+        <button
+          type="button"
           className="text-xs font-semibold text-fal-accent underline"
+          onClick={() =>
+            setContextual(resolveWidgetContextual('chart-gmv-series'))
+          }
         >
           Relatórios →
-        </Link>
+        </button>
       </div>
       <SourceBanner
         status={dailySeries.status}
@@ -640,6 +695,7 @@ export function WidgetChartGmvSeries() {
 
 export function WidgetChartCashSeries() {
   const { dailySeries, period } = useDashboardData()
+  const { setContextual } = useDashboardContextual()
   const days = dailySeries.data?.days ?? []
   const chartData = days.map((d) => ({
     label: shortDate(d.date),
@@ -658,12 +714,15 @@ export function WidgetChartCashSeries() {
             {period.label} · capturado / líquido diário (≠ GMV)
           </p>
         </div>
-        <Link
-          to="/admin/pagamentos"
+        <button
+          type="button"
           className="text-xs font-semibold text-fal-accent underline"
+          onClick={() =>
+            setContextual(resolveWidgetContextual('chart-cash-series'))
+          }
         >
-          Pagamentos →
-        </Link>
+          Financeiro →
+        </button>
       </div>
       <SourceBanner
         status={dailySeries.status}

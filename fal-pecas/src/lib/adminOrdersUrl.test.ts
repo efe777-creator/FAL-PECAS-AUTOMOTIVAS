@@ -3,6 +3,7 @@ import {
   buildOrdersHubPath,
   legacyAreaPathToHub,
   parseOrdersHubSearch,
+  sanitizeOrdersHubState,
 } from './adminOrdersUrl'
 
 describe('adminOrdersUrl', () => {
@@ -59,5 +60,36 @@ describe('adminOrdersUrl', () => {
       fila: null,
     })
     expect(buildOrdersHubPath({})).toBe('/admin/pedidos')
+  })
+
+  it('sanitize descarta area inválida por aba', () => {
+    expect(
+      sanitizeOrdersHubState({ tab: 'pedidos', area: 'analise', fila: 'volumes' }),
+    ).toEqual({ tab: 'pedidos', area: null, fila: null })
+    expect(
+      sanitizeOrdersHubState({
+        tab: 'comercial',
+        area: 'separacao',
+        fila: 'volumes',
+      }),
+    ).toEqual({ tab: 'comercial', area: 'aguardando-pagamento', fila: null })
+    expect(
+      sanitizeOrdersHubState({ tab: 'logistica', area: 'analise', fila: 'volumes' }),
+    ).toEqual({ tab: 'logistica', area: null, fila: 'volumes' })
+    expect(
+      sanitizeOrdersHubState({
+        tab: 'visao-geral',
+        area: 'analise',
+        fila: 'volumes',
+      }),
+    ).toEqual({ tab: 'visao-geral', area: null, fila: null })
+  })
+
+  it('parse aplica sanitize em area órfã', () => {
+    expect(parseOrdersHubSearch('?tab=pedidos&area=analise')).toEqual({
+      tab: 'pedidos',
+      area: null,
+      fila: null,
+    })
   })
 })

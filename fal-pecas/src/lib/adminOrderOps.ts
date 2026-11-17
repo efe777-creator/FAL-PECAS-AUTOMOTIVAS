@@ -130,6 +130,7 @@ export function adminActorKind(
       return 'customer'
     case 'entregue':
     case 'cancelado':
+    case 'expirado':
       return 'done'
     case 'enviado':
       return 'team'
@@ -181,6 +182,18 @@ export function adminNextActionLabel(
   return step?.title ?? 'Ver pedido'
 }
 
+/** Statuses buscados na amostra de atenção (Dashboard + Central). */
+export const ATTENTION_STATUSES = [
+  'pagamento_aprovado',
+  'recebido',
+  'em_analise',
+  'aguardando_disponibilidade',
+  'aguardando_decisao',
+  'confirmado',
+  'em_separacao',
+  'pronto_para_envio',
+] as const
+
 /**
  * Pedidos que entram na fila "precisam de atenção" do Dashboard.
  * Equipe: análise, prep, expedição (exceto enviado só-acompanhar? plan includes enviado as team for deliver).
@@ -193,17 +206,7 @@ export function isAttentionOrder(
   const kind = adminActorKind(status, customerDecision)
   if (kind === 'done' || kind === 'wait_payment') return false
   if (kind === 'customer') return true
-  // team attention statuses
-  return [
-    'pagamento_aprovado',
-    'recebido',
-    'em_analise',
-    'aguardando_disponibilidade',
-    'aguardando_decisao',
-    'confirmado',
-    'em_separacao',
-    'pronto_para_envio',
-  ].includes(status)
+  return (ATTENTION_STATUSES as readonly string[]).includes(status)
 }
 
 /** Prioridade menor = mais urgente na fila. */

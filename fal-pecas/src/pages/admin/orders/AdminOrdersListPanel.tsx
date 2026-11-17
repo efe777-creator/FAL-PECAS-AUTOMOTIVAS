@@ -1,41 +1,28 @@
 import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
+import {
+  badgeClass,
+  toneForOrderStatus,
+  toneForPaymentStatus,
+} from '@/components/admin/orders/orderStatusTone'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
-import {
-  adminActorBadgeLabel,
-  adminActorKind,
-  adminNextActionLabel,
-  orderStatusOperatorLabel,
-} from '@/lib/adminOrderOps'
+import { adminNextActionLabel, orderStatusOperatorLabel } from '@/lib/adminOrderOps'
 import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-function actorClass(kind: ReturnType<typeof adminActorKind>): string {
-  switch (kind) {
-    case 'team':
-      return 'bg-amber-100 text-amber-950'
-    case 'customer':
-      return 'bg-sky-100 text-sky-950'
-    case 'wait_payment':
-      return 'bg-fal-bg text-fal-muted'
-    case 'done':
-      return 'bg-green-100 text-green-900'
-  }
-}
-
-function paymentBadge(o: AdminOrderListRow) {
+function paymentLabel(o: AdminOrderListRow): string {
   if (!o.paymentStatus) return '—'
   const expired =
     o.paymentExpiresAt != null && new Date(o.paymentExpiresAt).getTime() < Date.now()
   if (expired && o.paymentStatus === 'pending') return 'Pendente (expirado)'
   const map: Record<string, string> = {
     pending: 'Pendente',
-    approved: 'Aprovado',
+    approved: 'Pago',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
     refunded: 'Estornado',
@@ -83,6 +70,8 @@ type Props = {
   showItemCount?: boolean
   selectedOrderId?: string | null
   onSelectOrder?: (orderId: string) => void
+  /** Busca já no header do hub. */
+  hideSearch?: boolean
 }
 
 export function AdminOrdersListPanel({
@@ -99,6 +88,7 @@ export function AdminOrdersListPanel({
   showItemCount,
   selectedOrderId,
   onSelectOrder,
+  hideSearch,
 }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -113,14 +103,16 @@ export function AdminOrdersListPanel({
 
   return (
     <div className="space-y-3">
-      <div className="max-w-md">
-        <Input
-          label="Busca (número / cliente / frete)"
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder="Ex.: a1b2c3d4, nome ou PAC"
-        />
-      </div>
+      {!hideSearch ? (
+        <div className="max-w-md">
+          <Input
+            label="Busca (número / cliente / frete)"
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Ex.: a1b2c3d4, nome ou PAC"
+          />
+        </div>
+      ) : null}
 
       {loading ? <Loading label="Carregando pedidos…" /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
@@ -133,7 +125,6 @@ export function AdminOrdersListPanel({
         <>
           <div className="space-y-3 md:hidden">
             {rows.map((o) => {
-              const kind = adminActorKind(o.status, o.customerDecision)
               const next = nextActionLabel(o)
               const selected = selectedOrderId === o.id
               return (
@@ -164,12 +155,9 @@ export function AdminOrdersListPanel({
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
-                    >
-                      {adminActorBadgeLabel(kind)}
+                    <span className={badgeClass(toneForOrderStatus(o.status))}>
+                      {listStatusLabel(o)}
                     </span>
-                    <span className="text-xs font-semibold text-fal-fg">{listStatusLabel(o)}</span>
                     {o.shippingChoiceLabel ? (
                       <span className="rounded-md border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-950">
                         {o.shippingChoiceLabel}
@@ -178,7 +166,10 @@ export function AdminOrdersListPanel({
                   </div>
 
                   <p className="mb-0 mt-2 text-xs text-fal-muted">
-                    {formatDateTime(o.createdAt)} · Pagamento: {paymentBadge(o)}
+                    {formatDateTime(o.createdAt)} ·{' '}
+                    <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
+                      {paymentLabel(o)}
+                    </span>
                     {showWaitingTime ? ` · Aguardando ${waitingPaymentHours(o.createdAt)}` : ''}
                   </p>
                   {showItemPreview ? (
@@ -193,17 +184,26 @@ export function AdminOrdersListPanel({
                     className="mt-3 flex flex-wrap items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Link
-                      to={`/admin/pedidos/${o.id}`}
-                      onClick={rememberReturn}
-                      className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white no-underline"
-                    >
-                      Abrir pedido
-                    </Link>
+                    {onSelectOrder ? (
+                      <button
+                        type="button"
+                        className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                        onClick={() => onSelectOrder(o.id)}
+                      >
+                        Abrir
+                      </button>
+                    ) : (
+                      <Link
+                        to={`/admin/pedidos/${o.id}`}
+                        onClick={rememberReturn}
+                        className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white no-underline"
+                      >
+                        Abrir pedido
+                      </Link>
+                    )}
                     <OrderRowActionsMenu
                       orderId={o.id}
-                      onOpenPreview={onSelectOrder ? () => onSelectOrder(o.id) : undefined}
-                      onOpenFull={() => openFull(o.id)}
+                      onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
                     />
                   </div>
                 </article>
@@ -230,7 +230,6 @@ export function AdminOrdersListPanel({
               </thead>
               <tbody>
                 {rows.map((o) => {
-                  const kind = adminActorKind(o.status, o.customerDecision)
                   const selected = selectedOrderId === o.id
                   return (
                     <tr
@@ -255,12 +254,7 @@ export function AdminOrdersListPanel({
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <span
-                          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
-                        >
-                          {adminActorBadgeLabel(kind)}
-                        </span>
-                        <span className="mt-1 block text-xs font-semibold text-fal-fg">
+                        <span className={badgeClass(toneForOrderStatus(o.status))}>
                           {listStatusLabel(o)}
                         </span>
                       </td>
@@ -284,21 +278,34 @@ export function AdminOrdersListPanel({
                       {showItemCount ? (
                         <td className="px-3 py-2">{o.itemCount}</td>
                       ) : null}
-                      <td className="px-3 py-2 text-xs">{paymentBadge(o)}</td>
+                      <td className="px-3 py-2">
+                        <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
+                          {paymentLabel(o)}
+                        </span>
+                      </td>
                       <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          <Link
-                            to={`/admin/pedidos/${o.id}`}
-                            onClick={rememberReturn}
-                            className="text-sm font-semibold text-fal-fg underline"
-                          >
-                            Abrir
-                          </Link>
+                          {onSelectOrder ? (
+                            <button
+                              type="button"
+                              className="text-sm font-semibold text-fal-accent underline"
+                              onClick={() => onSelectOrder(o.id)}
+                            >
+                              Abrir
+                            </button>
+                          ) : (
+                            <Link
+                              to={`/admin/pedidos/${o.id}`}
+                              onClick={rememberReturn}
+                              className="text-sm font-semibold text-fal-fg underline"
+                            >
+                              Abrir
+                            </Link>
+                          )}
                           <OrderRowActionsMenu
                             orderId={o.id}
-                            onOpenPreview={onSelectOrder ? () => onSelectOrder(o.id) : undefined}
-                            onOpenFull={() => openFull(o.id)}
+                            onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
                           />
                         </div>
                       </td>
