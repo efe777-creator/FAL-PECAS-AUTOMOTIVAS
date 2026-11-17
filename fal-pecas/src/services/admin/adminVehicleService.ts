@@ -133,3 +133,47 @@ export async function adminSetVersionStatus(id: string, status: VehicleVersion['
   const { error } = await getSupabase().from('vehicle_versions').update({ status }).eq('id', id)
   if (error) throw error
 }
+
+export async function adminListDistinctVersionNames(filter?: {
+  manufacturerId?: string
+  modelId?: string
+}): Promise<string[]> {
+  let q = getSupabase()
+    .from('vehicle_versions')
+    .select('version_name')
+    .not('version_name', 'is', null)
+    .order('version_name')
+  if (filter?.manufacturerId) q = q.eq('manufacturer_id', filter.manufacturerId)
+  if (filter?.modelId) q = q.eq('model_id', filter.modelId)
+  const { data, error } = await q
+  if (error) throw error
+  return [
+    ...new Set(
+      (data ?? [])
+        .map((r) => String((r as { version_name: string | null }).version_name ?? '').trim())
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+}
+
+export async function adminListDistinctEngines(filter?: {
+  manufacturerId?: string
+  modelId?: string
+}): Promise<string[]> {
+  let q = getSupabase()
+    .from('vehicle_versions')
+    .select('engine')
+    .not('engine', 'is', null)
+    .order('engine')
+  if (filter?.manufacturerId) q = q.eq('manufacturer_id', filter.manufacturerId)
+  if (filter?.modelId) q = q.eq('model_id', filter.modelId)
+  const { data, error } = await q
+  if (error) throw error
+  return [
+    ...new Set(
+      (data ?? [])
+        .map((r) => String((r as { engine: string | null }).engine ?? '').trim())
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+}

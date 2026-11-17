@@ -46,7 +46,10 @@
   --fal-muted: #a8b0b8;
   --fal-success: #34d399;
   --fal-danger: #f87171;
-  /* navy / yellow de marca permanecem nos valores :root */
+  --fal-auth-link: #f2c84b;
+
+  color: var(--fal-fg);
+  background-color: var(--fal-bg);
 
   /*
    * Tailwind v4 resolve --color-fal-* no :root (valor light concreto).
@@ -65,6 +68,7 @@
   --color-fal-muted: var(--fal-muted);
   --color-fal-success: var(--fal-success);
   --color-fal-danger: var(--fal-danger);
+  --color-fal-auth-link: var(--fal-auth-link);
 }
 
 @theme {
@@ -128,6 +132,12 @@ html {
   input,
   select {
     font: inherit;
+  }
+
+  input,
+  select {
+    color: var(--fal-fg);
+    background-color: var(--fal-surface);
   }
 
   button {

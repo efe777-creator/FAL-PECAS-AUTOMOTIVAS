@@ -133,6 +133,22 @@ export function adminMeasureGapOrFilter(gap: AdminMeasureGapFilter): string {
   return `${weight},${dims}`
 }
 
+export type AdminProductVehicleFilter = {
+  manufacturerId?: string
+  modelId?: string
+  versionName?: string
+  engine?: string
+}
+
+export function hasAdminProductVehicleFilter(f: AdminProductVehicleFilter): boolean {
+  return Boolean(
+    f.manufacturerId?.trim() ||
+      f.modelId?.trim() ||
+      f.versionName?.trim() ||
+      f.engine?.trim(),
+  )
+}
+
 export type AdminProductListParams = {
   q?: string
   status?: string
@@ -145,6 +161,9 @@ export type AdminProductListParams = {
   categoryIds?: string[]
   /** Montadora: produtos com aplicação em vehicle_versions dessa manufacturer. */
   manufacturerId?: string
+  modelId?: string
+  versionName?: string
+  engine?: string
   /** Paginação simples (padrão: primeiros 200). */
   offset?: number
   limit?: number
@@ -161,17 +180,43 @@ export async function adminListProductsPage(
 ): Promise<AdminProductListPage> {
   const pageLimit = params?.limit ?? ADMIN_PRODUCTS_PAGE_SIZE
   const pageOffset = params?.offset ?? 0
-  let productIdsByMaker: string[] | null = null
-  if (params?.manufacturerId) {
-    const { data: compat, error: compatErr } = await getSupabase()
+  let productIdsByVehicle: string[] | null = null
+  const vehicleFilter: AdminProductVehicleFilter = {
+    manufacturerId: params?.manufacturerId,
+    modelId: params?.modelId,
+    versionName: params?.versionName,
+    engine: params?.engine,
+  }
+  if (hasAdminProductVehicleFilter(vehicleFilter)) {
+    let compat = getSupabase()
       .from('product_vehicle_compatibility')
-      .select('product_id, vehicle_versions!inner(manufacturer_id)')
-      .eq('vehicle_versions.manufacturer_id', params.manufacturerId)
+      .select('product_id, vehicle_versions!inner(manufacturer_id, model_id, version_name, engine)')
+    if (vehicleFilter.manufacturerId?.trim()) {
+      compat = compat.eq(
+        'vehicle_versions.manufacturer_id',
+        vehicleFilter.manufacturerId.trim(),
+      )
+    }
+    if (vehicleFilter.modelId?.trim()) {
+      compat = compat.eq('vehicle_versions.model_id', vehicleFilter.modelId.trim())
+    }
+    if (vehicleFilter.versionName?.trim()) {
+      compat = compat.ilike(
+        'vehicle_versions.version_name',
+        vehicleFilter.versionName.trim(),
+      )
+    }
+    if (vehicleFilter.engine?.trim()) {
+      compat = compat.ilike('vehicle_versions.engine', vehicleFilter.engine.trim())
+    }
+    const { data: compatRows, error: compatErr } = await compat
     if (compatErr) throw compatErr
-    productIdsByMaker = [
-      ...new Set((compat ?? []).map((r) => String((r as { product_id: string }).product_id))),
+    productIdsByVehicle = [
+      ...new Set(
+        (compatRows ?? []).map((r) => String((r as { product_id: string }).product_id)),
+      ),
     ]
-    if (productIdsByMaker.length === 0) return { items: [], hasMore: false }
+    if (productIdsByVehicle.length === 0) return { items: [], hasMore: false }
   }
 
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
@@ -180,7 +225,7 @@ export async function adminListProductsPage(
   if (params?.categoryIds && params.categoryIds.length > 0) {
     q = q.in('category_id', params.categoryIds)
   }
-  if (productIdsByMaker) q = q.in('id', productIdsByMaker)
+  if (productIdsByVehicle) q = q.in('id', productIdsByVehicle)
   if (params?.measureGap === 'pol') {
     // Meta FAL: só elegíveis sem capacidade cadastrada
     q = q.is('pol_unit', null).eq('own_delivery_allowed', true)

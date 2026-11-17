@@ -17,6 +17,11 @@ import {
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
+  adminListDistinctEngines,
+  adminListDistinctVersionNames,
+  adminListModels,
+} from '@/services/admin/adminVehicleService'
+import {
   ADMIN_PRODUCTS_PAGE_SIZE,
   adminApplyGlobalProductMeasures,
   adminBulkSetProductCategory,
@@ -32,9 +37,12 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
-import type { Category, Manufacturer, Product } from '@/types'
+import type { Category, Manufacturer, Product, VehicleModel } from '@/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+
+const selectCls =
+  'w-full rounded-[9px] border border-fal-line bg-fal-surface px-2 py-2.5 text-fal-fg'
 
 const EMPTY_CASCADE: CategoryCascadeValue = {
   categoriaId: '',
@@ -52,6 +60,12 @@ export function AdminProductsPage() {
   const [status, setStatus] = useState('')
   const [availableFilter, setAvailableFilter] = useState('')
   const [manufacturerId, setManufacturerId] = useState('')
+  const [modelId, setModelId] = useState('')
+  const [versionName, setVersionName] = useState('')
+  const [engine, setEngine] = useState('')
+  const [models, setModels] = useState<VehicleModel[]>([])
+  const [versionOptions, setVersionOptions] = useState<string[]>([])
+  const [engineOptions, setEngineOptions] = useState<string[]>([])
   const [filterCascade, setFilterCascade] = useState<CategoryCascadeValue>(EMPTY_CASCADE)
   const [withoutImage, setWithoutImage] = useState(false)
   const [measureGap, setMeasureGap] = useState<'' | AdminMeasureGapFilter>('')
@@ -91,6 +105,9 @@ export function AdminProductsPage() {
     status?: string
     availableFilter?: string
     manufacturerId?: string
+    modelId?: string
+    versionName?: string
+    engine?: string
     withoutImage?: boolean
     measureGap?: '' | AdminMeasureGapFilter
     filterCascade?: CategoryCascadeValue
@@ -100,6 +117,9 @@ export function AdminProductsPage() {
     const nextStatus = overrides?.status ?? status
     const nextAvailable = overrides?.availableFilter ?? availableFilter
     const nextMaker = overrides?.manufacturerId ?? manufacturerId
+    const nextModel = overrides?.modelId ?? modelId
+    const nextVersion = overrides?.versionName ?? versionName
+    const nextEngine = overrides?.engine ?? engine
     const nextNoImage = overrides?.withoutImage ?? withoutImage
     const nextGap = overrides?.measureGap ?? measureGap
     const nextCascade = overrides?.filterCascade ?? filterCascade
@@ -117,6 +137,9 @@ export function AdminProductsPage() {
       measureGap: nextGap || undefined,
       categoryIds,
       manufacturerId: nextMaker || undefined,
+      modelId: nextModel || undefined,
+      versionName: nextVersion || undefined,
+      engine: nextEngine || undefined,
       offset: overrides?.offset ?? 0,
       limit: ADMIN_PRODUCTS_PAGE_SIZE,
     }
@@ -127,6 +150,9 @@ export function AdminProductsPage() {
     status?: string
     availableFilter?: string
     manufacturerId?: string
+    modelId?: string
+    versionName?: string
+    engine?: string
     withoutImage?: boolean
     measureGap?: '' | AdminMeasureGapFilter
     filterCascade?: CategoryCascadeValue
@@ -180,6 +206,33 @@ export function AdminProductsPage() {
   }, [])
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const [mods, vers, engs] = await Promise.all([
+          adminListModels(manufacturerId || undefined),
+          adminListDistinctVersionNames({
+            manufacturerId: manufacturerId || undefined,
+            modelId: modelId || undefined,
+          }),
+          adminListDistinctEngines({
+            manufacturerId: manufacturerId || undefined,
+            modelId: modelId || undefined,
+          }),
+        ])
+        setModels(mods)
+        setVersionOptions(vers)
+        setEngineOptions(engs)
+        if (modelId && !mods.some((m) => m.id === modelId)) {
+          setModelId('')
+        }
+      } catch (e) {
+        pushError(toUserMessage(e, 'Erro ao carregar filtros de veículo'))
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manufacturerId, modelId])
+
+  useEffect(() => {
     return subscribeCategoriesChanged(() => {
       void adminListCategories()
         .then(setCategories)
@@ -197,6 +250,9 @@ export function AdminProductsPage() {
     setStatus('')
     setAvailableFilter('')
     setManufacturerId('')
+    setModelId('')
+    setVersionName('')
+    setEngine('')
     setMeasureGap('')
     setFilterCascade(EMPTY_CASCADE)
     setWithoutImage(false)
@@ -480,7 +536,7 @@ export function AdminProductsPage() {
           void reload()
         }}
       >
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(7.5rem,9rem)_minmax(7.5rem,9rem)_minmax(0,1fr)_auto_auto]">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Input
             label="Buscar"
             value={q}
@@ -490,7 +546,7 @@ export function AdminProductsPage() {
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
             <select
-              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
+              className={selectCls}
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -503,7 +559,7 @@ export function AdminProductsPage() {
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-extrabold text-fal-muted">Estoque</span>
             <select
-              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
+              className={selectCls}
               value={availableFilter}
               onChange={(e) => setAvailableFilter(e.target.value)}
             >
@@ -515,14 +571,68 @@ export function AdminProductsPage() {
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
             <select
-              className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
+              className={selectCls}
               value={manufacturerId}
-              onChange={(e) => setManufacturerId(e.target.value)}
+              onChange={(e) => {
+                setManufacturerId(e.target.value)
+                setModelId('')
+                setVersionName('')
+                setEngine('')
+              }}
             >
               <option value="">Todas</option>
               {manufacturers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
+            <select
+              className={selectCls}
+              value={modelId}
+              onChange={(e) => {
+                setModelId(e.target.value)
+                setVersionName('')
+                setEngine('')
+              }}
+            >
+              <option value="">Todos</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
+            <select
+              className={selectCls}
+              value={versionName}
+              onChange={(e) => setVersionName(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {versionOptions.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motor</span>
+            <select
+              className={selectCls}
+              value={engine}
+              onChange={(e) => setEngine(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {engineOptions.map((eng) => (
+                <option key={eng} value={eng}>
+                  {eng}
                 </option>
               ))}
             </select>
@@ -549,6 +659,9 @@ export function AdminProductsPage() {
                   status: '',
                   availableFilter: '',
                   manufacturerId: '',
+                  modelId: '',
+                  versionName: '',
+                  engine: '',
                   withoutImage: false,
                   measureGap: '',
                   filterCascade: EMPTY_CASCADE,
@@ -562,7 +675,7 @@ export function AdminProductsPage() {
         <label className="block max-w-xs text-sm">
           <span className="mb-1 block text-xs font-extrabold text-fal-muted">Medidas (logística)</span>
           <select
-            className="w-full rounded-[9px] border border-fal-line px-2 py-2.5"
+            className={selectCls}
             value={measureGap}
             onChange={(e) =>
               setMeasureGap(e.target.value as '' | AdminMeasureGapFilter)
@@ -828,7 +941,7 @@ export function AdminProductsPage() {
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {hasMore ? (
-        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+        <p className="rounded-[10px] border border-fal-warning/40 bg-fal-warning/10 px-3 py-2 text-sm text-fal-fg">
           Exibindo até {ADMIN_PRODUCTS_PAGE_SIZE} registros por carga ({items.length} carregados).
           Use “Carregar mais produtos” para ampliar
           {withoutImage
@@ -874,17 +987,17 @@ export function AdminProductsPage() {
                 <p className="m-0 text-xs text-fal-muted">
                   {productStatusLabel(p.status)} ·{' '}
                   {p.available ? (
-                    <span className="font-semibold text-emerald-800">Disponível</span>
+                    <span className="font-semibold text-fal-success">Disponível</span>
                   ) : (
                     'Indisponível'
                   )}
                 </p>
-                <p className="mb-0 mt-1 text-sm font-bold">
+                <p className="mb-0 mt-1 text-sm font-bold text-fal-fg">
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
-                    className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                    className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
                     to={`/admin/produtos/${p.id}`}
                   >
                     Editar
@@ -949,22 +1062,22 @@ export function AdminProductsPage() {
                     aria-label={`Selecionar ${p.commercialRef ?? p.sku}`}
                   />
                 </td>
-                <td className="px-3 py-2 font-mono text-xs">{p.commercialRef ?? p.sku}</td>
-                <td className="px-3 py-2 font-semibold">
+                <td className="px-3 py-2 font-mono text-xs text-fal-fg">{p.commercialRef ?? p.sku}</td>
+                <td className="px-3 py-2 font-semibold text-fal-fg">
                   {p.name}
                   {p.isIncomplete ? (
                     <span className="ml-2 text-xs font-bold text-fal-yellow-dark">INCOMPLETO</span>
                   ) : null}
                 </td>
-                <td className="px-3 py-2">{productStatusLabel(p.status)}</td>
+                <td className="px-3 py-2 text-fal-fg">{productStatusLabel(p.status)}</td>
                 <td className="px-3 py-2">
                   {p.available ? (
-                    <span className="font-semibold text-emerald-800">Disponível</span>
+                    <span className="font-semibold text-fal-success">Disponível</span>
                   ) : (
                     <span className="text-fal-muted">Indisponível</span>
                   )}
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2 text-fal-fg">
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
                 <td className="px-3 py-2 space-x-2">
