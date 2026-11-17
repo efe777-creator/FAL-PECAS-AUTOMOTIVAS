@@ -1,8 +1,16 @@
 import { AddWidgetPanel } from '@/components/admin/dashboard/AddWidgetPanel'
 import { DashboardDataProvider, useDashboardData } from '@/components/admin/dashboard/DashboardDataProvider'
 import { DashboardLayoutEngine } from '@/components/admin/dashboard/DashboardLayoutEngine'
+import {
+  DashboardOrderPreviewProvider,
+  useDashboardOrderPreview,
+} from '@/components/admin/dashboard/DashboardOrderPreviewContext'
+import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
+import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import {
   buildDefaultLayout,
   clearDashboardLayout,
@@ -28,7 +36,7 @@ import {
 } from '@/lib/adminDashboardPeriod'
 import { formatDateTime } from '@/lib/datetime'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function DashboardShell({
   period,
@@ -40,6 +48,8 @@ function DashboardShell({
   const { user } = useAuth()
   const role = user?.role
   const data = useDashboardData()
+  const navigate = useNavigate()
+  const { selectedOrderId, setSelectedOrderId } = useDashboardOrderPreview()
 
   const available = useMemo(() => listAvailableWidgets(role), [role])
   const bounds = useMemo(() => boundsMapForRole(role), [role])
@@ -122,7 +132,12 @@ function DashboardShell({
     setEditing(false)
   }
 
-  return (
+  function openFull(id: string) {
+    rememberOrdersReturnPath('/admin')
+    navigate(`/admin/pedidos/${id}`)
+  }
+
+  const primary = (
     <div className="mx-auto max-w-6xl space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -258,6 +273,37 @@ function DashboardShell({
       />
     </div>
   )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="dashboard"
+      primary={primary}
+      contextualOpen={!!selectedOrderId}
+      onContextualOpenChange={(open) => {
+        if (!open) setSelectedOrderId(null)
+      }}
+      contextualTitle={
+        selectedOrderId ? `Pedido ${selectedOrderId.slice(0, 8)}…` : 'Pedido'
+      }
+      contextualExtraActions={
+        selectedOrderId ? (
+          <OrderRowActionsMenu
+            orderId={selectedOrderId}
+            onOpenFull={() => openFull(selectedOrderId)}
+          />
+        ) : null
+      }
+      contextual={
+        selectedOrderId ? (
+          <OrderPreviewPanel
+            orderId={selectedOrderId}
+            onClose={() => setSelectedOrderId(null)}
+            onOpenFull={() => openFull(selectedOrderId)}
+          />
+        ) : null
+      }
+    />
+  )
 }
 
 export function AdminDashboardPage() {
@@ -271,7 +317,9 @@ export function AdminDashboardPage() {
 
   return (
     <DashboardDataProvider role={user?.role} period={period}>
-      <DashboardShell period={period} onPeriodPreset={onPeriodPreset} />
+      <DashboardOrderPreviewProvider>
+        <DashboardShell period={period} onPeriodPreset={onPeriodPreset} />
+      </DashboardOrderPreviewProvider>
     </DashboardDataProvider>
   )
 }

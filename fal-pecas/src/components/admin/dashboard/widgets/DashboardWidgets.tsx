@@ -1,4 +1,5 @@
 import { useDashboardData } from '@/components/admin/dashboard/DashboardDataProvider'
+import { useDashboardOrderPreview } from '@/components/admin/dashboard/DashboardOrderPreviewContext'
 import {
   labelForShortcutPath,
   listDashboardShortcutsForRole,
@@ -131,11 +132,12 @@ function actorClass(kind: ReturnType<typeof adminActorKind>): string {
 
 export function WidgetQuickControls() {
   const { firstAttention, role } = useDashboardData()
+  const { setSelectedOrderId } = useDashboardOrderPreview()
   const showReports = canAccessAdminPath('/admin/relatorios', role)
   const controls: Array<{ label: string; to: string; hint?: string }> = [
-    { label: 'Análise', to: '/admin/pedidos/analise', hint: 'Conferir pedidos' },
-    { label: 'Separação', to: '/admin/pedidos/separacao', hint: 'Preparar itens' },
-    { label: 'Expedição', to: '/admin/pedidos/expedicao', hint: 'Filas logísticas' },
+    { label: 'Análise', to: '/admin/pedidos?tab=comercial&area=analise', hint: 'Conferir pedidos' },
+    { label: 'Separação', to: '/admin/pedidos?tab=pedidos&area=separacao', hint: 'Preparar itens' },
+    { label: 'Expedição', to: '/admin/pedidos?tab=logistica', hint: 'Filas logísticas' },
     { label: 'Atenção equipe', to: '/admin/pedidos', hint: 'Central' },
     {
       label: 'Aguardando pag.',
@@ -161,12 +163,13 @@ export function WidgetQuickControls() {
           </Link>
         ))}
         {firstAttention ? (
-          <Link
-            to={`/admin/pedidos/${firstAttention.id}`}
+          <button
+            type="button"
             className="inline-flex min-h-10 items-center rounded-lg border border-fal-warning/50 bg-fal-warning/10 px-3 text-sm font-bold text-fal-fg"
+            onClick={() => setSelectedOrderId(firstAttention.id)}
           >
-            Abrir 1º da fila
-          </Link>
+            Preview 1º da fila
+          </button>
         ) : (
           <span className="inline-flex min-h-10 items-center rounded-lg border border-dashed border-fal-line px-3 text-sm text-fal-muted">
             Fila vazia
@@ -307,6 +310,7 @@ export function WidgetPipelineFlow() {
 
 export function WidgetAttentionTable() {
   const { attention, teamCount, customerCount, role } = useDashboardData()
+  const { selectedOrderId, setSelectedOrderId } = useDashboardOrderPreview()
   const rows = attention.data ?? []
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
@@ -347,12 +351,21 @@ export function WidgetAttentionTable() {
             <tbody>
               {rows.map((o) => {
                 const kind = adminActorKind(o.status, o.customerDecision)
+                const selected = selectedOrderId === o.id
                 return (
-                  <tr key={o.id} className="border-t border-fal-line">
+                  <tr
+                    key={o.id}
+                    className={[
+                      'cursor-pointer border-t border-fal-line',
+                      selected ? 'bg-fal-accent/10' : '',
+                    ].join(' ')}
+                    onClick={() => setSelectedOrderId(o.id)}
+                  >
                     <td className="px-3 py-2 font-mono text-xs">
                       <Link
                         to={`/admin/pedidos/${o.id}`}
                         className="font-semibold text-fal-fg underline-offset-2 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {o.id.slice(0, 8)}…
                       </Link>

@@ -238,7 +238,7 @@ export const ADMIN_DASHBOARD_WIDGET_CATALOG: readonly WidgetMeta[] = [
     minSize: { w: 4, h: 2 },
     maxSize: { w: 12, h: 5 },
     dataDependencies: ['logisticsQueues'],
-    deepLink: '/admin/pedidos/expedicao',
+    deepLink: '/admin/pedidos?tab=logistica',
     status: 'available',
     configurable: false,
   },
