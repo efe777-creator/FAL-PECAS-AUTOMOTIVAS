@@ -32,7 +32,7 @@ export function Header({ theme, onThemeToggle }: Props) {
   }, [])
 
   return (
-    <header className="sticky top-0 z-[100] border-b border-fal-line bg-fal-surface">
+    <header className="sticky top-0 z-[100] border-b border-fal-line bg-fal-surface shadow-sm dark:bg-fal-bg dark:shadow-none">
       <Container className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 py-2 sm:gap-x-4 sm:py-2.5 lg:grid-cols-[180px_minmax(0,1fr)_auto] lg:min-h-[84px] lg:gap-x-[22px] lg:py-3">
         <Logo />
         <SearchBar />
@@ -52,7 +52,7 @@ export function Header({ theme, onThemeToggle }: Props) {
             ) : null}
             <AccountButton />
             <Link
-              className="text-center text-[13px] font-semibold text-fal-fg"
+              className="text-center text-[13px] font-semibold text-fal-navy dark:text-fal-fg"
               to="/conta/pedidos"
             >
               <b className="block text-xl leading-none" aria-hidden>
@@ -64,7 +64,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           </div>
           <button
             type="button"
-            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg text-fal-fg lg:hidden"
+            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg lg:hidden"
             aria-label="Abrir menu"
             onClick={() => setMenuOpen(true)}
           >
@@ -78,42 +78,42 @@ export function Header({ theme, onThemeToggle }: Props) {
         <nav className="flex flex-col gap-1 text-sm">
           <Link
             to="/"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Início
           </Link>
           <Link
             to="/catalogo"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Catálogo / buscar peça
           </Link>
           <Link
             to="/conta/veiculos"
-            className="min-h-11 rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="min-h-11 rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Meus carros
           </Link>
           <Link
             to="/carrinho"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Carrinho
           </Link>
           <Link
             to="/conta"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Minha conta
           </Link>
           <Link
             to="/conta/pedidos"
-            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
             Meus pedidos
@@ -121,7 +121,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           {user ? (
             <Link
               to="/conta/avisos"
-              className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-fg hover:bg-fal-bg"
+              className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
               onClick={() => setMenuOpen(false)}
             >
               Notificações
@@ -136,7 +136,7 @@ export function Header({ theme, onThemeToggle }: Props) {
                 <Link
                   key={item.id}
                   to={`/catalogo?cat=${encodeURIComponent(item.slug)}`}
-                  className="rounded-[10px] px-3 py-2 text-fal-fg hover:bg-fal-bg"
+                  className="rounded-[10px] px-3 py-2 text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
                   onClick={() => setMenuOpen(false)}
                 >
                   {item.name}

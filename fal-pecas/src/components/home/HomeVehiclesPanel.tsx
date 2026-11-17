@@ -50,13 +50,18 @@ export function HomeVehiclesPanel() {
     <div id="garagem">
       <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Meus carros</h2>
+          <h2 className="m-0 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
+            Meus carros
+          </h2>
           <p className="mt-1 text-sm text-fal-muted">
             Escolha um carro salvo para filtrar peças compatíveis.
           </p>
         </div>
         {user ? (
-          <Link to="/conta/veiculos" className="text-sm font-semibold text-fal-navy">
+          <Link
+            to="/conta/veiculos"
+            className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+          >
             Gerenciar na conta →
           </Link>
         ) : null}
@@ -112,8 +117,8 @@ export function HomeVehiclesPanel() {
                   className={[
                     'flex min-h-[72px] w-full flex-col items-start justify-center rounded-fal border px-4 py-3 text-left transition',
                     v.isPrimary
-                      ? 'border-fal-navy bg-fal-navy text-white hover:brightness-110'
-                      : 'border-fal-line bg-white text-fal-navy hover:border-fal-navy/40 hover:bg-fal-bg',
+                      ? 'border-fal-yellow bg-fal-navy text-white hover:brightness-110'
+                      : 'border-fal-line bg-fal-surface text-fal-fg hover:border-fal-yellow/40 hover:bg-fal-surface-2',
                   ].join(' ')}
                 >
                   <span className="text-sm font-extrabold">

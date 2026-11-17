@@ -28,13 +28,22 @@ const ITEMS = [
   },
 ]
 
-/** Bloco curto de confiança — sem selos excessivos. */
+/** Bloco curto de confiança — destaque dourado sutil, sem selos excessivos. */
 export function HomeTrustSection() {
   return (
-    <section className="border-t border-fal-line bg-white py-8 sm:py-10" aria-labelledby="home-trust-heading">
+    <section
+      className="border-t border-fal-line bg-fal-bg py-8 sm:py-10"
+      aria-labelledby="home-trust-heading"
+    >
       <Container>
         <div className="mb-5 max-w-2xl">
-          <h2 id="home-trust-heading" className="m-0 text-[22px] font-extrabold sm:text-[26px]">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
+            Confiança
+          </p>
+          <h2
+            id="home-trust-heading"
+            className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]"
+          >
             Comprar com segurança
           </h2>
           <p className="mt-1 text-sm text-fal-muted">
@@ -45,13 +54,13 @@ export function HomeTrustSection() {
           {ITEMS.map((item) => (
             <li
               key={item.title}
-              className="rounded-[12px] border border-fal-line bg-fal-bg px-4 py-3"
+              className="rounded-[12px] border border-fal-line border-l-4 border-l-fal-yellow bg-fal-surface px-4 py-3"
             >
-              <p className="m-0 text-sm font-extrabold text-fal-navy">{item.title}</p>
+              <p className="m-0 text-sm font-extrabold text-fal-navy dark:text-fal-fg">{item.title}</p>
               <p className="mt-1 text-[13px] leading-snug text-fal-muted">{item.body}</p>
               <Link
                 to={item.to}
-                className="mt-2 inline-block text-xs font-semibold text-fal-navy underline-offset-2 hover:underline"
+                className="mt-2 inline-block text-xs font-semibold text-fal-accent underline-offset-2 hover:underline"
               >
                 {item.label} →
               </Link>

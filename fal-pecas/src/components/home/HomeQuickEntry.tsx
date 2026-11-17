@@ -17,8 +17,8 @@ function menuBtnClass(active: boolean) {
   return [
     shortcutBtn,
     active
-      ? 'border-fal-accent bg-fal-accent/10 font-extrabold text-fal-accent ring-1 ring-fal-accent/40'
-      : 'border-fal-line bg-fal-surface text-fal-fg hover:border-fal-accent/40 hover:bg-fal-surface-2',
+      ? 'border-fal-accent bg-fal-accent/15 font-extrabold text-fal-accent ring-1 ring-fal-accent/35'
+      : 'border-fal-line bg-fal-surface text-fal-fg hover:border-fal-yellow/50 hover:bg-fal-surface-2',
   ].join(' ')
 }
 
@@ -39,9 +39,12 @@ export function HomeQuickEntry({
       <Container className="py-5 sm:py-7">
         <div className="mx-auto flex max-w-xl flex-col items-stretch gap-5">
           <header className="text-center">
+            <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
+              Busca rápida
+            </p>
             <h1
               id="home-entry-heading"
-              className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-fal-fg sm:text-[26px]"
+              className="m-0 mt-1 text-[22px] font-black leading-tight tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]"
             >
               Encontre a peça certa
             </h1>
@@ -50,7 +53,7 @@ export function HomeQuickEntry({
             </p>
           </header>
 
-          <div className="w-full">
+          <div className="w-full rounded-fal border border-fal-line bg-fal-surface p-3 shadow-fal sm:p-4">
             <VehiclePlateSearch returnPath="/" />
           </div>
 
@@ -58,7 +61,7 @@ export function HomeQuickEntry({
             aria-label="Atalhos de navegação"
             className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3"
           >
-            <ButtonLink to="/catalogo" variant="outline" className="w-full justify-center">
+            <ButtonLink to="/catalogo" variant="primary" className="w-full justify-center">
               Buscar peça
             </ButtonLink>
             <button

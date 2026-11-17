@@ -63,18 +63,18 @@ A tipografia custom “FAL” do logo é **gráfica** (não substituir por fonte
 | `--fal-navy-dark` | `#252c36` | Topbar, footer, hero |
 | `--fal-navy-2` | `#46515e` | Secundário |
 | `--fal-yellow` | `#f2c84b` | CTA / primary button / destaques |
-| `--fal-yellow-dark` | `#dcae27` | Focus |
+| `--fal-yellow-dark` | `#dcae27` | Focus / eyebrow no claro / ícone busca |
 | `--fal-yellow-hover` | `#ffd75c` | Hover primary |
 | `--fal-accent` | `#3b82f6` (dark content `#60a5fa`) | Menu/aba ativos (UI, não CTA) |
 | `--fal-warning` | `#d97706` | Alerta / processamento |
 | `--fal-favorite` | `#e11d48` | Favorito liked |
-| `--fal-fg` | `#252c36` (dark `#e8ecf0`) | Texto temático |
+| `--fal-fg` | `#252c36` (dark `#f3f5f7`) | Texto temático / títulos no dark |
 | `--fal-ink` | alias → `fal-fg` | Compatibilidade (classes `text-fal-ink`) |
-| `--fal-bg` | `#f4f6f7` (dark `#1a1f26`) | Fundo página |
-| `--fal-surface` | `#ffffff` (dark `#242b33`) | Cards / superfícies |
-| `--fal-surface-2` | `#f8f9fa` (dark `#2c343e`) | Superfície secundária |
-| `--fal-line` | `#dfe4e8` (dark `#3a4450`) | Bordas |
-| `--fal-muted` | `#5a6570` (dark `#9aa3ad`) | Texto secundário |
+| `--fal-bg` | `#f4f6f7` (dark `#0e1116`) | Fundo página (dark quase preto) |
+| `--fal-surface` | `#ffffff` (dark `#181c22`) | Cards / header light |
+| `--fal-surface-2` | `#f8f9fa` (dark `#222831`) | Inputs / hover |
+| `--fal-line` | `#dfe4e8` (dark `#2e3640`) | Bordas |
+| `--fal-muted` | `#5a6570` (dark `#a8b0b8`) | Texto secundário |
 | `--fal-success` | `#168a55` | Sucesso / compat |
 | `--fal-danger` | `#c0392b` | Erro / remover |
 | `--fal-auth-link` | `#7c5b00` | Links auth |
@@ -84,6 +84,8 @@ Fonte: `fal-pecas/src/styles/index.css` (`@theme` → `var(--fal-*)`; dark via `
 **Dark admin:** default + toggle em `AdminLayout` (chave `fal-admin-theme`).  
 **Dark loja:** opcional + toggle no header (`storeTheme` / chave `fal-store-theme`, default light). Wrappers distintos — não vazam um no outro.  
 Navy/amarelo de marca **não** invertidos. Logo transparente (wordmark carvão) no dark usa **placa clara** (`#f4f6f7`, padrão bolinha) — sem trocar o PNG principal.
+
+**Tipografia loja (light + dark):** títulos H1/H2 `text-fal-navy` no claro e `dark:text-fal-fg` no escuro (`font-black tracking-tight`); eyebrows `text-fal-yellow-dark` / `dark:text-fal-yellow` (uppercase, tracking largo). Amarelo chrome também na busca (ícone) e no hover da NavBar (filete), sem virar CTA. Header light: `fal-surface` + `shadow-sm`; header dark: `fal-bg`. Busca light: borda `fal-navy/20`; dark: `fal-surface-2`. MobileNav inativo: navy/75 (light) ou fg/75 (dark); ativo = accent.
 
 ---
 
@@ -102,11 +104,12 @@ Navy/amarelo de marca **não** invertidos. Logo transparente (wordmark carvão) 
 
 - **Botões:** primary amarelo, outline/light com `fal-surface`, dark, danger; `font-extrabold`; radius ~10px
 - **Abas/menus ativos:** `fal-accent` (nunca amarelo) — `AdminTabs` / nav conta / MobileNav
-- **Amarelo chrome:** sininho (`fal-yellow-dark` ícone + badge `fal-yellow`) — não é CTA
+- **Amarelo chrome:** sininho, ícone da busca, filete hover NavBar (`fal-yellow` / `fal-yellow-dark`) — não é CTA
 - **Favorito liked:** `fal-favorite` (vermelho)
-- **Inputs/Selects:** borda `--fal-line`, focus ring amarelo ou accent
+- **Inputs/Selects:** busca light borda navy/20 + ícone dourado; dark surface-2; focus ring amarelo
 - **Cards produto/categoria:** borda leve, hover shadow + translateY
-- **Nav mobile:** `fal-surface`; item ativo accent
+- **NavBar desktop:** `fal-navy-dark`; links `font-semibold`; hover `bg-white/10` + `border-b-2 border-fal-yellow`
+- **Nav mobile:** light `fal-surface` / dark `fal-bg`; inativo navy ou fg; ativo accent + `font-extrabold`
 - **Logo no header/footer escuro:** altura ~64–72px + placa clara no dark; `object-contain`
 - **Glossário:** nav “Categorias” vs H1 interno “Classificação”; H1 admin Overview = **Painel**; conta = **Minha conta**
 
@@ -137,4 +140,4 @@ Auditoria, spec e evidências:
 - Figma: https://www.figma.com/design/ZrVkWnp1krjj6c8uboRlYT
 - [FAL_MARCHA_CONTA_HOME_DARK_LOJA_VAL_2026-11-16.md](../planejamento/FAL_MARCHA_CONTA_HOME_DARK_LOJA_VAL_2026-11-16.md)
 
-Decisões: accent = ativo; amarelo = CTA + chrome (bell); dark admin + dark loja (wrappers separados); logo com placa no dark; favorito = vermelho; hub conta sem grid de 6 cards.
+Decisões: accent = ativo; amarelo = CTA + chrome (bell / busca / filete NavBar); dark admin + dark loja (wrappers separados); logo com placa no dark; favorito = vermelho; hub conta sem grid de 6 cards; dark loja aprofundado (`#0e1116` / `#181c22` / `#f3f5f7`).

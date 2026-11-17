@@ -14,5 +14,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // react-grid-layout / recharts: evita Invalid hook call (cópia duplicada de React no prebundle)
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-grid-layout', 'recharts'],
   },
 })

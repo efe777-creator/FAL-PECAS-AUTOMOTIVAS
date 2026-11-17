@@ -9,9 +9,9 @@ import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const TONE_CLASS: Record<HomeBanner['tone'], string> = {
-  navy: 'from-[#1a2330] via-fal-navy-dark to-[#3d4650]',
-  steel: 'from-[#3a424c] via-[#4a5562] to-[#2f3740]',
-  sand: 'from-[#4a4338] via-[#5c5346] to-[#3f3a32]',
+  navy: 'from-fal-navy-dark via-fal-navy to-fal-navy-2',
+  steel: 'from-fal-navy via-fal-navy-2 to-fal-navy-dark',
+  sand: 'from-[#3a342c] via-fal-navy-dark to-fal-navy',
 }
 
 const AUTOPLAY_MS = 6500
@@ -62,7 +62,7 @@ export function HomeBannerCarousel() {
   if (!ready) {
     return (
       <section
-        className="relative min-h-[220px] animate-pulse bg-gradient-to-br from-fal-navy-dark to-[#3d4650] sm:min-h-[280px] md:min-h-[320px]"
+        className="relative min-h-[220px] animate-pulse bg-gradient-to-br from-fal-navy-dark via-fal-navy to-fal-navy-2 sm:min-h-[280px] md:min-h-[320px]"
         aria-busy="true"
         aria-label="Carregando campanhas"
       />
@@ -122,7 +122,7 @@ export function HomeBannerCarousel() {
             ) : null}
             <Link
               to={current.to}
-              className="mt-5 inline-flex min-h-11 items-center rounded-fal bg-fal-yellow px-5 text-sm font-extrabold text-fal-navy no-underline shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="mt-5 inline-flex min-h-11 items-center rounded-fal bg-fal-yellow px-5 text-sm font-extrabold text-fal-navy-dark no-underline shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition hover:bg-fal-yellow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
             >
               {current.ctaLabel}
             </Link>

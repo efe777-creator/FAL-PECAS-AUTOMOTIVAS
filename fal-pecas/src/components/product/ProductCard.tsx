@@ -108,7 +108,7 @@ export function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-fal sm:p-3.5">
+    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2.5 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3.5">
       {offer.isOffer && presentation.showOfertaBadge ? (
         <div className="absolute top-3.5 left-3.5 z-[1]">
           <Badge>
@@ -122,7 +122,7 @@ export function ProductCard({ product }: { product: Product }) {
       <button
         type="button"
         className={[
-          'absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border bg-white/95 text-base shadow-sm',
+          'absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border bg-fal-surface/95 text-base shadow-sm',
           liked
             ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
             : 'border-fal-line text-fal-muted hover:border-fal-navy',

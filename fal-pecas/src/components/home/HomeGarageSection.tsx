@@ -25,7 +25,7 @@ export function HomeGarageSection() {
   return (
     <section
       id="garagem"
-      className="scroll-mt-20 border-b border-fal-line bg-white py-6 sm:py-8"
+      className="scroll-mt-20 border-b border-fal-line bg-fal-surface py-6 sm:py-8"
       aria-labelledby="home-garage-heading"
     >
       <Container>
@@ -46,7 +46,7 @@ export function HomeGarageSection() {
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/veiculo"
-                className="inline-flex min-h-10 items-center rounded-fal border border-fal-line bg-white px-3 text-sm font-semibold text-fal-navy no-underline hover:bg-white/80"
+                className="inline-flex min-h-10 items-center rounded-fal border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg no-underline hover:border-fal-yellow/40 hover:bg-fal-surface-2"
               >
                 Buscar veículo
               </Link>

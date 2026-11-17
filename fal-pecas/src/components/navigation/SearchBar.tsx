@@ -150,7 +150,7 @@ export function SearchBar() {
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder={SEARCH_INPUT_PLACEHOLDER}
-        className="min-h-11 w-full rounded-xl border border-fal-line bg-[#fafbfc] py-2.5 pr-10 pl-3 text-sm outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)] sm:min-h-[46px] sm:py-[13px] sm:pr-11 sm:pl-4 lg:py-[15px] lg:pl-[18px]"
+        className="min-h-11 w-full rounded-xl border border-fal-navy/20 bg-fal-surface py-2.5 pr-10 pl-3 text-sm text-fal-navy outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.28)] dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg sm:min-h-[46px] sm:py-[13px] sm:pr-11 sm:pl-4 lg:py-[15px] lg:pl-[18px]"
         aria-label="Busca de produtos e veículos"
         role="combobox"
         aria-expanded={showPanel}
@@ -158,7 +158,7 @@ export function SearchBar() {
         aria-autocomplete="list"
         aria-activedescendant={activeOptionId}
       />
-      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-lg text-fal-muted sm:right-4 sm:text-xl">
+      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-lg text-fal-yellow-dark dark:text-fal-yellow sm:right-4 sm:text-xl">
         ⌕
       </span>
 
@@ -167,7 +167,7 @@ export function SearchBar() {
           id={listId}
           role="listbox"
           aria-label="Sugestões de busca"
-          className="absolute top-[calc(100%+6px)] z-[120] max-h-[min(70vh,420px)] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-fal-line bg-white shadow-fal"
+          className="absolute top-[calc(100%+6px)] z-[120] max-h-[min(70vh,420px)] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-fal-line bg-fal-surface shadow-fal"
         >
           {loading ? (
             <div className="px-4 py-3 text-sm text-fal-muted">Buscando…</div>
@@ -177,7 +177,7 @@ export function SearchBar() {
               <div className="mt-2">
                 <button
                   type="button"
-                  className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+                  className="font-semibold text-fal-navy underline-offset-2 hover:underline dark:text-fal-fg"
                   onClick={goCatalog}
                 >
                   Tentar no catálogo
@@ -201,13 +201,13 @@ export function SearchBar() {
                         role="option"
                         aria-selected={active}
                         className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm ${
-                          active ? 'bg-[#f0f4f8]' : 'hover:bg-[#f8f9fa]'
+                          active ? 'bg-fal-surface-2' : 'hover:bg-fal-surface-2'
                         }`}
                         onClick={() => goVehicle(v)}
                         onMouseEnter={() => setActiveIndex(idx)}
                       >
                         <span className="min-w-0 flex-1">
-                          <strong className="block truncate text-fal-navy">
+                          <strong className="block truncate text-fal-navy dark:text-fal-fg">
                             {v.maker} {v.model}
                           </strong>
                           <span className="mt-0.5 block text-xs text-fal-muted">
@@ -237,12 +237,12 @@ export function SearchBar() {
                         aria-selected={active}
                         to={productHref(p)}
                         className={`flex items-center gap-3 border-b border-fal-line px-3 py-2.5 text-sm no-underline ${
-                          active ? 'bg-[#f0f4f8]' : 'hover:bg-[#f8f9fa]'
+                          active ? 'bg-fal-surface-2' : 'hover:bg-fal-surface-2'
                         }`}
                         onClick={() => setOpen(false)}
                         onMouseEnter={() => setActiveIndex(flatIdx)}
                       >
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f8f9fa] p-1">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-fal-surface-2 p-1">
                           {p.imageUrl ? (
                             <img
                               src={p.imageUrl}
@@ -255,12 +255,12 @@ export function SearchBar() {
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <strong className="block truncate text-fal-navy">{p.name}</strong>
+                          <strong className="block truncate text-fal-navy dark:text-fal-fg">{p.name}</strong>
                           <span className="mt-0.5 block truncate text-xs text-fal-muted">
                             {[p.brand, p.commercialRef || p.sku].filter(Boolean).join(' · ')}
                           </span>
                         </span>
-                        <span className="shrink-0 text-sm font-extrabold text-fal-navy">
+                        <span className="shrink-0 text-sm font-extrabold text-fal-navy dark:text-fal-fg">
                           {formatMoney(price)}
                         </span>
                       </Link>
@@ -274,8 +274,8 @@ export function SearchBar() {
                 id={`${listId}-all`}
                 role="option"
                 aria-selected={activeIndex === footerIndex}
-                className={`block w-full px-4 py-3 text-left text-sm font-bold text-fal-navy ${
-                  activeIndex === footerIndex ? 'bg-[#f0f4f8]' : 'hover:bg-[#f8f9fa]'
+                className={`block w-full px-4 py-3 text-left text-sm font-bold text-fal-navy dark:text-fal-fg ${
+                  activeIndex === footerIndex ? 'bg-fal-surface-2' : 'hover:bg-fal-surface-2'
                 }`}
                 onClick={goCatalog}
                 onMouseEnter={() => setActiveIndex(footerIndex)}

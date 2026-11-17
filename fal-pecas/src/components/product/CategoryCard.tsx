@@ -8,7 +8,7 @@ export function CategoryCard({ category }: { category: Category }) {
   return (
     <Link
       to={`/catalogo?cat=${encodeURIComponent(category.slug)}`}
-      className="min-w-0 overflow-hidden rounded-fal border border-fal-line bg-white p-[15px] transition hover:-translate-y-1 hover:shadow-fal sm:p-[22px]"
+      className="min-w-0 overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-[15px] text-fal-fg transition hover:-translate-y-1 hover:border-fal-yellow/40 hover:shadow-fal sm:p-[22px]"
     >
       <div className="flex h-[38px] items-center sm:h-[46px]" aria-hidden>
         {icon.type === 'image' ? (

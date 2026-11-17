@@ -72,7 +72,7 @@ export function ProductCarousel({ products, label }: Props) {
       {canPrev ? (
         <button
           type="button"
-          className="absolute top-1/2 left-0 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-fal-line bg-white text-lg font-bold text-fal-navy shadow-sm hover:border-fal-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+          className="absolute top-1/2 left-0 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-fal-line bg-fal-surface text-lg font-bold text-fal-fg shadow-sm hover:border-fal-yellow/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent"
           aria-label={`Anterior — ${label}`}
           onClick={() => scrollByDir(-1)}
         >
@@ -82,7 +82,7 @@ export function ProductCarousel({ products, label }: Props) {
       {canNext ? (
         <button
           type="button"
-          className="absolute top-1/2 right-0 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-fal-line bg-white text-lg font-bold text-fal-navy shadow-sm hover:border-fal-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+          className="absolute top-1/2 right-0 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-fal-line bg-fal-surface text-lg font-bold text-fal-fg shadow-sm hover:border-fal-yellow/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent"
           aria-label={`Próximo — ${label}`}
           onClick={() => scrollByDir(1)}
         >

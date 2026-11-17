@@ -20,9 +20,9 @@ export function StoreThemeToggle({ theme, onToggle, showLabel = false }: Props) 
       aria-label={label}
       title={label}
       className={[
-        'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-fal-line',
-        'bg-fal-surface text-fal-fg transition hover:bg-fal-surface-2',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent focus-visible:ring-offset-2 focus-visible:ring-offset-fal-surface',
+        'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-fal-line/80',
+        'bg-transparent text-fal-navy transition hover:bg-fal-surface-2 dark:text-fal-fg dark:hover:bg-fal-surface-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent focus-visible:ring-offset-2 focus-visible:ring-offset-fal-surface dark:focus-visible:ring-offset-fal-bg',
         showLabel ? 'min-w-[6.5rem] px-3 text-sm font-bold' : 'h-11 w-11 min-w-11',
       ].join(' ')}
     >

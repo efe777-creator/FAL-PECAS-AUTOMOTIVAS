@@ -59,17 +59,25 @@ function ProductRailSection({
     <section
       className={
         tone === 'sand'
-          ? 'border-y border-fal-line bg-fal-yellow/10 py-8 sm:py-10'
+          ? 'border-y border-fal-yellow/25 bg-fal-yellow/10 py-8 sm:py-10'
           : 'bg-fal-surface py-8 sm:py-10'
       }
     >
       <Container>
         <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">{title}</h2>
+            <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
+              FAL
+            </p>
+            <h2 className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
+              {title}
+            </h2>
             <p className="mt-1 text-sm text-fal-muted">{subtitle}</p>
           </div>
-          <Link to={linkTo} className="text-sm font-semibold text-fal-navy">
+          <Link
+            to={linkTo}
+            className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+          >
             {linkLabel}
           </Link>
         </div>
@@ -198,7 +206,7 @@ export function HomePage() {
 
       <section
         id="home-vitrine"
-        className="border-b border-fal-line bg-white py-6 sm:py-8"
+        className="border-b border-fal-line bg-fal-surface py-6 sm:py-8"
       >
         <Container>
           <div
@@ -207,10 +215,18 @@ export function HomePage() {
           >
             <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Destaques</h2>
+                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
+                  Vitrine
+                </p>
+                <h2 className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
+                  Destaques
+                </h2>
                 <p className="mt-1 text-sm text-fal-muted">Seleção da loja — deslize para ver mais</p>
               </div>
-              <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
+              <Link
+                to="/catalogo"
+                className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+              >
                 Ver catálogo →
               </Link>
             </div>
@@ -238,10 +254,18 @@ export function HomePage() {
           >
             <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="m-0 text-[22px] font-extrabold sm:text-[26px]">Categorias</h2>
+                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
+                  Catálogo
+                </p>
+                <h2 className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
+                  Categorias
+                </h2>
                 <p className="mt-1 text-sm text-fal-muted">Navegue por sistema automotivo</p>
               </div>
-              <Link to="/catalogo" className="text-sm font-semibold text-fal-navy">
+              <Link
+                to="/catalogo"
+                className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+              >
                 Ver todas →
               </Link>
             </div>
