@@ -28,7 +28,7 @@ export function PricingRuleFields({
   disabled = false,
   hidePercentWhenFixed = false,
   className = 'grid gap-3 md:grid-cols-2',
-  selectClassName = 'w-full rounded-[10px] border border-fal-line bg-white px-3 py-2',
+  selectClassName = 'w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2',
   onMethod,
   onPercent,
   onExtraCostPercent,

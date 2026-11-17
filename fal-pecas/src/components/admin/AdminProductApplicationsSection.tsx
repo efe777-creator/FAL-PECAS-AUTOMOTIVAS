@@ -149,11 +149,11 @@ export function AdminProductApplicationsSection({ productId }: Props) {
   }
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="m-0 font-extrabold text-fal-navy">Aplicações</h2>
+        <h2 className="m-0 font-extrabold text-fal-fg">Aplicações</h2>
         <Link
-          className="text-sm font-semibold text-fal-navy underline"
+          className="text-sm font-semibold text-fal-fg underline"
           to={`/admin/aplicacoes?productId=${productId}`}
         >
           Abrir gestão de aplicações
@@ -289,7 +289,7 @@ export function AdminProductApplicationsSection({ productId }: Props) {
                     />
                     <button
                       type="button"
-                      className="font-semibold text-fal-navy underline"
+                      className="font-semibold text-fal-fg underline"
                       onClick={() => {
                         const period = validatePvcYearInputs(editYearStart, editYearEnd)
                         if (!period.ok) {
@@ -325,7 +325,7 @@ export function AdminProductApplicationsSection({ productId }: Props) {
                 ) : (
                   <button
                     type="button"
-                    className="font-semibold text-fal-navy underline"
+                    className="font-semibold text-fal-fg underline"
                     onClick={() => {
                       setEditingAppId(row.id)
                       setEditYearStart(row.year_start != null ? String(row.year_start) : '')

@@ -133,13 +133,13 @@ export function AdminApplicationsImportPage() {
       description="Colunas: código, montadora, modelo, versão, motorização (opcional), ano início/fim. Motorização em branco = todas as do modelo (com filtro de versão). Produto precisa existir."
       actions={
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
-          <Link to="/admin/aplicacoes" className="text-fal-navy">
+          <Link to="/admin/aplicacoes" className="text-fal-fg">
             Gerenciar aplicações →
           </Link>
-          <Link to="/admin/produtos/importar" className="text-fal-navy">
+          <Link to="/admin/produtos/importar" className="text-fal-fg">
             Cadastro de produtos →
           </Link>
-          <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
+          <Link to="/admin/produtos/importar-hf" className="text-fal-fg">
             Arquivo completo →
           </Link>
         </div>
@@ -152,8 +152,8 @@ export function AdminApplicationsImportPage() {
       ) : (
         <div className="space-y-4">
           {phase !== 'done' ? (
-            <label className="block rounded-[12px] border border-dashed border-fal-line bg-white p-4 text-sm">
-              <span className="mb-2 block font-semibold text-fal-navy">Arquivo CSV ou Excel</span>
+            <label className="block rounded-[12px] border border-dashed border-fal-line bg-fal-surface p-4 text-sm">
+              <span className="mb-2 block font-semibold text-fal-fg">Arquivo CSV ou Excel</span>
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls,text/csv"
@@ -175,8 +175,8 @@ export function AdminApplicationsImportPage() {
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           {phase === 'done' && report ? (
-            <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Importação concluída</h2>
+            <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">Importação concluída</h2>
               <p className="m-0 text-sm text-fal-muted">
                 Arquivo: {fileName ?? '—'}
                 {appliedAt ? ` · ${formatDateTime(appliedAt)}` : null}
@@ -184,14 +184,14 @@ export function AdminApplicationsImportPage() {
               </p>
               <div className="grid gap-2 text-sm sm:grid-cols-2">
                 <div>
-                  <p className="m-0 font-semibold text-fal-navy">Produtos</p>
+                  <p className="m-0 font-semibold text-fal-fg">Produtos</p>
                   <ul className="mt-1 list-disc pl-5 text-fal-muted">
                     <li>Criados: {report.created_products}</li>
                     <li>Já cadastrados: {report.existing_products}</li>
                   </ul>
                 </div>
                 <div>
-                  <p className="m-0 font-semibold text-fal-navy">Aplicações</p>
+                  <p className="m-0 font-semibold text-fal-fg">Aplicações</p>
                   <ul className="mt-1 list-disc pl-5 text-fal-muted">
                     <li>Criadas: {report.created_applications}</li>
                     <li>Atualizadas: {report.updated_applications}</li>
@@ -199,7 +199,7 @@ export function AdminApplicationsImportPage() {
                   </ul>
                 </div>
                 <div>
-                  <p className="m-0 font-semibold text-fal-navy">Veículos</p>
+                  <p className="m-0 font-semibold text-fal-fg">Veículos</p>
                   <ul className="mt-1 list-disc pl-5 text-fal-muted">
                     <li>
                       Montadoras novas / existentes: {report.created_manufacturers} /{' '}
@@ -215,7 +215,7 @@ export function AdminApplicationsImportPage() {
                   </ul>
                 </div>
                 <div>
-                  <p className="m-0 font-semibold text-fal-navy">Não aplicados</p>
+                  <p className="m-0 font-semibold text-fal-fg">Não aplicados</p>
                   <ul className="mt-1 list-disc pl-5 text-fal-muted">
                     <li>Revisão: {report.skipped_review}</li>
                     <li>Erros: {report.skipped_error}</li>
@@ -246,8 +246,8 @@ export function AdminApplicationsImportPage() {
           ) : null}
 
           {summary && phase !== 'done' ? (
-            <div className="rounded-[12px] border border-fal-line bg-white p-4 text-sm">
-              <p className="m-0 font-semibold text-fal-navy">Resumo da prévia</p>
+            <div className="rounded-[12px] border border-fal-line bg-fal-surface p-4 text-sm">
+              <p className="m-0 font-semibold text-fal-fg">Resumo da prévia</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <div>
                   <p className="m-0 text-fal-muted">Produtos (referência)</p>
@@ -285,7 +285,7 @@ export function AdminApplicationsImportPage() {
           ) : null}
 
           {visible.length > 0 && phase !== 'done' ? (
-            <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+            <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
               <table className="min-w-full text-left text-sm">
                 <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                   <tr>
@@ -341,8 +341,8 @@ export function AdminApplicationsImportPage() {
           ) : null}
 
           {phase === 'confirm' ? (
-            <div className="rounded-[14px] border border-fal-navy/20 bg-white p-4 shadow-sm">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Confirmar importação?</h2>
+            <div className="rounded-[14px] border border-fal-navy/20 bg-fal-surface p-4 shadow-sm">
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">Confirmar importação?</h2>
               <p className="mt-2 text-sm text-fal-muted">
                 Esta ação irá aplicar as alterações aprovadas ao catálogo (
                 {summary?.applyable ?? 0} item(ns)). Itens em revisão ou com erro não serão

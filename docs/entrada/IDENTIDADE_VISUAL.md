@@ -57,23 +57,33 @@ A tipografia custom “FAL” do logo é **gráfica** (não substituir por fonte
 
 ## 3. Cores (tokens do app / protótipo)
 
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--fal-navy` | `#303846` | Primária / textos / nav |
+| Token | Hex (light) | Uso |
+|-------|-------------|-----|
+| `--fal-navy` | `#303846` | Marca / sidebar / estrutura (**não inverte no dark**) |
 | `--fal-navy-dark` | `#252c36` | Topbar, footer, hero |
 | `--fal-navy-2` | `#46515e` | Secundário |
-| `--fal-yellow` | `#f2c84b` | CTA, badges (próximo ao amarelo do logo) |
+| `--fal-yellow` | `#f2c84b` | CTA / primary button / destaques |
 | `--fal-yellow-dark` | `#dcae27` | Focus |
 | `--fal-yellow-hover` | `#ffd75c` | Hover primary |
-| `--fal-bg` | `#f4f6f7` | Fundo página |
-| `--fal-surface` | `#ffffff` | Superfícies |
-| `--fal-line` | `#dfe4e8` | Bordas |
-| `--fal-muted` | `#6f7a85` | Texto secundário |
+| `--fal-accent` | `#3b82f6` (dark content `#60a5fa`) | Menu/aba ativos (UI, não CTA) |
+| `--fal-warning` | `#d97706` | Alerta / processamento |
+| `--fal-favorite` | `#e11d48` | Favorito liked |
+| `--fal-fg` | `#252c36` (dark `#e8ecf0`) | Texto temático |
+| `--fal-ink` | alias → `fal-fg` | Compatibilidade (classes `text-fal-ink`) |
+| `--fal-bg` | `#f4f6f7` (dark `#1a1f26`) | Fundo página |
+| `--fal-surface` | `#ffffff` (dark `#242b33`) | Cards / superfícies |
+| `--fal-surface-2` | `#f8f9fa` (dark `#2c343e`) | Superfície secundária |
+| `--fal-line` | `#dfe4e8` (dark `#3a4450`) | Bordas |
+| `--fal-muted` | `#5a6570` (dark `#9aa3ad`) | Texto secundário |
 | `--fal-success` | `#168a55` | Sucesso / compat |
 | `--fal-danger` | `#c0392b` | Erro / remover |
 | `--fal-auth-link` | `#7c5b00` | Links auth |
 
-Fonte: `fal-pecas/src/styles/index.css`.
+Fonte: `fal-pecas/src/styles/index.css` (`@theme` → `var(--fal-*)`; dark via `.dark` nos wrappers).
+
+**Dark admin:** default + toggle em `AdminLayout` (chave `fal-admin-theme`).  
+**Dark loja:** opcional + toggle no header (`storeTheme` / chave `fal-store-theme`, default light). Wrappers distintos — não vazam um no outro.  
+Navy/amarelo de marca **não** invertidos. Logo transparente (wordmark carvão) no dark usa **placa clara** (`#f4f6f7`, padrão bolinha) — sem trocar o PNG principal.
 
 ---
 
@@ -90,11 +100,15 @@ Fonte: `fal-pecas/src/styles/index.css`.
 
 ## 5. Componentes (padrão visual)
 
-- **Botões:** primary amarelo, outline (hero), dark, light; `font-extrabold`; radius ~10px
-- **Inputs/Selects:** borda `--fal-line`, focus ring amarelo
+- **Botões:** primary amarelo, outline/light com `fal-surface`, dark, danger; `font-extrabold`; radius ~10px
+- **Abas/menus ativos:** `fal-accent` (nunca amarelo) — `AdminTabs` / nav conta / MobileNav
+- **Amarelo chrome:** sininho (`fal-yellow-dark` ícone + badge `fal-yellow`) — não é CTA
+- **Favorito liked:** `fal-favorite` (vermelho)
+- **Inputs/Selects:** borda `--fal-line`, focus ring amarelo ou accent
 - **Cards produto/categoria:** borda leve, hover shadow + translateY
-- **Nav mobile:** barra inferior branca, ícone + label
-- **Logo no header:** altura ~64–72px, largura auto, `object-contain`
+- **Nav mobile:** `fal-surface`; item ativo accent
+- **Logo no header/footer escuro:** altura ~64–72px + placa clara no dark; `object-contain`
+- **Glossário:** nav “Categorias” vs H1 interno “Classificação”; H1 admin Overview = **Painel**; conta = **Minha conta**
 
 ---
 
@@ -108,6 +122,19 @@ Fonte: `fal-pecas/src/styles/index.css`.
 
 ## 7. Pendências de identidade
 
-- Validação formal de contraste do logo transparente no footer escuro
 - Favicon a partir de `LOGO BOLINHA.png` (**DECISÃO PENDENTE**)
 - Guia de uso mínimo (espaço de respiro, fundos permitidos) — expandir quando o time enviar brand book
+- Painéis operacionais de pedido admin: ainda há badges Tailwind ad hoc em alguns detalhes (dívida)
+
+---
+
+## 8. Evolução UI 2026-11-16 (MARCHA)
+
+Auditoria, spec e evidências:
+
+- [FAL_AUDITORIA_UI_CORES_IDENTIDADE_2026-11-16.md](../planejamento/FAL_AUDITORIA_UI_CORES_IDENTIDADE_2026-11-16.md)
+- [spec](../superpowers/specs/2026-11-16-ui-cores-identidade-design.md)
+- Figma: https://www.figma.com/design/ZrVkWnp1krjj6c8uboRlYT
+- [FAL_MARCHA_CONTA_HOME_DARK_LOJA_VAL_2026-11-16.md](../planejamento/FAL_MARCHA_CONTA_HOME_DARK_LOJA_VAL_2026-11-16.md)
+
+Decisões: accent = ativo; amarelo = CTA + chrome (bell); dark admin + dark loja (wrappers separados); logo com placa no dark; favorito = vermelho; hub conta sem grid de 6 cards.

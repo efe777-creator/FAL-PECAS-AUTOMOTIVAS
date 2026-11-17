@@ -406,10 +406,10 @@ export function PriceImportWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-[14px] border border-fal-line bg-white p-4 shadow-lg">
+      <div className="w-full max-w-3xl rounded-[14px] border border-fal-line bg-fal-surface p-4 shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-extrabold text-fal-navy">{title}</h2>
+            <h2 className="m-0 text-xl font-extrabold text-fal-fg">{title}</h2>
             <p className="mt-1 text-sm text-fal-muted">
               {sheetKind == null
                 ? 'Escolha o tipo da planilha'
@@ -433,7 +433,7 @@ export function PriceImportWizard({
 
         {step === 0 ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">O que você está importando?</p>
+            <p className="text-sm font-semibold text-fal-fg">O que você está importando?</p>
             <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-fal-line p-3 hover:bg-fal-bg/50">
               <input
                 type="radio"
@@ -442,7 +442,7 @@ export function PriceImportWizard({
                 onChange={() => chooseKind('sell_price')}
               />
               <span>
-                <strong className="text-fal-navy">Preço de venda</strong>
+                <strong className="text-fal-fg">Preço de venda</strong>
                 <span className="mt-1 block text-sm text-fal-muted">
                   Atualiza o preço comercial na lista de preços escolhida.
                 </span>
@@ -456,7 +456,7 @@ export function PriceImportWizard({
                 onChange={() => chooseKind('supplier_cost')}
               />
               <span>
-                <strong className="text-fal-navy">Custo do fornecedor</strong>
+                <strong className="text-fal-fg">Custo do fornecedor</strong>
                 <span className="mt-1 block text-sm text-fal-muted">
                   Atualiza o custo e inclui os produtos na lista escolhida (venda 0 até aplicar
                   margem). Não sobrescreve preços manuais nem os já importados por planilha.
@@ -481,9 +481,9 @@ export function PriceImportWizard({
               </Button>
             ) : null}
             <label className="block text-sm">
-              <span className="mb-1 block font-semibold text-fal-navy">Lista de destino *</span>
+              <span className="mb-1 block font-semibold text-fal-fg">Lista de destino *</span>
               <select
-                className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+                className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
                 value={priceListId}
                 onChange={(e) => setPriceListId(e.target.value)}
                 disabled={Boolean(initialPriceListId)}
@@ -497,7 +497,7 @@ export function PriceImportWizard({
               </select>
             </label>
             <div>
-              <p className="mb-2 text-sm font-semibold text-fal-navy">
+              <p className="mb-2 text-sm font-semibold text-fal-fg">
                 Arquivo (CSV / XLSX, até 2.000 linhas)
               </p>
               <input
@@ -528,7 +528,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'sell_price' && step === 3 ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Como deseja importar?</p>
+            <p className="text-sm font-semibold text-fal-fg">Como deseja importar?</p>
             {(
               [
                 ['update', 'Atualizar preços existentes'],
@@ -563,7 +563,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'sell_price' && (step === 4 || step === 5) ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Regras e perfil</p>
+            <p className="text-sm font-semibold text-fal-fg">Regras e perfil</p>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -605,7 +605,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'sell_price' && step === 6 && preparedRows && summary ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Prévia — nada foi gravado ainda</p>
+            <p className="text-sm font-semibold text-fal-fg">Prévia — nada foi gravado ainda</p>
             <p className="text-sm">
               {preparedRows.length} linhas · atualizar {summary.update} · adicionar {summary.add} ·
               sem alteração {summary.unchanged} · não encontrados {summary.notFound} · erros{' '}
@@ -657,7 +657,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'sell_price' && step === 7 && summary ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Confirmação — preço de venda</p>
+            <p className="text-sm font-semibold text-fal-fg">Confirmação — preço de venda</p>
             <ul className="list-inside list-disc text-sm">
               <li>Lista: {selectedList?.name}</li>
               <li>Modo: {mode}</li>
@@ -683,9 +683,9 @@ export function PriceImportWizard({
               </Button>
             ) : null}
             <label className="block text-sm">
-              <span className="mb-1 block font-semibold text-fal-navy">Fornecedor *</span>
+              <span className="mb-1 block font-semibold text-fal-fg">Fornecedor *</span>
               <select
-                className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+                className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
                 value={supplierId}
                 onChange={(e) => {
                   setSupplierId(e.target.value)
@@ -704,9 +704,9 @@ export function PriceImportWizard({
             </label>
             {!costOnly ? (
               <label className="block text-sm">
-                <span className="mb-1 block font-semibold text-fal-navy">Lista de preços destino *</span>
+                <span className="mb-1 block font-semibold text-fal-fg">Lista de preços destino *</span>
                 <select
-                  className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+                  className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
                   value={priceListId}
                   onChange={(e) => {
                     setPriceListId(e.target.value)
@@ -728,7 +728,7 @@ export function PriceImportWizard({
               {isFalPrincipalSupplier(selectedSupplier?.code) ? (
                 <>
                   {' '}
-                  <strong className="text-fal-navy">
+                  <strong className="text-fal-fg">
                     FAL Principal ({FAL_PRINCIPAL_SUPPLIER_CODE}): código = {SKU_FAL_LABEL}
                   </strong>{' '}
                   — sem conversão.
@@ -739,7 +739,7 @@ export function PriceImportWizard({
                 : 'Inclui produtos na lista com venda 0 até aplicar a margem da regra.'}
             </p>
             <div>
-              <p className="mb-2 text-sm font-semibold text-fal-navy">Arquivo (CSV / XLSX)</p>
+              <p className="mb-2 text-sm font-semibold text-fal-fg">Arquivo (CSV / XLSX)</p>
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls,text/csv"
@@ -765,7 +765,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'supplier_cost' && step === 6 && costRows ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Prévia de custos — nada aplicado ainda</p>
+            <p className="text-sm font-semibold text-fal-fg">Prévia de custos — nada aplicado ainda</p>
             <p className="text-sm">
               {costRows.length} linhas · válidas {costValid} · com erro {costInvalid}
             </p>
@@ -812,7 +812,7 @@ export function PriceImportWizard({
 
         {sheetKind === 'supplier_cost' && step === 7 ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Confirmação — custo do fornecedor</p>
+            <p className="text-sm font-semibold text-fal-fg">Confirmação — custo do fornecedor</p>
             <ul className="list-inside list-disc text-sm">
               <li>Fornecedor: {selectedSupplier?.name}</li>
               {!costOnly ? <li>Lista: {selectedList?.name ?? '—'}</li> : null}
@@ -825,7 +825,7 @@ export function PriceImportWizard({
             </ul>
             {!costOnly ? (
               <div className="rounded-[10px] border border-fal-line p-3">
-                <p className="m-0 text-sm font-extrabold text-fal-navy">
+                <p className="m-0 text-sm font-extrabold text-fal-fg">
                   O que fazer com os preços de venda?
                 </p>
                 <div className="mt-2 space-y-2 text-sm">
@@ -887,7 +887,7 @@ export function PriceImportWizard({
 
         {step === 8 ? (
           <div className="mt-4 space-y-2">
-            <p className="text-sm font-semibold text-fal-navy">Processando…</p>
+            <p className="text-sm font-semibold text-fal-fg">Processando…</p>
             <p className="text-sm">
               {progress ? `${progress.done} de ${progress.total}` : 'Aguarde'}
             </p>
@@ -900,7 +900,7 @@ export function PriceImportWizard({
 
         {step === 9 ? (
           <div className="mt-4 space-y-3">
-            <p className="text-sm font-semibold text-fal-navy">Resultado</p>
+            <p className="text-sm font-semibold text-fal-fg">Resultado</p>
             {resultMsg ? <p className="text-sm text-green-700">{resultMsg}</p> : null}
             <Button type="button" onClick={onClose}>
               Fechar

@@ -56,8 +56,8 @@ export function PriceListFormacaoTab({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Regra de formação</h2>
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Regra de formação</h2>
         <p className="mt-1 text-sm text-fal-muted">
           Fluxo: custo → adicional de custo (%) → base → regra da lista (ou preço fixo) → preço
           final. A formação não altera itens com origem Importado ou Manual. O adicional em R$ da
@@ -98,7 +98,7 @@ export function PriceListFormacaoTab({
               >
                 Aplicar margem → atualizar venda
               </Button>
-              <Link className="pb-3 text-sm font-semibold text-fal-navy underline" to="/admin/precos">
+              <Link className="pb-3 text-sm font-semibold text-fal-fg underline" to="/admin/precos">
                 Voltar à consulta
               </Link>
             </div>
@@ -110,8 +110,8 @@ export function PriceListFormacaoTab({
         </div>
       </div>
 
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="text-lg font-extrabold text-fal-navy">Ajuste global (lista inteira)</h2>
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <h2 className="text-lg font-extrabold text-fal-fg">Ajuste global (lista inteira)</h2>
         <p className="mt-1 text-sm text-fal-muted">
           Ajuste de todos os preços desta lista — distinto da seleção em massa na aba Produtos.
           Aplica só à lista <strong>{list.name}</strong>. Ex.:{' '}

@@ -1,10 +1,17 @@
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs'
+import { AdminThemeToggle } from '@/components/admin/AdminThemeToggle'
 import { Loading } from '@/components/common/Loading'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { ScrollToTop } from '@/components/navigation/ScrollToTop'
 import { useAuth } from '@/contexts/AuthContext'
 import { buildAdminBreadcrumbs } from '@/lib/adminBreadcrumbs'
 import { canAccessAdminPath, filterAdminNavLinks } from '@/lib/adminNavAccess'
+import {
+  readAdminTheme,
+  toggleAdminTheme,
+  writeAdminTheme,
+  type AdminTheme,
+} from '@/lib/adminTheme'
 import { AdminForbiddenPage } from '@/pages/admin/AdminForbiddenPage'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -15,6 +22,7 @@ const catalogLinks: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/admin/precos', label: 'Preços' },
   { to: '/admin/importacoes', label: 'Importações' },
   { to: '/admin/categorias', label: 'Categorias' },
+  { to: '/admin/busca', label: 'Busca' },
   { to: '/admin/home', label: 'Home da loja', end: true },
   { to: '/admin/home/promocoes', label: 'Promoções' },
   { to: '/admin/montadoras', label: 'Montadoras' },
@@ -40,7 +48,10 @@ const opsLinks = [
 function linkClass({ isActive }: { isActive: boolean }) {
   return [
     'flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold transition',
-    isActive ? 'bg-fal-yellow text-fal-navy-dark' : 'text-white/85 hover:bg-white/10',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-fal-navy',
+    isActive
+      ? 'bg-fal-accent font-extrabold text-white'
+      : 'text-white/85 hover:bg-white/10',
   ].join(' ')
 }
 
@@ -88,6 +99,7 @@ export function AdminLayout() {
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
   const [pageTitle, setPageTitle] = useState('Painel')
+  const [theme, setTheme] = useState<AdminTheme>(() => readAdminTheme())
   const asideRef = useRef<HTMLElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -164,6 +176,13 @@ export function AdminLayout() {
   }, [navOpen])
 
   const closeNav = () => setNavOpen(false)
+  const onThemeToggle = () => {
+    setTheme((t) => {
+      const next = toggleAdminTheme(t)
+      writeAdminTheme(next)
+      return next
+    })
+  }
   const userLabel = user?.email ?? user?.fullName ?? 'staff'
   const role = user?.role
 
@@ -196,7 +215,6 @@ export function AdminLayout() {
             <p className="mt-1 truncate text-sm text-white/65">Painel operacional</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {/* Desktop: sino no sidebar largo. Mobile: só no header sticky (evita corte). */}
             <div className="hidden lg:block">
               <NotificationBell allHref="/admin/avisos" audience="staff" variant="dark" />
             </div>
@@ -212,13 +230,21 @@ export function AdminLayout() {
             </button>
           </div>
         </div>
+        <div className="mt-3">
+          <AdminThemeToggle
+            theme={theme}
+            onToggle={onThemeToggle}
+            variant="dark"
+            showLabel
+          />
+        </div>
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col" aria-label="Menu admin">
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-3">
           <div>
             <NavLink to="/admin" end className={linkClass} onClick={closeNav}>
-              Dashboard
+              Painel
             </NavLink>
           </div>
           <NavSection title="Catálogo" links={catalogNav} onNavigate={closeNav} />
@@ -234,7 +260,7 @@ export function AdminLayout() {
             type="button"
             onClick={() => void signOut()}
             title={userLabel}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-white/70 hover:bg-white/10"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-white/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-fal-navy"
           >
             <span className="shrink-0">Sair</span>
             <span className="min-w-0 truncate text-white/45">({userLabel})</span>
@@ -245,7 +271,7 @@ export function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-fal-bg lg:flex">
+    <div className={`min-h-screen overflow-x-hidden bg-fal-bg lg:flex ${theme === 'dark' ? 'dark' : ''}`}>
       <ScrollToTop />
       {navOpen ? (
         <button
@@ -259,26 +285,36 @@ export function AdminLayout() {
       {aside}
 
       <div ref={contentRef} className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-fal-line bg-white px-4 py-3 lg:hidden">
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-fal-line bg-fal-surface px-4 py-3">
           <button
             type="button"
-            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-navy"
+            className="grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg border border-fal-line bg-fal-bg text-fal-fg lg:hidden"
             aria-label="Abrir menu"
             aria-expanded={navOpen}
             aria-controls="admin-sidebar"
             onClick={() => setNavOpen(true)}
           >
             <span className="flex flex-col gap-1" aria-hidden>
-              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
-              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
-              <span className="block h-0.5 w-4 rounded bg-fal-navy" />
+              <span className="block h-0.5 w-4 rounded bg-fal-fg" />
+              <span className="block h-0.5 w-4 rounded bg-fal-fg" />
+              <span className="block h-0.5 w-4 rounded bg-fal-fg" />
             </span>
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-fal-navy">FAL ADMIN</p>
-            <p className="truncate text-sm font-semibold text-fal-ink">{pageTitle}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-fal-muted lg:hidden">
+              FAL ADMIN
+            </p>
+            <p className="truncate text-sm font-semibold text-fal-fg lg:text-base">{pageTitle}</p>
           </div>
-          <NotificationBell allHref="/admin/avisos" audience="staff" variant="light" />
+          <AdminThemeToggle
+            theme={theme}
+            onToggle={onThemeToggle}
+            variant="light"
+            showLabel
+          />
+          <div className="lg:hidden">
+            <NotificationBell allHref="/admin/avisos" audience="staff" variant="light" />
+          </div>
         </header>
 
         <main className="min-w-0 flex-1 p-4 md:p-6">

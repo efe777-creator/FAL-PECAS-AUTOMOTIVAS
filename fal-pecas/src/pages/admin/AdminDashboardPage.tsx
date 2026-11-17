@@ -28,92 +28,29 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-type DashCard = { to: string; title: string; desc: string }
-
-const sections: { title: string; cards: DashCard[] }[] = [
-  {
-    title: 'Catálogo',
-    cards: [
-      { to: '/admin/produtos', title: 'Produtos', desc: 'Cadastrar, publicar e arquivar' },
-      { to: '/admin/precos', title: 'Preços', desc: 'Listas comerciais e importação' },
-      { to: '/admin/categorias', title: 'Categorias', desc: 'Árvore comercial' },
-      { to: '/admin/home', title: 'Home da loja', desc: 'Campanhas, destaques e condições' },
-      {
-        to: '/admin/home/promocoes',
-        title: 'Promoções',
-        desc: 'Ativar/desativar preço promocional por produto (independente dos destaques)',
-      },
-      { to: '/admin/busca', title: 'Busca e sinônimos', desc: 'Documento unificado e sinônimos' },
-      { to: '/admin/montadoras', title: 'Montadoras', desc: 'Cadastro de montadoras' },
-      { to: '/admin/veiculos', title: 'Veículos', desc: 'Modelos e configurações' },
-      { to: '/admin/fabricantes', title: 'Fabricantes', desc: 'Fabricante de peça' },
-      { to: '/admin/fornecedores', title: 'Fornecedores', desc: 'Fornecedores atuais' },
-    ],
-  },
-  {
-    title: 'Vendas',
-    cards: [
-      { to: '/admin/pedidos', title: 'Pedidos', desc: 'Recepção, confirmação e operação' },
-      {
-        to: '/admin/avisos',
-        title: 'Notificações',
-        desc: 'Respostas do cliente, cancelamentos e problemas',
-      },
-      { to: '/admin/clientes', title: 'Clientes', desc: 'Consulta e detalhe' },
-    ],
-  },
-  {
-    title: 'Operação',
-    cards: [
-      { to: '/admin/estoque', title: 'Estoque', desc: 'Saldos, movimentos e modo da loja' },
-      { to: '/admin/logistica', title: 'Logística', desc: 'Origem, frete próprio, Melhor Envio, configs' },
-      {
-        to: '/admin/pagamentos',
-        title: 'Pagamentos',
-        desc: 'Motor FAL, Mercado Pago, métodos e webhooks',
-      },
-      { to: '/admin/relatorios', title: 'Relatórios', desc: 'Indicadores operacionais mínimos' },
-      {
-        to: '/admin/operadores',
-        title: 'Operadores',
-        desc: 'Liberar ou revogar acesso ao painel por e-mail',
-      },
-    ],
-  },
-]
+type KpiTone = 'neutral' | 'warning' | 'danger' | 'success' | 'info'
 
 function actorClass(kind: ReturnType<typeof adminActorKind>): string {
   switch (kind) {
     case 'team':
-      return 'bg-amber-100 text-amber-950'
+      return 'bg-fal-warning/15 text-fal-fg border border-fal-warning/40'
     case 'customer':
-      return 'bg-sky-100 text-sky-950'
+      return 'bg-fal-accent/15 text-fal-fg border border-fal-accent/40'
     case 'wait_payment':
-      return 'bg-fal-bg text-fal-muted'
+      return 'bg-fal-bg text-fal-muted border border-fal-line'
     case 'done':
-      return 'bg-green-100 text-green-900'
+      return 'bg-fal-success/15 text-fal-fg border border-fal-success/40'
   }
 }
 
 export function AdminDashboardPage() {
-  useDocumentTitle('Dashboard | Admin FAL')
+  useDocumentTitle('Painel | Admin FAL')
   const { user } = useAuth()
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<AdminOrderListRow[]>([])
   const [totals, setTotals] = useState<AdminBasicTotals | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const visibleSections = useMemo(
-    () =>
-      sections
-        .map((section) => ({
-          ...section,
-          cards: section.cards.filter((c) => canAccessAdminPath(c.to, user?.role)),
-        }))
-        .filter((s) => s.cards.length > 0),
-    [user?.role],
-  )
 
   useEffect(() => {
     void (async () => {
@@ -169,25 +106,26 @@ export function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <header>
-        <h1 className="text-2xl font-extrabold text-fal-navy md:text-3xl">Dashboard</h1>
+        <h1 className="text-2xl font-extrabold text-fal-fg md:text-3xl">Painel</h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted md:text-base">
-          Painel de trabalho dos pedidos: veja a etapa, o que exige ação e abra a fila filtrada.
+          Visão operacional do dia: o que precisa de ação, indicadores e fluxo de pedidos. Use o menu
+          lateral para abrir cada módulo.
         </p>
       </header>
 
-      {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
+      {loadError ? <p className="text-sm text-fal-danger">{loadError}</p> : null}
 
       <section className="space-y-2" aria-label="Indicadores operacionais">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <h2 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-            Indicadores (034)
+            Indicadores
           </h2>
           {canAccessAdminPath('/admin/relatorios', user?.role) ? (
             <Link
               to="/admin/relatorios"
-              className="text-xs font-semibold text-fal-navy underline-offset-2 hover:underline"
+              className="text-xs font-semibold text-fal-accent underline-offset-2 hover:underline"
             >
-              Relatórios completos →
+              Relatórios →
             </Link>
           ) : null}
         </div>
@@ -196,26 +134,36 @@ export function AdminDashboardPage() {
             label="Aguardando pagamento"
             value={loading ? '…' : String(counts['aguardando_pagamento'] ?? 0)}
             to="/admin/pedidos/lista?status=aguardando_pagamento"
+            tone="warning"
+            icon="💳"
           />
           <Kpi
             label="Ação da equipe"
             value={loading ? '…' : String(teamCount)}
             to="/admin/pedidos"
+            tone="danger"
+            icon="⚡"
           />
           <Kpi
             label="Ação do cliente"
             value={loading ? '…' : String(customerCount)}
             to="/admin/pedidos"
+            tone="info"
+            icon="👤"
           />
           <Kpi
             label="Em aberto"
             value={loading ? '…' : String(totals?.ordersOpen ?? '—')}
             to="/admin/relatorios"
+            tone="neutral"
+            icon="📋"
           />
           <Kpi
             label="Entregues"
             value={loading ? '…' : String(totals?.ordersDelivered ?? '—')}
             to="/admin/relatorios"
+            tone="success"
+            icon="✓"
           />
           <Kpi
             label="Receita entregue"
@@ -227,8 +175,14 @@ export function AdminDashboardPage() {
                   : '—'
             }
             to="/admin/relatorios"
+            tone="info"
+            icon="R$"
           />
         </div>
+        <p className="m-0 text-xs text-fal-muted">
+          Sem série temporal neste painel — variações % e gráficos ficam para quando houver histórico
+          confiável.
+        </p>
       </section>
 
       <section className="space-y-3">
@@ -243,16 +197,16 @@ export function AdminDashboardPage() {
           </p>
         </div>
         {loading ? (
-          <p className="rounded-[12px] border border-fal-line bg-white px-4 py-3 text-sm text-fal-muted">
+          <p className="rounded-[12px] border border-fal-line bg-fal-surface px-4 py-3 text-sm text-fal-muted">
             Carregando pendências…
           </p>
         ) : attention.length === 0 ? (
-          <p className="rounded-[12px] border border-fal-line bg-white px-4 py-3 text-sm text-fal-muted">
+          <p className="rounded-[12px] border border-fal-line bg-fal-surface px-4 py-3 text-sm text-fal-muted">
             Nenhuma pendência operacional na amostra recente. Pedidos só aguardando pagamento ficam
             no bloco Pagamento.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-fal-bg text-fal-muted">
                 <tr>
@@ -271,12 +225,12 @@ export function AdminDashboardPage() {
                       <td className="px-3 py-2 font-mono text-xs">
                         <Link
                           to={`/admin/pedidos/${o.id}`}
-                          className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+                          className="font-semibold text-fal-fg underline-offset-2 hover:underline"
                         >
                           {o.id.slice(0, 8)}…
                         </Link>
                       </td>
-                      <td className="px-3 py-2">{o.customerName ?? '—'}</td>
+                      <td className="px-3 py-2 text-fal-fg">{o.customerName ?? '—'}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-fal-muted">
                         {formatDateTime(o.createdAt)}
                       </td>
@@ -286,11 +240,11 @@ export function AdminDashboardPage() {
                         >
                           {adminActorBadgeLabel(kind)}
                         </span>
-                        <span className="mt-1 block text-xs">
+                        <span className="mt-1 block text-xs text-fal-fg">
                           {orderStatusOperatorLabel[o.status] ?? o.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-xs font-semibold text-fal-navy">
+                      <td className="px-3 py-2 text-xs font-semibold text-fal-fg">
                         {adminNextActionLabel(o.status, o.customerDecision)}
                       </td>
                     </tr>
@@ -301,7 +255,7 @@ export function AdminDashboardPage() {
           </div>
         )}
         <p className="m-0 text-xs text-fal-muted">
-          <Link to="/admin/pedidos" className="font-semibold text-fal-navy underline">
+          <Link to="/admin/pedidos" className="font-semibold text-fal-accent underline">
             Abrir Central de Pedidos →
           </Link>
         </p>
@@ -312,7 +266,7 @@ export function AdminDashboardPage() {
           Fluxo operacional
         </h2>
         {loading ? (
-          <p className="rounded-[14px] border border-fal-line bg-white px-4 py-6 text-sm text-fal-muted">
+          <p className="rounded-[14px] border border-fal-line bg-fal-surface px-4 py-6 text-sm text-fal-muted">
             Carregando fluxo operacional…
           </p>
         ) : (
@@ -323,16 +277,16 @@ export function AdminDashboardPage() {
               return (
                 <div
                   key={group.id}
-                  className="rounded-[14px] border border-fal-line bg-white p-4 shadow-sm"
+                  className="rounded-[14px] border border-fal-line bg-fal-surface p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="m-0 text-base font-extrabold text-fal-navy">{group.title}</h3>
+                      <h3 className="m-0 text-base font-extrabold text-fal-fg">{group.title}</h3>
                       <p className="mb-0 mt-1 text-xs text-fal-muted">{group.description}</p>
                     </div>
                     <Link
                       to={`/admin/pedidos/lista?grupo=${group.id}`}
-                      className="shrink-0 text-2xl font-black text-fal-navy tabular-nums"
+                      className="shrink-0 text-2xl font-black text-fal-fg tabular-nums"
                       title="Abrir listagem do grupo"
                     >
                       {total}
@@ -345,10 +299,10 @@ export function AdminDashboardPage() {
                           to={`/admin/pedidos/lista?status=${s}`}
                           className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fal-bg"
                         >
-                          <span className="text-fal-navy">
+                          <span className="text-fal-fg">
                             {orderStatusOperatorLabel[s] ?? s}
                           </span>
-                          <span className="font-extrabold tabular-nums text-fal-navy">
+                          <span className="font-extrabold tabular-nums text-fal-fg">
                             {counts[s] ?? 0}
                           </span>
                         </Link>
@@ -361,38 +315,44 @@ export function AdminDashboardPage() {
           </div>
         )}
       </section>
-
-      {visibleSections.map((section) => (
-        <section key={section.title} className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-fal-muted">
-            {section.title}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {section.cards.map((c) => (
-              <Link
-                key={c.to}
-                to={c.to}
-                className="rounded-[14px] border border-fal-line bg-white p-4 shadow-sm transition hover:border-fal-yellow hover:shadow-md"
-              >
-                <h3 className="m-0 font-extrabold text-fal-navy">{c.title}</h3>
-                <p className="mb-0 mt-1 text-sm text-fal-muted">{c.desc}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
     </div>
   )
 }
 
-function Kpi({ label, value, to }: { label: string; value: string; to: string }) {
+function Kpi({
+  label,
+  value,
+  to,
+  tone = 'neutral',
+  icon,
+}: {
+  label: string
+  value: string
+  to: string
+  tone?: KpiTone
+  icon?: string
+}) {
+  const toneCls: Record<KpiTone, string> = {
+    neutral: 'border-fal-line',
+    warning: 'border-fal-warning/40 bg-fal-warning/10',
+    danger: 'border-fal-danger/40 bg-fal-danger/10',
+    success: 'border-fal-success/40 bg-fal-success/10',
+    info: 'border-fal-accent/40 bg-fal-accent/10',
+  }
   return (
     <Link
       to={to}
-      className="rounded-[12px] border border-fal-line bg-white px-3 py-3 shadow-sm transition hover:border-fal-yellow"
+      className={`rounded-[12px] border bg-fal-surface px-3 py-3 shadow-sm transition hover:border-fal-accent/50 ${toneCls[tone]}`}
     >
-      <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">{label}</div>
-      <div className="mt-1 text-xl font-extrabold tabular-nums text-fal-navy">{value}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">{label}</div>
+        {icon ? (
+          <span className="text-sm opacity-70" aria-hidden>
+            {icon}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-1 text-xl font-extrabold tabular-nums text-fal-fg">{value}</div>
     </Link>
   )
 }

@@ -117,7 +117,7 @@ export function AdminImportsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Importações</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Importações</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Histórico das importações da loja — catálogo, aplicações, conversões, custos e listas de
             preços.
@@ -128,25 +128,25 @@ export function AdminImportsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/produtos/importar"
           >
             Importar produtos
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/produtos/importar-aplicacoes"
           >
             Importar aplicações
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/fornecedores/importar-custos"
           >
             Importar custos
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/produtos/importar-imagens"
           >
             Importar imagens
@@ -154,7 +154,7 @@ export function AdminImportsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 rounded-[14px] border border-fal-line bg-white p-3">
+      <div className="flex flex-wrap gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-3">
         <label className="block min-w-[180px] text-sm">
           <span className="mb-1 block text-xs font-extrabold text-fal-muted">Tipo</span>
           <select
@@ -206,7 +206,7 @@ export function AdminImportsPage() {
       {loading ? <Loading label="Carregando histórico…" /> : null}
 
       {!loading ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-fal-bg text-fal-muted">
               <tr>
@@ -238,7 +238,7 @@ export function AdminImportsPage() {
                       <td className="px-3 py-2 text-xs whitespace-nowrap">
                         {formatDateTime(row.createdAt)}
                       </td>
-                      <td className="px-3 py-2 font-semibold text-fal-navy">
+                      <td className="px-3 py-2 font-semibold text-fal-fg">
                         {importKindLabel(row.kind)}
                       </td>
                       <td className="px-3 py-2">{row.filename || '—'}</td>
@@ -258,14 +258,14 @@ export function AdminImportsPage() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="font-semibold text-fal-navy underline"
+                            className="font-semibold text-fal-fg underline"
                             onClick={() => void openDetail(row.id)}
                           >
                             Detalhes
                           </button>
                           {row.priceListId ? (
                             <Link
-                              className="font-semibold text-fal-navy underline"
+                              className="font-semibold text-fal-fg underline"
                               to={`/admin/precos/${row.priceListId}?tab=importacoes`}
                             >
                               Lista
@@ -302,10 +302,10 @@ export function AdminImportsPage() {
       {detailBusy ? <Loading label="Carregando detalhes…" /> : null}
 
       {detail ? (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">{detail.filename}</h2>
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">{detail.filename}</h2>
               <p className="mt-1 text-sm text-fal-muted">
                 {importKindLabel(detail.kind)} · {importStatusLabel(detail.status)} ·{' '}
                 {formatDateTime(detail.createdAt)} · {detail.totalItems} itens ·{' '}

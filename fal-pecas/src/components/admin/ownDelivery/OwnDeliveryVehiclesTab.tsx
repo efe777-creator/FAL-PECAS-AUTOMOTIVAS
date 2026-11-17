@@ -57,8 +57,8 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Tipos de veículo</h2>
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <h2 className="mt-0 text-lg font-extrabold text-fal-fg">Tipos de veículo</h2>
         <p className="m-0 mb-3 text-sm text-fal-muted">
           Cada tipo define quanto carrega e até quantos km atende. Inclua ou remova conforme a
           frota.
@@ -95,7 +95,7 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
               }}
             >
               <div className="flex flex-wrap items-center gap-2 text-xs md:col-span-5">
-                <span className="font-semibold text-fal-navy">{iconLabel(c.icon)}</span>
+                <span className="font-semibold text-fal-fg">{iconLabel(c.icon)}</span>
                 {activeTariffByCat.has(c.id) ? (
                   <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-800">
                     Preço cadastrado
@@ -197,8 +197,8 @@ export function OwnDeliveryVehiclesTab({ onOk, onError, onCategoriesChange }: Pr
         </label>
       </section>
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Incluir novo veículo</h2>
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <h2 className="mt-0 text-lg font-extrabold text-fal-fg">Incluir novo veículo</h2>
         <form
           className="grid gap-2 md:grid-cols-4"
           onSubmit={(e) => {

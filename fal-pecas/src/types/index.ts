@@ -270,6 +270,19 @@ export interface PlaceOrderItemInput {
   quantity: number
 }
 
+/** Atribuição Ads (utm/gclid/fbclid) — espelha orders.attribution. */
+export interface OrderAttributionInput {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+  gclid?: string
+  fbclid?: string
+  landing_path?: string
+  captured_at?: string
+}
+
 export interface PlaceOrderInput {
   idempotencyKey: string
   addressId: string
@@ -284,6 +297,8 @@ export interface PlaceOrderInput {
   items?: PlaceOrderItemInput[]
   /** AJUSTE-035 C5: false em buy_now para não esvaziar o carrinho. Default true. */
   clearCart?: boolean
+  /** Prep Ads — opcional; gravado em orders.attribution. */
+  attribution?: OrderAttributionInput | null
 }
 
 export interface PlaceOrderResult {

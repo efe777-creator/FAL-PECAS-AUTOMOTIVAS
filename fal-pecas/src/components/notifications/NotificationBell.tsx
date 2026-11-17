@@ -214,9 +214,10 @@ export function NotificationBell({
   }
 
   const dark = variant === 'dark'
+  /** Light/loja: chrome dourado (mola do logo), sem caixa opaca. Admin sidebar: ícone claro no navy. */
   const btnClass = dark
     ? 'relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg text-white/90 hover:bg-white/10'
-    : 'relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg border border-fal-line bg-white text-fal-navy hover:bg-fal-bg'
+    : 'relative grid h-11 w-11 min-h-11 min-w-11 place-items-center rounded-lg text-fal-yellow-dark hover:bg-fal-yellow/15'
 
   const panel =
     open && panelPos
@@ -225,7 +226,7 @@ export function NotificationBell({
             ref={panelRef}
             role="dialog"
             aria-label="Central de notificações"
-            className="fixed z-[300] box-border overflow-x-hidden overflow-y-hidden rounded-[12px] border border-fal-line bg-white shadow-xl"
+            className="fixed z-[300] box-border overflow-x-hidden overflow-y-hidden rounded-[12px] border border-fal-line bg-fal-surface shadow-xl"
             style={{
               top: panelPos.top,
               left: panelPos.left,
@@ -238,7 +239,7 @@ export function NotificationBell({
           >
             <div className="flex shrink-0 flex-col gap-2 border-b border-fal-line px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="m-0 text-sm font-extrabold text-fal-navy">Notificações</p>
+                <p className="m-0 text-sm font-extrabold text-fal-fg">Notificações</p>
                 <p className="m-0 text-[11px] text-fal-muted">
                   {unread > 0 ? `${unread} não lida${unread === 1 ? '' : 's'}` : 'Tudo lido'}
                 </p>
@@ -300,7 +301,7 @@ export function NotificationBell({
       >
         <BellIcon />
         {unread > 0 ? (
-          <span className="absolute right-0.5 top-0.5 min-w-[1.1rem] rounded-full bg-fal-yellow px-1 text-center text-[10px] font-extrabold leading-4 text-fal-navy">
+          <span className="absolute right-0.5 top-0.5 min-w-[1.1rem] rounded-full bg-fal-yellow px-1 text-center text-[10px] font-extrabold leading-4 text-fal-navy-dark">
             {unread > 99 ? '99+' : unread}
           </span>
         ) : null}

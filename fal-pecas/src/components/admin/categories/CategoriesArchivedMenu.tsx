@@ -119,7 +119,7 @@ export function CategoriesArchivedMenu({ items, onChanged }: Props) {
     <div className="relative ml-auto" ref={rootRef}>
       <button
         type="button"
-        className="text-xs font-semibold text-fal-muted underline-offset-2 hover:text-fal-navy hover:underline"
+        className="text-xs font-semibold text-fal-muted underline-offset-2 hover:text-fal-fg hover:underline"
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
@@ -129,7 +129,7 @@ export function CategoriesArchivedMenu({ items, onChanged }: Props) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-[min(100vw-2rem,22rem)] rounded-[12px] border border-fal-line bg-white p-3 shadow-lg"
+          className="absolute right-0 z-30 mt-2 w-[min(100vw-2rem,22rem)] rounded-[12px] border border-fal-line bg-fal-surface p-3 shadow-lg"
         >
           <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">Arquivados</p>
           <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
@@ -143,7 +143,7 @@ export function CategoriesArchivedMenu({ items, onChanged }: Props) {
                     onChange={() => toggleSelect(c.id)}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold text-fal-navy">{c.name}</span>
+                    <span className="block truncate font-semibold text-fal-fg">{c.name}</span>
                     <span className="block truncate text-[11px] text-fal-muted">
                       {categoryLevelLabel(categoryDepth(items, c.id))} · {categoryPath(items, c.id)}
                     </span>

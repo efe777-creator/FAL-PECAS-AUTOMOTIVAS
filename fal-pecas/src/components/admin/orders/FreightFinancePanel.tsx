@@ -67,9 +67,9 @@ export function FreightFinancePanel({
   }
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Frete — cobrado vs custo (G8)</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Frete — cobrado vs custo (G8)</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Cobrado do cliente (imutável) vs custo efetivo interno (etiqueta ME ou entrega própria).
           Atualizar custo <strong>não</strong> altera o frete pago pelo cliente.
@@ -79,17 +79,17 @@ export function FreightFinancePanel({
       <div className="grid gap-2 sm:grid-cols-3 text-sm">
         <div>
           <span className="text-fal-muted">Cobrado</span>
-          <p className="m-0 font-bold text-fal-navy">{formatMoney(order.shippingAmount)}</p>
+          <p className="m-0 font-bold text-fal-fg">{formatMoney(order.shippingAmount)}</p>
         </div>
         <div>
           <span className="text-fal-muted">Custo efetivo</span>
-          <p className="m-0 font-bold text-fal-navy">
+          <p className="m-0 font-bold text-fal-fg">
             {finance?.effectiveCost != null ? formatMoney(finance.effectiveCost) : '—'}
           </p>
         </div>
         <div>
           <span className="text-fal-muted">Delta (cobrado − custo)</span>
-          <p className="m-0 font-bold text-fal-navy">
+          <p className="m-0 font-bold text-fal-fg">
             {finance?.delta != null ? formatMoney(finance.delta) : '—'}
           </p>
         </div>

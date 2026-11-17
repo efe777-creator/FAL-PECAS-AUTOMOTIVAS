@@ -497,7 +497,7 @@ export function AdminApplicationsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Aplicações</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Aplicações</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Controle as compatibilidades produto × veículo (incluindo as da importação): criar,
             editar período e excluir. Ano inicial obrigatório; ano final em branco = vigente até o
@@ -518,8 +518,8 @@ export function AdminApplicationsPage() {
       </div>
 
       {createOpen ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-yellow-dark bg-white p-4 ring-2 ring-fal-yellow/30">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Nova aplicação</h2>
+        <div className="space-y-3 rounded-[14px] border border-fal-yellow-dark bg-fal-surface p-4 ring-2 ring-fal-yellow/30">
+          <h2 className="m-0 text-lg font-extrabold text-fal-fg">Nova aplicação</h2>
           <p className="m-0 text-xs text-fal-muted">
             Motorização/versão vazia no vínculo = todas as configs elegíveis agora (
             {matchingCreateVersions.length}). Na pesquisa: campo vazio na config = coringa; preenchido
@@ -622,7 +622,7 @@ export function AdminApplicationsPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <div className="min-w-[180px] flex-1">
           <Input
             label="Buscar (código / nome / veículo)"
@@ -723,7 +723,7 @@ export function AdminApplicationsPage() {
 
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
-          <span className="font-semibold text-fal-navy">{selected.size} selecionada(s)</span>
+          <span className="font-semibold text-fal-fg">{selected.size} selecionada(s)</span>
           <Button type="button" variant="light" disabled={busy} onClick={() => void onDeleteSelected()}>
             Excluir seleção
           </Button>
@@ -733,7 +733,7 @@ export function AdminApplicationsPage() {
       {loading ? <Loading label="Carregando aplicações…" /> : null}
 
       {!loading ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
               <tr>
@@ -764,14 +764,14 @@ export function AdminApplicationsPage() {
                     >
                       <div className="mt-4 flex justify-center gap-3">
                         <Link
-                          className="font-semibold text-fal-navy underline"
+                          className="font-semibold text-fal-fg underline"
                           to="/admin/produtos/importar-aplicacoes"
                         >
                           Importar
                         </Link>
                         <button
                           type="button"
-                          className="font-semibold text-fal-navy underline"
+                          className="font-semibold text-fal-fg underline"
                           onClick={() => setCreateOpen(true)}
                         >
                           Criar
@@ -802,7 +802,7 @@ export function AdminApplicationsPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Link
-                          className="font-semibold text-fal-navy underline"
+                          className="font-semibold text-fal-fg underline"
                           to={`/admin/produtos/${row.productId}`}
                         >
                           {row.productSku || '—'}
@@ -915,7 +915,7 @@ export function AdminApplicationsPage() {
                             <>
                               <button
                                 type="button"
-                                className="font-semibold text-fal-navy underline disabled:opacity-50"
+                                className="font-semibold text-fal-fg underline disabled:opacity-50"
                                 disabled={busy}
                                 onClick={() => void onSaveSwap(row)}
                               >
@@ -933,7 +933,7 @@ export function AdminApplicationsPage() {
                             <>
                               <button
                                 type="button"
-                                className="font-semibold text-fal-navy underline disabled:opacity-50"
+                                className="font-semibold text-fal-fg underline disabled:opacity-50"
                                 disabled={busy}
                                 onClick={() => void onSavePeriod(row)}
                               >
@@ -951,7 +951,7 @@ export function AdminApplicationsPage() {
                             <>
                               <button
                                 type="button"
-                                className="font-semibold text-fal-navy underline"
+                                className="font-semibold text-fal-fg underline"
                                 onClick={() => {
                                   setSwappingId(null)
                                   setEditingId(row.id)
@@ -963,7 +963,7 @@ export function AdminApplicationsPage() {
                               </button>
                               <button
                                 type="button"
-                                className="font-semibold text-fal-navy underline"
+                                className="font-semibold text-fal-fg underline"
                                 onClick={() => beginSwap(row)}
                               >
                                 Trocar veículo

@@ -144,7 +144,7 @@ export function AdminOperatorsPage() {
       <div className="space-y-4">
         <form onSubmit={search} className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <label className="min-w-0 flex-1 text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">
+            <span className="mb-1 block font-semibold text-fal-fg">
               Buscar e-mail ou nome (vazio = equipe)
             </span>
             <input
@@ -152,7 +152,7 @@ export function AdminOperatorsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="ex: lucas@… ou deixe vazio"
-              className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2 text-fal-navy outline-none focus:border-fal-yellow"
+              className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-fal-fg outline-none focus:border-fal-yellow"
             />
           </label>
           <button
@@ -175,7 +175,7 @@ export function AdminOperatorsPage() {
         ) : null}
 
         {!loading && !loadError && rows.length > 0 ? (
-          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
@@ -190,7 +190,7 @@ export function AdminOperatorsPage() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-fal-line last:border-0">
-                    <td className="px-3 py-2 font-medium text-fal-navy">{r.email ?? '—'}</td>
+                    <td className="px-3 py-2 font-medium text-fal-fg">{r.email ?? '—'}</td>
                     <td className="px-3 py-2 text-fal-muted">{r.fullName ?? r.username ?? '—'}</td>
                     <td className="px-3 py-2 text-fal-muted">{formatDateTime(r.createdAt)}</td>
                     <td className="px-3 py-2 text-fal-muted">
@@ -205,7 +205,7 @@ export function AdminOperatorsPage() {
                           r.id === user?.id
                         }
                         onChange={(e) => void onRoleChange(r, e.target.value as AssignableRole)}
-                        className="w-full max-w-[220px] rounded-[8px] border border-fal-line bg-white px-2 py-1.5 text-sm font-semibold text-fal-navy disabled:opacity-50"
+                        className="w-full max-w-[220px] rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm font-semibold text-fal-fg disabled:opacity-50"
                       >
                         {ASSIGNABLE_ROLES.map((opt) => (
                           <option key={opt.value} value={opt.value}>

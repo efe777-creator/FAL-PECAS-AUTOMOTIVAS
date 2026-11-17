@@ -120,9 +120,9 @@ Avanço por **maturidade e gates**, sem datas artificiais.
 
 ## Foco atual
 
-**Fase 1 = P0 agora** (passos 0.1–0.8 em [FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md) §3).  
-Depois: G1–G8 na ordem rígida do mesmo doc.  
-Ambientes 7–10 = direção documentada, **não** fila de sprint.
+**Fase 4 = G8 agora** (comercialização controlada — [FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md) §11).  
+P0–G7 = **PASS** (2026-11-16). Pendente: 8.3 N vendas + 8.4 monitor ([VAL G8](./FAL_MARCHA_G8_VENDA_CONTROLADA_VAL_2026-11-16.md)).  
+Ambientes 7–10 = direção documentada, **não** fila de sprint até G8 PASS.
 
 ### Anti-deriva
 

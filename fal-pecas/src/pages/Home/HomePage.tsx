@@ -17,6 +17,7 @@ import {
   usePromoHighlightProducts,
 } from '@/hooks/useCatalog'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useOpenGraph } from '@/hooks/useOpenGraph'
 import { excludeProductsById, HOME_FEATURED_LIMIT_DEFAULT } from '@/lib/homeSections'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { getFeaturedDisplayLimit } from '@/services/home/homeContentService'
@@ -58,8 +59,8 @@ function ProductRailSection({
     <section
       className={
         tone === 'sand'
-          ? 'border-y border-fal-line bg-[#fffdf5] py-8 sm:py-10'
-          : 'bg-white py-8 sm:py-10'
+          ? 'border-y border-fal-line bg-fal-yellow/10 py-8 sm:py-10'
+          : 'bg-fal-surface py-8 sm:py-10'
       }
     >
       <Container>
@@ -115,6 +116,11 @@ export function HomePage() {
   const offers = usePromoHighlightProducts(8)
   const toggleShelf = useStableShelfToggle(setShelfPanel)
   useDocumentTitle('FAL Peças Automotivas')
+  useOpenGraph({
+    title: 'FAL Peças Automotivas',
+    description: 'Encontre a peça certa para o seu veículo.',
+    type: 'website',
+  })
 
   useEffect(() => {
     let active = true

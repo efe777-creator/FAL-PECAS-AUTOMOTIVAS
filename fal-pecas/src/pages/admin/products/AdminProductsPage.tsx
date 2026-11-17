@@ -436,7 +436,7 @@ export function AdminProductsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Produtos</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Produtos</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Arquivar remove da loja (continua no cadastro). Publicação e disponibilidade são coisas
             diferentes.
@@ -444,7 +444,7 @@ export function AdminProductsPage() {
               ? ` · ${items.length} carregado${items.length === 1 ? '' : 's'}.`
               : null}
           </p>
-          <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-navy">
+          <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-fg">
             <Link className="hover:underline" to="/admin/produtos/importar">
               Importar
             </Link>
@@ -474,7 +474,7 @@ export function AdminProductsPage() {
       </div>
 
       <form
-        className="space-y-2 rounded-[14px] border border-fal-line bg-white p-3"
+        className="space-y-2 rounded-[14px] border border-fal-line bg-fal-surface p-3"
         onSubmit={(e) => {
           e.preventDefault()
           void reload()
@@ -527,7 +527,7 @@ export function AdminProductsPage() {
               ))}
             </select>
           </label>
-          <label className="flex min-h-[42px] items-center gap-2 text-sm font-semibold text-fal-navy">
+          <label className="flex min-h-[42px] items-center gap-2 text-sm font-semibold text-fal-fg">
             <input
               type="checkbox"
               checked={withoutImage}
@@ -587,10 +587,10 @@ export function AdminProductsPage() {
       </form>
 
       {hasSelection || releasePreflight ? (
-      <div className="space-y-4 rounded-[14px] border border-fal-navy/15 bg-white p-4">
+      <div className="space-y-4 rounded-[14px] border border-fal-navy/15 bg-fal-surface p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Alterações em lote</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-fg">Alterações em lote</h2>
             <p className="mt-1 text-sm text-fal-muted">
               {hasSelection
                 ? `${selected.size} selecionado(s).`
@@ -612,7 +612,7 @@ export function AdminProductsPage() {
           <div className="space-y-3 rounded-[12px] border border-fal-navy/20 bg-fal-bg/40 p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="m-0 text-base font-extrabold text-fal-navy">
+                <h3 className="m-0 text-base font-extrabold text-fal-fg">
                   Checklist para liberar
                 </h3>
                 <p className="mt-1 text-sm text-fal-muted">
@@ -680,7 +680,7 @@ export function AdminProductsPage() {
 
         <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
           <div>
-            <h3 className="m-0 text-base font-extrabold text-fal-navy">Situação</h3>
+            <h3 className="m-0 text-base font-extrabold text-fal-fg">Situação</h3>
             <p className="mt-1 text-xs text-fal-muted">
               Status comercial e disponibilidade na loja. Liberar verifica nome, preço e publicação.
             </p>
@@ -731,7 +731,7 @@ export function AdminProductsPage() {
 
         <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
           <div>
-            <h3 className="m-0 text-base font-extrabold text-fal-navy">Classificação</h3>
+            <h3 className="m-0 text-base font-extrabold text-fal-fg">Classificação</h3>
             <p className="mt-1 text-xs text-fal-muted">
               Atribui Categoria → Grupo → Subgrupo aos selecionados (não cria nós novos).
             </p>
@@ -756,7 +756,7 @@ export function AdminProductsPage() {
 
         <section className="space-y-3 rounded-[12px] border border-fal-line p-3">
           <div>
-            <h3 className="m-0 text-base font-extrabold text-fal-navy">Medidas logísticas</h3>
+            <h3 className="m-0 text-base font-extrabold text-fal-fg">Medidas logísticas</h3>
             <p className="mt-1 text-xs text-fal-muted">
               Campos vazios neste painel não são alterados. Padrão: não sobrescreve medidas
               deste produto.
@@ -802,7 +802,7 @@ export function AdminProductsPage() {
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <label className="block min-w-[220px] text-sm">
-              <span className="mb-1 block font-semibold text-fal-navy">Medidas deste produto</span>
+              <span className="mb-1 block font-semibold text-fal-fg">Medidas deste produto</span>
               <select
                 className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
                 value={bulkMode}
@@ -853,7 +853,7 @@ export function AdminProductsPage() {
         {items.map((p) => (
           <article
             key={p.id}
-            className="rounded-[14px] border border-fal-line bg-white p-3 shadow-sm"
+            className="rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm"
           >
             <div className="flex items-start gap-3">
               <input
@@ -865,7 +865,7 @@ export function AdminProductsPage() {
               />
               <div className="min-w-0 flex-1">
                 <p className="m-0 font-mono text-xs text-fal-muted">{p.commercialRef ?? p.sku}</p>
-                <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-navy">
+                <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-fg">
                   {p.name}
                   {p.isIncomplete ? (
                     <span className="ml-2 text-xs font-bold text-fal-yellow-dark">INCOMPLETO</span>
@@ -914,7 +914,7 @@ export function AdminProductsPage() {
         ) : null}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>

@@ -79,9 +79,9 @@ export function StorePickupPanel({
   }
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Retirada na loja</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Retirada na loja</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Após a separação, autorize a retirada para o cliente ver no app. Quando ele buscar,
           confirme a retirada.

@@ -1,6 +1,6 @@
 # FAL — Índice canônico de documentos
 
-**Versão:** 1.1  
+**Versão:** 1.2  
 **Data:** 2026-11-16  
 **Status:** CANÔNICO (mapa de autoridade)
 
@@ -15,12 +15,13 @@ Em caso de conflito: **documento proprietário da regra vence**. Docs histórico
 | Entender o norte 2040 | [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) |
 | Regra de produto | [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) |
 | Saber o que é MVP / done | [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) |
-| **Executar agora** | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — frente **P0** |
+| **Executar agora** | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — frente **G8** (STOP 8.3) |
 | Telas e jornadas | [FAL_MVP_MAPA_TELAS_JORNADAS.md](../planejamento/FAL_MVP_MAPA_TELAS_JORNADAS.md) |
 | O que a auditoria achou | [FAL_AUDITORIA_CONSOLIDADA_PRD4.md](../planejamento/FAL_AUDITORIA_CONSOLIDADA_PRD4.md) |
+| UI / cores / identidade (Gate 0) | [FAL_AUDITORIA_UI_CORES_IDENTIDADE_2026-11-16.md](../planejamento/FAL_AUDITORIA_UI_CORES_IDENTIDADE_2026-11-16.md) · [spec](../superpowers/specs/2026-11-16-ui-cores-identidade-design.md) · [plano tático](../superpowers/plans/2026-11-16-ui-cores-admin-loja.md) |
 | Fase futura (Garage etc.) | `docs/futuro/*` — **não implementar** até gate do Roadmap |
 
-**Próximo passo oficial:** P0 do plano de consolidação (alinhar pay WT → deploy → smoke create).
+**Próximo passo oficial:** G8.3 — N≈3 vendas controladas no preview (ou `--prod` quando créditos) + monitor 8.4. Estado: [VAL G8](../planejamento/FAL_MARCHA_G8_VENDA_CONTROLADA_VAL_2026-11-16.md). P0–G7 = PASS.
 
 ---
 

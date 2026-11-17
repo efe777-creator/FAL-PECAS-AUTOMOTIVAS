@@ -483,7 +483,7 @@ export function AdminProductFormPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">
           {isNew ? 'Novo produto' : 'Editar produto'}
         </h1>
       </div>
@@ -492,9 +492,9 @@ export function AdminProductFormPage() {
       <form
         onSubmit={saveGeneral}
         onChange={() => setDirty(true)}
-        className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4"
+        className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4"
       >
-        <h2 className="font-extrabold text-fal-navy">Geral</h2>
+        <h2 className="font-extrabold text-fal-fg">Geral</h2>
         {dirty ? (
           <p className="m-0 text-xs font-semibold text-fal-yellow-dark">
             Há alterações não salvas.
@@ -519,7 +519,7 @@ export function AdminProductFormPage() {
             hint="Código interno para importações. Se vazio, usa o Código referência."
           />
           <fieldset className="text-sm md:col-span-2">
-            <legend className="mb-1 block font-semibold text-fal-navy">Classificação</legend>
+            <legend className="mb-1 block font-semibold text-fal-fg">Classificação</legend>
             <p className="mb-2 text-xs text-fal-muted">
               Mesma hierarquia da planilha: Categoria → Grupo → Subgrupo. Cadastre em Admin →
               Categorias antes de importar ou vincular aqui.
@@ -558,7 +558,7 @@ export function AdminProductFormPage() {
             </select>
           </label>
           <fieldset className="text-sm md:col-span-2">
-            <legend className="mb-1 block font-semibold text-fal-navy">Posição</legend>
+            <legend className="mb-1 block font-semibold text-fal-fg">Posição</legend>
             <p className="mb-2 text-xs text-fal-muted">
               Pode combinar (ex.: Dianteira + Inferior). Na planilha: DIANT, TRAS, SUPERIOR,
               INFERIOR ou “DIANT INFERIOR”.
@@ -616,16 +616,16 @@ export function AdminProductFormPage() {
           </label>
         </div>
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Precificação</h2>
+        <h2 className="pt-2 font-extrabold text-fal-fg">Precificação</h2>
         <p className="m-0 text-sm text-fal-muted">
           Preços de lista são só leitura aqui. Para alterar, use{' '}
-          <Link to="/admin/precos" className="font-semibold text-fal-navy underline">
+          <Link to="/admin/precos" className="font-semibold text-fal-fg underline">
             Listas de preços
           </Link>
           . Neste formulário você pode apenas <strong>ativar ou editar o preço avulso</strong> (exceção).
         </p>
-        <div className="rounded-[12px] border border-fal-line bg-white p-3">
-          <p className="m-0 text-sm font-extrabold text-fal-navy">Disponibilidade na loja</p>
+        <div className="rounded-[12px] border border-fal-line bg-fal-surface p-3">
+          <p className="m-0 text-sm font-extrabold text-fal-fg">Disponibilidade na loja</p>
           <p className="mt-1 text-xs text-fal-muted">
             Importação de custo/preço não libera o produto. Use{' '}
             <strong>Liberar na loja</strong> quando status, preço e confirmação estiverem prontos.
@@ -687,14 +687,14 @@ export function AdminProductFormPage() {
 
         <div className="space-y-2 rounded-[12px] border border-fal-line bg-fal-bg/40 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Preços nas listas</h3>
-            <Link to="/admin/precos" className="text-xs font-semibold text-fal-navy underline">
+            <h3 className="m-0 text-sm font-extrabold text-fal-fg">Preços nas listas</h3>
+            <Link to="/admin/precos" className="text-xs font-semibold text-fal-fg underline">
               Gerenciar em Listas de preços
             </Link>
           </div>
           {!isNew && productId ? (
-            <div className="rounded-[10px] border border-fal-navy/20 bg-white px-3 py-2 text-sm">
-              <p className="m-0 font-extrabold text-fal-navy">Preço na loja (resolvido)</p>
+            <div className="rounded-[10px] border border-fal-navy/20 bg-fal-surface px-3 py-2 text-sm">
+              <p className="m-0 font-extrabold text-fal-fg">Preço na loja (resolvido)</p>
               {resolvedErr ? (
                 <p className="mt-1 m-0 text-xs text-fal-danger">{resolvedErr}</p>
               ) : resolvedStore ? (
@@ -725,10 +725,10 @@ export function AdminProductFormPage() {
               {listRows.map((row) => (
                 <li
                   key={row.priceListId}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
                 >
                   <div>
-                    <span className="font-semibold text-fal-navy">{row.listName}</span>
+                    <span className="font-semibold text-fal-fg">{row.listName}</span>
                     <span className="ml-2 text-xs text-fal-muted">
                       {priceListStatusLabel(row.status)}
                       {row.isDefault ? ' · padrão' : ''}
@@ -796,10 +796,10 @@ export function AdminProductFormPage() {
           ) : null}
         </div>
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Frete próprio — capacidade e veículo</h2>
+        <h2 className="pt-2 font-extrabold text-fal-fg">Frete próprio — capacidade e veículo</h2>
         <p className="m-0 text-xs text-fal-muted">
           Mesmo campo usado em{' '}
-          <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-navy">
+          <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-fg">
             Logística → Frete próprio → Produtos
           </Link>
           . Sem duplicar cadastro. Ao editar aqui, a origem passa a ser deste produto.
@@ -818,7 +818,7 @@ export function AdminProductFormPage() {
             hint="Unidade de volume/carga usada na cotação por veículo"
           />
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Porte logístico</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Porte logístico</span>
             <select
               className="w-full rounded-lg border border-fal-line px-3 py-2"
               value={logisticPorte}
@@ -831,7 +831,7 @@ export function AdminProductFormPage() {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Veículo mínimo</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Veículo mínimo</span>
             <select
               className="w-full rounded-lg border border-fal-line px-3 py-2"
               value={vehicleMinCode}
@@ -855,7 +855,7 @@ export function AdminProductFormPage() {
                 : 'Cadastre veículos em Frete próprio → Veículos'
             }
           />
-          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+          <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
             <input
               type="checkbox"
               checked={ownDeliveryAllowed}
@@ -870,7 +870,7 @@ export function AdminProductFormPage() {
             </strong>
           </p>
         </div>
-        <h2 className="pt-2 font-extrabold text-fal-navy">Medidas físicas (opcional)</h2>
+        <h2 className="pt-2 font-extrabold text-fal-fg">Medidas físicas (opcional)</h2>
         <p className="m-0 text-xs text-fal-muted">
           Peso e dimensões para cotação de frete. Independente da capacidade do frete próprio.
         </p>
@@ -926,7 +926,7 @@ export function AdminProductFormPage() {
               <label className="flex items-center gap-2 text-xs text-fal-muted">
                 <span className="font-semibold">Origem</span>
                 <select
-                  className="rounded-md border border-fal-line px-2 py-1 text-fal-navy"
+                  className="rounded-md border border-fal-line px-2 py-1 text-fal-fg"
                   value={f.origin}
                   onChange={(e) => f.setOrigin(e.target.value as MeasureOrigin)}
                 >
@@ -940,7 +940,7 @@ export function AdminProductFormPage() {
 
         {productId ? (
           <div className="rounded-[10px] border border-fal-line bg-[#f7f9fc] p-3">
-            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Histórico de medidas</h3>
+            <h3 className="m-0 text-sm font-extrabold text-fal-fg">Histórico de medidas</h3>
             <p className="mt-1 mb-2 text-xs text-fal-muted">
               Alterações de peso, dimensões e capacidade (deste produto ou em lote). Máx. 30
               recentes.
@@ -952,8 +952,8 @@ export function AdminProductFormPage() {
             ) : (
               <ul className="m-0 max-h-48 list-none space-y-2 overflow-y-auto p-0 text-xs">
                 {measureHistory.map((h) => (
-                  <li key={h.id} className="rounded-md border border-fal-line bg-white px-2 py-1.5">
-                    <div className="flex flex-wrap justify-between gap-2 font-semibold text-fal-navy">
+                  <li key={h.id} className="rounded-md border border-fal-line bg-fal-surface px-2 py-1.5">
+                    <div className="flex flex-wrap justify-between gap-2 font-semibold text-fal-fg">
                       <span>{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
                       <span className="tracking-wide text-fal-muted">
                         {h.source === 'bulk'
@@ -999,7 +999,7 @@ export function AdminProductFormPage() {
           </div>
         ) : null}
 
-        <h2 className="pt-2 font-extrabold text-fal-navy">Descrição</h2>
+        <h2 className="pt-2 font-extrabold text-fal-fg">Descrição</h2>
         <Input label="Descrição curta" value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} />
         <label className="block text-sm">
           <span className="mb-1 block font-semibold">Descrição completa</span>

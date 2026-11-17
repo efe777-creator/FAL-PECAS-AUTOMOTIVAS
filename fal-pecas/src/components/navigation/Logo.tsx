@@ -4,6 +4,7 @@ import logoFal from '@/assets/logos/logo-fal-transparente.png'
 /**
  * Logo FAL — asset de LOGOTIPO/logo-fal-transparente.png
  * Sem recorte/redesenho; proporção preservada (object-contain).
+ * No dark da loja: placa clara (padrão bolinha) para o wordmark carvão ler.
  */
 export function Logo({ className = '' }: { className?: string }) {
   return (
@@ -15,11 +16,13 @@ export function Logo({ className = '' }: { className?: string }) {
       ].join(' ')}
       aria-label="FAL Peças Automotivas — Início"
     >
-      <img
-        src={logoFal}
-        alt="FAL Peças Automotivas"
-        className="block h-11 w-auto max-w-14 object-contain sm:h-12 sm:max-w-16 lg:h-[72px] lg:max-w-[104px]"
-      />
+      <span className="inline-flex items-center justify-center rounded-2xl dark:bg-[#f4f6f7] dark:p-1 dark:shadow-sm sm:dark:p-1.5">
+        <img
+          src={logoFal}
+          alt="FAL Peças Automotivas"
+          className="block h-11 w-auto max-w-14 object-contain sm:h-12 sm:max-w-16 lg:h-[72px] lg:max-w-[104px]"
+        />
+      </span>
     </Link>
   )
 }

@@ -115,7 +115,7 @@ export function AdminOrdersHubPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Central de Pedidos</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Central de Pedidos</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Fluxo comercial primeiro (pagamento → análise → separação); depois a expedição
             logística conforme a modalidade contratada. Prazos dos meios ficam em Logística
@@ -128,7 +128,7 @@ export function AdminOrdersHubPage() {
           </Button>
           <Link
             to="/admin/pedidos/lista"
-            className="inline-flex items-center rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="inline-flex items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
           >
             Lista avançada
           </Link>
@@ -147,38 +147,38 @@ export function AdminOrdersHubPage() {
                   Operação
                 </h2>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Pedidos criados
                     </p>
-                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
                       {indicators.operational.ordersCreated}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Aguardando decisão
                     </p>
-                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
                       {indicators.operational.awaitingDecision}
                     </p>
                   </div>
                   <Link
                     to="/admin/pedidos/visao/solicitacoes-cancelamento"
-                    className="rounded-[12px] border border-fal-line bg-white px-3 py-2 no-underline"
+                    className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2 no-underline"
                   >
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Cancel. pendente
                     </p>
-                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
                       {indicators.operational.cancellationPending}
                     </p>
                   </Link>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Cancelados
                     </p>
-                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-xl font-extrabold tabular-nums text-fal-fg">
                       {indicators.operational.cancelled}
                     </p>
                   </div>
@@ -189,51 +189,51 @@ export function AdminOrdersHubPage() {
                   Financeiro (recebido líquido = capturado − devolvido)
                 </h2>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Capturado
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.captured)}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Devolvido
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.refunded)}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-navy/40 bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-navy/40 bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Recebido líquido
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.netReceived)}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Bruto vendido
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.grossSold)}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Valor cancelados
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.cancelledAmount)}
                     </p>
                   </div>
-                  <div className="rounded-[12px] border border-fal-line bg-white px-3 py-2">
+                  <div className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2">
                     <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
                       Pag. pendente
                     </p>
-                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-navy">
+                    <p className="m-0 mt-1 text-base font-extrabold tabular-nums text-fal-fg">
                       {formatMoney(indicators.financial.pendingPayment)}
                     </p>
                   </div>
@@ -253,12 +253,12 @@ export function AdminOrdersHubPage() {
                   <Link
                     key={area.id}
                     to={area.path}
-                    className="rounded-[14px] border border-fal-line bg-white p-4 no-underline transition hover:border-fal-navy"
+                    className="rounded-[14px] border border-fal-line bg-fal-surface p-4 no-underline transition hover:border-fal-navy"
                   >
-                    <p className="text-sm font-bold text-fal-navy">{area.title}</p>
-                    <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-navy">{n}</p>
+                    <p className="text-sm font-bold text-fal-fg">{area.title}</p>
+                    <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-fg">{n}</p>
                     <p className="mt-2 text-xs text-fal-muted">{area.description}</p>
-                    <p className="mt-3 text-xs font-semibold text-fal-navy">{area.primaryCta} →</p>
+                    <p className="mt-3 text-xs font-semibold text-fal-fg">{area.primaryCta} →</p>
                   </Link>
                 )
               })}
@@ -280,14 +280,14 @@ export function AdminOrdersHubPage() {
                   <Link
                     key={q.id}
                     to={q.path}
-                    className="rounded-[14px] border border-fal-line bg-white p-4 no-underline transition hover:border-fal-navy"
+                    className="rounded-[14px] border border-fal-line bg-fal-surface p-4 no-underline transition hover:border-fal-navy"
                   >
-                    <p className="text-sm font-bold text-fal-navy">{q.title}</p>
-                    <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-navy">
+                    <p className="text-sm font-bold text-fal-fg">{q.title}</p>
+                    <p className="mt-2 text-3xl font-extrabold tabular-nums text-fal-fg">
                       {n == null ? '—' : n}
                     </p>
                     <p className="mt-2 text-xs text-fal-muted">{q.description}</p>
-                    <p className="mt-3 text-xs font-semibold text-fal-navy">{q.primaryCta} →</p>
+                    <p className="mt-3 text-xs font-semibold text-fal-fg">{q.primaryCta} →</p>
                   </Link>
                 )
               })}
@@ -310,7 +310,7 @@ export function AdminOrdersHubPage() {
                   key={v.id}
                   to={v.path}
                   title={v.description}
-                  className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy no-underline hover:border-fal-navy"
+                  className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg no-underline hover:border-fal-navy"
                 >
                   {v.title}
                   {v.placeholder ? (
@@ -322,8 +322,8 @@ export function AdminOrdersHubPage() {
           </section>
 
           <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[14px] border border-fal-line bg-white p-4">
-              <h2 className="mt-0 text-base font-extrabold text-fal-navy">Exigem atenção</h2>
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <h2 className="mt-0 text-base font-extrabold text-fal-fg">Exigem atenção</h2>
               {attention.length === 0 ? (
                 <p className="text-sm text-fal-muted">Nenhuma pendência operacional agora.</p>
               ) : (
@@ -334,11 +334,11 @@ export function AdminOrdersHubPage() {
                         <Link
                           to={`/admin/pedidos/${o.id}`}
                           onClick={() => rememberOrdersReturnPath('/admin/pedidos')}
-                          className="font-semibold text-fal-navy"
+                          className="font-semibold text-fal-fg"
                         >
                           {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
                         </Link>
-                        <p className="mb-0 mt-0.5 text-xs font-extrabold text-fal-navy">
+                        <p className="mb-0 mt-0.5 text-xs font-extrabold text-fal-fg">
                           Faça agora:{' '}
                           {o.logisticsNextActionLabel ??
                             adminNextActionLabel(o.status, o.customerDecision)}
@@ -355,8 +355,8 @@ export function AdminOrdersHubPage() {
               )}
             </div>
 
-            <div className="rounded-[14px] border border-fal-line bg-white p-4">
-              <h2 className="mt-0 text-base font-extrabold text-fal-navy">Mais recentes</h2>
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <h2 className="mt-0 text-base font-extrabold text-fal-fg">Mais recentes</h2>
               <ul className="mt-2 space-y-2">
                 {recent.map((o) => (
                   <li key={o.id} className="flex items-start justify-between gap-2 text-sm">
@@ -364,7 +364,7 @@ export function AdminOrdersHubPage() {
                       <Link
                         to={`/admin/pedidos/${o.id}`}
                         onClick={() => rememberOrdersReturnPath('/admin/pedidos')}
-                        className="font-semibold text-fal-navy"
+                        className="font-semibold text-fal-fg"
                       >
                         {o.id.slice(0, 8)}… · {o.customerName ?? 'Cliente'}
                       </Link>

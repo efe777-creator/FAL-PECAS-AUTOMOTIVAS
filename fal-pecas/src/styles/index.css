@@ -2,8 +2,11 @@
 
 /**
  * Design tokens — identidade visual FAL Peças Automotivas
- * Não alterar cores/tipografia/espaçamentos arbitrariamente.
+ * @theme aponta para var(--fal-*); light/dark só em :root / .dark
+ * Navy de marca NÃO inverte no dark (sidebar/estrutura).
  */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --fal-navy: #303846;
   --fal-navy-dark: #252c36;
@@ -11,8 +14,14 @@
   --fal-yellow: #f2c84b;
   --fal-yellow-dark: #dcae27;
   --fal-yellow-hover: #ffd75c;
+  --fal-accent: #3b82f6;
+  --fal-accent-hover: #2563eb;
+  --fal-warning: #d97706;
+  --fal-favorite: #e11d48;
+  --fal-fg: #252c36;
   --fal-bg: #f4f6f7;
   --fal-surface: #ffffff;
+  --fal-surface-2: #f8f9fa;
   --fal-line: #dfe4e8;
   --fal-muted: #5a6570;
   --fal-success: #168a55;
@@ -24,21 +33,62 @@
   --fal-header-logo-h: 72px;
 }
 
+.dark {
+  --fal-accent: #60a5fa;
+  --fal-accent-hover: #3b82f6;
+  --fal-warning: #fbbf24;
+  --fal-favorite: #fb7185;
+  --fal-fg: #e8ecf0;
+  --fal-bg: #1a1f26;
+  --fal-surface: #242b33;
+  --fal-surface-2: #2c343e;
+  --fal-line: #3a4450;
+  --fal-muted: #9aa3ad;
+  --fal-success: #34d399;
+  --fal-danger: #f87171;
+  /* navy / yellow de marca permanecem nos valores :root */
+
+  /*
+   * Tailwind v4 resolve --color-fal-* no :root (valor light concreto).
+   * Rebind no .dark para utilitários bg/text/border-fal-* herdarem o tema.
+   */
+  --color-fal-accent: var(--fal-accent);
+  --color-fal-accent-hover: var(--fal-accent-hover);
+  --color-fal-warning: var(--fal-warning);
+  --color-fal-favorite: var(--fal-favorite);
+  --color-fal-fg: var(--fal-fg);
+  --color-fal-ink: var(--fal-fg);
+  --color-fal-bg: var(--fal-bg);
+  --color-fal-surface: var(--fal-surface);
+  --color-fal-surface-2: var(--fal-surface-2);
+  --color-fal-line: var(--fal-line);
+  --color-fal-muted: var(--fal-muted);
+  --color-fal-success: var(--fal-success);
+  --color-fal-danger: var(--fal-danger);
+}
+
 @theme {
   --font-sans: Inter, Arial, sans-serif;
-  --color-fal-navy: #303846;
-  --color-fal-navy-dark: #252c36;
-  --color-fal-navy-2: #46515e;
-  --color-fal-yellow: #f2c84b;
-  --color-fal-yellow-dark: #dcae27;
-  --color-fal-yellow-hover: #ffd75c;
-  --color-fal-bg: #f4f6f7;
-  --color-fal-surface: #ffffff;
-  --color-fal-line: #dfe4e8;
-  --color-fal-muted: #5a6570;
-  --color-fal-success: #168a55;
-  --color-fal-danger: #c0392b;
-  --color-fal-auth-link: #7c5b00;
+  --color-fal-navy: var(--fal-navy);
+  --color-fal-navy-dark: var(--fal-navy-dark);
+  --color-fal-navy-2: var(--fal-navy-2);
+  --color-fal-yellow: var(--fal-yellow);
+  --color-fal-yellow-dark: var(--fal-yellow-dark);
+  --color-fal-yellow-hover: var(--fal-yellow-hover);
+  --color-fal-accent: var(--fal-accent);
+  --color-fal-accent-hover: var(--fal-accent-hover);
+  --color-fal-warning: var(--fal-warning);
+  --color-fal-favorite: var(--fal-favorite);
+  --color-fal-fg: var(--fal-fg);
+  --color-fal-ink: var(--fal-fg);
+  --color-fal-bg: var(--fal-bg);
+  --color-fal-surface: var(--fal-surface);
+  --color-fal-surface-2: var(--fal-surface-2);
+  --color-fal-line: var(--fal-line);
+  --color-fal-muted: var(--fal-muted);
+  --color-fal-success: var(--fal-success);
+  --color-fal-danger: var(--fal-danger);
+  --color-fal-auth-link: var(--fal-auth-link);
   --breakpoint-sm: 620px;
   --breakpoint-lg: 900px;
   --radius-fal: 14px;
@@ -58,7 +108,7 @@ html {
 body {
   margin: 0;
   font-family: Inter, Arial, sans-serif;
-  color: var(--fal-navy-dark);
+  color: var(--fal-fg);
   background: var(--fal-bg);
   line-height: 1.45;
 }

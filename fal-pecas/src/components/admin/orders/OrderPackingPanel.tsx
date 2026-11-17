@@ -221,9 +221,9 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
         : `Incompleto${allocCheck.reason ? ` — ${allocCheck.reason}` : ''}.`
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">{helpTitle}</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">{helpTitle}</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           {helpBody}
           {locked ? ' Somente leitura após despacho.' : ''}
@@ -248,7 +248,7 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
               const ok = got === it.quantity
               return (
                 <li key={it.id} className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-fal-navy">{it.name}</span>
+                  <span className="text-fal-fg">{it.name}</span>
                   <span className={ok ? 'text-emerald-700' : 'text-amber-800'}>
                     alocado {got}/{it.quantity}
                   </span>
@@ -266,7 +266,7 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
           {volumes.map((v, idx) => (
             <li key={v.id} className="rounded-[12px] border border-fal-line p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-bold text-fal-navy">Volume {idx + 1}</span>
+                <span className="text-sm font-bold text-fal-fg">Volume {idx + 1}</span>
                 {!locked ? (
                   <Button
                     type="button"
@@ -351,7 +351,7 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
 
       {!locked && (!pickup || volumes.length > 0) ? (
         <div className="space-y-3 rounded-[12px] border border-dashed border-fal-line p-3">
-          <label className="flex items-start gap-2 text-sm text-fal-navy">
+          <label className="flex items-start gap-2 text-sm text-fal-fg">
             <input
               type="checkbox"
               className="mt-1"

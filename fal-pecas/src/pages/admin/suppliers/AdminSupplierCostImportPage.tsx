@@ -19,7 +19,7 @@ export function AdminSupplierCostImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Importar custos</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">Importar custos</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Formato: <code className="rounded bg-fal-bg px-1">codigo_fornecedor;custo</code>. Atualiza
           o custo base no fornecedor (exige conversão prévia). Preços de venda não são
@@ -36,7 +36,7 @@ export function AdminSupplierCostImportPage() {
           Somente administrador ou gerente podem importar custos.
         </p>
       ) : (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <p className="m-0 text-sm text-fal-muted">
             O assistente unificado abre automaticamente. Se fechou, use o botão abaixo.
           </p>

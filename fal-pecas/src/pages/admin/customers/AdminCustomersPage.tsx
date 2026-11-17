@@ -126,7 +126,7 @@ export function AdminCustomersPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-extrabold text-fal-navy">Clientes</h1>
+        <h1 className="text-2xl font-extrabold text-fal-fg">Clientes</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Consulta de cadastros e pedidos recentes — {rows.length} cadastro
           {rows.length === 1 ? '' : 's'} carregado{rows.length === 1 ? '' : 's'}.
@@ -152,7 +152,7 @@ export function AdminCustomersPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           {rows.length === 0 ? (
             <div className="p-4">
               <EmptyState
@@ -188,7 +188,7 @@ export function AdminCustomersPage() {
                     ].join(' ')}
                     onClick={() => void open(r.id)}
                   >
-                    <td className="px-3 py-2 font-semibold text-fal-navy">{r.name ?? '—'}</td>
+                    <td className="px-3 py-2 font-semibold text-fal-fg">{r.name ?? '—'}</td>
                     <td className="px-3 py-2">{r.username ?? '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {r.phone ? formatPhoneMask(r.phone) : '—'}
@@ -214,14 +214,14 @@ export function AdminCustomersPage() {
           ) : null}
         </div>
 
-        <div className="rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
           {detailLoading ? <Loading label="Carregando detalhe…" /> : null}
           {!detailLoading && !detail ? (
             <p className="text-sm text-fal-muted">Selecione um cliente.</p>
           ) : null}
           {!detailLoading && detail ? (
             <div className="space-y-3 text-sm">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">{detail.name ?? 'Cliente'}</h2>
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">{detail.name ?? 'Cliente'}</h2>
               <p className="m-0 text-fal-muted">
                 {detail.username ?? '—'} · {detail.document ?? 'sem documento'} · tel{' '}
                 {detail.phone ? formatPhoneMask(detail.phone) : '—'}
@@ -240,7 +240,7 @@ export function AdminCustomersPage() {
                       <li key={o.id}>
                         <Link
                           to={`/admin/pedidos/${o.id}`}
-                          className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+                          className="font-semibold text-fal-fg underline-offset-2 hover:underline"
                         >
                           {o.id.slice(0, 8)}…
                         </Link>{' '}

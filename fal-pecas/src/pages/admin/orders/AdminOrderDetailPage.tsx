@@ -746,7 +746,7 @@ export function AdminOrderDetailPage() {
                 : 'rounded-[14px] border border-sky-300 bg-sky-50 px-4 py-3'
           }
         >
-          <h2 className="m-0 text-base font-extrabold text-fal-navy">Autorização do cliente</h2>
+          <h2 className="m-0 text-base font-extrabold text-fal-fg">Autorização do cliente</h2>
           <p className="mt-1 mb-2 text-sm text-fal-muted">
             {current.customerDecision === 'authorized'
               ? 'Cliente autorizou. Use Confirmar pedido para enviar à separação.'
@@ -769,7 +769,7 @@ export function AdminOrderDetailPage() {
 
       {current.cancellationRequest === 'pending' ? (
         <section className="rounded-[14px] border border-amber-400 bg-amber-50 px-4 py-3">
-          <h2 className="m-0 text-base font-extrabold text-fal-navy">
+          <h2 className="m-0 text-base font-extrabold text-fal-fg">
             Solicitação de cancelamento (pós-pago)
           </h2>
           <p className="mt-1 mb-2 text-sm text-fal-muted">
@@ -896,7 +896,7 @@ export function AdminOrderDetailPage() {
       current.cancellationRequest === 'approved' &&
       current.payment?.status === 'approved' ? (
         <section className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] px-4 py-3">
-          <h2 className="m-0 text-base font-extrabold text-fal-navy">Estorno pendente (manual)</h2>
+          <h2 className="m-0 text-base font-extrabold text-fal-fg">Estorno pendente (manual)</h2>
           <p className="mt-1 mb-3 text-sm text-fal-muted">
             Após concluir o refund no painel Mercado Pago, registre aqui.
             {current.cancellationResolveNote
@@ -936,8 +936,8 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
-      <details className="rounded-[14px] border border-fal-line bg-white open:shadow-sm">
-        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
+      <details className="rounded-[14px] border border-fal-line bg-fal-surface open:shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-fg marker:content-none [&::-webkit-details-marker]:hidden">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>Cliente e valores</span>
             <span className="text-xs font-semibold text-fal-muted">
@@ -975,7 +975,7 @@ export function AdminOrderDetailPage() {
           · Total {formatMoney(order.total)}
         </p>
         {contractedShip ? (
-          <p className="mt-1 mb-0 text-sm text-fal-navy">
+          <p className="mt-1 mb-0 text-sm text-fal-fg">
             <strong>Frete escolhido:</strong> {contractedShip.label}
             {contractedShip.etaLabel ? (
               <>
@@ -987,7 +987,7 @@ export function AdminOrderDetailPage() {
         ) : null}
         {marginSummary ? (
           <div className="mt-3 rounded-[12px] border border-fal-yellow-dark/40 bg-fal-yellow/10 px-3 py-3">
-            <h3 className="m-0 text-sm font-extrabold text-fal-navy">Rentabilidade estimada (itens)</h3>
+            <h3 className="m-0 text-sm font-extrabold text-fal-fg">Rentabilidade estimada (itens)</h3>
             {marginBusy ? (
               <p className="mb-0 mt-1 text-xs text-fal-muted">Carregando custos…</p>
             ) : (
@@ -1021,10 +1021,10 @@ export function AdminOrderDetailPage() {
       </details>
 
       <details
-        className="rounded-[14px] border border-fal-line bg-white open:shadow-sm"
+        className="rounded-[14px] border border-fal-line bg-fal-surface open:shadow-sm"
         open={order.status === 'aguardando_pagamento'}
       >
-        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-navy [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-fg [&::-webkit-details-marker]:hidden">
           <span className="flex flex-wrap items-center justify-between gap-2">
             <span>Pagamento</span>
             <span className="text-xs font-semibold text-fal-muted">
@@ -1063,17 +1063,17 @@ export function AdminOrderDetailPage() {
       <section
         id="ops-conferencia"
         className={[
-          'scroll-mt-20 rounded-[14px] border bg-white p-4',
+          'scroll-mt-20 rounded-[14px] border bg-fal-surface p-4',
           inAnalysis || inSeparation
             ? 'border-fal-navy/40 shadow-sm ring-1 ring-fal-navy/10'
             : 'border-fal-line',
         ].join(' ')}
       >
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">
           {inSeparation ? 'Separação dos itens' : inAnalysis ? 'Conferência dos itens' : 'Itens do pedido'}
         </h2>
         {inAnalysis ? (
-          <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
+          <p className="mb-0 mt-1 text-sm font-semibold text-fal-fg">
             Marque a disponibilidade de cada item e salve
             {order.items.length > 1
               ? ' — ou selecione vários e aplique a mesma regra de uma vez'
@@ -1081,7 +1081,7 @@ export function AdminOrderDetailPage() {
           </p>
         ) : null}
         {inSeparation ? (
-          <p className="mb-0 mt-1 text-sm font-semibold text-fal-navy">
+          <p className="mb-0 mt-1 text-sm font-semibold text-fal-fg">
             Separe a quantidade integral por linha ({separatedCount}/{separableItems.length} a
             enviar). Itens indisponíveis ficam fora.
             {storePickup
@@ -1102,7 +1102,7 @@ export function AdminOrderDetailPage() {
         {inAnalysis && order.items.length > 1 ? (
           <div className="mt-3 rounded-[12px] border border-fal-navy/25 bg-[#f4f7fb] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="m-0 text-sm font-extrabold text-fal-navy">
+              <p className="m-0 text-sm font-extrabold text-fal-fg">
                 Seleção · modificar global
               </p>
               <div className="flex flex-wrap gap-2">
@@ -1135,7 +1135,7 @@ export function AdminOrderDetailPage() {
                   Disponibilidade (global)
                 </span>
                 <select
-                  className="w-full rounded-[9px] border border-fal-line bg-white px-3 py-2"
+                  className="w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2"
                   value={bulkDraft.availability}
                   disabled={busy}
                   onChange={(e) =>
@@ -1224,7 +1224,7 @@ export function AdminOrderDetailPage() {
                       </label>
                     ) : null}
                     <div className="min-w-0">
-                    <div className="font-extrabold text-fal-navy">{it.nameSnapshot}</div>
+                    <div className="font-extrabold text-fal-fg">{it.nameSnapshot}</div>
                     <div className="text-xs text-fal-muted">
                       {SKU_FAL_LABEL} {it.sku} · qtd {it.quantity} ·{' '}
                       {formatMoney(it.unitPrice)}
@@ -1241,7 +1241,7 @@ export function AdminOrderDetailPage() {
                       </div>
                     ) : null}
                     {showInv ? (
-                      <div className="mt-1 text-xs font-semibold text-fal-navy">
+                      <div className="mt-1 text-xs font-semibold text-fal-fg">
                         Estoque: on hand {it.quantityOnHand ?? '—'} · reservado{' '}
                         {it.quantityReserved ?? '—'} · pedido pede {it.quantity}
                       </div>
@@ -1365,7 +1365,7 @@ export function AdminOrderDetailPage() {
         />
       ) : null}
 
-      <div className="flex flex-wrap gap-2 rounded-[14px] border border-dashed border-fal-line bg-white px-3 py-3">
+      <div className="flex flex-wrap gap-2 rounded-[14px] border border-dashed border-fal-line bg-fal-surface px-3 py-3">
         {needsReception ? (
           <Button
             type="button"
@@ -1485,7 +1485,7 @@ export function AdminOrderDetailPage() {
           className="rounded-[14px] border border-fal-navy/30 bg-[#f7f9fc] p-4"
           aria-live="polite"
         >
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+          <h2 className="m-0 text-lg font-extrabold text-fal-fg">
             {PENDING_COPY[pending.kind].title}
           </h2>
           <p className="mt-1 mb-3 text-sm text-fal-muted">{PENDING_COPY[pending.kind].body}</p>
@@ -1614,7 +1614,7 @@ export function AdminOrderDetailPage() {
               {['confirmado', 'em_separacao', 'pronto_para_envio', 'preparando_envio'].includes(
                 order.status,
               ) ? (
-                <details className="rounded-[14px] border border-fal-line bg-white" open>
+                <details className="rounded-[14px] border border-fal-line bg-fal-surface" open>
                   <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-fal-muted [&::-webkit-details-marker]:hidden">
                     Volumes / medidas (own — registre divergência se necessário)
                   </summary>
@@ -1639,7 +1639,7 @@ export function AdminOrderDetailPage() {
       ['confirmado', 'em_separacao', 'pronto_para_envio', 'preparando_envio', 'enviado', 'entregue'].includes(
         order.status,
       ) ? (
-        <details className="rounded-[14px] border border-fal-line bg-white">
+        <details className="rounded-[14px] border border-fal-line bg-fal-surface">
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-fal-muted [&::-webkit-details-marker]:hidden">
             Volumes (opcional na retirada)
           </summary>
@@ -1672,8 +1672,8 @@ export function AdminOrderDetailPage() {
         </>
       ) : null}
 
-      <details className="rounded-[14px] border border-fal-line bg-white">
-        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-navy [&::-webkit-details-marker]:hidden">
+      <details className="rounded-[14px] border border-fal-line bg-fal-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-fg [&::-webkit-details-marker]:hidden">
           Financeiro do frete · ocorrências
         </summary>
         <div className="space-y-4 border-t border-fal-line p-4">
@@ -1700,8 +1700,8 @@ export function AdminOrderDetailPage() {
       {!storePickup &&
       orderUsesMelhorEnvio(order) &&
       (order.status === 'enviado' || order.status === 'entregue') ? (
-        <section className="rounded-[14px] border border-fal-navy/30 bg-white p-4 ring-1 ring-fal-navy/10">
-          <h2 className="m-0 text-lg font-extrabold text-fal-navy">Entrega ao cliente</h2>
+        <section className="rounded-[14px] border border-fal-navy/30 bg-fal-surface p-4 ring-1 ring-fal-navy/10">
+          <h2 className="m-0 text-lg font-extrabold text-fal-fg">Entrega ao cliente</h2>
           <p className="mt-1 text-sm text-fal-muted">
             Etiqueta:{' '}
             {meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))}
@@ -1733,8 +1733,8 @@ export function AdminOrderDetailPage() {
         </section>
       ) : null}
 
-      <details className="rounded-[14px] border border-fal-line bg-fal-bg/30 open:bg-white">
-        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-navy [&::-webkit-details-marker]:hidden">
+      <details className="rounded-[14px] border border-fal-line bg-fal-bg/30 open:bg-fal-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-fg [&::-webkit-details-marker]:hidden">
           Andamento do pedido
         </summary>
         <ol className="mb-0 list-none space-y-2 border-t border-fal-line px-4 py-3">
@@ -1745,7 +1745,7 @@ export function AdminOrderDetailPage() {
                   step.state === 'done'
                     ? 'font-extrabold text-fal-success'
                     : step.state === 'current'
-                      ? 'font-extrabold text-fal-navy'
+                      ? 'font-extrabold text-fal-fg'
                       : 'text-fal-muted'
                 }
               >
@@ -1763,8 +1763,8 @@ export function AdminOrderDetailPage() {
         </ol>
       </details>
 
-      <details className="rounded-[14px] border border-fal-line bg-white">
-        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-navy [&::-webkit-details-marker]:hidden">
+      <details className="rounded-[14px] border border-fal-line bg-fal-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold text-fal-fg [&::-webkit-details-marker]:hidden">
           Registros operacionais
         </summary>
         <div className="border-t border-fal-line px-4 pb-4 pt-2">

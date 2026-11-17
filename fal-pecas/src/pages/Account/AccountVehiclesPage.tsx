@@ -137,7 +137,7 @@ export function AccountVehiclesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus carros</h2>
         <p className="text-sm text-fal-muted">
           Garagem da conta: salve veículos para filtrar o catálogo mais rápido. Também pode
@@ -146,13 +146,13 @@ export function AccountVehiclesPage() {
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link
             to="/veiculo"
-            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-bg px-4 text-sm font-bold text-fal-navy hover:border-fal-navy"
+            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-bg px-4 text-sm font-bold text-fal-fg hover:border-fal-navy"
           >
             Buscar por placa / veículo
           </Link>
           <Link
             to="/catalogo"
-            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-white px-4 text-sm font-bold text-fal-navy hover:border-fal-navy"
+            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-4 text-sm font-bold text-fal-fg hover:border-fal-navy"
           >
             Abrir catálogo
           </Link>
@@ -231,7 +231,7 @@ export function AccountVehiclesPage() {
 
       <div className="space-y-3">
         {items.map((v) => (
-          <div key={v.id} className="rounded-fal border border-fal-line bg-white p-4">
+          <div key={v.id} className="rounded-fal border border-fal-line bg-fal-surface p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="m-0 font-extrabold">

@@ -90,7 +90,7 @@ export function CategoriesBrowsePanel({
         >
           <button
             type="button"
-            className="w-6 shrink-0 font-bold text-fal-navy disabled:opacity-30"
+            className="w-6 shrink-0 font-bold text-fal-fg disabled:opacity-30"
             disabled={!hasKids}
             aria-label={isOpen ? 'Recolher' : 'Expandir'}
             onClick={() => onToggleExpanded(cat.id)}
@@ -100,7 +100,7 @@ export function CategoriesBrowsePanel({
           {depth === 1 ? <CategoryIconThumb cat={cat} /> : null}
           <div className="min-w-[160px] flex-1">
             <div
-              className={depth === 1 ? 'font-extrabold text-fal-navy' : 'font-semibold text-fal-navy'}
+              className={depth === 1 ? 'font-extrabold text-fal-fg' : 'font-semibold text-fal-fg'}
             >
               {cat.name}
             </div>
@@ -119,7 +119,7 @@ export function CategoriesBrowsePanel({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="font-semibold text-fal-navy underline disabled:opacity-40"
+              className="font-semibold text-fal-fg underline disabled:opacity-40"
               disabled={busyId === cat.id || sibIdx <= 0}
               onClick={() => onReorder(cat, 'up')}
               title="Subir entre irmãos"
@@ -128,7 +128,7 @@ export function CategoriesBrowsePanel({
             </button>
             <button
               type="button"
-              className="font-semibold text-fal-navy underline disabled:opacity-40"
+              className="font-semibold text-fal-fg underline disabled:opacity-40"
               disabled={busyId === cat.id || sibIdx < 0 || sibIdx >= sibs.length - 1}
               onClick={() => onReorder(cat, 'down')}
               title="Descer entre irmãos"
@@ -145,7 +145,7 @@ export function CategoriesBrowsePanel({
             {canAddChild && cat.status !== 'archived' ? (
               <button
                 type="button"
-                className="font-semibold text-fal-navy underline"
+                className="font-semibold text-fal-fg underline"
                 onClick={() => onAddChild(cat)}
               >
                 + {categoryLevelLabel(depth + 1)}
@@ -185,7 +185,7 @@ export function CategoriesBrowsePanel({
   }
 
   return (
-    <div className="rounded-[14px] border border-fal-line bg-white">
+    <div className="rounded-[14px] border border-fal-line bg-fal-surface">
       <div className="flex flex-wrap gap-4 border-b border-fal-line bg-fal-bg px-3 py-2 text-xs font-extrabold text-fal-muted">
         <span>Categoria</span>
         <span>→ Grupo</span>
@@ -236,7 +236,7 @@ export function CategoriesBrowsePanel({
                     <td className="px-3 py-2 whitespace-nowrap text-xs font-bold text-fal-muted">
                       {categoryLevelLabel(depth)}
                     </td>
-                    <td className="px-3 py-2 font-semibold text-fal-navy">
+                    <td className="px-3 py-2 font-semibold text-fal-fg">
                       <span className="inline-flex items-center gap-2">
                         {depth === 1 ? <CategoryIconThumb cat={cat} /> : null}
                         {cat.name}
@@ -265,7 +265,7 @@ export function CategoriesBrowsePanel({
                         {depth < CATEGORY_MAX_DEPTH && cat.status !== 'archived' ? (
                           <button
                             type="button"
-                            className="font-semibold text-fal-navy underline"
+                            className="font-semibold text-fal-fg underline"
                             onClick={() => onAddChild(cat)}
                           >
                             + {categoryLevelLabel(depth + 1)}

@@ -17,15 +17,15 @@ export function AdminPaymentProvidersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/admin/pagamentos" className="text-sm font-semibold text-fal-navy no-underline">
+        <Link to="/admin/pagamentos" className="text-sm font-semibold text-fal-fg no-underline">
           ← Pagamentos
         </Link>
-        <h1 className="mt-2 text-[28px] font-extrabold text-fal-navy">Provedores e integrações</h1>
+        <h1 className="mt-2 text-[28px] font-extrabold text-fal-fg">Provedores e integrações</h1>
         <p className="m-0 text-sm text-fal-muted">
           Integração do ambiente: <strong>{primary}</strong> (
           <code className="text-xs">VITE_PAYMENT_PROVIDER={envKey}</code>). Quem recebe cada
           cobrança é o roteamento em{' '}
-          <Link to="/admin/pagamentos/metodos" className="font-semibold text-fal-navy">
+          <Link to="/admin/pagamentos/metodos" className="font-semibold text-fal-fg">
             Métodos
           </Link>
           .
@@ -39,10 +39,10 @@ export function AdminPaymentProvidersPage() {
           return (
             <li
               key={a.id}
-              className="rounded-[14px] border border-fal-line bg-white p-5"
+              className="rounded-[14px] border border-fal-line bg-fal-surface p-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-extrabold text-fal-navy">{a.label}</h2>
+                <h2 className="m-0 text-lg font-extrabold text-fal-fg">{a.label}</h2>
                 <span
                   className={`rounded-md px-2 py-0.5 text-xs font-bold ${
                     inEngine ? 'bg-fal-yellow text-fal-navy-dark' : 'bg-fal-line/60 text-fal-muted'
@@ -60,7 +60,7 @@ export function AdminPaymentProvidersPage() {
                 <p className="mb-0 mt-3">
                   <Link
                     to="/admin/pagamentos/metodos/mercado-pago"
-                    className="text-sm font-semibold text-fal-navy"
+                    className="text-sm font-semibold text-fal-fg"
                   >
                     Abrir controle Mercado Pago →
                   </Link>

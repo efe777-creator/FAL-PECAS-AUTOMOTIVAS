@@ -2,13 +2,29 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { Loading } from '@/components/common/Loading'
 import { Container } from '@/components/layout/Container'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { trackPurchase } from '@/lib/analytics'
 import { formatMoney } from '@/lib/money'
 import { orderStatusLabel } from '@/lib/orderLifecycle'
 import { paymentStatusLabel } from '@/lib/paymentLabels'
 import { getMyOrderDetail } from '@/services/orders/orderDetailService'
 import type { OrderDetail } from '@/types'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+
+const PURCHASE_TRACKED_KEY = 'fal_purchase_tracked_v1'
+
+function markPurchaseTracked(orderId: string): boolean {
+  try {
+    const raw = sessionStorage.getItem(PURCHASE_TRACKED_KEY)
+    const set = new Set<string>(raw ? (JSON.parse(raw) as string[]) : [])
+    if (set.has(orderId)) return false
+    set.add(orderId)
+    sessionStorage.setItem(PURCHASE_TRACKED_KEY, JSON.stringify([...set].slice(-40)))
+    return true
+  } catch {
+    return true
+  }
+}
 
 function addressLine(snap: Record<string, unknown> | null | undefined): string | null {
   if (!snap) return null
@@ -29,6 +45,7 @@ export function OrderConfirmationPage() {
   const short = id ? id.slice(0, 8) : '—'
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(Boolean(id))
+  const purchaseFired = useRef(false)
 
   useEffect(() => {
     if (!id) {
@@ -51,6 +68,21 @@ export function OrderConfirmationPage() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!order || purchaseFired.current) return
+    const paid =
+      order.payment?.status === 'approved' ||
+      order.status === 'pagamento_aprovado' ||
+      order.status === 'em_separacao' ||
+      order.status === 'preparando_envio' ||
+      order.status === 'enviado' ||
+      order.status === 'entregue'
+    if (!paid) return
+    if (!markPurchaseTracked(order.id)) return
+    purchaseFired.current = true
+    trackPurchase({ orderId: order.id, value: order.total })
+  }, [order])
 
   const addr = addressLine(order?.addressSnapshot ?? null)
 

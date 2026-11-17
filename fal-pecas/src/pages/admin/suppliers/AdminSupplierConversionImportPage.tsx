@@ -151,7 +151,7 @@ export function AdminSupplierConversionImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Importar conversões</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">Importar conversões</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Formato: <code className="rounded bg-fal-bg px-1">codigo_fal;codigo_fornecedor</code>.
           Fornecedor obrigatório na tela (não inferido do arquivo). Persiste em{' '}
@@ -164,11 +164,11 @@ export function AdminSupplierConversionImportPage() {
           Somente administrador ou gerente podem importar conversões.
         </p>
       ) : (
-        <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-extrabold text-fal-muted">Fornecedor *</span>
             <select
-              className="w-full max-w-md rounded-[9px] border border-fal-line bg-white px-3 py-3"
+              className="w-full max-w-md rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3"
               value={supplierId}
               disabled={busy || loadingSuppliers || Boolean(preview)}
               onChange={(e) => {
@@ -188,7 +188,7 @@ export function AdminSupplierConversionImportPage() {
           </label>
 
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-fg">Arquivo</h2>
             <p className="mt-1 text-sm text-fal-muted">
               Atualiza pelo código do fornecedor. {SKU_FAL_LABEL} inexistente = erro (sem criar
               produto).
@@ -211,7 +211,7 @@ export function AdminSupplierConversionImportPage() {
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 
       {preview ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+        <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="m-0 text-sm">
               Arquivo <strong>{fileName}</strong>
@@ -220,7 +220,7 @@ export function AdminSupplierConversionImportPage() {
                 : null}{' '}
               — válidos: {validCount}, inválidos: {invalidCount}
             </p>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
               <input
                 type="checkbox"
                 checked={showOnlyErrors}

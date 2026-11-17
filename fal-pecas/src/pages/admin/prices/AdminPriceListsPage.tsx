@@ -304,15 +304,15 @@ export function AdminPriceListsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Listas de preços</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Listas de preços</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
             Consulte e ajuste preços da lista selecionada. {PRICE_LIST_LAYERS_HINT} Para
             classificar um produto (Categoria / Grupo / Subgrupo), abra o cadastro em{' '}
-            <Link className="font-semibold text-fal-navy underline" to="/admin/produtos">
+            <Link className="font-semibold text-fal-fg underline" to="/admin/produtos">
               Produtos
             </Link>{' '}
             ou gerencie a árvore em{' '}
-            <Link className="font-semibold text-fal-navy underline" to="/admin/categorias">
+            <Link className="font-semibold text-fal-fg underline" to="/admin/categorias">
               Categorias
             </Link>
             .
@@ -328,26 +328,26 @@ export function AdminPriceListsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm">
         <span>
           <span className="text-fal-muted">Ativas </span>
-          <strong className="tabular-nums text-fal-navy">{overview.activeLists}</strong>
+          <strong className="tabular-nums text-fal-fg">{overview.activeLists}</strong>
         </span>
         <span className="text-fal-line">·</span>
         <span>
           <span className="text-fal-muted">Itens </span>
-          <strong className="tabular-nums text-fal-navy">{overview.totalItems}</strong>
+          <strong className="tabular-nums text-fal-fg">{overview.totalItems}</strong>
         </span>
         <span className="text-fal-line">·</span>
         <span>
           <span className="text-fal-muted">Com preço </span>
-          <strong className="tabular-nums text-fal-navy">{overview.withPrice}</strong>
+          <strong className="tabular-nums text-fal-fg">{overview.withPrice}</strong>
         </span>
         <span className="text-fal-line">·</span>
         <button
           type="button"
           className={`font-semibold underline ${
-            overview.withoutPrice > 0 ? 'text-amber-800' : 'text-fal-navy'
+            overview.withoutPrice > 0 ? 'text-amber-800' : 'text-fal-fg'
           }`}
           onClick={() => setForceWithoutPrice((v) => !v)}
           title="Filtrar itens sem preço no painel"
@@ -362,8 +362,8 @@ export function AdminPriceListsPage() {
       {loading ? <Loading label="Carregando listas…" /> : null}
 
       <div>
-        <h2 className="mb-2 text-lg font-extrabold text-fal-navy">Gerenciar listas</h2>
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+        <h2 className="mb-2 text-lg font-extrabold text-fal-fg">Gerenciar listas</h2>
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
               <tr>
@@ -402,7 +402,7 @@ export function AdminPriceListsPage() {
                   }`}
                 >
                   <td className="px-3 py-2">
-                    <div className="font-semibold text-fal-navy">{list.name}</div>
+                    <div className="font-semibold text-fal-fg">{list.name}</div>
                     <div className="text-xs text-fal-muted">
                       {list.slug}
                       {list.isDefault ? ' · padrão' : ''}
@@ -425,14 +425,14 @@ export function AdminPriceListsPage() {
                   <td className="px-3 py-2">
                     <div className="relative flex flex-wrap items-center gap-2">
                       <Link
-                        className="text-sm font-extrabold text-fal-navy underline"
+                        className="text-sm font-extrabold text-fal-fg underline"
                         to={`/admin/precos/${list.id}?tab=produtos`}
                       >
                         Abrir
                       </Link>
                       <button
                         type="button"
-                        className="text-sm font-semibold text-fal-navy underline"
+                        className="text-sm font-semibold text-fal-fg underline"
                         disabled={busy}
                         onClick={() => openConfigure(list)}
                       >
@@ -440,7 +440,7 @@ export function AdminPriceListsPage() {
                       </button>
                       <button
                         type="button"
-                        className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-navy"
+                        className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-fg"
                         disabled={busy}
                         aria-label="Mais ações"
                         onClick={() =>
@@ -450,24 +450,24 @@ export function AdminPriceListsPage() {
                         ⋯
                       </button>
                       {menuOpenId === list.id ? (
-                        <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-white p-2 shadow-md">
+                        <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-fal-surface p-2 shadow-md">
                           <button
                             type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
                             onClick={() => openWizard(list.id)}
                           >
                             Importar
                           </button>
                           <button
                             type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
                             onClick={() => void onDuplicate(list)}
                           >
                             Duplicar
                           </button>
                           <button
                             type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-navy hover:bg-fal-bg"
+                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
                             onClick={() => void onToggleStatus(list)}
                           >
                             {list.status === 'active' ? 'Inativar' : 'Ativar'}
@@ -494,7 +494,7 @@ export function AdminPriceListsPage() {
         <form
           ref={formRef}
           onSubmit={onSubmit}
-          className={`grid gap-3 rounded-[14px] border bg-white p-4 md:grid-cols-2 ${
+          className={`grid gap-3 rounded-[14px] border bg-fal-surface p-4 md:grid-cols-2 ${
             formMode === 'edit'
               ? 'border-fal-yellow-dark ring-2 ring-fal-yellow/40'
               : 'border-fal-line'
@@ -508,9 +508,9 @@ export function AdminPriceListsPage() {
             required
           />
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Status</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Status</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+              className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
               value={status}
               onChange={(e) => setStatus(e.target.value as PriceListStatus)}
             >
@@ -520,9 +520,9 @@ export function AdminPriceListsPage() {
             </select>
           </label>
           <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block font-semibold text-fal-navy">Descrição</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Descrição</span>
             <textarea
-              className="min-h-[72px] w-full rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+              className="min-h-[72px] w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -531,7 +531,7 @@ export function AdminPriceListsPage() {
           <div className="md:col-span-2">
             <button
               type="button"
-              className="text-sm font-semibold text-fal-navy underline"
+              className="text-sm font-semibold text-fal-fg underline"
               onClick={() => setAdvancedOpen((v) => !v)}
             >
               {advancedOpen ? '▾' : '▸'} Avançado — regra de formação
@@ -551,7 +551,7 @@ export function AdminPriceListsPage() {
                   <p className="text-sm text-fal-muted">
                     Preferir a tela completa?{' '}
                     <Link
-                      className="font-semibold text-fal-navy underline"
+                      className="font-semibold text-fal-fg underline"
                       to={`/admin/precos/${editing.id}?tab=formacao`}
                     >
                       Abrir formação na lista

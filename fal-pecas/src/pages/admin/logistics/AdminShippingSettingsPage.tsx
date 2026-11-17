@@ -36,7 +36,7 @@ export function AdminShippingSettingsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">
+        <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">
           Configurações de envio
         </h1>
         <p className="m-0 text-sm text-fal-muted">
@@ -45,8 +45,8 @@ export function AdminShippingSettingsPage() {
         </p>
       </div>
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4 sm:p-5">
-        <h2 className="m-0 text-base font-extrabold text-fal-navy">Como a cotação se comporta hoje</h2>
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:p-5">
+        <h2 className="m-0 text-base font-extrabold text-fal-fg">Como a cotação se comporta hoje</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-fal-ink">
           <li>
             Produto sem peso/medidas úteis não entra bem na cotação ME — preencha medidas ou aplique o
@@ -75,15 +75,15 @@ export function AdminShippingSettingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="m-0 text-base font-extrabold text-fal-navy">Módulos relacionados</h2>
+        <h2 className="m-0 text-base font-extrabold text-fal-fg">Módulos relacionados</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {LINKS.map((l) => (
             <Link
               key={l.to}
               to={l.to}
-              className="block rounded-[14px] border border-fal-line bg-white p-4 no-underline transition hover:border-fal-navy/40"
+              className="block rounded-[14px] border border-fal-line bg-fal-surface p-4 no-underline transition hover:border-fal-navy/40"
             >
-              <h3 className="m-0 text-sm font-extrabold text-fal-navy">{l.title}</h3>
+              <h3 className="m-0 text-sm font-extrabold text-fal-fg">{l.title}</h3>
               <p className="mb-0 mt-1 text-sm text-fal-muted">{l.desc}</p>
             </Link>
           ))}

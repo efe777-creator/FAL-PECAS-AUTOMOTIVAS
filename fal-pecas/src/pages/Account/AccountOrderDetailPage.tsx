@@ -459,7 +459,7 @@ export function AccountOrderDetailPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <p className="m-0 text-sm">
           <Link to="/conta/pedidos" className="font-semibold text-fal-auth-link">
             ← Pedidos
@@ -472,22 +472,22 @@ export function AccountOrderDetailPage() {
               {formatDateTime(order.createdAt)} · <strong>{statusLabel}</strong>
             </p>
             {awaitingPayment ? (
-              <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
+              <p className="mb-0 mt-2 inline-block rounded-md bg-fal-warning/15 px-2 py-1 text-xs font-bold text-fal-fg">
                 Pendente de pagamento — continue abaixo ou cancele para editar no carrinho
               </p>
             ) : null}
             {awaitingDecision ? (
-              <p className="mb-0 mt-2 inline-block rounded-md bg-sky-100 px-2 py-1 text-xs font-bold text-sky-900">
+              <p className="mb-0 mt-2 inline-block rounded-md bg-fal-accent/15 px-2 py-1 text-xs font-bold text-fal-fg">
                 A loja pediu sua autorização — veja o painel abaixo
               </p>
             ) : null}
             {pickupReady ? (
-              <p className="mb-0 mt-2 inline-block rounded-md bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900">
+              <p className="mb-0 mt-2 inline-block rounded-md bg-fal-success/15 px-2 py-1 text-xs font-bold text-fal-fg">
                 Retirada autorizada — você já pode buscar na loja
               </p>
             ) : null}
             {cancelRequestPending ? (
-              <p className="mb-0 mt-2 inline-block rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
+              <p className="mb-0 mt-2 inline-block rounded-md bg-fal-warning/15 px-2 py-1 text-xs font-bold text-fal-fg">
                 Cancelamento solicitado — aguardando análise da loja
               </p>
             ) : null}
@@ -539,7 +539,7 @@ export function AccountOrderDetailPage() {
             })()}
             <Link
               to="/trocas-devolucoes"
-              className="inline-flex items-center rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-bold text-fal-navy hover:bg-fal-bg"
+              className="inline-flex items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-bold text-fal-fg hover:bg-fal-bg"
             >
               Trocas e devoluções
             </Link>
@@ -548,11 +548,11 @@ export function AccountOrderDetailPage() {
       </div>
 
       {pickupReady ? (
-        <section className="rounded-fal border-2 border-emerald-400 bg-emerald-50/70 p-5">
-          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-emerald-900/80">
+        <section className="rounded-fal border-2 border-fal-success/50 bg-fal-success/10 p-5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
             Faça agora
           </p>
-          <h3 className="mt-1 mb-0 text-lg font-extrabold text-fal-navy">
+          <h3 className="mt-1 mb-0 text-lg font-extrabold text-fal-fg">
             Pedido pronto para retirar na loja
           </h3>
           <p className="mt-2 mb-0 text-sm text-fal-ink">
@@ -560,7 +560,7 @@ export function AccountOrderDetailPage() {
             <strong>{order.id.slice(0, 8)}…</strong>.
           </p>
           {storeOrigin ? (
-            <p className="mt-3 mb-0 rounded-[10px] border border-emerald-200 bg-white px-3 py-2 text-sm text-fal-ink">
+            <p className="mt-3 mb-0 rounded-[10px] border border-fal-success/30 bg-fal-surface px-3 py-2 text-sm text-fal-ink">
               <strong>Endereço:</strong> {formatStoreOriginAddress(storeOrigin)}
             </p>
           ) : (
@@ -572,8 +572,8 @@ export function AccountOrderDetailPage() {
       ) : null}
 
       {awaitingPayment ? (
-        <div className="rounded-fal border border-amber-300 bg-amber-50/60 p-5">
-          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Continuar pagamento</h3>
+        <div className="rounded-fal border border-fal-warning/40 bg-fal-warning/10 p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-fg">Continuar pagamento</h3>
           <p className="mt-1 text-sm text-fal-muted">
             Pedido reservado. O Pix tem prazo curto — se expirar, gere um novo QR ou pague no
             cartão (o pedido permanece até 48 h). Sem pagamento aprovado em 48 h, o pedido é
@@ -587,15 +587,15 @@ export function AccountOrderDetailPage() {
       ) : null}
 
       {canPostDelivery ? (
-        <div className="rounded-fal border border-fal-line bg-white p-5">
-          <h3 className="mt-0 text-base font-extrabold text-fal-navy">Pós-entrega</h3>
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-fg">Pós-entrega</h3>
           <p className="mt-1 text-sm text-fal-muted">
             Confirme o recebimento ou avise se houve algum problema.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {order.status === 'entregue' ? (
               receiptConfirmed ? (
-                <p className="mb-0 text-sm font-semibold text-fal-navy">
+                <p className="mb-0 text-sm font-semibold text-fal-fg">
                   Você já confirmou o recebimento.
                 </p>
               ) : (
@@ -623,9 +623,9 @@ export function AccountOrderDetailPage() {
       {awaitingDecision ? (
         <div
           id="decisao"
-          className="scroll-mt-28 rounded-fal border border-sky-300 bg-sky-50/70 p-5"
+          className="scroll-mt-28 rounded-fal border border-fal-accent/40 bg-fal-accent/10 p-5"
         >
-          <h3 className="mt-0 text-base font-extrabold text-fal-navy">
+          <h3 className="mt-0 text-base font-extrabold text-fal-fg">
             {proposalKind === 'prazo'
               ? 'Prazo de entrega maior'
               : proposalKind === 'parcial'
@@ -638,7 +638,7 @@ export function AccountOrderDetailPage() {
             Nada é aplicado em silêncio. Escolha com clareza como prefere seguir.
           </p>
           {decisionRequestReason ? (
-            <p className="mt-2 rounded-md border border-sky-200 bg-white px-3 py-2 text-sm text-fal-ink">
+            <p className="mt-2 rounded-md border border-fal-accent/30 bg-fal-surface px-3 py-2 text-sm text-fal-ink">
               <strong>Mensagem da loja:</strong> {decisionRequestReason}
             </p>
           ) : null}
@@ -655,7 +655,7 @@ export function AccountOrderDetailPage() {
                   i.availability === 'indisponivel' || i.availability === 'disponivel_com_prazo',
               )
               .map((i) => (
-                <li key={i.id} className="rounded-md border border-sky-200 bg-white px-3 py-2">
+                <li key={i.id} className="rounded-md border border-fal-accent/30 bg-fal-surface px-3 py-2">
                   <strong>
                     {i.quantity}× {i.nameSnapshot}
                   </strong>
@@ -696,7 +696,7 @@ export function AccountOrderDetailPage() {
               </Button>
             </div>
           ) : (
-            <p className="mb-0 mt-3 text-sm font-semibold text-fal-navy">
+            <p className="mb-0 mt-3 text-sm font-semibold text-fal-fg">
               {order.customerDecision === 'authorized' ||
               order.customerDecision === 'continue_available'
                 ? 'Você confirmou. Aguardando a loja liberar o pedido para separação.'
@@ -711,7 +711,7 @@ export function AccountOrderDetailPage() {
         </div>
       ) : null}
 
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h3 className="mt-0 text-base font-extrabold">Andamento</h3>
         <ol className="m-0 list-none space-y-2 p-0">
           {timeline.map((step) => (
@@ -721,7 +721,7 @@ export function AccountOrderDetailPage() {
                   step.state === 'done'
                     ? 'font-extrabold text-fal-success'
                     : step.state === 'current'
-                      ? 'font-extrabold text-fal-navy'
+                      ? 'font-extrabold text-fal-fg'
                       : 'text-fal-muted'
                 }
               >
@@ -739,7 +739,7 @@ export function AccountOrderDetailPage() {
         </ol>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h3 className="mt-0 text-base font-extrabold">Itens</h3>
         <ul className="m-0 list-none space-y-2 p-0">
           {order.items.map((i) => (
@@ -787,7 +787,7 @@ export function AccountOrderDetailPage() {
       </div>
 
       {addr ? (
-        <div className="rounded-fal border border-fal-line bg-white p-5 text-sm">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5 text-sm">
           <h3 className="mt-0 text-base font-extrabold">Endereço de entrega</h3>
           <p className="m-0">
             {String(addr.recipient ?? '')}
@@ -803,7 +803,7 @@ export function AccountOrderDetailPage() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-fal border border-fal-line bg-white p-5 text-sm">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5 text-sm">
           <h3 className="mt-0 text-base font-extrabold">Pagamento</h3>
           {order.payment ? (
             <p className="m-0">
@@ -822,7 +822,7 @@ export function AccountOrderDetailPage() {
             <p className="m-0 text-fal-muted">Sem registro</p>
           )}
         </div>
-        <div className="rounded-fal border border-fal-line bg-white p-5 text-sm">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5 text-sm">
           <h3 className="mt-0 text-base font-extrabold">Envio</h3>
           {order.shipment ? (
             <p className="m-0">
@@ -863,7 +863,7 @@ export function AccountOrderDetailPage() {
                         href={trackingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-semibold text-fal-navy underline"
+                        className="font-semibold text-fal-fg underline"
                       >
                         {order.shipment?.trackingCode || 'Acompanhar envio'}
                       </a>
@@ -880,7 +880,7 @@ export function AccountOrderDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h3 className="mt-0 text-base font-extrabold">Atualizações do pedido</h3>
         <ol className="m-0 list-none space-y-2 p-0">
           {updates.map((ev) => {

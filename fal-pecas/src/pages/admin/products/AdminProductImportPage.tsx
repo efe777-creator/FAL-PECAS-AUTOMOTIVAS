@@ -107,13 +107,13 @@ export function AdminProductImportPage() {
       description="Código referência, nome, categoria, grupo, subgrupo, posição, lado e descrições. Sem montadora — aplicações são outra importação. Novos entram como rascunho e indisponíveis."
       actions={
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
-          <Link to="/admin/produtos/importar-aplicacoes" className="text-fal-navy">
+          <Link to="/admin/produtos/importar-aplicacoes" className="text-fal-fg">
             Aplicações →
           </Link>
-          <Link to="/admin/produtos/importar-hf" className="text-fal-navy">
+          <Link to="/admin/produtos/importar-hf" className="text-fal-fg">
             Arquivo completo →
           </Link>
-          <Link to="/admin/importacoes" className="text-fal-navy">
+          <Link to="/admin/importacoes" className="text-fal-fg">
             Histórico →
           </Link>
         </div>
@@ -126,8 +126,8 @@ export function AdminProductImportPage() {
       ) : (
         <div className="space-y-4">
           {phase !== 'done' ? (
-            <div className="rounded-[14px] border border-fal-line bg-white p-4">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Arquivo de cadastro</h2>
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">Arquivo de cadastro</h2>
               <p className="mt-1 text-sm text-fal-muted">
                 Envie CSV ou Excel com código referência, nome, categoria, grupo (e opcionalmente
                 subgrupo, posição, lado e descrições). Códigos repetidos no arquivo são
@@ -172,8 +172,8 @@ export function AdminProductImportPage() {
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           {phase === 'done' && report ? (
-            <div className="rounded-[14px] border border-fal-line bg-white p-4">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">Importação concluída</h2>
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">Importação concluída</h2>
               <p className="mt-2 text-sm">{report}</p>
               <Button
                 className="mt-3"
@@ -204,7 +204,7 @@ export function AdminProductImportPage() {
                 />
                 Mostrar só erros
               </label>
-              <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+              <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
                 <table className="min-w-full text-left text-sm">
                   <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                     <tr>
@@ -261,7 +261,7 @@ export function AdminProductImportPage() {
           ) : null}
 
           {phase === 'confirm' ? (
-            <div className="rounded-[14px] border border-fal-navy/20 bg-white p-4">
+            <div className="rounded-[14px] border border-fal-navy/20 bg-fal-surface p-4">
               <h2 className="m-0 text-lg font-extrabold">Confirmar importação?</h2>
               <p className="mt-2 text-sm text-fal-muted">
                 Esta ação grava {validCount} produto(s) no catálogo (rascunho se novos).

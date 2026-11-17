@@ -15,6 +15,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/components/common/Toast'
 import { useHomePresentation } from '@/hooks/useHomePresentation'
+import { trackAddToCart } from '@/lib/analytics'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { productHref as productPath } from '@/lib/productHref'
@@ -80,6 +81,12 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation()
     if (!available) return
     addItem(product, 1)
+    trackAddToCart({
+      itemId: product.id,
+      itemName: toCommercialTitleCase(product.name),
+      price,
+      quantity: 1,
+    })
     const next = cartQty + 1
     push(
       next === 1
@@ -114,7 +121,12 @@ export function ProductCard({ product }: { product: Product }) {
 
       <button
         type="button"
-        className="absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border border-fal-line bg-white/95 text-base shadow-sm hover:border-fal-navy"
+        className={[
+          'absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border bg-white/95 text-base shadow-sm',
+          liked
+            ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
+            : 'border-fal-line text-fal-muted hover:border-fal-navy',
+        ].join(' ')}
         aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
         onClick={(e) => void onFavoriteClick(e)}
       >

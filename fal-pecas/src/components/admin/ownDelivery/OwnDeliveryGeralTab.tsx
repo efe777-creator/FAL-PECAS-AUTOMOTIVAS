@@ -46,10 +46,10 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4"
+      className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4"
     >
-      <h2 className="m-0 text-lg font-extrabold text-fal-navy">Configurações gerais</h2>
-      <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+      <h2 className="m-0 text-lg font-extrabold text-fal-fg">Configurações gerais</h2>
+      <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
         <input
           type="checkbox"
           checked={enabled}
@@ -58,7 +58,7 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
         Ativar frete próprio na cotação da loja
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Como calcular o frete</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Como calcular o frete</span>
         <select
           className="w-full rounded-lg border border-fal-line px-3 py-2"
           value={pricingMode}
@@ -101,7 +101,7 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
         onDayCountMode={(m) => onChange({ etaDayCountMode: m })}
       />
       <div className="space-y-2">
-        <h3 className="m-0 text-sm font-extrabold text-fal-navy">Faixas de CEP atendidas</h3>
+        <h3 className="m-0 text-sm font-extrabold text-fal-fg">Faixas de CEP atendidas</h3>
         {cepRanges.map((r, i) => (
           <div key={i} className="flex flex-wrap items-end gap-2">
             <Input
@@ -141,7 +141,7 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
       </div>
       {pricingMode === 'flat' ? (
         <div className="space-y-2 rounded-lg border border-dashed border-fal-line p-3">
-          <h3 className="m-0 text-sm font-extrabold text-fal-navy">Opções de preço fixo</h3>
+          <h3 className="m-0 text-sm font-extrabold text-fal-fg">Opções de preço fixo</h3>
           <p className="m-0 text-xs text-fal-muted">
             Nome que o cliente vê na cotação e o valor cobrado. Identificadores internos são gerados
             automaticamente.
@@ -196,7 +196,7 @@ export function OwnDeliveryGeralTab({ values, saving, onChange, onSubmit }: Prop
           </Button>
           {showTech ? (
             <div className="rounded-lg bg-fal-line/30 p-2 text-xs text-fal-muted">
-              <p className="m-0 mb-1 font-semibold text-fal-navy">Identificadores (interno)</p>
+              <p className="m-0 mb-1 font-semibold text-fal-fg">Identificadores (interno)</p>
               {rates.map((r, i) => (
                 <p key={i} className="m-0 font-mono">
                   {ensureOwnRateId(r.label || `opcao_${i + 1}`, r.id)}

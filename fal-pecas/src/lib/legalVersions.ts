@@ -2,7 +2,7 @@
 
 export const LEGAL_VERSIONS = {
   terms: '2026-11-09',
-  privacy: '2026-11-09',
+  privacy: '2026-11-16',
   returns: '2026-11-09',
 } as const
 

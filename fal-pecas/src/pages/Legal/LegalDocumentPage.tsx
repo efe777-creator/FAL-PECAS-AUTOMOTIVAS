@@ -23,8 +23,9 @@ const COPY: Record<
     lead: 'Tratamos dados pessoais para operar a loja, entregar pedidos e cumprir obrigações legais.',
     bullets: [
       'Coletamos dados de cadastro, pedidos, endereço e comunicação necessários à compra.',
-      'Usamos cookies e armazenamento local essenciais (sessão, carrinho, segurança). Não vendemos dados para marketing.',
-      'Parceiros de pagamento e frete recebem apenas o necessário para processar a compra.',
+      'Usamos cookies e armazenamento local essenciais (sessão, carrinho, segurança).',
+      'Com o seu consentimento, podemos usar cookies/tags de analytics e marketing (ex.: Google Analytics/Ads, Meta Pixel) para medir campanhas e melhorar a loja. Sem consentimento de marketing, esses scripts não são carregados.',
+      'Não vendemos seus dados pessoais. Parceiros de pagamento, frete e, quando ativos, plataformas de ads recebem apenas o necessário para a finalidade (compra ou medição de conversão).',
       'Você pode solicitar correção ou exclusão de conta pelos canais de atendimento da loja (WhatsApp ou e-mail do rodapé).',
     ],
   },

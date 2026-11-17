@@ -1,3 +1,4 @@
+import { AdminTabs } from '@/components/admin/AdminTabs'
 import { OwnDeliveryAuditTab } from '@/components/admin/ownDelivery/OwnDeliveryAuditTab'
 import { OwnDeliveryGeralTab } from '@/components/admin/ownDelivery/OwnDeliveryGeralTab'
 import { OwnDeliveryManualTab } from '@/components/admin/ownDelivery/OwnDeliveryManualTab'
@@ -191,36 +192,28 @@ export function AdminOwnDeliveryPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Frete próprio</h1>
+        <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">Frete próprio</h1>
         <p className="m-0 text-sm text-fal-muted">
           Configure veículos, preços, capacidade e prazos (base operacional + tempo a mais). O
           sistema calcula o frete na cotação da loja.
         </p>
       </div>
 
-      <nav className="flex flex-wrap gap-2" aria-label="Menus frete próprio">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setTab(t.id)
-              setOk(null)
-              setError(null)
-            }}
-            className={`rounded-xl border px-3 py-2 text-left ${
-              tab === t.id
-                ? 'border-fal-navy bg-fal-navy text-white'
-                : 'border-fal-line bg-white text-fal-navy hover:border-fal-navy/40'
-            }`}
-          >
-            <span className="block text-sm font-extrabold">{t.label}</span>
-            <span className={`block text-[11px] ${tab === t.id ? 'text-white/80' : 'text-fal-muted'}`}>
-              {t.hint}
-            </span>
-          </button>
-        ))}
-      </nav>
+      <AdminTabs
+        aria-label="Menus frete próprio"
+        variant="card"
+        activeId={tab}
+        items={TABS.map((t) => ({
+          id: t.id,
+          label: t.label,
+          subtitle: t.hint,
+          onSelect: () => {
+            setTab(t.id)
+            setOk(null)
+            setError(null)
+          },
+        }))}
+      />
 
       {error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>

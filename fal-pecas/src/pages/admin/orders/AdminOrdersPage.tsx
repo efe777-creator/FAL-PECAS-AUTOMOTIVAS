@@ -152,7 +152,7 @@ export function AdminOrdersPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Lista avançada</h1>
+          <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">Lista avançada</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Filtro fino por grupo e status. Para filas de trabalho, use as áreas da central.
           </p>
@@ -174,7 +174,7 @@ export function AdminOrdersPage() {
             'rounded-[10px] border px-3 py-2 text-sm font-semibold',
             !groupFilter && !statusFilter
               ? 'border-fal-navy bg-fal-navy text-white'
-              : 'border-fal-line bg-white text-fal-navy',
+              : 'border-fal-line bg-fal-surface text-fal-fg',
           ].join(' ')}
         >
           Todos
@@ -192,7 +192,7 @@ export function AdminOrdersPage() {
                 'rounded-[10px] border px-3 py-2 text-left text-sm',
                 active
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-fal-line bg-white text-fal-navy',
+                  : 'border-fal-line bg-fal-surface text-fal-fg',
               ].join(' ')}
             >
               <span className="block text-[11px] opacity-80">{g.title}</span>
@@ -206,7 +206,7 @@ export function AdminOrdersPage() {
         <label className="text-sm font-semibold text-fal-muted">
           Status
           <select
-            className="mt-1 block rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            className="mt-1 block rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
             value={statusFilter}
             onChange={(e) => applyStatus(e.target.value)}
           >

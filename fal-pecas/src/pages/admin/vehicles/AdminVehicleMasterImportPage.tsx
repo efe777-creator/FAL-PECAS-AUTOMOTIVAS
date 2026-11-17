@@ -90,21 +90,21 @@ export function AdminVehicleMasterImportPage() {
     <PageShell>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Importar veículos (mestre)</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Importar veículos (mestre)</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Colunas: <code>montadora, modelo, ano, motor, versao</code>. Idempotente — não cria
             aplicações (PVC).
           </p>
         </div>
         <Link
-          className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+          className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
           to="/admin/veiculos"
         >
           Voltar a veículos
         </Link>
       </div>
 
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <input
           type="file"
           accept=".csv,text/csv"
@@ -158,8 +158,8 @@ export function AdminVehicleMasterImportPage() {
       ) : null}
 
       {report ? (
-        <div className="mt-4 rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-          <p className="m-0 font-semibold text-fal-navy">Resultado</p>
+        <div className="mt-4 rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm">
+          <p className="m-0 font-semibold text-fal-fg">Resultado</p>
           <ul className="mt-2 list-disc pl-5 text-fal-muted">
             <li>Upserts: {report.created}</li>
             <li>Duplicatas no arquivo: {report.reused}</li>

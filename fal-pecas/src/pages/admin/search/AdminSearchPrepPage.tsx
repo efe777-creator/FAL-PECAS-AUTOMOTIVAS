@@ -106,7 +106,7 @@ export function AdminSearchPrepPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Busca e sinônimos</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Busca e sinônimos</h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
           Melhora o que o cliente encontra no catálogo: texto de busca unificado por produto e
           sinônimos (ex.: “shock” → “amortecedor”).
@@ -117,8 +117,8 @@ export function AdminSearchPrepPage() {
 
       {!loading ? (
         <>
-          <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
-            <h2 className="m-0 text-lg font-bold text-fal-navy">Documento de busca</h2>
+          <div className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4">
+            <h2 className="m-0 text-lg font-bold text-fal-fg">Documento de busca</h2>
             <p className="m-0 text-sm text-fal-muted">
               Inclui nome, código interno, código referência, marca, categoria, refs e apelidos dos
               sinônimos.
@@ -128,13 +128,13 @@ export function AdminSearchPrepPage() {
             </Button>
           </div>
 
-          <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
-            <h2 className="m-0 text-lg font-bold text-fal-navy">Expansão na digitação</h2>
+          <div className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4">
+            <h2 className="m-0 text-lg font-bold text-fal-fg">Expansão na digitação</h2>
             <p className="m-0 text-sm text-fal-muted">
               Se ligado, o termo digitado é expandido antes da busca (ex.: “shock” →
               “amortecedor”). Mesmo desligado, os apelidos já entram no documento após atualizar.
             </p>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
               <input
                 type="checkbox"
                 checked={Boolean(settings?.synonymExpansionEnabled)}
@@ -145,8 +145,8 @@ export function AdminSearchPrepPage() {
             </label>
           </div>
 
-          <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
-            <h2 className="m-0 text-lg font-bold text-fal-navy">Sinônimos</h2>
+          <div className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4">
+            <h2 className="m-0 text-lg font-bold text-fal-fg">Sinônimos</h2>
             <form onSubmit={(e) => void onAddSynonym(e)} className="flex flex-wrap items-end gap-2">
               <div className="min-w-[140px] flex-1">
                 <Input label="Cliente digita" value={term} onChange={(e) => setTerm(e.target.value)} />
@@ -214,8 +214,8 @@ export function AdminSearchPrepPage() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
-            <h2 className="m-0 text-lg font-bold text-fal-navy">Buscas sem resultado</h2>
+          <div className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4">
+            <h2 className="m-0 text-lg font-bold text-fal-fg">Buscas sem resultado</h2>
             <p className="m-0 text-sm text-fal-muted">
               Últimas consultas do catálogo com zero produtos (monitor). Ajuda a achar sinônimos e
               lacunas de PVC.

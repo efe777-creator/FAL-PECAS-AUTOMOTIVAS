@@ -176,9 +176,9 @@ export function OrderOccurrencesPanel({
   }
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Ocorrências / revisão</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Ocorrências / revisão</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Ciclo: aberta → em andamento → resolvida → (reaberta com motivo). Histórico
           append-only — não some.
@@ -189,7 +189,7 @@ export function OrderOccurrencesPanel({
         <label className="text-sm font-semibold text-fal-muted">
           Tipo
           <select
-            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
             value={tipo}
             disabled={busy}
             onChange={(e) => setTipo(e.target.value)}
@@ -204,7 +204,7 @@ export function OrderOccurrencesPanel({
         <label className="text-sm font-semibold text-fal-muted">
           Prioridade
           <select
-            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
             value={prioridade}
             disabled={busy}
             onChange={(e) => setPrioridade(e.target.value as OccurrencePriority)}
@@ -218,7 +218,7 @@ export function OrderOccurrencesPanel({
         <label className="text-sm font-semibold text-fal-muted">
           Gravidade
           <select
-            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
             value={gravidade}
             disabled={busy}
             onChange={(e) => setGravidade(e.target.value as OccurrenceSeverity)}
@@ -238,7 +238,7 @@ export function OrderOccurrencesPanel({
         <label className="text-sm font-semibold text-fal-muted">
           Visibilidade
           <select
-            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm font-normal text-fal-navy"
+            className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
             value={visibility}
             disabled={busy}
             onChange={(e) => setVisibility(e.target.value as 'internal' | 'customer')}
@@ -267,7 +267,7 @@ export function OrderOccurrencesPanel({
             <li key={o.occurrenceId} className="rounded-[12px] border border-fal-line px-3 py-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="m-0 text-sm font-bold text-fal-navy">
+                  <p className="m-0 text-sm font-bold text-fal-fg">
                     {o.tipo ?? 'ocorrência'} · {OCCURRENCE_STATUS_LABEL[o.status]} · prioridade{' '}
                     {o.prioridade} · {o.gravidade}
                   </p>
@@ -335,7 +335,7 @@ export function OrderOccurrencesPanel({
 
       {resolveFor ? (
         <div className="rounded-[12px] border border-fal-navy/30 bg-[#f7f9fc] p-3">
-          <p className="m-0 text-sm font-bold text-fal-navy">
+          <p className="m-0 text-sm font-bold text-fal-fg">
             Resolver {resolveFor.occurrenceId.slice(0, 8)}…
           </p>
           <Input
@@ -362,7 +362,7 @@ export function OrderOccurrencesPanel({
 
       {reopenFor ? (
         <div className="rounded-[12px] border border-amber-300 bg-amber-50 p-3">
-          <p className="m-0 text-sm font-bold text-fal-navy">
+          <p className="m-0 text-sm font-bold text-fal-fg">
             Reabrir {reopenFor.occurrenceId.slice(0, 8)}…
           </p>
           <Input

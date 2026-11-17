@@ -14,11 +14,13 @@ export function Footer() {
     <footer className="mt-8 bg-fal-navy-dark py-[38px] text-[#dfe5e9] sm:mt-12">
       <Container className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
         <div>
-          <img
-            src={logoFal}
-            alt="FAL Peças Automotivas"
-            className="mb-3 block h-[86px] w-auto max-w-[120px] object-contain object-left"
-          />
+          <span className="mb-3 inline-flex rounded-2xl bg-[#f4f6f7] p-2 shadow-sm">
+            <img
+              src={logoFal}
+              alt="FAL Peças Automotivas"
+              className="block h-[86px] w-auto max-w-[120px] object-contain object-left"
+            />
+          </span>
           <p className="m-0 max-w-sm text-sm text-[#c5cbd1]">
             {store.legalName} — peça certa para o seu veículo.
           </p>

@@ -184,7 +184,7 @@ export function AdminShippingOriginPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">Origem e expedição</h1>
+      <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">Origem e expedição</h1>
       <p className="text-sm text-fal-muted">
         Cadastro da origem da loja + remetente (compartilhado por frete próprio e Melhor Envio).
         Frete com transportadora externa exige credenciais configuradas no servidor. Complemento é o
@@ -200,10 +200,10 @@ export function AdminShippingOriginPage() {
       ) : null}
       <form
         onSubmit={(e) => void onSubmit(e)}
-        className="grid max-w-2xl gap-3 rounded-[14px] border border-fal-line bg-white p-4 sm:grid-cols-2"
+        className="grid max-w-2xl gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:grid-cols-2"
       >
         <div className="sm:col-span-2">
-          <h2 className="m-0 text-sm font-extrabold text-fal-navy">Remetente</h2>
+          <h2 className="m-0 text-sm font-extrabold text-fal-fg">Remetente</h2>
         </div>
         <div className="sm:col-span-2">
           <Input
@@ -249,7 +249,7 @@ export function AdminShippingOriginPage() {
         />
 
         <div className="sm:col-span-2 pt-2">
-          <h2 className="m-0 text-sm font-extrabold text-fal-navy">Endereço de origem</h2>
+          <h2 className="m-0 text-sm font-extrabold text-fal-fg">Endereço de origem</h2>
         </div>
         <div className="sm:col-span-2">
           <Input
@@ -289,7 +289,7 @@ export function AdminShippingOriginPage() {
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-extrabold text-fal-muted">UF</span>
           <select
-            className="w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
+            className="w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
             name="state"
             value={state}
             onChange={(e) => {

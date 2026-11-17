@@ -1,5 +1,5 @@
-import { Button } from '@/components/common/Button'
-import { Link, useNavigate } from 'react-router-dom'
+import { AdminTabs } from '@/components/admin/AdminTabs'
+import { useNavigate } from 'react-router-dom'
 
 export type HomeSectionTab = 'banners' | 'featured' | 'promotions' | 'payment' | 'config'
 
@@ -33,60 +33,44 @@ export function AdminHomeSectionTabs({
     navigate(`/admin/home?tab=${tab}`, { state: { homeTab: tab } })
   }
 
+  const featuredLabelCount =
+    featuredCount != null && featuredMax != null
+      ? `${featuredCount}/${featuredMax}`
+      : featuredCount
+
   return (
-    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Seções da Home da loja">
-      <Button
-        type="button"
-        role="tab"
-        aria-selected={active === 'banners'}
-        variant={active === 'banners' ? 'primary' : 'outline'}
-        onClick={() => goHomeTab('banners')}
-      >
-        Campanhas{bannersCount != null ? ` (${bannersCount})` : ''}
-      </Button>
-      <Button
-        type="button"
-        role="tab"
-        aria-selected={active === 'featured'}
-        variant={active === 'featured' ? 'primary' : 'outline'}
-        onClick={() => goHomeTab('featured')}
-      >
-        Destaques
-        {featuredCount != null && featuredMax != null
-          ? ` (${featuredCount}/${featuredMax})`
-          : ''}
-      </Button>
-      <Link
-        to="/admin/home/promocoes"
-        role="tab"
-        aria-selected={active === 'promotions'}
-        className={[
-          'inline-flex items-center justify-center gap-2 rounded-[10px] border px-[19px] py-[13px] text-sm font-extrabold no-underline transition',
-          active === 'promotions'
-            ? 'border-transparent bg-fal-yellow text-fal-navy-dark'
-            : 'border-fal-navy/30 bg-white text-fal-navy hover:bg-fal-bg',
-        ].join(' ')}
-      >
-        Promoções
-      </Link>
-      <Button
-        type="button"
-        role="tab"
-        aria-selected={active === 'payment'}
-        variant={active === 'payment' ? 'primary' : 'outline'}
-        onClick={() => goHomeTab('payment')}
-      >
-        Pagamentos
-      </Button>
-      <Button
-        type="button"
-        role="tab"
-        aria-selected={active === 'config'}
-        variant={active === 'config' ? 'primary' : 'outline'}
-        onClick={() => goHomeTab('config')}
-      >
-        Config
-      </Button>
-    </div>
+    <AdminTabs
+      aria-label="Seções da Home da loja"
+      activeId={active}
+      items={[
+        {
+          id: 'banners',
+          label: 'Campanhas',
+          count: bannersCount,
+          onSelect: () => goHomeTab('banners'),
+        },
+        {
+          id: 'featured',
+          label: 'Destaques',
+          count: featuredLabelCount,
+          onSelect: () => goHomeTab('featured'),
+        },
+        {
+          id: 'promotions',
+          label: 'Promoções',
+          to: '/admin/home/promocoes',
+        },
+        {
+          id: 'payment',
+          label: 'Pagamentos',
+          onSelect: () => goHomeTab('payment'),
+        },
+        {
+          id: 'config',
+          label: 'Config',
+          onSelect: () => goHomeTab('config'),
+        },
+      ]}
+    />
   )
 }

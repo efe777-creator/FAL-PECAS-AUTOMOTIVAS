@@ -349,7 +349,7 @@ export function PriceListQuickAdjustPanel({
 
   if (!lists.length) {
     return (
-      <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm text-fal-muted">
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm text-fal-muted">
         Cadastre uma lista para consultar e ajustar preços.
       </div>
     )
@@ -362,9 +362,9 @@ export function PriceListQuickAdjustPanel({
   const toIdx = showingCount
 
   return (
-    <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Consulta e ajuste de preços</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Consulta e ajuste de preços</h2>
         <p className="mt-1 text-sm text-fal-muted">
           Escolha a lista, filtre e edite custo adicional, margem/markup ou preço direto na linha.{' '}
           {PRICE_LIST_LAYERS_HINT}
@@ -374,7 +374,7 @@ export function PriceListQuickAdjustPanel({
       <label className="block text-sm">
         <span className="mb-1 block text-xs font-extrabold text-fal-muted">Lista</span>
         <select
-          className="w-full rounded-[9px] border border-fal-line px-3 py-3 font-semibold text-fal-navy"
+          className="w-full rounded-[9px] border border-fal-line px-3 py-3 font-semibold text-fal-fg"
           value={listId}
           onChange={(e) => setListId(e.target.value)}
         >
@@ -432,7 +432,7 @@ export function PriceListQuickAdjustPanel({
         {hasRestrictiveFilters ? (
           <button
             type="button"
-            className="pb-3 text-sm font-semibold text-fal-navy underline"
+            className="pb-3 text-sm font-semibold text-fal-fg underline"
             onClick={clearFilters}
           >
             Limpar filtros
@@ -476,7 +476,7 @@ export function PriceListQuickAdjustPanel({
                         <div className="flex flex-wrap justify-center gap-3">
                           <button
                             type="button"
-                            className="font-semibold text-fal-navy underline"
+                            className="font-semibold text-fal-fg underline"
                             onClick={openAddForm}
                           >
                             Adicionar código
@@ -484,7 +484,7 @@ export function PriceListQuickAdjustPanel({
                           {onRequestImport ? (
                             <button
                               type="button"
-                              className="font-semibold text-fal-navy underline"
+                              className="font-semibold text-fal-fg underline"
                               onClick={onRequestImport}
                             >
                               Importar planilha
@@ -492,7 +492,7 @@ export function PriceListQuickAdjustPanel({
                           ) : null}
                           {listId ? (
                             <Link
-                              className="font-semibold text-fal-navy underline"
+                              className="font-semibold text-fal-fg underline"
                               to={`/admin/precos/${listId}?tab=produtos`}
                             >
                               Abrir lista completa
@@ -505,7 +505,7 @@ export function PriceListQuickAdjustPanel({
                         <p>Nenhum resultado com os filtros atuais.</p>
                         <button
                           type="button"
-                          className="font-semibold text-fal-navy underline"
+                          className="font-semibold text-fal-fg underline"
                           onClick={clearFilters}
                         >
                           Limpar filtros
@@ -542,7 +542,7 @@ export function PriceListQuickAdjustPanel({
                       <td className="px-3 py-2">
                         <button
                           type="button"
-                          className="font-semibold text-fal-navy underline disabled:opacity-50"
+                          className="font-semibold text-fal-fg underline disabled:opacity-50"
                           disabled={!allowed || busyRow}
                           onClick={() => setPricingItem(item)}
                         >
@@ -566,7 +566,7 @@ export function PriceListQuickAdjustPanel({
             </span>
             {listId ? (
               <Link
-                className="font-semibold text-fal-navy underline"
+                className="font-semibold text-fal-fg underline"
                 to={`/admin/precos/${listId}?tab=produtos`}
               >
                 Abrir lista completa
@@ -579,7 +579,7 @@ export function PriceListQuickAdjustPanel({
       {!addOpen ? (
         <button
           type="button"
-          className="text-sm font-semibold text-fal-navy underline"
+          className="text-sm font-semibold text-fal-fg underline"
           onClick={openAddForm}
         >
           + Adicionar código

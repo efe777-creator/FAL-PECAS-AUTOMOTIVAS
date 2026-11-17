@@ -31,11 +31,11 @@ const statusLabel: Record<AdminPromotionDisplayStatus, string> = {
 function statusPillClass(st: AdminPromotionDisplayStatus): string {
   switch (st) {
     case 'active':
-      return 'bg-emerald-50 text-emerald-900 border-emerald-200'
+      return 'bg-fal-success/15 text-fal-fg border-fal-success/40'
     case 'scheduled':
-      return 'bg-sky-50 text-sky-900 border-sky-200'
+      return 'bg-fal-accent/15 text-fal-fg border-fal-accent/40'
     case 'expired':
-      return 'bg-amber-50 text-amber-950 border-amber-200'
+      return 'bg-fal-warning/15 text-fal-fg border-fal-warning/40'
     default:
       return 'bg-fal-bg text-fal-muted border-fal-line'
   }
@@ -207,7 +207,7 @@ export function AdminPromotionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Home da loja</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Home da loja</h1>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Promoções controlam o preço na loja. Destaques são outra aba e não mudam com isto.
         </p>
@@ -245,8 +245,8 @@ export function AdminPromotionsPage() {
       )}
 
       {/* 2) Ação principal */}
-      <section className="rounded-fal border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-bold text-fal-navy">1. Ativar produto</h2>
+      <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
+        <h2 className="m-0 text-lg font-bold text-fal-fg">1. Ativar produto</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Lista cadastrada ≠ promoção ativa. Sem ativação aqui, o item na lista não altera a
           vitrine.
@@ -273,7 +273,7 @@ export function AdminPromotionsPage() {
                 Selecionado: <strong>{selectedProductLabel}</strong>
                 <button
                   type="button"
-                  className="font-semibold text-fal-navy underline"
+                  className="font-semibold text-fal-fg underline"
                   onClick={clearProductSelection}
                 >
                   Limpar
@@ -344,7 +344,7 @@ export function AdminPromotionsPage() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="m-0 text-lg font-bold text-fal-navy">2. Produtos em promoção</h2>
+            <h2 className="m-0 text-lg font-bold text-fal-fg">2. Produtos em promoção</h2>
             <p className="mt-1 mb-0 text-sm text-fal-muted">
               {loading
                 ? 'Carregando…'
@@ -356,7 +356,7 @@ export function AdminPromotionsPage() {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-white p-3">
+        <div className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-fal-surface p-3">
           <div className="min-w-[12rem] flex-1">
             <Input
               label="Buscar na lista"
@@ -409,7 +409,7 @@ export function AdminPromotionsPage() {
           </p>
         ) : null}
 
-        <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-white md:block">
+        <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-fal-surface md:block">
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead className="bg-fal-bg text-fal-muted">
               <tr>
@@ -429,7 +429,7 @@ export function AdminPromotionsPage() {
                   <tr key={r.id} className="border-t border-fal-line/70">
                     <td className="px-3 py-2.5">
                       <Link
-                        className="font-semibold text-fal-navy hover:underline"
+                        className="font-semibold text-fal-fg hover:underline"
                         to={`/admin/produtos/${r.productId}`}
                       >
                         {r.name}
@@ -487,12 +487,12 @@ export function AdminPromotionsPage() {
             const st = adminPromotionDisplayStatus(r)
             const offer = resolvePromoOffer(r.listPrice, r.promoPrice)
             return (
-              <article key={r.id} className="rounded-[14px] border border-fal-line bg-white p-3">
+              <article key={r.id} className="rounded-[14px] border border-fal-line bg-fal-surface p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="m-0 font-mono text-xs text-fal-muted">{r.sku}</p>
                     <Link
-                      className="font-extrabold text-fal-navy"
+                      className="font-extrabold text-fal-fg"
                       to={`/admin/produtos/${r.productId}`}
                     >
                       {r.name}

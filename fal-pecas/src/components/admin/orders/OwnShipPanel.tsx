@@ -169,8 +169,8 @@ export function OwnShipPanel({
   if (pickup) return null
   if (!isOwn) {
     return (
-      <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Expedição manual</h2>
+      <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Expedição manual</h2>
         <p className="mb-0 mt-1 text-sm text-fal-muted">
           Modalidade mock sem ops reais. Use frete próprio, Melhor Envio ou retirada na loja.
         </p>
@@ -243,14 +243,14 @@ export function OwnShipPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Frete próprio — envio</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Frete próprio — envio</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Escolha o app/transporte, registre o custo real (só interno — frete cobrado do cliente:{' '}
           <strong>{formatMoney(order.shippingAmount)}</strong>) e confirme o envio.
         </p>
-        <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
+        <p className="mt-2 mb-0 text-sm font-semibold text-fal-fg">
           Próxima ação:{' '}
           {next === 'registrar_saida'
             ? 'Confirmar envio'
@@ -284,10 +284,10 @@ export function OwnShipPanel({
           Transporte e custo interno
         </p>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          <label className="block text-xs font-medium text-fal-navy">
+          <label className="block text-xs font-medium text-fal-fg">
             App / transporte
             <select
-              className="mt-1 w-full rounded-lg border border-fal-line bg-white px-2 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-fal-line bg-fal-surface px-2 py-2 text-sm"
               value={transportMode}
               disabled={busy || trackBusy}
               onChange={(e) => setTransportMode(e.target.value)}
@@ -359,7 +359,7 @@ export function OwnShipPanel({
 
       {showShip ? (
         <div className="border-t border-fal-line pt-4">
-          <h3 className="m-0 text-sm font-bold text-fal-navy">Confirmar envio</h3>
+          <h3 className="m-0 text-sm font-bold text-fal-fg">Confirmar envio</h3>
           {!shipGates.ok ? (
             <p className="mt-2 mb-0 text-sm text-amber-800">Bloqueado: {shipGates.message}</p>
           ) : null}
@@ -395,7 +395,7 @@ export function OwnShipPanel({
       {showInTransit ? (
         <div className="space-y-4 border-t border-fal-line pt-4">
           <div>
-            <h3 className="m-0 text-sm font-bold text-fal-navy">Histórico de tentativas</h3>
+            <h3 className="m-0 text-sm font-bold text-fal-fg">Histórico de tentativas</h3>
             {ownOps.attempts.length ? (
               <ul className="mt-2 list-none space-y-1 p-0 text-xs text-fal-muted">
                 {ownOps.attempts.map((a, i) => (
@@ -427,7 +427,7 @@ export function OwnShipPanel({
           </div>
 
           <div>
-            <h3 className="m-0 text-sm font-bold text-fal-navy">Rastreio / obs. (pós-envio)</h3>
+            <h3 className="m-0 text-sm font-bold text-fal-fg">Rastreio / obs. (pós-envio)</h3>
             <div className="mt-2 grid gap-2 md:grid-cols-3">
               <Input
                 label="Link / código de rastreio"
@@ -453,7 +453,7 @@ export function OwnShipPanel({
           </div>
 
           <div>
-            <h3 className="m-0 text-sm font-bold text-fal-navy">Confirmar entrega</h3>
+            <h3 className="m-0 text-sm font-bold text-fal-fg">Confirmar entrega</h3>
             {!deliverGates.ok ? (
               <p className="mt-2 mb-0 text-sm text-amber-800">
                 Bloqueado: {deliverGates.message}

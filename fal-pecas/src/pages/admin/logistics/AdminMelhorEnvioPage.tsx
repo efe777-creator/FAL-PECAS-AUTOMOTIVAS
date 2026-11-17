@@ -167,14 +167,14 @@ export function AdminMelhorEnvioPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Melhor Envio</h1>
+        <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">Melhor Envio</h1>
         <p className="m-0 text-sm text-fal-muted">
           Status da integração e quais fretes aparecem na loja (nome + logo da transportadora).
           Cotação na loja ativa; compra de etiqueta só na Expedição do pedido. Controle de prazo:
           real da transportadora + tempo a mais FAL.
         </p>
         <p className="mt-2 mb-0 text-xs">
-          <Link to="/admin/logistica/prazos" className="font-semibold text-fal-navy">
+          <Link to="/admin/logistica/prazos" className="font-semibold text-fal-fg">
             Ver todos os prazos (mock/retirada) →
           </Link>
         </p>
@@ -209,8 +209,8 @@ export function AdminMelhorEnvioPage() {
         }}
       />
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4 sm:p-5">
-        <h2 className="m-0 text-base font-extrabold text-fal-navy">Status da integração</h2>
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:p-5">
+        <h2 className="m-0 text-base font-extrabold text-fal-fg">Status da integração</h2>
         {status ? (
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <div>
@@ -258,10 +258,10 @@ export function AdminMelhorEnvioPage() {
         ) : null}
       </section>
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4 sm:p-5">
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="m-0 text-base font-extrabold text-fal-navy">Opções disponíveis</h2>
+            <h2 className="m-0 text-base font-extrabold text-fal-fg">Opções disponíveis</h2>
             <p className="mb-0 mt-1 text-sm text-fal-muted">
               Cliente vê só as ligadas ({enabledCount}). Ordem na loja: mais barato → mais caro.
             </p>
@@ -299,7 +299,7 @@ export function AdminMelhorEnvioPage() {
               className="flex flex-col gap-3 rounded-[12px] border border-fal-line bg-fal-bg p-3 sm:flex-row sm:items-center"
             >
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-fal-line bg-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-fal-line bg-fal-surface">
                   {r.companyPicture ? (
                     <img
                       src={r.companyPicture}
@@ -312,7 +312,7 @@ export function AdminMelhorEnvioPage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-extrabold text-fal-navy">
+                  <div className="font-extrabold text-fal-fg">
                     {r.companyName || 'Transportadora'} ·{' '}
                     {r.serviceName || `código ${r.serviceId}`}
                   </div>

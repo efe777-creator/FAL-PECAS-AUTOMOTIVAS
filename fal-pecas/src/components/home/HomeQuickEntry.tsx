@@ -11,14 +11,14 @@ type HomeQuickEntryProps = {
 }
 
 const shortcutBtn =
-  'inline-flex min-h-11 w-full items-center justify-center rounded-fal border px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy'
+  'inline-flex min-h-11 w-full items-center justify-center rounded-fal border px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent'
 
 function menuBtnClass(active: boolean) {
   return [
     shortcutBtn,
     active
-      ? 'border-fal-navy bg-fal-navy text-white hover:brightness-110'
-      : 'border-fal-navy/20 bg-white text-fal-navy hover:border-fal-navy/45 hover:bg-white',
+      ? 'border-fal-accent bg-fal-accent/10 font-extrabold text-fal-accent ring-1 ring-fal-accent/40'
+      : 'border-fal-line bg-fal-surface text-fal-fg hover:border-fal-accent/40 hover:bg-fal-surface-2',
   ].join(' ')
 }
 
@@ -41,7 +41,7 @@ export function HomeQuickEntry({
           <header className="text-center">
             <h1
               id="home-entry-heading"
-              className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-fal-navy sm:text-[26px]"
+              className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-fal-fg sm:text-[26px]"
             >
               Encontre a peça certa
             </h1>

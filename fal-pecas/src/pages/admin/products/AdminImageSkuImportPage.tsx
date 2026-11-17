@@ -93,7 +93,7 @@ export function AdminImageSkuImportPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">
           Importar imagens por código
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
@@ -103,8 +103,8 @@ export function AdminImageSkuImportPage() {
         </p>
       </div>
 
-      <div className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+      <div className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4">
+        <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
           <input
             type="checkbox"
             checked={skipIfHasImage}
@@ -149,8 +149,8 @@ export function AdminImageSkuImportPage() {
       </div>
 
       {phase === 'running' ? (
-        <div className="rounded-fal border border-fal-line bg-white p-4">
-          <p className="m-0 text-sm font-bold text-fal-navy">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-4">
+          <p className="m-0 text-sm font-bold text-fal-fg">
             Enviando… {progress.done}/{progress.total} ({pct}%)
           </p>
           {progress.current ? (
@@ -179,7 +179,7 @@ export function AdminImageSkuImportPage() {
             </Button>
           ) : null}
           {report && phase === 'done' ? (
-            <p className="m-0 text-sm font-semibold text-fal-navy">
+            <p className="m-0 text-sm font-semibold text-fal-fg">
               Resultado: {report.ok} enviada(s) · {report.skip} pulada(s) · {report.error}{' '}
               erro(s)
             </p>
@@ -188,7 +188,7 @@ export function AdminImageSkuImportPage() {
       ) : null}
 
       {preview?.length ? (
-        <div className="overflow-x-auto rounded-fal border border-fal-line bg-white">
+        <div className="overflow-x-auto rounded-fal border border-fal-line bg-fal-surface">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
               <tr>

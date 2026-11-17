@@ -29,9 +29,9 @@ export function CategoriesBrowseBar({
         />
       </div>
       <label className="block text-sm pb-2">
-        <span className="mb-1 block font-semibold text-fal-navy">Nível</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Nível</span>
         <select
-          className="rounded-[10px] border border-fal-line bg-white px-3 py-2"
+          className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
           value={levelFilter}
           onChange={(e) => {
             const v = Number(e.target.value) as 0 | 1 | 2 | 3
@@ -49,7 +49,7 @@ export function CategoriesBrowseBar({
         <button
           type="button"
           className={`rounded-md px-3 py-2 text-xs font-bold ${
-            viewMode === 'list' ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-navy'
+            viewMode === 'list' ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-fg'
           }`}
           onClick={() => onViewMode('list')}
         >
@@ -58,7 +58,7 @@ export function CategoriesBrowseBar({
         <button
           type="button"
           className={`rounded-md px-3 py-2 text-xs font-bold ${
-            viewMode === 'tree' ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-navy'
+            viewMode === 'tree' ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-fg'
           }`}
           onClick={() => onViewMode('tree')}
         >

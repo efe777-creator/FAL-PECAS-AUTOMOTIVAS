@@ -5,9 +5,9 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 export function AdminNotFoundPage() {
   useDocumentTitle('Página não encontrada | Admin FAL')
   return (
-    <div className="mx-auto max-w-lg rounded-fal border border-fal-line bg-white p-8 text-center">
+    <div className="mx-auto max-w-lg rounded-fal border border-fal-line bg-fal-surface p-8 text-center">
       <p className="m-0 text-sm font-extrabold uppercase tracking-wide text-fal-muted">Erro 404</p>
-      <h1 className="mt-2 text-[28px] font-black text-fal-navy sm:text-[32px]">
+      <h1 className="mt-2 text-[28px] font-black text-fal-fg sm:text-[32px]">
         Página não encontrada
       </h1>
       <p className="text-fal-muted">

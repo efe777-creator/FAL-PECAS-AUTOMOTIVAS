@@ -32,8 +32,8 @@ export function AdminProductReferencesSection({ productId }: Props) {
   }, [reload])
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-      <h2 className="font-extrabold text-fal-navy">Referências</h2>
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+      <h2 className="font-extrabold text-fal-fg">Referências</h2>
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         <Input label="Código" value={refCode} onChange={(e) => setRefCode(e.target.value)} />

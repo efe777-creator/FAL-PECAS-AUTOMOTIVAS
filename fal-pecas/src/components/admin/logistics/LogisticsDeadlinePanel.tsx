@@ -50,9 +50,9 @@ export function LogisticsDeadlinePanel(props: MeProps | OwnProps) {
       },
     )
     return (
-      <section className="rounded-[14px] border border-fal-line bg-white p-4 sm:p-5 space-y-4">
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:p-5 space-y-4">
         <div>
-          <h2 className="m-0 text-base font-extrabold text-fal-navy">Prazos Melhor Envio</h2>
+          <h2 className="m-0 text-base font-extrabold text-fal-fg">Prazos Melhor Envio</h2>
           <p className="mb-0 mt-1 text-sm text-fal-muted">
             O <strong>prazo real</strong> vem da transportadora em cada cotação. Aqui você só
             controla o <strong>tempo a mais</strong> da FAL. Pedidos antigos não mudam.
@@ -79,7 +79,7 @@ export function LogisticsDeadlinePanel(props: MeProps | OwnProps) {
                   },
                 )
                 return (
-                  <li key={s.serviceId} className="text-fal-navy">
+                  <li key={s.serviceId} className="text-fal-fg">
                     <span className="font-semibold">{s.name}</span>
                     <span className="text-fal-muted">
                       {' '}
@@ -108,7 +108,7 @@ export function LogisticsDeadlinePanel(props: MeProps | OwnProps) {
             hint="Somado ao prazo real da transportadora."
           />
           {props.onDayCountMode ? (
-            <label className="block text-sm font-semibold text-fal-navy">
+            <label className="block text-sm font-semibold text-fal-fg">
               Contagem
               <select
                 className="mt-1 w-full rounded-[10px] border border-fal-line px-3 py-2"
@@ -152,9 +152,9 @@ export function LogisticsDeadlinePanel(props: MeProps | OwnProps) {
   )
 
   return (
-    <section className="rounded-[14px] border border-fal-line bg-white p-4 space-y-3">
+    <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 space-y-3">
       <div>
-        <h3 className="m-0 text-sm font-extrabold text-fal-navy">Prazos frete próprio</h3>
+        <h3 className="m-0 text-sm font-extrabold text-fal-fg">Prazos frete próprio</h3>
         <p className="mb-0 mt-1 text-xs text-fal-muted">
           <strong>Prazo base</strong> = tempo operacional FAL da modalidade. Depois some o{' '}
           <strong>tempo a mais</strong> se precisar. Cliente vê base + extra.
@@ -185,7 +185,7 @@ export function LogisticsDeadlinePanel(props: MeProps | OwnProps) {
         />
       </div>
       {props.onDayCountMode ? (
-        <label className="block text-sm font-semibold text-fal-navy max-w-xs">
+        <label className="block text-sm font-semibold text-fal-fg max-w-xs">
           Contagem
           <select
             className="mt-1 w-full rounded-[10px] border border-fal-line px-3 py-2"

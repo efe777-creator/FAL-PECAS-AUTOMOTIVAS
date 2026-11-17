@@ -92,9 +92,9 @@ export function OwnDeliveryProvidersTab({ onOk, onError }: Props) {
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-fal-line bg-white p-4">
+    <section className="space-y-4 rounded-xl border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Prestadores / apps</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Prestadores / apps</h2>
         <p className="mb-0 mt-1 text-sm text-fal-muted">
           Uber, 99 e outros usados no despacho de frete próprio. Não altera o frete cobrado do
           cliente.
@@ -132,7 +132,7 @@ export function OwnDeliveryProvidersTab({ onOk, onError }: Props) {
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-fal-line px-3 py-2"
             >
               <div>
-                <strong className="text-fal-navy">{row.label}</strong>
+                <strong className="text-fal-fg">{row.label}</strong>
                 <span className="ml-2 text-xs text-fal-muted">
                   {row.slug} · ordem {row.sortOrder}
                   {!row.active ? ' · inativo' : ''}

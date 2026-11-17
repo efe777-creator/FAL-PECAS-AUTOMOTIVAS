@@ -41,7 +41,7 @@ export function AccountFavoritesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h2 className="mt-0 text-xl font-extrabold">Favoritos</h2>
         <p className="text-sm text-fal-muted">Produtos que você marcou na loja.</p>
       </div>
@@ -50,7 +50,7 @@ export function AccountFavoritesPage() {
         <EmptyState
           title="Você ainda não possui produtos favoritos."
           description="No catálogo, use o coração para salvar peças."
-          actionLabel="Ir ao catálogo"
+          actionLabel="Ver catálogo"
           actionTo="/catalogo"
         />
       ) : (
@@ -62,7 +62,7 @@ export function AccountFavoritesPage() {
       )}
 
       {archived.length ? (
-        <div className="rounded-fal border border-fal-line bg-white p-4">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-4">
           <p className="m-0 text-sm font-semibold text-fal-muted">
             {archived.length} favorito(s) não estão mais disponíveis no catálogo (arquivados).
           </p>

@@ -1,8 +1,13 @@
+import { attributionToPayload, readStoredAttribution } from '@/lib/attribution'
 import { getSupabase } from '@/lib/supabase'
 import type { PlaceOrderInput, PlaceOrderResult } from '@/types'
 
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
-  const payload = {
+  const attribution =
+    attributionToPayload(input.attribution ?? null) ??
+    attributionToPayload(readStoredAttribution())
+
+  const payload: Record<string, unknown> = {
     idempotency_key: input.idempotencyKey,
     address_id: input.addressId,
     shipping_option_id: input.shippingOptionId,
@@ -15,6 +20,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     })),
     clear_cart: input.clearCart !== false,
   }
+  if (attribution) payload.attribution = attribution
 
   const { data, error } = await getSupabase().rpc('place_order', { p_payload: payload })
   if (error) throw error

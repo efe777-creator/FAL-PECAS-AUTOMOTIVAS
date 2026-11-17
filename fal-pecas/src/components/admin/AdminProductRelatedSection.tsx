@@ -96,9 +96,9 @@ export function AdminProductRelatedSection({ productId }: Props) {
   }
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 font-extrabold text-fal-navy">Produtos relacionados</h2>
+        <h2 className="m-0 font-extrabold text-fal-fg">Produtos relacionados</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Curadoria na PDP (até {RELATED_PRODUCTS_CURATED_MAX}). Se a lista estiver vazia ou incompleta,
           a loja completa com produtos da mesma categoria.
@@ -148,7 +148,7 @@ export function AdminProductRelatedSection({ productId }: Props) {
               <span className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="font-semibold text-fal-navy disabled:opacity-40"
+                  className="font-semibold text-fal-fg disabled:opacity-40"
                   disabled={busy || index === 0}
                   onClick={() => void handleMove(index, -1)}
                 >
@@ -156,7 +156,7 @@ export function AdminProductRelatedSection({ productId }: Props) {
                 </button>
                 <button
                   type="button"
-                  className="font-semibold text-fal-navy disabled:opacity-40"
+                  className="font-semibold text-fal-fg disabled:opacity-40"
                   disabled={busy || index >= rows.length - 1}
                   onClick={() => void handleMove(index, 1)}
                 >

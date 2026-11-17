@@ -129,12 +129,12 @@ export function AdminOrdersListPanel({
               return (
                 <article
                   key={o.id}
-                  className="rounded-[14px] border border-fal-line bg-white p-3 shadow-sm"
+                  className="rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="m-0 font-mono text-xs text-fal-muted">{o.id.slice(0, 8)}…</p>
-                      <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-navy">
+                      <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-fg">
                         {o.customerName ?? 'Cliente'}
                       </p>
                     </div>
@@ -142,10 +142,10 @@ export function AdminOrdersListPanel({
                   </div>
 
                   <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-2.5 py-2">
-                    <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-navy/70">
+                    <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
                       Faça agora
                     </p>
-                    <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-navy">{next}</p>
+                    <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-fg">{next}</p>
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -154,7 +154,7 @@ export function AdminOrdersListPanel({
                     >
                       {adminActorBadgeLabel(kind)}
                     </span>
-                    <span className="text-xs font-semibold text-fal-navy">{listStatusLabel(o)}</span>
+                    <span className="text-xs font-semibold text-fal-fg">{listStatusLabel(o)}</span>
                     {o.shippingChoiceLabel ? (
                       <span className="rounded-md border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-950">
                         {o.shippingChoiceLabel}
@@ -186,7 +186,7 @@ export function AdminOrdersListPanel({
             })}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
+          <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
@@ -229,7 +229,7 @@ export function AdminOrdersListPanel({
                         >
                           {adminActorBadgeLabel(kind)}
                         </span>
-                        <span className="mt-1 block text-xs font-semibold text-fal-navy">
+                        <span className="mt-1 block text-xs font-semibold text-fal-fg">
                           {listStatusLabel(o)}
                         </span>
                       </td>
@@ -259,7 +259,7 @@ export function AdminOrdersListPanel({
                         <Link
                           to={`/admin/pedidos/${o.id}`}
                           onClick={rememberReturn}
-                          className="text-sm font-semibold text-fal-navy underline"
+                          className="text-sm font-semibold text-fal-fg underline"
                         >
                           Abrir
                         </Link>

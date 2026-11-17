@@ -1,9 +1,9 @@
 # PRD Mestre 4.0 — FAL Peças Automotivas
 
-**Versão:** 4.0.1  
+**Versão:** 4.0.2  
 **Data:** 2026-11-16  
 **Status:** CANÔNICO — documento-base de produto (não autoriza implementar tudo)  
-**Execução imediata:** [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) frente **P0**  
+**Execução imediata:** [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) frente **G8** (STOP 8.3 — vendas controladas)  
 **Substitui como produto:** [FAL_PRD_3.0.md](./FAL_PRD_3.0.md) (histórico)  
 **Visão:** [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md)  
 **Arquitetura:** [FAL_ARQUITETURA_360.md](../arquitetura/FAL_ARQUITETURA_360.md)  
@@ -216,7 +216,7 @@ Síntese da auditoria consolidada:
 **Done:** compra real → pagamento → separação → despacho → entrega → atendimento → margem contabilizada, com veículo no funil quando o cliente tiver carro salvo.
 
 Escopo detalhado: [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md)  
-**Passos de execução (canônico):** [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — começar em **P0** (passos 0.1–0.8).
+**Passos de execução (canônico):** [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — P0–G7 **PASS**; frente aberta **G8** (§11 / VAL G8).
 
 **Fora do MVP:** Garage rica, Parceiros, Workshop, Fornecedores portal, boleto checkout, WA agentic, app nativo, manutenção preditiva, split.  
 **Regra:** nenhuma MARCHA de ecossistema até G8 PASS.

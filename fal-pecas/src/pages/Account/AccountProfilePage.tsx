@@ -110,7 +110,7 @@ export function AccountProfilePage() {
   if (loading) return <Loading label="Carregando perfil…" />
 
   return (
-    <div className="rounded-fal border border-fal-line bg-white p-5">
+    <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
       <h2 className="mt-0 text-xl font-extrabold">Perfil</h2>
       <p className="text-sm text-fal-muted">E-mail vinculado à sua conta. O tipo de acesso não é editável aqui.</p>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
@@ -145,7 +145,7 @@ export function AccountProfilePage() {
       </form>
 
       <div className="mt-8 border-t border-fal-line pt-5">
-        <h3 className="m-0 text-base font-extrabold text-fal-navy">Encerrar conta</h3>
+        <h3 className="m-0 text-base font-extrabold text-fal-fg">Encerrar conta</h3>
         <p className="mt-1 text-sm text-fal-muted">
           Seus pedidos e histórico comercial são preservados. Dados pessoais de cadastro são
           removidos. Esta ação não pode ser desfeita por você.

@@ -230,15 +230,15 @@ export function MeExpeditionPanel({
       : undefined
 
   return (
-    <section className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">Expedição Melhor Envio</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Expedição Melhor Envio</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           Após a separação: confirme medidas (pré-preenchidas da cotação) → etiqueta → despacho
           (agora ou depois) → obs/rastreio. Frete cobrado do cliente:{' '}
           <strong>{formatMoney(order.shippingAmount)}</strong>.
         </p>
-        <p className="mt-2 mb-0 text-sm font-semibold text-fal-navy">
+        <p className="mt-2 mb-0 text-sm font-semibold text-fal-fg">
           Situação da etiqueta: {meLabelStateLabel(labelState)}
           {me.label_amount != null ? ` · etiqueta ${formatMoney(me.label_amount)}` : ''}
           {lastQuote != null && me.label_amount == null ? ` · cotado ${formatMoney(lastQuote)}` : ''}
@@ -260,7 +260,7 @@ export function MeExpeditionPanel({
           </p>
         ) : null}
         {!purchaseGates.ok && !purchaseGates.alreadyPurchased ? (
-          <p className="mt-2 rounded-md border border-fal-line bg-fal-bg/50 px-3 py-2 text-sm text-fal-navy">
+          <p className="mt-2 rounded-md border border-fal-line bg-fal-bg/50 px-3 py-2 text-sm text-fal-fg">
             Compra bloqueada: {purchaseGates.message}
           </p>
         ) : null}
@@ -272,7 +272,7 @@ export function MeExpeditionPanel({
       </div>
 
       <div>
-        <h3 className="m-0 text-sm font-bold text-fal-navy">Conferência do pacote</h3>
+        <h3 className="m-0 text-sm font-bold text-fal-fg">Conferência do pacote</h3>
         <p className="mt-1 text-xs text-fal-muted">
           Se o pacote real divergir da cotação, informe medidas e recote antes de comprar. Sem
           inventar dimensões vazias.
@@ -312,7 +312,7 @@ export function MeExpeditionPanel({
 
       {quoteOptions.length > 0 ? (
         <div className="rounded-[10px] border border-fal-line bg-fal-bg/40 p-3">
-          <h3 className="m-0 text-sm font-bold text-fal-navy">Opções da recote</h3>
+          <h3 className="m-0 text-sm font-bold text-fal-fg">Opções da recote</h3>
           <p className="mt-1 text-xs text-fal-muted">
             Selecione o serviço operacional e recote/prepare. Não altera o frete do cliente.
           </p>
@@ -462,7 +462,7 @@ export function MeExpeditionPanel({
 
       {['pronto_para_envio', 'preparando_envio'].includes(order.status) ? (
         <div className="border-t border-fal-line pt-4">
-          <h3 className="m-0 text-sm font-bold text-fal-navy">
+          <h3 className="m-0 text-sm font-bold text-fal-fg">
             Despacho (pode ser agora ou depois)
           </h3>
           <p className="mt-1 text-xs text-fal-muted">
@@ -503,7 +503,7 @@ export function MeExpeditionPanel({
 
       {order.status === 'enviado' || order.status === 'entregue' ? (
         <div className="border-t border-fal-line pt-4">
-          <h3 className="m-0 text-sm font-bold text-fal-navy">Obs. e rastreio (pós-despacho)</h3>
+          <h3 className="m-0 text-sm font-bold text-fal-fg">Obs. e rastreio (pós-despacho)</h3>
           <div className="mt-2 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
             <Input
               label="Código de rastreio"

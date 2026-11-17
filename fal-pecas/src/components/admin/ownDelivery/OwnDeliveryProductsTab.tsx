@@ -52,11 +52,11 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
   }, [])
 
   return (
-    <div className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
-      <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Capacidade dos produtos</h2>
+    <div className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+      <h2 className="mt-0 text-lg font-extrabold text-fal-fg">Capacidade dos produtos</h2>
       <p className="m-0 text-sm text-fal-muted">
         É o mesmo valor do cadastro do produto — altere aqui ou em{' '}
-        <Link to="/admin/produtos" className="font-semibold text-fal-navy">
+        <Link to="/admin/produtos" className="font-semibold text-fal-fg">
           Produtos
         </Link>
         ; não cria registro duplicado.
@@ -112,7 +112,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-fal-line/70 align-top">
                   <td className="px-2 py-2">
-                    <div className="font-semibold text-fal-navy">{p.name}</div>
+                    <div className="font-semibold text-fal-fg">{p.name}</div>
                     <div className="text-xs text-fal-muted">
                       {p.commercialRef || p.sku} · {productStatusLabel(p.status)}
                     </div>
@@ -201,7 +201,7 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
                         Salvar
                       </Button>
                       <Link
-                        className="text-xs font-semibold text-fal-navy"
+                        className="text-xs font-semibold text-fal-fg"
                         to={`/admin/produtos/${p.id}`}
                       >
                         Abrir cadastro

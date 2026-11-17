@@ -15,13 +15,13 @@ export const buttonVariantClasses: Record<ButtonVariant, string> = {
     'bg-fal-yellow text-fal-navy-dark hover:bg-fal-yellow-hover border-transparent',
   /** Contorno para fundo claro (branco / cards). */
   outline:
-    'bg-white text-fal-navy border border-fal-navy/30 hover:bg-fal-bg',
+    'bg-fal-surface text-fal-fg border border-fal-navy/30 hover:bg-fal-bg',
   /** Contorno para fundo escuro (hero Home). */
   outlineDark:
     'bg-transparent text-white border border-white/40 hover:bg-white/10',
   dark: 'bg-fal-navy text-white border-transparent hover:bg-fal-navy-dark',
-  light: 'bg-white text-fal-navy border border-fal-line hover:bg-fal-bg',
-  danger: 'bg-fal-bg text-fal-danger border-transparent hover:bg-red-50',
+  light: 'bg-fal-surface text-fal-fg border border-fal-line hover:bg-fal-bg',
+  danger: 'bg-fal-bg text-fal-danger border-transparent hover:bg-fal-danger/10',
 }
 
 export function buttonClassName({

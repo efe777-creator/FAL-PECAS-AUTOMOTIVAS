@@ -135,7 +135,7 @@ export function AdminOrdersViewPage() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-fal-muted">Visão não encontrada.</p>
-        <Link to="/admin/pedidos" className="font-semibold text-fal-navy underline">
+        <Link to="/admin/pedidos" className="font-semibold text-fal-fg underline">
           Voltar à central
         </Link>
       </div>
@@ -145,18 +145,18 @@ export function AdminOrdersViewPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">{view.title}</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">{view.title}</h1>
         <p className="mt-1 text-sm text-fal-muted">{view.description}</p>
       </div>
 
       {view.placeholder ? (
-        <div className="rounded-[14px] border border-fal-line bg-white p-5 text-sm text-fal-muted">
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-5 text-sm text-fal-muted">
           Esta visão ainda não está disponível neste ambiente. Nenhum status artificial foi criado.
         </div>
       ) : (
         <>
           {!loading && !error && hasMore ? (
-            <p className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm text-fal-muted">
+            <p className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm text-fal-muted">
               Fila server-side · {rows.length} carregados · use “Carregar mais” para a próxima página.
             </p>
           ) : null}

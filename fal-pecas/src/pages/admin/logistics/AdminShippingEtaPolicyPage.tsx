@@ -69,12 +69,12 @@ export function AdminShippingEtaPolicyPage() {
     <div className="space-y-6">
       <div>
         <p className="m-0 text-xs font-semibold uppercase tracking-wide text-fal-muted">
-          <Link to="/admin/logistica" className="text-fal-navy no-underline">
+          <Link to="/admin/logistica" className="text-fal-fg no-underline">
             Logística
           </Link>{' '}
           · Prazos
         </p>
-        <h1 className="mt-1 text-2xl font-extrabold text-fal-navy">Prazos dos meios disponíveis</h1>
+        <h1 className="mt-1 text-2xl font-extrabold text-fal-fg">Prazos dos meios disponíveis</h1>
         <p className="mt-1 max-w-2xl text-sm text-fal-muted">
           Regra única: <strong>prazo real da escolha</strong> + <strong>tempo a mais</strong> da
           FAL. Pedidos antigos mantêm o snapshot.
@@ -127,7 +127,7 @@ export function AdminShippingEtaPolicyPage() {
             />
             <p className="m-0 text-xs text-fal-muted">
               O <strong>prazo base</strong> oficial do frete próprio é salvo em{' '}
-              <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-navy">
+              <Link to="/admin/logistica/frete-proprio" className="font-semibold text-fal-fg">
                 Frete próprio → Gerais
               </Link>
               . Aqui você ajusta o <strong>tempo a mais</strong> (e a contagem). Os campos base
@@ -138,8 +138,8 @@ export function AdminShippingEtaPolicyPage() {
             </Button>
           </div>
 
-          <section className="rounded-[14px] border border-fal-line bg-white p-4 space-y-3">
-            <h2 className="m-0 text-base font-extrabold text-fal-navy">Mock (sandbox)</h2>
+          <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 space-y-3">
+            <h2 className="m-0 text-base font-extrabold text-fal-fg">Mock (sandbox)</h2>
             <p className="m-0 text-xs text-fal-muted">Não é caminho real de produção.</p>
             <div className="grid gap-3 sm:grid-cols-4">
               <Input
@@ -193,8 +193,8 @@ export function AdminShippingEtaPolicyPage() {
             </div>
           </section>
 
-          <section className="rounded-[14px] border border-fal-line bg-white p-4 space-y-3">
-            <h2 className="m-0 text-base font-extrabold text-fal-navy">Retirada na loja</h2>
+          <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4 space-y-3">
+            <h2 className="m-0 text-base font-extrabold text-fal-fg">Retirada na loja</h2>
             <p className="m-0 text-xs text-fal-muted">Não é entrega própria.</p>
             <div className="grid gap-3 sm:grid-cols-2 max-w-md">
               <Input

@@ -1,3 +1,4 @@
+import { AdminTabs } from '@/components/admin/AdminTabs'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { PaymentAdjustPercentControl } from '@/components/admin/PaymentAdjustPercentControl'
@@ -38,9 +39,9 @@ function Chip({
 }) {
   const cls =
     state === 'on'
-      ? 'bg-emerald-100 text-emerald-900'
+      ? 'bg-fal-success/15 text-fal-fg'
       : state === 'warn'
-        ? 'bg-amber-100 text-amber-950'
+        ? 'bg-fal-warning/15 text-fal-fg'
         : 'bg-fal-line/60 text-fal-muted'
   const text = state === 'on' ? 'visível' : state === 'warn' ? 'bloqueado' : 'oculto'
   return (
@@ -106,30 +107,30 @@ export function AdminHomePaymentSection({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="m-0 text-lg font-bold text-fal-navy">Pagamentos da loja</h2>
+        <h2 className="m-0 text-lg font-bold text-fal-fg">Pagamentos da loja</h2>
         <p className="mb-0 mt-1 text-sm text-fal-muted">
           Condições em cima do preço da lista (padrão ou promocional, conforme Promoções).
           Integração técnica:{' '}
-          <Link to="/admin/pagamentos" className="font-semibold text-fal-navy">
+          <Link to="/admin/pagamentos" className="font-semibold text-fal-fg">
             Admin → Pagamentos
           </Link>
           .
         </p>
         <p className="mb-0 mt-2 flex flex-wrap gap-3 text-sm">
-          <Link to="/admin/precos" className="font-semibold text-fal-navy">
+          <Link to="/admin/precos" className="font-semibold text-fal-fg">
             Listas de preços
           </Link>
-          <Link to="/admin/home/promocoes" className="font-semibold text-fal-navy">
+          <Link to="/admin/home/promocoes" className="font-semibold text-fal-fg">
             Promoções
           </Link>
-          <Link to="/admin/pagamentos" className="font-semibold text-fal-navy">
+          <Link to="/admin/pagamentos" className="font-semibold text-fal-fg">
             Integração
           </Link>
         </p>
       </div>
 
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
-        <p className="m-0 text-sm font-bold text-fal-navy">Situação na loja agora</p>
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">Situação na loja agora</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <Chip label="Pix" state={pixChip} />
           <Chip label="Débito" state={debitChip} />
@@ -140,7 +141,7 @@ export function AdminHomePaymentSection({
         pixChip === 'warn' ||
         creditChip === 'warn' ||
         debitChip === 'warn' ? (
-          <p className="mb-0 mt-2 text-xs text-amber-900">
+          <p className="mb-0 mt-2 text-xs text-fal-warning">
             {avail.cardBlockedReason ||
               'Meio ligado na loja, mas a integração/roteamento impede a exibição.'}{' '}
             <Link to="/admin/pagamentos/metodos" className="font-semibold underline">
@@ -150,28 +151,23 @@ export function AdminHomePaymentSection({
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Meios de pagamento">
-        {meios.map((m) => (
-          <Button
-            key={m.id}
-            type="button"
-            role="tab"
-            aria-selected={meio === m.id}
-            variant={meio === m.id ? 'primary' : 'outline'}
-            onClick={() => onMeioChange(m.id)}
-          >
-            {m.label}
-          </Button>
-        ))}
-      </div>
+      <AdminTabs
+        aria-label="Meios de pagamento"
+        activeId={meio}
+        items={meios.map((m) => ({
+          id: m.id,
+          label: m.label,
+          onSelect: () => onMeioChange(m.id),
+        }))}
+      />
 
       <form
         onSubmit={onSave}
-        className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-white p-4"
+        className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-fal-surface p-4"
       >
         {meio === 'pix' ? (
           <>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
               <input
                 type="checkbox"
                 checked={payment.pixEnabled}
@@ -194,7 +190,7 @@ export function AdminHomePaymentSection({
 
         {meio === 'debit' ? (
           <>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
               <input
                 type="checkbox"
                 checked={payment.debitEnabled}
@@ -223,7 +219,7 @@ export function AdminHomePaymentSection({
 
         {meio === 'credit' ? (
           <>
-            <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+            <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
               <input
                 type="checkbox"
                 checked={payment.creditEnabled}
@@ -247,8 +243,8 @@ export function AdminHomePaymentSection({
               onChange={(creditAdjustPercent) => mark({ creditAdjustPercent })}
             />
             <fieldset className="m-0 space-y-3 border-0 p-0">
-              <legend className="mb-1 text-sm font-bold text-fal-navy">Parcelamento</legend>
-              <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <legend className="mb-1 text-sm font-bold text-fal-fg">Parcelamento</legend>
+              <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
                 <input
                   type="checkbox"
                   checked={payment.installmentsEnabled}
@@ -304,8 +300,8 @@ export function AdminHomePaymentSection({
               />
             </fieldset>
             <fieldset className="m-0 space-y-2 border-0 p-0">
-              <legend className="mb-1 text-sm font-bold text-fal-navy">Exibição na vitrine</legend>
-              <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+              <legend className="mb-1 text-sm font-bold text-fal-fg">Exibição na vitrine</legend>
+              <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
                 <input
                   type="checkbox"
                   checked={payment.enabled}
@@ -355,7 +351,7 @@ export function AdminHomePaymentSection({
 
         {meio === 'boleto' ? (
           <div className="space-y-2">
-            <p className="m-0 text-sm font-semibold text-fal-navy">Boleto</p>
+            <p className="m-0 text-sm font-semibold text-fal-fg">Boleto</p>
             <p className="m-0 text-sm text-fal-muted">
               Em breve. Não há campos graváveis neste ciclo — o meio permanece indisponível no
               checkout.

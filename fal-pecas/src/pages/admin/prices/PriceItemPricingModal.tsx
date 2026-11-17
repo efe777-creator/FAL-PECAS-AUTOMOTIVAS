@@ -143,10 +143,10 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-[14px] border border-fal-line bg-white p-4 shadow-lg">
+      <div className="w-full max-w-lg rounded-[14px] border border-fal-line bg-fal-surface p-4 shadow-lg">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Editar precificação</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-fg">Editar precificação</h2>
             <p className="mt-1 text-sm text-fal-muted">
               {item.productName ?? 'Produto'} · {CODIGO_REFERENCIA_LABEL}{' '}
               <span className="font-mono">{item.sku}</span>
@@ -159,11 +159,11 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
 
         <div className="mt-4 grid gap-2 rounded-[10px] border border-fal-line bg-fal-bg p-3 text-sm">
           <p className="m-0">
-            <span className="font-semibold text-fal-navy">Custo base:</span>{' '}
+            <span className="font-semibold text-fal-fg">Custo base:</span>{' '}
             {baseCost != null ? formatMoney(baseCost) : '—'}
           </p>
           <p className="m-0">
-            <span className="font-semibold text-fal-navy">Custo total (base + adicional):</span>{' '}
+            <span className="font-semibold text-fal-fg">Custo total (base + adicional):</span>{' '}
             {costTotal != null ? formatMoney(costTotal) : '—'}
           </p>
           <p className="m-0 text-xs text-fal-muted">
@@ -182,7 +182,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
         </div>
 
         <fieldset className="mt-4 space-y-2 border-0 p-0">
-          <legend className="mb-2 text-sm font-extrabold text-fal-navy">O que alterar?</legend>
+          <legend className="mb-2 text-sm font-extrabold text-fal-fg">O que alterar?</legend>
           <label className="flex cursor-pointer gap-2 rounded-[10px] border border-fal-line p-3 text-sm">
             <input
               type="radio"
@@ -254,7 +254,7 @@ export function PriceItemPricingModal({ open, item, list, busy, onClose, onSave 
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-[10px] border border-fal-line p-3 text-sm">
           <div>
             <div className="text-[11px] font-extrabold uppercase text-fal-muted">Novo preço</div>
-            <div className="font-black text-fal-navy">
+            <div className="font-black text-fal-fg">
               {preview.price != null ? formatMoney(preview.price) : '—'}
             </div>
           </div>

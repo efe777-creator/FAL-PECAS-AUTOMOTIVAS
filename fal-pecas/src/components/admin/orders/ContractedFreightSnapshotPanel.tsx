@@ -65,9 +65,9 @@ export function ContractedFreightSnapshotPanel({ order }: Props) {
         : null
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
       <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">
           Cotação original × packing × ops
         </h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
@@ -151,7 +151,7 @@ export function ContractedFreightSnapshotPanel({ order }: Props) {
       </div>
       {opsList.length > 0 ? (
         <details className="text-xs text-fal-muted">
-          <summary className="cursor-pointer font-semibold text-fal-navy">
+          <summary className="cursor-pointer font-semibold text-fal-fg">
             Histórico de cotações operacionais
           </summary>
           <ul className="mt-2 list-none space-y-1 p-0">

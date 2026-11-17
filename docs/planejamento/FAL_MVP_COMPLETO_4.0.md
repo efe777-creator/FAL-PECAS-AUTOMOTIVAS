@@ -1,6 +1,6 @@
 # FAL — MVP Completo 4.0
 
-**Versão:** 1.1  
+**Versão:** 1.2  
 **Data:** 2026-11-16  
 **Status:** CANÔNICO  
 **PRD:** [FAL_PRD_4.0.md](../entrada/FAL_PRD_4.0.md)  
@@ -13,7 +13,7 @@
 
 ## 0. Agora (uma frase)
 
-**Não implementar ecossistema.** Executar consolidação começando em **P0** (alinhar WT pay → migration → Edges → Netlify → smoke create). Detalhe: [FAL_MVP_PLANO_CONSOLIDACAO.md](./FAL_MVP_PLANO_CONSOLIDACAO.md) §1–§3.
+**Não implementar ecossistema.** P0–G7 **PASS**. Frente aberta: **G8** — N vendas controladas no preview + monitor 48–72h ([VAL](./FAL_MARCHA_G8_VENDA_CONTROLADA_VAL_2026-11-16.md); consolidação §11).
 
 ---
 

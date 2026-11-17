@@ -69,41 +69,41 @@ export function AdminPaymentMethodsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/admin/pagamentos" className="text-sm font-semibold text-fal-navy no-underline">
+        <Link to="/admin/pagamentos" className="text-sm font-semibold text-fal-fg no-underline">
           ← Pagamentos
         </Link>
-        <h1 className="mt-2 text-[28px] font-extrabold text-fal-navy">Roteamento e saúde</h1>
+        <h1 className="mt-2 text-[28px] font-extrabold text-fal-fg">Roteamento e saúde</h1>
         <p className="m-0 text-sm text-fal-muted">
           Edite só o roteamento FAL PAY aqui. Condições (% Pix, parcelas, ligar meios na loja)
           ficam na{' '}
-          <Link to="/admin/home?tab=payment" className="font-semibold text-fal-navy">
+          <Link to="/admin/home?tab=payment" className="font-semibold text-fal-fg">
             Home → Pagamentos
           </Link>
           . Diagnóstico abaixo explica o que o cliente vê.
         </p>
       </div>
 
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <Link
           to="/admin/pagamentos/metodos/mercado-pago"
           className="flex items-center justify-between gap-3 no-underline"
         >
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Status Mercado Pago</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-fg">Status Mercado Pago</h2>
             <p className="mb-0 mt-1 text-sm text-fal-muted">
               Public Key, ambiente e capacidade do adaptador (somente leitura).
             </p>
           </div>
-          <span className="shrink-0 text-sm font-bold text-fal-navy">Abrir →</span>
+          <span className="shrink-0 text-sm font-bold text-fal-fg">Abrir →</span>
         </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <form
           onSubmit={(e) => void saveRouting(e)}
-          className="rounded-[14px] border border-fal-line bg-white p-4 text-sm"
+          className="rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm"
         >
-          <p className="m-0 font-semibold text-fal-navy">Roteamento FAL PAY</p>
+          <p className="m-0 font-semibold text-fal-fg">Roteamento FAL PAY</p>
           <p className="mb-3 mt-1 text-xs text-fal-muted">
             Controle real da loja (`payment_routing_config`). Vale no checkout e nas Edges.
           </p>
@@ -202,8 +202,8 @@ export function AdminPaymentMethodsPage() {
             {saving ? 'Salvando…' : 'Salvar roteamento'}
           </Button>
         </form>
-        <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-          <p className="m-0 font-semibold text-fal-navy">Condições na Home (leitura)</p>
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm">
+          <p className="m-0 font-semibold text-fal-fg">Condições na Home (leitura)</p>
           <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-fal-muted">
             <li>Pix %: {settings?.pixAdjustPercent ?? 0}</li>
             <li>Crédito %: {settings?.creditAdjustPercent ?? 0}</li>
@@ -216,7 +216,7 @@ export function AdminPaymentMethodsPage() {
           </ul>
           <Link
             to="/admin/home?tab=payment&meio=credit"
-            className="mt-2 inline-block font-semibold text-fal-navy"
+            className="mt-2 inline-block font-semibold text-fal-fg"
           >
             Editar condições na Home →
           </Link>
@@ -224,7 +224,7 @@ export function AdminPaymentMethodsPage() {
       </div>
 
       <div className="rounded-[14px] border border-dashed border-fal-line bg-fal-bg/40 p-4 text-sm">
-        <p className="m-0 font-semibold text-fal-navy">Por que o cliente vê / não vê</p>
+        <p className="m-0 font-semibold text-fal-fg">Por que o cliente vê / não vê</p>
         <p className="mb-0 mt-1 text-fal-muted">
           Motor: {mpOn ? 'ligado' : 'desligado'} · Pix: {avail.pix ? 'visível' : 'oculto'} ·
           Crédito: {avail.credit ? 'visível' : 'oculto'} · Débito:{' '}
@@ -277,9 +277,9 @@ export function AdminPaymentMethodsPage() {
                     : 'Indisponível'
           }
           return (
-            <li key={m.code} className="rounded-[14px] border border-fal-line bg-white p-5">
+            <li key={m.code} className="rounded-[14px] border border-fal-line bg-fal-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-extrabold text-fal-navy">{m.label}</h2>
+                <h2 className="m-0 text-lg font-extrabold text-fal-fg">{m.label}</h2>
                 <span
                   className={`rounded-md px-2 py-0.5 text-xs font-bold ${
                     active ? 'bg-emerald-100 text-emerald-900' : 'bg-fal-line/60 text-fal-muted'

@@ -188,7 +188,7 @@ export function AdminInventoryPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-extrabold text-fal-navy">Estoque</h1>
+        <h1 className="text-2xl font-extrabold text-fal-fg">Estoque</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Centro operacional de estoque da loja. O modo define se a venda usa disponibilidade comercial
           ou saldo físico.
@@ -198,15 +198,15 @@ export function AdminInventoryPage() {
         </p>
       </header>
 
-      <section className="rounded-[14px] border border-fal-line bg-white p-4">
+      <section className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <div className="text-xs font-bold uppercase text-fal-muted">Modo atual</div>
-            <div className="text-lg font-extrabold text-fal-navy">{INVENTORY_MODE_LABELS[mode]}</div>
+            <div className="text-lg font-extrabold text-fal-fg">{INVENTORY_MODE_LABELS[mode]}</div>
           </div>
           {isAdmin ? (
             <select
-              className="rounded-[9px] border border-fal-line bg-white px-3 py-2 text-sm"
+              className="rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
               value={mode}
               disabled={busy || pendingMode != null}
               onChange={(e) => requestModeChange(e.target.value as InventoryMode)}
@@ -242,7 +242,7 @@ export function AdminInventoryPage() {
 
         {pendingMode ? (
           <div className="mt-4 rounded-[12px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
-            <h2 className="m-0 text-base font-extrabold text-fal-navy">
+            <h2 className="m-0 text-base font-extrabold text-fal-fg">
               Alterar modo para “{INVENTORY_MODE_LABELS[pendingMode]}”?
             </h2>
             <p className="mt-1 mb-0 text-sm text-fal-muted">
@@ -284,7 +284,7 @@ export function AdminInventoryPage() {
 
       {!loading ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
@@ -342,12 +342,12 @@ export function AdminInventoryPage() {
             ) : null}
           </div>
 
-          <div className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
+          <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
             {!selected ? (
               <p className="text-sm text-fal-muted">Selecione um produto para ver movimentos e ajustar.</p>
             ) : (
               <>
-                <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+                <h2 className="m-0 text-lg font-extrabold text-fal-fg">
                   {selected.sku} — {selected.name}
                 </h2>
                 {allowAdjust ? (

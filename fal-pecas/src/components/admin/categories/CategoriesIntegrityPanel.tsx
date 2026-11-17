@@ -98,10 +98,10 @@ export function CategoriesIntegrityPanel({ items, onChanged, onError, onOk }: Pr
   const archCount = report?.archivedWithProducts.length ?? 0
 
   return (
-    <section className="rounded-[12px] border border-fal-line bg-white p-4">
+    <section className="rounded-[12px] border border-fal-line bg-fal-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="m-0 text-sm font-extrabold text-fal-navy">Integridade da classificação</h2>
+          <h2 className="m-0 text-sm font-extrabold text-fal-fg">Integridade da classificação</h2>
           <p className="mb-0 mt-1 text-xs text-fal-muted">
             Duplicatas por nome (mesmo pai) e arquivados que ainda têm produto.
           </p>
@@ -120,7 +120,7 @@ export function CategoriesIntegrityPanel({ items, onChanged, onError, onOk }: Pr
                 {dupCount} grupo(s) duplicado(s) · {archCount} arquivado(s) com produto
                 <button
                   type="button"
-                  className="ml-2 font-bold text-fal-navy underline disabled:opacity-50"
+                  className="ml-2 font-bold text-fal-fg underline disabled:opacity-50"
                   onClick={() => void refresh()}
                   disabled={loading}
                 >
@@ -143,7 +143,7 @@ export function CategoriesIntegrityPanel({ items, onChanged, onError, onOk }: Pr
                         key={g.key}
                         className="rounded-[10px] border border-fal-line bg-fal-bg/40 px-3 py-2 text-sm"
                       >
-                        <p className="m-0 font-semibold text-fal-navy">
+                        <p className="m-0 font-semibold text-fal-fg">
                           {g.names[0]}{' '}
                           <span className="font-normal text-fal-muted">
                             ({g.ids.length} nós · mesmo pai)
@@ -153,14 +153,14 @@ export function CategoriesIntegrityPanel({ items, onChanged, onError, onOk }: Pr
                           {g.ids.map((id, i) => (
                             <li
                               key={id}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white px-2 py-1.5"
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-fal-surface px-2 py-1.5"
                             >
                               <span className="min-w-0 text-xs">
                                 <span className="font-mono text-[10px] text-fal-muted">
                                   {id.slice(0, 8)}…
                                 </span>{' '}
                                 {categoryPath(items, id) || g.names[i]}
-                                <span className="ml-1 font-bold text-fal-navy">
+                                <span className="ml-1 font-bold text-fal-fg">
                                   · {g.productCounts[i] ?? 0} prod.
                                 </span>
                               </span>
@@ -218,7 +218,7 @@ export function CategoriesIntegrityPanel({ items, onChanged, onError, onOk }: Pr
                         className="flex justify-between gap-2 rounded-md border border-fal-line bg-fal-bg/40 px-2 py-1.5 text-sm"
                       >
                         <span>{row.name}</span>
-                        <span className="font-extrabold tabular-nums text-fal-navy">
+                        <span className="font-extrabold tabular-nums text-fal-fg">
                           {row.productCount}
                         </span>
                       </li>

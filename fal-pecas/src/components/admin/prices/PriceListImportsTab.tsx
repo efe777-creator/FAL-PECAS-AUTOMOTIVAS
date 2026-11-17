@@ -26,13 +26,13 @@ export function PriceListImportsTab({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-fal-navy">Histórico de importações</h2>
+            <h2 className="m-0 text-lg font-extrabold text-fal-fg">Histórico de importações</h2>
             <p className="mt-1 text-sm text-fal-muted">
               Importações desta lista de preços. Histórico geral:{' '}
-              <Link className="font-semibold text-fal-navy underline" to="/admin/importacoes">
+              <Link className="font-semibold text-fal-fg underline" to="/admin/importacoes">
                 Importações
               </Link>
               .
@@ -72,7 +72,7 @@ export function PriceListImportsTab({
                     <td className="px-3 py-2">
                       <button
                         type="button"
-                        className="font-semibold text-fal-navy underline"
+                        className="font-semibold text-fal-fg underline"
                         onClick={() => onOpenDetail(imp.id)}
                       >
                         Detalhes
@@ -86,8 +86,8 @@ export function PriceListImportsTab({
         </div>
       </div>
       {importDetail ? (
-        <div className="rounded-[14px] border border-fal-line bg-white p-4">
-          <h3 className="m-0 font-extrabold text-fal-navy">{importDetail.filename}</h3>
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+          <h3 className="m-0 font-extrabold text-fal-fg">{importDetail.filename}</h3>
           <p className="text-sm text-fal-muted">
             {importStatusLabel(importDetail.status)} · {formatDateTime(importDetail.createdAt)} ·{' '}
             {importDetail.totalItems} itens

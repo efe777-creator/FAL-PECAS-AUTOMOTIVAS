@@ -30,6 +30,8 @@ import {
 } from '@/lib/storeBackend'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useHomePresentation } from '@/hooks/useHomePresentation'
+import { useOpenGraph } from '@/hooks/useOpenGraph'
+import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -110,6 +112,32 @@ export function ProductPage() {
         ? 'Carregando… | FAL Peças Automotivas'
         : 'Produto | FAL Peças Automotivas',
   )
+
+  useOpenGraph(
+    product
+      ? {
+          title: `${toCommercialTitleCase(product.name)} | FAL Peças Automotivas`,
+          description:
+            product.shortDescription ||
+            product.description ||
+            'Peça automotiva na FAL Peças Automotivas.',
+          image: product.imageUrl || product.images?.[0] || null,
+          type: 'product',
+        }
+      : null,
+  )
+
+  useEffect(() => {
+    if (!product) return
+    trackViewItem({
+      itemId: product.id,
+      itemName: toCommercialTitleCase(product.name),
+      price: displayPrice(product),
+      quantity: 1,
+    })
+    // Uma vez por produto visualizado (id estável).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intencional: só reagir a troca de produto
+  }, [product?.id])
 
   useEffect(() => {
     if (!product) return
@@ -378,6 +406,12 @@ export function ProductPage() {
   function onAddToCart() {
     if (current.available === false) return
     addItem(current, qty)
+    trackAddToCart({
+      itemId: current.id,
+      itemName: toCommercialTitleCase(current.name),
+      price: displayPrice(current),
+      quantity: qty,
+    })
     const next = cartQty + qty
     push(
       next === 1 ? 'Produto adicionado ao carrinho' : `${next} unidades no carrinho`,
@@ -480,10 +514,15 @@ export function ProductPage() {
       <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
         <ProductGallery images={galleryImages} alt={displayName} />
 
-        <div className="relative min-w-0 rounded-fal border border-fal-line bg-white p-5">
+        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-5">
           <button
             type="button"
-            className="absolute top-4 right-4 grid h-10 w-10 place-items-center rounded-full border border-fal-line bg-white text-base shadow-sm hover:border-fal-navy"
+            className={[
+              'absolute top-4 right-4 grid h-10 w-10 place-items-center rounded-full border bg-fal-surface text-base shadow-sm',
+              liked
+                ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
+                : 'border-fal-line text-fal-muted hover:border-fal-navy',
+            ].join(' ')}
             aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
             onClick={() => void onFavoriteClick()}
           >

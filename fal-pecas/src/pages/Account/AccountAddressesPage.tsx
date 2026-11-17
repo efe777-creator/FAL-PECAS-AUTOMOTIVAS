@@ -123,7 +123,7 @@ export function AccountAddressesPage() {
 
           <div className="space-y-3">
             {items.map((a) => (
-              <div key={a.id} className="rounded-fal border border-fal-line bg-white p-4">
+              <div key={a.id} className="rounded-fal border border-fal-line bg-fal-surface p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="m-0 font-extrabold">
@@ -208,7 +208,7 @@ export function AccountAddressesPage() {
           </div>
         </>
       ) : (
-        <div className="rounded-fal border border-fal-line bg-white p-5">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
           <h2 className="mt-0 text-xl font-extrabold">
             {mode === 'edit' ? 'Editar endereço' : 'Novo endereço'}
           </h2>

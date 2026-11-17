@@ -55,7 +55,7 @@ export function AdminOrderCommandBar({
               ← Voltar à fila
             </Link>
           </p>
-          <h1 className="mb-0 mt-2 text-2xl font-extrabold tracking-tight text-fal-navy">
+          <h1 className="mb-0 mt-2 text-2xl font-extrabold tracking-tight text-fal-fg">
             Pedido {order.id.slice(0, 8)}…
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@ export function AdminOrderCommandBar({
               {statusLabel}
             </span>
             {modalityLabel ? (
-              <span className="rounded-[8px] border border-fal-line bg-white px-2.5 py-1 text-xs font-bold text-fal-navy">
+              <span className="rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-1 text-xs font-bold text-fal-fg">
                 {modalityLabel}
               </span>
             ) : null}
@@ -75,7 +75,7 @@ export function AdminOrderCommandBar({
                 {freightChoiceLabel}
               </span>
             ) : null}
-            <span className="rounded-[8px] bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-navy">
+            <span className="rounded-[8px] bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-fg">
               {actorLabel}
             </span>
           </div>
@@ -84,15 +84,15 @@ export function AdminOrderCommandBar({
 
       {nextStep ? (
         <section className="rounded-[14px] border-2 border-fal-yellow-dark/50 bg-fal-yellow/20 px-4 py-3 shadow-sm">
-          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-navy/70">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-fg/70">
             Faça agora
           </p>
           <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">{nextStep.title}</h2>
-              <p className="mb-0 mt-1 text-sm text-fal-navy/80">{nextStep.body}</p>
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">{nextStep.title}</h2>
+              <p className="mb-0 mt-1 text-sm text-fal-fg/80">{nextStep.body}</p>
               {separationProgress ? (
-                <p className="mb-0 mt-2 text-sm font-bold text-fal-navy">{separationProgress}</p>
+                <p className="mb-0 mt-2 text-sm font-bold text-fal-fg">{separationProgress}</p>
               ) : null}
             </div>
             {jumpHref ? (
@@ -108,7 +108,7 @@ export function AdminOrderCommandBar({
       ) : null}
 
       {opsReady ? (
-        <div className="rounded-[14px] border border-fal-line/80 bg-white/80">
+        <div className="rounded-[14px] border border-fal-line/80 bg-fal-surface/80">
           <OrderOpsWizardNav order={order} compact />
         </div>
       ) : null}

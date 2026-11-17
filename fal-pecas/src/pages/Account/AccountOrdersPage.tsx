@@ -19,15 +19,15 @@ import { Link, useNavigate } from 'react-router-dom'
 
 function statusBadgeClass(status: string): string {
   if (status === 'aguardando_pagamento') {
-    return 'rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900'
+    return 'rounded-md bg-fal-warning/15 px-2 py-0.5 text-xs font-bold text-fal-fg'
   }
   if (status === 'aguardando_decisao') {
-    return 'rounded-md bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-900'
+    return 'rounded-md bg-fal-accent/15 px-2 py-0.5 text-xs font-bold text-fal-fg'
   }
   if (status === 'entregue' || status === 'cancelado') {
     return 'rounded-md bg-fal-bg px-2 py-0.5 text-xs font-bold text-fal-muted'
   }
-  return 'rounded-md bg-fal-navy/10 px-2 py-0.5 text-xs font-bold text-fal-navy'
+  return 'rounded-md bg-fal-navy/10 px-2 py-0.5 text-xs font-bold text-fal-fg'
 }
 
 function summaryStatusLabel(o: CustomerOrderSummary): string {
@@ -78,7 +78,7 @@ export function AccountOrdersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-fal border border-fal-line bg-white p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus pedidos</h2>
         <p className="mb-0 text-sm text-fal-muted">
           Status, frete/prazo da compra e o que você precisa fazer agora.
@@ -106,7 +106,7 @@ export function AccountOrdersPage() {
                   <article
                     role="link"
                     tabIndex={0}
-                    className="cursor-pointer rounded-fal border border-fal-line bg-white p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+                    className="cursor-pointer rounded-fal border border-fal-line bg-fal-surface p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent"
                     onClick={() => openOrder(o.id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -117,7 +117,7 @@ export function AccountOrdersPage() {
                   >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="m-0 font-mono text-xs font-semibold text-fal-navy">
+                        <p className="m-0 font-mono text-xs font-semibold text-fal-fg">
                           Pedido {o.id.slice(0, 8)}…
                         </p>
                         <p className="mt-1 mb-0 text-sm text-fal-muted">
@@ -129,7 +129,7 @@ export function AccountOrdersPage() {
 
                     {cta ? (
                       <div className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-3 py-2">
-                        <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-navy/70">
+                        <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
                           Faça agora
                         </p>
                         <Button
@@ -144,8 +144,8 @@ export function AccountOrdersPage() {
                     ) : null}
 
                     {o.shippingChoiceLabel ? (
-                      <p className="mb-0 mt-3 text-xs font-bold text-green-950">
-                        <span className="rounded-md border border-green-300 bg-green-50 px-2 py-0.5">
+                      <p className="mb-0 mt-3 text-xs font-bold text-fal-fg">
+                        <span className="rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5">
                           {o.shippingChoiceLabel}
                         </span>
                       </p>
@@ -166,7 +166,7 @@ export function AccountOrdersPage() {
             })}
           </ul>
 
-          <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-white md:block">
+          <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-fal-surface md:block">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-fal-bg text-fal-muted">
                 <tr>
@@ -203,7 +203,7 @@ export function AccountOrdersPage() {
                       </td>
                       <td className="px-3 py-2">
                         {o.shippingChoiceLabel ? (
-                          <span className="inline-block rounded-md border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-950">
+                          <span className="inline-block rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
                             {o.shippingChoiceLabel}
                           </span>
                         ) : (
@@ -215,7 +215,7 @@ export function AccountOrdersPage() {
                       <td className="px-3 py-2">
                         {cta ? (
                           <div>
-                            <p className="m-0 mb-1 text-[10px] font-bold uppercase tracking-wide text-fal-navy/70">
+                            <p className="m-0 mb-1 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
                               Faça agora
                             </p>
                             <ButtonLink to={`/conta/pedidos/${o.id}`} variant="primary">

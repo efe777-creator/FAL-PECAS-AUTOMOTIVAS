@@ -52,11 +52,11 @@ export function PriceListConfigTab({
   return (
     <form
       onSubmit={onSubmit}
-      className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-2"
+      className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 md:grid-cols-2"
     >
       <Input label="Nome" value={cfgName} onChange={(e) => onCfgName(e.target.value)} required />
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Status</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Status</span>
         <select
           className="w-full rounded-[10px] border border-fal-line px-3 py-2"
           value={cfgStatus}
@@ -68,7 +68,7 @@ export function PriceListConfigTab({
         </select>
       </label>
       <label className="block text-sm md:col-span-2">
-        <span className="mb-1 block font-semibold text-fal-navy">Descrição</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Descrição</span>
         <textarea
           className="min-h-[72px] w-full rounded-[10px] border border-fal-line px-3 py-2 text-sm"
           value={cfgDescription}
@@ -76,7 +76,7 @@ export function PriceListConfigTab({
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Escopo</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Escopo</span>
         <select
           className="w-full rounded-[10px] border border-fal-line px-3 py-2"
           value={cfgScope}
@@ -105,7 +105,7 @@ export function PriceListConfigTab({
         value={cfgValidUntil}
         onChange={(e) => onCfgValidUntil(e.target.value)}
       />
-      <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy md:col-span-2">
+      <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg md:col-span-2">
         <input
           type="checkbox"
           checked={cfgDefault}

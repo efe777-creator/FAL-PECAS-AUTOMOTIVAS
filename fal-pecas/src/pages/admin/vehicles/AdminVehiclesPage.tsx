@@ -241,7 +241,7 @@ export function AdminVehiclesPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">Veículos</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Veículos</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Hierarquia: Montadora → Modelo → Configuração. Período da aplicação (ano) fica em{' '}
             <code className="text-xs">product_vehicle_compatibility.year_start/year_end</code> — não
@@ -250,25 +250,25 @@ export function AdminVehiclesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/veiculos/importar-mestre"
           >
             Importar mestre
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/aplicacoes"
           >
             Aplicações
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/produtos/importar-aplicacoes"
           >
             Importar aplicações
           </Link>
           <Link
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/importacoes?kind=catalog_applications"
           >
             Histórico apps
@@ -278,7 +278,7 @@ export function AdminVehiclesPage() {
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {loading ? <Loading /> : null}
 
-      <div className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:grid-cols-2 lg:grid-cols-4">
         <Input
           label="Buscar modelo / montadora"
           value={searchName}
@@ -323,14 +323,14 @@ export function AdminVehiclesPage() {
         </label>
       </div>
 
-      <p className="m-0 text-sm font-semibold text-fal-navy">
+      <p className="m-0 text-sm font-semibold text-fal-fg">
         {totalFiltered} modelo{totalFiltered === 1 ? '' : 's'}
         {totalFiltered !== models.length ? ` (de ${models.length} no cadastro)` : ''}
       </p>
 
       <form
         onSubmit={saveModel}
-        className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-white p-4"
+        className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4"
       >
         <label className="block min-w-[180px] text-sm">
           <span className="mb-1 block text-xs font-extrabold text-fal-muted">
@@ -397,12 +397,12 @@ export function AdminVehiclesPage() {
           <article
             key={m.id}
             className={[
-              'rounded-[14px] border border-fal-line bg-white p-3 shadow-sm',
+              'rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm',
               modelId === m.id ? 'border-fal-yellow bg-[#fff8db]' : '',
             ].join(' ')}
           >
             <p className="m-0 text-xs text-fal-muted">{makerNameById.get(m.manufacturerId) ?? '—'}</p>
-            <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-navy">{m.name}</p>
+            <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-fg">{m.name}</p>
             <p className="m-0 text-xs text-fal-muted">{entityStatusLabel(m.status)}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -428,7 +428,7 @@ export function AdminVehiclesPage() {
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-navy"
+                className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-fg"
                 onClick={() => {
                   setModelId(m.id)
                   setMakerId(m.manufacturerId)
@@ -441,7 +441,7 @@ export function AdminVehiclesPage() {
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>
@@ -487,7 +487,7 @@ export function AdminVehiclesPage() {
                   </button>
                   <button
                     type="button"
-                    className="font-semibold text-fal-navy"
+                    className="font-semibold text-fal-fg"
                     onClick={() => {
                       setModelId(m.id)
                       setMakerId(m.manufacturerId)
@@ -552,7 +552,7 @@ export function AdminVehiclesPage() {
 
       <form
         onSubmit={saveVersion}
-        className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-4"
+        className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 md:grid-cols-4"
       >
         <Input
           label="Ano (opcional / legado)"
@@ -609,9 +609,9 @@ export function AdminVehiclesPage() {
         {filteredVersions.map((v) => (
           <article
             key={v.id}
-            className="rounded-[14px] border border-fal-line bg-white p-3 shadow-sm"
+            className="rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm"
           >
-            <p className="m-0 text-sm font-extrabold text-fal-navy">
+            <p className="m-0 text-sm font-extrabold text-fal-fg">
               {v.year ?? '—'} · {v.engine ?? '—'} · {v.versionName ?? '—'}
             </p>
             <p className="mb-0 mt-1 text-xs text-fal-muted">{entityStatusLabel(v.status)}</p>
@@ -648,7 +648,7 @@ export function AdminVehiclesPage() {
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-white md:block">
+      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>

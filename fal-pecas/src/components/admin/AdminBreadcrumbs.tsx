@@ -18,7 +18,7 @@ export function AdminBreadcrumbs({ items }: { items: AdminCrumb[] }) {
               {c.to && !last ? (
                 <Link
                   to={c.to}
-                  className="font-semibold text-fal-navy no-underline hover:underline"
+                  className="font-semibold text-fal-fg no-underline hover:underline"
                 >
                   {c.label}
                 </Link>

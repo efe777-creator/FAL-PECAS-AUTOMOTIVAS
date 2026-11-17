@@ -143,7 +143,7 @@ export function AdminOrdersAreaPage() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-fal-muted">Área não encontrada.</p>
-        <Link to="/admin/pedidos" className="font-semibold text-fal-navy underline">
+        <Link to="/admin/pedidos" className="font-semibold text-fal-fg underline">
           Voltar à central
         </Link>
       </div>
@@ -153,14 +153,14 @@ export function AdminOrdersAreaPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-2xl font-extrabold text-fal-navy">{area.title}</h1>
+        <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">{area.title}</h1>
         <p className="mt-1 text-sm text-fal-muted">{area.description}</p>
         {area.id === 'expedicao' && filaMeta ? (
-          <p className="mt-1 text-xs font-semibold text-fal-navy">
+          <p className="mt-1 text-xs font-semibold text-fal-fg">
             Fila: {filaMeta.title} — {filaMeta.primaryCta}
           </p>
         ) : (
-          <p className="mt-1 text-xs font-semibold text-fal-navy">
+          <p className="mt-1 text-xs font-semibold text-fal-fg">
             Próxima ação típica: {area.primaryCta}
           </p>
         )}
@@ -205,7 +205,7 @@ export function AdminOrdersAreaPage() {
                   'rounded-[10px] border px-3 py-2 text-sm font-semibold',
                   expFila === id
                     ? 'border-fal-navy bg-fal-navy text-white'
-                    : 'border-fal-line bg-white text-fal-navy',
+                    : 'border-fal-line bg-fal-surface text-fal-fg',
                 ].join(' ')}
               >
                 {q.title}
@@ -214,7 +214,7 @@ export function AdminOrdersAreaPage() {
           })}
           <Link
             to="/admin/pedidos/visao/revisao-logistica"
-            className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm font-semibold text-fal-navy no-underline"
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg no-underline"
           >
             Revisão e ocorrências
           </Link>
@@ -222,7 +222,7 @@ export function AdminOrdersAreaPage() {
       ) : null}
 
       {!loading && !error && hasMore ? (
-        <p className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm text-fal-muted">
+        <p className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm text-fal-muted">
           Fila server-side · {rows.length} carregados · use “Carregar mais” para a próxima página.
         </p>
       ) : null}

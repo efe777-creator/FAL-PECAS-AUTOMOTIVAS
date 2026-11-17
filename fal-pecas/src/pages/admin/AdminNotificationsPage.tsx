@@ -1,3 +1,4 @@
+import { AdminTabs } from '@/components/admin/AdminTabs'
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -184,23 +185,23 @@ export function AdminNotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant={layer === 'inbox' ? 'primary' : 'outline'}
-          onClick={() => setLayer('inbox')}
-        >
-          Minhas notificações
-          {unreadTotal > 0 ? ` (${unreadTotal})` : ''}
-        </Button>
-        <Button
-          type="button"
-          variant={layer === 'advanced' ? 'primary' : 'outline'}
-          onClick={() => setLayer('advanced')}
-        >
-          Avançado
-        </Button>
-      </div>
+      <AdminTabs
+        aria-label="Camadas de notificações"
+        activeId={layer}
+        items={[
+          {
+            id: 'inbox',
+            label: 'Minhas notificações',
+            count: unreadTotal > 0 ? unreadTotal : undefined,
+            onSelect: () => setLayer('inbox'),
+          },
+          {
+            id: 'advanced',
+            label: 'Avançado',
+            onSelect: () => setLayer('advanced'),
+          },
+        ]}
+      />
 
       {layer === 'inbox' ? (
         <NotificationInbox
@@ -224,8 +225,8 @@ export function AdminNotificationsPage() {
 
       {layer === 'advanced' ? (
         <div className="space-y-4">
-          <div className="rounded-fal border border-fal-line bg-white p-5">
-            <h2 className="mt-0 mb-1 text-xl font-extrabold text-fal-navy">Avançado</h2>
+          <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
+            <h2 className="mt-0 mb-1 text-xl font-extrabold text-fal-fg">Avançado</h2>
             <p className="mb-0 mt-1 text-sm text-fal-muted">
               Histórico técnico de envios e catálogo. WhatsApp e e-mail continuam desligados.
             </p>
@@ -282,7 +283,7 @@ export function AdminNotificationsPage() {
                   </div>
                 </EmptyState>
               ) : (
-                <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+                <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
                   <table className="min-w-full text-left text-sm">
                     <thead className="border-b border-fal-line bg-fal-bg/60 text-xs uppercase text-fal-muted">
                       <tr>
@@ -301,7 +302,7 @@ export function AdminNotificationsPage() {
                           <td className="px-3 py-2 whitespace-nowrap text-xs text-fal-muted">
                             {formatDateTime(d.createdAt)}
                           </td>
-                          <td className="px-3 py-2 font-semibold text-fal-navy">{d.kind}</td>
+                          <td className="px-3 py-2 font-semibold text-fal-fg">{d.kind}</td>
                           <td className="px-3 py-2">
                             {CHANNEL_LABEL[d.channel] ?? d.channel}
                           </td>
@@ -353,8 +354,8 @@ export function AdminNotificationsPage() {
 
           {advancedTab === 'config' ? (
             <div className="space-y-4">
-              <div className="rounded-[14px] border border-fal-line bg-white p-4">
-                <h3 className="mt-0 mb-2 text-base font-extrabold text-fal-navy">Canais</h3>
+              <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+                <h3 className="mt-0 mb-2 text-base font-extrabold text-fal-fg">Canais</h3>
                 <p className="mt-0 mb-3 text-sm text-fal-muted">
                   Só o canal “No site” está ativo. WhatsApp e e-mail ficam desligados até a próxima
                   frente.
@@ -366,7 +367,7 @@ export function AdminNotificationsPage() {
                       className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-fal-line px-3 py-2"
                     >
                       <div>
-                        <span className="font-extrabold text-fal-navy">
+                        <span className="font-extrabold text-fal-fg">
                           {CHANNEL_LABEL[c.channel] ?? c.channel}
                         </span>
                         {c.notes ? (
@@ -377,7 +378,7 @@ export function AdminNotificationsPage() {
                         className={[
                           'rounded px-2 py-0.5 text-xs font-bold',
                           c.enabled
-                            ? 'bg-emerald-100 text-emerald-900'
+                            ? 'bg-fal-success/15 text-fal-fg'
                             : 'bg-fal-bg text-fal-muted',
                         ].join(' ')}
                       >
@@ -388,9 +389,9 @@ export function AdminNotificationsPage() {
                 </ul>
               </div>
 
-              <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+              <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
                 <div className="border-b border-fal-line px-4 py-3">
-                  <h3 className="m-0 text-base font-extrabold text-fal-navy">Tipos de aviso</h3>
+                  <h3 className="m-0 text-base font-extrabold text-fal-fg">Tipos de aviso</h3>
                   <p className="mb-0 mt-1 text-sm text-fal-muted">
                     Quem recebe cada tipo e em qual categoria ele aparece.
                   </p>
@@ -409,7 +410,7 @@ export function AdminNotificationsPage() {
                   <tbody>
                     {kinds.map((k) => (
                       <tr key={k.kind} className="border-b border-fal-line last:border-0">
-                        <td className="px-3 py-2 font-semibold text-fal-navy">{k.kind}</td>
+                        <td className="px-3 py-2 font-semibold text-fal-fg">{k.kind}</td>
                         <td className="px-3 py-2">
                           {k.category
                             ? categoryLabel(k.category as AppNotificationCategory)

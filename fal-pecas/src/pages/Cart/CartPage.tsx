@@ -72,7 +72,7 @@ export function CartPage() {
         <EmptyState
           title="Seu carrinho está vazio"
           description="Adicione peças pelo início ou pelo catálogo."
-          actionLabel="Explorar catálogo"
+          actionLabel="Ver catálogo"
           actionTo="/catalogo"
         />
       </Container>

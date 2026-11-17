@@ -45,6 +45,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   caixas: 'Caixas',
   configuracoes: 'Configurações',
   frete: 'Frete',
+  prazos: 'Prazos de entrega',
 }
 
 function looksLikeId(seg: string): boolean {

@@ -153,7 +153,7 @@ export function PriceListProductsTab({
     <div className="space-y-4">
       <form
         onSubmit={onAddItem}
-        className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 md:grid-cols-4"
+        className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 md:grid-cols-4"
       >
         <div className="text-sm text-fal-muted md:col-span-4">
           Adicionar item com origem <strong>{priceOriginLabel('manual')}</strong>.
@@ -173,7 +173,7 @@ export function PriceListProductsTab({
         </div>
       </form>
 
-      <div className="rounded-[14px] border border-fal-line bg-white p-4">
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <p className="mb-3 text-sm text-fal-muted">
           Contexto: <strong>{list.name}</strong> · {pricingMethodLabel(list.pricingMethod)}{' '}
           {pricingRuleLabel(list.pricingMethod, list.pricingPercent)}. Preços exibidos são só desta
@@ -269,7 +269,7 @@ export function PriceListProductsTab({
           {filtersActive ? (
             <button
               type="button"
-              className="font-semibold text-fal-navy underline"
+              className="font-semibold text-fal-fg underline"
               onClick={onClearFilters}
             >
               Limpar filtros
@@ -292,8 +292,8 @@ export function PriceListProductsTab({
       </div>
 
       {selectedItems.length > 0 ? (
-        <div className="flex flex-wrap items-end gap-2 rounded-[14px] border border-fal-line bg-white p-3">
-          <span className="text-sm font-semibold text-fal-navy">
+        <div className="flex flex-wrap items-end gap-2 rounded-[14px] border border-fal-line bg-fal-surface p-3">
+          <span className="text-sm font-semibold text-fal-fg">
             {selectedItems.length} selecionado(s)
           </span>
           <Button
@@ -322,7 +322,7 @@ export function PriceListProductsTab({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
             <tr>
@@ -432,7 +432,7 @@ export function PriceListProductsTab({
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          className="text-sm font-semibold text-fal-navy underline"
+                          className="text-sm font-semibold text-fal-fg underline"
                           disabled={!allowed || busyRow}
                           onClick={() => onEditItem(item)}
                         >

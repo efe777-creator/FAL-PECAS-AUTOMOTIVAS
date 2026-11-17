@@ -465,14 +465,14 @@ export function AdminHomeContentPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy">Home da loja</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Home da loja</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Campanhas, destaques, promoções, pagamento e config — na mesma faixa de abas.
         </p>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-white p-4 text-sm text-fal-ink">
-        <p className="m-0 font-bold text-fal-navy">Como funciona (simples)</p>
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-4 text-sm text-fal-ink">
+        <p className="m-0 font-bold text-fal-fg">Como funciona (simples)</p>
         <ul className="mt-2 mb-0 list-disc space-y-1 pl-5 text-fal-muted">
           <li>
             <strong className="text-fal-ink">Campanhas</strong> = slides do carrossel.
@@ -508,7 +508,7 @@ export function AdminHomeContentPage() {
           {' · '}
           <strong>pagamento {payment.enabled ? 'ligado' : 'desligado'}</strong>
           {' · '}
-          <Link to="/" className="font-semibold text-fal-navy hover:underline" target="_blank">
+          <Link to="/" className="font-semibold text-fal-fg hover:underline" target="_blank">
             Abrir Home
           </Link>
         </p>
@@ -539,9 +539,9 @@ export function AdminHomeContentPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <form
             onSubmit={(e) => void onSaveBanner(e)}
-            className="space-y-3 rounded-fal border border-fal-line bg-white p-4"
+            className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4"
           >
-            <h2 className="m-0 text-lg font-bold text-fal-navy">
+            <h2 className="m-0 text-lg font-bold text-fal-fg">
               {form.id ? 'Editar campanha' : 'Nova campanha'}
             </h2>
             <Input
@@ -780,19 +780,19 @@ export function AdminHomeContentPage() {
           </form>
 
           <div className="space-y-3">
-            <p className="m-0 text-sm font-semibold text-fal-navy">
+            <p className="m-0 text-sm font-semibold text-fal-fg">
               Ordem na Home (↑ / ↓ = posição no carrossel)
             </p>
             {banners.map((b, index) => (
               <article
                 key={b.id}
                 className={`rounded-fal border p-4 ${
-                  b.active ? 'border-fal-line bg-white' : 'border-dashed border-fal-line bg-fal-bg'
+                  b.active ? 'border-fal-line bg-fal-surface' : 'border-dashed border-fal-line bg-fal-bg'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="m-0 font-bold text-fal-navy">{b.title}</p>
+                    <p className="m-0 font-bold text-fal-fg">{b.title}</p>
                     <p className="mt-1 text-sm text-fal-muted">{b.subtitle || '—'}</p>
                     <p className="mt-1 text-xs text-fal-muted">
                       {b.active ? 'Ativa' : 'Desligada'}
@@ -869,9 +869,9 @@ export function AdminHomeContentPage() {
       {tab === 'config' && !loading ? (
         <form
           onSubmit={(e) => void onSaveHomeSettings(e)}
-          className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-white p-4"
+          className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-fal-surface p-4"
         >
-          <h2 className="m-0 text-lg font-bold text-fal-navy">Configurações gerais</h2>
+          <h2 className="m-0 text-lg font-bold text-fal-fg">Configurações gerais</h2>
           <p className="m-0 text-sm text-fal-muted">
             Só apresentação na vitrine. Não altera preço resolvido, gateway nem checkout.
           </p>
@@ -889,7 +889,7 @@ export function AdminHomeContentPage() {
               }))
             }}
           />
-          <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+          <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
             <input
               type="checkbox"
               checked={homeSettings.showOfertaBadge}
@@ -943,7 +943,7 @@ export function AdminHomeContentPage() {
         <div className="space-y-3">
           <form
             onSubmit={(e) => void onSaveHomeSettings(e)}
-            className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-white p-3"
+            className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-fal-surface p-3"
           >
             <div className="min-w-[180px]">
               <Input
@@ -971,7 +971,7 @@ export function AdminHomeContentPage() {
           </form>
           <form
             onSubmit={(e) => void onSearchProducts(e)}
-            className="flex flex-wrap items-end gap-2 rounded-fal border border-fal-line bg-white p-3"
+            className="flex flex-wrap items-end gap-2 rounded-fal border border-fal-line bg-fal-surface p-3"
           >
             <div className="min-w-[200px] flex-1">
               <Input
@@ -1013,7 +1013,7 @@ export function AdminHomeContentPage() {
             ) : null}
           </form>
 
-          <div className="flex flex-wrap items-end gap-2 rounded-fal border border-fal-line bg-white p-3">
+          <div className="flex flex-wrap items-end gap-2 rounded-fal border border-fal-line bg-fal-surface p-3">
             <div className="min-w-[180px] flex-1">
               <Input
                 label="Filtrar lista"
@@ -1039,10 +1039,10 @@ export function AdminHomeContentPage() {
             </p>
           </div>
 
-          <section className="rounded-fal border border-fal-line bg-white p-3">
+          <section className="rounded-fal border border-fal-line bg-fal-surface p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="m-0 text-sm font-bold text-fal-navy">Prévia da faixa Destaques</h3>
+                <h3 className="m-0 text-sm font-bold text-fal-fg">Prévia da faixa Destaques</h3>
                 <p className="m-0 mt-0.5 text-xs text-fal-muted">
                   Dados reais (imagem, preço resolvido, selo Oferta). Até{' '}
                   {homeSettings.featuredDisplayLimit} itens ligados — não altera a curadoria.
@@ -1088,7 +1088,7 @@ export function AdminHomeContentPage() {
                       key={row.productId}
                       className="overflow-hidden rounded-[12px] border border-fal-line bg-fal-bg/40"
                     >
-                      <div className="aspect-square bg-white">
+                      <div className="aspect-square bg-fal-surface">
                         {row.imageUrl ? (
                           <img
                             src={row.imageUrl}
@@ -1133,7 +1133,7 @@ export function AdminHomeContentPage() {
                 return (
                   <article
                     key={row.productId}
-                    className={`rounded-[14px] border border-fal-line bg-white p-3 shadow-sm ${row.active ? '' : 'bg-fal-bg/60'}`}
+                    className={`rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm ${row.active ? '' : 'bg-fal-bg/60'}`}
                   >
                     <div className="flex gap-3">
                       <FeaturedThumb row={row} />
@@ -1142,7 +1142,7 @@ export function AdminHomeContentPage() {
                           #{index + 1} · {row.commercialRef}
                         </p>
                         <Link
-                          className="mt-0.5 block text-sm font-extrabold text-fal-navy"
+                          className="mt-0.5 block text-sm font-extrabold text-fal-fg"
                           to={`/admin/produtos/${row.productId}`}
                         >
                           {row.name}
@@ -1215,7 +1215,7 @@ export function AdminHomeContentPage() {
               })}
             </div>
 
-            <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-white md:block">
+            <div className="hidden overflow-x-auto rounded-fal border border-fal-line bg-fal-surface md:block">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-fal-bg text-fal-muted">
                   <tr>
@@ -1246,7 +1246,7 @@ export function AdminHomeContentPage() {
                         <td className="px-2 py-2 font-mono text-xs">{row.commercialRef}</td>
                         <td className="px-2 py-2">
                           <Link
-                            className="font-semibold text-fal-navy hover:underline"
+                            className="font-semibold text-fal-fg hover:underline"
                             to={`/admin/produtos/${row.productId}`}
                           >
                             {row.name}

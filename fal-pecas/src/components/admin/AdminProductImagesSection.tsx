@@ -29,12 +29,12 @@ export function AdminProductImagesSection({ productId }: Props) {
   }, [reload])
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-white p-4">
-      <h2 className="font-extrabold text-fal-navy">Imagens</h2>
+    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+      <h2 className="font-extrabold text-fal-fg">Imagens</h2>
       <p className="m-0 text-xs text-fal-muted">
         Várias de uma vez neste produto · lote por código em{' '}
         <Link
-          className="font-semibold text-fal-navy hover:underline"
+          className="font-semibold text-fal-fg hover:underline"
           to="/admin/produtos/importar-imagens"
         >
           Importar imagens

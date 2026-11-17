@@ -23,8 +23,8 @@ export function OwnDeliveryAuditTab({ onError }: Props) {
   }, [])
 
   return (
-    <div className="rounded-[14px] border border-fal-line bg-white p-4 text-sm">
-      <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Histórico</h2>
+    <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm">
+      <h2 className="mt-0 text-lg font-extrabold text-fal-fg">Histórico</h2>
       <p className="text-fal-muted">Últimas alterações deste frete ({rows.length}).</p>
       {error ? <p className="text-fal-danger">{error}</p> : null}
       {!rows.length && !error ? (

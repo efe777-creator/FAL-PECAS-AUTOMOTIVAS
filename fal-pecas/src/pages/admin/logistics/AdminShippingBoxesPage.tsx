@@ -157,7 +157,7 @@ export function AdminShippingBoxesPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Caixas e embalagens</h1>
+        <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">Caixas e embalagens</h1>
         <p className="m-0 text-sm text-fal-muted">
           Modelos usados na cotação Melhor Envio do carrinho (conjunto). Com caixas ativas, a regra
           v1 escolhe a menor que comporta volume e peso em <strong>1 volume</strong>; se nenhuma
@@ -179,7 +179,7 @@ export function AdminShippingBoxesPage() {
 
       <form
         onSubmit={onSubmit}
-        className="grid gap-3 rounded-[14px] border border-fal-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         <Input
           label="Nome"
@@ -230,7 +230,7 @@ export function AdminShippingBoxesPage() {
           value={form.maxWeightKg}
           onChange={(e) => patchForm({ maxWeightKg: e.target.value })}
         />
-        <label className="flex items-center gap-2 text-sm font-semibold text-fal-navy">
+        <label className="flex items-center gap-2 text-sm font-semibold text-fal-fg">
           <input
             type="checkbox"
             checked={form.active}
@@ -255,7 +255,7 @@ export function AdminShippingBoxesPage() {
       ) : null}
 
       {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead className="bg-fal-bg text-fal-muted">
               <tr>
@@ -270,7 +270,7 @@ export function AdminShippingBoxesPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-fal-line">
-                  <td className="px-3 py-2 font-semibold text-fal-navy">{r.name}</td>
+                  <td className="px-3 py-2 font-semibold text-fal-fg">{r.name}</td>
                   <td className="px-3 py-2">
                     {r.lengthCm} × {r.widthCm} × {r.heightCm} cm
                   </td>

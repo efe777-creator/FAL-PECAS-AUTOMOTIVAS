@@ -1,4 +1,4 @@
-﻿import { CategoriesArchivedMenu } from '@/components/admin/categories/CategoriesArchivedMenu'
+import { CategoriesArchivedMenu } from '@/components/admin/categories/CategoriesArchivedMenu'
 import { CategoriesBrowseBar } from '@/components/admin/categories/CategoriesBrowseBar'
 import { CategoriesBrowsePanel } from '@/components/admin/categories/CategoriesBrowsePanel'
 import { CategoriesIntegrityPanel } from '@/components/admin/categories/CategoriesIntegrityPanel'
@@ -591,14 +591,14 @@ export function AdminCategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-navy">Classificação</h1>
+      <h1 className="text-2xl font-extrabold text-fal-fg">Classificação</h1>
       <p className="text-sm text-fal-muted">
         Mesma árvore da planilha e do cadastro manual:{' '}
         <strong>Categoria</strong> → <strong>Grupo</strong> → <strong>Subgrupo</strong>. Edite,
         arquive ou exclua aqui; arquivados ficam no menu discreto abaixo.
       </p>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-navy">
+      <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-fg">
         <span>
           <strong>{levelStats.cat}</strong> categorias
         </span>

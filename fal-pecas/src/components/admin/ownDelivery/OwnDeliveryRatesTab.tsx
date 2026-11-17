@@ -47,8 +47,8 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
   }, [tariffs])
 
   return (
-    <div className="space-y-4 rounded-[14px] border border-fal-line bg-white p-4">
-      <h2 className="mt-0 text-lg font-extrabold text-fal-navy">Preços por veículo</h2>
+    <div className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
+      <h2 className="mt-0 text-lg font-extrabold text-fal-fg">Preços por veículo</h2>
       <p className="m-0 text-sm text-fal-muted">
         Para cada tipo: taxa mínima (piso), valor por km de ida e um adicional fixo (opcional). O
         frete fica o maior entre (km × valor/km) e a mínima, mais o adicional.
@@ -64,7 +64,7 @@ export function OwnDeliveryRatesTab({ onOk, onError }: Props) {
         return (
           <div key={c.id} className="rounded-xl border border-fal-line p-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h3 className="m-0 text-base font-extrabold text-fal-navy">{c.label}</h3>
+              <h3 className="m-0 text-base font-extrabold text-fal-fg">{c.label}</h3>
               <span className="text-xs text-fal-muted">{iconLabel(c.icon)}</span>
             </div>
             {active ? (

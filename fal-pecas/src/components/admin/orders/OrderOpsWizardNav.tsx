@@ -13,7 +13,7 @@ function stateClass(state: string): string {
     case 'skipped':
       return 'border-transparent bg-transparent text-fal-muted line-through opacity-60'
     default:
-      return 'border-fal-line bg-white text-fal-navy'
+      return 'border-fal-line bg-fal-surface text-fal-fg'
   }
 }
 
@@ -31,7 +31,7 @@ export function OrderOpsWizardNav({ order, compact }: Props) {
 
   return (
     <nav
-      className={compact ? 'px-3 py-2.5' : 'rounded-[14px] border border-fal-line bg-white px-4 py-3'}
+      className={compact ? 'px-3 py-2.5' : 'rounded-[14px] border border-fal-line bg-fal-surface px-4 py-3'}
       aria-label="Wizard operacional"
     >
       {!compact ? (

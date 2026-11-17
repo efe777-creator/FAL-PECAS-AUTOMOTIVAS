@@ -37,7 +37,7 @@ Ciclo: **Auditar → Autorizar → Fazer → Testar → Registrar → Gate**.
 | G7 E2E | **PASS** · [VAL](./FAL_MARCHA_G7_E2E_ESTABILIDADE_VAL_2026-11-16.md) | — |
 | G8 Venda controlada | **BLOCKED — STOP 8.3** · [VAL](./FAL_MARCHA_G8_VENDA_CONTROLADA_VAL_2026-11-16.md) | — |
 
-**Próxima ação única:** eFe — créditos Netlify/`--prod` **ou** N=3 vendas no preview + monitor 48–72h. Rollback: [plano](./FAL_MARCHA_G8_ROLLBACK_PLAN_2026-11-16.md).
+**Próxima ação única (MARCHA):** **G8.3 validação total** — N=3 no preview (1+ approve real + ops se possível; smoke cartão já parcial) **ou** créditos/`--prod`. Depois 8.4 monitor. Rollback: [plano](./FAL_MARCHA_G8_ROLLBACK_PLAN_2026-11-16.md).
 
 ---
 

@@ -1,4 +1,5 @@
-﻿import { PriceListConfigTab } from '@/components/admin/prices/PriceListConfigTab'
+import { AdminTabs } from '@/components/admin/AdminTabs'
+import { PriceListConfigTab } from '@/components/admin/prices/PriceListConfigTab'
 import { PriceListFormacaoTab } from '@/components/admin/prices/PriceListFormacaoTab'
 import { PriceListImportsTab } from '@/components/admin/prices/PriceListImportsTab'
 import { PriceListProductsTab } from '@/components/admin/prices/PriceListProductsTab'
@@ -821,7 +822,7 @@ export function AdminPriceListDetailPage() {
     return (
       <div className="space-y-3">
         <p className="text-red-600">Lista não encontrada.</p>
-        <Link className="font-semibold text-fal-navy underline" to="/admin/precos">
+        <Link className="font-semibold text-fal-fg underline" to="/admin/precos">
           ← Voltar às listas de preços
         </Link>
       </div>
@@ -842,7 +843,7 @@ export function AdminPriceListDetailPage() {
             <label className="block min-w-[240px] flex-1 text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Lista de preços</span>
               <select
-                className="w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 font-semibold text-fal-navy"
+                className="w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 font-semibold text-fal-fg"
                 value={id}
                 onChange={(e) => onChangePriceList(e.target.value)}
               >
@@ -854,7 +855,7 @@ export function AdminPriceListDetailPage() {
               </select>
             </label>
             <div>
-              <h1 className="text-2xl font-extrabold text-fal-navy">{list.name}</h1>
+              <h1 className="text-2xl font-extrabold text-fal-fg">{list.name}</h1>
               <p className="text-sm text-fal-muted">
                 {priceListStatusLabel(list.status)} · {pricingMethodLabel(list.pricingMethod)}{' '}
                 {pricingRuleLabel(list.pricingMethod, list.pricingPercent)} · {list.slug}
@@ -882,7 +883,7 @@ export function AdminPriceListDetailPage() {
       </div>
 
       {stats ? (
-        <div className="grid gap-2 rounded-[14px] border border-fal-line bg-white p-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-2 rounded-[14px] border border-fal-line bg-fal-surface p-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard label="Total" value={stats.total} />
           <StatCard label="Calculado" value={stats.calculated} />
           <StatCard label="Importado" value={stats.imported} />
@@ -896,20 +897,15 @@ export function AdminPriceListDetailPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 border-b border-fal-line pb-2">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-              tab === t.id ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-navy'
-            }`}
-            onClick={() => selectTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <AdminTabs
+        aria-label="Abas da lista de preços"
+        activeId={tab}
+        items={tabs.map((t) => ({
+          id: t.id,
+          label: t.label,
+          onSelect: () => selectTab(t.id),
+        }))}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -1065,7 +1061,7 @@ function StatCard({
   return (
     <div className="rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2">
       <div className="text-[11px] font-extrabold uppercase tracking-wide text-fal-muted">{label}</div>
-      <div className={`text-xl font-extrabold ${warn ? 'text-amber-800' : 'text-fal-navy'}`}>
+      <div className={`text-xl font-extrabold ${warn ? 'text-amber-800' : 'text-fal-fg'}`}>
         {value}
       </div>
     </div>

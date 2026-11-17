@@ -106,7 +106,7 @@ export function CategoriesEditorForm({
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className={`grid gap-3 rounded-[14px] border bg-white p-4 md:grid-cols-2 ${
+      className={`grid gap-3 rounded-[14px] border bg-fal-surface p-4 md:grid-cols-2 ${
         highlighted ? 'border-fal-yellow-dark ring-2 ring-fal-yellow/40' : 'border-fal-line'
       }`}
     >
@@ -123,7 +123,7 @@ export function CategoriesEditorForm({
                 key={lv}
                 type="button"
                 className={`rounded-md px-2 py-1 text-xs font-bold ${
-                  createLevel === lv ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-navy'
+                  createLevel === lv ? 'bg-fal-navy text-white' : 'bg-fal-bg text-fal-fg'
                 }`}
                 onClick={() => onStartCreate(lv)}
               >
@@ -150,9 +150,9 @@ export function CategoriesEditorForm({
 
       {createLevel === 2 ? (
         <label className="block text-sm">
-          <span className="mb-1 block font-semibold text-fal-navy">Categoria pai</span>
+          <span className="mb-1 block font-semibold text-fal-fg">Categoria pai</span>
           <select
-            className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+            className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
             value={parentId}
             onChange={(e) => onParentId(e.target.value)}
             required
@@ -173,9 +173,9 @@ export function CategoriesEditorForm({
       {createLevel === 3 ? (
         <>
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Categoria</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Categoria</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+              className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
               value={subgrupoCategoriaId}
               onChange={(e) => {
                 const catId = e.target.value
@@ -203,9 +203,9 @@ export function CategoriesEditorForm({
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-navy">Grupo pai</span>
+            <span className="mb-1 block font-semibold text-fal-fg">Grupo pai</span>
             <select
-              className="w-full rounded-[10px] border border-fal-line bg-white px-3 py-2"
+              className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
               value={parentId}
               onChange={(e) => {
                 onParentId(e.target.value)
@@ -249,7 +249,7 @@ export function CategoriesEditorForm({
       {resultingDepth === 1 ? (
         <div className="md:col-span-2 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold text-fal-navy">Ícone (só categoria raiz)</span>
+            <span className="text-sm font-semibold text-fal-fg">Ícone (só categoria raiz)</span>
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-fal-line bg-fal-bg">
               {previewIcon.type === 'image' ? (
                 <img
@@ -350,7 +350,7 @@ export function CategoriesEditorForm({
         className="md:col-span-2 space-y-3 rounded-[10px] border border-dashed border-fal-line bg-fal-bg/60 p-3"
       >
         <div>
-          <h3 className="m-0 text-sm font-extrabold text-fal-navy">Medidas padrão (frete)</h3>
+          <h3 className="m-0 text-sm font-extrabold text-fal-fg">Medidas padrão (frete)</h3>
           <p className="mb-0 mt-1 text-[13px] text-fal-muted">
             Peso/dims médios da classificação. A cotação do carrinho lê o produto (não inventa
             default). Salve e aplique à subárvore para SKUs novos/globais — se este nó estiver

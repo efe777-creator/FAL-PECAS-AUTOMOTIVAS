@@ -158,7 +158,7 @@ export function AdminNamedEntityCrud({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-navy">{title}</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">{title}</h1>
           {description ? <p className="mt-1 text-sm text-fal-muted">{description}</p> : null}
         </div>
         {headerActions ? <div className="flex flex-wrap gap-2">{headerActions}</div> : null}
@@ -166,7 +166,7 @@ export function AdminNamedEntityCrud({
       <form
         ref={formRef}
         onSubmit={(e) => void onSubmit(e)}
-        className={`flex flex-wrap items-end gap-3 rounded-[14px] border bg-white p-4 ${
+        className={`flex flex-wrap items-end gap-3 rounded-[14px] border bg-fal-surface p-4 ${
           editing ? 'border-fal-yellow-dark ring-2 ring-fal-yellow/40' : 'border-fal-line'
         }`}
       >
@@ -201,7 +201,7 @@ export function AdminNamedEntityCrud({
       />
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {loading ? <Loading /> : null}
-      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-white">
+      <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-fal-bg text-fal-muted">
             <tr>

@@ -102,7 +102,7 @@ export function PaymentAdjustPercentControl({
       className="m-0 space-y-3 rounded-[12px] border border-fal-line bg-fal-bg/30 p-3"
       disabled={disabled}
     >
-      <legend className="px-1 text-sm font-bold text-fal-navy">{label}</legend>
+      <legend className="px-1 text-sm font-bold text-fal-fg">{label}</legend>
       <p className="m-0 text-xs text-fal-muted">
         Aplica-se ao preço já resolvido (lista padrão ou promocional). Não cria outra lista.
       </p>
@@ -132,7 +132,7 @@ export function PaymentAdjustPercentControl({
                     : opt.id === 'increase'
                       ? 'border-amber-700 bg-amber-100 text-amber-950'
                       : 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-fal-line bg-white text-fal-navy hover:bg-fal-bg',
+                  : 'border-fal-line bg-fal-surface text-fal-fg hover:bg-fal-bg',
               ].join(' ')}
             >
               {opt.text}
@@ -155,7 +155,7 @@ export function PaymentAdjustPercentControl({
               onChange={(e) => setMagnitude(e.target.value)}
             />
           </div>
-          <p className="mb-3 text-sm font-extrabold text-fal-navy">%</p>
+          <p className="mb-3 text-sm font-extrabold text-fal-fg">%</p>
         </div>
       ) : null}
 
@@ -165,13 +165,13 @@ export function PaymentAdjustPercentControl({
             ? 'bg-emerald-50 text-emerald-950'
             : kind === 'increase'
               ? 'bg-amber-50 text-amber-950'
-              : 'bg-white text-fal-navy'
+              : 'bg-fal-surface text-fal-fg'
         }`}
       >
         {summary}
       </p>
 
-      <div className="rounded-lg bg-white px-3 py-2 text-sm text-fal-navy">
+      <div className="rounded-lg bg-fal-surface px-3 py-2 text-sm text-fal-fg">
         <p className="m-0 font-bold">Prévia</p>
         <p className="mb-0 mt-1">
           Lista padrão {formatMoney(sampleBase)} → {methodLabel}{' '}

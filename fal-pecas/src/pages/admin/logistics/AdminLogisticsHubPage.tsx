@@ -5,43 +5,43 @@ const cards = [
   {
     to: '/admin/logistica/origem',
     title: 'Origem e expedição',
-    desc: 'Remetente e endereço da loja (CEP). Base para frete próprio e Melhor Envio.',
+    desc: 'Informe de onde saem os envios e o CEP da loja. Assim o cliente vê fretes e prazos corretos no checkout.',
     ready: true,
   },
   {
     to: '/admin/logistica/frete-proprio',
     title: 'Frete próprio',
-    desc: 'Veículos (capacidade), tarifas por km e produtos elegíveis — cotação do conjunto via capacidade, não caixa.',
+    desc: 'Cadastre veículos, valores por km e quais produtos você entrega na região. O site calcula o frete conforme o pedido.',
     ready: true,
   },
   {
     to: '/admin/logistica/prazos',
     title: 'Prazos de entrega',
-    desc: 'Prazos e buffers dos meios (ME, próprio, mock e retirada). Pedidos usam o snapshot.',
+    desc: 'Defina quantos dias cada forma de envio leva. A loja usa esses prazos e cada pedido guarda o que valia na compra.',
     ready: true,
   },
   {
     to: '/admin/logistica/melhor-envio',
     title: 'Melhor Envio',
-    desc: 'Status da integração e quais transportadoras aparecem na loja.',
+    desc: 'Veja se a integração está ativa e quais transportadoras aparecem para o cliente na hora de escolher o frete.',
     ready: true,
   },
   {
     to: '/admin/logistica/caixas',
     title: 'Caixas e embalagens',
-    desc: 'Modelos padrão: a cotação do carrinho usa a menor caixa que comporta o conjunto (1 volume ME).',
+    desc: 'Padronize tamanhos de embalagem para o carrinho estimar o frete com mais precisão em um único volume.',
     ready: true,
   },
   {
     to: '/admin/categorias#medidas-padrao',
     title: 'Medidas por classificação',
-    desc: 'Peso/dims médios → apply nos produtos (não inventa na cotação). Spec cotação agrupada 13/11.',
+    desc: 'Peso e dimensões médias por tipo de peça ajudam a cotar o frete quando o produto ainda não tem medida própria.',
     ready: true,
   },
   {
     to: '/admin/logistica/configuracoes',
     title: 'Configurações de envio',
-    desc: 'Regras: ME = caixa; FAL = capacidade + km; packing ops re-cota custo sem mudar frete do cliente.',
+    desc: 'Regras gerais de como cada modalidade de envio se comporta na loja, para você e para o cliente.',
     ready: true,
   },
 ] as const
@@ -51,10 +51,10 @@ export function AdminLogisticsHubPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="mt-0 text-[28px] font-extrabold text-fal-navy">Logística</h1>
+        <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">Logística</h1>
         <p className="m-0 text-sm text-fal-muted">
-          Configure origem, prazos, frete próprio (capacidade + km), Melhor Envio e caixas padrão do
-          carrinho. Pedidos e expedição (packing / re-cotação interna) ficam em Pedidos.
+          Centralize origem, prazos, entrega própria, Melhor Envio e embalagens. O que o cliente vê no
+          checkout começa aqui. Expedição e detalhes por pedido ficam em Pedidos.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -62,10 +62,10 @@ export function AdminLogisticsHubPage() {
           <Link
             key={c.to}
             to={c.to}
-            className="block rounded-[14px] border border-fal-line bg-white p-5 no-underline transition hover:border-fal-navy/40"
+            className="block rounded-[14px] border border-fal-line bg-fal-surface p-5 no-underline transition hover:border-fal-navy/40"
           >
             <div className="flex items-start justify-between gap-2">
-              <h2 className="m-0 text-lg font-extrabold text-fal-navy">{c.title}</h2>
+              <h2 className="m-0 text-lg font-extrabold text-fal-fg">{c.title}</h2>
               {!c.ready ? (
                 <span className="shrink-0 rounded-md bg-fal-line/60 px-2 py-0.5 text-xs font-semibold text-fal-muted">
                   Em breve

@@ -63,7 +63,7 @@ export function CategoryCascadeSelects({
   return (
     <div className={className ?? 'grid gap-3 sm:grid-cols-3'}>
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Categoria</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Categoria</span>
         <select
           id={`${idPrefix}-categoria`}
           className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
@@ -86,7 +86,7 @@ export function CategoryCascadeSelects({
         </select>
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Grupo</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Grupo</span>
         <select
           id={`${idPrefix}-grupo`}
           className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
@@ -109,7 +109,7 @@ export function CategoryCascadeSelects({
         </select>
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-semibold text-fal-navy">Subgrupo</span>
+        <span className="mb-1 block font-semibold text-fal-fg">Subgrupo</span>
         <select
           id={`${idPrefix}-subgrupo`}
           className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"

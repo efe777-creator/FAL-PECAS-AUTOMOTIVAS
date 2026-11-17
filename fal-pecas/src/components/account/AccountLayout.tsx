@@ -16,10 +16,12 @@ const links = [
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
-    'inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-3 py-2 text-sm transition lg:flex lg:rounded-none lg:border-0 lg:border-b lg:border-fal-line lg:px-3 lg:py-3',
+    'inline-flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold transition',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-accent focus-visible:ring-offset-2',
+    'lg:flex lg:w-full lg:border-b-0 lg:border-l-2 lg:px-3 lg:py-3',
     isActive
-      ? 'border-fal-navy bg-fal-navy font-extrabold text-white lg:bg-[#f7f8f9] lg:text-fal-navy'
-      : 'border-fal-line bg-white text-fal-navy hover:bg-[#f7f8f9] lg:font-normal',
+      ? 'border-fal-accent font-extrabold text-fal-accent'
+      : 'border-transparent text-fal-fg hover:bg-fal-surface-2 hover:text-fal-accent',
   ].join(' ')
 }
 
@@ -32,16 +34,15 @@ export function AccountLayout() {
     <Container className="py-6 sm:py-8">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:mb-6">
         <div>
-          <h1 className="mt-0 mb-1 text-[24px] font-extrabold sm:mb-2 sm:text-[34px]">
+          <h1 className="mt-0 mb-1 text-[24px] font-extrabold text-fal-fg sm:mb-2 sm:text-[34px]">
             Minha conta
           </h1>
           <p className="mb-0 text-fal-muted">Olá, {firstName}.</p>
         </div>
       </div>
 
-      {/* Mobile: nav compacta horizontal antes do conteúdo */}
       <nav
-        className="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 lg:hidden"
+        className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1 lg:hidden"
         aria-label="Menu da conta"
       >
         {links.map((item) => (
@@ -52,7 +53,7 @@ export function AccountLayout() {
         {isStaff ? (
           <Link
             to="/admin"
-            className="whitespace-nowrap rounded-full border border-fal-yellow bg-fal-yellow px-3 py-2 text-sm font-extrabold text-fal-navy-dark"
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-[10px] border border-fal-yellow bg-fal-yellow px-3 py-2 text-sm font-extrabold text-fal-navy-dark"
           >
             Admin
           </Link>
@@ -60,8 +61,8 @@ export function AccountLayout() {
       </nav>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr]">
-        <aside className="hidden rounded-fal border border-fal-line bg-white lg:block">
-          <nav className="lg:block">
+        <aside className="hidden rounded-fal border border-fal-line bg-fal-surface lg:block">
+          <nav className="py-2" aria-label="Menu da conta">
             {links.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
                 {item.label}
@@ -70,21 +71,23 @@ export function AccountLayout() {
             {isStaff ? (
               <Link
                 to="/admin"
-                className="block border-b border-fal-line px-3 py-3 text-sm font-extrabold text-fal-navy hover:bg-[#f7f8f9]"
+                className="mt-1 block border-l-2 border-transparent px-3 py-3 text-sm font-extrabold text-fal-fg hover:bg-fal-surface-2"
               >
                 Painel Administrativo
               </Link>
             ) : null}
           </nav>
-          <Button variant="danger" fullWidth className="mt-3" onClick={() => void signOut()}>
-            Sair
-          </Button>
+          <div className="border-t border-fal-line p-3">
+            <Button variant="outline" fullWidth onClick={() => void signOut()}>
+              Sair
+            </Button>
+          </div>
         </aside>
 
         <section className="min-w-0">
           <Outlet />
           <div className="mt-6 lg:hidden">
-            <Button variant="danger" fullWidth onClick={() => void signOut()}>
+            <Button variant="outline" fullWidth onClick={() => void signOut()}>
               Sair
             </Button>
           </div>
