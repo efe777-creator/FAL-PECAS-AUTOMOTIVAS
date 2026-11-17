@@ -22,7 +22,6 @@ import {
 } from '@/lib/adminOrderOps'
 import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { toUserMessage } from '@/lib/toUserMessage'
-import type { AdminLogisticsQueueId } from '@/lib/adminLogisticsQueues'
 import {
   ADMIN_LIST_PAGE_SIZE,
   adminCentralIndicators,
@@ -278,10 +277,15 @@ function LogisticsBody({
   onSelectOrder: (id: string) => void
   onChangeFila?: (fila: string) => void
 }) {
-  const activeFila = (
-    ['volumes', 'etiquetas-me', 'entregas-proprias', 'transito', 'entregues'] as const
-  ).includes(fila as AdminLogisticsQueueId)
-    ? (fila as AdminLogisticsQueueId)
+  const expedicaoFilas = [
+    'volumes',
+    'etiquetas-me',
+    'entregas-proprias',
+    'transito',
+    'entregues',
+  ] as const
+  const activeFila = (expedicaoFilas as readonly string[]).includes(fila)
+    ? (fila as (typeof expedicaoFilas)[number])
     : 'volumes'
 
   const dash = useDashboardData()

@@ -39,7 +39,7 @@ import {
 } from '@/lib/adminDashboardPeriod'
 import { formatDateTime } from '@/lib/datetime'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 function DashboardShell({
   period,
