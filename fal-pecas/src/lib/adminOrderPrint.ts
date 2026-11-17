@@ -1,4 +1,24 @@
-import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
+import {
+  adminGetOrderDetail,
+  type AdminOrderDetail,
+} from '@/services/admin/adminOrderService'
+
+export type OrderPrintKind = 'separation' | 'romaneio'
+
+/** Carrega detail e abre print HTML. Nunca muta pedido. */
+export async function printOrderDocument(
+  orderId: string,
+  kind: OrderPrintKind,
+): Promise<'ok' | 'blocked' | 'not_found' | 'error'> {
+  try {
+    const order = await adminGetOrderDetail(orderId)
+    if (!order) return 'not_found'
+    const opened = kind === 'separation' ? openSeparationList(order) : openRomaneio(order)
+    return opened ? 'ok' : 'blocked'
+  } catch {
+    return 'error'
+  }
+}
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')

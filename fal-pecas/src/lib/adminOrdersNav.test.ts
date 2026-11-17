@@ -32,4 +32,11 @@ describe('adminOrdersNav (UI-04 / CEN-04)', () => {
   it('fallback hub', () => {
     expect(peekOrdersReturnPath('/admin/pedidos')).toBe('/admin/pedidos')
   })
+
+  it('aceita /admin e path+search do hub', () => {
+    rememberOrdersReturnPath('/admin')
+    expect(peekOrdersReturnPath()).toBe('/admin')
+    rememberOrdersReturnPath('/admin/pedidos?tab=logistica&fila=volumes')
+    expect(peekOrdersReturnPath()).toBe('/admin/pedidos?tab=logistica&fila=volumes')
+  })
 })
