@@ -406,11 +406,26 @@ A FAL identifica e cadastra veículo pessoal mesmo sem versão/motorização da 
 
 ---
 
-**Status:** PLANO 0 documentado; **marcha Etapas 1–6 em andamento em `dev`** (2026-11-18).  
+**Status:** PLANO 0 **fundação FECHADA com residuals** (2026-11-18) — Etapas 1–6 entregues o suficiente para Planejamento 1; Etapa 7 (UX Minha Garagem) fora.
+
+### Fechamento
+
 - Etapa 1: save progressivo + textos + UI placa/conta  
 - Etapa 2: flush global pós-login (`PendingGarageFlush`), Home/QuickPick  
-- Etapa 3: Edge/mapper com `engineRaw`/`versionRaw`; migration aplicada em **produção** `wtbpwuiayednvlhvuhbh` via `db query` (histórico `db push` ainda divergente — não usar repair sem ordem explícita)  
-- Etapa 4–5: copy incompleto + GarageAskPrompt único; smoke GAF7032 (placa → catálogo → pending → login)  
-- Etapa 6 (parcial): unit §12 #1–4/#8–10; `resolveAuthReturnPath` (returnTo após refresh no login); e2e flush autenticado ainda pendente de credencial de teste  
-- Edge deploy + commit `6414cac` na `dev` feitos.
-- Smoke UI `GAF7032` (2026-11-18): conferência 5 filtros OK → catálogo com chips → empty PVC esperado. Ver `fal-pecas/docs/VAL-placa-filtros-veiculo.md`.
+- Etapa 3: Edge/mapper com `engineRaw`/`versionRaw`; migration `progressive_text` aplicada em FAL `wtbpwuiayednvlhvuhbh` via `db query` (histórico `db push` ainda divergente — não usar repair sem ordem explícita)  
+- Etapa 4–5: copy incompleto + `GarageAskPrompt` único; Edge upsert mestre `source=plate`  
+- Etapa 6: unit §12 #1–4/#8–10; `resolveAuthReturnPath`; smoke UI GAF7032; **smoke flush autenticado** (pending → login → `customer_vehicles` + `/conta/veiculos`)
+
+### Enriquecimento por placa (confirmação auditoria)
+
+| Camada | Placa enriquece? |
+|--------|------------------|
+| Mestre (`manufacturers` / `models` / `vehicle_versions`) | **Sim** — Edge `plate-lookup` → `upsert_vehicle_canonical` (`source=plate`), gate INV |
+| Garagem (`customer_vehicles`) | **Sim** — após Sim, salvar + auth (`ensureSavedVehicleFromFilter`); **não** cria mestre |
+| PVC | **Não** (proposital) |
+
+### Residuals (pós-fundação — não bloqueiam Planejamento 1)
+
+Ver [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md).
+
+Evidências: `fal-pecas/docs/VAL-placa-filtros-veiculo.md`.

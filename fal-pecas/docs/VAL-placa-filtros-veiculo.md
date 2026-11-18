@@ -40,3 +40,4 @@
 - Anônimo → **Sim, salvar** → `/login` + `sessionStorage.fal_pending_garage_vehicle` com placa `GAF7032`; ask prompt limpo.
 - Fix: prompt não some mais (Strict Mode / 2× `VehiclePlateSearch`); `ProductCard` sem `<a>` aninhado na categoria.
 - Pós-auth: `resolveAuthReturnPath` usa `state.from` ou, se sumir (refresh), `pending.returnTo` do catálogo.
+- Smoke flush autenticado (2026-11-18): `fal_pending_garage_vehicle` (GAF7032) → login → pending limpo → redirect `returnTo` catálogo → linha em `customer_vehicles` (`plate=GAF7032`, maker/model/year/engine/version + FKs) → UI `/conta/veiculos` lista **Chevrolet Onix · Principal** com *Ver peças compatíveis*.
