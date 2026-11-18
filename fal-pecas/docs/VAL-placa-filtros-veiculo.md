@@ -39,3 +39,4 @@
 - Prompt único `GarageAskPrompt` no catálogo: *“Deseja salvar este veículo na sua garagem?”* (Chevrolet Onix 2016 · 1.4 · LT · placa GAF7032).
 - Anônimo → **Sim, salvar** → `/login` + `sessionStorage.fal_pending_garage_vehicle` com placa `GAF7032`; ask prompt limpo.
 - Fix: prompt não some mais (Strict Mode / 2× `VehiclePlateSearch`); `ProductCard` sem `<a>` aninhado na categoria.
+- Pós-auth: `resolveAuthReturnPath` usa `state.from` ou, se sumir (refresh), `pending.returnTo` do catálogo.

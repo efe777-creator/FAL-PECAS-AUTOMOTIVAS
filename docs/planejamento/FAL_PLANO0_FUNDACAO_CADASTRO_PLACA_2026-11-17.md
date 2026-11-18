@@ -406,9 +406,11 @@ A FAL identifica e cadastra veículo pessoal mesmo sem versão/motorização da 
 
 ---
 
-**Status:** PLANO 0 documentado; **marcha Etapas 1–3 em `dev`** (2026-11-18).  
+**Status:** PLANO 0 documentado; **marcha Etapas 1–6 em andamento em `dev`** (2026-11-18).  
 - Etapa 1: save progressivo + textos + UI placa/conta  
 - Etapa 2: flush global pós-login (`PendingGarageFlush`), Home/QuickPick  
 - Etapa 3: Edge/mapper com `engineRaw`/`versionRaw`; migration aplicada em **produção** `wtbpwuiayednvlhvuhbh` via `db query` (histórico `db push` ainda divergente — não usar repair sem ordem explícita)  
+- Etapa 4–5: copy incompleto + GarageAskPrompt único; smoke GAF7032 (placa → catálogo → pending → login)  
+- Etapa 6 (parcial): unit §12 #1–4/#8–10; `resolveAuthReturnPath` (returnTo após refresh no login); e2e flush autenticado ainda pendente de credencial de teste  
 - Edge deploy + commit `6414cac` na `dev` feitos.
 - Smoke UI `GAF7032` (2026-11-18): conferência 5 filtros OK → catálogo com chips → empty PVC esperado. Ver `fal-pecas/docs/VAL-placa-filtros-veiculo.md`.

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { MIN_PASSWORD_LENGTH, passwordRuleHint } from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { resolveAuthReturnPath } from '@/services/plates/authReturnPath'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
@@ -16,8 +17,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
-  const from = fromState ?? '/conta'
-  const fromCheckout = Boolean(fromState?.includes('/checkout'))
+  const from = resolveAuthReturnPath(fromState, '/conta')
+  const fromCheckout = Boolean(from.includes('/checkout'))
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

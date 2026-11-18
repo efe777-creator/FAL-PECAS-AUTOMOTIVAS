@@ -13,6 +13,7 @@ import {
   passwordTooShortMessage,
 } from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { resolveAuthReturnPath } from '@/services/plates/authReturnPath'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
@@ -23,10 +24,10 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const fromState = (location.state as { from?: string } | null)?.from
-  // Veio do funil (carrinho/checkout) → volta para lá; senão área da conta.
-  const from = fromState ?? '/conta'
-  const fromCheckout = Boolean(fromState?.includes('/checkout'))
-  const loginState = fromState ? { from: fromState } : undefined
+  // Funil (checkout/catálogo/pending garagem) → volta; senão área da conta.
+  const from = resolveAuthReturnPath(fromState, '/conta')
+  const fromCheckout = Boolean(from.includes('/checkout'))
+  const loginState = from !== '/conta' ? { from } : undefined
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
