@@ -410,4 +410,5 @@ A FAL identifica e cadastra veículo pessoal mesmo sem versão/motorização da 
 - Etapa 1: save progressivo + textos + UI placa/conta  
 - Etapa 2: flush global pós-login (`PendingGarageFlush`), Home/QuickPick  
 - Etapa 3: Edge/mapper com `engineRaw`/`versionRaw`; migration aplicada em **produção** `wtbpwuiayednvlhvuhbh` via `db query` (histórico `db push` ainda divergente — não usar repair sem ordem explícita)  
-- **Pendente:** deploy da Edge `plate-lookup` para publicar `engineRaw`/`versionRaw` em produção; commit/push do código na `dev`.
+- Edge deploy + commit `6414cac` na `dev` feitos.
+- Smoke UI `GAF7032` (2026-11-18): conferência 5 filtros OK → catálogo com chips → empty PVC esperado. Ver `fal-pecas/docs/VAL-placa-filtros-veiculo.md`.

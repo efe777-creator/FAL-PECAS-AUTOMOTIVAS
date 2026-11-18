@@ -28,3 +28,11 @@
 - 2ª consulta (cache) → mesmos 5 campos canônicos + `versionId`.
 - VV no banco: `Volkswagen | Cross Fox | 2007 | source=plate` (chave natural sem duplicata).
 - Vitest: 22 testes do pacote plates/import OK; `tsc -b` OK.
+
+## Evidência smoke (2026-11-18) — `GAF7032`
+
+- Edge `plate-lookup` (prod): `found` · Chevrolet · Onix · 2016 · 1.4 · LT · fuel informativo · IDs canônicos · `apiplacas` (não mock).
+- VV active no mestre: `Chevrolet | Onix | 2016 | 1.4 | LT`.
+- UI `/veiculo` (Vite): conferência com **5 selects** preenchidos (Chevrolet / Onix / 2016 / 1.4 / LT) + combustível informativo.
+- Confirmar → `/catalogo?vehicle=1&maker=Chevrolet&model=Onix&year=2016&engine=1.4&version=LT` com chips ativos.
+- Empty state: *“Veículo reconhecido — sem peças compatíveis”* / *“Identificamos o veículo, mas ainda não temos peças compatíveis cadastradas.”* (PVC ausente — esperado).
