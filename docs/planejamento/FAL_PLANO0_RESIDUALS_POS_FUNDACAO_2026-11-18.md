@@ -20,7 +20,7 @@ Itens conscientes deixados de fora do fechamento da fundação PLANO 0. UX compl
 |----|----------|----------------------|------------------|
 | R1 | `updateSavedVehicle` progressivo | ~~aberto~~ → **feito G1** | `updateSavedVehicle` + UI completar |
 | R2 | Política Edge VV `incomplete` no mestre | ~~aberto~~ → **feito pós-G8** | `allowCanonicalUpsert` exige maker+model+ano; `vehicleCanonicalUpsert` rejeita sem ano; cache plate-lookup não re-upserta sem ano |
-| R3 | `source_snapshot` jsonb (API completa) | Hoje só `engineRaw`/`versionRaw` + colunas texto na garagem | Coluna snapshot (ou blob) no cache/placa e/ou garagem; fuel/câmbio opcionais na UI, sem virar filtro PVC |
+| R3 | `source_snapshot` jsonb (API completa) | ~~aberto~~ → **feito pós-G8** | Coluna `customer_vehicles.source_snapshot`; Edge `sourceSnapshot`; UI fuel/câmbio informativos; sem filtro PVC |
 | R4 | Confirmação manual não re-upserta mestre | Só Edge na consulta (ou import admin) grava mestre | Decidir se edição na confirmação deve chamar upsert autenticado/staff — fora da fundação |
 | R5 | Suite §12 e2e restante | Unit + smokes manuais cobrem o crítico; faltam #5–7/#11–13/#16–18 automatizados | Expandir Vitest/Playwright quando houver harness estável |
 | R6 | Histórico `supabase db push` divergente | Migration progressive aplicada via `db query` | Alinhar migration history com ordem explícita do eFe — sem `repair` improvisado |
@@ -38,7 +38,6 @@ Itens conscientes deixados de fora do fechamento da fundação PLANO 0. UX compl
 
 ## Ordem sugerida (quando retomar)
 
-1. ~~R1 / R7 / R2~~ **feitos**  
-2. **R3** `source_snapshot` jsonb (API completa)  
-3. **R4** confirmação manual re-upsert mestre (decisão produto)  
-4. **R5** / **R6** conforme capacidade de QA/ops  
+1. ~~R1 / R7 / R2 / R3~~ **feitos**  
+2. **R4** confirmação manual re-upsert mestre (decisão produto — não codar sem escolha eFe)  
+3. **R5** / **R6** conforme capacidade de QA/ops  

@@ -1,5 +1,9 @@
 import type { VehicleFilter } from '@/types'
 import { isModelNameClean, splitApiModelo } from '@/services/plates/splitApiModelo'
+import {
+  buildPlateSourceSnapshot,
+  type PlateSourceSnapshot,
+} from '@/services/plates/plateSourceSnapshot'
 
 export type PlateLookupStatus =
   | 'found'
@@ -49,6 +53,8 @@ export interface PlateLookupResult {
   candidates: PlateLookupCandidate[]
   /** Ambiente de teste — UI deve deixar claro que não é consulta real. */
   isMock: boolean
+  /** R3 — snapshot congelado da consulta (opcional; montado no client se ausente). */
+  sourceSnapshot?: PlateSourceSnapshot | null
 }
 
 export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
@@ -71,6 +77,25 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
     if (!version && split.version) version = split.version
   }
 
+  const sourceSnapshot =
+    result.sourceSnapshot ??
+    buildPlateSourceSnapshot({
+      plate: result.plate,
+      queriedAt: result.queriedAt,
+      source: result.source,
+      status: result.status,
+      maker: result.maker,
+      model,
+      year: result.year,
+      engine: engine ?? result.engine,
+      version: version ?? result.version,
+      engineRaw: result.engineRaw,
+      versionRaw: result.versionRaw,
+      fuel: result.fuel,
+      transmission: result.transmission,
+      confidence: result.confidence,
+    })
+
   return {
     maker: result.maker ?? undefined,
     model,
@@ -84,6 +109,7 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
     versionId: result.versionId ?? undefined,
     engineRaw: result.engineRaw?.trim() || undefined,
     versionRaw: result.versionRaw?.trim() || undefined,
+    sourceSnapshot,
   }
 }
 

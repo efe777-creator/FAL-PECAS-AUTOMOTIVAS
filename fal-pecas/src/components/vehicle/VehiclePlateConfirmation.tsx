@@ -45,10 +45,21 @@ export function VehiclePlateConfirmation({
         )}
       </div>
 
-      {result.fuel ? (
+      {result.fuel || result.transmission ? (
         <p className="m-0 rounded-[9px] border border-[#e8edf5] bg-[#f7f9fc] px-3 py-2 text-xs text-fal-muted">
-          Combustível informado pela consulta: <strong>{result.fuel}</strong> (apenas
-          informativo — não entra no filtro de peças).
+          {result.fuel ? (
+            <>
+              Combustível: <strong>{result.fuel}</strong>
+            </>
+          ) : null}
+          {result.fuel && result.transmission ? ' · ' : null}
+          {result.transmission ? (
+            <>
+              Câmbio: <strong>{result.transmission}</strong>
+            </>
+          ) : null}
+          {' '}
+          (apenas informativo — não entra no filtro de peças).
         </p>
       ) : null}
 
@@ -114,6 +125,9 @@ export function VehiclePlateConfirmation({
             versionId: sameIdentity ? base.versionId ?? result.versionId ?? undefined : undefined,
             engineRaw: sameIdentity ? base.engineRaw ?? result.engineRaw ?? undefined : f.engineRaw,
             versionRaw: sameIdentity ? base.versionRaw ?? result.versionRaw ?? undefined : f.versionRaw,
+            sourceSnapshot: sameIdentity
+              ? base.sourceSnapshot ?? result.sourceSnapshot ?? undefined
+              : f.sourceSnapshot ?? base.sourceSnapshot,
           })
         }}
       />

@@ -69,6 +69,24 @@ export interface StoreShippingOrigin {
   state: string
 }
 
+/** R3 — snapshot informativo da consulta (fuel/câmbio/brutos). Ver plateSourceSnapshot. */
+export type CustomerVehicleSourceSnapshot = {
+  plate: string | null
+  queriedAt: string | null
+  source: string | null
+  status: string | null
+  maker: string | null
+  model: string | null
+  year: string | null
+  engine: string | null
+  version: string | null
+  engineRaw: string | null
+  versionRaw: string | null
+  fuel: string | null
+  transmission: string | null
+  confidence: number | null
+}
+
 export interface CustomerSavedVehicle {
   id: string
   customerId: string
@@ -89,6 +107,8 @@ export interface CustomerSavedVehicle {
   makerName?: string
   modelName?: string
   versionName?: string | null
+  /** Originais da consulta de placa — não entram no filtro PVC. */
+  sourceSnapshot?: CustomerVehicleSourceSnapshot | null
 }
 
 export interface CustomerVehicleAsset {
@@ -547,6 +567,8 @@ export interface VehicleFilter {
   /** Originais brutos (API) quando normalização falhou — só garagem/snapshot. */
   engineRaw?: string
   versionRaw?: string
+  /** R3 — snapshot completo da consulta (fuel/câmbio); não é filtro PVC. */
+  sourceSnapshot?: CustomerVehicleSourceSnapshot | null
 }
 
 /** Ordenação do motor de busca (Fase 4). */

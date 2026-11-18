@@ -168,6 +168,12 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
     extractYearPreferModel(dados.ano_modelo) ??
     extractYearPreferModel(dados.ano)
   const fuel = asString(dados.combustivel) ?? asString(dados.combustível)
+  const transmission =
+    asString(dados.cambio) ??
+    asString(dados.câmbio) ??
+    asString(dados.transmissao) ??
+    asString(dados.transmissão) ??
+    asString(dados.transmission)
 
   if (!maker && !model) return notFound()
 
@@ -182,7 +188,7 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
     engineRaw: engine ? null : engineRaw,
     versionRaw: version ? null : versionRaw,
     fuel,
-    transmission: null,
+    transmission,
     confidence: incomplete ? 0.6 : 0.85,
     vehicleGroup: null,
     message: incomplete

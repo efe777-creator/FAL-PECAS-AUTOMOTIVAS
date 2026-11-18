@@ -386,6 +386,7 @@ Deno.serve(async (req) => {
 
   if (raw.status === 'not_in_catalog') status = 'not_in_catalog'
 
+  const queriedAt = new Date().toISOString()
   const result: NormalizedPlateLookupResult = {
     plate,
     status,
@@ -403,11 +404,27 @@ Deno.serve(async (req) => {
     versionId,
     vehicleGroup: raw.vehicleGroup,
     source: provider.source,
-    queriedAt: new Date().toISOString(),
+    queriedAt,
     confidence: raw.confidence,
     message: raw.message,
     candidates: raw.candidates ?? [],
     isMock: provider.source === 'mock',
+    sourceSnapshot: {
+      plate,
+      queriedAt,
+      source: provider.source,
+      status,
+      maker: makerOut,
+      model: modelOut,
+      year: yearOut != null ? String(yearOut) : null,
+      engine: engineOut,
+      version: versionOut,
+      engineRaw: raw.engineRaw ?? null,
+      versionRaw: raw.versionRaw ?? null,
+      fuel: raw.fuel,
+      transmission: raw.transmission,
+      confidence: raw.confidence,
+    },
   }
 
   if (sb) {

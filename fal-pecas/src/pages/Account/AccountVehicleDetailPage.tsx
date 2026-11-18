@@ -28,6 +28,7 @@ import {
   resolveVehicleDisplayImage,
 } from '@/services/customers/vehicleImageResolver'
 import { formatPlateMask, plateValidationMessage } from '@/services/plates/plateNormalize'
+import { formatSourceSnapshotExtras } from '@/services/plates/plateSourceSnapshot'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
@@ -402,6 +403,16 @@ export function AccountVehicleDetailPage() {
                 {vehicle.versionId ? 'Vinculado ao cadastro' : 'Ainda sem version_id'}
               </dd>
             </div>
+            {formatSourceSnapshotExtras(vehicle.sourceSnapshot) ? (
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase text-fal-muted">
+                  Dados da consulta (informativo)
+                </dt>
+                <dd className="m-0 font-semibold">
+                  {formatSourceSnapshotExtras(vehicle.sourceSnapshot)}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </Section>
 

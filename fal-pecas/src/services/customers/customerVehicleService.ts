@@ -1,7 +1,8 @@
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
 import { normalizePlate } from '@/services/plates/plateNormalize'
-import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
+import { parsePlateSourceSnapshot } from '@/services/plates/plateSourceSnapshot'
+import type { CustomerSavedVehicle, CustomerVehicleSourceSnapshot, VehicleFilter } from '@/types'
 
 type Row = {
   id: string
@@ -23,6 +24,7 @@ type Row = {
   color_label?: string | null
   notes?: string | null
   primary_asset_id?: string | null
+  source_snapshot?: unknown
   manufacturers?: { name: string } | { name: string }[] | null
   models?: { name: string } | { name: string }[] | null
   vehicle_versions?:
@@ -34,7 +36,7 @@ type Row = {
 const SELECT_VEHICLE = `
   id, customer_id, manufacturer_id, model_id, version_id, year, engine, nickname, is_primary,
   maker_text, model_text, version_text, engine_text, plate, plate_normalized,
-  color_hex, color_label, notes, primary_asset_id,
+  color_hex, color_label, notes, primary_asset_id, source_snapshot,
   manufacturers ( name ),
   models ( name ),
   vehicle_versions ( version_name, year, engine )
@@ -77,6 +79,7 @@ function mapVehicle(row: Row): CustomerSavedVehicle {
     makerName: relName(row.manufacturers) ?? row.maker_text ?? undefined,
     modelName: relName(row.models) ?? row.model_text ?? undefined,
     versionName: vv?.version_name ?? row.version_text ?? null,
+    sourceSnapshot: parsePlateSourceSnapshot(row.source_snapshot),
   }
 }
 
@@ -243,6 +246,7 @@ export async function addSavedVehicle(input: {
   versionText?: string | null
   engineText?: string | null
   plate?: string | null
+  sourceSnapshot?: CustomerVehicleSourceSnapshot | null
 }): Promise<CustomerSavedVehicle> {
   const customerId = await getCurrentCustomerId()
   if (!customerId) throw new Error('Cliente não encontrado')
@@ -280,6 +284,7 @@ export async function addSavedVehicle(input: {
       engine_text: blankToNull(input.engineText),
       plate,
       plate_normalized: plateNorm,
+      source_snapshot: input.sourceSnapshot ?? null,
     })
     .select(SELECT_VEHICLE)
     .single()
@@ -306,6 +311,7 @@ export async function updateSavedVehicle(
     colorLabel?: string | null
     notes?: string | null
     primaryAssetId?: string | null
+    sourceSnapshot?: CustomerVehicleSourceSnapshot | null
   },
 ): Promise<CustomerSavedVehicle> {
   const customerId = await getCurrentCustomerId()
@@ -345,6 +351,9 @@ export async function updateSavedVehicle(
   if (input.colorLabel !== undefined) patch.color_label = blankToNull(input.colorLabel)
   if (input.notes !== undefined) patch.notes = blankToNull(input.notes)
   if (input.primaryAssetId !== undefined) patch.primary_asset_id = input.primaryAssetId
+  if (input.sourceSnapshot !== undefined) {
+    patch.source_snapshot = input.sourceSnapshot
+  }
 
   if (input.isPrimary) {
     await getSupabase()
@@ -440,6 +449,7 @@ export async function ensureSavedVehicleFromFilter(
     versionText,
     engineText,
     plate,
+    sourceSnapshot: filter.sourceSnapshot ?? null,
   }
 
   if (dup) {

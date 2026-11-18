@@ -72,6 +72,23 @@ export interface NormalizedPlateLookupResult {
     versionId?: string | null
   }>
   isMock: boolean
+  /** R3 — originais informativos (fuel/câmbio/brutos); não é filtro PVC. */
+  sourceSnapshot?: {
+    plate: string | null
+    queriedAt: string | null
+    source: string | null
+    status: string | null
+    maker: string | null
+    model: string | null
+    year: string | null
+    engine: string | null
+    version: string | null
+    engineRaw: string | null
+    versionRaw: string | null
+    fuel: string | null
+    transmission: string | null
+    confidence: number | null
+  } | null
 }
 
 const PLATE_STRIP = /[^A-Za-z0-9]/g
