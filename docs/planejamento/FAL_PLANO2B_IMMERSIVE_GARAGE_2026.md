@@ -233,7 +233,7 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] E4 sync opt-in sem write-back  
 - [x] Branch `dev` apenas  
 - [x] Fase A consolidação **código/contrato** (doc + A1 + privacidade + Vitest 37 PASS)  
-- [x] Fase A / Camada 1 smoke browser (VAL S1–S8; sync-on com fato real ainda limitado)  
+- [x] Fase A / Camada 1 smoke browser (VAL S1–S8; sync-on com fato G7 — MARCHA SYNC)  
 - [x] Fase B E0 doc Camada 2 + E1 Visualization Engine  
 - [x] Fase B E2 tabelas assets/compat + storage  
 - [x] Fase B E3 loader GLB lazy + fallback  
