@@ -7,7 +7,9 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { VehicleIdentityTimeline } from '@/components/garage/VehicleIdentityTimeline'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
+import { VehicleMaintenancesPanel } from '@/components/garage/VehicleMaintenancesPanel'
 import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
+import { VehicleProfessionalsPanel } from '@/components/garage/VehicleProfessionalsPanel'
 import {
   isVehicleIncomplete,
   vehicleCatalogHref,
@@ -44,6 +46,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
   { key: 'visao', label: 'Visão geral' },
   { key: 'historico', label: 'Histórico' },
+  { key: 'manutencoes', label: 'Manutenções' },
+  { key: 'profissionais', label: 'Profissionais' },
   { key: 'config', label: 'Configurações' },
 ]
 
@@ -405,6 +409,28 @@ export function AccountVehicleDetailPage() {
           <ErrorState
             title="Identidade pendente"
             description="Este veículo ainda não tem identidade permanente. Atualize a página ou recadastre após a Etapa 1."
+          />
+        )
+      ) : null}
+
+      {modulo === 'manutencoes' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleMaintenancesPanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Manutenções exigem identidade permanente do veículo."
+          />
+        )
+      ) : null}
+
+      {modulo === 'profissionais' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleProfessionalsPanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Profissionais vinculados exigem identidade permanente."
           />
         )
       ) : null}

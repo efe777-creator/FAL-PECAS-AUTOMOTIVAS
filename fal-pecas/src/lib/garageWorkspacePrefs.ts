@@ -1,7 +1,17 @@
 export type GarageModuleKey =
   | 'visao'
   | 'historico'
+  | 'manutencoes'
+  | 'profissionais'
   | 'config'
+
+const MODULES: GarageModuleKey[] = [
+  'visao',
+  'historico',
+  'manutencoes',
+  'profissionais',
+  'config',
+]
 
 const KEY = 'fal-garage-workspace-v1'
 
@@ -30,6 +40,8 @@ export function writeGarageWorkspacePrefs(patch: GarageWorkspacePrefs): GarageWo
 }
 
 export function parseGarageModule(raw: string | null): GarageModuleKey {
-  if (raw === 'historico' || raw === 'config' || raw === 'visao') return raw
-  return readGarageWorkspacePrefs().lastModule ?? 'visao'
+  if (raw && (MODULES as string[]).includes(raw)) return raw as GarageModuleKey
+  const last = readGarageWorkspacePrefs().lastModule
+  if (last && (MODULES as string[]).includes(last)) return last
+  return 'visao'
 }
