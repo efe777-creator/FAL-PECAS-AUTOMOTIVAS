@@ -7,9 +7,9 @@ import {
 } from './visualizationEngine'
 
 describe('visualizationEngine', () => {
-  it('nunca escreve 2A; GLB loader ainda indisponível (B1)', () => {
+  it('nunca escreve 2A; GLB loader disponível (E3)', () => {
     expect(visualizationNeverWrites2A()).toBe(true)
-    expect(glbLoaderAvailable()).toBe(false)
+    expect(glbLoaderAvailable()).toBe(true)
   })
 
   it('pref 2d ou sem WebGL → 2d', () => {
@@ -39,7 +39,7 @@ describe('visualizationEngine', () => {
     ).toBe('procedural')
   })
 
-  it('WebGL + asset aprovado → glb (contrato; render B1 degrada)', () => {
+  it('WebGL + asset aprovado → glb render; falha → procedural', () => {
     expect(
       resolveVisualizationSource({
         preferredMode: 'auto',
@@ -47,11 +47,12 @@ describe('visualizationEngine', () => {
         hasApprovedGlb: true,
       }),
     ).toBe('glb')
-    expect(effectiveRenderSource('glb', true)).toBe('procedural')
+    expect(effectiveRenderSource('glb', true)).toBe('glb')
+    expect(effectiveRenderSource('glb', true, { glbLoadFailed: true })).toBe('procedural')
     expect(effectiveRenderSource('glb', false)).toBe('2d')
   })
 
-  it('XR só com gate + suporte', () => {
+  it('XR só com gate + suporte; render ainda procedural até Fase C', () => {
     expect(
       resolveVisualizationSource({
         preferredMode: 'auto',
@@ -61,14 +62,6 @@ describe('visualizationEngine', () => {
         xrSupported: true,
       }),
     ).toBe('xr')
-    expect(
-      resolveVisualizationSource({
-        preferredMode: 'auto',
-        webglOk: true,
-        hasApprovedGlb: false,
-        xrEnabled: false,
-        xrSupported: true,
-      }),
-    ).toBe('procedural')
+    expect(effectiveRenderSource('xr', true)).toBe('procedural')
   })
 })

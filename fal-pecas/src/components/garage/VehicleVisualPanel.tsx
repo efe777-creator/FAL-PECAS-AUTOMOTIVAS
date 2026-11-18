@@ -26,7 +26,8 @@ import {
   partsForModelReflection,
   type VisualInstallFact,
 } from '@/services/garage/visualInstallSync'
-import { hasApprovedVisualGlb } from '@/services/garage/vehicleVisualAssetService'
+import { findApprovedVisualAssetForIdentity } from '@/services/garage/vehicleVisualAssetService'
+import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTypes'
 import { listVisualInstallFacts } from '@/services/garage/visualInstallSyncService'
 import {
   readSyncInstallEnabled,
@@ -66,7 +67,7 @@ export function VehicleVisualPanel({
   const [viewerPref, setViewerPref] = useState<VisualViewerMode>(() => readVisualViewerMode())
   const [syncInstall, setSyncInstall] = useState(() => readSyncInstallEnabled())
   const [webglOk, setWebglOk] = useState(false)
-  const [hasApprovedGlb, setHasApprovedGlb] = useState(false)
+  const [approvedAsset, setApprovedAsset] = useState<VehicleVisualAsset | null>(null)
 
   useEffect(() => {
     setWebglOk(canUseWebGL())
@@ -95,16 +96,16 @@ export function VehicleVisualPanel({
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [row, preview, facts, glbOk] = await Promise.all([
+      const [row, preview, facts, asset] = await Promise.all([
         getMyVisualConfig(vehicleIdentityId),
         listVisualPartPreviews(membershipId),
         listVisualInstallFacts({ vehicleIdentityId, membershipId }),
-        hasApprovedVisualGlb(vehicleIdentityId),
+        findApprovedVisualAssetForIdentity(vehicleIdentityId),
       ])
       if (row) setPayload(row.payload)
       setParts(preview)
       setInstallFacts(facts)
-      setHasApprovedGlb(glbOk)
+      setApprovedAsset(asset)
     } catch (e) {
       toast.push(toUserMessage(e, 'Erro ao carregar visual'), 'error')
     } finally {
@@ -194,7 +195,8 @@ export function VehicleVisualPanel({
         syncEnabled={syncInstall}
         preferredMode={viewerPref}
         webglOk={webglOk}
-        hasApprovedGlb={hasApprovedGlb}
+        hasApprovedGlb={Boolean(approvedAsset)}
+        approvedAsset={approvedAsset}
       />
 
       {syncInstall && orphans.length > 0 ? (

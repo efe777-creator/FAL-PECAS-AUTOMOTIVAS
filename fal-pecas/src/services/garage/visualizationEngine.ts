@@ -1,7 +1,6 @@
 /**
- * PLANO 2B Fase B E1 — FAL Vehicle Visualization Engine (contrato).
+ * PLANO 2B Fase B — FAL Vehicle Visualization Engine (contrato).
  * UI não escolhe tecnologia: resolve source a partir de capability + prefs + assets.
- * GLB/XR reservados; B1 só emite 2d | procedural.
  */
 
 export type VisualizationSource = '2d' | 'procedural' | 'glb' | 'xr'
@@ -9,12 +8,14 @@ export type VisualizationSource = '2d' | 'procedural' | 'glb' | 'xr'
 export type VisualizationResolveInput = {
   preferredMode: 'auto' | '2d' | '3d'
   webglOk: boolean
-  /** Asset GLB aprovado para este veículo (Fase B E2+). B1 = sempre false. */
+  /** Asset GLB aprovado para este veículo. */
   hasApprovedGlb: boolean
-  /** Gate Fase C. B1 = sempre false. */
+  /** Gate Fase C. */
   xrEnabled?: boolean
   xrSupported?: boolean
 }
+
+export type EffectiveRenderSource = '2d' | 'procedural' | 'glb'
 
 /**
  * Ordem: XR (gate) → 2d forçado/sem WebGL → glb se aprovado → procedural → 2d.
@@ -29,15 +30,20 @@ export function resolveVisualizationSource(
   return '2d'
 }
 
-/** B1: glb/xr ainda não renderizam — degradam para procedural ou 2d. */
+/**
+ * E3: glb renderiza de verdade quando WebGL ok.
+ * XR ainda degrada para procedural até Fase C.
+ */
 export function effectiveRenderSource(
   resolved: VisualizationSource,
   webglOk: boolean,
-): '2d' | 'procedural' {
+  opts?: { glbLoadFailed?: boolean },
+): EffectiveRenderSource {
   if (resolved === '2d' || !webglOk) return '2d'
-  if (resolved === 'glb' || resolved === 'procedural') return 'procedural'
-  // xr sem suporte de render nesta etapa
-  return webglOk ? 'procedural' : '2d'
+  if (resolved === 'glb' && !opts?.glbLoadFailed) return 'glb'
+  if (resolved === 'glb' && opts?.glbLoadFailed) return 'procedural'
+  if (resolved === 'procedural' || resolved === 'xr') return 'procedural'
+  return '2d'
 }
 
 export function visualizationSourceLabel(source: VisualizationSource): string {
@@ -55,8 +61,8 @@ export function visualizationSourceLabel(source: VisualizationSource): string {
   }
 }
 
-export function glbLoaderAvailable(): false {
-  return false
+export function glbLoaderAvailable(): true {
+  return true
 }
 
 export function visualizationNeverWrites2A(): true {
