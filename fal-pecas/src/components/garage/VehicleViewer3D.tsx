@@ -130,15 +130,12 @@ export function VehicleViewer3D({
 
     scene.add(car)
 
-    let frame = 0
+    // Consolida v1: sem auto-rotação (órbita fica no GLB viewer).
+    car.rotation.y = 0.4
     let raf = 0
     const tick = () => {
-      if (!reduceMotion) {
-        frame += 1
-        car.rotation.y = Math.sin(frame * 0.008) * 0.35 + 0.4
-      }
       renderer.render(scene, camera)
-      if (!reduceMotion) raf = requestAnimationFrame(tick)
+      raf = requestAnimationFrame(tick)
     }
     tick()
     recordVisualTelemetry({

@@ -74,4 +74,58 @@ describe('vehicleVisualAssetTypes', () => {
       ),
     ).toBe(false)
   })
+
+  it('facelift na compat não herda quando identity não informa', () => {
+    const id = {
+      manufacturerId: 'm1',
+      modelId: 'mo1',
+      versionId: null,
+      year: 2015,
+    }
+    expect(
+      compatMatchesIdentity(
+        {
+          manufacturerId: 'm1',
+          modelId: 'mo1',
+          versionId: null,
+          yearFrom: 2010,
+          yearTo: 2018,
+          facelift: 'pre',
+          status: 'approved',
+        },
+        id,
+      ),
+    ).toBe(false)
+    expect(
+      compatMatchesIdentity(
+        {
+          manufacturerId: 'm1',
+          modelId: 'mo1',
+          versionId: null,
+          yearFrom: 2010,
+          yearTo: 2018,
+          facelift: 'pre',
+          status: 'approved',
+        },
+        { ...id, facelift: 'pre' },
+      ),
+    ).toBe(true)
+  })
+
+  it('review/retired não vão ao viewer público', () => {
+    expect(
+      assetReadyForPublicViewer({
+        status: 'review',
+        source: 'acquired',
+        commercialOk: true,
+      }),
+    ).toBe(false)
+    expect(
+      assetReadyForPublicViewer({
+        status: 'retired',
+        source: 'first_party',
+        commercialOk: true,
+      }),
+    ).toBe(false)
+  })
 })

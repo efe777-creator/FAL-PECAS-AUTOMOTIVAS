@@ -483,6 +483,7 @@ export function AccountVehicleDetailPage() {
             vehicleIdentityId={vehicle.vehicleIdentityId}
             membershipId={vehicle.id}
             seedColorHex={vehicle.colorHex}
+            vehicle={vehicle}
           />
         ) : (
           <ErrorState

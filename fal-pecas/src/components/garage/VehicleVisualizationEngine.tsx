@@ -187,10 +187,17 @@ export function VehicleVisualizationEngine({
       <p className="m-0 text-[11px] font-semibold text-fal-muted" id="fal-visual-engine-status">
         Engine · resolvido: {visualizationSourceLabel(resolved)}
         {renderSource !== resolved ? ` · render: ${renderSource}` : ''}
-        {glbLoadFailed ? ' · GLB falhou → procedural' : ''}
+        {glbLoadFailed ? ' · GLB falhou → procedural/2D' : ''}
+        {!hasApprovedGlb ? ' · sem GLB aprovado' : ''}
         {reduceMotion ? ' · prefers-reduced-motion' : ''}
         {xrUserFallback ? ' · XR desligado nesta sessão' : ''}
       </p>
+      {glbLoadFailed ? (
+        <p className="m-0 text-xs font-semibold text-amber-800">
+          Falha ao carregar o modelo 3D. Usando fallback. Você pode tentar de novo recarregando a
+          página.
+        </p>
+      ) : null}
       <div aria-describedby="fal-visual-engine-status">
         {resolved === 'xr' && xrMode ? (
           <VehicleXrLauncher

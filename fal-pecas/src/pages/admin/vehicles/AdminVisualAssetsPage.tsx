@@ -45,6 +45,11 @@ export function AdminVisualAssetsPage() {
   const [compatModelId, setCompatModelId] = useState('')
   const [yearFrom, setYearFrom] = useState('')
   const [yearTo, setYearTo] = useState('')
+  const [compatGeneration, setCompatGeneration] = useState('')
+  const [compatBodyStyle, setCompatBodyStyle] = useState('')
+  const [compatFacelift, setCompatFacelift] = useState('')
+  const [compatPending, setCompatPending] = useState(false)
+  const [importNote, setImportNote] = useState('')
 
   const reload = useCallback(async () => {
     const [list, makerList, modelList] = await Promise.all([
@@ -136,9 +141,12 @@ export function AdminVisualAssetsPage() {
         modelId: compatModelId || null,
         yearFrom: yearFrom ? Number(yearFrom) : null,
         yearTo: yearTo ? Number(yearTo) : null,
-        status: 'approved',
+        generation: compatGeneration || null,
+        bodyStyle: compatBodyStyle || null,
+        facelift: compatFacelift || null,
+        status: compatPending ? 'pending' : 'approved',
       })
-      toast.push('Compat adicionada', 'success')
+      toast.push(compatPending ? 'Compat pendente de review' : 'Compat adicionada (aprovada)', 'success')
       setCompat(await adminListCompatForAsset(selectedId))
     } catch (err) {
       toast.push(toUserMessage(err, 'Falha ao adicionar compat'), 'error')
@@ -255,11 +263,21 @@ export function AdminVisualAssetsPage() {
                 </button>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {a.status === 'draft' || a.status === 'rejected' ? (
+                    <Button
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                      onClick={() => void setStatus(a.id, 'review')}
+                    >
+                      Enviar p/ review
+                    </Button>
+                  ) : null}
+                  {a.status === 'draft' || a.status === 'rejected' || a.status === 'review' ? (
                     <Button size="sm" type="button" onClick={() => void setStatus(a.id, 'approved')}>
                       Aprovar
                     </Button>
                   ) : null}
-                  {a.status === 'draft' || a.status === 'approved' ? (
+                  {a.status === 'draft' || a.status === 'approved' || a.status === 'review' ? (
                     <Button
                       size="sm"
                       type="button"
@@ -270,14 +288,24 @@ export function AdminVisualAssetsPage() {
                     </Button>
                   ) : null}
                   {a.status === 'approved' ? (
-                    <Button
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                      onClick={() => void setStatus(a.id, 'revoked')}
-                    >
-                      Revogar
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                        onClick={() => void setStatus(a.id, 'retired')}
+                      >
+                        Arquivar
+                      </Button>
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                        onClick={() => void setStatus(a.id, 'revoked')}
+                      >
+                        Revogar
+                      </Button>
+                    </>
                   ) : null}
                 </div>
               </li>
@@ -329,12 +357,68 @@ export function AdminVisualAssetsPage() {
               onChange={(ev) => setYearFrom(ev.target.value)}
             />
             <Input label="Ano até" value={yearTo} onChange={(ev) => setYearTo(ev.target.value)} />
+            <Input
+              label="Geração"
+              value={compatGeneration}
+              onChange={(ev) => setCompatGeneration(ev.target.value)}
+            />
+            <Input
+              label="Carroceria"
+              value={compatBodyStyle}
+              onChange={(ev) => setCompatBodyStyle(ev.target.value)}
+            />
+            <Input
+              label="Facelift"
+              value={compatFacelift}
+              onChange={(ev) => setCompatFacelift(ev.target.value)}
+            />
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={compatPending}
+                onChange={(ev) => setCompatPending(ev.target.checked)}
+              />
+              Salvar como pending (review)
+            </label>
             <div className="sm:col-span-2">
               <Button type="submit" size="sm">
-                Adicionar compat (aprovada)
+                {compatPending ? 'Adicionar compat (pending)' : 'Adicionar compat (aprovada)'}
               </Button>
             </div>
           </form>
+          <div className="rounded-fal border border-dashed border-fal-line bg-fal-bg/40 p-3">
+            <p className="m-0 text-xs font-extrabold text-fal-fg">Importar candidato externo</p>
+            <p className="mt-1 m-0 text-[11px] text-fal-muted">
+              CarImages / Tripo / outro: registre a origem nas notas, faça upload do GLB como draft e
+              envie para review. Não publica automaticamente. Key CarImages só via Edge (nunca no
+              browser).
+            </p>
+            <Input
+              label="Nota de importação (candidato)"
+              value={importNote}
+              onChange={(ev) => setImportNote(ev.target.value)}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={() => {
+                if (!importNote.trim()) {
+                  toast.push('Descreva make/model/year/fonte do candidato', 'error')
+                  return
+                }
+                setNotes((prev) =>
+                  [prev, `IMPORT_CANDIDATE: ${importNote.trim()}`].filter(Boolean).join('\n'),
+                )
+                setSource('acquired')
+                setVendor((v) => v || 'carimages')
+                toast.push('Nota de candidato aplicada ao formulário de draft — faça o upload', 'success')
+              }}
+            >
+              Preparar draft a partir da nota
+            </Button>
+          </div>
           {!compat.length ? (
             <p className="m-0 text-xs text-fal-muted">Nenhuma associação ainda.</p>
           ) : (
@@ -347,7 +431,24 @@ export function AdminVisualAssetsPage() {
                   <span>
                     {c.status} · mfr={c.manufacturerId?.slice(0, 8) ?? '*'} · model=
                     {c.modelId?.slice(0, 8) ?? '*'} · {c.yearFrom ?? '…'}–{c.yearTo ?? '…'}
+                    {c.generation ? ` · gen=${c.generation}` : ''}
+                    {c.bodyStyle ? ` · body=${c.bodyStyle}` : ''}
+                    {c.facelift ? ` · face=${c.facelift}` : ''}
                   </span>
+                  {c.status === 'pending' ? (
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() =>
+                        void adminSetCompatStatus(c.id, 'approved').then(async () => {
+                          toast.push('Compat aprovada', 'success')
+                          setCompat(await adminListCompatForAsset(selected.id))
+                        })
+                      }
+                    >
+                      Aprovar compat
+                    </Button>
+                  ) : null}
                   {c.status !== 'revoked' ? (
                     <Button
                       size="sm"

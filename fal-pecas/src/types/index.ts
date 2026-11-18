@@ -136,7 +136,7 @@ export interface ResolvedVehicleImage {
   level: VehicleImageMatchLevel
   url: string | null
   label: string
-  source: 'personal' | 'stock' | 'placeholder'
+  source: 'personal' | 'stock' | 'carimages' | 'placeholder'
 }
 
 export interface CustomerOrderSummary {

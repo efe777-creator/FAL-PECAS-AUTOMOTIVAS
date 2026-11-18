@@ -80,10 +80,15 @@ export function canTransitionAssetStatus(
   to: VisualAssetStatus,
 ): boolean {
   if (from === to) return true
-  if (to === 'draft') return from === 'rejected'
-  if (to === 'approved') return from === 'draft' || from === 'rejected'
-  if (to === 'rejected') return from === 'draft' || from === 'approved'
-  if (to === 'revoked') return from === 'approved'
+  if (to === 'draft') return from === 'rejected' || from === 'review'
+  if (to === 'review') return from === 'draft' || from === 'rejected'
+  if (to === 'approved') {
+    return from === 'draft' || from === 'rejected' || from === 'review'
+  }
+  if (to === 'rejected') {
+    return from === 'draft' || from === 'approved' || from === 'review'
+  }
+  if (to === 'revoked' || to === 'retired') return from === 'approved'
   return false
 }
 

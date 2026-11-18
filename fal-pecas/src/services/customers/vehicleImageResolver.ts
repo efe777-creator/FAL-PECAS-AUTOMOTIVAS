@@ -1,4 +1,9 @@
 import { getSupabase } from '@/lib/supabase'
+import {
+  isCarImagesClientEnabled,
+  nearestCarImagesPaint,
+  resolveCarImagesStockViaEdge,
+} from '@/services/garage/adapters/carImagesAdapter'
 import type {
   CustomerSavedVehicle,
   CustomerVehicleAsset,
@@ -123,5 +128,41 @@ export async function resolveVehicleDisplayImage(input: {
     .ilike('maker', maker)
   if (error) throw error
 
-  return pickBestStockImage((data as StockRow[]) ?? [], input.vehicle)
+  const local = pickBestStockImage((data as StockRow[]) ?? [], input.vehicle)
+  if (local.source === 'stock' && local.url) return local
+
+  if (isCarImagesClientEnabled() && input.vehicle.modelName?.trim()) {
+    try {
+      const sb = getSupabase()
+      const session = (await sb.auth.getSession()).data.session
+      const paint = nearestCarImagesPaint(input.vehicle.colorHex)
+      const remote = await resolveCarImagesStockViaEdge(
+        {
+          make: maker,
+          model: input.vehicle.modelName,
+          year: input.vehicle.year ?? null,
+          view: 'front34',
+          color: paint,
+          width: 800,
+          format: 'webp',
+        },
+        {
+          accessToken: session?.access_token ?? null,
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL as string | undefined,
+        },
+      )
+      if (remote?.url) {
+        return {
+          level: 'family',
+          url: remote.url,
+          label: 'Imagem ilustrativa (estúdio · CarImages)',
+          source: 'carimages',
+        }
+      }
+    } catch {
+      /* fallback placeholder */
+    }
+  }
+
+  return local
 }

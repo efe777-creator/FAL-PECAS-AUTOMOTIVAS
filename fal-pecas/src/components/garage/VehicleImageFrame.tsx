@@ -9,7 +9,9 @@ type Props = {
 
 /** Moldura de imagem do veículo: pessoal/stock/placeholder + chip de nível. */
 export function VehicleImageFrame({ image, colorHex, title, className = '' }: Props) {
-  const showDisclaimer = image.source === 'stock' && image.level !== 'exact'
+  const showDisclaimer =
+    image.source === 'carimages' ||
+    (image.source === 'stock' && image.level !== 'exact')
 
   return (
     <div

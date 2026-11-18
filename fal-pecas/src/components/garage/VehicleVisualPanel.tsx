@@ -5,9 +5,14 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
+  placeholderVehicleImage,
+  resolveVehicleDisplayImage,
+} from '@/services/customers/vehicleImageResolver'
+import {
   getMyVisualConfig,
   upsertVisualConfig,
 } from '@/services/garage/vehicleVisualConfigService'
+import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
 import {
   listVisualPartPreviews,
   VISUAL_PART_STATE_LABEL,
@@ -52,10 +57,16 @@ export function VehicleVisualPanel({
   vehicleIdentityId,
   membershipId,
   seedColorHex,
+  vehicle,
 }: {
   vehicleIdentityId: string
   membershipId: string
   seedColorHex?: string | null
+  /** Para fallback 2D stock/CarImages quando não há GLB aprovado. */
+  vehicle?: Pick<
+    CustomerSavedVehicle,
+    'id' | 'makerName' | 'modelName' | 'year' | 'colorHex' | 'primaryAssetId'
+  >
 }) {
   const toast = useToast()
   const [payload, setPayload] = useState<VehicleVisualPayload>(() => ({
@@ -73,6 +84,9 @@ export function VehicleVisualPanel({
   const [syncInstall, setSyncInstall] = useState(() => readSyncInstallEnabled())
   const [webglOk, setWebglOk] = useState(false)
   const [approvedAsset, setApprovedAsset] = useState<VehicleVisualAsset | null>(null)
+  const [stockImage, setStockImage] = useState<ResolvedVehicleImage>(() =>
+    placeholderVehicleImage(),
+  )
   const [xrEnvOn] = useState(() => isVisualXrEnvEnabled())
   const [xrOptIn, setXrOptIn] = useState(() => readVisualXrUserOptIn())
 
@@ -108,22 +122,26 @@ export function VehicleVisualPanel({
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [row, preview, facts, asset] = await Promise.all([
+      const [row, preview, facts, asset, img] = await Promise.all([
         getMyVisualConfig(vehicleIdentityId),
         listVisualPartPreviews(membershipId),
         listVisualInstallFacts({ vehicleIdentityId, membershipId }),
         findApprovedVisualAssetForIdentity(vehicleIdentityId),
+        vehicle
+          ? resolveVehicleDisplayImage({ vehicle: vehicle as CustomerSavedVehicle })
+          : Promise.resolve(placeholderVehicleImage()),
       ])
       if (row) setPayload(row.payload)
       setParts(preview)
       setInstallFacts(facts)
       setApprovedAsset(asset)
+      setStockImage(img)
     } catch (e) {
       toast.push(toUserMessage(e, 'Erro ao carregar visual'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [vehicleIdentityId, membershipId, toast])
+  }, [vehicleIdentityId, membershipId, vehicle, toast])
 
   useEffect(() => {
     void reload()
@@ -224,6 +242,27 @@ export function VehicleVisualPanel({
             </span>
           </span>
         </label>
+      ) : null}
+
+      {!approvedAsset ? (
+        <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-3">
+          <p className="m-0 text-sm font-extrabold text-fal-fg">3D indisponível para este veículo</p>
+          <p className="mt-1 m-0 text-xs text-fal-muted">
+            Não há modelo GLB aprovado na biblioteca FAL. Exibindo imagem 2D ilustrativa (quando
+            houver) ou silhueta — não confundir com o veículo real.
+          </p>
+          {stockImage.url ? (
+            <img
+              src={stockImage.url}
+              alt=""
+              className="mt-3 max-h-56 w-full rounded-fal object-contain"
+            />
+          ) : null}
+          <p className="mt-2 m-0 text-[11px] font-semibold text-fal-muted">
+            {stockImage.label}
+            {stockImage.source === 'carimages' ? ' · fonte complementar' : ''}
+          </p>
+        </div>
       ) : null}
 
       <VehicleVisualizationEngine
