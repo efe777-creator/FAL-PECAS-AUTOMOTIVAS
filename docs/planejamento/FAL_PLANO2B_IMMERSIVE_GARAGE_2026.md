@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Camada 1 PASS** · **Fase B E0–E5** · **Fase C C0–C1 na `dev`** (gate XR + detect + launcher; default off). Sem `main`.  
+**Status:** **Camada 1 PASS** · **Fase B E0–E5** · **Fase C C0–C2 na `dev`** (gate XR + sessão imersiva procedural; default off). Sem `main`.  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Fase C doc:** [FAL_PLANO2B_FASE_C_XR_2026.md](./FAL_PLANO2B_FASE_C_XR_2026.md)  
 **Data:** 2026-11-18  
@@ -238,7 +238,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase B E4 ADM `/admin/modelos-3d`  
 - [x] Fase B E5 performance / a11y / obs mínima  
 - [x] Fase C C0–C1 (gate XR + detect + launcher; default off)  
-- [ ] Fase C C2+ (cena imersiva rica) — nova auth  
+- [x] Fase C C2 (sessão imersiva Three/WebXR procedural)  
+- [ ] Fase C C3+ (hit-test / peças / GLB-in-XR) — nova auth  
 - [ ] Deploy `main`  
 
 ### 7.2 Aceite E1–E4 (resumo)

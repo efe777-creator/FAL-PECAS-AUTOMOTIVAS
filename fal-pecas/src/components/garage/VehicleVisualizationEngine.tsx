@@ -195,6 +195,7 @@ export function VehicleVisualizationEngine({
         {resolved === 'xr' && xrMode ? (
           <VehicleXrLauncher
             mode={xrMode}
+            payload={payload}
             reduceMotion={reduceMotion}
             onFallback={(reason) => {
               setXrUserFallback(true)
