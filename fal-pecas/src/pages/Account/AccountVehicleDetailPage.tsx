@@ -5,11 +5,14 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { VehicleEvidencePanel } from '@/components/garage/VehicleEvidencePanel'
 import { VehicleIdentityTimeline } from '@/components/garage/VehicleIdentityTimeline'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
 import { VehicleMaintenancesPanel } from '@/components/garage/VehicleMaintenancesPanel'
 import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import { VehicleProfessionalsPanel } from '@/components/garage/VehicleProfessionalsPanel'
+import { VehicleSharesPanel } from '@/components/garage/VehicleSharesPanel'
+import { VehicleTransferPanel } from '@/components/garage/VehicleTransferPanel'
 import {
   isVehicleIncomplete,
   vehicleCatalogHref,
@@ -48,6 +51,8 @@ const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
   { key: 'historico', label: 'Histórico' },
   { key: 'manutencoes', label: 'Manutenções' },
   { key: 'profissionais', label: 'Profissionais' },
+  { key: 'evidencias', label: 'Evidências' },
+  { key: 'compartilhar', label: 'Compartilhar' },
   { key: 'config', label: 'Configurações' },
 ]
 
@@ -435,6 +440,28 @@ export function AccountVehicleDetailPage() {
         )
       ) : null}
 
+      {modulo === 'evidencias' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleEvidencePanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Evidências exigem identidade permanente."
+          />
+        )
+      ) : null}
+
+      {modulo === 'compartilhar' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleSharesPanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Compartilhamento exige identidade permanente."
+          />
+        )
+      ) : null}
+
       {modulo === 'visao' || modulo === 'config' ? (
         <div className="space-y-2">
           {modulo === 'visao' ? (
@@ -562,9 +589,16 @@ export function AccountVehicleDetailPage() {
           ) : null}
 
           {modulo === 'config' ? (
-            <Section title="Fotos e personalização" defaultOpen>
-              <VehiclePhotoGallery vehicleId={vehicle.id} onChanged={() => void reload()} />
-            </Section>
+            <>
+              <Section title="Fotos e personalização" defaultOpen>
+                <VehiclePhotoGallery vehicleId={vehicle.id} onChanged={() => void reload()} />
+              </Section>
+              {vehicle.vehicleIdentityId ? (
+                <Section title="Transferência de propriedade" defaultOpen>
+                  <VehicleTransferPanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+                </Section>
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}

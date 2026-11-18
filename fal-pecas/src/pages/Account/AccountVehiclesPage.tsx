@@ -8,6 +8,7 @@ import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { GarageVehicleCard } from '@/components/garage/GarageVehicleCard'
 import { GarageVehicleHero } from '@/components/garage/GarageVehicleHero'
+import { IncomingTransferBanner } from '@/components/garage/IncomingTransferBanner'
 import { useGarage } from '@/contexts/GarageContext'
 import {
   ensureSavedVehicleFromFilter,
@@ -210,6 +211,8 @@ export function AccountVehiclesPage() {
           </Button>
         </div>
       </header>
+
+      <IncomingTransferBanner onAccepted={() => void reload()} />
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 
