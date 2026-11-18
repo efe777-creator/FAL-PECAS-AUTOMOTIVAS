@@ -81,10 +81,38 @@ export interface CustomerSavedVehicle {
   nickname?: string | null
   isPrimary: boolean
   plate?: string | null
+  colorHex?: string | null
+  colorLabel?: string | null
+  notes?: string | null
+  primaryAssetId?: string | null
   /** Labels para UI (join canônico ou texto preservado). */
   makerName?: string
   modelName?: string
   versionName?: string | null
+}
+
+export interface CustomerVehicleAsset {
+  id: string
+  customerVehicleId: string
+  customerId: string
+  storagePath: string
+  sortOrder: number
+  isPrimary: boolean
+  mime?: string | null
+  byteSize?: number | null
+  createdAt: string
+  /** URL assinada de curta duração (pode expirar). */
+  signedUrl?: string | null
+}
+
+/** Níveis de imagem stock (R4) — nunca promover família como exata. */
+export type VehicleImageMatchLevel = 'exact' | 'family' | 'generic' | 'placeholder'
+
+export interface ResolvedVehicleImage {
+  level: VehicleImageMatchLevel
+  url: string | null
+  label: string
+  source: 'personal' | 'stock' | 'placeholder'
 }
 
 export interface CustomerOrderSummary {

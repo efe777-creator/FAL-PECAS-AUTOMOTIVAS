@@ -1,5 +1,6 @@
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
+import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
 import {
   isVehicleIncomplete,
   vehicleCatalogHref,
@@ -7,7 +8,13 @@ import {
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
-import type { CustomerSavedVehicle } from '@/types'
+import { listVehicleAssets } from '@/services/customers/vehicleAssetService'
+import {
+  placeholderVehicleImage,
+  resolveVehicleDisplayImage,
+} from '@/services/customers/vehicleImageResolver'
+import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 type Props = {
@@ -19,25 +26,38 @@ type Props = {
 export function GarageVehicleHero({ vehicle, onSetPrimary, onRemove }: Props) {
   const plate = vehiclePlateLabel(vehicle)
   const incomplete = isVehicleIncomplete(vehicle)
+  const [image, setImage] = useState<ResolvedVehicleImage>(placeholderVehicleImage())
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const assets = await listVehicleAssets(vehicle.id)
+        const resolved = await resolveVehicleDisplayImage({ vehicle, assets })
+        if (!cancelled) setImage(resolved)
+      } catch {
+        if (!cancelled) setImage(placeholderVehicleImage())
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [vehicle])
 
   return (
     <article className="overflow-hidden rounded-fal border border-fal-navy/20 bg-fal-surface">
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,220px)_1fr]">
-        <div
-          className="flex min-h-[140px] items-end bg-gradient-to-br from-fal-navy to-fal-navy-dark p-4 text-white lg:min-h-full"
-          aria-hidden
-        >
-          <div>
-            <p className="m-0 text-xs font-semibold uppercase tracking-wide text-white/70">
-              Veículo principal
-            </p>
-            <p className="mb-0 mt-1 text-2xl font-extrabold leading-tight">
-              {vehicleDisplayName(vehicle)}
-            </p>
-          </div>
-        </div>
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,240px)_1fr]">
+        <VehicleImageFrame
+          image={image}
+          colorHex={vehicle.colorHex}
+          title={vehicleDisplayName(vehicle)}
+          className="min-h-[160px] rounded-none lg:min-h-full"
+        />
         <div className="flex flex-col gap-3 p-4 sm:p-5">
           <div>
+            <p className="m-0 text-xs font-semibold uppercase tracking-wide text-fal-muted">
+              Veículo principal
+            </p>
             <p className="m-0 text-sm text-fal-muted">{vehicleTechLine(vehicle) || '—'}</p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
               {plate ? (
@@ -49,6 +69,18 @@ export function GarageVehicleHero({ vehicle, onSetPrimary, onRemove }: Props) {
                   Sem placa
                 </span>
               )}
+              {vehicle.colorLabel || vehicle.colorHex ? (
+                <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-fal-line bg-fal-bg px-2.5 py-1">
+                  {vehicle.colorHex ? (
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-fal-line"
+                      style={{ background: vehicle.colorHex }}
+                      aria-hidden
+                    />
+                  ) : null}
+                  {vehicle.colorLabel || vehicle.colorHex}
+                </span>
+              ) : null}
               {incomplete ? (
                 <span className="rounded-[8px] border border-fal-yellow/50 bg-fal-yellow/15 px-2.5 py-1 text-fal-navy-dark">
                   Cadastro incompleto

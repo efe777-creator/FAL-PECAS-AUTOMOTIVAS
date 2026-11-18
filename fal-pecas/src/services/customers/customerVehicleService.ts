@@ -19,6 +19,10 @@ type Row = {
   engine_text?: string | null
   plate?: string | null
   plate_normalized?: string | null
+  color_hex?: string | null
+  color_label?: string | null
+  notes?: string | null
+  primary_asset_id?: string | null
   manufacturers?: { name: string } | { name: string }[] | null
   models?: { name: string } | { name: string }[] | null
   vehicle_versions?:
@@ -30,6 +34,7 @@ type Row = {
 const SELECT_VEHICLE = `
   id, customer_id, manufacturer_id, model_id, version_id, year, engine, nickname, is_primary,
   maker_text, model_text, version_text, engine_text, plate, plate_normalized,
+  color_hex, color_label, notes, primary_asset_id,
   manufacturers ( name ),
   models ( name ),
   vehicle_versions ( version_name, year, engine )
@@ -65,6 +70,10 @@ function mapVehicle(row: Row): CustomerSavedVehicle {
     nickname: row.nickname,
     isPrimary: Boolean(row.is_primary),
     plate: row.plate ?? null,
+    colorHex: row.color_hex ?? null,
+    colorLabel: row.color_label ?? null,
+    notes: row.notes ?? null,
+    primaryAssetId: row.primary_asset_id ? String(row.primary_asset_id) : null,
     makerName: relName(row.manufacturers) ?? row.maker_text ?? undefined,
     modelName: relName(row.models) ?? row.model_text ?? undefined,
     versionName: vv?.version_name ?? row.version_text ?? null,
@@ -293,6 +302,10 @@ export async function updateSavedVehicle(
     versionText?: string | null
     engineText?: string | null
     plate?: string | null
+    colorHex?: string | null
+    colorLabel?: string | null
+    notes?: string | null
+    primaryAssetId?: string | null
   },
 ): Promise<CustomerSavedVehicle> {
   const customerId = await getCurrentCustomerId()
@@ -322,6 +335,16 @@ export async function updateSavedVehicle(
     patch.plate = plate
     patch.plate_normalized = plateNormalizedOrNull(plate)
   }
+  if (input.colorHex !== undefined) {
+    const hex = blankToNull(input.colorHex)
+    if (hex && !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      throw new Error('Cor inválida. Use o formato #RRGGBB.')
+    }
+    patch.color_hex = hex ? hex.toUpperCase() : null
+  }
+  if (input.colorLabel !== undefined) patch.color_label = blankToNull(input.colorLabel)
+  if (input.notes !== undefined) patch.notes = blankToNull(input.notes)
+  if (input.primaryAssetId !== undefined) patch.primary_asset_id = input.primaryAssetId
 
   if (input.isPrimary) {
     await getSupabase()
