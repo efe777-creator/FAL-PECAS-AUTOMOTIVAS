@@ -38,16 +38,20 @@
 
 ---
 
-## 3. Achado crítico — drift de workspace
+## 3. Drift de workspace — resolvido 2026-11-18
 
-| Clone | HEAD (amostra) | `GarageContext` / G1–G8 | Risco |
-|-------|----------------|-------------------------|-------|
-| `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS` | `85d3574` | Presente | Canônico |
-| `d:\…\FAL PECAS AUTOMOTIVAS` (Cursor aberto) | `22ad9e7` (atrás) | Ausente | **Editar aqui regride / duplica trabalho sem G4–G7** |
+| Clone | Papel | Regra |
+|-------|-------|-------|
+| `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS` | **Canônico** (commit/push) | Fonte única de verdade |
+| `d:\…\FAL PECAS AUTOMOTIVAS` (pendrive) | Espelho / backup | Só `git pull --ff-only origin dev`; sem feature isolada |
 
-Sintoma observado na sessão: Header no pendrive sem `GarageActiveSwitcher`; CTA “Garagem” aplicado no clone errado se o workspace não for o `repos`.
+**Estado pós-ajuste:** ambos em `98acdc4` (`dev` = `origin/dev`, working tree limpa). WIP admin que estava só no pendrive foi consolidado no canônico (`fix(admin): sobe alturas…`).
 
-**Mitigação obrigatória:** abrir/trabalhar só em `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS` para marcha garagem; ou `git fetch` + fast-forward do pendrive para `origin/dev` antes de qualquer feature.
+**Protocolo anti-duplicidade:**
+1. Codar e commitar no **repos**.
+2. No pendrive: `git fetch origin && git pull --ff-only origin dev`.
+3. Nunca manter feature só no pendrive; se aparecer diff local, trazer para o repos antes do reset/pull.
+4. Cursor: preferir abrir a pasta do **repos**.
 
 ---
 
