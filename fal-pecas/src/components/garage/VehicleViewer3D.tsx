@@ -1,5 +1,7 @@
+import { visualPixelRatioCap } from '@/lib/visualMotionPrefs'
 import type { VisualPartPreview } from '@/services/garage/vehicleVisualPartPreview'
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
+import { recordVisualTelemetry } from '@/services/garage/visualTelemetry'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
@@ -12,17 +14,20 @@ export function VehicleViewer3D({
   modelParts,
   orphanInstallCount = 0,
   syncEnabled = false,
+  reduceMotion = false,
 }: {
   payload: VehicleVisualPayload
   modelParts: VisualPartPreview[]
   orphanInstallCount?: number
   syncEnabled?: boolean
+  reduceMotion?: boolean
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
+    const t0 = performance.now()
 
     const width = mount.clientWidth || 480
     const height = Math.max(220, Math.round(width * 0.45))
@@ -34,8 +39,8 @@ export function VehicleViewer3D({
     camera.position.set(3.2, 1.6, 4.2)
     camera.lookAt(0, 0.4, 0)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    const renderer = new THREE.WebGLRenderer({ antialias: !reduceMotion, alpha: false })
+    renderer.setPixelRatio(visualPixelRatioCap(reduceMotion))
     renderer.setSize(width, height)
     mount.replaceChildren(renderer.domElement)
 
@@ -128,12 +133,20 @@ export function VehicleViewer3D({
     let frame = 0
     let raf = 0
     const tick = () => {
-      frame += 1
-      car.rotation.y = Math.sin(frame * 0.008) * 0.35 + 0.4
+      if (!reduceMotion) {
+        frame += 1
+        car.rotation.y = Math.sin(frame * 0.008) * 0.35 + 0.4
+      }
       renderer.render(scene, camera)
-      raf = requestAnimationFrame(tick)
+      if (!reduceMotion) raf = requestAnimationFrame(tick)
     }
     tick()
+    recordVisualTelemetry({
+      source: 'procedural',
+      outcome: 'ok',
+      durationMs: Math.round(performance.now() - t0),
+      reducedMotion: reduceMotion,
+    })
 
     const onResize = () => {
       if (!mount) return
@@ -157,15 +170,20 @@ export function VehicleViewer3D({
       ;(ground.material as THREE.Material).dispose()
       mount.replaceChildren()
     }
-  }, [payload, modelParts, orphanInstallCount, syncEnabled])
+  }, [payload, modelParts, orphanInstallCount, syncEnabled, reduceMotion])
 
   const mirroredCount = modelParts.length + orphanInstallCount
 
   return (
-    <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
+    <div
+      className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface"
+      role="img"
+      aria-label="Visualização 3D procedural do veículo. Não é registro técnico."
+    >
       <div ref={mountRef} className="w-full" />
       <p className="m-0 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
         Visual 3D leve · progressive enhancement · não é registro técnico
+        {reduceMotion ? ' · movimento reduzido' : ''}
         {syncEnabled
           ? mirroredCount
             ? ` · sync 2A · ${mirroredCount} no modelo`

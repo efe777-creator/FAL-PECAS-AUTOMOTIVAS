@@ -26,7 +26,7 @@ export function VehicleSilhouette2D({
         viewBox="0 0 320 140"
         className="mx-auto block h-auto w-full max-w-md"
         role="img"
-        aria-label="Pré-visualização 2D do veículo"
+        aria-label="Pré-visualização 2D do veículo. Aparência demonstrativa — não é registro técnico."
       >
         <defs>
           <linearGradient id="fal-body-shine" x1="0" y1="0" x2="0" y2="1">

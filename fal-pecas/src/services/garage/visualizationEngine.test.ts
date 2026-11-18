@@ -52,6 +52,25 @@ describe('visualizationEngine', () => {
     expect(effectiveRenderSource('glb', false)).toBe('2d')
   })
 
+  it('auto + reduced motion → 2d; pref 3d ainda resolve glb/procedural', () => {
+    expect(
+      resolveVisualizationSource({
+        preferredMode: 'auto',
+        webglOk: true,
+        hasApprovedGlb: true,
+        reducedMotion: true,
+      }),
+    ).toBe('2d')
+    expect(
+      resolveVisualizationSource({
+        preferredMode: '3d',
+        webglOk: true,
+        hasApprovedGlb: true,
+        reducedMotion: true,
+      }),
+    ).toBe('glb')
+  })
+
   it('XR só com gate + suporte; render ainda procedural até Fase C', () => {
     expect(
       resolveVisualizationSource({

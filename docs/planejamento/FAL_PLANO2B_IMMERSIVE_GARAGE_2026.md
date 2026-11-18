@@ -235,7 +235,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase B E2 tabelas assets/compat + storage  
 - [x] Fase B E3 loader GLB lazy + fallback  
 - [x] Fase B E4 ADM `/admin/modelos-3d`  
-- [ ] Fase B E5 performance / a11y  
+- [x] Fase B E5 performance / a11y / obs mínima  
+- [ ] Fase C AR — MARCHA + gate  
 - [ ] Fase C (AR) — MARCHA + gate  
 - [ ] Deploy `main`  
 

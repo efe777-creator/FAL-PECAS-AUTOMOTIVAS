@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Fase B — 3D Asset Visualization (Camada 2)
 
-**Status:** **E0–E4 na `dev`** (doc + Engine + assets + loader + ADM). E5 performance. **Sem** AR / `main`.  
+**Status:** **E0–E5 na `dev`** (Camada 2 núcleo: Engine + assets + GLB + ADM + perf/a11y/obs). **Sem** AR / `main`.  
 **Data:** 2026-11-18  
 **Branch:** `dev`  
 **Auth:** MARCHA eFe pós Fase A (Camada 1 consolidada)  
@@ -76,7 +76,7 @@ Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profun
 | **B2** | Tabelas assets/compat + RLS + storage privado | Feito |
 | **B3** | Loader GLB lazy + materials básicos + fallback | Feito |
 | **B4** | ADM biblioteca + aprovação + procedência | Feito (`/admin/modelos-3d`) |
-| **B5** | Baseline performance + a11y + observabilidade mínima | Pendente |
+| **B5** | Baseline performance + a11y + observabilidade mínima | Feito |
 
 ---
 
@@ -89,10 +89,22 @@ Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profun
 - [x] B2 tabelas + RLS + storage + wire `hasApprovedGlb`  
 - [x] B3 loader GLB lazy (`VehicleGlbViewer` + signed URL + fallback procedural)  
 - [x] B4 ADM `/admin/modelos-3d` (upload draft, aprovar/rejeitar/revogar, compat, procedência)  
+- [x] B5 `prefers-reduced-motion` · DPR cap · telemetria sem PII · aria labels  
+
+### Baseline E5 (medir antes de metas fixas)
+
+| Indicador | Implementação atual |
+|-----------|---------------------|
+| Bundle | Three/GLB só via `lazy` no Engine |
+| Reduced motion | auto→2D; 3D explícito sem auto-rotate |
+| DPR | `visualPixelRatioCap` |
+| Fallback | WebGL off / GLB erro → 2D/procedural |
+| Obs | `recordVisualTelemetry` (código asset, outcome, ms) |
+| A11y | `role=img`, `aria-label`, status descrito |
 
 ---
 
-## 7. Proibições (E2)
+## 7. Proibições
 
 - Não carregar GLB de URL arbitrária (loader = E3)  
 - Não inventar associação sem linha compat aprovada  

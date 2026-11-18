@@ -1,7 +1,9 @@
+import { visualPixelRatioCap } from '@/lib/visualMotionPrefs'
 import type { VisualPartPreview } from '@/services/garage/vehicleVisualPartPreview'
 import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTypes'
 import { signVisualAssetUrl } from '@/services/garage/vehicleVisualAssetService'
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
+import { recordVisualTelemetry } from '@/services/garage/visualTelemetry'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
@@ -16,6 +18,7 @@ export function VehicleGlbViewer({
   modelParts,
   orphanInstallCount = 0,
   syncEnabled = false,
+  reduceMotion = false,
   onError,
 }: {
   asset: VehicleVisualAsset
@@ -23,6 +26,7 @@ export function VehicleGlbViewer({
   modelParts: VisualPartPreview[]
   orphanInstallCount?: number
   syncEnabled?: boolean
+  reduceMotion?: boolean
   onError?: (reason: string) => void
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null)
@@ -31,6 +35,7 @@ export function VehicleGlbViewer({
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
+    const t0 = performance.now()
 
     let disposed = false
     let raf = 0
@@ -54,8 +59,8 @@ export function VehicleGlbViewer({
         camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 200)
         camera.position.set(3.4, 1.8, 4.4)
 
-        renderer = new THREE.WebGLRenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+        renderer = new THREE.WebGLRenderer({ antialias: !reduceMotion })
+        renderer.setPixelRatio(visualPixelRatioCap(reduceMotion))
         renderer.setSize(width, height)
         mount.replaceChildren(renderer.domElement)
 
@@ -129,17 +134,37 @@ export function VehicleGlbViewer({
         let frame = 0
         const tick = () => {
           if (disposed || !renderer || !scene || !camera) return
-          frame += 1
-          if (root) root.rotation.y = Math.sin(frame * 0.008) * 0.35 + 0.35
+          if (!reduceMotion) {
+            frame += 1
+            if (root) root.rotation.y = Math.sin(frame * 0.008) * 0.35 + 0.35
+          }
           renderer.render(scene, camera)
-          raf = requestAnimationFrame(tick)
+          if (!reduceMotion) raf = requestAnimationFrame(tick)
         }
         tick()
-        if (!disposed) setStatus('ready')
+        if (!disposed) {
+          setStatus('ready')
+          recordVisualTelemetry({
+            source: 'glb',
+            outcome: 'ok',
+            assetCode: asset.code,
+            durationMs: Math.round(performance.now() - t0),
+            reducedMotion: reduceMotion,
+          })
+        }
       } catch (e) {
         if (disposed) return
         setStatus('error')
-        onError?.(e instanceof Error ? e.message : 'glb_error')
+        const reason = e instanceof Error ? e.message : 'glb_error'
+        recordVisualTelemetry({
+          source: 'glb',
+          outcome: 'error',
+          assetCode: asset.code,
+          durationMs: Math.round(performance.now() - t0),
+          reason,
+          reducedMotion: reduceMotion,
+        })
+        onError?.(reason)
       }
     })()
 
@@ -160,13 +185,19 @@ export function VehicleGlbViewer({
       renderer?.dispose()
       mount.replaceChildren()
     }
-  }, [asset, payload, modelParts, orphanInstallCount, syncEnabled, onError])
+  }, [asset, payload, modelParts, orphanInstallCount, syncEnabled, reduceMotion, onError])
 
   return (
-    <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
+    <div
+      className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface"
+      role="img"
+      aria-label={`Modelo 3D ${asset.displayName}. Não é registro técnico.`}
+      aria-busy={status === 'loading'}
+    >
       <div ref={mountRef} className="min-h-[220px] w-full" />
       <p className="m-0 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
         GLB · {asset.displayName} · {asset.code} · {status}
+        {reduceMotion ? ' · movimento reduzido' : ''}
         {' · não é registro técnico'}
       </p>
     </div>

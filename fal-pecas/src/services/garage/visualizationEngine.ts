@@ -13,6 +13,8 @@ export type VisualizationResolveInput = {
   /** Gate Fase C. */
   xrEnabled?: boolean
   xrSupported?: boolean
+  /** E5: em `auto`, reduced motion prefere 2D (perf/a11y). */
+  reducedMotion?: boolean
 }
 
 export type EffectiveRenderSource = '2d' | 'procedural' | 'glb'
@@ -25,6 +27,8 @@ export function resolveVisualizationSource(
 ): VisualizationSource {
   if (input.xrEnabled && input.xrSupported) return 'xr'
   if (input.preferredMode === '2d' || !input.webglOk) return '2d'
+  // auto + reduced motion → 2D (baseline E5); pref explícita 3d ainda permite 3D estático
+  if (input.reducedMotion && input.preferredMode === 'auto') return '2d'
   if (input.hasApprovedGlb) return 'glb'
   if (input.preferredMode === '3d' || input.preferredMode === 'auto') return 'procedural'
   return '2d'
