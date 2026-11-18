@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Fase B — 3D Asset Visualization (Camada 2)
 
-**Status:** **E0–E3 na `dev`** (doc + Engine + assets + loader GLB lazy). ADM = E4. **Sem** AR / `main`.  
+**Status:** **E0–E4 na `dev`** (doc + Engine + assets + loader + ADM). E5 performance. **Sem** AR / `main`.  
 **Data:** 2026-11-18  
 **Branch:** `dev`  
 **Auth:** MARCHA eFe pós Fase A (Camada 1 consolidada)  
@@ -75,7 +75,7 @@ Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profun
 | **B1** | Contrato Engine + resolução source + wire UI (2d/procedural) | Feito |
 | **B2** | Tabelas assets/compat + RLS + storage privado | Feito |
 | **B3** | Loader GLB lazy + materials básicos + fallback | Feito |
-| **B4** | ADM biblioteca + aprovação + procedência | Pendente |
+| **B4** | ADM biblioteca + aprovação + procedência | Feito (`/admin/modelos-3d`) |
 | **B5** | Baseline performance + a11y + observabilidade mínima | Pendente |
 
 ---
@@ -88,6 +88,7 @@ Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profun
 - [x] Label honesto: procedural ≠ modelo realista  
 - [x] B2 tabelas + RLS + storage + wire `hasApprovedGlb`  
 - [x] B3 loader GLB lazy (`VehicleGlbViewer` + signed URL + fallback procedural)  
+- [x] B4 ADM `/admin/modelos-3d` (upload draft, aprovar/rejeitar/revogar, compat, procedência)  
 
 ---
 

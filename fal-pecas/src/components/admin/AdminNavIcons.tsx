@@ -139,6 +139,13 @@ export function adminNavIcon(to: string): ReactNode {
           <path d="M8 9 9.5 6h5L16 9" />
         </Svg>
       )
+    case '/admin/modelos-3d':
+      return (
+        <Svg>
+          <path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3z" />
+          <path d="M12 12v9M4 7.5 12 12l8-4.5" />
+        </Svg>
+      )
     case '/admin/fabricantes':
       return (
         <Svg>

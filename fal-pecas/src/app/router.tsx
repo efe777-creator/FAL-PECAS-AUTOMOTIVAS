@@ -163,6 +163,11 @@ const AdminVehiclesPage = lazy(() =>
     default: m.AdminVehiclesPage,
   })),
 )
+const AdminVisualAssetsPage = lazy(() =>
+  import('@/pages/admin/vehicles/AdminVisualAssetsPage').then((m) => ({
+    default: m.AdminVisualAssetsPage,
+  })),
+)
 const AdminVehicleMasterImportPage = lazy(() =>
   import('@/pages/admin/vehicles/AdminVehicleMasterImportPage').then((m) => ({
     default: m.AdminVehicleMasterImportPage,
@@ -372,6 +377,7 @@ export const router = createBrowserRouter([
         path: 'veiculos/importar-mestre',
         element: <AdminVehicleMasterImportPage />,
       },
+      { path: 'modelos-3d', element: <AdminVisualAssetsPage /> },
       { path: 'fabricantes', element: <AdminBrandsPage /> },
       { path: 'fornecedores', element: <AdminSuppliersPage /> },
       {
