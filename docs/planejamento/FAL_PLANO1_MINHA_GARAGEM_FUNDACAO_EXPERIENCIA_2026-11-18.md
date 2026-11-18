@@ -4,30 +4,38 @@
 **Escopo:** Minha Garagem — Fundação e experiência inicial  
 **Data:** 2026-11-18  
 **Revisão eFe:** 2026-11-18 (R1–R8 — ver changelog §23)  
-**Status:** G0–G8 concluído na `dev` · VAL: [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md)  
-**Branch de implementação futura:** `dev` exclusivamente (`main` = produção)  
-**Natureza deste documento:** Análise, auditoria e planejamento técnico — **sem implementação nesta entrega**  
-**Workspace auditado:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas` (código em `dev`, pós-PLANO 0)
+**Aprovação final eFe:** 2026-11-18 — ativo = `localStorage` cross-session (≠ principal)  
+**Status:** **APROVADO eFe · IMPLEMENTADO na `dev` (G0–G8)** — conformidade detalhada na §24 (PASS / GAP / NÃO VERIFICADO)  
+**Branch:** `dev` exclusivamente (`main` = produção)  
+**Natureza deste documento:** Plano canônico + registro de conformidade código↔doc (consolidação definitiva)  
+**Workspace:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas` (código em `dev`)
 
 **Relacionados:**
 
 - [FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) — fundação placa/garagem progressiva (**fechada com residuals**)
-- [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md) — R1 update, R7 dedup, R2/R3 Edge/snapshot
-- [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) — direção de produto (Garage 1+)
-- [VAL-placa-filtros-veiculo.md](../../fal-pecas/docs/VAL-placa-filtros-veiculo.md) — evidências smoke placa/flush
+- [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md) — residuals pós-fundação
 - [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md) — VAL + matriz §14 (G8)
-- [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) — **supersedida** pelo PLANO 0 + este PLANO 1 (diagnósticos “sem VV não salva” estão obsoletos)
+- [VAL-plano0-residuals-r4-r6.md](../../fal-pecas/docs/VAL-plano0-residuals-r4-r6.md) — R4 re-upsert / R5 e2e / R6 repair
+- [FAL_AUDITORIA_PLANO1_ANTIREGRESSAO_2026-11-18.md](./FAL_AUDITORIA_PLANO1_ANTIREGRESSAO_2026-11-18.md) — gate Vitest + protocolo canônico
+- [FAL_R6_MIGRATION_REPAIR_2026-11-18.md](./FAL_R6_MIGRATION_REPAIR_2026-11-18.md) — ledger migrations reparado
+- [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) — direção P2 / Garage 1+ (**FUTURO** — não autoriza implementação)
+- [VAL-placa-filtros-veiculo.md](../../fal-pecas/docs/VAL-placa-filtros-veiculo.md) — evidências smoke placa/flush
+- [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) — **supersedida** pelo PLANO 0 + este PLANO 1
 
 ---
 
-## 0. Escopo desta entrega (planejamento)
+## 0. Escopo desta entrega
 
-| Faz | Não faz |
+| Fase | Estado |
+|------|--------|
+| Planejamento / diagnóstico / arquitetura | **Encerrada** |
+| Implementação G0–G8 na `dev` | **Concluída** (ver VAL + §24) |
+| Plano 2 (3D, oficinas, manutenção avançada, share…) | **Fora de escopo** — permanece futuro |
+
+| Faz (histórico deste plano) | Não faz (ainda válido) |
 |-----|---------|
-| Diagnóstico do código/schema atuais | Alterar código, banco, migrations, Edge |
-| Arquitetura, dados, UX, segurança, testes | Commits de feature, push de app, PR, deploy |
-| Etapas G0–G8 de implementação futura | Planejamento 2 (3D, oficinas, manutenção avançada) |
-| Separar reaproveitar / corrigir / desenvolver / futuro | Reconstrução desnecessária do que já funciona |
+| Diagnóstico, arquitetura, G0–G8, R1–R8 | Antecipar P2 |
+| Conformidade código↔doc (§24) | Deploy `main` sem ordem eFe |
 
 ---
 
@@ -607,15 +615,15 @@ Harness: Vitest existente; e2e manual/VAL até Playwright estável.
 
 ---
 
-## 15. Etapas de implementação (futuras)
+## 15. Etapas de implementação (G0–G8 — **concluídas** na `dev`)
 
-Ordem: **integridade → UX garagem → contexto → comércio → histórico → VAL**.
+Ordem executada: **integridade → UX garagem → contexto → comércio → histórico → VAL**.  
+Evidência agregada: [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md) · conformidade R1–R8 na §24.
 
 ### G0 — Aprovação
 
 - **Objetivo:** eFe aprova este PLANO 1.  
-- **Arquivos:** este doc.  
-- **Aceite:** autorização explícita para codar na `dev`.
+- **Estado:** **feito** (aprovação final 2026-11-18).
 
 ### G1 — Integridade (update + dedup placa normalizada + UI placa)
 
@@ -782,18 +790,18 @@ flowchart LR
 2. Assinatura exata e side-effects de `place_order` / sync de `cart_items` no G6.  
 3. Threshold final de `confidence` por `match_level` (proposta inicial 0.8 exact / mais alto para promover).  
 4. Política LGPD: retenção fotos; inclusão ou omissão de placa no `vehicle_snapshot`.  
-5. Alinhamento migration history Supabase (residual PLANO 0 R6).  
-6. Limites numéricos finais de Storage (qtde/tamanho) — proposta em G3 para eFe.
+5. ~~Alinhamento migration history Supabase (residual PLANO 0 R6)~~ → **feito** ([FAL_R6_MIGRATION_REPAIR…](./FAL_R6_MIGRATION_REPAIR_2026-11-18.md)).  
+6. Limites Storage — vigentes em `vehicleAssetLimits.ts` (8 fotos / 5 MB); ajuste fino só se eFe pedir.
 
 ---
 
-## 22. Instrução de implementação (quando autorizado)
+## 22. Instrução operacional (pós-aprovação)
 
-1. Trabalhar **somente** em `dev`.  
-2. Seguir G0→G8; TDD onde houver harness.  
+1. Trabalhar **somente** em `dev` para evolução da garagem.  
+2. Gate Vitest anti-regressão (ver auditoria PLANO 1) antes de push.  
 3. Não montar `HomeGarageSection` em paralelo ao `HomeVehiclesPanel`.  
 4. Não criar VV fictícia; não afirmar compatibilidade sem evidência do motor.  
-5. Não implementar itens da coluna “Futuro (P2)”.  
+5. Não implementar itens P2 sem plano e aprovação novos.  
 6. `main` / produção só com autorização expressa do eFe.  
 7. Ativo em `localStorage`; principal em DB — nunca confundir na UI.
 
@@ -813,8 +821,35 @@ flowchart LR
 | **R8** | Eventos com identidade própria; preparado para transferência futura (P2) |
 | **UX** | Dashboard híbrido + detalhe split/stack; não admin-table |
 | **Fora** | 3D, oficinas, mecânicos, docs avançados, compartilhamento, manutenção avançada = P2 |
+| **APROVAÇÃO FINAL** | eFe 2026-11-18: ativo = **`localStorage` cross-session**; principal permanece preferência DB independente |
 
 ---
 
-**Status:** PLANO 1 **revisado (R1–R8)** — **aguardando aprovação final eFe**. Sem código nesta entrega.  
-**Próximo passo:** aprovação expressa → G1 (`updateSavedVehicle` + `plate_normalized`) na `dev`.
+## 24. Checklist de conformidade código ↔ doc (R1–R8)
+
+**Auditoria:** 2026-11-18 · branch `dev` · regras: PASS = evidência funcional (serviço+persistência+schema/comportamento); GAP = divergência real; NÃO VERIFICADO = evidência insuficiente (nunca vira PASS).
+
+| ID | Critério | Evidências | Veredito | Notas |
+|----|----------|------------|----------|-------|
+| **R1** | Ativo ≠ principal; `localStorage` cross-session; invalidação | `activeGarageStorage.ts` usa `localStorage` + chave por `userId`; `GarageContext` documenta ativo ≠ `is_primary`; `setPrimaryVehicle` só mexe DB; `notifyVehicleRemoved` limpa storage se id ativo; `resolveActiveAgainstGarage` valida id contra lista (inválido → principal ou null); sem user não persiste | **PASS** | Reidratação após exclusão cai no principal se existir (comportamento documentado no helper). |
+| **R2** | Cadeia `cart_items → place_order → order_items`; snapshot imutável vs edição posterior do veículo | Colunas G6 em cart/order; `CartContext` + `buildVehicleSnapshotFromActive`; `supabaseCartService` persiste `vehicle_snapshot`; `placeOrderService` envia snapshot; migration `…140100…` patcha `place_order_core_hybrid` + trigger `order_items_freeze_vehicle_snapshot` (BEFORE INSERT copia do cart); contrato §6.3 em `vehicleSnapshot.ts` (ids, maker/model/year/version/engine, plate, associatedAt, contextSource); placa mascarada na UI via `maskPlate` | **PASS** | Imutabilidade vs edição da garagem = **jsonb denormalizado** no pedido (não FK viva). Não há smoke e2e de “editar veículo após pedido” nesta auditoria; arquitetura + SQL comprovam a cópia. |
+| **R3** | Compat via motor; `version_id` insuficiente; default sem evidência ≠ confirmada | `compatibilityEngine.ts`: estados confirmed/probable/unconfirmed; `versionId` sozinho → fit parcial; confirmed exige PVC/evidência forte; badges só consomem veredito; testes `compatibilityEngine.test.ts` | **PASS** | — |
+| **R4** | Stock 4 níveis; família ≠ “exata” | `vehicleImageResolver.ts`: levels exact/family/generic/placeholder; `pickBestStockImage` não promove family/generic a exact; ano/geração via year_from/to; capa pessoal preferida; testes dedicados | **PASS** | — |
+| **R5** | Delete, reorder, capa, limites, MIME, órfãos, signed URL, primary válido | `vehicleAssetService`: upload com `validateVehicleAssetFile` (MIME/tamanho), limite qtde, signed URLs TTL, reorder, set primary, delete + limpa `primaryAssetId` se capa removida; upload falho remove objeto Storage | **PASS** | RLS storage: policies na migration G3 (não re-testadas runtime nesta consolidação). |
+| **R6** | Append-only real; install ≠ overwrite de bought | Service só `select`/`insert` + `declareInstalled` cria novo evento; migration G7: policies só SELECT/INSERT; `REVOKE` + grants select/insert; triggers `cvpe_forbid_update` / `cvpe_forbid_delete` **confirmados no projeto remoto**; `boughtRemainsIntact` no service | **PASS** | `has_table_privilege(authenticated, update/delete)` retornou true no SQL de auditoria (possível grant residual), mas **RLS sem policy UPDATE/DELETE** + triggers bloqueiam mutação. Residual leve: re-auditar grants se desejado. |
+| **R7** | Unique `plate_normalized`; normalização; vazios | Migration `…120000…` unique parcial `(customer_id, plate_normalized) WHERE NOT NULL`; `plateNormalizedOrNull` + `normalizePlate` no save/update; merge dedup no service; testes G1 | **PASS** | — |
+| **R8** | Identidade de evento + vínculo veículo + dono (portabilidade futura) | PK `id uuid`; `customer_id` **no próprio evento**; `customer_vehicle_id` FK `ON DELETE SET NULL`; `actor_id`/`provenance`/`created_at`; payload jsonb | **PASS** | Transferência P2 **não** implementada; modelo não impede (evento tem dono próprio + veículo nullable). |
+| **UX** | Dashboard híbrido + detalhe split/stack | `AccountVehiclesPage` (hero + cards + add); `AccountVehicleDetailPage` (foto/info, seções, edição); labels “Minha Garagem” | **PASS** | — |
+| **Fora** | Sem P2 (3D/oficinas/mecânicos/share avançado) | Sem módulos de garage 3D / oficina / expense_entry / share_grant na app loja | **PASS** | “oficina” em price lists admin ≠ perfil de oficina P2. |
+
+### Residuais conscientes (não bloqueiam APROVADO do plano)
+
+1. R6 — opcional: alinhar grants `authenticated` UPDATE/DELETE se ainda existirem (defesa em profundidade além de RLS+trigger).  
+2. R2 — opcional: smoke e2e “editar veículo após pedido pago” (já coberto por arquitetura jsonb).  
+3. R5 — opcional: prova runtime de RLS Storage (policies existem na migration).  
+4. P2 — permanece em [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md).
+
+---
+
+**Status final:** PLANO 1 **APROVADO eFe** · **IMPLEMENTADO na `dev`** · checklist §24 com vereditos evidentes.  
+**Próximo passo de produto (fora deste doc):** planejamento P2 / Garage 1+ somente com nova autorização.

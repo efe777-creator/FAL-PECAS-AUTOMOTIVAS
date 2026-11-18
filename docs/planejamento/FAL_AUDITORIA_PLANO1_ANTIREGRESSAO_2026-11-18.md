@@ -1,8 +1,8 @@
 # FAL — Auditoria PLANO 1 + medidas anti-regressão
 
-**Data:** 2026-11-18  
-**Fonte canônica:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS` · branch `dev` @ `85d3574`  
-**Plano:** [FAL_PLANO1_MINHA_GARAGEM…](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md)  
+**Data:** 2026-11-18 (atualizado na consolidação definitiva)  
+**Fonte canônica:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS` · branch `dev`  
+**Plano:** [FAL_PLANO1…](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) — **APROVADO eFe** · §24 PASS/GAP/NÃO VERIFICADO  
 **VAL:** [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md)
 
 ---
@@ -11,13 +11,13 @@
 
 | Dimensão | Status |
 |----------|--------|
-| G0–G8 no código (`repos` / `dev`) | **PASS** — commits G1–G8 + smoke fix ativos |
-| Suite Vitest pacote garagem | **PASS** — 8 files / 28 tests |
-| Suite Vitest fundação PLANO 0 | **PASS** — 4 files / 19 tests |
-| Critério aceite #10 (sem regressão; só `dev`) | **PASS** no canônico; **RISCO** no workspace Cursor desatualizado |
-| Residuals PLANO 0 R2–R5/R6 | R2/R3 feitos · R4 status quo · R5 unit OK · e2e Playwright pendente · R6 inventário sem repair |
+| G0–G8 no código (`repos` / `dev`) | **PASS** |
+| Conformidade R1–R8 (§24 do plano) | **PASS** (residuals leves opcionais documentados) |
+| Suite Vitest pacote garagem + fundação | **PASS** (gate anti-regressão) |
+| Critério aceite #10 (só `dev`) | **PASS** — repos e pendrive alinhados a `origin/dev` |
+| Residuals PLANO 0 | R2/R3/R4(re-upsert)/R5(e2e scaffold)/R6(repair) tratados; ver VAL residuals |
 
-**Conclusão:** PLANO 1 está íntegro na `dev` canônica. O maior risco de regressão agora é **trabalhar no clone errado** (pendrive atrás de `dev`), não falha de G1–G8 no repo.
+**Conclusão:** PLANO 1 **aprovado e consolidado**. P2 permanece fora até nova autorização.
 
 ---
 

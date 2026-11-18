@@ -1,7 +1,7 @@
 # VAL — Minha Garagem (PLANO 1)
 
-**Planejamento:** [FAL_PLANO1_MINHA_GARAGEM…](../../docs/planejamento/FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md)  
-**Branch:** `dev` · **Etapas:** G0–G8  
+**Planejamento:** [FAL_PLANO1_MINHA_GARAGEM…](../../docs/planejamento/FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) (**APROVADO eFe · §24 conformidade**)  
+**Branch:** `dev` · **Etapas:** G0–G8 concluídas  
 **Data:** 2026-11-18
 
 ## Critérios de aceite (§18)
