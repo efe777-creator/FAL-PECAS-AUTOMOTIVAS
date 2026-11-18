@@ -273,6 +273,15 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 | HEADSET recheck | **BLOCKED** — `navigator.xr` ok · `immersive-ar/vr` = false (desktop) |
 | Deploy | **NÃO** — só commit/push `dev` |  
 
+### MARCHA SYNC (2026-11-18) — E4 smoke com fato G7 · **sem deploy**
+
+| Passo | Resultado |
+|-------|-----------|
+| Seed G7 | **PASS** — `bought` + `installed_declared` TDI1006 no Palio (`7f9405c2-…`); payload `smoke=MARCHA_SYNC_2026-11-18`; mapa identity ok |
+| Sync ON | **PASS** — “1 fato(s) elegível(is)” · preview “Instalação declarada · no modelo (2A)” |
+| Sync OFF | **PASS** — remove “no modelo (2A)”; preview G7 permanece (read-only) |
+| Write-back | **NÃO** — viewer não criou/alterou evento (seed foi append SQL smoke) |
+| Deploy | **NÃO** |  
 
 ### 7.2 Aceite E1–E4 (resumo)
 

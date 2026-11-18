@@ -102,8 +102,8 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | S12 | Privacidade visual / transferência | Vitest `visualPrivacyContract` **4 PASS** · copy wizard: Visual **não** transfere (`VehicleTransferPanel`) |
 | — | Sessão imersiva / hit-test headset | **Pendente / BLOCKED desktop** — recheck SEQUENCIAL #2: `ar/vr=false`; auth `MARCHA HEADSET` |
 | — | GLB ops + Engine | **PASS** (SEQUENCIAL #2) — migration E2 remota; ADM draft→approve→compat Fiat/Palio 2015; Engine `3D GLB` no Palio |
-| — | Sync-on com fato G7 | **SKIP** — Palio sem `installed_declared` / eventos instalação |
-| — | Sync on com `installed_declared` | Sem fatos no veículo de teste |
+| — | Sync-on com fato G7 | **PASS** (MARCHA SYNC) — seed `bought`+`installed_declared` TDI1006 no Palio; UI “1 fato(s) elegível(is)” · “no modelo (2A)”; OFF remove marcador |
+| — | Sync on com `installed_declared` | **PASS** — smoke append-only (`smoke=MARCHA_SYNC_2026-11-18`) |
 
 ---
 

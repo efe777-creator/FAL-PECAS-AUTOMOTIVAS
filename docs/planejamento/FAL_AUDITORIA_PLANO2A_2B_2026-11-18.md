@@ -80,11 +80,11 @@ pnpm exec vitest run src/services/garage/ …
 
 1. Smoke sessão XR em **headset** (precisa hardware).  
 2. Deploy Netlify produção (bloqueado até auth explícita — tip `main` já existe, sem deploy).  
-3. Sync-on com `installed_declared` real no veículo de smoke (dado — SKIP em SEQUENCIAL #2).  
+3. ~~Sync-on com `installed_declared` real no veículo de smoke.~~ **PASS** (MARCHA SYNC — TDI1006 no Palio).  
 4. ~~Popular biblioteca GLB (ops ADM).~~ **Feito smoke** (`fal-smoke-palio-box`).  
 5. C6+ pagamento **dentro** da sessão XR (fora).  
 
-**Fechados depois da auditoria inicial:** C5 exit-to-cart · a11y toggles Viewer · smoke GLB ADM+Engine.
+**Fechados depois da auditoria inicial:** C5 exit-to-cart · a11y toggles Viewer · smoke GLB ADM+Engine · smoke sync G7.
 
 ---
 
