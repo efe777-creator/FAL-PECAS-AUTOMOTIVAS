@@ -1,9 +1,9 @@
 # FAL — PLANO 2B · Fase C — XR / AR experimental
 
-**Status:** **C0–C4 na `dev`** (gate → sessão → hit-test/GLB → bridge SKU→ficha). **Sem** `main`.  
+**Status:** **C0–C4 FECHADO na `dev`** · consolidação 2B (MARCHA pós-C4). Tip `1ecac1d`. **Sem** `main`.  
 **Data:** 2026-11-18  
 **Branch:** `dev`  
-**Auth:** MARCHA eFe (C0–C4 em sequência na `dev`)  
+**Auth:** MARCHA eFe (C0–C4 + consolidação docs/VAL)  
 **Pai:** [FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md](./FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md)
 
 ---
@@ -63,4 +63,14 @@ Sem as três primeiras → Engine **não** resolve `xr`.
 1. Visual ≠ fato (inclui sessão XR).  
 2. Fallback obrigatório para glb/procedural/2d.  
 3. Telemetria sem PII (`source: xr`).  
-4. Camada 1/2 intactas.
+4. Camada 1/2 intactas.  
+5. `xrNeverCheckoutsInSession()` — sem carrinho/pagamento in-XR (C4).  
+
+## 5. Encerramento Fase C
+
+| Item | Status |
+|------|--------|
+| C0–C4 código | Feito `dev` |
+| VAL B/C | Atualizado |
+| Smoke XR device | Pendente operador |
+| C5+ / `main` | Bloqueados sem auth explícita |

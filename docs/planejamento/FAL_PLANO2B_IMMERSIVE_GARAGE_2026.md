@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Camada 1 PASS** · **Fase B E0–E5** · **Fase C C0–C4 na `dev`** (XR gated + bridge SKU→ficha; default off). Sem `main`.  
+**Status:** **PLANO 2B código/contrato COMPLETO na `dev`** (Camada 1 + Fase A + B E0–E5 + C C0–C4). Tip `1ecac1d`. Smoke manual + `main` pendentes.  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Fase C doc:** [FAL_PLANO2B_FASE_C_XR_2026.md](./FAL_PLANO2B_FASE_C_XR_2026.md)  
 **Data:** 2026-11-18  
@@ -241,6 +241,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase C C2 (sessão imersiva Three/WebXR procedural)  
 - [x] Fase C C3 (hit-test AR + GLB-in-XR + marcadores sync)  
 - [x] Fase C C4 (bridge SKU → ficha; sem checkout in-XR)  
+- [x] Consolidação 2B docs/VAL (código/contrato completo na `dev`)  
+- [ ] Smoke manual operador (Camada 1 + XR)  
 - [ ] Fase C C5+ (checkout in-XR) — nova auth explícita  
 - [ ] Deploy `main`  
 
@@ -263,21 +265,22 @@ Arquivo: `fal-pecas/docs/VAL-plano2b-immersive-garage.md`.
 - **PASS só após execução** com evidências.  
 - Não marcar consolidação completa sem A1–A5.
 
-### 8.1 Confirmação técnica Camada 1 (estado código)
+### 8.1 Confirmação técnica (estado código na `dev`)
 
 | Item | Valor |
 |------|--------|
-| Documento | este arquivo |
+| Documento | este arquivo + Fase B + Fase C |
 | Branch | `dev` |
 | Tip Camada 1 / Fase A | `bb928fc` |
+| Tip consolidação 2B (C4) | `1ecac1d` |
 | E1 Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
-| E2 | `vehicleVisualPartPreview.ts` |
-| E3 | `VehicleViewer3D.tsx` procedural · `canUseWebGL` · prefs |
-| E4 | `visualInstallSync.ts` · opt-in |
-| Fase B E1 | `visualizationEngine.ts` · `VehicleVisualizationEngine.tsx` |
+| E2–E4 Camada 1 | preview · procedural · sync opt-in |
+| Fase B | Engine · GLB · ADM · perf/a11y (`3e8b745`…`80bf202`) |
+| Fase C | Gate · sessão · hit-test/GLB-XR · SKU bridge (`0d5f0c7`…`1ecac1d`) |
 | UI | `?modulo=visual` via Engine |
-| Loader GLB | **Não** (E2+) |
-| AR | **Não** |
+| Loader GLB | **Sim** (Fase B E3; fallback procedural/2d) |
+| XR | **Sim** (C0–C4; default **off**) |
+| `main` / deploy | **Não** |
 
 ---
 

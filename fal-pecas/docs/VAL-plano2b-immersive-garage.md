@@ -1,12 +1,14 @@
-# VAL — PLANO 2B · Immersive Garage (Camada 1)
+# VAL — PLANO 2B · Immersive Garage
 
 **Planejamento:** [FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md](../../docs/planejamento/FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md)  
-**Branch:** `dev` · **Camada 1:** E0–E4 · **Fase A:** consolidação  
-**Data:** 2026-11-18  
+**Fase B:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](../../docs/planejamento/FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
+**Fase C:** [FAL_PLANO2B_FASE_C_XR_2026.md](../../docs/planejamento/FAL_PLANO2B_FASE_C_XR_2026.md)  
+**Branch:** `dev` · **Camada 1** E0–E4 · **Fase A** · **Fase B E0–E5** · **Fase C C0–C4**  
+**Tip consolidação código:** `1ecac1d` (C4) · **Data:** 2026-11-18  
 **Produção:** `main` / deploy **não** autorizados neste ciclo
 
-> **Escopo deste VAL:** Camada 1 (config visual + preview + viewer **procedural** + sync opt-in).  
-> **Fora:** Camada 2 GLB realista (Fase B), AR/WebXR (Fase C). E3 procedural **≠** produto 3D realista.
+> **Escopo VAL Camada 1 (abaixo):** config + preview + procedural + sync.  
+> **Extensão B/C:** evidências código/contrato na `dev` (seções finais). E3 procedural **≠** GLB realista.
 
 ---
 
@@ -93,15 +95,64 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | A2 privacidade (filtro owner + copy wizard; sem checkbox) | Feito |
 | Vitest contratos | **37 PASS** (2026-11-18) |
 | Smoke manual | Pendente operador |
-| GLB / AR / `main` | **Não** neste VAL |
+| `main` / deploy | **Não** |
 
 **Homologação Camada 1 (código/contrato):** PASS na `dev`. Smoke manual restante antes de auth de `main`.
 
 ---
 
-## Fora deste VAL
+## Fase B — evidências (`dev`)
 
-- Fase B (biblioteca GLB / viewer realista) — ver doc Fase B (E0–E5 na `dev`)  
-- Fase C C5+ (checkout in-XR) — C0–C4 na `dev` (incl. bridge SKU→ficha; default off); ver `FAL_PLANO2B_FASE_C_XR_2026.md`  
+| Item | Status | Tip / artefato |
+|------|--------|----------------|
+| E0–E1 Engine | PASS código | `3e8b745` · `visualizationEngine.ts` |
+| E2 assets + storage | PASS código | `db726a0` · migration `…240000` |
+| E3 GLB lazy + fallback | PASS código | `e835a17` · `VehicleGlbViewer.tsx` |
+| E4 ADM `/admin/modelos-3d` | PASS código | `44efddc` |
+| E5 perf / a11y / telemetria | PASS código | `80bf202` · `visualTelemetry.ts` |
+
+---
+
+## Fase C — evidências (`dev`)
+
+| Item | Status | Tip / artefato |
+|------|--------|----------------|
+| C1 gate triplo | PASS código | `0d5f0c7` · `visualXrGate.ts` · `VITE_FAL_VISUAL_XR` |
+| C2 sessão imersiva | PASS código | `f38101b` · `visualXrSession.ts` |
+| C3 hit-test + GLB-in-XR | PASS código | `8a0c694` |
+| C4 bridge SKU → ficha | PASS código | `1ecac1d` · `visualXrCommercial.ts` · `xrNeverCheckoutsInSession` |
+| Vitest B/C (amostra) | PASS | 5 files / **17 tests** (engine + XR gate/session/commercial + telemetry) 2026-11-18 |
+| XR default | OFF | Sem env + opt-in + `navigator.xr` → Engine não resolve `xr` |
+| Checkout in-XR (C5+) | **Fora** | Nova auth explícita |
+
+### Smoke XR sugerido (operador, device com WebXR)
+
+1. `VITE_FAL_VISUAL_XR=1` + opt-in no painel visual.  
+2. Sem WebXR → fallback viewer normal.  
+3. Com AR: hit-test → toque anel → veículo; HUD SKU se sync + peças.  
+4. “Ver ficha” encerra XR e abre `/produto/:id` (sem carrinho).  
+5. Confirmar que XR **não** cria evento 2A/G7.
+
+---
+
+## Consolidação PLANO 2B (MARCHA pós-C4)
+
+| Critério | Status |
+|----------|--------|
+| Camada 1 + Fase A código/contrato | PASS |
+| Fase B E0–E5 | PASS código `dev` |
+| Fase C C0–C4 | PASS código `dev` |
+| Smoke manual Camada 1 / XR | Pendente operador |
+| C5+ checkout in-XR | Bloqueado |
+| Merge `main` / deploy | Bloqueado |
+
+**Veredito:** PLANO 2B **código/contrato completo na `dev`** até C4. Pronto para smoke operador; **não** pronto para `main` sem auth.
+
+---
+
+## Fora / bloqueado
+
+- Fase C C5+ (checkout / pagamento in-XR)  
 - Merge `main` / deploy Netlify produção  
 - Promoção de prefs visuais na transferência  
+- Ligar `VITE_FAL_VISUAL_XR=1` por default em produção  
