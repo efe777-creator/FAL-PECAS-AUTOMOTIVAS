@@ -28,7 +28,7 @@ describe('ask garage prompt (session)', () => {
     saveAskGaragePrompt({
       maker: 'Chevrolet',
       model: 'Onix',
-      year: 2016,
+      year: '2016',
       engine: '1.4',
       version: 'LT',
       plate: 'GAF7032',

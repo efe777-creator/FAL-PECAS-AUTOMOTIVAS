@@ -26,6 +26,7 @@ import {
   partsForModelReflection,
   type VisualInstallFact,
 } from '@/services/garage/visualInstallSync'
+import { hasApprovedVisualGlb } from '@/services/garage/vehicleVisualAssetService'
 import { listVisualInstallFacts } from '@/services/garage/visualInstallSyncService'
 import {
   readSyncInstallEnabled,
@@ -65,6 +66,7 @@ export function VehicleVisualPanel({
   const [viewerPref, setViewerPref] = useState<VisualViewerMode>(() => readVisualViewerMode())
   const [syncInstall, setSyncInstall] = useState(() => readSyncInstallEnabled())
   const [webglOk, setWebglOk] = useState(false)
+  const [hasApprovedGlb, setHasApprovedGlb] = useState(false)
 
   useEffect(() => {
     setWebglOk(canUseWebGL())
@@ -93,14 +95,16 @@ export function VehicleVisualPanel({
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [row, preview, facts] = await Promise.all([
+      const [row, preview, facts, glbOk] = await Promise.all([
         getMyVisualConfig(vehicleIdentityId),
         listVisualPartPreviews(membershipId),
         listVisualInstallFacts({ vehicleIdentityId, membershipId }),
+        hasApprovedVisualGlb(vehicleIdentityId),
       ])
       if (row) setPayload(row.payload)
       setParts(preview)
       setInstallFacts(facts)
+      setHasApprovedGlb(glbOk)
     } catch (e) {
       toast.push(toUserMessage(e, 'Erro ao carregar visual'), 'error')
     } finally {
@@ -190,7 +194,7 @@ export function VehicleVisualPanel({
         syncEnabled={syncInstall}
         preferredMode={viewerPref}
         webglOk={webglOk}
-        hasApprovedGlb={false}
+        hasApprovedGlb={hasApprovedGlb}
       />
 
       {syncInstall && orphans.length > 0 ? (

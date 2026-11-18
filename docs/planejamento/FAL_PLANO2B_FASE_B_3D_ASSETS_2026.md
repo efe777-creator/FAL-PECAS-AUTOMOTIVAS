@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Fase B — 3D Asset Visualization (Camada 2)
 
-**Status:** **E0 + E1 em curso na `dev`** (doc + contrato do Visualization Engine). **Sem** loader GLB, **sem** AR, **sem** `main`.  
+**Status:** **E0–E2 na `dev`** (doc + Engine + tabelas/RLS/storage). Loader GLB = E3. **Sem** AR / `main`.  
 **Data:** 2026-11-18  
 **Branch:** `dev`  
 **Auth:** MARCHA eFe pós Fase A (Camada 1 consolidada)  
@@ -51,22 +51,19 @@ Entregar a **Camada 2**: biblioteca de ativos 3D realistas (GLB/glTF), associaç
 
 ## 4. Modelo de dados proposto (implementar em E2+)
 
-### 4.1 `vehicle_visual_assets`
+### 4.1 `vehicle_visual_assets` (**Implementado · E2**)
 
-- id, storage_path, format (`glb`\|`gltf`), poly_count, texture_budget  
-- provenance: `source` (acquired\|ai\|first_party), vendor, license, commercial_ok, redistribute_ok  
-- version, approved_by, approved_at, status (`draft`\|`approved`\|`rejected`\|`revoked`)  
-- **Não** misturar com `vehicle_evidence`
+Migration: `20261118240000_plano2b_fase_b_e2_visual_assets.sql`  
+RPC: `find_approved_visual_asset_for_identity`  
+Bucket: `vehicle-visual-assets` (privado; staff write; select staff ou asset `approved`)
 
-### 4.2 `vehicle_visual_asset_compat`
+### 4.2 `vehicle_visual_asset_compat` (**Implementado · E2**)
 
-- asset_id + critérios: manufacturer/model/version, year_from/to, generation, body_style, facelift, market  
-- status: `pending`\|`approved`\|`rejected`\|`revoked`  
-- Desativar sem apagar histórico
+Estados `pending|approved|rejected|revoked`; revoke sem delete.
 
 ### 4.3 Segurança de arquivo (upload ADM)
 
-Limite tamanho · MIME/extensão · estrutura · limites polígonos/texturas · storage privado originais · CDN/signed só para aprovados.
+Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profunda = E4 ADM.
 
 ---
 
@@ -76,7 +73,7 @@ Limite tamanho · MIME/extensão · estrutura · limites polígonos/texturas · 
 |-------|--------|--------|
 | **B0** | Este documento + MARCHA | Feito |
 | **B1** | Contrato Engine + resolução source + wire UI (2d/procedural) | Feito |
-| **B2** | Tabelas assets/compat + RLS + storage privado | Pendente |
+| **B2** | Tabelas assets/compat + RLS + storage privado | Feito |
 | **B3** | Loader GLB lazy + materials básicos + fallback | Pendente |
 | **B4** | ADM biblioteca + aprovação + procedência | Pendente |
 | **B5** | Baseline performance + a11y + observabilidade mínima | Pendente |
@@ -89,13 +86,14 @@ Limite tamanho · MIME/extensão · estrutura · limites polígonos/texturas · 
 - [x] UI Garagem usa Engine (não escolhe Three direto)  
 - [x] Sem import GLB / sem XR  
 - [x] Label honesto: procedural ≠ modelo realista  
-- [ ] B2+ só com nova MARCHA ou continuidade explícita
+- [x] B2 tabelas + RLS + storage + wire `hasApprovedGlb`  
+- [ ] B3 loader GLB  
 
 ---
 
-## 7. Proibições B1
+## 7. Proibições (E2)
 
-- Não carregar GLB de URL arbitrária  
-- Não inventar associação marca/modelo sem tabela  
+- Não carregar GLB de URL arbitrária (loader = E3)  
+- Não inventar associação sem linha compat aprovada  
 - Não alterar Camada 1 contracts  
 - Não `main` / deploy / AR
