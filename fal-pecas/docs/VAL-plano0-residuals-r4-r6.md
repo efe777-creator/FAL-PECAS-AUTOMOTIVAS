@@ -2,11 +2,10 @@
 
 **Data:** 2026-11-18 · **Branch:** `dev`
 
-## R4 — Confirmação manual e mestre
+## R4 — Confirmação manual e mestre (**atualizado** 2026-11-18)
 
-**Decisão vigente (status quo, sem mudar produto):** edição na tela de confirmação **não** chama `upsert_vehicle_canonical`.  
-Só a Edge `plate-lookup` (service_role) ou import admin grava mestre.  
-Se eFe quiser re-upsert na confirmação, precisa autorização explícita (RPC autenticado/staff).
+**Decisão vigente:** após confirmação humana, se o usuário está **autenticado** e há maker+model+**ano**, e faltam IDs (ou o ano divergiu do lookup), a Edge `vehicle-confirm-upsert` (JWT obrigatório) chama `vehicleCanonicalUpsert` com guards R2.  
+Anônimo continua só com o upsert do `plate-lookup` (quando aplicável). Cliente **não** chama RPC service_role direto.
 
 ## R5 — Suite §12
 

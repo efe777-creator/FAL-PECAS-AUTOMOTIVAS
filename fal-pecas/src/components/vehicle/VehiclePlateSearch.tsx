@@ -6,7 +6,9 @@ import { VehiclePlateField } from '@/components/vehicle/VehiclePlateField'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { confirmVehicleCanonicalUpsert } from '@/services/plates/confirmVehicleCanonicalUpsert'
 import { lookupPlate } from '@/services/plates/plateLookupService'
+import { needsConfirmCanonicalUpsert } from '@/services/plates/needsConfirmCanonicalUpsert'
 import { plateValidationMessage } from '@/services/plates/plateNormalize'
 import {
   canOpenConfirmation,
@@ -89,17 +91,38 @@ export function VehiclePlateSearch({
     }
   }
 
-  function applyConfirmed(filter: VehicleFilter) {
-    setConfirmedFilter(filter)
-    syncActiveToFilter(filter)
+  async function applyConfirmed(filter: VehicleFilter) {
+    let next = filter
+    // R4: usuário autenticado + ano → re-upsert mestre quando IDs faltam / ano mudou
+    try {
+      if (isSupabaseConfigured && needsConfirmCanonicalUpsert(filter, result?.year)) {
+        const {
+          data: { session },
+        } = await getSupabase().auth.getSession()
+        if (session?.user) {
+          next = await confirmVehicleCanonicalUpsert(filter)
+        }
+      }
+    } catch (err) {
+      toast.push(
+        toUserMessage(
+          err,
+          'Não foi possível sincronizar o veículo no cadastro. Seguindo com a confirmação.',
+        ),
+        'info',
+      )
+    }
+
+    setConfirmedFilter(next)
+    syncActiveToFilter(next)
     if (onApplyFilters) {
-      onApplyFilters(filter)
+      onApplyFilters(next)
       setPhase('garage')
       return
     }
     // Home / rota veículo: aplica filtros no catálogo e pergunta garagem lá.
-    saveAskGaragePrompt(filter)
-    const qs = buildVehicleQuery(filter).toString()
+    saveAskGaragePrompt(next)
+    const qs = buildVehicleQuery(next).toString()
     navigate(qs ? `/catalogo?${qs}` : '/catalogo')
   }
 
@@ -198,7 +221,9 @@ export function VehiclePlateSearch({
       <VehiclePlateConfirmation
         result={result}
         compact={compact}
-        onConfirm={applyConfirmed}
+        onConfirm={(f) => {
+          void applyConfirmed(f)
+        }}
         onCancelManual={() => {
           setManualMessage('Selecione o veículo manualmente para continuar.')
           setPhase('manual')
@@ -223,7 +248,9 @@ export function VehiclePlateSearch({
           compact={compact}
           title="Seleção manual"
           subtitle="Escolha montadora, modelo, ano, motor e versão para encontrar peças compatíveis."
-          onConfirm={applyConfirmed}
+          onConfirm={(f) => {
+            void applyConfirmed(f)
+          }}
         />
         <Button
           variant="light"
