@@ -36,3 +36,6 @@
 - UI `/veiculo` (Vite): conferência com **5 selects** preenchidos (Chevrolet / Onix / 2016 / 1.4 / LT) + combustível informativo.
 - Confirmar → `/catalogo?vehicle=1&maker=Chevrolet&model=Onix&year=2016&engine=1.4&version=LT` com chips ativos.
 - Empty state: *“Veículo reconhecido — sem peças compatíveis”* / *“Identificamos o veículo, mas ainda não temos peças compatíveis cadastradas.”* (PVC ausente — esperado).
+- Prompt único `GarageAskPrompt` no catálogo: *“Deseja salvar este veículo na sua garagem?”* (Chevrolet Onix 2016 · 1.4 · LT · placa GAF7032).
+- Anônimo → **Sim, salvar** → `/login` + `sessionStorage.fal_pending_garage_vehicle` com placa `GAF7032`; ask prompt limpo.
+- Fix: prompt não some mais (Strict Mode / 2× `VehiclePlateSearch`); `ProductCard` sem `<a>` aninhado na categoria.

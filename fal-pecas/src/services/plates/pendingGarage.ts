@@ -42,13 +42,28 @@ export function saveAskGaragePrompt(filter: VehicleFilter): void {
   }
 }
 
-export function consumeAskGaragePrompt(): VehicleFilter | null {
+/** Lê sem remover — seguro com Strict Mode e múltiplos mounts. */
+export function readAskGaragePrompt(): VehicleFilter | null {
   try {
     const raw = sessionStorage.getItem(ASK_KEY)
     if (!raw) return null
-    sessionStorage.removeItem(ASK_KEY)
     return JSON.parse(raw) as VehicleFilter
   } catch {
     return null
   }
+}
+
+export function clearAskGaragePrompt(): void {
+  try {
+    sessionStorage.removeItem(ASK_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Lê e remove (legado). Prefira read + clear após resposta do usuário. */
+export function consumeAskGaragePrompt(): VehicleFilter | null {
+  const value = readAskGaragePrompt()
+  if (value) clearAskGaragePrompt()
+  return value
 }

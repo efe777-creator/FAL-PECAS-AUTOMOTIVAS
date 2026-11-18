@@ -12,7 +12,7 @@ import {
   type PlateLookupResult,
 } from '@/services/plates/plateTypes'
 import {
-  consumeAskGaragePrompt,
+  clearAskGaragePrompt,
   saveAskGaragePrompt,
   savePendingGarageVehicle,
 } from '@/services/plates/pendingGarage'
@@ -20,7 +20,7 @@ import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehic
 import { buildVehicleQuery } from '@/services/vehicles/vehicleService'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { VehicleFilter } from '@/types'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export type VehiclePlateSearchProps = {
@@ -47,14 +47,6 @@ export function VehiclePlateSearch({
   const [confirmedFilter, setConfirmedFilter] = useState<VehicleFilter | null>(null)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
   const [savingGarage, setSavingGarage] = useState(false)
-
-  useEffect(() => {
-    const ask = consumeAskGaragePrompt()
-    if (ask?.maker && ask?.model) {
-      setConfirmedFilter(ask)
-      setPhase('garage')
-    }
-  }, [])
 
   async function handleSearch(e?: FormEvent) {
     e?.preventDefault()
@@ -102,6 +94,7 @@ export function VehiclePlateSearch({
 
   async function handleSaveGarage(yes: boolean) {
     if (!yes || !confirmedFilter?.maker || !confirmedFilter?.model) {
+      clearAskGaragePrompt()
       setPhase('input')
       setResult(null)
       setConfirmedFilter(null)
@@ -123,6 +116,7 @@ export function VehiclePlateSearch({
 
       if (!user) {
         savePendingGarageVehicle({ ...confirmedFilter, returnTo: catalogPath })
+        clearAskGaragePrompt()
         navigate('/login', { state: { from: catalogPath } })
         return
       }
@@ -134,6 +128,7 @@ export function VehiclePlateSearch({
         modelId: confirmedFilter.modelId ?? result?.modelId ?? undefined,
         versionId: confirmedFilter.versionId ?? result?.versionId ?? undefined,
       })
+      clearAskGaragePrompt()
       toast.push('Veículo salvo na sua garagem.', 'success')
       setPhase('input')
       setResult(null)

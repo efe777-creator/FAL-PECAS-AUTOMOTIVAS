@@ -9,6 +9,7 @@ import { useToast } from '@/components/common/Toast'
 import { MobileDrawer } from '@/components/navigation/MobileDrawer'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
+import { GarageAskPrompt } from '@/components/vehicle/GarageAskPrompt'
 import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
 import { selectOptionsWithValue } from '@/services/plates/reconcileVehicleFilter'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
@@ -604,6 +605,10 @@ export function CatalogPage() {
       </p>
       <h1 className="mt-0 mb-1 text-[28px] font-extrabold sm:text-[34px]">Catálogo</h1>
       <p className="mb-0 text-sm text-fal-muted sm:text-base">{SEARCH_CATALOG_HINT}</p>
+
+      <div className="mt-4">
+        <GarageAskPrompt />
+      </div>
 
       <form
         onSubmit={applySearch}

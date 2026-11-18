@@ -166,13 +166,17 @@ export function ProductCard({ product }: { product: Product }) {
         {product.categoryName ? (
           <p className="m-0 truncate text-[11px] text-fal-muted">
             {product.categorySlug ? (
-              <Link
-                to={`/catalogo?cat=${encodeURIComponent(product.categorySlug)}`}
+              <button
+                type="button"
                 className="hover:underline"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  navigate(`/catalogo?cat=${encodeURIComponent(product.categorySlug!)}`)
+                }}
               >
                 {product.categoryName}
-              </Link>
+              </button>
             ) : (
               product.categoryName
             )}
