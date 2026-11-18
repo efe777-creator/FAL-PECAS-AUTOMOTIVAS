@@ -17,6 +17,8 @@ export const CATEGORY_LABELS: Record<AppNotificationCategory, string> = {
 export type PriorityBadge = 'Nova' | 'Atenção' | 'Informativa'
 
 export function notificationPriorityBadge(n: AppNotification): PriorityBadge {
+  // Lida: não parecer "Nova"/urgência de não-lida (badge some via Visible).
+  if (n.readAt) return 'Informativa'
   const needs = notificationNeedsAction({
     kind: n.kind,
     audience: n.audience,
@@ -25,8 +27,7 @@ export function notificationPriorityBadge(n: AppNotification): PriorityBadge {
   if (needs || n.severity === 'acao_necessaria' || n.severity === 'importante') {
     return 'Atenção'
   }
-  if (!n.readAt) return 'Nova'
-  return 'Informativa'
+  return 'Nova'
 }
 
 /** Selo só quando agrega informação (não mostra Informativa em tudo). */

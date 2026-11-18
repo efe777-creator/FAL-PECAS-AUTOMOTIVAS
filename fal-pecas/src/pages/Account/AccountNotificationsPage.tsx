@@ -4,6 +4,7 @@ import { NotificationInbox } from '@/components/notifications/NotificationInbox'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { resolveNotificationNavHref } from '@/lib/appNotificationCopy'
+import { emitNotifChanged } from '@/lib/notificationEvents'
 import { getSupabase } from '@/lib/supabase'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -77,10 +78,28 @@ export function AccountNotificationsPage() {
       kind: n.kind,
       audience: n.audience,
     })
+    const wasUnread = !n.readAt
+    const prevUnread = unreadTotal
+    const prevItems = items
+    const nextUnread = wasUnread ? Math.max(0, unreadTotal - 1) : unreadTotal
+    if (wasUnread) {
+      const now = new Date().toISOString()
+      setUnreadTotal(nextUnread)
+      setItems((list) =>
+        list.map((it) => (it.id === n.id ? { ...it, readAt: it.readAt ?? now } : it)),
+      )
+      emitNotifChanged('customer', { unread: nextUnread })
+    }
     try {
-      if (!n.readAt) await markNotificationRead(n.id)
+      if (wasUnread) await markNotificationRead(n.id)
+      emitNotifChanged('customer')
       navigate(href)
     } catch {
+      if (wasUnread) {
+        setUnreadTotal(prevUnread)
+        setItems(prevItems)
+        emitNotifChanged('customer', { unread: prevUnread })
+      }
       navigate(href)
     } finally {
       setBusy(false)
@@ -89,9 +108,21 @@ export function AccountNotificationsPage() {
 
   async function markAll() {
     setBusy(true)
+    const prevUnread = unreadTotal
+    const prevItems = items
+    const now = new Date().toISOString()
+    setUnreadTotal(0)
+    setItems((list) => list.map((it) => ({ ...it, readAt: it.readAt ?? now })))
+    emitNotifChanged('customer', { unread: 0 })
     try {
       await markAllNotificationsRead('customer')
+      emitNotifChanged('customer')
       await reload()
+    } catch (e) {
+      setUnreadTotal(prevUnread)
+      setItems(prevItems)
+      emitNotifChanged('customer', { unread: prevUnread })
+      setError(toUserMessage(e, 'Não foi possível marcar como lidas'))
     } finally {
       setBusy(false)
     }

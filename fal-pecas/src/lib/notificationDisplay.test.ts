@@ -54,6 +54,22 @@ describe('notificationDisplay', () => {
     ).toBe('Informativa')
   })
 
+  it('lida remove Atenção/Nova', () => {
+    const readAt = new Date().toISOString()
+    expect(notificationPriorityBadge(base({ readAt }))).toBe('Informativa')
+    expect(notificationPriorityBadgeVisible(base({ readAt }))).toBeNull()
+    expect(
+      notificationPriorityBadge(
+        base({
+          kind: 'order_awaiting_decision',
+          severity: 'acao_necessaria',
+          actionable: true,
+          readAt,
+        }),
+      ),
+    ).toBe('Informativa')
+  })
+
   it('meta com categoria', () => {
     expect(notificationMetaLine(base())).toMatch(/Pagamentos/)
   })

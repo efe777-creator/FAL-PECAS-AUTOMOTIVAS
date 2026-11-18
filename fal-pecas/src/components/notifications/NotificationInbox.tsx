@@ -41,8 +41,14 @@ export function NotificationInbox({
   const sorted = useMemo(() => sortNotificationsForInbox(items), [items])
   const actionCount = useMemo(
     () =>
-      items.filter((n) =>
-        notificationNeedsAction({ kind: n.kind, audience: n.audience, actionable: n.actionable }),
+      items.filter(
+        (n) =>
+          !n.readAt &&
+          notificationNeedsAction({
+            kind: n.kind,
+            audience: n.audience,
+            actionable: n.actionable,
+          }),
       ).length,
     [items],
   )
@@ -50,8 +56,14 @@ export function NotificationInbox({
   const visible = useMemo(() => {
     if (filter === 'unread') return sorted.filter((n) => !n.readAt)
     if (filter === 'action') {
-      return sorted.filter((n) =>
-        notificationNeedsAction({ kind: n.kind, audience: n.audience, actionable: n.actionable }),
+      return sorted.filter(
+        (n) =>
+          !n.readAt &&
+          notificationNeedsAction({
+            kind: n.kind,
+            audience: n.audience,
+            actionable: n.actionable,
+          }),
       )
     }
     return sorted

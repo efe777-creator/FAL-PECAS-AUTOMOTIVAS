@@ -10,6 +10,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { resolveNotificationNavHref } from '@/lib/appNotificationCopy'
 import { formatDateTime } from '@/lib/datetime'
 import { categoryLabel } from '@/lib/notificationDisplay'
+import { emitNotifChanged } from '@/lib/notificationEvents'
 import { getSupabase } from '@/lib/supabase'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -145,10 +146,28 @@ export function AdminNotificationsPage() {
       kind: n.kind,
       audience: n.audience,
     })
+    const wasUnread = !n.readAt
+    const prevUnread = unreadTotal
+    const prevItems = items
+    const nextUnread = wasUnread ? Math.max(0, unreadTotal - 1) : unreadTotal
+    if (wasUnread) {
+      const now = new Date().toISOString()
+      setUnreadTotal(nextUnread)
+      setItems((list) =>
+        list.map((it) => (it.id === n.id ? { ...it, readAt: it.readAt ?? now } : it)),
+      )
+      emitNotifChanged('staff', { unread: nextUnread })
+    }
     try {
-      if (!n.readAt) await markNotificationRead(n.id)
+      if (wasUnread) await markNotificationRead(n.id)
+      emitNotifChanged('staff')
       navigate(href)
     } catch {
+      if (wasUnread) {
+        setUnreadTotal(prevUnread)
+        setItems(prevItems)
+        emitNotifChanged('staff', { unread: prevUnread })
+      }
       navigate(href)
     } finally {
       setBusy(false)
@@ -157,9 +176,21 @@ export function AdminNotificationsPage() {
 
   async function markAll() {
     setBusy(true)
+    const prevUnread = unreadTotal
+    const prevItems = items
+    const now = new Date().toISOString()
+    setUnreadTotal(0)
+    setItems((list) => list.map((it) => ({ ...it, readAt: it.readAt ?? now })))
+    emitNotifChanged('staff', { unread: 0 })
     try {
       await markAllNotificationsRead('staff')
+      emitNotifChanged('staff')
       await reloadInbox()
+    } catch (e) {
+      setUnreadTotal(prevUnread)
+      setItems(prevItems)
+      emitNotifChanged('staff', { unread: prevUnread })
+      toast.push(toUserMessage(e, 'Não foi possível marcar como lidas'), 'error')
     } finally {
       setBusy(false)
     }

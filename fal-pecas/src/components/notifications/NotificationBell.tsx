@@ -2,6 +2,7 @@ import { NotificationInboxItem } from '@/components/notifications/NotificationIn
 import { useAuth } from '@/contexts/AuthContext'
 import { resolveNotificationNavHref } from '@/lib/appNotificationCopy'
 import { sortNotificationsForInbox } from '@/lib/notificationDisplay'
+import { emitNotifChanged, subscribeNotifChanged } from '@/lib/notificationEvents'
 import { getSupabase } from '@/lib/supabase'
 import {
   countUnreadNotifications,
@@ -126,6 +127,17 @@ export function NotificationBell({
   }, [refresh, pollMs])
 
   useEffect(() => {
+    return subscribeNotifChanged((detail) => {
+      if (detail.audience !== audience) return
+      if (typeof detail.unread === 'number') {
+        setUnread(Math.max(0, detail.unread))
+        return
+      }
+      void refreshRef.current()
+    })
+  }, [audience])
+
+  useEffect(() => {
     if (!user?.id) return
     const sb = getSupabase()
     const channel = sb
@@ -191,12 +203,30 @@ export function NotificationBell({
       kind: n.kind,
       audience: n.audience,
     })
+    const wasUnread = !n.readAt
+    const prevUnread = unread
+    const prevItems = items
+    const nextUnread = wasUnread ? Math.max(0, unread - 1) : unread
+    if (wasUnread) {
+      const now = new Date().toISOString()
+      setUnread(nextUnread)
+      setItems((list) =>
+        list.map((it) => (it.id === n.id ? { ...it, readAt: it.readAt ?? now } : it)),
+      )
+      emitNotifChanged(audience, { unread: nextUnread })
+    }
     try {
-      if (!n.readAt) await markNotificationRead(n.id)
+      if (wasUnread) await markNotificationRead(n.id)
       setOpen(false)
+      emitNotifChanged(audience)
       await refresh()
       navigate(href)
     } catch {
+      if (wasUnread) {
+        setUnread(prevUnread)
+        setItems(prevItems)
+        emitNotifChanged(audience, { unread: prevUnread })
+      }
       navigate(href)
     } finally {
       setBusy(false)
@@ -205,9 +235,20 @@ export function NotificationBell({
 
   async function onMarkAll() {
     setBusy(true)
+    const prevUnread = unread
+    const prevItems = items
+    const now = new Date().toISOString()
+    setUnread(0)
+    setItems((list) => list.map((it) => ({ ...it, readAt: it.readAt ?? now })))
+    emitNotifChanged(audience, { unread: 0 })
     try {
       await markAllNotificationsRead(audience)
+      emitNotifChanged(audience)
       await refresh()
+    } catch {
+      setUnread(prevUnread)
+      setItems(prevItems)
+      emitNotifChanged(audience, { unread: prevUnread })
     } finally {
       setBusy(false)
     }
