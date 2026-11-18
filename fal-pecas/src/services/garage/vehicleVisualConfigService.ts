@@ -1,4 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
+import { getCurrentCustomerId } from '@/services/customers/customerService'
+import { pickMyVisualConfigRow } from '@/services/garage/visualPrivacyContract'
 import {
   normalizeVisualPayload,
   type VehicleVisualPayload,
@@ -45,18 +47,24 @@ function mapRow(row: Row): VehicleVisualConfig {
 export async function getMyVisualConfig(
   vehicleIdentityId: string,
 ): Promise<VehicleVisualConfig | null> {
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return null
+
+  // Defesa em profundidade: só a config do owner atual (prefs privadas não herdam).
   const { data, error } = await getSupabase()
     .from('vehicle_visual_configs')
     .select(
       'id, vehicle_identity_id, owner_customer_id, ownership_period_id, payload, visibility, updated_at',
     )
     .eq('vehicle_identity_id', vehicleIdentityId)
+    .eq('owner_customer_id', customerId)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   if (error) throw error
   if (!data) return null
-  return mapRow(data as Row)
+  const mapped = mapRow(data as Row)
+  return pickMyVisualConfigRow([mapped], customerId)
 }
 
 export async function upsertVisualConfig(input: {

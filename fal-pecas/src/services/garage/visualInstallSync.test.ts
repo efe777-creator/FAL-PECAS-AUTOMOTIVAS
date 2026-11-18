@@ -106,4 +106,13 @@ describe('visualInstallSync', () => {
     const orphans = orphanInstallFacts(facts, [part({ key: 'k', state: 'instalada', productId: 'p1' })])
     expect(orphans).toHaveLength(1)
   })
+
+  it('merge de fatos é idempotente (sem duplicar id)', () => {
+    const a = collectInstallFactsFromG7([g7({ id: '2', eventType: 'installed_declared' })])
+    const once = mergeInstallFacts(a, a)
+    const twice = mergeInstallFacts(once, a)
+    expect(once).toHaveLength(1)
+    expect(twice).toHaveLength(1)
+    expect(twice[0].id).toBe('g7:2')
+  })
 })

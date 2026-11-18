@@ -126,8 +126,9 @@ export function VehicleTransferPanel({
     <div className="space-y-4">
       <p className="m-0 text-xs text-fal-muted">
         A FAL não substitui DETRAN ou órgãos oficiais. Transferência atômica no servidor: fecha
-        período atual, abre novo, revoga shares do grantor. PII/`private_owner` só migra com
-        consentimento explícito.
+        período atual, abre novo, revoga shares do grantor. Evidências `private_owner` só
+        promovem com consentimento explícito. Preferências do módulo Visual (2B) **não**
+        transferem — o novo proprietário começa com aparência padrão.
       </p>
 
       {incoming.length ? (
