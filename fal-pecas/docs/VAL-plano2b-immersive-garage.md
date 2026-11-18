@@ -96,7 +96,10 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | S6 | XR UI | **Ausente** (gate env off — esperado) |
 | S7 | Salvar aparência | Click → botão disabled (submit) → reabilitado |
 | S8 | ADM `/admin/modelos-3d` | Página “Modelos 3D (Camada 2)” + copy Visual≠fato |
-| — | XR hit-test em device | **Não** executado neste smoke |
+| S9 | `VITE_FAL_VISUAL_XR=1` local | Checkbox **XR experimental** aparece (antes ausente) |
+| S10 | Opt-in XR localStorage | Liga → “ativo nesta máquina”; `fal-garage-visual-xr-v1=1` |
+| S11 | Desktop sem sessão XR | `navigator.xr` presente mas `isSessionSupported(ar/vr)=false` → Engine **não** resolve `xr` (fica procedural); HUD XR ausente |
+| — | Sessão imersiva / hit-test headset | **Pendente** device WebXR real |
 | — | Sync on com `installed_declared` | Sem fatos no veículo de teste |
 | — | Transferência wizard | Não reexecutado neste smoke |
 
@@ -110,11 +113,12 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | A1 auditoria | Feito (tabela acima) |
 | A2 privacidade (filtro owner + copy wizard; sem checkbox) | Feito |
 | Vitest contratos | **37 PASS** (2026-11-18) |
-| Smoke Camada 1 (browser `dev`) | **PASS parcial** 2026-11-18 — ver § Smoke executado |
-| Smoke XR device | Pendente (precisa WebXR + `VITE_FAL_VISUAL_XR=1`) |
+| Smoke Camada 1 (browser `dev`) | **PASS** 2026-11-18 — S1–S8 |
+| Smoke gate XR desktop (S9–S11) | **PASS** — env+opt-in; sem sessão → sem resolve `xr` |
+| Smoke sessão XR headset | Pendente device real |
 | `main` / deploy | **Não** |
 
-**Homologação Camada 1 (código/contrato):** PASS na `dev`. Smoke browser Camada 1 PASS; XR device ainda pendente antes de auth de `main`.
+**Homologação:** código + smoke browser Camada1/ADM + gate XR desktop PASS na `dev`. Sessão headset + `main` ainda pendentes.
 
 ---
 
@@ -159,12 +163,13 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | Camada 1 + Fase A código/contrato | PASS |
 | Fase B E0–E5 | PASS código `dev` |
 | Fase C C0–C4 | PASS código `dev` |
-| Smoke browser Camada 1 + ADM | PASS parcial (S1–S8) |
-| Smoke XR device | Pendente |
+| Smoke browser Camada 1 + ADM | PASS (S1–S8) |
+| Smoke gate XR desktop | PASS (S9–S11) |
+| Smoke sessão XR headset | Pendente |
 | C5+ checkout in-XR | Bloqueado |
 | Merge `main` / deploy | Bloqueado |
 
-**Veredito:** PLANO 2B **código/contrato completo** + smoke browser Camada 1/ADM na `dev`. XR device + `main` ainda bloqueados.
+**Veredito:** PLANO 2B **código + smoke desktop (incl. gate XR) completo** na `dev`. Headset imersivo + `main` ainda bloqueados.
 
 ---
 
