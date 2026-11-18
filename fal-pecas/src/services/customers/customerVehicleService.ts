@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
+import { vehicleIdentityFalCode } from '@/services/garage/vehicleIdentityDisplay'
 import { normalizePlate } from '@/services/plates/plateNormalize'
 import { parsePlateSourceSnapshot } from '@/services/plates/plateSourceSnapshot'
 import type { CustomerSavedVehicle, CustomerVehicleSourceSnapshot, VehicleFilter } from '@/types'
@@ -7,6 +8,7 @@ import type { CustomerSavedVehicle, CustomerVehicleSourceSnapshot, VehicleFilter
 type Row = {
   id: string
   customer_id: string
+  vehicle_identity_id?: string | null
   manufacturer_id: string | null
   model_id: string | null
   version_id: string | null
@@ -34,7 +36,7 @@ type Row = {
 }
 
 const SELECT_VEHICLE = `
-  id, customer_id, manufacturer_id, model_id, version_id, year, engine, nickname, is_primary,
+  id, customer_id, vehicle_identity_id, manufacturer_id, model_id, version_id, year, engine, nickname, is_primary,
   maker_text, model_text, version_text, engine_text, plate, plate_normalized,
   color_hex, color_label, notes, primary_asset_id, source_snapshot,
   manufacturers ( name ),
@@ -61,9 +63,12 @@ function blankToNull(v: string | null | undefined): string | null {
 
 function mapVehicle(row: Row): CustomerSavedVehicle {
   const vv = Array.isArray(row.vehicle_versions) ? row.vehicle_versions[0] : row.vehicle_versions
+  const vehicleIdentityId = row.vehicle_identity_id ? String(row.vehicle_identity_id) : null
   return {
     id: String(row.id),
     customerId: String(row.customer_id),
+    vehicleIdentityId,
+    falCode: vehicleIdentityFalCode(vehicleIdentityId),
     manufacturerId: row.manufacturer_id,
     modelId: row.model_id,
     versionId: row.version_id ? String(row.version_id) : null,
@@ -267,29 +272,29 @@ export async function addSavedVehicle(input: {
   const plate = blankToNull(input.plate)
   const plateNorm = plateNormalizedOrNull(plate)
 
-  const { data, error } = await getSupabase()
-    .from('customer_vehicles')
-    .insert({
-      customer_id: customerId,
-      version_id: input.versionId ?? null,
-      manufacturer_id: input.manufacturerId ?? null,
-      model_id: input.modelId ?? null,
-      year: input.year ?? null,
-      engine: blankToNull(input.engine ?? undefined),
-      nickname: input.nickname?.trim() || null,
-      is_primary: Boolean(input.isPrimary),
-      maker_text: makerText,
-      model_text: modelText,
-      version_text: blankToNull(input.versionText),
-      engine_text: blankToNull(input.engineText),
-      plate,
-      plate_normalized: plateNorm,
-      source_snapshot: input.sourceSnapshot ?? null,
-    })
-    .select(SELECT_VEHICLE)
-    .single()
+  // PLANO 2A E1: identity + ownership + membership atômicos (RPC).
+  const { data, error } = await getSupabase().rpc('create_customer_vehicle_with_identity', {
+    p_manufacturer_id: input.manufacturerId ?? null,
+    p_model_id: input.modelId ?? null,
+    p_version_id: input.versionId ?? null,
+    p_year: input.year ?? null,
+    p_engine: blankToNull(input.engine ?? undefined),
+    p_nickname: input.nickname?.trim() || null,
+    p_is_primary: Boolean(input.isPrimary),
+    p_maker_text: makerText,
+    p_model_text: modelText,
+    p_version_text: blankToNull(input.versionText),
+    p_engine_text: blankToNull(input.engineText),
+    p_plate: plate,
+    p_plate_normalized: plateNorm,
+    p_source_snapshot: input.sourceSnapshot ?? null,
+  })
   if (error) throw error
-  return mapVehicle(data as Row)
+  const insertedId = (data as { id?: string } | null)?.id
+  if (!insertedId) throw new Error('Falha ao criar veículo com identidade.')
+  const full = await getSavedVehicle(insertedId)
+  if (!full) throw new Error('Veículo criado mas não encontrado.')
+  return full
 }
 
 export async function updateSavedVehicle(
@@ -382,7 +387,37 @@ export async function updateSavedVehicle(
     .select(SELECT_VEHICLE)
     .single()
   if (error) throw error
-  return mapVehicle(data as Row)
+  const mapped = mapVehicle(data as Row)
+
+  // Espelha attrs públicos na identity (owner vigente via RLS).
+  if (mapped.vehicleIdentityId) {
+    const identityPatch: Record<string, unknown> = {}
+    if (input.manufacturerId !== undefined) identityPatch.manufacturer_id = input.manufacturerId
+    if (input.modelId !== undefined) identityPatch.model_id = input.modelId
+    if (input.versionId !== undefined) identityPatch.version_id = input.versionId
+    if (input.year !== undefined) identityPatch.year = input.year
+    if (input.makerText !== undefined) identityPatch.maker_text = blankToNull(input.makerText)
+    if (input.modelText !== undefined) identityPatch.model_text = blankToNull(input.modelText)
+    if (input.versionText !== undefined) identityPatch.version_text = blankToNull(input.versionText)
+    if (input.engineText !== undefined) identityPatch.engine_text = blankToNull(input.engineText)
+    if (input.engine !== undefined && input.engineText === undefined) {
+      identityPatch.engine_text = blankToNull(input.engine)
+    }
+    if (input.plate !== undefined) {
+      const plate = blankToNull(input.plate)
+      identityPatch.plate_current = plate
+      identityPatch.plate_normalized_current = plateNormalizedOrNull(plate)
+    }
+    if (Object.keys(identityPatch).length > 0) {
+      const { error: idErr } = await getSupabase()
+        .from('vehicle_identities')
+        .update(identityPatch)
+        .eq('id', mapped.vehicleIdentityId)
+      if (idErr) throw idErr
+    }
+  }
+
+  return mapped
 }
 
 /**

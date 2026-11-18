@@ -90,6 +90,10 @@ export type CustomerVehicleSourceSnapshot = {
 export interface CustomerSavedVehicle {
   id: string
   customerId: string
+  /** PLANO 2A E1 — FK para identidade permanente (membership ≠ identity). */
+  vehicleIdentityId?: string | null
+  /** Display curto derivado do identity id (ex. FAL-A1B2C3D4). */
+  falCode?: string | null
   manufacturerId?: string | null
   modelId?: string | null
   /** Null = salvamento progressivo sem versão canônica. */

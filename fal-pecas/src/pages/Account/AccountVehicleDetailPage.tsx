@@ -196,6 +196,11 @@ export function AccountVehicleDetailPage() {
           <div>
             <h2 className="mt-0 mb-1 text-xl font-extrabold">{vehicleDisplayName(vehicle)}</h2>
             <p className="mb-0 text-sm text-fal-muted">{vehicleTechLine(vehicle) || '—'}</p>
+            {vehicle.falCode ? (
+              <p className="mb-0 mt-1 text-xs font-bold tabular-nums tracking-wide text-fal-muted">
+                ID FAL · {vehicle.falCode}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {garage.activeVehicle?.id !== vehicle.id ? (
