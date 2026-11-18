@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-18  
 **Origem:** [FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md)  
-**Status:** backlog pós-fundação — PLANO 1 (G0–G8) **fechado** na `dev`; residuals abertos abaixo  
+**Status:** residuals R1–R7 **tratados** na `dev` (R4 status quo · R5 unit · R6 inventário) — ver [VAL-plano0-residuals-r4-r6.md](../../fal-pecas/docs/VAL-plano0-residuals-r4-r6.md)  
 **Branch de referência:** `dev`  
 **Consumidor:** [FAL_PLANO1…](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) absorveu **R1** e **R7** (G1). **R2** tratado após G8 (política VV incomplete / ano obrigatório no upsert).
 
@@ -21,9 +21,9 @@ Itens conscientes deixados de fora do fechamento da fundação PLANO 0. UX compl
 | R1 | `updateSavedVehicle` progressivo | ~~aberto~~ → **feito G1** | `updateSavedVehicle` + UI completar |
 | R2 | Política Edge VV `incomplete` no mestre | ~~aberto~~ → **feito pós-G8** | `allowCanonicalUpsert` exige maker+model+ano; `vehicleCanonicalUpsert` rejeita sem ano; cache plate-lookup não re-upserta sem ano |
 | R3 | `source_snapshot` jsonb (API completa) | ~~aberto~~ → **feito pós-G8** | Coluna `customer_vehicles.source_snapshot`; Edge `sourceSnapshot`; UI fuel/câmbio informativos; sem filtro PVC |
-| R4 | Confirmação manual não re-upserta mestre | Só Edge na consulta (ou import admin) grava mestre | Decidir se edição na confirmação deve chamar upsert autenticado/staff — fora da fundação |
-| R5 | Suite §12 e2e restante | Unit + smokes manuais cobrem o crítico; faltam #5–7/#11–13/#16–18 automatizados | Expandir Vitest/Playwright quando houver harness estável |
-| R6 | Histórico `supabase db push` divergente | Migration progressive aplicada via `db query` | Alinhar migration history com ordem explícita do eFe — sem `repair` improvisado |
+| R4 | Confirmação manual não re-upserta mestre | ~~aberto~~ → **status quo documentado** | Mantido: só Edge/import grava mestre; re-upsert na confirmação exige decisão eFe ([VAL](../../fal-pecas/docs/VAL-plano0-residuals-r4-r6.md)) |
+| R5 | Suite §12 e2e restante | ~~parcial~~ → **unit §12 R5** | `plano0Section12.r5.test.ts` + matriz no VAL; e2e Playwright (#6/#11/#13) ainda pendente |
+| R6 | Histórico `supabase db push` divergente | ~~parcial~~ → **inventariado** | Drift version↔arquivo listado no VAL; **sem repair** até ordem eFe |
 | R7 | Dedup garagem por placa | ~~aberto~~ → **feito G1** | unique parcial `plate_normalized` + merge no save |
 
 ---
@@ -38,6 +38,5 @@ Itens conscientes deixados de fora do fechamento da fundação PLANO 0. UX compl
 
 ## Ordem sugerida (quando retomar)
 
-1. ~~R1 / R7 / R2 / R3~~ **feitos**  
-2. **R4** confirmação manual re-upsert mestre (decisão produto — não codar sem escolha eFe)  
-3. **R5** / **R6** conforme capacidade de QA/ops  
+1. ~~R1–R7~~ tratados (R4 status quo; R5 unit; R6 inventário)  
+2. Pendências leves: e2e Playwright (#6/#11/#13) · repair history R6 só com ordem eFe · R4 re-upsert só se eFe autorizar  
