@@ -481,6 +481,7 @@ export function AccountVehicleDetailPage() {
         vehicle.vehicleIdentityId ? (
           <VehicleVisualPanel
             vehicleIdentityId={vehicle.vehicleIdentityId}
+            membershipId={vehicle.id}
             seedColorHex={vehicle.colorHex}
           />
         ) : (

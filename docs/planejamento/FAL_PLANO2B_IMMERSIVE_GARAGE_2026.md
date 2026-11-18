@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Etapa 0 aprovada (MARCHA) · Etapa 1 (config 2D) IMPLEMENTADA na `dev`** — 3D/AR ainda fora  
+**Status:** **E1–E2 IMPLEMENTADAS na `dev`** (config 2D + preview peças FAL) — 3D/AR ainda fora  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
@@ -106,21 +106,23 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 - [x] eFe aprova via MARCHA  
 - [x] Contratos §2 confirmados (sem segundo identity)  
 - [x] Etapa 1 = config 2D (sem Three.js)  
+- [x] Etapa 2 = preview peças FAL read-only (G7)  
 - [x] Branch `dev` apenas  
-- [ ] Etapa 2+ (preview peça / 3D / sync instalação) — só com nova MARCHA  
+- [ ] Etapa 3+ (3D / sync instalação → modelo) — só com nova MARCHA  
 - [ ] Deploy `main`  
 
 **Não fazer:** implementar 3D sem aprovação; gravar fato 2A a partir do viewer; alterar `main`.
 
 ---
 
-## 8. Confirmação Etapa 1
+## 8. Confirmação Etapa 1–2
 
 | Item | Valor |
 |------|--------|
 | Documento | `docs/planejamento/FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md` |
 | Branch | `dev` |
-| Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
-| UI | `?modulo=visual` · silhueta SVG 2D |
+| E1 Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
+| E2 Preview | `vehicleVisualPartPreview.ts` · lista G7 + imagens produto |
+| UI | `?modulo=visual` · silhueta SVG + cards peças |
 | Three.js / AR / WebGL | **Não** |
-| Próximo passo | MARCHA → Etapa 2 (preview peça FAL read-only) |
+| Próximo passo | MARCHA → Etapa 3 (viewer 3D leve, progressive enhancement) |

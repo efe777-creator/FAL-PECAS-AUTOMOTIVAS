@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
@@ -8,6 +9,11 @@ import {
   upsertVisualConfig,
 } from '@/services/garage/vehicleVisualConfigService'
 import {
+  listVisualPartPreviews,
+  VISUAL_PART_STATE_LABEL,
+  type VisualPartPreview,
+} from '@/services/garage/vehicleVisualPartPreview'
+import {
   DEFAULT_VISUAL_PAYLOAD,
   FINISH_LABEL,
   WHEEL_STYLE_LABEL,
@@ -16,14 +22,23 @@ import {
   type VisualWheelStyle,
 } from '@/services/garage/vehicleVisualTypes'
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
-/** Silhueta 2D SVG — sem WebGL/Three. */
-function VehicleSilhouette2D({ payload }: { payload: VehicleVisualPayload }) {
+/** Silhueta 2D SVG — sem WebGL/Three. Marcadores = preview G7 (não criam fato). */
+function VehicleSilhouette2D({
+  payload,
+  parts,
+}: {
+  payload: VehicleVisualPayload
+  parts: VisualPartPreview[]
+}) {
   const body = payload.bodyColorHex
   const accent = payload.accentHex
   const opacity =
     payload.finish === 'matte' ? 0.92 : payload.finish === 'metallic' ? 0.88 : 1
   const wheelR = payload.wheelStyle === 'sport' ? 18 : payload.wheelStyle === 'offroad' ? 20 : 16
+  const installedCount = parts.filter((p) => p.state === 'instalada').length
+  const pendingCount = parts.filter((p) => p.state !== 'instalada').length
 
   return (
     <div className="overflow-hidden rounded-fal border border-fal-line bg-gradient-to-b from-fal-bg to-fal-surface p-4">
@@ -79,9 +94,19 @@ function VehicleSilhouette2D({ payload }: { payload: VehicleVisualPayload }) {
             {payload.label}
           </text>
         ) : null}
+        {/* marcadores commerce — só leitura */}
+        {installedCount > 0 ? (
+          <circle cx="290" cy="40" r="10" fill="#1b7a4a" opacity="0.9" />
+        ) : null}
+        {pendingCount > 0 ? (
+          <circle cx="290" cy="64" r="10" fill="#b8860b" opacity="0.9" />
+        ) : null}
       </svg>
       <p className="m-0 mt-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-        Visual 2D · não é registro técnico
+        Visual 2D · preview FAL read-only · não é registro técnico
+        {installedCount || pendingCount
+          ? ` · ${installedCount} instalada(s) · ${pendingCount} pendente(s)`
+          : ''}
       </p>
     </div>
   )
@@ -89,9 +114,11 @@ function VehicleSilhouette2D({ payload }: { payload: VehicleVisualPayload }) {
 
 export function VehicleVisualPanel({
   vehicleIdentityId,
+  membershipId,
   seedColorHex,
 }: {
   vehicleIdentityId: string
+  membershipId: string
   seedColorHex?: string | null
 }) {
   const toast = useToast()
@@ -102,20 +129,25 @@ export function VehicleVisualPanel({
         ? seedColorHex
         : DEFAULT_VISUAL_PAYLOAD.bodyColorHex,
   }))
+  const [parts, setParts] = useState<VisualPartPreview[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const row = await getMyVisualConfig(vehicleIdentityId)
+      const [row, preview] = await Promise.all([
+        getMyVisualConfig(vehicleIdentityId),
+        listVisualPartPreviews(membershipId),
+      ])
       if (row) setPayload(row.payload)
+      setParts(preview)
     } catch (e) {
       toast.push(toUserMessage(e, 'Erro ao carregar visual'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [vehicleIdentityId, toast])
+  }, [vehicleIdentityId, membershipId, toast])
 
   useEffect(() => {
     void reload()
@@ -147,11 +179,58 @@ export function VehicleVisualPanel({
   return (
     <div className="space-y-4">
       <p className="m-0 text-xs text-fal-muted">
-        Camada visual ligada à identity. Pintura/rodas aqui <strong>não</strong> criam evento de
-        instalação nem mutam G7. Config privada não migra na transferência sem opt-in.
+        Camada visual ligada à identity. Pintura/rodas e o preview de peças <strong>não</strong>{' '}
+        criam bought/instalação. Preview lê G7 existente (commerce FAL). Config privada não migra
+        na transferência sem opt-in.
       </p>
 
-      <VehicleSilhouette2D payload={payload} />
+      <VehicleSilhouette2D payload={payload} parts={parts} />
+
+      <section className="space-y-2">
+        <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo (preview)</h3>
+        {!parts.length ? (
+          <EmptyState
+            title="Nenhuma peça FAL vinculada"
+            description="Compras/associações G7 aparecem aqui só para preview — declare instalação no pedido ou no histórico."
+          />
+        ) : (
+          <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+            {parts.map((p) => (
+              <li
+                key={p.key}
+                className="flex gap-2 rounded-fal border border-fal-line bg-fal-bg/40 p-2"
+              >
+                {p.imageUrl ? (
+                  <img
+                    src={p.imageUrl}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-[8px] object-cover"
+                  />
+                ) : (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] bg-fal-surface text-[10px] font-bold text-fal-muted">
+                    FAL
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="m-0 truncate text-sm font-extrabold text-fal-fg">{p.name}</p>
+                  <p className="m-0 text-xs font-semibold text-fal-muted">
+                    {VISUAL_PART_STATE_LABEL[p.state]}
+                    {p.sku ? ` · ${p.sku}` : ''}
+                  </p>
+                  {p.orderId ? (
+                    <Link
+                      to={`/conta/pedidos/${p.orderId}`}
+                      className="text-[11px] font-semibold text-fal-accent underline-offset-2 hover:underline"
+                    >
+                      Ver pedido
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <form
         onSubmit={onSave}
