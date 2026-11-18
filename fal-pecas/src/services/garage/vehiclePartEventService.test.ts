@@ -42,4 +42,18 @@ describe('vehiclePartEventService (G7)', () => {
     expect(boughtRemainsIntact(timeline, bought.id)).toBe(true)
     expect(timeline.find((e) => e.id === bought.id)?.eventType).toBe('bought')
   })
+
+  it('#19 devolução é novo evento returned — bought não muda', () => {
+    const bought = evt({ id: 'bought-2', eventType: 'bought' })
+    const returned = evt({
+      id: 'ret-1',
+      eventType: 'returned',
+      provenance: 'customer',
+      payload: { fromEventId: bought.id, reason: 'troca' },
+    })
+    const timeline = [returned, bought]
+    expect(boughtRemainsIntact(timeline, bought.id)).toBe(true)
+    expect(timeline.filter((e) => e.eventType === 'bought')).toHaveLength(1)
+    expect(timeline.some((e) => e.eventType === 'returned')).toBe(true)
+  })
 })

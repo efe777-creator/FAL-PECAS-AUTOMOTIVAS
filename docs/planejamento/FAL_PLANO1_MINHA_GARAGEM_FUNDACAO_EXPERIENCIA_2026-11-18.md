@@ -4,7 +4,7 @@
 **Escopo:** Minha Garagem — Fundação e experiência inicial  
 **Data:** 2026-11-18  
 **Revisão eFe:** 2026-11-18 (R1–R8 — ver changelog §23)  
-**Status:** G0–G7 ok na `dev` · próximo: **G8 VAL + suite**  
+**Status:** G0–G8 concluído na `dev` · VAL: [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md)  
 **Branch de implementação futura:** `dev` exclusivamente (`main` = produção)  
 **Natureza deste documento:** Análise, auditoria e planejamento técnico — **sem implementação nesta entrega**  
 **Workspace auditado:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas` (código em `dev`, pós-PLANO 0)
@@ -15,6 +15,7 @@
 - [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md) — R1 update, R7 dedup, R2/R3 Edge/snapshot
 - [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) — direção de produto (Garage 1+)
 - [VAL-placa-filtros-veiculo.md](../../fal-pecas/docs/VAL-placa-filtros-veiculo.md) — evidências smoke placa/flush
+- [VAL-garagem-plano1.md](../../fal-pecas/docs/VAL-garagem-plano1.md) — VAL + matriz §14 (G8)
 - [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) — **supersedida** pelo PLANO 0 + este PLANO 1 (diagnósticos “sem VV não salva” estão obsoletos)
 
 ---
