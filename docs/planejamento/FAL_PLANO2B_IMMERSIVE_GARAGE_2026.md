@@ -1,6 +1,7 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Camada 1 (E0–E4) na `dev`** — fundação de configuração visual + viewer **procedural**. **Não** é produto 3D realista (Camada 2 / GLB). Fase A = consolidação. Fase B = 3D real. Fase C = AR (bloqueada).  
+**Status:** **Camada 1 PASS código** · **Fase B E0–E1 em curso** (doc Camada 2 + Visualization Engine). GLB loader / ADM ainda não. Fase C = AR bloqueada.  
+**Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
@@ -209,11 +210,11 @@ Observabilidade (Fase B+): modelo, resultado load, erros, tempo, fallback, categ
 
 | Fase | Nome | Conteúdo | Auth |
 |------|------|----------|------|
-| **A** | Consolidação | Auditoria E1–E4, VAL, privacidade, testes, sync docs; **sem** GLB/AR | Em curso na `dev` |
-| **B** | Evolução 3D real | Biblioteca GLB, viewer realista, compatibilidade, licenças, ADM, performance, a11y, observabilidade | Nova autorização |
+| **A** | Consolidação | Auditoria E1–E4, VAL, privacidade, testes, sync docs | Código/contrato PASS (`bb928fc`) |
+| **B** | Evolução 3D real | Biblioteca GLB, engine, compatibilidade, licenças, ADM… | **MARCHA** · E0–E1 feitos; E2+ pendente |
 | **C** | Imersão | AR/WebXR | MARCHA + gate explícito |
 
-AR **não** antecede Camada 2. GLB **não** entra na Fase A.
+AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 
 ---
 
@@ -230,7 +231,8 @@ AR **não** antecede Camada 2. GLB **não** entra na Fase A.
 - [x] Branch `dev` apenas  
 - [x] Fase A consolidação **código/contrato** (doc + A1 + privacidade + Vitest 37 PASS)  
 - [ ] Fase A smoke manual operador (antes de qualquer auth `main`)  
-- [ ] Fase B (GLB) — nova auth  
+- [x] Fase B E0 doc Camada 2 + E1 Visualization Engine (sem loader GLB)  
+- [ ] Fase B E2+ (tabelas assets / loader GLB / ADM)  
 - [ ] Fase C (AR) — MARCHA + gate  
 - [ ] Deploy `main`  
 
@@ -259,13 +261,14 @@ Arquivo: `fal-pecas/docs/VAL-plano2b-immersive-garage.md`.
 |------|--------|
 | Documento | este arquivo |
 | Branch | `dev` |
-| Tip (revalidar A1) | `1ac7eab` |
+| Tip Camada 1 / Fase A | `bb928fc` |
 | E1 Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
 | E2 | `vehicleVisualPartPreview.ts` |
 | E3 | `VehicleViewer3D.tsx` procedural · `canUseWebGL` · prefs |
 | E4 | `visualInstallSync.ts` · opt-in |
-| UI | `?modulo=visual` |
-| Camada 2 / GLB | **Não** |
+| Fase B E1 | `visualizationEngine.ts` · `VehicleVisualizationEngine.tsx` |
+| UI | `?modulo=visual` via Engine |
+| Loader GLB | **Não** (E2+) |
 | AR | **Não** |
 
 ---
