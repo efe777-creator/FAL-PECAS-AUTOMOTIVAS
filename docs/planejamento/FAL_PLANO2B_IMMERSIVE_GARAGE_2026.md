@@ -11,7 +11,8 @@
 **Pré-requisito obrigatório:** [PLANO 2A — Vehicle Identity](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) (**APROVADO eFe · IMPLEMENTADO E1–E5 · §24**) · [VAL-plano2a](../../fal-pecas/docs/VAL-plano2a-vehicle-identity.md)  
 **Contratos herdados:** PLANO 2A §19 (chave = `vehicle_identities.id`)  
 **Direção:** [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md)  
-**VAL 2B:** [VAL-plano2b-immersive-garage.md](../../fal-pecas/docs/VAL-plano2b-immersive-garage.md) (PASS só com evidências executadas)
+**VAL 2B:** [VAL-plano2b-immersive-garage.md](../../fal-pecas/docs/VAL-plano2b-immersive-garage.md) (PASS só com evidências executadas)  
+**Auditoria 2A+2B:** [FAL_AUDITORIA_PLANO2A_2B_2026-11-18.md](./FAL_AUDITORIA_PLANO2A_2B_2026-11-18.md)
 
 ---
 
@@ -58,18 +59,19 @@ Sem segunda infraestrutura de identidade. Sem clonar `customer_vehicles` como so
 
 | Camada | Nome | Conteúdo | Estado |
 |--------|------|----------|--------|
-| **1** | Visual Configuration | Persistência de aparência, preview G7, sync opt-in, viewer procedural + fallback 2D | E0–E4 na `dev` (fundação) |
-| **2** | 3D Asset Visualization | Biblioteca GLB/glTF, texturas, compatibilidade, licenças, ADM, veículo realista | **Não implementada** — Fase B |
+| **1** | Visual Configuration | Persistência de aparência, preview G7, sync opt-in, viewer procedural + fallback 2D | **Feito** E0–E4 na `dev` |
+| **2** | 3D Asset Visualization | Biblioteca GLB/glTF, Engine, ADM, licenças, loader + fallback | **Feito** Fase B E0–E5 na `dev` |
+| **3** | XR experimental | Gate + sessão + hit-test + bridge SKU→ficha | **Feito** Fase C C0–C4 na `dev` (default off) |
 
-**Proibido** apresentar o viewer procedural (E3) como visualizador 3D realista do veículo FAL.
+**Proibido** apresentar o viewer procedural como único/realista quando há GLB aprovado; o Engine deve rotular a fonte (2d / procedural / glb / xr).
 
-### 2.2 Limitações do viewer procedural atual (E3)
+### 2.2 Limitações do viewer procedural (Camada 1 E3 — ainda válido como fallback)
 
-- Geometria **procedural** (Three.js), **sem** GLB/glTF.  
-- Sem carroceria/texturas/variantes de geração-facelift reais.  
-- Serve como progressive enhancement e contrato de adapter futuro.  
+- Geometria **procedural** (Three.js) quando **não** há GLB aprovado (ou GLB falha).  
+- Sem carroceria/texturas/variantes de geração-facelift reais no modo procedural.  
 - Fallback SVG/2D obrigatório quando WebGL indisponível ou preferência `2d`.  
-- Lazy-load: páginas sem módulo visual não devem carregar Three no caminho crítico.
+- Lazy-load: páginas sem módulo visual não devem carregar Three no caminho crítico.  
+- GLB realista = adapter `glb` (Fase B); XR = gate Fase C.
 
 ### 2.3 Identidade permanente vs preferência do proprietário
 
@@ -231,7 +233,7 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] E4 sync opt-in sem write-back  
 - [x] Branch `dev` apenas  
 - [x] Fase A consolidação **código/contrato** (doc + A1 + privacidade + Vitest 37 PASS)  
-- [ ] Fase A smoke manual operador (antes de qualquer auth `main`)  
+- [x] Fase A / Camada 1 smoke browser (VAL S1–S8; sync-on com fato real ainda limitado)  
 - [x] Fase B E0 doc Camada 2 + E1 Visualization Engine  
 - [x] Fase B E2 tabelas assets/compat + storage  
 - [x] Fase B E3 loader GLB lazy + fallback  

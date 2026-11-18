@@ -155,9 +155,9 @@ export function VehicleVisualPanel({
   return (
     <div className="space-y-4">
       <p className="m-0 text-xs text-fal-muted">
-        Camada 1 (config visual). O <strong>Visualization Engine</strong> escolhe 2D ou 3D
-        procedural — ainda <strong>não</strong> é modelo GLB realista (Fase B E2+). Pintura/preview
-        não criam fato 2A. Sync instalação é opt-in.
+        Camada visual (2B). O <strong>Visualization Engine</strong> escolhe 2D, 3D procedural ou
+        GLB aprovado (e XR só com gate). Pintura/preview <strong>não</strong> criam fato 2A. Sync
+        instalação e XR são opt-in.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
