@@ -16,7 +16,7 @@ Sem `main` / sem deploy Netlify neste MARCHA.
 | F7 polish Garagem | BLOQUEADO (fora do plano desta consolidação) |
 | Secrets CarImages em wtbp + Edge `carimages-image` | PASS (set + deploy) |
 | Key rotacionada pós-exposição em terminal | PENDENTE (eFe: Revogar no dashboard e atualizar secret) |
-| Merge → `dev` + push | em andamento neste MARCHA |
+| Merge → `dev` + push | PASS (`ad7bb7b` em `origin/dev`) |
 | `main` / produção Netlify | BLOQUEADO |
 
 ## Notas
