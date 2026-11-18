@@ -10,7 +10,9 @@ import {
   listSavedVehicles,
   removeSavedVehicle,
   setPrimaryVehicle,
+  updateSavedVehicle,
 } from '@/services/customers/customerVehicleService'
+import { formatPlateMask, plateValidationMessage } from '@/services/plates/plateNormalize'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -18,6 +20,8 @@ import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+
+type EditDraft = { nickname: string; plate: string }
 
 export function AccountVehiclesPage() {
   useDocumentTitle('Meus carros | FAL Peças Automotivas')
@@ -30,9 +34,13 @@ export function AccountVehiclesPage() {
   const [engine, setEngine] = useState('')
   const [version, setVersion] = useState('')
   const [nickname, setNickname] = useState('')
+  const [plate, setPlate] = useState('')
   const [asPrimary, setAsPrimary] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<EditDraft>({ nickname: '', plate: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   function pushError(message: string) {
     setError(message)
@@ -96,12 +104,58 @@ export function AccountVehiclesPage() {
     }))
   }, [tree, maker, model])
 
+  function startEdit(v: CustomerSavedVehicle) {
+    setEditingId(v.id)
+    setDraft({
+      nickname: v.nickname ?? '',
+      plate: v.plate ? formatPlateMask(v.plate) : '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setDraft({ nickname: '', plate: '' })
+  }
+
+  async function saveEdit(id: string) {
+    const plateRaw = draft.plate.trim()
+    if (plateRaw) {
+      const msg = plateValidationMessage(plateRaw)
+      if (msg) {
+        pushError(msg)
+        return
+      }
+    }
+    setSavingEdit(true)
+    try {
+      await updateSavedVehicle(id, {
+        nickname: draft.nickname.trim() || null,
+        plate: plateRaw || null,
+      })
+      cancelEdit()
+      pushOk('Veículo atualizado.')
+      await reload()
+    } catch (err) {
+      pushError(toUserMessage(err, 'Falha ao atualizar veículo'))
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     if (!maker || !model) {
       pushError('Selecione montadora e modelo.')
       return
+    }
+    const plateRaw = plate.trim()
+    if (plateRaw) {
+      const msg = plateValidationMessage(plateRaw)
+      if (msg) {
+        pushError(msg)
+        return
+      }
     }
     try {
       await ensureSavedVehicleFromFilter({
@@ -110,6 +164,7 @@ export function AccountVehiclesPage() {
         year: year || undefined,
         engine: engine || undefined,
         version: version || undefined,
+        plate: plateRaw || undefined,
         nickname,
         isPrimary: asPrimary || items.length === 0,
       })
@@ -119,6 +174,7 @@ export function AccountVehiclesPage() {
       setEngine('')
       setVersion('')
       setNickname('')
+      setPlate('')
       setAsPrimary(false)
       pushOk('Veículo salvo.')
       await reload()
@@ -202,6 +258,13 @@ export function AccountVehiclesPage() {
             disabled={!model}
             onChange={(e) => setVersion(e.target.value)}
           />
+          <Input
+            label="Placa (opcional)"
+            value={plate}
+            onChange={(e) => setPlate(formatPlateMask(e.target.value))}
+            placeholder="ABC1D23"
+            autoComplete="off"
+          />
           <Input label="Apelido (opcional)" value={nickname} onChange={(e) => setNickname(e.target.value)} />
           <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2">
             <input type="checkbox" checked={asPrimary} onChange={(e) => setAsPrimary(e.target.checked)} />
@@ -225,7 +288,7 @@ export function AccountVehiclesPage() {
         {items.map((v) => (
           <div key={v.id} className="rounded-fal border border-fal-line bg-fal-surface p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="m-0 font-extrabold">
                   {v.nickname || `${v.makerName ?? ''} ${v.modelName ?? ''}`.trim() || 'Veículo'}
                   {v.isPrimary ? <span className="text-xs text-fal-success"> · Principal</span> : null}
@@ -236,6 +299,34 @@ export function AccountVehiclesPage() {
                     <span className="text-fal-muted"> · versão ainda não vinculada ao cadastro</span>
                   ) : null}
                 </p>
+                {editingId !== v.id ? (
+                  <p className="mb-0 mt-1 text-sm">
+                    {v.plate ? (
+                      <>
+                        Placa: <span className="font-semibold tracking-wide">{formatPlateMask(v.plate)}</span>
+                      </>
+                    ) : (
+                      <span className="text-fal-muted">Sem placa</span>
+                    )}
+                  </p>
+                ) : (
+                  <div className="mt-3 grid max-w-md gap-2 sm:grid-cols-2">
+                    <Input
+                      label="Placa"
+                      value={draft.plate}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, plate: formatPlateMask(e.target.value) }))
+                      }
+                      placeholder="ABC1D23"
+                      autoComplete="off"
+                    />
+                    <Input
+                      label="Apelido"
+                      value={draft.nickname}
+                      onChange={(e) => setDraft((d) => ({ ...d, nickname: e.target.value }))}
+                    />
+                  </div>
+                )}
                 <Link
                   className="mt-2 inline-block text-sm font-semibold text-fal-auth-link"
                   to={`/catalogo?maker=${encodeURIComponent(v.makerName ?? '')}&model=${encodeURIComponent(v.modelName ?? '')}${v.year ? `&year=${v.year}` : ''}${v.engine ? `&engine=${encodeURIComponent(v.engine)}` : ''}${v.versionName ? `&version=${encodeURIComponent(v.versionName)}` : ''}`}
@@ -244,7 +335,32 @@ export function AccountVehiclesPage() {
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">
-                {!v.isPrimary ? (
+                {editingId === v.id ? (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={savingEdit}
+                      onClick={() => void saveEdit(v.id)}
+                    >
+                      Salvar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="light"
+                      size="sm"
+                      disabled={savingEdit}
+                      onClick={cancelEdit}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <Button type="button" variant="light" size="sm" onClick={() => startEdit(v)}>
+                    Editar placa / apelido
+                  </Button>
+                )}
+                {!v.isPrimary && editingId !== v.id ? (
                   <Button
                     type="button"
                     variant="light"
@@ -263,31 +379,33 @@ export function AccountVehiclesPage() {
                     Tornar principal
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  onClick={() => {
-                    void (async () => {
-                      const { confirmed } = await confirmDialog({
-                        title: 'Remover veículo?',
-                        message: 'Remover este veículo salvo?',
-                        confirmLabel: 'Remover',
-                        danger: true,
-                      })
-                      if (!confirmed) return
-                      try {
-                        await removeSavedVehicle(v.id)
-                        pushOk('Veículo removido.')
-                        await reload()
-                      } catch (err) {
-                        pushError(toUserMessage(err, 'Falha ao remover veículo'))
-                      }
-                    })()
-                  }}
-                >
-                  Remover
-                </Button>
+                {editingId !== v.id ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      void (async () => {
+                        const { confirmed } = await confirmDialog({
+                          title: 'Remover veículo?',
+                          message: 'Remover este veículo salvo?',
+                          confirmLabel: 'Remover',
+                          danger: true,
+                        })
+                        if (!confirmed) return
+                        try {
+                          await removeSavedVehicle(v.id)
+                          pushOk('Veículo removido.')
+                          await reload()
+                        } catch (err) {
+                          pushError(toUserMessage(err, 'Falha ao remover veículo'))
+                        }
+                      })()
+                    }}
+                  >
+                    Remover
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>

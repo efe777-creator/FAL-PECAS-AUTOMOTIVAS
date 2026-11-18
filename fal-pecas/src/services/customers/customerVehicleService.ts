@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
+import { normalizePlate } from '@/services/plates/plateNormalize'
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 
 type Row = {
@@ -17,6 +18,7 @@ type Row = {
   version_text?: string | null
   engine_text?: string | null
   plate?: string | null
+  plate_normalized?: string | null
   manufacturers?: { name: string } | { name: string }[] | null
   models?: { name: string } | { name: string }[] | null
   vehicle_versions?:
@@ -27,11 +29,17 @@ type Row = {
 
 const SELECT_VEHICLE = `
   id, customer_id, manufacturer_id, model_id, version_id, year, engine, nickname, is_primary,
-  maker_text, model_text, version_text, engine_text, plate,
+  maker_text, model_text, version_text, engine_text, plate, plate_normalized,
   manufacturers ( name ),
   models ( name ),
   vehicle_versions ( version_name, year, engine )
 `
+
+/** Placa para unique/dedup: só alfanumérico upper; vazio → null. */
+export function plateNormalizedOrNull(raw: string | null | undefined): string | null {
+  const n = normalizePlate(raw ?? '')
+  return n ? n : null
+}
 
 function relName(value: unknown): string | undefined {
   if (!value) return undefined
@@ -230,6 +238,9 @@ export async function addSavedVehicle(input: {
       .eq('customer_id', customerId)
   }
 
+  const plate = blankToNull(input.plate)
+  const plateNorm = plateNormalizedOrNull(plate)
+
   const { data, error } = await getSupabase()
     .from('customer_vehicles')
     .insert({
@@ -245,8 +256,84 @@ export async function addSavedVehicle(input: {
       model_text: modelText,
       version_text: blankToNull(input.versionText),
       engine_text: blankToNull(input.engineText),
-      plate: blankToNull(input.plate),
+      plate,
+      plate_normalized: plateNorm,
     })
+    .select(SELECT_VEHICLE)
+    .single()
+  if (error) throw error
+  return mapVehicle(data as Row)
+}
+
+export async function updateSavedVehicle(
+  id: string,
+  input: {
+    versionId?: string | null
+    manufacturerId?: string | null
+    modelId?: string | null
+    year?: number | null
+    engine?: string | null
+    nickname?: string | null
+    isPrimary?: boolean
+    makerText?: string | null
+    modelText?: string | null
+    versionText?: string | null
+    engineText?: string | null
+    plate?: string | null
+  },
+): Promise<CustomerSavedVehicle> {
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) throw new Error('Cliente não encontrado')
+
+  const patch: Record<string, unknown> = {}
+  if (input.makerText !== undefined) {
+    const makerText = blankToNull(input.makerText)
+    if (!makerText) throw new Error('Informe montadora e modelo para salvar o veículo.')
+    patch.maker_text = makerText
+  }
+  if (input.modelText !== undefined) {
+    const modelText = blankToNull(input.modelText)
+    if (!modelText) throw new Error('Informe montadora e modelo para salvar o veículo.')
+    patch.model_text = modelText
+  }
+  if (input.versionId !== undefined) patch.version_id = input.versionId
+  if (input.manufacturerId !== undefined) patch.manufacturer_id = input.manufacturerId
+  if (input.modelId !== undefined) patch.model_id = input.modelId
+  if (input.year !== undefined) patch.year = input.year
+  if (input.engine !== undefined) patch.engine = blankToNull(input.engine)
+  if (input.nickname !== undefined) patch.nickname = input.nickname?.trim() || null
+  if (input.versionText !== undefined) patch.version_text = blankToNull(input.versionText)
+  if (input.engineText !== undefined) patch.engine_text = blankToNull(input.engineText)
+  if (input.plate !== undefined) {
+    const plate = blankToNull(input.plate)
+    patch.plate = plate
+    patch.plate_normalized = plateNormalizedOrNull(plate)
+  }
+
+  if (input.isPrimary) {
+    await getSupabase()
+      .from('customer_vehicles')
+      .update({ is_primary: false })
+      .eq('customer_id', customerId)
+    patch.is_primary = true
+  }
+
+  if (Object.keys(patch).length === 0) {
+    const { data, error } = await getSupabase()
+      .from('customer_vehicles')
+      .select(SELECT_VEHICLE)
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .single()
+    if (error) throw error
+    return mapVehicle(data as Row)
+  }
+
+  const { data, error } = await getSupabase()
+    .from('customer_vehicles')
+    .update(patch)
+    .eq('id', id)
+    .eq('customer_id', customerId)
     .select(SELECT_VEHICLE)
     .single()
   if (error) throw error
@@ -298,7 +385,13 @@ export async function ensureSavedVehicleFromFilter(
   }
 
   const existing = await listSavedVehicles()
-  return addSavedVehicle({
+  const plateNorm = plateNormalizedOrNull(plate)
+  const dup =
+    plateNorm != null
+      ? existing.find((v) => plateNormalizedOrNull(v.plate) === plateNorm)
+      : undefined
+
+  const payload = {
     versionId,
     manufacturerId,
     modelId,
@@ -311,7 +404,16 @@ export async function ensureSavedVehicleFromFilter(
     versionText,
     engineText,
     plate,
-  })
+  }
+
+  if (dup) {
+    return updateSavedVehicle(dup.id, {
+      ...payload,
+      isPrimary: filter.isPrimary ?? dup.isPrimary,
+    })
+  }
+
+  return addSavedVehicle(payload)
 }
 
 export async function removeSavedVehicle(id: string): Promise<void> {
