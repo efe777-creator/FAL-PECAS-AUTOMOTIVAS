@@ -257,7 +257,7 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 |-------|-----------|
 | HEADSET | **BLOCKED hardware** — Chromium desktop: API XR presente, AR/VR session unsupported |
 | C5 | **PASS código** — HUD “Carrinho” → `getProductById` + `addItem` + `/carrinho`; sem pagamento in-XR |
-| MAIN | Executar após push C5 — criar `main` a partir de `dev` se remoto só tiver `dev` |  
+| MAIN | Tip `main` = `dev` = `9dcf460` (push feito). **Deploy Netlify NÃO autorizado** (ordem eFe: só commit/push) |  
 
 ### 7.2 Aceite E1–E4 (resumo)
 
