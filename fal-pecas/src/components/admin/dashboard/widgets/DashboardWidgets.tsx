@@ -348,7 +348,7 @@ export function WidgetShortcutsPinned() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-1">
+    <div className="flex h-full min-h-0 flex-col gap-3 p-1">
       <div>
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fixados
@@ -448,7 +448,7 @@ export function WidgetPipelineFlow() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-3 p-0.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fluxo do pedido
@@ -650,7 +650,7 @@ export function WidgetAttentionTable() {
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-2 p-0.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fila de atenção
@@ -923,7 +923,7 @@ export function WidgetLogisticsQueues() {
   ]
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden p-0.5">
+    <div className="flex h-full min-h-0 flex-col p-0.5">
       <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         Logística
       </h3>

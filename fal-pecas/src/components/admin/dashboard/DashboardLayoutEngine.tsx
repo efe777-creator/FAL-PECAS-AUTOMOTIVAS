@@ -48,7 +48,7 @@ function scaleForBreakpoint(
     let y = 0
     return items.map((it) => {
       // Mobile empilha o conteúdo — sobe a altura para não cortar texto/KPIs
-      const h = Math.max(it.h + 2, Math.ceil(it.h * 1.25), 4)
+      const h = Math.max(it.h + 3, Math.ceil(it.h * 1.4), 5)
       const next = { ...it, x: 0, y, w: 1, h }
       y += next.h
       return next
@@ -180,7 +180,7 @@ export function DashboardLayoutEngine({
           layouts={layouts}
           breakpoints={BREAKPOINTS}
           cols={COLS}
-          rowHeight={64}
+          rowHeight={72}
           margin={[12, 12] as const}
           containerPadding={[0, 0] as const}
           compactor={verticalCompactor}
@@ -208,7 +208,7 @@ export function DashboardLayoutEngine({
               <div
                 key={item.instanceId}
                 className={[
-                  'rounded-[14px] border bg-fal-surface',
+                  'flex h-full min-h-0 flex-col rounded-[14px] border bg-fal-surface',
                   editing ? 'overflow-visible' : 'overflow-hidden',
                   editing
                     ? 'border-fal-accent/45 bg-fal-accent/[0.04] shadow-md ring-1 ring-fal-accent/20'
@@ -216,7 +216,7 @@ export function DashboardLayoutEngine({
                 ].join(' ')}
               >
                 {editing ? (
-                  <div className="flex items-center justify-between gap-2 border-b border-fal-accent/25 bg-fal-bg/90 px-1.5 py-1.5">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-fal-accent/25 bg-fal-bg/90 px-1.5 py-1.5">
                     <div
                       className="fal-dash-drag-handle flex min-h-11 min-w-0 flex-1 cursor-grab touch-none items-center gap-2 rounded-md px-2 py-1.5 text-xs font-bold text-fal-fg select-none hover:bg-fal-surface-2 active:cursor-grabbing"
                       title="Arrastar para reorganizar"
@@ -251,8 +251,8 @@ export function DashboardLayoutEngine({
                 ) : null}
                 <div
                   className={[
-                    editing ? 'fal-dash-no-drag min-h-0 p-2.5' : 'h-full min-h-0 p-3',
-                    'overflow-hidden',
+                    'fal-admin-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto',
+                    editing ? 'fal-dash-no-drag p-2.5' : 'p-3',
                   ].join(' ')}
                 >
                   {renderDashboardWidget(item.widgetId)}

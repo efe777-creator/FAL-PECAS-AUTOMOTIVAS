@@ -296,6 +296,21 @@ export function readDashboardLayout(
       allowedWidgetIds,
     )
     if (!sanitized) return fallback()
+    // Persiste clamp de minSize — layouts antigos sobem de altura e param de cortar
+    try {
+      const prevRaw = JSON.parse(raw) as { items?: Array<{ instanceId?: string; h?: number }> }
+      const prevH = new Map(
+        (prevRaw.items ?? []).map((it) => [String(it.instanceId ?? ''), Number(it.h)]),
+      )
+      const bumped = sanitized.items.some(
+        (it) => (prevH.get(it.instanceId) ?? it.h) < it.h,
+      )
+      if (bumped) {
+        storage.setItem(ADMIN_DASHBOARD_LAYOUT_KEY, JSON.stringify(sanitized))
+      }
+    } catch {
+      /* ignore */
+    }
     // Layout vazio explícito (usuário removeu tudo) é válido
     return sanitized
   } catch {
