@@ -22,6 +22,16 @@ import {
   type VisualWheelStyle,
 } from '@/services/garage/vehicleVisualTypes'
 import {
+  orphanInstallFacts,
+  partsForModelReflection,
+  type VisualInstallFact,
+} from '@/services/garage/visualInstallSync'
+import { listVisualInstallFacts } from '@/services/garage/visualInstallSyncService'
+import {
+  readSyncInstallEnabled,
+  writeSyncInstallEnabled,
+} from '@/lib/visualInstallSyncPrefs'
+import {
   readVisualViewerMode,
   resolveViewerMode,
   writeVisualViewerMode,
@@ -33,21 +43,24 @@ import { Link } from 'react-router-dom'
 
 const VehicleViewer3D = lazy(() => import('./VehicleViewer3D'))
 
-/** Silhueta 2D SVG — sem WebGL/Three. Marcadores = preview G7 (não criam fato). */
+/** Silhueta 2D SVG — sem WebGL/Three. Marcadores só com sync 2A→modelo (E4). */
 function VehicleSilhouette2D({
   payload,
-  parts,
+  modelParts,
+  orphanInstallCount,
+  syncEnabled,
 }: {
   payload: VehicleVisualPayload
-  parts: VisualPartPreview[]
+  modelParts: VisualPartPreview[]
+  orphanInstallCount: number
+  syncEnabled: boolean
 }) {
   const body = payload.bodyColorHex
   const accent = payload.accentHex
   const opacity =
     payload.finish === 'matte' ? 0.92 : payload.finish === 'metallic' ? 0.88 : 1
   const wheelR = payload.wheelStyle === 'sport' ? 18 : payload.wheelStyle === 'offroad' ? 20 : 16
-  const installedCount = parts.filter((p) => p.state === 'instalada').length
-  const pendingCount = parts.filter((p) => p.state !== 'instalada').length
+  const mirroredCount = modelParts.length + orphanInstallCount
 
   return (
     <div className="overflow-hidden rounded-fal border border-fal-line bg-gradient-to-b from-fal-bg to-fal-surface p-4">
@@ -103,19 +116,18 @@ function VehicleSilhouette2D({
             {payload.label}
           </text>
         ) : null}
-        {/* marcadores commerce — só leitura */}
-        {installedCount > 0 ? (
+        {/* marcadores só com sync E4 — espelho 2A, não criam fato */}
+        {syncEnabled && mirroredCount > 0 ? (
           <circle cx="290" cy="40" r="10" fill="#1b7a4a" opacity="0.9" />
-        ) : null}
-        {pendingCount > 0 ? (
-          <circle cx="290" cy="64" r="10" fill="#b8860b" opacity="0.9" />
         ) : null}
       </svg>
       <p className="m-0 mt-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-        Visual 2D · preview FAL read-only · não é registro técnico
-        {installedCount || pendingCount
-          ? ` · ${installedCount} instalada(s) · ${pendingCount} pendente(s)`
-          : ''}
+        Visual 2D · não é registro técnico
+        {syncEnabled
+          ? mirroredCount
+            ? ` · sync 2A · ${mirroredCount} no modelo`
+            : ' · sync 2A ligado · nada a espelhar'
+          : ' · sync 2A desligado'}
       </p>
     </div>
   )
@@ -139,9 +151,11 @@ export function VehicleVisualPanel({
         : DEFAULT_VISUAL_PAYLOAD.bodyColorHex,
   }))
   const [parts, setParts] = useState<VisualPartPreview[]>([])
+  const [installFacts, setInstallFacts] = useState<VisualInstallFact[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [viewerPref, setViewerPref] = useState<VisualViewerMode>(() => readVisualViewerMode())
+  const [syncInstall, setSyncInstall] = useState(() => readSyncInstallEnabled())
   const [webglOk, setWebglOk] = useState(false)
 
   useEffect(() => {
@@ -153,20 +167,37 @@ export function VehicleVisualPanel({
     [viewerPref, webglOk],
   )
 
+  const modelParts = useMemo(
+    () => partsForModelReflection(parts, installFacts, syncInstall),
+    [parts, installFacts, syncInstall],
+  )
+  const orphans = useMemo(
+    () => (syncInstall ? orphanInstallFacts(installFacts, parts) : []),
+    [syncInstall, installFacts, parts],
+  )
+  const mirroredKeys = useMemo(() => new Set(modelParts.map((p) => p.key)), [modelParts])
+
   function setViewerMode(mode: VisualViewerMode) {
     setViewerPref(mode)
     writeVisualViewerMode(mode)
   }
 
+  function toggleSyncInstall(next: boolean) {
+    setSyncInstall(next)
+    writeSyncInstallEnabled(next)
+  }
+
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [row, preview] = await Promise.all([
+      const [row, preview, facts] = await Promise.all([
         getMyVisualConfig(vehicleIdentityId),
         listVisualPartPreviews(membershipId),
+        listVisualInstallFacts({ vehicleIdentityId, membershipId }),
       ])
       if (row) setPayload(row.payload)
       setParts(preview)
+      setInstallFacts(facts)
     } catch (e) {
       toast.push(toUserMessage(e, 'Erro ao carregar visual'), 'error')
     } finally {
@@ -205,8 +236,8 @@ export function VehicleVisualPanel({
     <div className="space-y-4">
       <p className="m-0 text-xs text-fal-muted">
         Camada visual ligada à identity. Pintura/rodas e o preview de peças <strong>não</strong>{' '}
-        criam bought/instalação. Preview lê G7 existente (commerce FAL). Config privada não migra
-        na transferência sem opt-in.
+        criam bought/instalação. Sync 2A→modelo é opt-in e só espelha instalação elegível — nunca
+        grava fato técnico.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -230,13 +261,70 @@ export function VehicleVisualPanel({
         ) : null}
       </div>
 
+      <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={syncInstall}
+          onChange={(ev) => toggleSyncInstall(ev.target.checked)}
+        />
+        <span>
+          <span className="font-extrabold text-fal-fg">Refletir instalações 2A no modelo</span>
+          <span className="mt-0.5 block text-xs text-fal-muted">
+            Opt-in. Lê G7 `installed_declared` + eventos `instalacao` (exceto rejeitado/contestado).
+            Não cria nem altera histórico técnico.
+            {installFacts.length
+              ? ` · ${installFacts.length} fato(s) elegível(is)`
+              : ' · nenhum fato de instalação ainda'}
+          </span>
+        </span>
+      </label>
+
       {effectiveMode === '3d' ? (
-        <Suspense fallback={<VehicleSilhouette2D payload={payload} parts={parts} />}>
-          <VehicleViewer3D payload={payload} parts={parts} />
+        <Suspense
+          fallback={
+            <VehicleSilhouette2D
+              payload={payload}
+              modelParts={modelParts}
+              orphanInstallCount={orphans.length}
+              syncEnabled={syncInstall}
+            />
+          }
+        >
+          <VehicleViewer3D
+            payload={payload}
+            modelParts={modelParts}
+            orphanInstallCount={orphans.length}
+            syncEnabled={syncInstall}
+          />
         </Suspense>
       ) : (
-        <VehicleSilhouette2D payload={payload} parts={parts} />
+        <VehicleSilhouette2D
+          payload={payload}
+          modelParts={modelParts}
+          orphanInstallCount={orphans.length}
+          syncEnabled={syncInstall}
+        />
       )}
+
+      {syncInstall && orphans.length > 0 ? (
+        <section className="space-y-2">
+          <h3 className="m-0 text-sm font-extrabold">Instalações 2A no modelo (sem peça G7)</h3>
+          <ul className="m-0 list-none space-y-1 p-0">
+            {orphans.map((f) => (
+              <li
+                key={f.id}
+                className="rounded-fal border border-fal-line bg-fal-bg/40 px-3 py-2 text-xs font-semibold text-fal-muted"
+              >
+                <span className="font-extrabold text-fal-fg">{f.title}</span>
+                {' · '}
+                {f.validationState}
+                {' · espelho visual'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="space-y-2">
         <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo (preview)</h3>
@@ -268,6 +356,7 @@ export function VehicleVisualPanel({
                   <p className="m-0 text-xs font-semibold text-fal-muted">
                     {VISUAL_PART_STATE_LABEL[p.state]}
                     {p.sku ? ` · ${p.sku}` : ''}
+                    {syncInstall && mirroredKeys.has(p.key) ? ' · no modelo (2A)' : ''}
                   </p>
                   {p.orderId ? (
                     <Link

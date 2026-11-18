@@ -1,10 +1,10 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **E1–E2 IMPLEMENTADAS na `dev`** (config 2D + preview peças FAL) — 3D/AR ainda fora  
+**Status:** **E1–E4 IMPLEMENTADAS na `dev`** (2D + preview G7 + 3D leve + sync opcional 2A→modelo) — AR fora  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
-**Natureza:** documento canônico + progresso de implementação (E1–E3: 2D + preview G7 + viewer 3D leve com fallback)  
+**Natureza:** documento canônico + progresso de implementação (E1–E4)  
 
 **Pré-requisito obrigatório:** [PLANO 2A — Vehicle Identity](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) (**APROVADO eFe · IMPLEMENTADO E1–E5 · §24**) · [VAL-plano2a](../../fal-pecas/docs/VAL-plano2a-vehicle-identity.md)  
 **Contratos herdados:** PLANO 2A §19 (chave = `vehicle_identities.id`)  
@@ -108,15 +108,16 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 - [x] Etapa 1 = config 2D (sem Three.js)  
 - [x] Etapa 2 = preview peças FAL read-only (G7)  
 - [x] Etapa 3 = viewer 3D leve (lazy Three + WebGL detect + fallback 2D)  
+- [x] Etapa 4 = sync opcional instalado 2A → modelo (opt-in; sem write-back)  
 - [x] Branch `dev` apenas  
-- [ ] Etapa 4+ (sync instalação → modelo / AR) — só com nova MARCHA  
+- [ ] Etapa 5 (AR/experimentos) — só com nova MARCHA + gate explícito  
 - [ ] Deploy `main`  
 
 **Não fazer:** gravar fato 2A a partir do viewer; alterar `main`; AR sem gate.
 
 ---
 
-## 8. Confirmação Etapa 1–3
+## 8. Confirmação Etapa 1–4
 
 | Item | Valor |
 |------|--------|
@@ -125,7 +126,8 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 | E1 Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
 | E2 Preview | `vehicleVisualPartPreview.ts` · lista G7 + imagens produto |
 | E3 Viewer | `VehicleViewer3D.tsx` lazy · `canUseWebGL` · pref `auto/2d/3d` |
-| UI | `?modulo=visual` · silhueta SVG + 3D procedural + cards peças |
+| E4 Sync | `visualInstallSync.ts` · opt-in · G7 install + `vehicle_events.instalacao` → marcadores |
+| UI | `?modulo=visual` · toggle sync · silhueta/3D · cards peças |
 | Three.js | **Sim** (lazy; fallback 2D se sem WebGL) |
 | AR | **Não** |
-| Próximo passo | MARCHA → Etapa 4 (sync opcional instalado 2A → modelo) |
+| Próximo passo | MARCHA → Etapa 5 (AR) só com gate explícito; ou consolidar 2B |

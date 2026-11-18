@@ -9,10 +9,14 @@ import * as THREE from 'three'
  */
 export function VehicleViewer3D({
   payload,
-  parts,
+  modelParts,
+  orphanInstallCount = 0,
+  syncEnabled = false,
 }: {
   payload: VehicleVisualPayload
-  parts: VisualPartPreview[]
+  modelParts: VisualPartPreview[]
+  orphanInstallCount?: number
+  syncEnabled?: boolean
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null)
 
@@ -108,23 +112,14 @@ export function VehicleViewer3D({
       car.add(hub)
     }
 
-    // Marcadores G7 (só visual)
-    const installed = parts.some((p) => p.state === 'instalada')
-    const pending = parts.some((p) => p.state !== 'instalada')
-    if (installed) {
+    // Marcadores só com sync E4 (espelho 2A → modelo)
+    const mirrored = syncEnabled && (modelParts.length > 0 || orphanInstallCount > 0)
+    if (mirrored) {
       const m = new THREE.Mesh(
         new THREE.SphereGeometry(0.08, 12, 12),
         new THREE.MeshStandardMaterial({ color: 0x1b7a4a }),
       )
       m.position.set(1.1, 1.15, 0.45)
-      car.add(m)
-    }
-    if (pending) {
-      const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 12, 12),
-        new THREE.MeshStandardMaterial({ color: 0xb8860b }),
-      )
-      m.position.set(1.1, 1.15, -0.45)
       car.add(m)
     }
 
@@ -162,13 +157,20 @@ export function VehicleViewer3D({
       ;(ground.material as THREE.Material).dispose()
       mount.replaceChildren()
     }
-  }, [payload, parts])
+  }, [payload, modelParts, orphanInstallCount, syncEnabled])
+
+  const mirroredCount = modelParts.length + orphanInstallCount
 
   return (
     <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
       <div ref={mountRef} className="w-full" />
       <p className="m-0 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
         Visual 3D leve · progressive enhancement · não é registro técnico
+        {syncEnabled
+          ? mirroredCount
+            ? ` · sync 2A · ${mirroredCount} no modelo`
+            : ' · sync 2A ligado'
+          : ' · sync 2A desligado'}
       </p>
     </div>
   )
