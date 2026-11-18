@@ -3,6 +3,8 @@
 **Projeto:** FAL — Plataforma de Peças Automotivas  
 **Escopo:** Minha Garagem — Fundação e experiência inicial  
 **Data:** 2026-11-18  
+**Revisão eFe:** 2026-11-18 (R1–R8 — ver changelog §23)  
+**Status:** **aguardando aprovação final eFe** — ainda **sem** autorização para G1/código  
 **Branch de implementação futura:** `dev` exclusivamente (`main` = produção)  
 **Natureza deste documento:** Análise, auditoria e planejamento técnico — **sem implementação nesta entrega**  
 **Workspace auditado:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas` (código em `dev`, pós-PLANO 0)
@@ -52,7 +54,7 @@
 Hoje                              Alvo PLANO 1
 ────                              ────────────
 Lista/form admin-like na conta    Dashboard híbrido + página do veículo
-Só is_primary + URL no catálogo   Veículo ativo (contexto) ≠ principal (cadastro)
+Só is_primary + URL no catálogo   Ativo (localStorage cross-session) ≠ principal (DB)
 Insert-only                       Update progressivo + dedup placa
 Sem cor/foto/galeria              Personalização + Storage + stock com confiança
 Sem vínculo cart/order            Snapshot veículo + histórico eventos
@@ -166,7 +168,7 @@ flowchart TB
     PVC[product_vehicle_compatibility]
   end
   subgraph contexto [Contexto ativo]
-    GC[GarageContext session]
+    GC[GarageContext localStorage]
     URL[catalog URL filters]
   end
   subgraph commerce [Comércio]
@@ -190,23 +192,29 @@ flowchart TB
 | Tema | Decisão |
 |------|----------|
 | Rotas | Dashboard `/conta/veiculos`; detalhe `/conta/veiculos/:id` sob `AccountLayout` |
-| Veículo ativo | `GarageContext` + `sessionStorage` `fal_active_garage_vehicle` (`customerVehicleId` + filtro derivado). **Independente** de `is_primary`. Troca **não** muta cadastro |
+| Veículo **principal** | Preferência permanente (`is_primary` no cadastro). Independente do ativo |
+| Veículo **ativo** | Contexto de navegação. `GarageContext` + `localStorage` chave `fal_active_garage_vehicle:{userId}` (`customerVehicleId` + filtro derivado). Sobrevive navegação **e** retorno em outro dia. Trocar ativo **nunca** altera `is_primary` nem FKs |
+| Invalidação do ativo | Se veículo excluído, não pertence ao cliente ou id inválido → tentar cair no **principal** (se existir); senão limpar contexto |
+| Exemplo | Cliente com 3 carros: principal = 1º; pesquisa peça para o 2º → 2º fica ativo temporariamente; 1º continua principal |
 | Sync catálogo | Aplicar ativo → query string já existente (`maker/model/year/engine/version`) |
-| Visitante | Só URL + pending (como hoje); sem Context persistente de id |
+| Visitante | Só URL + pending (como hoje); sem Context persistente de id de garagem |
 | Mínimo save | `maker_text` + `model_text`; motor/versão/placa/cor/foto opcionais |
 | Home | Manter `HomeVehiclesPanel`; **não** montar `HomeGarageSection` em paralelo |
-| Imagens stock | Só se confiança ≥ limiar; senão placeholder neutro — nunca outro modelo/geração |
-| Fotos pessoais | Bucket privado + RLS dono; signed URLs |
-| Compat confirmada | Exige evidência PVC adequada (ver §7.2) |
+| Imagens stock | Quatro níveis (exata / representativa / genérica / placeholder) — ver §7.7; nunca apresentar outro ano/geração como “exata” |
+| Fotos pessoais | Bucket privado + RLS; galeria completa (ver §6.4); capa pessoal ≠ identidade técnica |
+| Compat confirmada | Calculada por **motor técnico** de compatibilidade (não badge ad-hoc); `version_id` sozinho **não** basta — ver §7.2 |
 | Compra | Direta se confirmada; aviso + confirmação se provável; sem bloqueio amplo inventado |
+| Snapshot pedido | Imutável no `order_items`; cópia na conversão cart→order — ver §6.3 |
+| Histórico | Eventos **append-only** (linha do tempo); nunca sobrescrever `bought` → instalado |
+| Dedup placa | Unique parcial sobre **placa normalizada** — ver §7.1 |
 | Instalação | Declaração do cliente (`installed_declared`); ≠ compra |
 | Branch | Só `dev` até autorização explícita de produção |
 
 ### 5.4 Preparação para evolução (sem implementar P2)
 
-- Identidade pessoal ≠ assets ≠ canônico ≠ contexto de sessão.
-- `customer_vehicle_part_events` extensível a proveniência oficina depois.
-- Sem tabelas de 3D/oficina/km nesta fase.
+- Identidade pessoal ≠ assets ≠ canônico ≠ contexto ativo (localStorage).
+- `customer_vehicle_part_events` com identidade própria (preparado para transferência de dono no P2 — ver §6.2 / R8).
+- Sem tabelas de 3D/oficina/km/mecânicos/compartilhamento nesta fase.
 
 ---
 
@@ -223,46 +231,82 @@ flowchart TB
 | `primary_asset_id` | uuid null FK assets | Imagem principal pessoal |
 | `source_snapshot` | jsonb null | Residual R3 — originais API (opcional nesta fase ou G1.5) |
 
-**Constraints:** unique parcial `(customer_id, plate)` onde `plate IS NOT NULL` (R7).  
-**API:** `updateSavedVehicle` (R1) — update no mesmo `id`.
+**Constraints (R7 — dedup placa):** unique parcial `(customer_id, plate_normalized)` onde `plate_normalized IS NOT NULL`.  
+- Coluna gerada/persistida `plate_normalized`: uppercase, sem hífen/espaços (função única de normalização no app + DB).  
+- Placa vazia / null → **fora** do unique (vários veículos sem placa permitidos).  
+- Alteração de placa: recalcula normalizado; conflito → erro UX / merge assistido.  
+- Antes do constraint: script de consolidação de legado inconsistente (hífen vs sem hífen).  
+**API:** `updateSavedVehicle` — update no mesmo `id` (residual PLANO 0 R1).
 
 ### 6.2 Novas tabelas (mínimo justificado)
 
 **`customer_vehicle_assets`**
 
-- `id`, `customer_vehicle_id`, `customer_id` (denormalizado para RLS), `storage_path`, `sort_order`, `is_primary`, `created_at`
+- `id`, `customer_vehicle_id`, `customer_id` (denormalizado para RLS), `storage_path`, `sort_order`, `is_primary`, `mime`, `byte_size`, `created_at`
 - RLS: dono via `customer_id = current_customer_id()`
+- Ao deletar asset: limpar Storage; se era `primary_asset_id` / `is_primary`, promover outra ou null (nunca apontar ID órfão)
 
 **`vehicle_stock_images`** (curadoria admin)
 
-- `id`, `maker`, `model`, `year_from`, `year_to`, `image_url`/`storage_path`, `confidence` (0–1), `active`
-- Só servir se `confidence >= threshold` (ex. 0.8) e match maker/model/(ano)
+- `id`, `maker`, `model`, `generation` null, `body_style` null, `year_from`, `year_to`, `match_level` (`exact` \| `family` \| `generic`), `image_url`/`storage_path`, `confidence` (0–1), `active`
+- Resolver (§7.7): só promover nível superior se match + confiança ≥ limiar; UI deve rotular nível (exata vs representativa)
 
-**`customer_vehicle_part_events`**
+**`customer_vehicle_part_events`** (append-only — R6 / R8)
 
-- `id`, `customer_id`, `customer_vehicle_id` null, `order_id` null, `order_item_id` null, `product_id` null
-- `event_type`: `bought` | `associated` | `awaiting_install` | `installed_declared` | `returned`
-- `provenance`: `customer` | `system` (oficina = P2)
-- `payload` jsonb, `created_at`
+- `id` (identidade própria do evento — não é subdocumento do user)
+- `customer_id` — dono operacional P1 (autorização/RLS)
+- `customer_vehicle_id` null — vínculo atual (pode mudar de dono no P2 sem apagar eventos)
+- `order_id` / `order_item_id` / `product_id` null — FKs estáveis de comércio
+- Snapshot embutido no `payload` (produto/veículo no momento do evento) para leitura histórica
+- `event_type`: `bought` \| `associated` \| `awaiting_install` \| `installed_declared` \| `returned` \| `corrected` \| `disassociated`
+- `actor_id` null (user que registrou), `provenance`: `customer` \| `system` (oficina = P2)
+- `created_at` — instante do acontecimento
+- **Proibido:** UPDATE que transforme `bought` em `installed_declared`. Cada transição = **novo** insert.
+- P2: transferência de histórico amplia ownership sem reconstruir a linha do tempo
 
-### 6.3 Commerce
+### 6.3 Commerce (R2 — snapshot imutável)
 
 | Tabela | Colunas |
 |--------|---------|
 | `cart_items` | `customer_vehicle_id` uuid null, `vehicle_snapshot` jsonb null |
-| `order_items` | idem (snapshot imutável no pedido) |
+| `order_items` | idem — snapshot **congelado** na criação do pedido |
 
-Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicleId, versionId }`.
+**Contrato `vehicle_snapshot` (no momento da associação):**
 
-### 6.4 Storage
+```json
+{
+  "customerVehicleId": "uuid|null",
+  "maker": "string",
+  "model": "string",
+  "year": "string|number|null",
+  "version": "string|null",
+  "engine": "string|null",
+  "versionId": "uuid|null",
+  "plate": "string|null",
+  "associatedAt": "ISO-8601",
+  "contextSource": "active|manual|suggested"
+}
+```
+
+- Conversão carrinho→pedido: **copiar** snapshot do item; não reconsultar a garagem.
+- Pedido antigo **não** muda de significado se o cliente editar/excluir o veículo depois.
+- **Placa no snapshot:** incluir só se política LGPD/aprovação eFe permitir; na UI de pedido/pós-venda **mascarar** (ex. `GAF7***`) ou omitir em superfícies compartilháveis. Justificativa: rastreio técnico interno ≠ exposição pública.
+- Item sem associação permanece válido (`customer_vehicle_id` null, snapshot null).
+
+### 6.4 Storage e galeria (R5)
 
 - Bucket privado `customer-vehicle-images`
 - Path: `{customer_id}/{vehicle_id}/{asset_id}`
 - Policies: upload/read/delete só do dono; staff read opcional
+- **Operações obrigatórias:** upload, exclusão, reordenação (`sort_order`), escolha da imagem principal, substituição
+- **Limites (valores iniciais a confirmar em G3):** máx. N fotos/veículo; máx. bytes/arquivo; MIME allowlist (`image/jpeg`, `image/png`, `image/webp`)
+- Uploads interrompidos: não criar asset “completo” sem objeto no Storage; job/cleanup de órfãos
+- URLs **assinadas** com expiração curta; sem bucket público
+- `primary_asset_id` só referencia asset existente; ao remover capa → null ou próxima da galeria
 
 ### 6.5 O que não criar agora
 
-`mileage_log`, oficinas, mecânicos, documentos avançados, entidades 3D, compartilhamento.
+`mileage_log`, oficinas, mecânicos, documentos avançados, entidades 3D, compartilhamento portátil, verificação documental.
 
 ---
 
@@ -274,21 +318,33 @@ Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicl
 2. Reaproveitar dados confiáveis da API; não pedir de novo o que já veio.
 3. Salvar com maker+model; motor/versão opcionais; sem VV fictícia.
 4. IDs da placa reutilizados se confirmação consistente.
-5. Originais vs normalizados preservados (textos + raw; snapshot jsonb quando R3).
-6. Dedup: mesma placa do mesmo cliente → update/merge, não novo insert cego.
+5. Originais vs normalizados preservados (textos + raw; snapshot jsonb quando residual R3).
+6. **Dedup (R7):** mesma `plate_normalized` do mesmo cliente → update/merge; nunca insert cego. Normalizar antes de validar/unique (hífen, espaços, caixa). Valores vazios não entram no unique.
 7. Pessoal ≠ canônico ≠ PVC.
 
-### 7.2 Compatibilidade (3 estados)
+### 7.2 Compatibilidade (3 estados) — motor técnico (R3)
 
-| Estado | Critério técnico |
-|--------|------------------|
-| **Confirmada** | Veículo com identificação suficiente para casar PVC de forma inequívoca (preferência: `version_id` + PVC na VV/ano) |
-| **Provável** | Interseção PVC com filtro parcial (maker+model±ano) **ou** falta motor/versão no veículo pessoal |
-| **Não confirmada** | Sem interseção PVC / sem evidência |
+A classificação **não** é uma condição visual no frontend. É calculada por um **serviço/camada de compatibilidade** (entrada: produto + identificação do veículo ativo/filtro; saída: estado + evidências).
 
-- Ausência de “incompatível conhecido” **não** é confirmada.
-- Proibido: similaridade textual de nome como prova única.
-- Copy alinhada à já usada: “compatibilidade limitada” quando incompleto.
+**Entradas mínimas a considerar:**
+
+- Existência de PVC aplicável ao produto  
+- Vigência e integridade do registro PVC  
+- Correspondência de versão (`version_id` / VV) quando a regra exigir  
+- Restrições de ano / faixa  
+- Motor, quando a regra de compatibilidade exigir  
+- Exceções e restrições técnicas cadastradas  
+
+| Estado | Critério (resumo) |
+|--------|-------------------|
+| **Confirmada** | Evidência PVC suficiente e íntegra para afirmar aplicação (versão/ano/motor conforme regra). **`version_id` sozinho não basta.** |
+| **Provável** | Há interseção parcial ou faltam dados no veículo/regra que impediriam certeza |
+| **Não confirmada** | Sem evidência suficiente |
+
+- Ausência de “incompatível conhecido” **não** é confirmada.  
+- Proibido: similaridade textual de nome como prova única.  
+- Sem evidência suficiente → a FAL **não** apresenta “compatibilidade confirmada”.  
+- Copy: “compatibilidade limitada” quando o veículo pessoal está incompleto.
 
 ### 7.3 Compra inteligente
 
@@ -298,21 +354,37 @@ Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicl
 | Provável | Aviso + confirmação explícita do cliente |
 | Não confirmada | Não rotular como compatível; permitir browse; bloqueio amplo **não** inventado nesta fase |
 
-### 7.4 Histórico
+### 7.4 Histórico (append-only)
 
-- Compra ≠ associação ≠ instalação.
-- Sugestão de veículo pelo contexto ativo; cliente corrige ou deixa sem associação.
+- Compra ≠ associação ≠ instalação — cada um é um **evento** distinto com data própria.
+- Ex.: comprada hoje → associada amanhã → `installed_declared` na semana seguinte = **três** inserts, não um update.
+- Sugestão de veículo pelo contexto ativo; cliente corrige (`corrected` / `disassociated`) ou deixa sem associação.
 - `installed_declared` = declaração; provenance `customer`.
+- Eventos têm identidade própria (R8) para evolução P2 (troca de proprietário / oficina).
 
-### 7.5 Contexto ativo vs principal
+### 7.5 Contexto ativo vs principal (R1)
 
-- `is_primary` = preferência permanente de cadastro.
-- Ativo = sessão/navegação; pode diferir do principal.
-- Trocar ativo não altera `is_primary` nem FKs.
+- `is_primary` = preferência **permanente** do cadastro.
+- Ativo = contexto de navegação, persistido em **`localStorage`** (recupera ao voltar outro dia).
+- Podem diferir (ex.: principal = carro 1; ativo = carro 2 durante uma busca).
+- Trocar ativo **não** altera `is_primary` nem dados técnicos.
+- Invalidação: exclusão / perda de ownership → principal ou limpar.
 
 ### 7.6 Personalização
 
 - Nickname, cor, fotos, notes — **não** alteram dados técnicos oficiais / FKs canônicas.
+- Foto principal pessoal substitui a apresentação visual sem mudar identidade técnica.
+
+### 7.7 Imagens stock — quatro níveis (R4)
+
+| Nível | Quando usar | UI |
+|-------|-------------|-----|
+| **Exata** | Match maker + model + geração + intervalo de anos (e carroceria se curada) com confiança ≥ limiar | Sem disclaimer de “aproximação” |
+| **Representativa** | Família do modelo / geração próxima — **nunca** rotular como exata | Label explícito (ex. “Imagem ilustrativa da família”) |
+| **Genérica** | Marca ou categoria | Label genérico |
+| **Placeholder FAL** | Sem match confiável | Neutro FAL |
+
+Não usar imagem de outro ano/geração como se fosse o veículo exato.
 
 ---
 
@@ -342,14 +414,15 @@ Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicl
 
 ### E — Navegar com veículo ativo
 
-1. Seleciona ativo (dashboard, quick pick, header).  
-2. Catálogo/PDP usam filtro + badges.  
-3. Add to cart carrega snapshot se ativo existir.
+1. Seleciona ativo (dashboard, quick pick, header) → grava `localStorage`.  
+2. Em visita futura (outro dia), Context reidrata o último ativo válido (ou cai no principal).  
+3. Catálogo/PDP usam filtro + badges do **motor** de compatibilidade.  
+4. Add to cart carrega `vehicle_snapshot` se ativo existir (`contextSource: active`).
 
 ### F — Histórico básico
 
-1. Pedido pago → eventos `bought` (+ `associated` se snapshot).  
-2. Cliente marca `awaiting_install` / `installed_declared` ou desassocia.
+1. Pedido pago → evento `bought` (e `associated` se havia snapshot — inserts separados).  
+2. Depois: novos eventos `awaiting_install` / `installed_declared` / `disassociated` / `corrected` — **sem** alterar o `bought`.
 
 ---
 
@@ -358,17 +431,21 @@ Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicl
 ### 9.1 Princípios
 
 - Parecer nativo FAL (tokens `fal-*`, `rounded-fal`, `Button`/`Card`/`EmptyState`).
-- Consumidor final — não tabela administrativa.
+- **Garagem digital** para consumidor — funcional e densa o bastante, **sem** painel administrativo cheio de tabelas.
+- Referência de direção visual: dashboard híbrido tipo “vehicle maintenance dashboard” (hero + cards); detalhe tipo CRM automotivo split imagem|dados — adaptar ao DS FAL, não copiar branding alheio.
 - Hierarquia: 1 ação primária por seção; secundárias outline/light.
 - Reutilizar `MobileDrawer`, padrões Account sidebar + tabs mobile.
+- Distinguir visualmente **principal** (badge permanente) vs **ativo** (chip de contexto).
 
 ### 9.2 Telas
 
 #### T1 — Dashboard `/conta/veiculos`
 
-- **Hierarquia:** título “Minha Garagem” → veículo principal em destaque → grid de cards → CTA “Adicionar veículo”.
-- **Principal:** imagem (stock/pessoal/placeholder), apelido/nome, chips técnicos, badge incompleto se `!versionId`, ações: Usar na loja / Abrir / Editar.
-- **Cards:** compactos; indicador “ativo” se context id bater.
+- **Hierarquia:** título “Minha Garagem” → **veículo principal em destaque** → demais em **cards compactos** → CTA “Adicionar veículo”.
+- Informações essenciais visíveis no hero (apelido, maker/model/ano, incompleto, ativo?).
+- **Principal (hero):** imagem (níveis §7.7 ou foto pessoal), chips técnicos, ações: Usar na loja (define ativo) / Abrir / Editar / Definir principal.
+- **Cards:** compactos; indicador “ativo agora” se context id bater (pode não ser o principal).
+- Interface funcional, sem excesso de widgets/decoração.
 - **Vazio:** EmptyState + CTA placa / manual.
 - **Loading / erro:** `Loading` / `ErrorState`.
 
@@ -389,27 +466,30 @@ Snapshot sugerido: `{ maker, model, year, engine, version, plate, customerVehicl
 
 #### T5 — Página individual `/conta/veiculos/:id`
 
-**Desktop:** coluna imagem (sticky leve) | coluna info + accordion.  
-**Mobile:** imagem topo → info → seções verticais; sem scroll horizontal.
+**Desktop:** imagem de um lado | informações técnicas do outro (split compacto); ações principais acessíveis.  
+**Mobile:** imagem acima | informações abaixo; seções em sequência vertical; touch-friendly; sem scroll horizontal; sem menus fragmentados.
 
-Seções expansíveis:
+Não virar “admin de tabelas” — densidade de garagem digital.
 
-1. Identificação (placa, apelido, principal, ativo)  
-2. Características técnicas (maker/model/ano/motor/versão + estado vínculo canônico)  
-3. Produtos para este veículo (atalho catálogo + preview)  
+Seções **integradas e expansíveis** (sem nova rota por seção):
+
+1. Identificação (placa, apelido, principal vs ativo)  
+2. Características técnicas (maker/model/ano/motor/versão + vínculo canônico)  
+3. Produtos / compatibilidade contextualizados (atalho catálogo + badges do motor)  
 4. Fotos e personalização  
-5. Histórico básico  
+5. Histórico básico (timeline de eventos)  
 
 #### T6 — Edição / personalização
 
 - Form: nickname, cor, notes, completar técnicos, set primary.
-- Galeria: upload, set capa, excluir.
+- Galeria: upload, reordenar, set capa, excluir, limites (§6.4).
 - Técnico vs visual claramente separados na UI.
 
 #### T7 — Seletor de veículo ativo
 
 - Entrada no Header (desktop) e/ou chip no catálogo + MobileDrawer.
 - Lista curta da garagem + “Nenhum / limpar contexto”.
+- Persiste em `localStorage`; não confunde com “Definir como principal”.
 - Visitante: só filtros manuais/placa.
 
 #### T8 — Busca contextualizada
@@ -419,18 +499,19 @@ Seções expansíveis:
 
 #### T9 — Resultados / badges compatibilidade
 
-- Badge nos cards e PDP: Confirmada | Provável | Não confirmada (+ tooltip com critério curto).
+- Badge nos cards e PDP: Confirmada | Provável | Não confirmada (+ tooltip com **evidência** vinda do motor, não texto genérico).
+- Frontend só renderiza o resultado do serviço.
 
 #### T10 — Associação peça/compra
 
-- No pós-compra / detalhe pedido: “Este item é do seu Onix?” → sim / outro / nenhum.
-- Na página do veículo: lista eventos com ações marcar instalado / desassociar.
+- No pós-compra / detalhe pedido: “Este item é do seu Onix?” → sim / outro / nenhum (novos eventos).
+- Na página do veículo: **timeline** de eventos; ações geram inserts (`installed_declared`, `disassociated`, …).
 
 ### 9.3 Componentes reutilizáveis
 
 | Existente | Novo (planejado) |
 |-----------|------------------|
-| Button, Card, EmptyState, Loading, Select, Input, Badge, MobileDrawer | `GarageDashboard`, `GarageVehicleHero`, `GarageVehicleCard`, `GarageVehicleDetail`, `GarageActiveSwitcher`, `CompatibilityStateBadge`, `VehicleImageResolver`, `VehiclePhotoGallery`, `GarageContext` provider |
+| Button, Card, EmptyState, Loading, Select, Input, Badge, MobileDrawer | `GarageDashboard`, `GarageVehicleHero`, `GarageVehicleCard`, `GarageVehicleDetail`, `GarageActiveSwitcher`, `CompatibilityStateBadge` (consome motor), `VehicleImageResolver` (4 níveis), `VehiclePhotoGallery`, `GarageContext` + localStorage |
 
 ---
 
@@ -469,13 +550,16 @@ Mercado Pago/ME além do checkout já existente; APIs de oficina; geradores 3D; 
 
 | Recurso | Política |
 |---------|----------|
-| `customer_vehicles` | Manter `cvehicles_all_own` |
-| `customer_vehicle_assets` | CRUD se `customer_id = current_customer_id()` |
-| `customer_vehicle_part_events` | idem |
+| `customer_vehicles` | Manter `cvehicles_all_own` — cliente só lê/escreve os próprios; staff via `is_staff()` |
+| `customer_vehicle_assets` | CRUD se `customer_id = current_customer_id()`; path Storage alinhado |
+| `customer_vehicle_part_events` | SELECT/INSERT dono; **sem UPDATE destrutivo** de tipos históricos (preferir novos eventos); staff read |
 | `vehicle_stock_images` | read authenticated/anon; write staff |
-| Storage | privado; path prefix = customer_id; signed URL curta |
-| Placas | nunca em URL pública de CDN sem auth; não expor em HTML público |
-| Isolamento | testes RLS dois clientes |
+| Storage | privado; prefix `{customer_id}/…`; signed URL com expiração; validação MIME no edge/API |
+| Placas | não em URL pública; mascarar em UIs compartilháveis; snapshot interno sob política LGPD |
+| Contexto ativo | só no browser do dono (`localStorage`); validar ownership no servidor ao aplicar |
+| Isolamento | testes RLS dois clientes + tentativa cross-id em assets/events |
+
+Autorização: toda mutação de garagem/assets/events passa por `getCurrentCustomerId()` / RLS — nunca confiar só no id enviado pelo client sem checagem.
 
 Validar grants `authenticated` em insert/update/delete (já existem para `customer_vehicles`).
 
@@ -483,10 +567,10 @@ Validar grants `authenticated` em insert/update/delete (já existem para `custom
 
 ## 13. Estratégia de migrações
 
-1. Migrations **somente em `dev`**, aplicadas no projeto FAL `wtbpwuiayednvlhvuhbh` com processo acordado (cuidado: histórico `db push` ainda divergente — residual R6; sem `repair` improvisado).
-2. Ordem sugerida: colunas `customer_vehicles` → unique placa → assets → stock_images → cart/order columns → part_events → Storage policies.
-3. Backfill: nenhum obrigatório; linhas antigas sem `version_id` já válidas.
-4. RPCs `place_order` / sync cart: atualizar na mesma etapa G6 (inspecionar assinatura atual na implementação — **pendência registrada**).
+1. Migrations **somente em `dev`**, aplicadas no projeto FAL `wtbpwuiayednvlhvuhbh` com processo acordado (cuidado: histórico `db push` ainda divergente — residual PLANO 0 R6; sem `repair` improvisado).
+2. Ordem sugerida: colunas CV (`color`, `notes`, `plate_normalized`, …) → consolidação legado placas → unique parcial → assets → stock_images (+ `match_level`) → cart/order snapshot → part_events append-only → Storage policies.
+3. Backfill: normalizar placas existentes; linhas antigas sem `version_id` já válidas.
+4. RPCs `place_order` / sync cart: **copiar** `vehicle_snapshot` na mesma etapa G6 (inspecionar assinatura — **pendência**).
 
 ---
 
@@ -532,10 +616,10 @@ Ordem: **integridade → UX garagem → contexto → comércio → histórico �
 - **Arquivos:** este doc.  
 - **Aceite:** autorização explícita para codar na `dev`.
 
-### G1 — Integridade (R1 + R7 + UI placa)
+### G1 — Integridade (update + dedup placa normalizada + UI placa)
 
-- **Objetivo:** `updateSavedVehicle`; dedup por placa; exibir/editar placa e nickname.  
-- **Arquivos:** `customerVehicleService.ts`, `AccountVehiclesPage.tsx`, migration unique parcial, testes.  
+- **Objetivo:** `updateSavedVehicle`; `plate_normalized` + unique parcial; exibir/editar placa e nickname.  
+- **Arquivos:** `customerVehicleService.ts`, `AccountVehiclesPage.tsx`, migration + script consolidação, testes.  
 - **Depende:** G0.  
 - **Testes:** #7, #12, #22, #23.  
 - **Riscos:** merge de duplicatas existentes — dry-run SQL antes.
@@ -550,43 +634,43 @@ Ordem: **integridade → UX garagem → contexto → comércio → histórico �
 
 ### G3 — Personalização visual
 
-- **Objetivo:** cor, notes, Storage assets, resolver stock image.  
-- **Arquivos:** migrations assets/stock, services upload, UI galeria.  
+- **Objetivo:** cor, notes, Storage completo (R5), resolver stock em 4 níveis (R4).  
+- **Arquivos:** migrations assets/stock, services upload/cleanup, UI galeria.  
 - **Depende:** G2.  
-- **Testes:** #13, #14, RLS storage.  
-- **Riscos:** custos storage; imagens erradas — threshold confiança.
+- **Testes:** #13, #14, RLS storage, órfãos.  
+- **Riscos:** custos storage; imagem errada — nunca promover família como “exata”.
 
-### G4 — Veículo ativo
+### G4 — Veículo ativo (localStorage cross-session)
 
-- **Objetivo:** `GarageContext` + seletor + sync catálogo.  
+- **Objetivo:** `GarageContext` + `localStorage` por userId; seletor; sync catálogo; invalidação; ≠ `is_primary`.  
 - **Arquivos:** context provider em AppChrome, Header/Catalog chips, QuickPick.  
 - **Depende:** G2.  
-- **Testes:** #10, #15.  
-- **Riscos:** conflito com `is_primary`; sessão vs multi-aba.
+- **Testes:** #10, #15; reidratação “outro dia”; exclusão invalida ativo.  
+- **Riscos:** confundir ativo/principal — copy e ícones distintos; multi-aba (last-write-wins aceitável P1).
 
-### G5 — Compatibilidade 3 estados
+### G5 — Compatibilidade 3 estados (motor técnico)
 
-- **Objetivo:** serviço de classificação + badges PDP/card/catálogo.  
-- **Arquivos:** novo `compatibilityState.ts`, `ProductCard`, `ProductPage`, Catalog.  
+- **Objetivo:** serviço servidor/cliente compartilhado de classificação (PVC+regras) + badges que só consomem o resultado.  
+- **Arquivos:** novo módulo compatibilidade (não só UI), `ProductCard`, `ProductPage`, Catalog.  
 - **Depende:** G4.  
-- **Testes:** #16.  
-- **Riscos:** falso positivo — critérios conservadores.
+- **Testes:** #16; casos sem PVC / parcial / completo.  
+- **Riscos:** falso positivo — default não confirmada; `version_id` sozinho insuficiente.
 
-### G6 — Commerce snapshot
+### G6 — Commerce snapshot imutável
 
-- **Objetivo:** colunas cart/order + preencher no add-to-cart/place_order; avisos compra.  
+- **Objetivo:** colunas + contrato snapshot (§6.3); copiar cart→order; avisos compra.  
 - **Arquivos:** migrations, `CartContext`, checkout/RPC, UI aviso.  
 - **Depende:** G4–G5.  
-- **Testes:** #17, #18; regressão checkout.  
+- **Testes:** #17, #18; editar garagem após pedido **não** altera snapshot do pedido.  
 - **Riscos:** RPC `place_order` — **pendência:** inspecionar assinatura na hora.
 
-### G7 — Histórico básico
+### G7 — Histórico append-only
 
-- **Objetivo:** `customer_vehicle_part_events` + UI associação/instalação declarada.  
+- **Objetivo:** `customer_vehicle_part_events` timeline; associação/instalação/correção como novos eventos.  
 - **Arquivos:** migration, service, seção Histórico, Account order detail hooks.  
 - **Depende:** G6.  
-- **Testes:** #17–#19.  
-- **Riscos:** não inferir instalação automaticamente.
+- **Testes:** #17–#19; garantir que `bought` permanece intacto após install.  
+- **Riscos:** não inferir instalação; não UPDATE de tipo de evento.
 
 ### G8 — VAL + suite
 
@@ -619,15 +703,15 @@ flowchart LR
 
 | Risco | Mitigação |
 |-------|-----------|
-| Duplicatas históricas de placa | Script de consolidação antes do unique; UI merge |
-| Falso “compatível” | Critérios §7.2; default não confirmada |
-| Snapshot quebra place_order | Feature flag / coluna nullable; teste checkout G6 |
-| Storage abusado | Limite tamanho/qtde por veículo; mime allowlist |
-| Stock image errada | Threshold + curadoria admin; fallback neutro |
-| Contexto ativo confunde principal | Copy explícita; ícones distintos |
+| Duplicatas históricas de placa | Consolidação + unique em `plate_normalized` |
+| Falso “compatível” | Motor §7.2; default não confirmada; `version_id` insuficiente |
+| Snapshot quebra place_order / histórico | Colunas nullable; cópia cart→order; teste pós-edição garagem |
+| Storage abusado / órfãos | Limites; MIME; cleanup; primary sem ID morto |
+| Stock image errada | 4 níveis + label; nunca família como “exata” |
+| Ativo confunde principal | Copy/ícones; persistência localStorage documentada |
 | Remount HomeGarageSection | Proibido; um hub só |
 | Escopo P2 vazar | Checklist “fora” em code review |
-| db push divergente | R6 — aplicar migrations com processo eFe |
+| db push divergente | Residual PLANO 0 R6 — processo eFe |
 
 ---
 
@@ -635,14 +719,14 @@ flowchart LR
 
 1. Cadastro por placa e manual progressivo (maker+model; sem exigir motor/versão).  
 2. Incompletos listados, editáveis (`update`), `version_id` null preservado.  
-3. Dashboard + página individual responsivos no DS FAL.  
-4. Contexto ativo trocável sem mutar cadastro / `is_primary`.  
-5. Compatibilidade nunca rotulada “confirmada” sem evidência PVC.  
-6. Compra pode associar ou não; instalação declarada ≠ compra.  
-7. Fotos com RLS; stock só com confiança.  
-8. Sem regressão busca/checkout/placa.  
-9. Implementação só em `dev` até autorização.  
-10. Sem 3D/oficinas/manutenção avançada.
+3. Dashboard híbrido + página individual (split/stack) no DS FAL — não admin-table.  
+4. Ativo ≠ principal; ativo em `localStorage` cross-session; invalidação correta.  
+5. Compatibilidade “confirmada” só via motor técnico com evidência suficiente (`version_id` sozinho insuficiente).  
+6. Snapshot imutável no pedido; cart→order preserva associação.  
+7. Histórico append-only; instalação ≠ compra.  
+8. Fotos: RLS, limites, órfãos, signed URL; stock em 4 níveis.  
+9. Dedup por placa normalizada.  
+10. Sem regressão busca/checkout/placa; só `dev`; sem P2 (3D/oficinas/etc.).
 
 ---
 
@@ -651,11 +735,11 @@ flowchart LR
 | Já existe — reaproveitar | Corrigir | Desenvolver (PLANO 1) | Futuro (P2) |
 |--------------------------|---------|----------------------|-------------|
 | plate-lookup + upsert mestre | R1 update | Dashboard + detalhe | 3D / configurador |
-| Save/list progressivo | R7 dedup | GarageContext ativo | Oficinas / mecânicos |
-| Pending/flush/ask | Exibir placa na UI | Cor, notes, assets, stock | Documentos avançados |
-| Account/Home/QuickPick seed | Docs auditoria v1 | Badges 3 estados | Manutenção preditiva |
-| PVC + empty catalog | — | Cart/order snapshot | Compartilhamento histórico |
-| DS FAL + AccountLayout | — | Part events histórico | km / lembretes avançados |
+| Save/list progressivo | Dedup `plate_normalized` | GarageContext + localStorage | Oficinas / mecânicos |
+| Pending/flush/ask | Exibir placa na UI | Cor, notes, assets, stock 4 níveis | Documentos avançados |
+| Account/Home/QuickPick seed | Docs auditoria v1 | Motor compat + badges | Manutenção preditiva |
+| PVC + empty catalog | — | Snapshot imutável cart/order | Compartilhamento histórico |
+| DS FAL + AccountLayout | — | Part events append-only | km / lembretes avançados |
 | RLS cvehicles | — | VAL garagem | — |
 
 ---
@@ -693,11 +777,12 @@ flowchart LR
 
 ## 21. Pendências (informação indisponível — não inventar)
 
-1. Catálogo completo maker/model/geração → imagem stock (curadoria de conteúdo).  
-2. Assinatura exata e side-effects de `place_order` / sync de `cart_items` no momento de G6.  
-3. Threshold final de `confidence` para stock (proposta inicial 0.8 — validar com eFe).  
-4. Política de retenção/LGPD para fotos e placas (prazo e exclusão de conta).  
-5. Alinhamento migration history Supabase (R6) antes de `db push` em massa.
+1. Catálogo completo maker/model/geração/carroceria → imagem stock (curadoria).  
+2. Assinatura exata e side-effects de `place_order` / sync de `cart_items` no G6.  
+3. Threshold final de `confidence` por `match_level` (proposta inicial 0.8 exact / mais alto para promover).  
+4. Política LGPD: retenção fotos; inclusão ou omissão de placa no `vehicle_snapshot`.  
+5. Alinhamento migration history Supabase (residual PLANO 0 R6).  
+6. Limites numéricos finais de Storage (qtde/tamanho) — proposta em G3 para eFe.
 
 ---
 
@@ -706,11 +791,29 @@ flowchart LR
 1. Trabalhar **somente** em `dev`.  
 2. Seguir G0→G8; TDD onde houver harness.  
 3. Não montar `HomeGarageSection` em paralelo ao `HomeVehiclesPanel`.  
-4. Não criar VV fictícia; não afirmar compatibilidade sem PVC.  
+4. Não criar VV fictícia; não afirmar compatibilidade sem evidência do motor.  
 5. Não implementar itens da coluna “Futuro (P2)”.  
-6. `main` / produção só com autorização expressa do eFe.
+6. `main` / produção só com autorização expressa do eFe.  
+7. Ativo em `localStorage`; principal em DB — nunca confundir na UI.
 
 ---
 
-**Status:** PLANO 1 documentado para revisão e aprovação eFe — **sem código nesta entrega**.  
-**Próximo passo:** aprovação → G1 (update + dedup) na `dev`.
+## 23. Changelog — Revisão eFe 2026-11-18 (R1–R8)
+
+| ID | Ajuste consolidado neste documento |
+|----|-------------------------------------|
+| **R1** | Ativo ≠ principal; persistência **`localStorage`** cross-session; invalidação; exemplo 3 carros |
+| **R2** | Contrato `vehicle_snapshot` completo; cópia cart→order; imutabilidade do pedido; placa mascarada/política |
+| **R3** | Compatibilidade via **motor técnico**; `version_id` insuficiente; entradas PVC/ano/motor/exceções |
+| **R4** | Quatro níveis de imagem stock (exata / representativa / genérica / placeholder) |
+| **R5** | Storage: exclusão, reorder, capa, limites, MIME, órfãos, signed URL, primary válido |
+| **R6** | Eventos append-only; timeline; sem sobrescrever `bought` |
+| **R7** | Unique em `plate_normalized`; normalização; legado; alteração de placa |
+| **R8** | Eventos com identidade própria; preparado para transferência futura (P2) |
+| **UX** | Dashboard híbrido + detalhe split/stack; não admin-table |
+| **Fora** | 3D, oficinas, mecânicos, docs avançados, compartilhamento, manutenção avançada = P2 |
+
+---
+
+**Status:** PLANO 1 **revisado (R1–R8)** — **aguardando aprovação final eFe**. Sem código nesta entrega.  
+**Próximo passo:** aprovação expressa → G1 (`updateSavedVehicle` + `plate_normalized`) na `dev`.
