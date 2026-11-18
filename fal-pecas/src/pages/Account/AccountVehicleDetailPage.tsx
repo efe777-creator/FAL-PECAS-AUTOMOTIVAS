@@ -14,6 +14,7 @@ import {
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
+import { useGarage } from '@/contexts/GarageContext'
 import {
   getSavedVehicle,
   removeSavedVehicle,
@@ -62,6 +63,7 @@ export function AccountVehicleDetailPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const toast = useToast()
+  const garage = useGarage()
   const [vehicle, setVehicle] = useState<CustomerSavedVehicle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -194,7 +196,23 @@ export function AccountVehicleDetailPage() {
             <p className="mb-0 text-sm text-fal-muted">{vehicleTechLine(vehicle) || '—'}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ButtonLink to={vehicleCatalogHref(vehicle)} size="sm">
+            {garage.activeVehicle?.id !== vehicle.id ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  garage.setActiveVehicle(vehicle)
+                  toast.push('Veículo ativo na loja (não altera o principal).', 'success')
+                }}
+              >
+                Usar na loja
+              </Button>
+            ) : (
+              <span className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-accent/40 bg-fal-accent/10 px-3 text-xs font-extrabold text-fal-navy">
+                Ativo na loja
+              </span>
+            )}
+            <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
               {incomplete ? 'Buscar no catálogo' : 'Ver peças compatíveis'}
             </ButtonLink>
             <Button
@@ -239,6 +257,7 @@ export function AccountVehicleDetailPage() {
                   if (!confirmed) return
                   try {
                     await removeSavedVehicle(vehicle.id)
+                    await garage.notifyVehicleRemoved(vehicle.id)
                     toast.push('Veículo removido.', 'success')
                     navigate('/conta/veiculos')
                   } catch (err) {
@@ -338,6 +357,14 @@ export function AccountVehicleDetailPage() {
             <div>
               <dt className="text-xs font-semibold uppercase text-fal-muted">Principal</dt>
               <dd className="m-0 font-semibold">{vehicle.isPrimary ? 'Sim' : 'Não'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase text-fal-muted">Ativo na loja</dt>
+              <dd className="m-0 font-semibold">
+                {garage.activeVehicle?.id === vehicle.id
+                  ? 'Sim (contexto de navegação)'
+                  : 'Não'}
+              </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-xs font-semibold uppercase text-fal-muted">Observações</dt>

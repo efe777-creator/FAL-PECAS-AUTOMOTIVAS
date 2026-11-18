@@ -12,11 +12,19 @@ import { Link } from 'react-router-dom'
 
 type Props = {
   vehicle: CustomerSavedVehicle
+  isActive?: boolean
+  onUseInStore?: () => void
   onSetPrimary?: () => void
   onRemove?: () => void
 }
 
-export function GarageVehicleCard({ vehicle, onSetPrimary, onRemove }: Props) {
+export function GarageVehicleCard({
+  vehicle,
+  isActive,
+  onUseInStore,
+  onSetPrimary,
+  onRemove,
+}: Props) {
   const plate = vehiclePlateLabel(vehicle)
   const incomplete = isVehicleIncomplete(vehicle)
 
@@ -34,6 +42,9 @@ export function GarageVehicleCard({ vehicle, onSetPrimary, onRemove }: Props) {
             {vehicle.isPrimary ? (
               <span className="text-xs font-bold text-fal-success"> · Principal</span>
             ) : null}
+            {isActive ? (
+              <span className="text-xs font-bold text-fal-accent"> · Ativo</span>
+            ) : null}
           </p>
           <p className="mb-0 mt-1 text-sm text-fal-muted">{vehicleTechLine(vehicle) || '—'}</p>
           <p className="mb-0 mt-1 text-sm">
@@ -48,6 +59,11 @@ export function GarageVehicleCard({ vehicle, onSetPrimary, onRemove }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {onUseInStore && !isActive ? (
+            <Button type="button" size="sm" onClick={onUseInStore}>
+              Usar na loja
+            </Button>
+          ) : null}
           <ButtonLink to={`/conta/veiculos/${vehicle.id}`} variant="light" size="sm">
             Abrir
           </ButtonLink>

@@ -8,6 +8,7 @@ import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { GarageVehicleCard } from '@/components/garage/GarageVehicleCard'
 import { GarageVehicleHero } from '@/components/garage/GarageVehicleHero'
+import { useGarage } from '@/contexts/GarageContext'
 import {
   ensureSavedVehicleFromFilter,
   listSavedVehicles,
@@ -26,6 +27,7 @@ import { Link } from 'react-router-dom'
 export function AccountVehiclesPage() {
   useDocumentTitle('Minha Garagem | FAL Peças Automotivas')
   const toast = useToast()
+  const garage = useGarage()
   const [items, setItems] = useState<CustomerSavedVehicle[]>([])
   const [tree, setTree] = useState<VehicleOptionTree | null>(null)
   const [maker, setMaker] = useState('')
@@ -147,6 +149,7 @@ export function AccountVehiclesPage() {
       setAsPrimary(false)
       setShowAdd(false)
       pushOk('Veículo salvo na garagem.')
+      await garage.refreshVehicles()
       await reload()
     } catch (err) {
       pushError(toUserMessage(err, 'Falha ao salvar veículo'))
@@ -173,6 +176,7 @@ export function AccountVehiclesPage() {
     if (!confirmed) return
     try {
       await removeSavedVehicle(id)
+      await garage.notifyVehicleRemoved(id)
       pushOk('Veículo removido.')
       await reload()
     } catch (err) {
@@ -305,6 +309,11 @@ export function AccountVehiclesPage() {
       {primary ? (
         <GarageVehicleHero
           vehicle={primary}
+          isActive={garage.activeVehicle?.id === primary.id}
+          onUseInStore={() => {
+            garage.setActiveVehicle(primary)
+            pushOk('Veículo ativo na loja (não altera o principal).')
+          }}
           onSetPrimary={
             primary.isPrimary ? undefined : () => void handleSetPrimary(primary.id)
           }
@@ -322,6 +331,11 @@ export function AccountVehiclesPage() {
               <GarageVehicleCard
                 key={v.id}
                 vehicle={v}
+                isActive={garage.activeVehicle?.id === v.id}
+                onUseInStore={() => {
+                  garage.setActiveVehicle(v)
+                  pushOk('Veículo ativo na loja (não altera o principal).')
+                }}
                 onSetPrimary={() => void handleSetPrimary(v.id)}
                 onRemove={() => void handleRemove(v.id)}
               />

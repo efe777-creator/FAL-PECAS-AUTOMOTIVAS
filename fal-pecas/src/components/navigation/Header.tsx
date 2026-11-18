@@ -6,6 +6,7 @@ import { SearchBar } from './SearchBar'
 import { StoreThemeToggle } from './StoreThemeToggle'
 import { MobileDrawer } from './MobileDrawer'
 import { Container } from '@/components/layout/Container'
+import { GarageActiveSwitcher } from '@/components/garage/GarageActiveSwitcher'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCategories } from '@/hooks/useCatalog'
@@ -47,6 +48,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           ) : null}
           <div className="hidden items-center gap-3 lg:flex">
             <StoreThemeToggle theme={theme} onToggle={onThemeToggle} showLabel />
+            {user ? <GarageActiveSwitcher /> : null}
             {user ? (
               <NotificationBell allHref="/conta/avisos" audience="customer" variant="light" />
             ) : null}
@@ -97,6 +99,11 @@ export function Header({ theme, onThemeToggle }: Props) {
           >
             Minha Garagem
           </Link>
+          {user ? (
+            <div className="px-3 py-2">
+              <GarageActiveSwitcher compact />
+            </div>
+          ) : null}
           <Link
             to="/carrinho"
             className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"

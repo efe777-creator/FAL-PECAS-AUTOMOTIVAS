@@ -19,11 +19,19 @@ import { Link } from 'react-router-dom'
 
 type Props = {
   vehicle: CustomerSavedVehicle
+  isActive?: boolean
+  onUseInStore?: () => void
   onSetPrimary?: () => void
   onRemove?: () => void
 }
 
-export function GarageVehicleHero({ vehicle, onSetPrimary, onRemove }: Props) {
+export function GarageVehicleHero({
+  vehicle,
+  isActive,
+  onUseInStore,
+  onSetPrimary,
+  onRemove,
+}: Props) {
   const plate = vehiclePlateLabel(vehicle)
   const incomplete = isVehicleIncomplete(vehicle)
   const [image, setImage] = useState<ResolvedVehicleImage>(placeholderVehicleImage())
@@ -81,6 +89,11 @@ export function GarageVehicleHero({ vehicle, onSetPrimary, onRemove }: Props) {
                   {vehicle.colorLabel || vehicle.colorHex}
                 </span>
               ) : null}
+              {isActive ? (
+                <span className="rounded-[8px] border border-fal-accent/50 bg-fal-accent/15 px-2.5 py-1 text-fal-navy">
+                  Ativo na loja
+                </span>
+              ) : null}
               {incomplete ? (
                 <span className="rounded-[8px] border border-fal-yellow/50 bg-fal-yellow/15 px-2.5 py-1 text-fal-navy-dark">
                   Cadastro incompleto
@@ -93,7 +106,12 @@ export function GarageVehicleHero({ vehicle, onSetPrimary, onRemove }: Props) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ButtonLink to={`/conta/veiculos/${vehicle.id}`} size="sm">
+            {onUseInStore && !isActive ? (
+              <Button type="button" size="sm" onClick={onUseInStore}>
+                Usar na loja
+              </Button>
+            ) : null}
+            <ButtonLink to={`/conta/veiculos/${vehicle.id}`} size="sm" variant={onUseInStore && !isActive ? 'light' : 'primary'}>
               Abrir
             </ButtonLink>
             <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">

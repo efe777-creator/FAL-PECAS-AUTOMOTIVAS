@@ -787,6 +787,10 @@ export function CatalogPage() {
                   year: v.year != null ? String(v.year) : undefined,
                   engine: v.engine || undefined,
                   version: v.versionName || undefined,
+                  manufacturerId: v.manufacturerId || undefined,
+                  modelId: v.modelId || undefined,
+                  versionId: v.versionId || undefined,
+                  plate: v.plate || undefined,
                 })
               }
             />
@@ -923,6 +927,10 @@ export function CatalogPage() {
                 year: v.year != null ? String(v.year) : undefined,
                 engine: v.engine || undefined,
                 version: v.versionName || undefined,
+                manufacturerId: v.manufacturerId || undefined,
+                modelId: v.modelId || undefined,
+                versionId: v.versionId || undefined,
+                plate: v.plate || undefined,
               })
             }
           />
