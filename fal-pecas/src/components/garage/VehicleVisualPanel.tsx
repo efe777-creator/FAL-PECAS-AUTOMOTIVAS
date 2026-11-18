@@ -160,12 +160,20 @@ export function VehicleVisualPanel({
         instalação e XR são opt-in.
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-fal-muted">Viewer:</span>
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label="Preferência do viewer visual"
+      >
+        <span className="text-xs font-semibold text-fal-muted" id="fal-visual-viewer-label">
+          Viewer:
+        </span>
         {(['auto', '2d', '3d'] as VisualViewerMode[]).map((mode) => (
           <button
             key={mode}
             type="button"
+            aria-pressed={viewerPref === mode}
+            aria-describedby="fal-visual-viewer-label"
             className={`rounded-[8px] border px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${
               viewerPref === mode
                 ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'

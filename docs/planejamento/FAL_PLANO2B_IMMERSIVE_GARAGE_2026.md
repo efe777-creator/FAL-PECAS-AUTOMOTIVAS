@@ -249,7 +249,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Privacidade visual transferência (Vitest + copy wizard)  
 - [x] HEADSET smoke desktop: `isSessionSupported(ar/vr)=false` — sessão imersiva **bloqueada sem hardware** (MARCHA SEQUENCIAL)  
 - [x] Fase C C5 (exit-to-cart web; `xrNeverPaysInSession`) — MARCHA SEQUENCIAL  
-- [ ] Deploy `main` — ver § Gate MAIN (remote sem `main` até criação)  
+- [x] A11y toggles Viewer (`aria-pressed` + `role="group"`)  
+- [ ] Deploy Netlify produção — **bloqueado** (precisa auth explícita; tip git `main` ≠ deploy)  
 
 ### MARCHA SEQUENCIAL (2026-11-18)
 
@@ -257,7 +258,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 |-------|-----------|
 | HEADSET | **BLOCKED hardware** — Chromium desktop: API XR presente, AR/VR session unsupported |
 | C5 | **PASS código** — HUD “Carrinho” → `getProductById` + `addItem` + `/carrinho`; sem pagamento in-XR |
-| MAIN | Tip `main` = `dev` = `9dcf460` (push feito). **Deploy Netlify NÃO autorizado** (ordem eFe: só commit/push) |  
+| MAIN git | Tip `main` alinhado a C5 (`9dcf460`). **Deploy Netlify NÃO** |
+| Próximo (dev) | A11y Viewer + docs gaps — sem deploy |  
 
 ### 7.2 Aceite E1–E4 (resumo)
 

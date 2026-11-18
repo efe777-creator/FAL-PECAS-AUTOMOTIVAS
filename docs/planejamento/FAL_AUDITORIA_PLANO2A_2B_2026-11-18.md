@@ -71,19 +71,20 @@ pnpm exec vitest run src/services/garage/ …
 | Empty states preview | PASS | `EmptyState` peças |
 | Copy painel “ainda sem GLB” | **CORRIGIDO nesta auditoria** | Estava stale pós Fase B |
 | Doc §2.1 “Camada 2 não implementada” | **CORRIGIDO nesta auditoria** | Estava stale |
-| `aria-pressed` nos toggles Viewer | PARTIAL | Melhoria cosmética; não bloqueia |
+| `aria-pressed` nos toggles Viewer | **PASS** (MARCHA próximo passo) | `role="group"` + `aria-pressed` |
 | Biblioteca GLB com assets reais aprovados | PARTIAL ops | ADM existe; ambiente de teste “Nenhum asset” |
 
 ---
 
 ## Gaps remanescentes (não = plano incompleto)
 
-1. Smoke sessão XR em **headset** (`MARCHA HEADSET`).  
-2. Checkout in-XR (`MARCHA C5`).  
-3. Deploy `main` (`MARCHA MAIN`).  
-4. Sync-on com `installed_declared` real no veículo de smoke (dado).  
-5. A11y polish toggles Viewer.  
-6. Popular biblioteca GLB (ops ADM).
+1. Smoke sessão XR em **headset** (precisa hardware).  
+2. Deploy Netlify produção (bloqueado até auth explícita — tip `main` já existe, sem deploy).  
+3. Sync-on com `installed_declared` real no veículo de smoke (dado).  
+4. Popular biblioteca GLB (ops ADM).  
+5. C6+ pagamento **dentro** da sessão XR (fora).  
+
+**Fechados depois da auditoria inicial:** C5 exit-to-cart · a11y toggles Viewer.
 
 ---
 
