@@ -117,7 +117,7 @@ export function VehicleXrLauncher({
             source: 'xr',
             outcome: 'ok',
             reason: xrCommercialTelemetryReason(part),
-            reducedMotion,
+            reducedMotion: reduceMotion,
           })
         },
         onOpenProduct: (productId) => {
@@ -125,7 +125,7 @@ export function VehicleXrLauncher({
             source: 'xr',
             outcome: 'ok',
             reason: 'open_product_sheet',
-            reducedMotion,
+            reducedMotion: reduceMotion,
           })
           void endAndRun(() => {
             navigate(xrProductPath(productId))
@@ -137,7 +137,7 @@ export function VehicleXrLauncher({
               source: 'xr',
               outcome: 'ok',
               reason: xrExitToCartTelemetryReason(productId),
-              reducedMotion,
+              reducedMotion: reduceMotion,
             })
             try {
               const product = await getProductById(productId)
@@ -152,7 +152,7 @@ export function VehicleXrLauncher({
                 source: 'xr',
                 outcome: 'error',
                 reason: 'exit_to_cart_failed',
-                reducedMotion,
+                reducedMotion: reduceMotion,
               })
               toast.push(toUserMessage(e, 'Não foi possível ir ao carrinho'), 'error')
               await endAndRun(() => {
@@ -176,7 +176,7 @@ export function VehicleXrLauncher({
           'c5_exit_to_cart',
         ].join('+'),
         assetCode: approvedAsset?.code,
-        reducedMotion,
+        reducedMotion: reduceMotion,
       })
       const bits = [
         handle.usedGlb ? 'GLB' : 'procedural',
@@ -196,7 +196,7 @@ export function VehicleXrLauncher({
         outcome: 'fallback',
         reason,
         durationMs: Math.round(performance.now() - t0),
-        reducedMotion,
+        reducedMotion: reduceMotion,
       })
       setMsg(`XR indisponível: ${reason}`)
       onFallback(reason)

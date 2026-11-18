@@ -364,11 +364,12 @@ export async function startVisualXrImmersiveSession(opts: {
   try {
     if (opts.mode === 'immersive-ar' && 'requestHitTestSource' in session) {
       const viewerSpace = await session.requestReferenceSpace('viewer')
-      hitTestSource = await (
-        session as XRSession & {
-          requestHitTestSource: (o: { space: XRReferenceSpace }) => Promise<XRHitTestSource>
-        }
-      ).requestHitTestSource({ space: viewerSpace })
+      hitTestSource =
+        (await (
+          session as XRSession & {
+            requestHitTestSource: (o: { space: XRReferenceSpace }) => Promise<XRHitTestSource>
+          }
+        ).requestHitTestSource({ space: viewerSpace })) ?? null
       usedHitTest = Boolean(hitTestSource)
     }
   } catch {

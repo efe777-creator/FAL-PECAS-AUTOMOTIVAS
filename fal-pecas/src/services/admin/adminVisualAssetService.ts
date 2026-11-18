@@ -221,11 +221,6 @@ export async function adminSetVisualAssetStatus(
     patch.approved_at = new Date().toISOString()
     patch.approved_by = userData.user?.id ?? null
   }
-  if (status === 'revoked' || status === 'rejected' || status === 'draft') {
-    if (status !== 'approved') {
-      /* keep approved_* history unless draft reset */
-    }
-  }
 
   const { data, error } = await sb
     .from('vehicle_visual_assets')
