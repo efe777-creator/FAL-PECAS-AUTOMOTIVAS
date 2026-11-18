@@ -100,7 +100,7 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | S10 | Opt-in XR localStorage | Liga → “ativo nesta máquina”; `fal-garage-visual-xr-v1=1` |
 | S11 | Desktop sem sessão XR | `navigator.xr` presente mas `isSessionSupported(ar/vr)=false` → Engine **não** resolve `xr` (fica procedural); HUD XR ausente |
 | S12 | Privacidade visual / transferência | Vitest `visualPrivacyContract` **4 PASS** · copy wizard: Visual **não** transfere (`VehicleTransferPanel`) |
-| — | Sessão imersiva / hit-test headset | **Pendente / BLOCKED desktop** — recheck SEQUENCIAL #2: `ar/vr=false`; auth `MARCHA HEADSET` |
+| — | Sessão imersiva / hit-test headset | **BLOCKED hardware** (MARCHA HEADSET) — Cursor/Electron Chromium: `navigator.xr` ok · `immersive-ar/vr=false` · `requestSession` skipped; opt-in ON → Engine permanece GLB (não resolve `xr`); sem botão Entrar XR |
 | — | GLB ops + Engine | **PASS** (SEQUENCIAL #2) — migration E2 remota; ADM draft→approve→compat Fiat/Palio 2015; Engine `3D GLB` no Palio |
 | — | Sync-on com fato G7 | **PASS** (MARCHA SYNC) — seed `bought`+`installed_declared` TDI1006 no Palio; UI “1 fato(s) elegível(is)” · “no modelo (2A)”; OFF remove marcador |
 | — | Sync on com `installed_declared` | **PASS** — smoke append-only (`smoke=MARCHA_SYNC_2026-11-18`) |
@@ -167,7 +167,7 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | Fase C C0–C4 | PASS código `dev` |
 | Smoke browser Camada 1 + ADM | PASS (S1–S8) |
 | Smoke gate XR desktop | PASS (S9–S11) |
-| Smoke sessão XR headset | Bloqueado → `MARCHA HEADSET` |
+| Smoke sessão XR headset | **BLOCKED hardware** (MARCHA HEADSET 2026-11-18) — reexecutar com headset/WebXR real |
 | C5+ checkout in-XR | Bloqueado → `MARCHA C5` |
 | Merge `main` / deploy | Bloqueado → `MARCHA MAIN` |
 

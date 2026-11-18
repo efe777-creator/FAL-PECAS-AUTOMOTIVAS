@@ -78,7 +78,7 @@ pnpm exec vitest run src/services/garage/ …
 
 ## Gaps remanescentes (não = plano incompleto)
 
-1. Smoke sessão XR em **headset** (precisa hardware).  
+1. Smoke sessão XR em **headset** — **BLOCKED** nesta máquina (MARCHA HEADSET: `ar/vr=false`); reexecutar com hardware WebXR.  
 2. Deploy Netlify produção (bloqueado até auth explícita — tip `main` já existe, sem deploy).  
 3. ~~Sync-on com `installed_declared` real no veículo de smoke.~~ **PASS** (MARCHA SYNC — TDI1006 no Palio).  
 4. ~~Popular biblioteca GLB (ops ADM).~~ **Feito smoke** (`fal-smoke-palio-box`).  

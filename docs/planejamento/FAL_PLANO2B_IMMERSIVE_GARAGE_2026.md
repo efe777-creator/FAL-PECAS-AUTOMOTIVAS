@@ -283,6 +283,19 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 | Write-back | **NÃO** — viewer não criou/alterou evento (seed foi append SQL smoke) |
 | Deploy | **NÃO** |  
 
+### MARCHA HEADSET (2026-11-18) — tentativa sessão XR · **sem deploy**
+
+| Passo | Resultado |
+|-------|-----------|
+| Runtime | Cursor/Electron Chromium · `isSecureContext=true` · `navigator.xr` **presente** |
+| `isSessionSupported('immersive-ar')` | **false** |
+| `isSessionSupported('immersive-vr')` | **false** |
+| `requestSession` | **SKIP** — session_unsupported (sem hardware) |
+| Gate UI | Opt-in XR → “ativo nesta máquina”; Engine **não** resolve `xr` (permanece `3D GLB`); sem botão Entrar XR |
+| Hit-test / GLB-in-XR / C5 in-session | **NÃO EXECUTÁVEL** neste host |
+| Veredito | **BLOCKED hardware** — código/gate desktop OK; smoke imersivo exige headset/WebXR real |
+| Deploy | **NÃO** |  
+
 ### 7.2 Aceite E1–E4 (resumo)
 
 | Etapa | Aceite |

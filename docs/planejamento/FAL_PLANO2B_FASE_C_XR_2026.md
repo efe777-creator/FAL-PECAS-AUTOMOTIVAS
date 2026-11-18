@@ -73,7 +73,7 @@ Sem as três primeiras → Engine **não** resolve `xr`.
 |------|--------|
 | C0–C4 código | Feito `dev` |
 | VAL B/C + smoke desktop S9–S12 | Feito |
-| Smoke XR headset | `MARCHA HEADSET` |
+| Smoke XR headset | **BLOCKED hardware** (MARCHA HEADSET 2026-11-18) — `ar/vr=false` no desktop Cursor; reexecutar com headset |
 | C5+ / `main` | `MARCHA C5` / `MARCHA MAIN` |
 
 **MARCHA STOP:** não há C4.1 automático.
