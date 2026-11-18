@@ -72,10 +72,16 @@ export function SavedVehiclesQuickPick({
           v.nickname ||
           [v.makerName, v.modelName, v.year, v.engine].filter(Boolean).join(' ') ||
           'Veículo'
+        const limited = !v.versionId
         return (
           <button
             key={v.id}
             type="button"
+            title={
+              limited
+                ? 'Compatibilidade limitada — versão ainda não vinculada'
+                : 'Filtrar peças deste veículo'
+            }
             className={[
               'rounded-full border px-2.5 py-1 text-xs font-semibold transition',
               v.isPrimary
@@ -83,7 +89,6 @@ export function SavedVehiclesQuickPick({
                 : 'border-[#d8dee3] bg-[#f7f9fa] text-fal-navy hover:border-fal-navy',
             ].join(' ')}
             onClick={() => apply(v)}
-            title="Filtrar peças deste veículo"
           >
             {label}
             {v.isPrimary ? ' ★' : ''}

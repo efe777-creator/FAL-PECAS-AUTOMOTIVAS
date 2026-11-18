@@ -54,6 +54,13 @@ describe('plateResultToFilter', () => {
   it('não inclui fuel no VehicleFilter', () => {
     const f = plateResultToFilter(base({ fuel: 'FLEX' }))
     expect(f).not.toHaveProperty('fuel')
-    expect(Object.keys(f).sort()).toEqual(['engine', 'maker', 'model', 'version', 'year'].sort())
+  })
+
+  it('propaga placa e IDs canônicos para o save da garagem', () => {
+    const f = plateResultToFilter(base({}))
+    expect(f.plate).toBe('INT8C36')
+    expect(f.manufacturerId).toBe('m1')
+    expect(f.modelId).toBe('md1')
+    expect(f.versionId).toBe('v1')
   })
 })

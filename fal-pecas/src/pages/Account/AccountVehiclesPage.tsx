@@ -6,10 +6,9 @@ import { Loading } from '@/components/common/Loading'
 import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import {
-  addSavedVehicle,
+  ensureSavedVehicleFromFilter,
   listSavedVehicles,
   removeSavedVehicle,
-  resolveVersionId,
   setPrimaryVehicle,
 } from '@/services/customers/customerVehicleService'
 import { getVehicleOptions } from '@/services/vehicles/vehicleService'
@@ -105,19 +104,12 @@ export function AccountVehiclesPage() {
       return
     }
     try {
-      const resolved = await resolveVersionId({ maker, model, year, engine, version })
-      if (!resolved) {
-        pushError(
-          'Não encontramos essa combinação de montadora, modelo e versão. Ajuste os filtros.',
-        )
-        return
-      }
-      await addSavedVehicle({
-        versionId: resolved.versionId,
-        manufacturerId: resolved.manufacturerId,
-        modelId: resolved.modelId,
-        year: resolved.year,
-        engine: resolved.engine,
+      await ensureSavedVehicleFromFilter({
+        maker,
+        model,
+        year: year || undefined,
+        engine: engine || undefined,
+        version: version || undefined,
         nickname,
         isPrimary: asPrimary || items.length === 0,
       })
@@ -140,8 +132,8 @@ export function AccountVehiclesPage() {
       <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h2 className="mt-0 text-xl font-extrabold">Meus carros</h2>
         <p className="text-sm text-fal-muted">
-          Garagem da conta: salve veículos para filtrar o catálogo mais rápido. Também pode
-          consultar por placa ou montadora/modelo.
+          Garagem da conta: salve com montadora e modelo (ano, motor e versão opcionais). Mesmo
+          sem peças no catálogo o carro fica guardado para você completar depois.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link
@@ -240,12 +232,15 @@ export function AccountVehiclesPage() {
                 </p>
                 <p className="mb-0 mt-1 text-sm text-fal-muted">
                   {[v.makerName, v.modelName, v.year, v.engine, v.versionName].filter(Boolean).join(' · ')}
+                  {!v.versionId ? (
+                    <span className="text-fal-muted"> · versão ainda não vinculada ao cadastro</span>
+                  ) : null}
                 </p>
                 <Link
                   className="mt-2 inline-block text-sm font-semibold text-fal-auth-link"
                   to={`/catalogo?maker=${encodeURIComponent(v.makerName ?? '')}&model=${encodeURIComponent(v.modelName ?? '')}${v.year ? `&year=${v.year}` : ''}${v.engine ? `&engine=${encodeURIComponent(v.engine)}` : ''}${v.versionName ? `&version=${encodeURIComponent(v.versionName)}` : ''}`}
                 >
-                  Ver peças compatíveis
+                  {v.versionId ? 'Ver peças compatíveis' : 'Buscar no catálogo (compatibilidade limitada)'}
                 </Link>
               </div>
               <div className="flex flex-wrap gap-2">

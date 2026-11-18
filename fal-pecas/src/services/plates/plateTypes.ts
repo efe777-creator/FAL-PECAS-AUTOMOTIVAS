@@ -33,6 +33,9 @@ export interface PlateLookupResult {
   year: string | null
   version: string | null
   engine: string | null
+  /** Bruto quando sanitize zerou — não usar no filtro de peças. */
+  engineRaw?: string | null
+  versionRaw?: string | null
   fuel: string | null
   transmission: string | null
   manufacturerId: string | null
@@ -75,6 +78,12 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
     // Placa sem motor/versão → "" ("Não informado") para o select não ficar em branco
     engine: engine ?? (identified ? '' : undefined),
     version: version ?? (identified ? '' : undefined),
+    plate: result.plate || undefined,
+    manufacturerId: result.manufacturerId ?? undefined,
+    modelId: result.modelId ?? undefined,
+    versionId: result.versionId ?? undefined,
+    engineRaw: result.engineRaw?.trim() || undefined,
+    versionRaw: result.versionRaw?.trim() || undefined,
   }
 }
 

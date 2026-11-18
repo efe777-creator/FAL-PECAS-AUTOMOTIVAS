@@ -382,6 +382,8 @@ Deno.serve(async (req) => {
     year: yearOut,
     version: versionOut,
     engine: engineOut,
+    engineRaw: raw.engineRaw ?? null,
+    versionRaw: raw.versionRaw ?? null,
     fuel: raw.fuel,
     transmission: raw.transmission,
     manufacturerId,

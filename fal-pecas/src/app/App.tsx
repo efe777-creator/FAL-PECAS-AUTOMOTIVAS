@@ -4,6 +4,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { ConfirmDialogHost } from '@/components/common/ConfirmDialog'
 import { ToastProvider } from '@/components/common/Toast'
+import { PendingGarageFlush } from '@/components/vehicle/PendingGarageFlush'
 import { router } from '@/app/router'
 import { RouterProvider } from 'react-router-dom'
 
@@ -35,6 +36,7 @@ export function App() {
 export function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
+      <PendingGarageFlush />
       {children}
       <ConfirmDialogHost />
     </ToastProvider>

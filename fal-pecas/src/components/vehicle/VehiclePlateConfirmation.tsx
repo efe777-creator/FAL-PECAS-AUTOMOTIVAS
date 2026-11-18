@@ -79,6 +79,9 @@ export function VehiclePlateConfirmation({
                       year: c.year,
                       engine: c.engine,
                       version: c.version,
+                      manufacturerId: c.manufacturerId ?? result.manufacturerId,
+                      modelId: c.modelId ?? result.modelId,
+                      versionId: c.versionId ?? null,
                     }),
                   )
                 }
@@ -98,7 +101,21 @@ export function VehiclePlateConfirmation({
         title="Confirme o veículo"
         subtitle="Modelo, versão, motor e ano separados. Corrija se necessário; campos sem evidência ficam em Não informado. Os filtros só entram após confirmar."
         confirmLabel="Confirmar e ver peças"
-        onConfirm={onConfirm}
+        onConfirm={(f) => {
+          const base = pickedCandidate ?? initial
+          const sameIdentity =
+            (f.maker ?? '').toLowerCase() === (base.maker ?? '').toLowerCase() &&
+            (f.model ?? '').toLowerCase() === (base.model ?? '').toLowerCase()
+          onConfirm({
+            ...f,
+            plate: result.plate || f.plate,
+            manufacturerId: sameIdentity ? base.manufacturerId ?? result.manufacturerId ?? undefined : undefined,
+            modelId: sameIdentity ? base.modelId ?? result.modelId ?? undefined : undefined,
+            versionId: sameIdentity ? base.versionId ?? result.versionId ?? undefined : undefined,
+            engineRaw: sameIdentity ? base.engineRaw ?? result.engineRaw ?? undefined : f.engineRaw,
+            versionRaw: sameIdentity ? base.versionRaw ?? result.versionRaw ?? undefined : f.versionRaw,
+          })
+        }}
       />
 
       <div className="flex flex-wrap gap-2">

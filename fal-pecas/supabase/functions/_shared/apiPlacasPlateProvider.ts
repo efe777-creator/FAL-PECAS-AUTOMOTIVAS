@@ -149,19 +149,19 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
   const split = splitApiModelo(asString(dados.modelo))
   const model = split.model
   // Prefere motor extraído do modelo composto; API às vezes manda lixo (ex.: 0.1).
-  const engine = sanitizeEngine(
+  const engineRaw =
     split.engine ??
-      asString(dados.motor) ??
-      asString(dados.motorizacao) ??
-      asString(dados.cilindrada),
-  )
+    asString(dados.motor) ??
+    asString(dados.motorizacao) ??
+    asString(dados.cilindrada)
+  const engine = sanitizeEngine(engineRaw)
   // Versão da API às vezes é motor+câmbio ("1.6 A") — nunca vira trim.
-  const version = sanitizeVersionLabel(
+  const versionRaw =
     split.version ??
-      asString(dados.versao) ??
-      asString(dados.versão) ??
-      asString(dados.version),
-  )
+    asString(dados.versao) ??
+    asString(dados.versão) ??
+    asString(dados.version)
+  const version = sanitizeVersionLabel(versionRaw)
   // Preferir ano-modelo quando a API manda faixa fab/modelo.
   const year =
     extractYearPreferModel(dados.anoModelo) ??
@@ -179,6 +179,8 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
     year,
     version,
     engine,
+    engineRaw: engine ? null : engineRaw,
+    versionRaw: version ? null : versionRaw,
     fuel,
     transmission: null,
     confidence: incomplete ? 0.6 : 0.85,

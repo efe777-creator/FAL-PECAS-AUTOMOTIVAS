@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeVersionLabel, splitApiModelo } from './splitApiModelo'
+import { sanitizeEngine, sanitizeVersionLabel, splitApiModelo } from './splitApiModelo'
 
 /** Espelho do mapper Edge (apiPlacasPlateProvider) para Vitest. */
 function extractYearPreferModel(raw: unknown): string | null {
@@ -33,15 +33,22 @@ function mapApiPlacasBasicoToRaw(body: unknown) {
   const split = splitApiModelo(dados.modelo ? String(dados.modelo) : null)
   const year = extractYearPreferModel(dados.ano)
   if (!maker && !split.model) return { status: 'not_found' as const, maker: null, model: null, year: null }
+  const engineRaw =
+    split.engine ??
+    (dados.motor ? String(dados.motor) : null) ??
+    (dados.motorizacao ? String(dados.motorizacao) : null)
+  const engine = sanitizeEngine(engineRaw)
+  const versionRaw = split.version ?? (dados.versao ? String(dados.versao) : null)
+  const version = sanitizeVersionLabel(versionRaw)
   return {
     status: (year && maker && split.model ? 'found' : 'incomplete') as 'found' | 'incomplete',
     maker,
     model: split.model,
     year,
-    engine: split.engine,
-    version: sanitizeVersionLabel(
-      split.version ?? (dados.versao ? String(dados.versao) : null),
-    ),
+    engine,
+    engineRaw: engine ? null : engineRaw,
+    version,
+    versionRaw: version ? null : versionRaw,
     fuel: dados.combustivel ? String(dados.combustivel) : null,
   }
 }
@@ -130,6 +137,16 @@ describe('mapApiPlacasBasicoToRaw', () => {
     })
     expect(r.status).toBe('incomplete')
     expect(r.year).toBeNull()
+  })
+
+  it('motor 0.1 da API: engine null + engineRaw preservado', () => {
+    const r = mapApiPlacasBasicoToRaw({
+      basico: {
+        dados: { marca: 'FIAT', modelo: 'Uno', ano: '2010', motor: '0.1' },
+      },
+    })
+    expect(r.engine).toBeNull()
+    expect(r.engineRaw).toBe('0.1')
   })
 
   it('placa_nao_encontrada', () => {

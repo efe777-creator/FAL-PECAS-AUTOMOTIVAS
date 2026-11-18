@@ -17,6 +17,10 @@ export interface PlateProviderRaw {
   year: string | null
   version: string | null
   engine: string | null
+  /** Bruto da API quando sanitizeEngine zera (preservação PLANO 0). */
+  engineRaw?: string | null
+  /** Bruto da API quando sanitizeVersionLabel zera. */
+  versionRaw?: string | null
   fuel: string | null
   transmission: string | null
   status: PlateLookupStatus
@@ -45,6 +49,8 @@ export interface NormalizedPlateLookupResult {
   year: string | null
   version: string | null
   engine: string | null
+  engineRaw?: string | null
+  versionRaw?: string | null
   fuel: string | null
   transmission: string | null
   manufacturerId: string | null

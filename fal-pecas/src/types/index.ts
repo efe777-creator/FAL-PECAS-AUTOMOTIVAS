@@ -74,12 +74,14 @@ export interface CustomerSavedVehicle {
   customerId: string
   manufacturerId?: string | null
   modelId?: string | null
-  versionId: string
+  /** Null = salvamento progressivo sem versão canônica. */
+  versionId?: string | null
   year?: number | null
   engine?: string | null
   nickname?: string | null
   isPrimary: boolean
-  /** Labels para UI */
+  plate?: string | null
+  /** Labels para UI (join canônico ou texto preservado). */
   makerName?: string
   modelName?: string
   versionName?: string | null
@@ -491,6 +493,14 @@ export interface VehicleFilter {
   year?: string
   engine?: string
   version?: string
+  /** IDs canônicos da placa (opcionais; preferidos no save da garagem). */
+  manufacturerId?: string
+  modelId?: string
+  versionId?: string
+  plate?: string
+  /** Originais brutos (API) quando normalização falhou — só garagem/snapshot. */
+  engineRaw?: string
+  versionRaw?: string
 }
 
 /** Ordenação do motor de busca (Fase 4). */

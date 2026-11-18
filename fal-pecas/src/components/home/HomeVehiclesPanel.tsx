@@ -54,7 +54,8 @@ export function HomeVehiclesPanel() {
             Meus carros
           </h2>
           <p className="mt-1 text-sm text-fal-muted">
-            Escolha um carro salvo para filtrar peças compatíveis.
+            Escolha um carro salvo para filtrar o catálogo. Sem versão vinculada, a busca fica
+            parcial.
           </p>
         </div>
         {user ? (
@@ -131,7 +132,9 @@ export function HomeVehiclesPanel() {
                       v.isPrimary ? 'text-white/80' : 'text-fal-muted',
                     ].join(' ')}
                   >
-                    Ver peças compatíveis
+                    {v.versionId
+                      ? 'Ver peças compatíveis'
+                      : 'Buscar no catálogo (compatibilidade limitada)'}
                   </span>
                 </button>
               </li>

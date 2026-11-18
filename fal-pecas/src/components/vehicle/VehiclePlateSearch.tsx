@@ -12,17 +12,11 @@ import {
   type PlateLookupResult,
 } from '@/services/plates/plateTypes'
 import {
-  clearPendingGarageVehicle,
   consumeAskGaragePrompt,
-  readPendingGarageVehicle,
   saveAskGaragePrompt,
   savePendingGarageVehicle,
 } from '@/services/plates/pendingGarage'
-import {
-  addSavedVehicle,
-  listSavedVehicles,
-  resolveVersionId,
-} from '@/services/customers/customerVehicleService'
+import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehicleService'
 import { buildVehicleQuery } from '@/services/vehicles/vehicleService'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { VehicleFilter } from '@/types'
@@ -61,50 +55,6 @@ export function VehiclePlateSearch({
       setPhase('garage')
     }
   }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    async function flushPendingGarage() {
-      if (!isSupabaseConfigured) return
-      const {
-        data: { user },
-      } = await getSupabase().auth.getUser()
-      if (!user || cancelled) return
-      const pending = readPendingGarageVehicle()
-      if (!pending?.maker || !pending?.model) return
-      try {
-        const resolved = await resolveVersionId({
-          maker: pending.maker,
-          model: pending.model,
-          year: pending.year,
-          engine: pending.engine,
-          version: pending.version,
-        })
-        if (!resolved) {
-          toast.push('Não foi possível salvar: complete versão/motor do veículo na conta.', 'error')
-          clearPendingGarageVehicle()
-          return
-        }
-        const existing = await listSavedVehicles()
-        await addSavedVehicle({
-          versionId: resolved.versionId,
-          manufacturerId: resolved.manufacturerId,
-          modelId: resolved.modelId,
-          year: resolved.year,
-          engine: resolved.engine,
-          isPrimary: existing.length === 0,
-        })
-        clearPendingGarageVehicle()
-        toast.push('Veículo salvo na sua garagem.', 'success')
-      } catch (err) {
-        toast.push(toUserMessage(err, 'Não foi possível salvar o veículo.'), 'error')
-      }
-    }
-    void flushPendingGarage()
-    return () => {
-      cancelled = true
-    }
-  }, [toast])
 
   async function handleSearch(e?: FormEvent) {
     e?.preventDefault()
@@ -177,29 +127,12 @@ export function VehiclePlateSearch({
         return
       }
 
-      const resolved = await resolveVersionId({
-        maker: confirmedFilter.maker,
-        model: confirmedFilter.model,
-        year: confirmedFilter.year,
-        engine: confirmedFilter.engine,
-        version: confirmedFilter.version,
-      })
-      if (!resolved) {
-        toast.push(
-          'Para salvar na garagem, é necessário identificar a versão no cadastro. Ajuste os filtros na conta ou complete versão/motor.',
-          'error',
-        )
-        setPhase('input')
-        return
-      }
-      const existing = await listSavedVehicles()
-      await addSavedVehicle({
-        versionId: resolved.versionId,
-        manufacturerId: resolved.manufacturerId,
-        modelId: resolved.modelId,
-        year: resolved.year,
-        engine: resolved.engine,
-        isPrimary: existing.length === 0,
+      await ensureSavedVehicleFromFilter({
+        ...confirmedFilter,
+        plate: confirmedFilter.plate ?? result?.plate ?? undefined,
+        manufacturerId: confirmedFilter.manufacturerId ?? result?.manufacturerId ?? undefined,
+        modelId: confirmedFilter.modelId ?? result?.modelId ?? undefined,
+        versionId: confirmedFilter.versionId ?? result?.versionId ?? undefined,
       })
       toast.push('Veículo salvo na sua garagem.', 'success')
       setPhase('input')
