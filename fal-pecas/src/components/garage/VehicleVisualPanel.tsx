@@ -21,8 +21,17 @@ import {
   type VisualFinish,
   type VisualWheelStyle,
 } from '@/services/garage/vehicleVisualTypes'
-import { useCallback, useEffect, useState } from 'react'
+import {
+  readVisualViewerMode,
+  resolveViewerMode,
+  writeVisualViewerMode,
+  type VisualViewerMode,
+} from '@/lib/visualViewerPrefs'
+import { canUseWebGL } from '@/lib/webglSupport'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+
+const VehicleViewer3D = lazy(() => import('./VehicleViewer3D'))
 
 /** Silhueta 2D SVG — sem WebGL/Three. Marcadores = preview G7 (não criam fato). */
 function VehicleSilhouette2D({
@@ -132,6 +141,22 @@ export function VehicleVisualPanel({
   const [parts, setParts] = useState<VisualPartPreview[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [viewerPref, setViewerPref] = useState<VisualViewerMode>(() => readVisualViewerMode())
+  const [webglOk, setWebglOk] = useState(false)
+
+  useEffect(() => {
+    setWebglOk(canUseWebGL())
+  }, [])
+
+  const effectiveMode = useMemo(
+    () => resolveViewerMode(viewerPref, webglOk),
+    [viewerPref, webglOk],
+  )
+
+  function setViewerMode(mode: VisualViewerMode) {
+    setViewerPref(mode)
+    writeVisualViewerMode(mode)
+  }
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -184,7 +209,34 @@ export function VehicleVisualPanel({
         na transferência sem opt-in.
       </p>
 
-      <VehicleSilhouette2D payload={payload} parts={parts} />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-fal-muted">Viewer:</span>
+        {(['auto', '2d', '3d'] as VisualViewerMode[]).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className={`rounded-[8px] border px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${
+              viewerPref === mode
+                ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'
+                : 'border-fal-line bg-fal-bg text-fal-muted'
+            }`}
+            onClick={() => setViewerMode(mode)}
+          >
+            {mode}
+          </button>
+        ))}
+        {!webglOk ? (
+          <span className="text-[11px] font-semibold text-fal-muted">WebGL indisponível · 2D</span>
+        ) : null}
+      </div>
+
+      {effectiveMode === '3d' ? (
+        <Suspense fallback={<VehicleSilhouette2D payload={payload} parts={parts} />}>
+          <VehicleViewer3D payload={payload} parts={parts} />
+        </Suspense>
+      ) : (
+        <VehicleSilhouette2D payload={payload} parts={parts} />
+      )}
 
       <section className="space-y-2">
         <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo (preview)</h3>

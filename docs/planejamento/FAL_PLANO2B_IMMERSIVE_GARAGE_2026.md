@@ -4,7 +4,7 @@
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
-**Natureza:** documento canônico + progresso de implementação (E1 = 2D only; sem Three.js/AR)  
+**Natureza:** documento canônico + progresso de implementação (E1–E3: 2D + preview G7 + viewer 3D leve com fallback)  
 
 **Pré-requisito obrigatório:** [PLANO 2A — Vehicle Identity](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) (**APROVADO eFe · IMPLEMENTADO E1–E5 · §24**) · [VAL-plano2a](../../fal-pecas/docs/VAL-plano2a-vehicle-identity.md)  
 **Contratos herdados:** PLANO 2A §19 (chave = `vehicle_identities.id`)  
@@ -107,15 +107,16 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 - [x] Contratos §2 confirmados (sem segundo identity)  
 - [x] Etapa 1 = config 2D (sem Three.js)  
 - [x] Etapa 2 = preview peças FAL read-only (G7)  
+- [x] Etapa 3 = viewer 3D leve (lazy Three + WebGL detect + fallback 2D)  
 - [x] Branch `dev` apenas  
-- [ ] Etapa 3+ (3D / sync instalação → modelo) — só com nova MARCHA  
+- [ ] Etapa 4+ (sync instalação → modelo / AR) — só com nova MARCHA  
 - [ ] Deploy `main`  
 
-**Não fazer:** implementar 3D sem aprovação; gravar fato 2A a partir do viewer; alterar `main`.
+**Não fazer:** gravar fato 2A a partir do viewer; alterar `main`; AR sem gate.
 
 ---
 
-## 8. Confirmação Etapa 1–2
+## 8. Confirmação Etapa 1–3
 
 | Item | Valor |
 |------|--------|
@@ -123,6 +124,8 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 | Branch | `dev` |
 | E1 Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
 | E2 Preview | `vehicleVisualPartPreview.ts` · lista G7 + imagens produto |
-| UI | `?modulo=visual` · silhueta SVG + cards peças |
-| Three.js / AR / WebGL | **Não** |
-| Próximo passo | MARCHA → Etapa 3 (viewer 3D leve, progressive enhancement) |
+| E3 Viewer | `VehicleViewer3D.tsx` lazy · `canUseWebGL` · pref `auto/2d/3d` |
+| UI | `?modulo=visual` · silhueta SVG + 3D procedural + cards peças |
+| Three.js | **Sim** (lazy; fallback 2D se sem WebGL) |
+| AR | **Não** |
+| Próximo passo | MARCHA → Etapa 4 (sync opcional instalado 2A → modelo) |
