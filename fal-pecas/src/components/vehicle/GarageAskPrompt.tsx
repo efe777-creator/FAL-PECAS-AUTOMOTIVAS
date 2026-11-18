@@ -1,5 +1,7 @@
 import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
+import { matchSavedVehicleForFilter } from '@/components/garage/garageVehicleUi'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehicleService'
@@ -20,6 +22,7 @@ export function GarageAskPrompt() {
   const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
+  const garage = useGarageOptional()
   const [filter, setFilter] = useState<VehicleFilter | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -27,7 +30,15 @@ export function GarageAskPrompt() {
     const ask = readAskGaragePrompt()
     if (ask?.maker && ask?.model) {
       setFilter(ask)
+      // Alinha ativo ao filtro da placa (evita badge/carrinho do carro anterior).
+      if (garage) {
+        const match = matchSavedVehicleForFilter(garage.vehicles, ask)
+        if (match) garage.setActiveVehicle(match)
+        else if (garage.activeVehicle) garage.clearActiveVehicle()
+      }
     }
+    // Só na montagem do prompt (ask vem do sessionStorage).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync once when prompt appears
   }, [])
 
   async function handleAnswer(yes: boolean) {
@@ -57,7 +68,11 @@ export function GarageAskPrompt() {
         return
       }
 
-      await ensureSavedVehicleFromFilter(filter)
+      const saved = await ensureSavedVehicleFromFilter(filter)
+      if (garage) {
+        await garage.refreshVehicles()
+        garage.setActiveVehicle(saved)
+      }
       clearAskGaragePrompt()
       toast.push('Veículo salvo na sua garagem.', 'success')
       setFilter(null)

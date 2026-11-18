@@ -34,10 +34,11 @@ describe('flushPendingGarageVehicle', () => {
 
   it('salva e limpa pending em sucesso', async () => {
     read.mockReturnValue({ maker: 'Fiat', model: 'Argo', year: '2020' })
-    ensure.mockResolvedValue({ id: '1' })
+    ensure.mockResolvedValue({ id: '1', makerName: 'Fiat', modelName: 'Argo' })
     const { flushPendingGarageVehicle } = await import('./flushPendingGarage')
     const r = await flushPendingGarageVehicle()
     expect(r.ok).toBe(true)
+    expect(r.vehicle?.id).toBe('1')
     expect(ensure).toHaveBeenCalledWith({ maker: 'Fiat', model: 'Argo', year: '2020' })
     expect(clear).toHaveBeenCalled()
   })

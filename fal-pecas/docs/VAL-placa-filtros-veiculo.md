@@ -43,3 +43,10 @@
 - Fix: prompt não some mais (Strict Mode / 2× `VehiclePlateSearch`); `ProductCard` sem `<a>` aninhado na categoria.
 - Pós-auth: `resolveAuthReturnPath` usa `state.from` ou, se sumir (refresh), `pending.returnTo` do catálogo.
 - Smoke flush autenticado (2026-11-18): `fal_pending_garage_vehicle` (GAF7032) → login → pending limpo → redirect `returnTo` catálogo → linha em `customer_vehicles` (`plate=GAF7032`, maker/model/year/engine/version + FKs) → UI `/conta/veiculos` lista **Chevrolet Onix · Principal** com *Ver peças compatíveis*.
+
+## Evidência smoke (2026-11-18 manhã) — pós G6–G8 / R2–R5
+
+- Vitest garagem/placa: **110** testes OK.
+- Edge `plate-lookup` GAF7032: `found` · Chevrolet Onix 2016 1.4 LT · `sourceSnapshot.fuel` presente (fix cache legado sem snapshot).
+- UI Home→confirmação: combustível informativo + 5 selects · Confirmar → `/catalogo?...Onix...` + prompt “Deseja salvar… placa GAF7032”.
+- **Bug corrigido:** placa confirmada alinhava filtros do catálogo, mas o **ativo** no header podia ficar em outro carro (ex. Fiat Palio) → risco de snapshot errado no carrinho. Agora casa/limpa ativo via `matchSavedVehicleForFilter` + setActive ao salvar.

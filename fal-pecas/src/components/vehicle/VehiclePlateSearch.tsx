@@ -1,8 +1,10 @@
 import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
+import { matchSavedVehicleForFilter } from '@/components/garage/garageVehicleUi'
 import { VehiclePlateConfirmation } from '@/components/vehicle/VehiclePlateConfirmation'
 import { VehiclePlateField } from '@/components/vehicle/VehiclePlateField'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { lookupPlate } from '@/services/plates/plateLookupService'
 import { plateValidationMessage } from '@/services/plates/plateNormalize'
@@ -40,6 +42,7 @@ export function VehiclePlateSearch({
 }: VehiclePlateSearchProps) {
   const toast = useToast()
   const navigate = useNavigate()
+  const garage = useGarageOptional()
   const [plateDraft, setPlateDraft] = useState('')
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('input')
@@ -47,6 +50,13 @@ export function VehiclePlateSearch({
   const [confirmedFilter, setConfirmedFilter] = useState<VehicleFilter | null>(null)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
   const [savingGarage, setSavingGarage] = useState(false)
+
+  function syncActiveToFilter(filter: VehicleFilter) {
+    if (!garage) return
+    const match = matchSavedVehicleForFilter(garage.vehicles, filter)
+    if (match) garage.setActiveVehicle(match)
+    else if (garage.activeVehicle) garage.clearActiveVehicle()
+  }
 
   async function handleSearch(e?: FormEvent) {
     e?.preventDefault()
@@ -81,6 +91,7 @@ export function VehiclePlateSearch({
 
   function applyConfirmed(filter: VehicleFilter) {
     setConfirmedFilter(filter)
+    syncActiveToFilter(filter)
     if (onApplyFilters) {
       onApplyFilters(filter)
       setPhase('garage')
@@ -121,13 +132,17 @@ export function VehiclePlateSearch({
         return
       }
 
-      await ensureSavedVehicleFromFilter({
+      const saved = await ensureSavedVehicleFromFilter({
         ...confirmedFilter,
         plate: confirmedFilter.plate ?? result?.plate ?? undefined,
         manufacturerId: confirmedFilter.manufacturerId ?? result?.manufacturerId ?? undefined,
         modelId: confirmedFilter.modelId ?? result?.modelId ?? undefined,
         versionId: confirmedFilter.versionId ?? result?.versionId ?? undefined,
       })
+      if (garage) {
+        await garage.refreshVehicles()
+        garage.setActiveVehicle(saved)
+      }
       clearAskGaragePrompt()
       toast.push('Veículo salvo na sua garagem.', 'success')
       setPhase('input')

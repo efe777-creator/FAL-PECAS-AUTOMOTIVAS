@@ -1,5 +1,6 @@
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import { flushPendingGarageVehicle } from '@/services/plates/flushPendingGarage'
 import { useEffect, useRef } from 'react'
 
@@ -9,6 +10,7 @@ import { useEffect, useRef } from 'react'
 export function PendingGarageFlush() {
   const { user, loading, profileLoading } = useAuth()
   const toast = useToast()
+  const garage = useGarageOptional()
   const attemptedFor = useRef<string | null>(null)
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function PendingGarageFlush() {
     attemptedFor.current = user.id
 
     let cancelled = false
-    void flushPendingGarageVehicle().then((result) => {
+    void flushPendingGarageVehicle().then(async (result) => {
       if (cancelled || result.skipped) return
       if (result.ok && result.message) toast.push(result.message, 'success')
       else if (!result.ok && result.message) {
@@ -30,12 +32,16 @@ export function PendingGarageFlush() {
           'error',
         )
       }
+      if (result.ok && result.vehicle && garage) {
+        await garage.refreshVehicles()
+        garage.setActiveVehicle(result.vehicle)
+      }
     })
 
     return () => {
       cancelled = true
     }
-  }, [user, loading, profileLoading, toast])
+  }, [user, loading, profileLoading, toast, garage])
 
   return null
 }

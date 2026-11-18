@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CustomerSavedVehicle } from '@/types'
 import {
   isVehicleIncomplete,
+  matchSavedVehicleForFilter,
   vehicleCatalogHref,
   vehicleDisplayName,
   vehiclePlateLabel,
@@ -42,5 +43,25 @@ describe('garageVehicleUi (#9 helpers)', () => {
     expect(vehiclePlateLabel(base)).toBeTruthy()
     expect(isVehicleIncomplete(base)).toBe(false)
     expect(isVehicleIncomplete({ ...base, versionId: null })).toBe(true)
+  })
+
+  it('casa filtro de placa com veículo salvo (evita ativo errado)', () => {
+    const palio: CustomerSavedVehicle = {
+      id: '2',
+      customerId: 'c1',
+      isPrimary: false,
+      makerName: 'Fiat',
+      modelName: 'Palio',
+      year: 2012,
+    }
+    const hit = matchSavedVehicleForFilter([palio, base], {
+      maker: 'Chevrolet',
+      model: 'Onix',
+      plate: 'GAF7032',
+    })
+    expect(hit?.id).toBe('1')
+    expect(
+      matchSavedVehicleForFilter([palio], { maker: 'Chevrolet', model: 'Onix' }),
+    ).toBeNull()
   })
 })

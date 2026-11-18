@@ -97,6 +97,34 @@ function resolveProvider(): PlateLookupProvider {
   return mockPlateProvider
 }
 
+/** R3: garante sourceSnapshot mesmo em hit de cache legado. */
+function attachSourceSnapshot(
+  result: NormalizedPlateLookupResult,
+): NormalizedPlateLookupResult {
+  if (result.sourceSnapshot?.maker || result.sourceSnapshot?.plate) {
+    return result
+  }
+  return {
+    ...result,
+    sourceSnapshot: {
+      plate: result.plate ?? null,
+      queriedAt: result.queriedAt ?? null,
+      source: result.source ?? null,
+      status: result.status ?? null,
+      maker: result.maker ?? null,
+      model: result.model ?? null,
+      year: result.year != null ? String(result.year) : null,
+      engine: result.engine ?? null,
+      version: result.version ?? null,
+      engineRaw: result.engineRaw ?? null,
+      versionRaw: result.versionRaw ?? null,
+      fuel: result.fuel ?? null,
+      transmission: result.transmission ?? null,
+      confidence: result.confidence ?? null,
+    },
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' })
@@ -189,7 +217,10 @@ Deno.serve(async (req) => {
               ? enriched.year
               : null
           if (!cacheYear) {
-            return json(200, payload)
+            return json(
+              200,
+              attachSourceSnapshot(payload as unknown as NormalizedPlateLookupResult),
+            )
           }
           const upserted = await vehicleCanonicalUpsert(sb, {
             ...enriched,
@@ -197,11 +228,11 @@ Deno.serve(async (req) => {
             source: 'plate',
           })
           const missingMv = !upserted.engine && !upserted.version
-          const refreshed = {
-            ...payload,
+          const refreshed = attachSourceSnapshot({
+            ...(payload as unknown as NormalizedPlateLookupResult),
             maker: upserted.maker,
             model: upserted.model,
-            year: upserted.year ?? payload.year ?? null,
+            year: upserted.year ?? (payload.year as string | null) ?? null,
             engine: upserted.engine,
             version: upserted.version,
             manufacturerId: upserted.manufacturerId,
@@ -213,7 +244,8 @@ Deno.serve(async (req) => {
               ? 'Veículo identificado. Motor/versão não informados pela consulta — confira antes de buscar.'
               : null,
             queriedAt: new Date().toISOString(),
-          }
+            sourceSnapshot: null,
+          })
           await sb.from('cached_plates').upsert(
             {
               plate,
@@ -230,7 +262,10 @@ Deno.serve(async (req) => {
           console.error('[plate-lookup] cache re-upsert error', err)
         }
       }
-      return json(200, payload)
+      return json(
+        200,
+        attachSourceSnapshot(payload as unknown as NormalizedPlateLookupResult),
+      )
     }
   }
 
@@ -442,5 +477,5 @@ Deno.serve(async (req) => {
     )
   }
 
-  return json(200, result)
+  return json(200, attachSourceSnapshot(result))
 })

@@ -4,8 +4,14 @@ import {
   readPendingGarageVehicle,
 } from '@/services/plates/pendingGarage'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import type { CustomerSavedVehicle } from '@/types'
 
-let inFlight: Promise<{ ok: boolean; message?: string }> | null = null
+let inFlight: Promise<{
+  ok: boolean
+  skipped?: boolean
+  message?: string
+  vehicle?: CustomerSavedVehicle
+}> | null = null
 
 /**
  * Persiste pending da garagem após login (uma vez por payload).
@@ -15,6 +21,7 @@ export async function flushPendingGarageVehicle(): Promise<{
   ok: boolean
   skipped?: boolean
   message?: string
+  vehicle?: CustomerSavedVehicle
 }> {
   if (!isSupabaseConfigured) return { ok: true, skipped: true }
   const pending = readPendingGarageVehicle()
@@ -24,9 +31,9 @@ export async function flushPendingGarageVehicle(): Promise<{
 
   inFlight = (async () => {
     try {
-      await ensureSavedVehicleFromFilter(pending)
+      const vehicle = await ensureSavedVehicleFromFilter(pending)
       clearPendingGarageVehicle()
-      return { ok: true, message: 'Veículo salvo na sua garagem.' }
+      return { ok: true, message: 'Veículo salvo na sua garagem.', vehicle }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Não foi possível salvar o veículo da garagem.'
