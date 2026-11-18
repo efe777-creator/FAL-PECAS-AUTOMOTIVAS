@@ -1,9 +1,9 @@
 # FAL — PLANO 2B · Fase C — XR / AR experimental
 
-**Status:** **C0–C2 na `dev`** (gate + sessão imersiva Three/WebXR procedural). **Sem** `main`.  
+**Status:** **C0–C3 na `dev`** (gate + sessão imersiva + hit-test AR + GLB-in-XR + marcadores). **Sem** `main`.  
 **Data:** 2026-11-18  
 **Branch:** `dev`  
-**Auth:** MARCHA eFe (C0–C1 pós B; C2 = MARCHA pós C1)  
+**Auth:** MARCHA eFe (C0–C3 em sequência na `dev`)  
 **Pai:** [FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md](./FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md)
 
 ---
@@ -12,10 +12,9 @@
 
 Expor um **adapter XR** no Visualization Engine, atrás de **gate explícito**, sem tornar XR obrigatório e **sem** criar fato 2A.
 
-### 1.1 Fora de escopo (C1–C2)
+### 1.1 Fora de escopo (C0–C3)
 
-- Hit-test de peça / tracking comercial completo (C3+)  
-- GLB dentro da sessão XR (C3+)  
+- Tracking comercial de SKU / checkout em AR  
 - Deploy `main`  
 - Ligar gate por default em produção  
 - Write-back para events/G7  
@@ -42,14 +41,15 @@ Sem as três primeiras → Engine **não** resolve `xr`.
 | **C0** | Este documento + MARCHA | Feito |
 | **C1** | Gate + detect + launcher XR + fallback Engine | Feito (`dev`) |
 | **C2** | Sessão imersiva viva (Three WebXR + carro procedural) | Feito (`dev`) |
-| **C3+** | Hit-test / peças / GLB na sessão XR | Futuro + nova auth |
+| **C3** | Hit-test AR + GLB-in-XR + marcadores sync | Feito (`dev`) |
+| **C4+** | Produto AR comercial (SKU/checkout) | Futuro + nova auth |
 
-### 3.1 Artefatos C2
+### 3.1 Artefatos C2–C3
 
 | Artefato | Papel |
 |----------|--------|
-| `visualXrSession.ts` | `startVisualXrImmersiveSession` + `buildProceduralCarGroup` |
-| `VehicleXrLauncher.tsx` | Entra/encerrar sessão; fallback Engine |
+| `visualXrSession.ts` | Sessão + hit-test + GLB + markers |
+| `VehicleXrLauncher.tsx` | Entra/encerrar; signed URL GLB; fallback |
 | Gate C1 | Intactos (env + opt-in + `navigator.xr` + reduced-motion) |
 
 ---

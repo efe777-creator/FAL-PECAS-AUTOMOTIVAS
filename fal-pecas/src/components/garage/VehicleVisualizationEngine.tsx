@@ -197,6 +197,10 @@ export function VehicleVisualizationEngine({
             mode={xrMode}
             payload={payload}
             reduceMotion={reduceMotion}
+            approvedAsset={approvedAsset}
+            syncEnabled={syncEnabled}
+            modelPartCount={modelParts.length}
+            orphanCount={orphanInstallCount}
             onFallback={(reason) => {
               setXrUserFallback(true)
               recordVisualTelemetry({

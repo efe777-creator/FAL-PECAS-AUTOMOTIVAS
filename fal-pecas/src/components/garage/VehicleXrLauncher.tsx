@@ -1,4 +1,6 @@
 import { Button } from '@/components/common/Button'
+import { signVisualAssetUrl } from '@/services/garage/vehicleVisualAssetService'
+import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTypes'
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
 import {
   startVisualXrImmersiveSession,
@@ -8,19 +10,27 @@ import { recordVisualTelemetry } from '@/services/garage/visualTelemetry'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
- * Fase C C2 — launcher XR com sessão imersiva (cena procedural).
- * Não cria fato 2A. Falha → onFallback (Engine usa glb/procedural/2d).
+ * Fase C C3 — launcher XR: hit-test AR + GLB opcional + marcadores sync.
+ * Não cria fato 2A. Falha → onFallback.
  */
 export function VehicleXrLauncher({
   mode,
   payload,
   reduceMotion,
+  approvedAsset = null,
+  syncEnabled = false,
+  modelPartCount = 0,
+  orphanCount = 0,
   onFallback,
   children,
 }: {
   mode: 'immersive-ar' | 'immersive-vr'
   payload: VehicleVisualPayload
   reduceMotion: boolean
+  approvedAsset?: VehicleVisualAsset | null
+  syncEnabled?: boolean
+  modelPartCount?: number
+  orphanCount?: number
   onFallback: (reason: string) => void
   children: ReactNode
 }) {
@@ -53,21 +63,46 @@ export function VehicleXrLauncher({
         await handleRef.current.end()
         handleRef.current = null
       }
+
+      let glbUrl: string | null = null
+      if (approvedAsset?.storagePath) {
+        try {
+          glbUrl = await signVisualAssetUrl(approvedAsset.storagePath, 180)
+        } catch {
+          glbUrl = null
+        }
+      }
+
       const handle = await startVisualXrImmersiveSession({
         mode,
         payload,
         reduceMotion,
+        glbUrl,
+        syncEnabled,
+        modelPartCount,
+        orphanCount,
       })
       handleRef.current = handle
       recordVisualTelemetry({
         source: 'xr',
         outcome: 'ok',
         durationMs: Math.round(performance.now() - t0),
-        reason: `immersive_${mode}`,
+        reason: [
+          `immersive_${mode}`,
+          handle.usedHitTest ? 'hit_test' : 'no_hit_test',
+          handle.usedGlb ? 'glb' : 'procedural',
+          `markers_${handle.partMarkerCount}`,
+        ].join('+'),
+        assetCode: approvedAsset?.code,
         reducedMotion,
       })
+      const bits = [
+        handle.usedGlb ? 'GLB' : 'procedural',
+        handle.usedHitTest ? 'hit-test AR (toque para fixar)' : null,
+        handle.partMarkerCount ? `${handle.partMarkerCount} marcador(es) sync` : null,
+      ].filter(Boolean)
       setMsg(
-        `Sessão ${mode} ativa (C2). Feche no headset/dispositivo para voltar. Visual ≠ fato técnico.`,
+        `Sessão ${mode} ativa (C3 · ${bits.join(' · ')}). Visual ≠ fato técnico.`,
       )
       setBusy(false)
     } catch (e) {
@@ -96,10 +131,12 @@ export function VehicleXrLauncher({
   return (
     <div className="space-y-2" aria-label="Experiência XR experimental">
       <div className="rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
-        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C2)</p>
+        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C3)</p>
         <p className="m-0 mt-1 text-xs text-fal-muted">
-          Gate ativo. Modo: <strong>{mode}</strong>. Cena procedural imersiva (hit-test/peças =
-          C3+). Não altera histórico técnico.
+          Gate ativo. Modo: <strong>{mode}</strong>
+          {approvedAsset ? ` · GLB ${approvedAsset.code}` : ' · procedural'}
+          {syncEnabled ? ` · sync peças (${modelPartCount + orphanCount})` : ''}. Em AR, toque no
+          anel amarelo para posicionar. Não altera histórico técnico.
           {reduceMotion ? ' Bloqueado por prefers-reduced-motion.' : ''}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">

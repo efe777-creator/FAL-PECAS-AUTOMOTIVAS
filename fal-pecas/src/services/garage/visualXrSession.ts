@@ -1,15 +1,19 @@
 /**
- * Fase C C2 — sessão WebXR com cena procedural do veículo (Three.js).
- * Visual ≠ fato. Hit-test / peças = C3+.
+ * Fase C C3 — sessão WebXR: hit-test AR + GLB opcional + marcadores de peça.
+ * Visual ≠ fato. Sem write-back 2A.
  */
 
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 export type VisualXrMode = 'immersive-ar' | 'immersive-vr'
 
 export type VisualXrSessionHandle = {
   mode: VisualXrMode
+  usedHitTest: boolean
+  usedGlb: boolean
+  partMarkerCount: number
   end: () => Promise<void>
 }
 
@@ -20,6 +24,29 @@ export function visualXrSessionBlockedReason(input: {
   if (input.reduceMotion) return 'reduced_motion'
   if (!input.hasXrApi) return 'no_xr_api'
   return null
+}
+
+/** Features da sessão: hit-test só em AR (optional → não quebra device sem suporte). */
+export function resolveXrSessionInit(mode: VisualXrMode): XRSessionInit {
+  if (mode === 'immersive-ar') {
+    return {
+      requiredFeatures: ['local'],
+      optionalFeatures: ['hit-test', 'local-floor'],
+    }
+  }
+  return {
+    requiredFeatures: ['local-floor'],
+    optionalFeatures: ['local'],
+  }
+}
+
+export function partMarkerCountForXr(input: {
+  syncEnabled: boolean
+  modelPartCount: number
+  orphanCount: number
+}): number {
+  if (!input.syncEnabled) return 0
+  return Math.min(12, Math.max(0, input.modelPartCount + input.orphanCount))
 }
 
 export function buildProceduralCarGroup(payload: VehicleVisualPayload): THREE.Group {
@@ -64,18 +91,52 @@ export function buildProceduralCarGroup(payload: VehicleVisualPayload): THREE.Gr
     car.add(w)
   }
 
-  car.position.set(0, 0, -1.2)
   return car
 }
 
+/** Esferas verdes = espelho visual de peças/sync (não é instalação física). */
+export function attachXrPartMarkers(root: THREE.Object3D, count: number): number {
+  const n = Math.min(12, Math.max(0, count))
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0x1b7a4a, emissive: 0x0a3d25, emissiveIntensity: 0.35 }),
+    )
+    const angle = (i / Math.max(1, n)) * Math.PI * 2
+    m.position.set(Math.cos(angle) * 1.15, 1.05 + (i % 3) * 0.08, Math.sin(angle) * 0.55)
+    m.name = `fal-xr-part-marker-${i}`
+    root.add(m)
+  }
+  return n
+}
+
+async function loadGlbRoot(url: string): Promise<THREE.Object3D> {
+  const loader = new GLTFLoader()
+  const gltf = await loader.loadAsync(url)
+  const root = gltf.scene
+  const box = new THREE.Box3().setFromObject(root)
+  const size = box.getSize(new THREE.Vector3())
+  const maxDim = Math.max(size.x, size.y, size.z) || 1
+  root.scale.setScalar(2.4 / maxDim)
+  const center = new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3())
+  root.position.sub(center)
+  const grounded = new THREE.Box3().setFromObject(root)
+  root.position.y -= grounded.min.y
+  return root
+}
+
 /**
- * Inicia sessão imersiva e apresenta cena procedural até o usuário encerrar.
- * Caller deve manter referência e chamar `end()` no unmount se necessário.
+ * Sessão imersiva C3: procedural ou GLB; AR com hit-test quando disponível.
  */
 export async function startVisualXrImmersiveSession(opts: {
   mode: VisualXrMode
   payload: VehicleVisualPayload
   reduceMotion: boolean
+  /** Signed URL GLB (opcional). Falha de load → procedural. */
+  glbUrl?: string | null
+  syncEnabled?: boolean
+  modelPartCount?: number
+  orphanCount?: number
 }): Promise<VisualXrSessionHandle> {
   const blocked = visualXrSessionBlockedReason({
     reduceMotion: opts.reduceMotion,
@@ -84,11 +145,7 @@ export async function startVisualXrImmersiveSession(opts: {
   if (blocked) throw new Error(blocked)
   if (!navigator.xr) throw new Error('no_xr_api')
 
-  // C2: só features mínimas (hit-test = C3+). optional evita hard-fail em device fraco.
-  const session = await navigator.xr.requestSession(opts.mode, {
-    requiredFeatures: opts.mode === 'immersive-ar' ? ['local'] : ['local-floor'],
-    optionalFeatures: ['local'],
-  })
+  const session = await navigator.xr.requestSession(opts.mode, resolveXrSessionInit(opts.mode))
 
   const scene = new THREE.Scene()
   if (opts.mode === 'immersive-vr') {
@@ -109,26 +166,119 @@ export async function startVisualXrImmersiveSession(opts: {
   dir.position.set(2, 4, 1)
   scene.add(dir)
 
-  const car = buildProceduralCarGroup(opts.payload)
-  scene.add(car)
+  const vehicleRoot = new THREE.Group()
+  vehicleRoot.name = 'fal-xr-vehicle-root'
+  scene.add(vehicleRoot)
+
+  let usedGlb = false
+  if (opts.glbUrl) {
+    try {
+      const glb = await loadGlbRoot(opts.glbUrl)
+      vehicleRoot.add(glb)
+      usedGlb = true
+    } catch {
+      vehicleRoot.add(buildProceduralCarGroup(opts.payload))
+    }
+  } else {
+    vehicleRoot.add(buildProceduralCarGroup(opts.payload))
+  }
+
+  const markerCount = partMarkerCountForXr({
+    syncEnabled: Boolean(opts.syncEnabled),
+    modelPartCount: opts.modelPartCount ?? 0,
+    orphanCount: opts.orphanCount ?? 0,
+  })
+  const partMarkerCount = attachXrPartMarkers(vehicleRoot, markerCount)
+
+  const reticle = new THREE.Mesh(
+    new THREE.RingGeometry(0.12, 0.15, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xf5c518 }),
+  )
+  reticle.matrixAutoUpdate = false
+  reticle.visible = false
+  scene.add(reticle)
 
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(2.5, 48),
     new THREE.MeshStandardMaterial({
       color: 0x8899aa,
       transparent: true,
-      opacity: opts.mode === 'immersive-ar' ? 0.25 : 0.55,
+      opacity: opts.mode === 'immersive-ar' ? 0.2 : 0.55,
       roughness: 1,
     }),
   )
   floor.rotation.x = -Math.PI / 2
   floor.position.y = -0.01
-  scene.add(floor)
+  // VR: veículo já posicionado; AR: esconde até hit
+  if (opts.mode === 'immersive-vr') {
+    vehicleRoot.position.set(0, 0, -1.4)
+    scene.add(floor)
+    floor.position.copy(vehicleRoot.position)
+    floor.position.y = -0.01
+  } else {
+    vehicleRoot.visible = false
+  }
+
+  let hitTestSource: XRHitTestSource | null = null
+  let usedHitTest = false
+  let placed = opts.mode === 'immersive-vr'
+
+  try {
+    if (opts.mode === 'immersive-ar' && 'requestHitTestSource' in session) {
+      const viewerSpace = await session.requestReferenceSpace('viewer')
+      hitTestSource = await (
+        session as XRSession & {
+          requestHitTestSource: (o: { space: XRReferenceSpace }) => Promise<XRHitTestSource>
+        }
+      ).requestHitTestSource({ space: viewerSpace })
+      usedHitTest = Boolean(hitTestSource)
+    }
+  } catch {
+    usedHitTest = false
+    hitTestSource = null
+    // Sem hit-test: posiciona à frente
+    vehicleRoot.visible = true
+    vehicleRoot.position.set(0, 0, -1.4)
+    placed = true
+  }
+
+  if (opts.mode === 'immersive-ar' && !hitTestSource) {
+    vehicleRoot.visible = true
+    vehicleRoot.position.set(0, 0, -1.4)
+    placed = true
+  }
+
+  const placeFromHitMatrix = (matrix: Float32Array | THREE.Matrix4) => {
+    const m = matrix instanceof THREE.Matrix4 ? matrix : new THREE.Matrix4().fromArray(matrix)
+    vehicleRoot.visible = true
+    vehicleRoot.matrixAutoUpdate = true
+    const pos = new THREE.Vector3()
+    const quat = new THREE.Quaternion()
+    const scl = new THREE.Vector3()
+    m.decompose(pos, quat, scl)
+    vehicleRoot.position.copy(pos)
+    vehicleRoot.quaternion.copy(quat)
+    placed = true
+    reticle.visible = false
+  }
+
+  const onSelect = () => {
+    if (!reticle.visible) return
+    placeFromHitMatrix(reticle.matrix)
+  }
+  session.addEventListener('select', onSelect)
 
   let ended = false
   const cleanup = () => {
     if (ended) return
     ended = true
+    session.removeEventListener('select', onSelect)
+    try {
+      hitTestSource?.cancel()
+    } catch {
+      /* ignore */
+    }
+    hitTestSource = null
     renderer.setAnimationLoop(null)
     try {
       renderer.dispose()
@@ -148,25 +298,44 @@ export async function startVisualXrImmersiveSession(opts: {
   }
 
   session.addEventListener('end', cleanup)
-
   await renderer.xr.setSession(session)
 
-  let frame = 0
-  renderer.setAnimationLoop(() => {
-    frame += 1
-    if (!opts.reduceMotion) {
-      car.rotation.y = Math.sin(frame * 0.01) * 0.25
+  let frameN = 0
+  renderer.setAnimationLoop((_time, frame) => {
+    frameN += 1
+    if (!opts.reduceMotion && placed) {
+      vehicleRoot.rotation.y = Math.sin(frameN * 0.008) * 0.2
     }
+
+    if (frame && hitTestSource && !placed) {
+      const refSpace = renderer.xr.getReferenceSpace()
+      if (refSpace) {
+        const hits = frame.getHitTestResults(hitTestSource)
+        if (hits.length > 0) {
+          const pose = hits[0].getPose(refSpace)
+          if (pose) {
+            reticle.visible = true
+            reticle.matrix.fromArray(pose.transform.matrix)
+          }
+        } else {
+          reticle.visible = false
+        }
+      }
+    }
+
     renderer.render(scene, camera)
   })
 
   return {
     mode: opts.mode,
+    usedHitTest,
+    usedGlb,
+    partMarkerCount,
     end: async () => {
       try {
         await session.end()
       } catch {
-        /* já encerrada pelo device */
+        /* já encerrada */
       }
       cleanup()
     },
