@@ -1,6 +1,7 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
 import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
@@ -13,6 +14,12 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useGarageOptional } from '@/contexts/GarageContext'
+import {
+  appGroupsToPvcRows,
+  classifyCompatibility,
+  vehicleFilterToCompatInput,
+} from '@/services/compatibility/compatibilityEngine'
 import { useToast } from '@/components/common/Toast'
 import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { trackAddToCart } from '@/lib/analytics'
@@ -36,13 +43,14 @@ import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { Product } from '@/types'
-import { type MouseEvent } from 'react'
+import { useMemo, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth()
   const { items, addItem } = useCart()
   const { isFavorite, toggle } = useFavorites()
+  const garage = useGarageOptional()
   const { push } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -60,6 +68,12 @@ export function ProductCard({ product }: { product: Product }) {
   const available = product.available !== false
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
+
+  const compatVerdict = useMemo(() => {
+    const input = vehicleFilterToCompatInput(garage?.activeFilter)
+    if (!input) return null
+    return classifyCompatibility(input, appGroupsToPvcRows(product.compatibilityGroups))
+  }, [garage?.activeFilter, product.compatibilityGroups])
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()
@@ -204,6 +218,11 @@ export function ProductCard({ product }: { product: Product }) {
               .filter(Boolean)
               .join(' · ')}
           </p>
+        ) : null}
+        {compatVerdict ? (
+          <div className="my-1.5">
+            <CompatibilityStateBadge verdict={compatVerdict} />
+          </div>
         ) : null}
         <CompatibilityAppsBlock
           className="my-2 text-xs"

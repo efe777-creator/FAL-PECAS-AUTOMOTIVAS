@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
 import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
@@ -33,14 +34,21 @@ import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { useOpenGraph } from '@/hooks/useOpenGraph'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { toUserMessage } from '@/lib/toUserMessage'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Product } from '@/types'
 import { Button } from '@/components/common/Button'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import { useToast } from '@/components/common/Toast'
+import {
+  classifyCompatibility,
+  type CompatibilityVerdict,
+  vehicleFilterToCompatInput,
+} from '@/services/compatibility/compatibilityEngine'
+import { loadPvcEvidenceByProductIds } from '@/services/compatibility/loadPvcEvidence'
 import {
   buildProductWhatsAppMessage,
   storeWhatsAppPhone,
@@ -96,6 +104,7 @@ export function ProductPage() {
   const { addItem, items } = useCart()
   const { user } = useAuth()
   const { isFavorite, toggle } = useFavorites()
+  const garage = useGarageOptional()
   const { push } = useToast()
   const presentation = useHomePresentation()
   const cartQty = product ? (items.find((i) => i.productId === product.id)?.quantity ?? 0) : 0
@@ -104,6 +113,33 @@ export function ProductPage() {
   /** Hooks antes de qualquer early-return (React #310). */
   const resolvedForHooks = product ? displayPrice(product) : 0
   const storefrontPrice = useStorefrontDisplayAmount(resolvedForHooks)
+  const [compatVerdict, setCompatVerdict] = useState<CompatibilityVerdict | null>(null)
+
+  const activeCompatInput = useMemo(
+    () => vehicleFilterToCompatInput(garage?.activeFilter),
+    [garage?.activeFilter],
+  )
+
+  useEffect(() => {
+    if (!product?.id || !activeCompatInput) {
+      setCompatVerdict(null)
+      return
+    }
+    let cancelled = false
+    void loadPvcEvidenceByProductIds([product.id])
+      .then((map) => {
+        if (cancelled) return
+        setCompatVerdict(
+          classifyCompatibility(activeCompatInput, map.get(product.id) ?? []),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setCompatVerdict(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [product?.id, activeCompatInput])
 
   useDocumentTitle(
     product
@@ -672,6 +708,20 @@ export function ProductPage() {
       {/* Abaixo do buy-box: apps → desc → specs → ajuda */}
       <div id="pdp-detalhes" className="mt-8 min-w-0 scroll-mt-24 space-y-4">
         <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
+          {compatVerdict ? (
+            <div className="mb-3 space-y-1">
+              <CompatibilityStateBadge verdict={compatVerdict} />
+              {compatVerdict.evidences.length ? (
+                <p className="m-0 text-xs text-fal-muted">
+                  {compatVerdict.evidences.map((e) => e.detail).join(' · ')}
+                </p>
+              ) : null}
+            </div>
+          ) : garage?.activeVehicle ? null : (
+            <p className="mb-3 text-xs text-fal-muted">
+              Defina um veículo ativo na Minha Garagem para ver a compatibilidade com esta peça.
+            </p>
+          )}
           <CompatibilityAppsBlock
             variant="pdp"
             groups={current.compatibilityGroups}

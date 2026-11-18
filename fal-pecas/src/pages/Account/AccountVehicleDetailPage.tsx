@@ -410,9 +410,22 @@ export function AccountVehicleDetailPage() {
 
         <Section title="Produtos / compatibilidade">
           <p className="m-0 text-fal-muted">
-            Badges de compatibilidade entram no motor G5. Por enquanto, abra o catálogo filtrado.
+            Com este veículo <strong>ativo na loja</strong>, o catálogo e a página do produto
+            mostram o veredito do motor (confirmada / provável / não confirmada) com evidências.
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
+            {garage.activeVehicle?.id !== vehicle.id ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  garage.setActiveVehicle(vehicle)
+                  toast.push('Veículo ativo — abra o catálogo para ver badges.', 'success')
+                }}
+              >
+                Usar na loja e ver peças
+              </Button>
+            ) : null}
             <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
               Abrir catálogo filtrado
             </ButtonLink>

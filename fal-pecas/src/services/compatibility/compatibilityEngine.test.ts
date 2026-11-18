@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest'
+import {
+  appGroupsToPvcRows,
+  classifyCompatibility,
+  type PvcCompatRow,
+  type VehicleCompatInput,
+} from './compatibilityEngine'
+
+const vehicle: VehicleCompatInput = {
+  maker: 'Chevrolet',
+  model: 'Onix',
+  year: 2020,
+  engine: '1.0',
+  version: 'LT',
+  versionId: 'vv-lt',
+}
+
+const fullPvc: PvcCompatRow = {
+  maker: 'Chevrolet',
+  model: 'Onix',
+  yearStart: 2019,
+  yearEnd: 2022,
+  engine: '1.0',
+  versionName: 'LT',
+  vehicleVersionId: 'vv-lt',
+}
+
+describe('classifyCompatibility (#16)', () => {
+  it('sem veículo / sem PVC → não confirmada', () => {
+    expect(classifyCompatibility(null, [fullPvc]).state).toBe('unconfirmed')
+    expect(classifyCompatibility(vehicle, []).state).toBe('unconfirmed')
+    expect(classifyCompatibility({ maker: 'X' }, [fullPvc]).state).toBe('unconfirmed')
+  })
+
+  it('PVC completo cruzando → confirmada', () => {
+    const v = classifyCompatibility(vehicle, [fullPvc])
+    expect(v.state).toBe('confirmed')
+    expect(v.evidences.some((e) => e.code === 'year')).toBe(true)
+    expect(v.evidences.some((e) => e.code === 'engine')).toBe(true)
+  })
+
+  it('version_id sozinho não basta', () => {
+    const v = classifyCompatibility(
+      { maker: 'Chevrolet', model: 'Onix', versionId: 'vv-lt' },
+      [
+        {
+          maker: 'Chevrolet',
+          model: 'Onix',
+          vehicleVersionId: 'vv-lt',
+          yearStart: null,
+          yearEnd: null,
+          engine: null,
+          versionName: null,
+        },
+      ],
+    )
+    expect(v.state).toBe('probable')
+  })
+
+  it('maker+model sem ano/motor → provável', () => {
+    const v = classifyCompatibility(
+      { maker: 'Chevrolet', model: 'Onix' },
+      [{ maker: 'Chevrolet', model: 'Onix', yearStart: 2019, yearEnd: 2022 }],
+    )
+    expect(v.state).toBe('probable')
+    expect(v.evidences.some((e) => e.code === 'year_missing')).toBe(true)
+  })
+
+  it('ano fora do período → não confirmada', () => {
+    const v = classifyCompatibility(
+      { ...vehicle, year: 2010 },
+      [fullPvc],
+    )
+    expect(v.state).toBe('unconfirmed')
+  })
+
+  it('só grupos de vitrine (sem período) → no máx. provável', () => {
+    const rows = appGroupsToPvcRows([
+      {
+        maker: 'Chevrolet',
+        lines: [{ model: 'Onix', engine: '1.0', version: 'LT', yearLabel: '19/22' }],
+      },
+    ])
+    const withEngine = classifyCompatibility(
+      { maker: 'Chevrolet', model: 'Onix', engine: '1.0', version: 'LT' },
+      rows,
+    )
+    expect(withEngine.state).toBe('confirmed')
+    const onlyMm = classifyCompatibility({ maker: 'Chevrolet', model: 'Onix' }, rows)
+    expect(onlyMm.state).toBe('probable')
+  })
+})
