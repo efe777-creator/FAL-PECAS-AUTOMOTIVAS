@@ -1,5 +1,7 @@
 # VAL — Placa preenche 5 filtros + empty state sem PVC
 
+**Planejamento:** fundação [PLANO 0](../../docs/planejamento/FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) · experiência Minha Garagem [PLANO 1](../../docs/planejamento/FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md)
+
 ## Critérios
 
 1. Após consultar placa real (ex.: `INT8C36`), a tela de conferência mostra **Montadora, Modelo, Ano, Motor e Versão** preenchidos (não select em branco).

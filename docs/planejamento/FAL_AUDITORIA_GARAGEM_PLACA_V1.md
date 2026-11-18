@@ -1,6 +1,10 @@
 # FAL_AUDITORIA_GARAGEM_PLACA_V1
 
-**Data:** 2026-11-11 · Somente leitura
+**Data:** 2026-11-11 · Somente leitura  
+
+> **SUPERSEDIDA (2026-11-18).** Não usar isoladamente para decisões.  
+> Diagnósticos como “sem VV não salva” estão **obsoletos** (PLANO 0 entregou save progressivo com `version_id` null).  
+> Fonte atual: [FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) · [FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) · [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md).
 
 ---
 

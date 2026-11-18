@@ -5,7 +5,7 @@
 **Branch de referência:** `dev` (`22ad9e7` no momento da auditoria)  
 **Workspace auditado:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas`  
 **Natureza:** Auditoria + planejamento técnico (**sem implementação nesta etapa**)  
-**Relacionados:** [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) · [FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md](./FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md) · [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md)
+**Relacionados:** [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) *(supersedida)* · [FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md](./FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md) · [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) · [FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) · [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md)
 
 ---
 
@@ -406,7 +406,7 @@ A FAL identifica e cadastra veículo pessoal mesmo sem versão/motorização da 
 
 ---
 
-**Status:** PLANO 0 **fundação FECHADA com residuals** (2026-11-18) — Etapas 1–6 entregues o suficiente para Planejamento 1; Etapa 7 (UX Minha Garagem) fora.
+**Status:** PLANO 0 **fundação FECHADA com residuals** (2026-11-18) — Etapas 1–6 entregues. Etapa 7 (UX Minha Garagem) → **[PLANO 1](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md)** (planejamento; implementação só após aprovação).
 
 ### Fechamento
 

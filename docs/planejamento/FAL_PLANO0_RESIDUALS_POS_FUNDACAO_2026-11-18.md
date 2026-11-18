@@ -3,13 +3,14 @@
 **Data:** 2026-11-18  
 **Origem:** [FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md)  
 **Status:** backlog pós-fundação — **não** bloqueia Planejamento 1 Minha Garagem  
-**Branch de referência:** `dev`
+**Branch de referência:** `dev`  
+**Consumidor:** [FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) absorve **R1** e **R7** na etapa **G1**.
 
 ---
 
 ## Escopo
 
-Itens conscientes deixados de fora do fechamento da fundação PLANO 0. Não misturar com Etapa 7 (UX completa da Minha Garagem).
+Itens conscientes deixados de fora do fechamento da fundação PLANO 0. UX completa = PLANO 1 (não misturar com P2 / visão 3D).
 
 ---
 

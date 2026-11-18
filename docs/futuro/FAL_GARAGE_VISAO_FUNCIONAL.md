@@ -3,7 +3,9 @@
 **Versão:** 1.0 · **Data:** 2026-11-16 · **Status:** FUTURO / direção  
 **Não autoriza implementação agora.**  
 **Visão:** [FAL_VISAO_ECOSSISTEMA_2040.md](../entrada/FAL_VISAO_ECOSSISTEMA_2040.md)  
-**Seed MVP:** `customer_vehicles` · `/conta/veiculos`
+**Seed MVP:** `customer_vehicles` · `/conta/veiculos`  
+**Spec detalhada (Planejamento 1):** [FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md](../planejamento/FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) — fundação + experiência inicial (aguardar aprovação eFe antes de codar).  
+**Fundação placa:** [FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md](../planejamento/FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md)
 
 ---
 
