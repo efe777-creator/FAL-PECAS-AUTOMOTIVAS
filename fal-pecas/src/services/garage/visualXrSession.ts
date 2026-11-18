@@ -145,6 +145,7 @@ function buildXrCommercialHud(opts: {
   parts: VisualXrCommercialPart[]
   onInterest: (part: VisualXrCommercialPart) => void
   onOpenProduct: (productId: string) => void
+  onExitToCart?: (productId: string) => void
 }): HTMLDivElement {
   const hud = document.createElement('div')
   hud.id = 'fal-xr-commercial-hud'
@@ -155,32 +156,47 @@ function buildXrCommercialHud(opts: {
     'border-radius:12px;padding:10px 12px;font:600 12px/1.35 system-ui,sans-serif;'
   const title = document.createElement('p')
   title.style.cssText = 'margin:0 0 8px;font-weight:800;font-size:13px'
-  title.textContent = 'Peças (espelho visual) · sem checkout na XR'
+  title.textContent = 'Peças (espelho visual) · C5: carrinho na web · sem pagamento na XR'
   hud.appendChild(title)
 
   for (const part of opts.parts) {
     const row = document.createElement('div')
     row.style.cssText =
-      'display:flex;gap:8px;align-items:center;justify-content:space-between;' +
+      'display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;' +
       'padding:6px 0;border-top:1px solid rgba(255,255,255,.08)'
     const label = document.createElement('button')
     label.type = 'button'
     label.style.cssText =
-      'flex:1;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer;padding:0'
+      'flex:1;min-width:140px;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer;padding:0'
     label.textContent = `${part.name}${part.sku ? ` · ${part.sku}` : ''} · ${part.state}`
     label.addEventListener('click', () => opts.onInterest(part))
     row.appendChild(label)
     if (part.productId) {
+      const actions = document.createElement('div')
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap'
       const openBtn = document.createElement('button')
       openBtn.type = 'button'
       openBtn.textContent = 'Ver ficha'
       openBtn.style.cssText =
-        'border:1px solid #f5c518;background:#f5c518;color:#0a121c;border-radius:8px;' +
+        'border:1px solid #f5c518;background:transparent;color:#f5c518;border-radius:8px;' +
         'padding:4px 8px;font-weight:800;cursor:pointer'
       openBtn.addEventListener('click', () => {
         if (part.productId) opts.onOpenProduct(part.productId)
       })
-      row.appendChild(openBtn)
+      actions.appendChild(openBtn)
+      if (opts.onExitToCart) {
+        const cartBtn = document.createElement('button')
+        cartBtn.type = 'button'
+        cartBtn.textContent = 'Carrinho'
+        cartBtn.style.cssText =
+          'border:1px solid #f5c518;background:#f5c518;color:#0a121c;border-radius:8px;' +
+          'padding:4px 8px;font-weight:800;cursor:pointer'
+        cartBtn.addEventListener('click', () => {
+          if (part.productId) opts.onExitToCart?.(part.productId)
+        })
+        actions.appendChild(cartBtn)
+      }
+      row.appendChild(actions)
     }
     hud.appendChild(row)
   }
@@ -217,8 +233,10 @@ export async function startVisualXrImmersiveSession(opts: {
   /** C4: peças com SKU/produto para HUD. */
   commercialParts?: VisualXrCommercialPart[]
   onCommercialInterest?: (part: VisualXrCommercialPart) => void
-  /** Encerra XR e navega à ficha — nunca carrinho. */
+  /** C4: encerra XR e navega à ficha. */
   onOpenProduct?: (productId: string) => void
+  /** C5: encerra XR, addItem + `/carrinho` — nunca pagamento in-XR. */
+  onExitToCart?: (productId: string) => void
 }): Promise<VisualXrSessionHandle> {
   const blocked = visualXrSessionBlockedReason({
     reduceMotion: opts.reduceMotion,
@@ -301,6 +319,11 @@ export async function startVisualXrImmersiveSession(opts: {
       onOpenProduct: (productId) => {
         opts.onOpenProduct?.(productId)
       },
+      onExitToCart: opts.onExitToCart
+        ? (productId) => {
+            opts.onExitToCart?.(productId)
+          }
+        : undefined,
     })
     document.body.appendChild(hud)
   }

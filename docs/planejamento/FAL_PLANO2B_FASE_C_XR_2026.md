@@ -44,8 +44,9 @@ Sem as três primeiras → Engine **não** resolve `xr`.
 | **C1** | Gate + detect + launcher XR + fallback Engine | Feito (`dev`) |
 | **C2** | Sessão imersiva viva (Three WebXR + carro procedural) | Feito (`dev`) |
 | **C3** | Hit-test AR + GLB-in-XR + marcadores sync | Feito (`dev`) |
-| **C4** | Bridge SKU → ficha produto (HUD; sem checkout in-XR) | Feito (`dev`) |
-| **C5+** | Checkout in-XR / pagamento imersivo | Fora — nova auth explícita |
+| **C4** | Bridge SKU → ficha produto (HUD) | Feito (`dev`) |
+| **C5** | Exit-to-cart web (addItem + `/carrinho`; sem pagamento in-XR) | Feito (`dev`) · MARCHA SEQUENCIAL |
+| **C6+** | Pagamento / gateway dentro da sessão XR | Fora — auth futura |
 
 ### 3.1 Artefatos C2–C4
 

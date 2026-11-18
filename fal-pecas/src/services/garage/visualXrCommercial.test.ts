@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { VisualPartPreview } from '@/services/garage/vehicleVisualPartPreview'
 import {
   buildXrCommercialParts,
+  xrCartPath,
   xrCommercialTelemetryReason,
+  xrExitToCartTelemetryReason,
   xrNeverCheckoutsInSession,
+  xrNeverPaysInSession,
   xrProductPath,
 } from './visualXrCommercial'
 
@@ -22,12 +25,14 @@ function part(over: Partial<VisualPartPreview> = {}): VisualPartPreview {
 }
 
 describe('visualXrCommercial', () => {
-  it('nunca faz checkout in-XR', () => {
+  it('nunca paga in-XR; C4 legado alinha', () => {
+    expect(xrNeverPaysInSession()).toBe(true)
     expect(xrNeverCheckoutsInSession()).toBe(true)
   })
 
-  it('deep-link de produto', () => {
+  it('paths web C4/C5', () => {
     expect(xrProductPath('abc/def')).toBe('/produto/abc%2Fdef')
+    expect(xrCartPath()).toBe('/carrinho')
   })
 
   it('só com sync; exige sku ou productId; cap 12', () => {
@@ -44,5 +49,6 @@ describe('visualXrCommercial', () => {
     expect(reason).toContain('sku_interest')
     expect(reason).not.toContain('Segredo')
     expect(reason).not.toContain('SKU-SECRET')
+    expect(xrExitToCartTelemetryReason('p1')).toBe('exit_to_cart+has_product')
   })
 })

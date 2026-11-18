@@ -1,12 +1,17 @@
 import { Button } from '@/components/common/Button'
+import { useCart } from '@/contexts/CartContext'
+import { useToast } from '@/components/common/Toast'
+import { toUserMessage } from '@/lib/toUserMessage'
 import { signVisualAssetUrl } from '@/services/garage/vehicleVisualAssetService'
 import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTypes'
 import type { VisualPartPreview } from '@/services/garage/vehicleVisualPartPreview'
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
 import {
   buildXrCommercialParts,
+  xrCartPath,
   xrCommercialTelemetryReason,
-  xrNeverCheckoutsInSession,
+  xrExitToCartTelemetryReason,
+  xrNeverPaysInSession,
   xrProductPath,
 } from '@/services/garage/visualXrCommercial'
 import {
@@ -14,11 +19,13 @@ import {
   type VisualXrSessionHandle,
 } from '@/services/garage/visualXrSession'
 import { recordVisualTelemetry } from '@/services/garage/visualTelemetry'
+import { getProductById } from '@/services/products/productService'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 /**
- * Fase C C4 — launcher XR: hit-test + GLB + bridge SKU → ficha (sem checkout in-XR).
+ * Fase C C5 — launcher XR: hit-test + GLB + ficha + exit-to-cart.
+ * Pagamento nunca in-XR (`xrNeverPaysInSession`).
  */
 export function VehicleXrLauncher({
   mode,
@@ -42,6 +49,8 @@ export function VehicleXrLauncher({
   children: ReactNode
 }) {
   const navigate = useNavigate()
+  const { addItem } = useCart()
+  const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const handleRef = useRef<VisualXrSessionHandle | null>(null)
@@ -59,8 +68,15 @@ export function VehicleXrLauncher({
     }
   }, [])
 
+  async function endAndRun(after: () => void | Promise<void>) {
+    const h = handleRef.current
+    handleRef.current = null
+    if (h) await h.end()
+    await after()
+  }
+
   async function startSession() {
-    void xrNeverCheckoutsInSession()
+    void xrNeverPaysInSession()
     if (reduceMotion) {
       onFallback('reduced_motion')
       return
@@ -111,11 +127,38 @@ export function VehicleXrLauncher({
             reason: 'open_product_sheet',
             reducedMotion,
           })
-          const h = handleRef.current
-          handleRef.current = null
-          void (async () => {
-            if (h) await h.end()
+          void endAndRun(() => {
             navigate(xrProductPath(productId))
+          })
+        },
+        onExitToCart: (productId) => {
+          void (async () => {
+            recordVisualTelemetry({
+              source: 'xr',
+              outcome: 'ok',
+              reason: xrExitToCartTelemetryReason(productId),
+              reducedMotion,
+            })
+            try {
+              const product = await getProductById(productId)
+              if (!product) throw new Error('produto_indisponivel')
+              await endAndRun(() => {
+                addItem(product, 1)
+                toast.push('Item adicionado — finalize na web (sem pagamento na XR)', 'success')
+                navigate(xrCartPath())
+              })
+            } catch (e) {
+              recordVisualTelemetry({
+                source: 'xr',
+                outcome: 'error',
+                reason: 'exit_to_cart_failed',
+                reducedMotion,
+              })
+              toast.push(toUserMessage(e, 'Não foi possível ir ao carrinho'), 'error')
+              await endAndRun(() => {
+                navigate(xrProductPath(productId))
+              })
+            }
           })()
         },
       })
@@ -130,6 +173,7 @@ export function VehicleXrLauncher({
           handle.usedGlb ? 'glb' : 'procedural',
           `markers_${handle.partMarkerCount}`,
           `commercial_${handle.commercialCount}`,
+          'c5_exit_to_cart',
         ].join('+'),
         assetCode: approvedAsset?.code,
         reducedMotion,
@@ -138,12 +182,12 @@ export function VehicleXrLauncher({
         handle.usedGlb ? 'GLB' : 'procedural',
         handle.usedHitTest ? 'hit-test AR' : null,
         handle.commercialCount
-          ? `${handle.commercialCount} SKU(s) no HUD`
+          ? `${handle.commercialCount} SKU(s) · Carrinho web`
           : handle.partMarkerCount
             ? `${handle.partMarkerCount} marcador(es)`
             : null,
       ].filter(Boolean)
-      setMsg(`Sessão ${mode} ativa (C4 · ${bits.join(' · ')}). Sem checkout na XR.`)
+      setMsg(`Sessão ${mode} ativa (C5 · ${bits.join(' · ')}). Pagamento só na web.`)
       setBusy(false)
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'xr_session_failed'
@@ -171,7 +215,7 @@ export function VehicleXrLauncher({
   return (
     <div className="space-y-2" aria-label="Experiência XR experimental">
       <div className="rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
-        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C4)</p>
+        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C5)</p>
         <p className="m-0 mt-1 text-xs text-fal-muted">
           Gate ativo. Modo: <strong>{mode}</strong>
           {approvedAsset ? ` · GLB ${approvedAsset.code}` : ' · procedural'}
@@ -180,7 +224,7 @@ export function VehicleXrLauncher({
             : syncEnabled
               ? ' · sync sem SKU elegível'
               : ''}
-          . Bridge comercial = ver ficha (nunca checkout na XR).
+          . C5: sair para carrinho web — <strong>nunca</strong> pagamento na XR.
           {reduceMotion ? ' Bloqueado por prefers-reduced-motion.' : ''}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">

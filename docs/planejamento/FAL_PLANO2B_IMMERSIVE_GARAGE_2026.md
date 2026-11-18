@@ -247,19 +247,17 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Smoke browser Camada 1 + ADM (`dev` · VAL S1–S8)  
 - [x] Smoke gate XR desktop (VAL S9–S11 · env+opt-in · sem sessão ≠ resolve xr)  
 - [x] Privacidade visual transferência (Vitest + copy wizard)  
-- [ ] Smoke sessão XR em headset real — auth: `MARCHA HEADSET`  
-- [ ] Fase C C5+ (checkout in-XR) — auth: `MARCHA C5`  
-- [ ] Deploy `main` — auth: `MARCHA MAIN` (expressa)  
+- [x] HEADSET smoke desktop: `isSessionSupported(ar/vr)=false` — sessão imersiva **bloqueada sem hardware** (MARCHA SEQUENCIAL)  
+- [x] Fase C C5 (exit-to-cart web; `xrNeverPaysInSession`) — MARCHA SEQUENCIAL  
+- [ ] Deploy `main` — ver § Gate MAIN (remote sem `main` até criação)  
 
-### Gate pós-2B (MARCHA STOP · 2026-11-18)
+### MARCHA SEQUENCIAL (2026-11-18)
 
-Não há mais etapa automática do PLANO 2B na `dev`. Comandos liberados só com texto explícito:
-
-| Comando | Efeito |
-|---------|--------|
-| `MARCHA HEADSET` | Smoke/sessão XR em device (operador + hardware) |
-| `MARCHA C5` | Checkout in-XR (escopo novo; alto risco) |
-| `MARCHA MAIN` | Merge/`main` + deploy produção (regra FAL) |  
+| Passo | Resultado |
+|-------|-----------|
+| HEADSET | **BLOCKED hardware** — Chromium desktop: API XR presente, AR/VR session unsupported |
+| C5 | **PASS código** — HUD “Carrinho” → `getProductById` + `addItem` + `/carrinho`; sem pagamento in-XR |
+| MAIN | Executar após push C5 — criar `main` a partir de `dev` se remoto só tiver `dev` |  
 
 ### 7.2 Aceite E1–E4 (resumo)
 
