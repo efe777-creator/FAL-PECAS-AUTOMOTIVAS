@@ -99,9 +99,9 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | S9 | `VITE_FAL_VISUAL_XR=1` local | Checkbox **XR experimental** aparece (antes ausente) |
 | S10 | Opt-in XR localStorage | Liga → “ativo nesta máquina”; `fal-garage-visual-xr-v1=1` |
 | S11 | Desktop sem sessão XR | `navigator.xr` presente mas `isSessionSupported(ar/vr)=false` → Engine **não** resolve `xr` (fica procedural); HUD XR ausente |
-| — | Sessão imersiva / hit-test headset | **Pendente** device WebXR real |
+| S12 | Privacidade visual / transferência | Vitest `visualPrivacyContract` **4 PASS** · copy wizard: Visual **não** transfere (`VehicleTransferPanel`) |
+| — | Sessão imersiva / hit-test headset | **Pendente** — auth `MARCHA HEADSET` |
 | — | Sync on com `installed_declared` | Sem fatos no veículo de teste |
-| — | Transferência wizard | Não reexecutado neste smoke |
 
 ---
 
@@ -165,11 +165,11 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | Fase C C0–C4 | PASS código `dev` |
 | Smoke browser Camada 1 + ADM | PASS (S1–S8) |
 | Smoke gate XR desktop | PASS (S9–S11) |
-| Smoke sessão XR headset | Pendente |
-| C5+ checkout in-XR | Bloqueado |
-| Merge `main` / deploy | Bloqueado |
+| Smoke sessão XR headset | Bloqueado → `MARCHA HEADSET` |
+| C5+ checkout in-XR | Bloqueado → `MARCHA C5` |
+| Merge `main` / deploy | Bloqueado → `MARCHA MAIN` |
 
-**Veredito:** PLANO 2B **código + smoke desktop (incl. gate XR) completo** na `dev`. Headset imersivo + `main` ainda bloqueados.
+**Veredito:** PLANO 2B **ENCERRADO na `dev` (MARCHA STOP)**. Código + smoke desktop (S1–S12) completos. Próximo passo só com auth explícita da tabela Gate pós-2B.
 
 ---
 

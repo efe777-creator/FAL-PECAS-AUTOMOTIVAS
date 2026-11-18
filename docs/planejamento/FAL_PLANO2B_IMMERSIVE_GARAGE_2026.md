@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **PLANO 2B COMPLETO na `dev`** (código + smoke Camada1/ADM + gate XR desktop). Tip smoke `ae514cf`+. Headset XR + `main` pendentes.  
+**Status:** **PLANO 2B ENCERRADO na `dev` (MARCHA STOP).** Código + smoke desktop completos. Tip `d7a840d`. Próximo passo exige auth **explícita** (não basta “MARCHA” genérico).  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Fase C doc:** [FAL_PLANO2B_FASE_C_XR_2026.md](./FAL_PLANO2B_FASE_C_XR_2026.md)  
 **Data:** 2026-11-18  
@@ -244,9 +244,20 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Consolidação 2B docs/VAL (código/contrato completo na `dev`)  
 - [x] Smoke browser Camada 1 + ADM (`dev` · VAL S1–S8)  
 - [x] Smoke gate XR desktop (VAL S9–S11 · env+opt-in · sem sessão ≠ resolve xr)  
-- [ ] Smoke sessão XR em headset real  
-- [ ] Fase C C5+ (checkout in-XR) — nova auth explícita  
-- [ ] Deploy `main`  
+- [x] Privacidade visual transferência (Vitest + copy wizard)  
+- [ ] Smoke sessão XR em headset real — auth: `MARCHA HEADSET`  
+- [ ] Fase C C5+ (checkout in-XR) — auth: `MARCHA C5`  
+- [ ] Deploy `main` — auth: `MARCHA MAIN` (expressa)  
+
+### Gate pós-2B (MARCHA STOP · 2026-11-18)
+
+Não há mais etapa automática do PLANO 2B na `dev`. Comandos liberados só com texto explícito:
+
+| Comando | Efeito |
+|---------|--------|
+| `MARCHA HEADSET` | Smoke/sessão XR em device (operador + hardware) |
+| `MARCHA C5` | Checkout in-XR (escopo novo; alto risco) |
+| `MARCHA MAIN` | Merge/`main` + deploy produção (regra FAL) |  
 
 ### 7.2 Aceite E1–E4 (resumo)
 

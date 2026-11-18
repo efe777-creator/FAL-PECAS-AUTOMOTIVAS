@@ -71,6 +71,8 @@ Sem as três primeiras → Engine **não** resolve `xr`.
 | Item | Status |
 |------|--------|
 | C0–C4 código | Feito `dev` |
-| VAL B/C | Atualizado |
-| Smoke XR device | Pendente operador |
-| C5+ / `main` | Bloqueados sem auth explícita |
+| VAL B/C + smoke desktop S9–S12 | Feito |
+| Smoke XR headset | `MARCHA HEADSET` |
+| C5+ / `main` | `MARCHA C5` / `MARCHA MAIN` |
+
+**MARCHA STOP:** não há C4.1 automático.
