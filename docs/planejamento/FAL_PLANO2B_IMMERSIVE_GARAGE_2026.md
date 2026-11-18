@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Camada 1 PASS código** · **Fase B E0–E1 em curso** (doc Camada 2 + Visualization Engine). GLB loader / ADM ainda não. Fase C = AR bloqueada.  
+**Status:** **Camada 1 PASS** · **Fase B E0–E5 na `dev`** (Engine + GLB + ADM + perf/a11y). Fase C = AR bloqueada.  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
@@ -211,7 +211,7 @@ Observabilidade (Fase B+): modelo, resultado load, erros, tempo, fallback, categ
 | Fase | Nome | Conteúdo | Auth |
 |------|------|----------|------|
 | **A** | Consolidação | Auditoria E1–E4, VAL, privacidade, testes, sync docs | Código/contrato PASS (`bb928fc`) |
-| **B** | Evolução 3D real | Biblioteca GLB, engine, compatibilidade, licenças, ADM… | **MARCHA** · E0–E1 feitos; E2+ pendente |
+| **B** | Evolução 3D real | Biblioteca GLB, engine, compatibilidade, licenças, ADM, perf/a11y | **E0–E5 feitos** na `dev` |
 | **C** | Imersão | AR/WebXR | MARCHA + gate explícito |
 
 AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
@@ -236,7 +236,6 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase B E3 loader GLB lazy + fallback  
 - [x] Fase B E4 ADM `/admin/modelos-3d`  
 - [x] Fase B E5 performance / a11y / obs mínima  
-- [ ] Fase C AR — MARCHA + gate  
 - [ ] Fase C (AR) — MARCHA + gate  
 - [ ] Deploy `main`  
 
