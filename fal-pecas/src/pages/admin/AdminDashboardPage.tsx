@@ -369,6 +369,7 @@ function DashboardShell({
         </div>
       ) : (
         <DashboardLayoutEngine
+          key={editing ? 'dash-editing' : 'dash-view'}
           items={workingItems}
           boundsByWidgetId={bounds}
           editing={editing}

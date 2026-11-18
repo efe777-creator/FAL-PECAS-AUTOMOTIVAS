@@ -348,7 +348,7 @@ export function WidgetShortcutsPinned() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-auto p-1">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-1">
       <div>
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fixados
@@ -448,7 +448,7 @@ export function WidgetPipelineFlow() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-auto p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-0.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fluxo do pedido
@@ -464,7 +464,7 @@ export function WidgetPipelineFlow() {
       />
       {statusCounts.status === 'success' || statusCounts.status === 'empty' ? (
         <>
-          <div className="grid gap-2 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {ADMIN_ORDER_GROUPS.map((g, idx) => {
               const n = sumGroupCount(counts, g)
               const active = selected === g.id
@@ -476,7 +476,7 @@ export function WidgetPipelineFlow() {
                   onClick={() => setSelected(g.id)}
                   title={g.description}
                   className={[
-                    'relative flex flex-col gap-1.5 rounded-[14px] border px-3 py-3 text-left transition',
+                    'relative flex min-h-[5.5rem] flex-col gap-1.5 rounded-[14px] border px-3 py-3 text-left transition',
                     active
                       ? 'border-fal-accent bg-fal-accent/10 shadow-sm ring-1 ring-fal-accent/25'
                       : 'border-fal-line bg-fal-surface hover:border-fal-accent/40',
@@ -484,7 +484,7 @@ export function WidgetPipelineFlow() {
                 >
                   {idx < ADMIN_ORDER_GROUPS.length - 1 ? (
                     <span
-                      className="pointer-events-none absolute -right-1.5 top-1/2 z-10 hidden -translate-y-1/2 text-fal-muted sm:block"
+                      className="pointer-events-none absolute -right-1.5 top-1/2 z-10 hidden -translate-y-1/2 text-fal-muted lg:block"
                       aria-hidden
                     >
                       ›
@@ -646,11 +646,11 @@ export function WidgetAttentionTable() {
   const { contextual, openOrder, setContextual } = useDashboardContextual()
   const selectedOrderId =
     contextual?.kind === 'order' ? contextual.orderId : null
-  const rows = attention.data ?? []
+  const rows = (attention.data ?? []).slice(0, 5)
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-auto p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-0.5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
           Fila de atenção
@@ -872,7 +872,7 @@ export function WidgetCashBox() {
         loadingLabel="Carregando caixa…"
       />
       {ind ? (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <MiniStat label="Líquido" value={formatMoney(ind.financial.netReceived)} />
           <MiniStat label="Capturado" value={formatMoney(ind.financial.captured)} />
           <MiniStat
@@ -923,7 +923,7 @@ export function WidgetLogisticsQueues() {
   ]
 
   return (
-    <div className="flex h-full flex-col overflow-auto p-0.5">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-0.5">
       <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         Logística
       </h3>
@@ -938,7 +938,7 @@ export function WidgetLogisticsQueues() {
             const q = ADMIN_LOGISTICS_QUEUES.find((x) => x.id === c.id)
             const body = (
               <>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+                <span className="text-[10px] font-bold uppercase leading-snug tracking-wide text-fal-muted">
                   {c.label}
                 </span>
                 <span className="mt-1.5 text-xl font-extrabold tabular-nums text-fal-fg">
@@ -947,7 +947,7 @@ export function WidgetLogisticsQueues() {
               </>
             )
             const cls = [
-              'flex flex-col justify-center rounded-[14px] border px-3 py-3 transition hover:border-fal-accent/50',
+              'flex min-h-[5rem] flex-col justify-center rounded-[14px] border px-3 py-3 transition hover:border-fal-accent/50',
               c.warning
                 ? 'border-fal-warning/40 bg-fal-warning/10'
                 : 'border-fal-line bg-fal-surface',

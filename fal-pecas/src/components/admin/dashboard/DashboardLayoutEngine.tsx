@@ -47,7 +47,9 @@ function scaleForBreakpoint(
   if (cols <= 1) {
     let y = 0
     return items.map((it) => {
-      const next = { ...it, x: 0, y, w: 1, h: Math.max(it.h, 2) }
+      // Mobile empilha o conteúdo — sobe a altura para não cortar texto/KPIs
+      const h = Math.max(it.h + 2, Math.ceil(it.h * 1.25), 4)
+      const next = { ...it, x: 0, y, w: 1, h }
       y += next.h
       return next
     })
@@ -178,8 +180,8 @@ export function DashboardLayoutEngine({
           layouts={layouts}
           breakpoints={BREAKPOINTS}
           cols={COLS}
-          rowHeight={56}
-          margin={[14, 14] as const}
+          rowHeight={64}
+          margin={[12, 12] as const}
           containerPadding={[0, 0] as const}
           compactor={verticalCompactor}
           dragConfig={{
@@ -249,8 +251,8 @@ export function DashboardLayoutEngine({
                 ) : null}
                 <div
                   className={[
-                    editing ? 'fal-dash-no-drag p-2.5' : 'h-full p-3',
-                    editing ? 'overflow-auto' : '',
+                    editing ? 'fal-dash-no-drag min-h-0 p-2.5' : 'h-full min-h-0 p-3',
+                    'overflow-hidden',
                   ].join(' ')}
                 >
                   {renderDashboardWidget(item.widgetId)}
