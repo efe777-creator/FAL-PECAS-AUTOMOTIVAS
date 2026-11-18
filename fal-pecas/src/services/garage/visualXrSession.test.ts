@@ -47,7 +47,7 @@ describe('visualXrSession', () => {
     const group = buildProceduralCarGroup(DEFAULT_VISUAL_PAYLOAD)
     expect(group.children.length).toBeGreaterThan(0)
     const root = new THREE.Group()
-    expect(attachXrPartMarkers(root, 3)).toBe(3)
+    expect(attachXrPartMarkers(root, 3)).toHaveLength(3)
     expect(root.children.length).toBe(3)
   })
 })

@@ -199,7 +199,7 @@ export function VehicleVisualizationEngine({
             reduceMotion={reduceMotion}
             approvedAsset={approvedAsset}
             syncEnabled={syncEnabled}
-            modelPartCount={modelParts.length}
+            modelParts={modelParts}
             orphanCount={orphanInstallCount}
             onFallback={(reason) => {
               setXrUserFallback(true)

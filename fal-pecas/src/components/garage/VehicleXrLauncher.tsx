@@ -1,17 +1,24 @@
 import { Button } from '@/components/common/Button'
 import { signVisualAssetUrl } from '@/services/garage/vehicleVisualAssetService'
 import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTypes'
+import type { VisualPartPreview } from '@/services/garage/vehicleVisualPartPreview'
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
+import {
+  buildXrCommercialParts,
+  xrCommercialTelemetryReason,
+  xrNeverCheckoutsInSession,
+  xrProductPath,
+} from '@/services/garage/visualXrCommercial'
 import {
   startVisualXrImmersiveSession,
   type VisualXrSessionHandle,
 } from '@/services/garage/visualXrSession'
 import { recordVisualTelemetry } from '@/services/garage/visualTelemetry'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 /**
- * Fase C C3 — launcher XR: hit-test AR + GLB opcional + marcadores sync.
- * Não cria fato 2A. Falha → onFallback.
+ * Fase C C4 — launcher XR: hit-test + GLB + bridge SKU → ficha (sem checkout in-XR).
  */
 export function VehicleXrLauncher({
   mode,
@@ -19,7 +26,7 @@ export function VehicleXrLauncher({
   reduceMotion,
   approvedAsset = null,
   syncEnabled = false,
-  modelPartCount = 0,
+  modelParts = [],
   orphanCount = 0,
   onFallback,
   children,
@@ -29,14 +36,20 @@ export function VehicleXrLauncher({
   reduceMotion: boolean
   approvedAsset?: VehicleVisualAsset | null
   syncEnabled?: boolean
-  modelPartCount?: number
+  modelParts?: VisualPartPreview[]
   orphanCount?: number
   onFallback: (reason: string) => void
   children: ReactNode
 }) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const handleRef = useRef<VisualXrSessionHandle | null>(null)
+
+  const commercialParts = useMemo(
+    () => buildXrCommercialParts(modelParts, syncEnabled),
+    [modelParts, syncEnabled],
+  )
 
   useEffect(() => {
     return () => {
@@ -47,6 +60,7 @@ export function VehicleXrLauncher({
   }, [])
 
   async function startSession() {
+    void xrNeverCheckoutsInSession()
     if (reduceMotion) {
       onFallback('reduced_motion')
       return
@@ -79,8 +93,31 @@ export function VehicleXrLauncher({
         reduceMotion,
         glbUrl,
         syncEnabled,
-        modelPartCount,
+        modelPartCount: modelParts.length,
         orphanCount,
+        commercialParts,
+        onCommercialInterest: (part) => {
+          recordVisualTelemetry({
+            source: 'xr',
+            outcome: 'ok',
+            reason: xrCommercialTelemetryReason(part),
+            reducedMotion,
+          })
+        },
+        onOpenProduct: (productId) => {
+          recordVisualTelemetry({
+            source: 'xr',
+            outcome: 'ok',
+            reason: 'open_product_sheet',
+            reducedMotion,
+          })
+          const h = handleRef.current
+          handleRef.current = null
+          void (async () => {
+            if (h) await h.end()
+            navigate(xrProductPath(productId))
+          })()
+        },
       })
       handleRef.current = handle
       recordVisualTelemetry({
@@ -92,18 +129,21 @@ export function VehicleXrLauncher({
           handle.usedHitTest ? 'hit_test' : 'no_hit_test',
           handle.usedGlb ? 'glb' : 'procedural',
           `markers_${handle.partMarkerCount}`,
+          `commercial_${handle.commercialCount}`,
         ].join('+'),
         assetCode: approvedAsset?.code,
         reducedMotion,
       })
       const bits = [
         handle.usedGlb ? 'GLB' : 'procedural',
-        handle.usedHitTest ? 'hit-test AR (toque para fixar)' : null,
-        handle.partMarkerCount ? `${handle.partMarkerCount} marcador(es) sync` : null,
+        handle.usedHitTest ? 'hit-test AR' : null,
+        handle.commercialCount
+          ? `${handle.commercialCount} SKU(s) no HUD`
+          : handle.partMarkerCount
+            ? `${handle.partMarkerCount} marcador(es)`
+            : null,
       ].filter(Boolean)
-      setMsg(
-        `Sessão ${mode} ativa (C3 · ${bits.join(' · ')}). Visual ≠ fato técnico.`,
-      )
+      setMsg(`Sessão ${mode} ativa (C4 · ${bits.join(' · ')}). Sem checkout na XR.`)
       setBusy(false)
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'xr_session_failed'
@@ -131,12 +171,16 @@ export function VehicleXrLauncher({
   return (
     <div className="space-y-2" aria-label="Experiência XR experimental">
       <div className="rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
-        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C3)</p>
+        <p className="m-0 font-extrabold text-fal-fg">XR experimental (Fase C · C4)</p>
         <p className="m-0 mt-1 text-xs text-fal-muted">
           Gate ativo. Modo: <strong>{mode}</strong>
           {approvedAsset ? ` · GLB ${approvedAsset.code}` : ' · procedural'}
-          {syncEnabled ? ` · sync peças (${modelPartCount + orphanCount})` : ''}. Em AR, toque no
-          anel amarelo para posicionar. Não altera histórico técnico.
+          {commercialParts.length
+            ? ` · ${commercialParts.length} peça(s) com SKU`
+            : syncEnabled
+              ? ' · sync sem SKU elegível'
+              : ''}
+          . Bridge comercial = ver ficha (nunca checkout na XR).
           {reduceMotion ? ' Bloqueado por prefers-reduced-motion.' : ''}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
