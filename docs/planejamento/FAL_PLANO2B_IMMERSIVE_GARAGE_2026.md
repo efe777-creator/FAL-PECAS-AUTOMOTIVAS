@@ -1,6 +1,6 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **PLANO 2B código/contrato COMPLETO na `dev`** (Camada 1 + Fase A + B E0–E5 + C C0–C4). Tip `1ecac1d`. Smoke manual + `main` pendentes.  
+**Status:** **PLANO 2B COMPLETO na `dev`** (código + smoke browser Camada1/ADM). Tip consolidação `30f51a0` · C4 `1ecac1d`. XR device + `main` pendentes.  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
 **Fase C doc:** [FAL_PLANO2B_FASE_C_XR_2026.md](./FAL_PLANO2B_FASE_C_XR_2026.md)  
 **Data:** 2026-11-18  
@@ -242,7 +242,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase C C3 (hit-test AR + GLB-in-XR + marcadores sync)  
 - [x] Fase C C4 (bridge SKU → ficha; sem checkout in-XR)  
 - [x] Consolidação 2B docs/VAL (código/contrato completo na `dev`)  
-- [ ] Smoke manual operador (Camada 1 + XR)  
+- [x] Smoke browser Camada 1 + ADM (`dev` · VAL S1–S8)  
+- [ ] Smoke XR em device (WebXR + env)  
 - [ ] Fase C C5+ (checkout in-XR) — nova auth explícita  
 - [ ] Deploy `main`  
 

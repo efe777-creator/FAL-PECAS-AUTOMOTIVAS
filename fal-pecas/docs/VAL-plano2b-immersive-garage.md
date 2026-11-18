@@ -84,6 +84,22 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 6. Transferência: copy do wizard informa que Visual **não** transfere; novo owner sem prefs do anterior.  
 7. Confirmar que salvar visual **não** cria linha em histórico técnico.
 
+### Smoke executado (MARCHA 2026-11-18 · `localhost:5173`)
+
+| # | Check | Resultado |
+|---|--------|-----------|
+| S1 | Vitest garage + visual prefs | **22 files / 58 tests PASS** · `tsc --noEmit` OK |
+| S2 | `?modulo=visual` Fiat Palio (`FAL-B3B53031`) | Painel carrega · Engine região presente |
+| S3 | Pref `auto` | Engine · resolvido: **3D procedural** |
+| S4 | Pref `2d` | Engine · resolvido: **2D** · copy “não é registro técnico” |
+| S5 | Sync instalação | Opt-in visível · **desligado** · “nenhum fato” |
+| S6 | XR UI | **Ausente** (gate env off — esperado) |
+| S7 | Salvar aparência | Click → botão disabled (submit) → reabilitado |
+| S8 | ADM `/admin/modelos-3d` | Página “Modelos 3D (Camada 2)” + copy Visual≠fato |
+| — | XR hit-test em device | **Não** executado neste smoke |
+| — | Sync on com `installed_declared` | Sem fatos no veículo de teste |
+| — | Transferência wizard | Não reexecutado neste smoke |
+
 ---
 
 ## Fase A — encerramento
@@ -94,10 +110,11 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | A1 auditoria | Feito (tabela acima) |
 | A2 privacidade (filtro owner + copy wizard; sem checkbox) | Feito |
 | Vitest contratos | **37 PASS** (2026-11-18) |
-| Smoke manual | Pendente operador |
+| Smoke Camada 1 (browser `dev`) | **PASS parcial** 2026-11-18 — ver § Smoke executado |
+| Smoke XR device | Pendente (precisa WebXR + `VITE_FAL_VISUAL_XR=1`) |
 | `main` / deploy | **Não** |
 
-**Homologação Camada 1 (código/contrato):** PASS na `dev`. Smoke manual restante antes de auth de `main`.
+**Homologação Camada 1 (código/contrato):** PASS na `dev`. Smoke browser Camada 1 PASS; XR device ainda pendente antes de auth de `main`.
 
 ---
 
@@ -142,11 +159,12 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | Camada 1 + Fase A código/contrato | PASS |
 | Fase B E0–E5 | PASS código `dev` |
 | Fase C C0–C4 | PASS código `dev` |
-| Smoke manual Camada 1 / XR | Pendente operador |
+| Smoke browser Camada 1 + ADM | PASS parcial (S1–S8) |
+| Smoke XR device | Pendente |
 | C5+ checkout in-XR | Bloqueado |
 | Merge `main` / deploy | Bloqueado |
 
-**Veredito:** PLANO 2B **código/contrato completo na `dev`** até C4. Pronto para smoke operador; **não** pronto para `main` sem auth.
+**Veredito:** PLANO 2B **código/contrato completo** + smoke browser Camada 1/ADM na `dev`. XR device + `main` ainda bloqueados.
 
 ---
 
