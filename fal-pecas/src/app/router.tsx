@@ -40,6 +40,11 @@ const AccountAddressesPage = lazy(() =>
 const AccountVehiclesPage = lazy(() =>
   import('@/pages/Account/AccountVehiclesPage').then((m) => ({ default: m.AccountVehiclesPage })),
 )
+const AccountVehicleDetailPage = lazy(() =>
+  import('@/pages/Account/AccountVehicleDetailPage').then((m) => ({
+    default: m.AccountVehicleDetailPage,
+  })),
+)
 const AccountFavoritesPage = lazy(() =>
   import('@/pages/Account/AccountFavoritesPage').then((m) => ({ default: m.AccountFavoritesPage })),
 )
@@ -517,6 +522,7 @@ export const router = createBrowserRouter([
           { path: 'perfil', element: <AccountProfilePage /> },
           { path: 'enderecos', element: <AccountAddressesPage /> },
           { path: 'veiculos', element: <AccountVehiclesPage /> },
+          { path: 'veiculos/:id', element: <AccountVehicleDetailPage /> },
           { path: 'favoritos', element: <AccountFavoritesPage /> },
           { path: 'pedidos', element: <AccountOrdersPage /> },
           { path: 'pedidos/:id', element: <AccountOrderDetailPage /> },

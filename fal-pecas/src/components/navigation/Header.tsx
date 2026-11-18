@@ -95,7 +95,7 @@ export function Header({ theme, onThemeToggle }: Props) {
             className="min-h-11 rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
             onClick={() => setMenuOpen(false)}
           >
-            Meus carros
+            Minha Garagem
           </Link>
           <Link
             to="/carrinho"

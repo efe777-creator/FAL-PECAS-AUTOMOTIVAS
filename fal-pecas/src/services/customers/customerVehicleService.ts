@@ -84,6 +84,19 @@ export async function listSavedVehicles(): Promise<CustomerSavedVehicle[]> {
   return (data as Row[]).map(mapVehicle)
 }
 
+export async function getSavedVehicle(id: string): Promise<CustomerSavedVehicle | null> {
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return null
+  const { data, error } = await getSupabase()
+    .from('customer_vehicles')
+    .select(SELECT_VEHICLE)
+    .eq('id', id)
+    .eq('customer_id', customerId)
+    .maybeSingle()
+  if (error) throw error
+  return data ? mapVehicle(data as Row) : null
+}
+
 export type ResolvedGarageIdentity = {
   versionId: string | null
   manufacturerId: string | null

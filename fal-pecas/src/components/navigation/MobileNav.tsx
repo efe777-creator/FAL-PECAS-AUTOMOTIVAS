@@ -33,7 +33,7 @@ export function MobileNav() {
         <b className="block text-[18px]" aria-hidden>
           🚗
         </b>
-        Meus carros
+        Garagem
       </NavLink>
       <NavLink to="/carrinho" className={linkClass}>
         <b className="block text-[18px]" aria-hidden>

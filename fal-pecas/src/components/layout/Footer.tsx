@@ -97,7 +97,7 @@ export function Footer() {
             className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
             to="/conta/veiculos"
           >
-            Meus carros
+            Minha Garagem
           </Link>
         </div>
         <div>

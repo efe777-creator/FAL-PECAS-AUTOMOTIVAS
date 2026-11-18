@@ -8,7 +8,7 @@ const links = [
   { to: '/conta', label: 'Início', end: true },
   { to: '/conta/perfil', label: 'Perfil' },
   { to: '/conta/enderecos', label: 'Endereços' },
-  { to: '/conta/veiculos', label: 'Meus carros' },
+  { to: '/conta/veiculos', label: 'Minha Garagem' },
   { to: '/conta/favoritos', label: 'Favoritos' },
   { to: '/conta/pedidos', label: 'Meus pedidos' },
   { to: '/conta/avisos', label: 'Notificações' },
