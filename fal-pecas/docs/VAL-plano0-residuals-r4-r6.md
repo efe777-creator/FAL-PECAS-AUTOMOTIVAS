@@ -14,19 +14,20 @@ Se eFe quiser re-upsert na confirmação, precisa autorização explícita (RPC 
 |---|------|-------------|-------------|
 | 1–4 | Placa completa / parcial | `plano0Section12.r5.test.ts` | VAL placa |
 | 5 | API down → manual | unit (`unavailable`) | manual |
-| 6 | Cadastro manual conta | — | e2e pendente Playwright |
+| 6 | Cadastro manual conta | — | Playwright `e2e/r5-06-…` (skip sem `E2E_USER_*`) |
 | 7 | Ambíguo | mock `AMB1G00` | — |
 | 8–9 | Save parcial / sem VV | G1 + progressive tests | — |
 | 10 | Listagem incompletos | `isVehicleIncomplete` | UI conta |
-| 11 | Edição incompletos | G1 `updateSavedVehicle` | e2e pendente |
+| 11 | Edição incompletos | G1 `updateSavedVehicle` | Playwright `e2e/r5-11-…` (skip sem `E2E_USER_*`) |
 | 12 | Pending pós-login | flush + pending + snapshot | smoke VAL 2026-11-18 |
-| 13 | Múltiplos veículos | — | e2e / UI |
+| 13 | Múltiplos veículos | — | Playwright `e2e/r5-13-…` (skip sem `E2E_USER_*`) |
 | 14–15 | Integridade / sanitize | split + §12 | — |
 | 16 | PVC não no save; fuel≠filtro | §12 `#16` | — |
 | 17 | RLS | policies CV / CVPE | integração manual |
 | 18 | Regressão busca | VAL placa + pipeline | — |
 
-**Harness:** `npm test -- src/services/plates/plano0Section12.r5.test.ts`
+**Harness:** `npm test -- src/services/plates/plano0Section12.r5.test.ts`  
+**E2E:** `npm run test:e2e` (requer `E2E_USER_EMAIL` / `E2E_USER_PASSWORD`; sem credenciais os specs #6/#11/#13 fazem skip documentado)
 
 ## R6 — Migration history (inventário, sem repair)
 
