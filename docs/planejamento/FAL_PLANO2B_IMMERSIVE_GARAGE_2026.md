@@ -250,6 +250,7 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] HEADSET smoke desktop: `isSessionSupported(ar/vr)=false` — sessão imersiva **bloqueada sem hardware** (MARCHA SEQUENCIAL)  
 - [x] Fase C C5 (exit-to-cart web; `xrNeverPaysInSession`) — MARCHA SEQUENCIAL  
 - [x] A11y toggles Viewer (`aria-pressed` + `role="group"`)  
+- [x] Smoke GLB ops (ADM draft→approve→compat Fiat/Palio 2015 → Engine `glb`) — MARCHA SEQUENCIAL #2  
 - [ ] Deploy Netlify produção — **bloqueado** (precisa auth explícita; tip git `main` ≠ deploy)  
 
 ### MARCHA SEQUENCIAL (2026-11-18)
@@ -259,7 +260,19 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 | HEADSET | **BLOCKED hardware** — Chromium desktop: API XR presente, AR/VR session unsupported |
 | C5 | **PASS código** — HUD “Carrinho” → `getProductById` + `addItem` + `/carrinho`; sem pagamento in-XR |
 | MAIN git | Tip `main` alinhado a C5 (`9dcf460`). **Deploy Netlify NÃO** |
-| Próximo (dev) | A11y Viewer + docs gaps — sem deploy |  
+| Próximo (dev) | A11y Viewer + docs gaps — sem deploy |
+
+### MARCHA SEQUENCIAL #2 (2026-11-18) — ops GLB + recheck · **sem deploy**
+
+| Passo | Resultado |
+|-------|-----------|
+| Migration E2 remota | **APLICADA** em `wtbp` — `vehicle_visual_assets` + compat + bucket `vehicle-visual-assets` |
+| GLB ADM | **PASS** — draft `fal-smoke-palio-box` → approved · commercial_ok · compat Fiat/Palio 2015 approved |
+| Engine smoke | **PASS** — Palio `?modulo=visual`: `Engine · resolvido: 3D GLB (asset aprovado)` · ready |
+| Sync smoke | **SKIP** — UI “nenhum fato de instalação ainda”; G7 identity Palio sem eventos |
+| HEADSET recheck | **BLOCKED** — `navigator.xr` ok · `immersive-ar/vr` = false (desktop) |
+| Deploy | **NÃO** — só commit/push `dev` |  
+
 
 ### 7.2 Aceite E1–E4 (resumo)
 

@@ -100,7 +100,9 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 | S10 | Opt-in XR localStorage | Liga → “ativo nesta máquina”; `fal-garage-visual-xr-v1=1` |
 | S11 | Desktop sem sessão XR | `navigator.xr` presente mas `isSessionSupported(ar/vr)=false` → Engine **não** resolve `xr` (fica procedural); HUD XR ausente |
 | S12 | Privacidade visual / transferência | Vitest `visualPrivacyContract` **4 PASS** · copy wizard: Visual **não** transfere (`VehicleTransferPanel`) |
-| — | Sessão imersiva / hit-test headset | **Pendente** — auth `MARCHA HEADSET` |
+| — | Sessão imersiva / hit-test headset | **Pendente / BLOCKED desktop** — recheck SEQUENCIAL #2: `ar/vr=false`; auth `MARCHA HEADSET` |
+| — | GLB ops + Engine | **PASS** (SEQUENCIAL #2) — migration E2 remota; ADM draft→approve→compat Fiat/Palio 2015; Engine `3D GLB` no Palio |
+| — | Sync-on com fato G7 | **SKIP** — Palio sem `installed_declared` / eventos instalação |
 | — | Sync on com `installed_declared` | Sem fatos no veículo de teste |
 
 ---

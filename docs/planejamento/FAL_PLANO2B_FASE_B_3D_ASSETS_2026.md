@@ -90,6 +90,7 @@ Bucket 50MB · MIME glTF/GLB · staff-only insert. Validação estrutural profun
 - [x] B3 loader GLB lazy (`VehicleGlbViewer` + signed URL + fallback procedural)  
 - [x] B4 ADM `/admin/modelos-3d` (upload draft, aprovar/rejeitar/revogar, compat, procedência)  
 - [x] B5 `prefers-reduced-motion` · DPR cap · telemetria sem PII · aria labels  
+- [x] Smoke ops remoto (MARCHA SEQUENCIAL #2): migration E2 aplicada em `wtbp`; asset `fal-smoke-palio-box` approved + Engine GLB no Palio 2015  
 
 ### Baseline E5 (medir antes de metas fixas)
 

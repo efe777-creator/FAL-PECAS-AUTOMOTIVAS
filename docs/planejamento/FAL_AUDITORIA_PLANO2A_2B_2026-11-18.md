@@ -72,7 +72,7 @@ pnpm exec vitest run src/services/garage/ …
 | Copy painel “ainda sem GLB” | **CORRIGIDO nesta auditoria** | Estava stale pós Fase B |
 | Doc §2.1 “Camada 2 não implementada” | **CORRIGIDO nesta auditoria** | Estava stale |
 | `aria-pressed` nos toggles Viewer | **PASS** (MARCHA próximo passo) | `role="group"` + `aria-pressed` |
-| Biblioteca GLB com assets reais aprovados | PARTIAL ops | ADM existe; ambiente de teste “Nenhum asset” |
+| Biblioteca GLB com assets reais aprovados | **PASS smoke** (MARCHA SEQUENCIAL #2) | `fal-smoke-palio-box` approved + Engine GLB no Palio 2015 |
 
 ---
 
@@ -80,11 +80,11 @@ pnpm exec vitest run src/services/garage/ …
 
 1. Smoke sessão XR em **headset** (precisa hardware).  
 2. Deploy Netlify produção (bloqueado até auth explícita — tip `main` já existe, sem deploy).  
-3. Sync-on com `installed_declared` real no veículo de smoke (dado).  
-4. Popular biblioteca GLB (ops ADM).  
+3. Sync-on com `installed_declared` real no veículo de smoke (dado — SKIP em SEQUENCIAL #2).  
+4. ~~Popular biblioteca GLB (ops ADM).~~ **Feito smoke** (`fal-smoke-palio-box`).  
 5. C6+ pagamento **dentro** da sessão XR (fora).  
 
-**Fechados depois da auditoria inicial:** C5 exit-to-cart · a11y toggles Viewer.
+**Fechados depois da auditoria inicial:** C5 exit-to-cart · a11y toggles Viewer · smoke GLB ADM+Engine.
 
 ---
 
