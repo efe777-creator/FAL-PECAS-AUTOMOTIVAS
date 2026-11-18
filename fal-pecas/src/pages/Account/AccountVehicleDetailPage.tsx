@@ -5,8 +5,8 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { VehicleIdentityTimeline } from '@/components/garage/VehicleIdentityTimeline'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
-import { VehiclePartHistory } from '@/components/garage/VehiclePartHistory'
 import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import {
   isVehicleIncomplete,
@@ -16,6 +16,11 @@ import {
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
 import { useGarage } from '@/contexts/GarageContext'
+import {
+  parseGarageModule,
+  writeGarageWorkspacePrefs,
+  type GarageModuleKey,
+} from '@/lib/garageWorkspacePrefs'
 import {
   getSavedVehicle,
   removeSavedVehicle,
@@ -27,6 +32,7 @@ import {
   placeholderVehicleImage,
   resolveVehicleDisplayImage,
 } from '@/services/customers/vehicleImageResolver'
+import { getLatestOdometerKm } from '@/services/garage/odometerService'
 import { formatPlateMask, plateValidationMessage } from '@/services/plates/plateNormalize'
 import { formatSourceSnapshotExtras } from '@/services/plates/plateSourceSnapshot'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -34,6 +40,12 @@ import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+
+const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
+  { key: 'visao', label: 'Visão geral' },
+  { key: 'historico', label: 'Histórico' },
+  { key: 'config', label: 'Configurações' },
+]
 
 function Section({
   title,
@@ -63,7 +75,7 @@ function Section({
 export function AccountVehicleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const garage = useGarage()
   const [vehicle, setVehicle] = useState<CustomerSavedVehicle | null>(null)
@@ -77,6 +89,16 @@ export function AccountVehicleDetailPage() {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [image, setImage] = useState<ResolvedVehicleImage>(placeholderVehicleImage())
+  const [latestKm, setLatestKm] = useState<number | null>(null)
+  const modulo = parseGarageModule(searchParams.get('modulo'))
+
+  function setModulo(next: GarageModuleKey) {
+    writeGarageWorkspacePrefs({ lastModule: next })
+    const p = new URLSearchParams(searchParams)
+    p.set('modulo', next)
+    if (next !== 'historico') p.delete('modo')
+    setSearchParams(p, { replace: true })
+  }
 
   useDocumentTitle(
     vehicle
@@ -90,6 +112,18 @@ export function AccountVehicleDetailPage() {
       setImage(await resolveVehicleDisplayImage({ vehicle: row, assets }))
     } catch {
       setImage(placeholderVehicleImage())
+    }
+  }
+
+  async function refreshKm(row: CustomerSavedVehicle) {
+    if (!row.vehicleIdentityId) {
+      setLatestKm(null)
+      return
+    }
+    try {
+      setLatestKm(await getLatestOdometerKm(row.vehicleIdentityId))
+    } catch {
+      setLatestKm(null)
     }
   }
 
@@ -113,7 +147,7 @@ export function AccountVehicleDetailPage() {
         setColorLabel(row.colorLabel ?? '')
         setNotes(row.notes ?? '')
         setError(null)
-        await refreshImage(row)
+        await Promise.all([refreshImage(row), refreshKm(row)])
       }
     } catch (e) {
       setError(toUserMessage(e, 'Erro ao carregar veículo'))
@@ -201,6 +235,16 @@ export function AccountVehicleDetailPage() {
                 ID FAL · {vehicle.falCode}
               </p>
             ) : null}
+            <p className="mb-0 mt-1 text-xs text-fal-muted">
+              Quilometragem ·{' '}
+              {latestKm != null ? (
+                <span className="font-extrabold tabular-nums text-fal-fg">
+                  {latestKm.toLocaleString('pt-BR')} km
+                </span>
+              ) : (
+                <span className="font-semibold">Sem dado</span>
+              )}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {garage.activeVehicle?.id !== vehicle.id ? (
@@ -337,122 +381,167 @@ export function AccountVehicleDetailPage() {
         </form>
       ) : null}
 
-      <div className="space-y-2">
-        <Section title="Identificação" defaultOpen>
-          <dl className="m-0 grid gap-2 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Apelido</dt>
-              <dd className="m-0 font-semibold">{vehicle.nickname?.trim() || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Placa</dt>
-              <dd className="m-0 font-semibold tracking-wide">{plateLabel ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Cor</dt>
-              <dd className="m-0 flex items-center gap-2 font-semibold">
-                {vehicle.colorHex ? (
-                  <span
-                    className="inline-block h-4 w-4 rounded-full border border-fal-line"
-                    style={{ background: vehicle.colorHex }}
-                    aria-hidden
-                  />
-                ) : null}
-                {vehicle.colorLabel || vehicle.colorHex || '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Principal</dt>
-              <dd className="m-0 font-semibold">{vehicle.isPrimary ? 'Sim' : 'Não'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Ativo na loja</dt>
-              <dd className="m-0 font-semibold">
-                {garage.activeVehicle?.id === vehicle.id
-                  ? 'Sim (contexto de navegação)'
-                  : 'Não'}
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Observações</dt>
-              <dd className="m-0 whitespace-pre-wrap">{vehicle.notes?.trim() || '—'}</dd>
-            </div>
-          </dl>
-        </Section>
+      <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Módulos da garagem">
+        {MODULE_TABS.map((tab) => (
+          <Button
+            key={tab.key}
+            type="button"
+            size="sm"
+            variant={modulo === tab.key ? 'primary' : 'light'}
+            onClick={() => setModulo(tab.key)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </nav>
 
-        <Section title="Características técnicas" defaultOpen>
-          <dl className="m-0 grid gap-2 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Montadora</dt>
-              <dd className="m-0 font-semibold">{vehicle.makerName ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Modelo</dt>
-              <dd className="m-0 font-semibold">{vehicle.modelName ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Ano</dt>
-              <dd className="m-0 font-semibold">{vehicle.year ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Motor</dt>
-              <dd className="m-0 font-semibold">{vehicle.engine ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Versão</dt>
-              <dd className="m-0 font-semibold">{vehicle.versionName ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase text-fal-muted">Vínculo canônico</dt>
-              <dd className="m-0 font-semibold">
-                {vehicle.versionId ? 'Vinculado ao cadastro' : 'Ainda sem version_id'}
-              </dd>
-            </div>
-            {formatSourceSnapshotExtras(vehicle.sourceSnapshot) ? (
-              <div className="sm:col-span-2">
-                <dt className="text-xs font-semibold uppercase text-fal-muted">
-                  Dados da consulta (informativo)
-                </dt>
-                <dd className="m-0 font-semibold">
-                  {formatSourceSnapshotExtras(vehicle.sourceSnapshot)}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-        </Section>
+      {modulo === 'historico' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleIdentityTimeline
+            membershipId={vehicle.id}
+            vehicleIdentityId={vehicle.vehicleIdentityId}
+          />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Este veículo ainda não tem identidade permanente. Atualize a página ou recadastre após a Etapa 1."
+          />
+        )
+      ) : null}
 
-        <Section title="Fotos e personalização" defaultOpen>
-          <VehiclePhotoGallery vehicleId={vehicle.id} onChanged={() => void reload()} />
-        </Section>
+      {modulo === 'visao' || modulo === 'config' ? (
+        <div className="space-y-2">
+          {modulo === 'visao' ? (
+            <>
+              <Section title="Identificação" defaultOpen>
+                <dl className="m-0 grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Apelido</dt>
+                    <dd className="m-0 font-semibold">{vehicle.nickname?.trim() || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Placa</dt>
+                    <dd className="m-0 font-semibold tracking-wide">{plateLabel ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">ID FAL</dt>
+                    <dd className="m-0 font-semibold tabular-nums">{vehicle.falCode ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Km</dt>
+                    <dd className="m-0 font-semibold">
+                      {latestKm != null
+                        ? `${latestKm.toLocaleString('pt-BR')} km`
+                        : 'Sem dado'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Cor</dt>
+                    <dd className="m-0 flex items-center gap-2 font-semibold">
+                      {vehicle.colorHex ? (
+                        <span
+                          className="inline-block h-4 w-4 rounded-full border border-fal-line"
+                          style={{ background: vehicle.colorHex }}
+                          aria-hidden
+                        />
+                      ) : null}
+                      {vehicle.colorLabel || vehicle.colorHex || '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Principal</dt>
+                    <dd className="m-0 font-semibold">{vehicle.isPrimary ? 'Sim' : 'Não'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Ativo na loja</dt>
+                    <dd className="m-0 font-semibold">
+                      {garage.activeVehicle?.id === vehicle.id
+                        ? 'Sim (contexto de navegação)'
+                        : 'Não'}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Observações</dt>
+                    <dd className="m-0 whitespace-pre-wrap">{vehicle.notes?.trim() || '—'}</dd>
+                  </div>
+                </dl>
+              </Section>
 
-        <Section title="Produtos / compatibilidade">
-          <p className="m-0 text-fal-muted">
-            Com este veículo <strong>ativo na loja</strong>, o catálogo e a página do produto
-            mostram o veredito do motor (confirmada / provável / não confirmada) com evidências.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {garage.activeVehicle?.id !== vehicle.id ? (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  garage.setActiveVehicle(vehicle)
-                  toast.push('Veículo ativo — abra o catálogo para ver badges.', 'success')
-                }}
-              >
-                Usar na loja e ver peças
-              </Button>
-            ) : null}
-            <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
-              Abrir catálogo filtrado
-            </ButtonLink>
-          </div>
-        </Section>
+              <Section title="Características técnicas" defaultOpen>
+                <dl className="m-0 grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Montadora</dt>
+                    <dd className="m-0 font-semibold">{vehicle.makerName ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Modelo</dt>
+                    <dd className="m-0 font-semibold">{vehicle.modelName ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Ano</dt>
+                    <dd className="m-0 font-semibold">{vehicle.year ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Motor</dt>
+                    <dd className="m-0 font-semibold">{vehicle.engine ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Versão</dt>
+                    <dd className="m-0 font-semibold">{vehicle.versionName ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-fal-muted">Vínculo canônico</dt>
+                    <dd className="m-0 font-semibold">
+                      {vehicle.versionId ? 'Vinculado ao cadastro' : 'Ainda sem version_id'}
+                    </dd>
+                  </div>
+                  {formatSourceSnapshotExtras(vehicle.sourceSnapshot) ? (
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs font-semibold uppercase text-fal-muted">
+                        Dados da consulta (informativo)
+                      </dt>
+                      <dd className="m-0 font-semibold">
+                        {formatSourceSnapshotExtras(vehicle.sourceSnapshot)}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </Section>
 
-        <Section title="Histórico" defaultOpen>
-          <VehiclePartHistory vehicleId={vehicle.id} />
-        </Section>
-      </div>
+              <Section title="Produtos / compatibilidade">
+                <p className="m-0 text-fal-muted">
+                  Com este veículo <strong>ativo na loja</strong>, o catálogo e a página do produto
+                  mostram o veredito do motor (confirmada / provável / não confirmada) com
+                  evidências.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {garage.activeVehicle?.id !== vehicle.id ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        garage.setActiveVehicle(vehicle)
+                        toast.push('Veículo ativo — abra o catálogo para ver badges.', 'success')
+                      }}
+                    >
+                      Usar na loja e ver peças
+                    </Button>
+                  ) : null}
+                  <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
+                    Abrir catálogo filtrado
+                  </ButtonLink>
+                </div>
+              </Section>
+            </>
+          ) : null}
+
+          {modulo === 'config' ? (
+            <Section title="Fotos e personalização" defaultOpen>
+              <VehiclePhotoGallery vehicleId={vehicle.id} onChanged={() => void reload()} />
+            </Section>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
