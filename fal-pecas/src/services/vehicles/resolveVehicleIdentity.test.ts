@@ -113,6 +113,29 @@ describe('resolveVehicleIdentity', () => {
     expect(text.filter.version).toBe(plate.filter.version)
   })
 
+  it('R2: incomplete sem ano não permite upsert canônico', () => {
+    const r = resolveVehicleIdentity({
+      source: 'plate',
+      maker: 'Chevrolet',
+      model: 'Onix',
+      // sem year
+      engine: '1.0',
+    })
+    expect(r.status).toBe('incomplete')
+    expect(r.allowCanonicalUpsert).toBe(false)
+  })
+
+  it('R2: incomplete com ano permite upsert (motor/versão opcionais)', () => {
+    const r = resolveVehicleIdentity({
+      source: 'plate',
+      maker: 'Chevrolet',
+      model: 'Onix',
+      year: '2016',
+    })
+    expect(r.status).toBe('incomplete')
+    expect(r.allowCanonicalUpsert).toBe(true)
+  })
+
   it('mensagens UX por status', () => {
     const r = resolveVehicleIdentity({
       source: 'text',

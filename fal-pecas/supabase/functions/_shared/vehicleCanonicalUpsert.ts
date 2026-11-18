@@ -65,11 +65,14 @@ export async function vehicleCanonicalUpsert(
   const maker = cleaned.maker
   const model = cleaned.model
   if (!maker || !model) throw new Error('maker_and_model_required')
+  // R2: não criar VV “aberta” sem ano no mestre.
+  const yearNum = parseYear(cleaned.year)
+  if (yearNum == null) throw new Error('year_required_for_canonical_upsert')
 
   const { data, error } = await sb.rpc('upsert_vehicle_canonical', {
     p_maker: maker,
     p_model: model,
-    p_year: parseYear(cleaned.year),
+    p_year: yearNum,
     p_engine: cleaned.engine,
     p_version: cleaned.version,
     p_source: input.source ?? 'plate',

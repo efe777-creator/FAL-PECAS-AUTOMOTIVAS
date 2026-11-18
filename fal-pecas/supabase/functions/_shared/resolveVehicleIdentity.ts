@@ -292,6 +292,7 @@ export function resolveVehicleIdentity(
     }
   }
 
+  // R2: incomplete só upserta mestre com maker+model+ano (sem inventar VV aberta).
   const status: InvStatus = 'incomplete'
   return {
     status,
@@ -300,7 +301,7 @@ export function resolveVehicleIdentity(
     evidence,
     raw,
     pendingCodes,
-    allowCanonicalUpsert: true,
+    allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
     message: messageFor(status),
   }
 }

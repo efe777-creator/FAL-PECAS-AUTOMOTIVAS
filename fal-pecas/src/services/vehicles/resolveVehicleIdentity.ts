@@ -351,6 +351,7 @@ export function resolveVehicleIdentity(
     }
   }
 
+  // R2: incomplete só permite upsert canônico com maker+model+ano.
   return {
     status: 'incomplete',
     confidenceBand: 'B',
@@ -360,7 +361,7 @@ export function resolveVehicleIdentity(
     evidence,
     raw,
     pendingCodes,
-    allowCanonicalUpsert: true,
+    allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
   }
 }
 

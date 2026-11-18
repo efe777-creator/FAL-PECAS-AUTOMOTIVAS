@@ -183,8 +183,17 @@ Deno.serve(async (req) => {
             engine: (payload.engine as string | null) ?? null,
             version: (payload.version as string | null) ?? null,
           })
+          // R2: cache sem ano → não re-upserta VV incompleta.
+          const cacheYear =
+            enriched.year != null && String(enriched.year).trim() !== ''
+              ? enriched.year
+              : null
+          if (!cacheYear) {
+            return json(200, payload)
+          }
           const upserted = await vehicleCanonicalUpsert(sb, {
             ...enriched,
+            year: cacheYear,
             source: 'plate',
           })
           const missingMv = !upserted.engine && !upserted.version
@@ -300,7 +309,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      const shouldUpsert = inv ? inv.allowCanonicalUpsert : true
+      // R2: sem INV, ainda exige ano para criar VV no mestre.
+      const shouldUpsert = inv
+        ? inv.allowCanonicalUpsert
+        : Boolean(makerOut && modelOut && yearOut)
       if (shouldUpsert) {
         const upserted = await vehicleCanonicalUpsert(sb, {
           maker: makerOut ?? enriched.maker,
