@@ -29,16 +29,19 @@ Se eFe quiser re-upsert na confirmação, precisa autorização explícita (RPC 
 **Harness:** `npm test -- src/services/plates/plano0Section12.r5.test.ts`  
 **E2E:** `npm run test:e2e` (requer `E2E_USER_EMAIL` / `E2E_USER_PASSWORD`; sem credenciais os specs #6/#11/#13 fazem skip documentado)
 
-## R6 — Migration history (inventário, sem repair)
+## R6 — Migration history (**reparado** 2026-11-18)
 
-Aplicações recentes no projeto FAL (`wtbpwuiayednvlhvuhbh`) via MCP `apply_migration` usam timestamps do servidor, enquanto o repo tem nomes `20261118…` locais. Exemplos:
+Pacote B3: [FAL_R6_MIGRATION_REPAIR_2026-11-18.md](../../docs/planejamento/FAL_R6_MIGRATION_REPAIR_2026-11-18.md).
 
-| Remoto (schema_migrations) | Arquivo no repo |
+Ledger local marcado `applied` (sem reexecutar SQL): `20261118010000`, `120000`, `130000`, `140000`, `140100`, `150000`, `160000`. Entradas MCP antigas preservadas.
+
+| Remoto (schema_migrations MCP) | Arquivo no repo (também no ledger) |
 |----------------------------|-----------------|
-| `20261118035514_customer_vehicles_plate_normalized` | `20261118120000_customer_vehicles_plate_normalized.sql` |
-| `20261118040113_g3_garage_personalization` | `20261118130000_g3_garage_personalization.sql` |
-| `20261118040934/35` G6 | `20261118140000` / `40100` G6 |
-| `20261118041610_g7_…` | `20261118150000_g7_…` |
-| `20261118042142_r3_…` | `20261118160000_r3_…` |
+| `20261118035514_customer_vehicles_plate_normalized` | `20261118120000_…` |
+| `20261118040113_g3_garage_personalization` | `20261118130000_…` |
+| `20261118040934/35` G6 | `20261118140000` / `40100` |
+| `20261118041610_g7_…` | `20261118150000_…` |
+| `20261118042142_r3_…` | `20261118160000_…` |
+| *(schema já tinha progressive; ledger local preenchido)* | `20261118010000_…` |
 
-**Regra:** não rodar `migration repair` improvisado. Alinhamento formal só com ordem explícita do eFe (mapear version ↔ arquivo e registrar).
+**Evidência:** `SELECT version FROM supabase_migrations.schema_migrations WHERE version LIKE '20261118%'` inclui pares MCP + locais.
