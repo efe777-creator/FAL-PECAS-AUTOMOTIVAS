@@ -1,16 +1,17 @@
 # FAL — PLANO 2A · Vehicle Identity — Identidade digital permanente do veículo
 
-**Status:** PLANEJAMENTO (Etapa 0) — aguarda aprovação eFe para implementação  
+**Status:** **APROVADO eFe · IMPLEMENTADO na `dev` (E1–E5)** — conformidade detalhada na §24  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
-**Branch de produção:** `main` (não usar para desenvolvimento)  
-**Natureza:** documento técnico-funcional · **não autoriza** código, migrations, RLS live, Edge, commit, push ou deploy  
+**Branch de produção:** `main` (não usar para desenvolvimento / sem deploy neste ciclo)  
+**Natureza:** documento canônico + registro de conformidade código↔doc (consolidação definitiva)  
 
 **Pré-requisito:** [PLANO 1 — Minha Garagem](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) (**APROVADO eFe · IMPLEMENTADO · §24 PASS**) · [VAL-garagem-plano1](../../fal-pecas/docs/VAL-garagem-plano1.md)  
+**VAL 2A:** [VAL-plano2a-vehicle-identity.md](../../fal-pecas/docs/VAL-plano2a-vehicle-identity.md)  
 **Fundação placa:** [PLANO 0](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md)  
 **Direção futura (não é este plano):** [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md)  
 **Shell comportamental (referência, não visual admin):** [FAL_SPEC_ADAPTIVE_WORKSPACE_2026-11-17.md](./FAL_SPEC_ADAPTIVE_WORKSPACE_2026-11-17.md)  
-**2B:** apenas contratos de integração neste documento — **sem** implementação Immersive Garage / 3D
+**2B:** apenas contratos de integração neste documento (§19) — **sem** implementação Immersive Garage / 3D neste ciclo
 
 ---
 
@@ -827,17 +828,16 @@ Sem segunda infraestrutura de identidade. Sem implementação 3D neste plano.
 
 ---
 
-## 20. Checklist pré-implementação
+## 20. Checklist pré-implementação → pós-entrega
 
-- [ ] eFe aprova este documento  
-- [ ] D1–D11 e A1–A3 confirmados no texto  
-- [ ] Lacuna G7 recebimento aceita como evolução futura documentada  
-- [ ] Etapa 1 limitada (sem workspace/timeline)  
-- [ ] Branch `dev` apenas  
-- [ ] Autorização explícita antes de migrations  
-- [ ] Autorização explícita antes de commit/push  
+- [x] eFe aprova este documento / MARCHA E1–E5  
+- [x] D1–D11 e A1–A3 confirmados no texto  
+- [x] Lacuna G7 recebimento aceita como evolução futura documentada  
+- [x] Etapas 1–5 na `dev` (migrations + UI + RPCs)  
+- [x] Branch `dev` apenas (sem merge `main` / deploy produção)  
+- [x] VAL + suite Vitest garagem 2A  
 
-**Não fazer após este doc:** iniciar Etapa 1 sem aprovação; alterar `main`; inventar compras externas; reusar `resolveVehicleIdentity` para identity permanente.
+**Ainda fora:** alterar `main`; inventar compras externas; Immersive 2B; unmerge completo.
 
 ---
 
@@ -882,14 +882,52 @@ Todas marcadas como **PENDENTE DE VALIDAÇÃO TÉCNICA NA ETAPA DE IMPLEMENTAÇ�
 
 ---
 
-## 23. Confirmação Etapa 0 / revisão de ressalvas
+## 23. Confirmação Etapa 0 / revisão de ressalvas → entrega
 
 | Item | Valor |
 |------|--------|
 | Documento | `docs/planejamento/FAL_PLANO2A_VEHICLE_IDENTITY_2026.md` |
 | Branch | `dev` |
-| Código / migrations / RLS / Edge / DB / Storage alterados | **Não** |
-| Commit / push / deploy | **Não** |
-| Próximo passo | Aprovação eFe → só então planejar execução Etapa 1 |
+| Implementação | E1–E5 (commits `62c27c0`…`43efc13` + consolidação) |
+| Remote DB (wtbp) | migrations E1–E5 aplicadas via MCP |
+| Deploy produção / `main` | **Não** |
+| Próximo passo produto | Planejar **PLANO 2B** (Immersive) sob aprovação eFe — só depois desta consolidação |
 
-**PARAR.** Aguardar aprovação explícita do eFe antes de qualquer implementação.
+---
+
+## 24. Conformidade código ↔ doc (consolidação definitiva 2026-11-18)
+
+| # | Requisito 2A | Veredito | Evidência |
+|---|--------------|----------|-----------|
+| 1 | Identity permanente + ID FAL | **PASS** | `vehicle_identities` · `vehicle_identity_fal_code` · UI ficha |
+| 2 | Ownership temporal + UNKNOWN | **PASS** | `vehicle_ownership_periods.started_at` null · certainty unknown |
+| 3 | Create atômico membership+identity+period | **PASS** | RPC `create_customer_vehicle_with_identity` |
+| 4 | Membership ≠ identity | **PASS** | FK `customer_vehicles.vehicle_identity_id` |
+| 5 | Events + revisions + validation | **PASS** | `vehicle_events` · `vehicle_event_revisions` · transition RPC |
+| 6 | Odômetro canônico; ausência ≠ 0 | **PASS** | `vehicle_odometer_records` · UI “Sem dado” |
+| 7 | Bridge G7 associativa (sem UPDATE G7) | **PASS** | `customer_vehicle_part_event_identities` + trigger on_insert |
+| 8 | Compra ≠ instalação | **PASS** | `g7TypeToCategory` + T10 declareInstalled append-only |
+| 9 | Timeline modos vida/meu | **PASS** | `VehicleIdentityTimeline` · `?modo=` |
+| 10 | Shell `?modulo=` | **PASS** | prefs + tabs na ficha |
+| 11 | Professionals + trust sem medalha / sem acesso auto | **PASS** | `professional_profiles` trust 1–5 · vínculo só em eventos |
+| 12 | Manutenções tipadas | **PASS** | `vehicle_maintenances` · RPC append |
+| 13 | Evidence + N:N; desvincular ≠ apagar | **PASS** | `vehicle_evidence` · `vehicle_event_evidence` |
+| 14 | Shares granulares + revoke servidor | **PASS** | `vehicle_shares` · `revoke_vehicle_share` |
+| 15 | Transfer wizard (request/accept/reject/cancel) | **PASS** | `vehicle_transfer_requests` · banner incoming |
+| 16 | Access logs | **PASS** | `vehicle_access_logs` · `log_vehicle_access` |
+| 17 | Inteligência / schedules; estimativa ≠ diagnóstico | **PASS** | schedules + `maintenanceInsightService` |
+| 18 | UX T10 pós-compra | **PASS** | `OrderPostPurchaseGarageActions` |
+| 19 | Só `dev`; sem deploy main | **PASS** | fluxo git E1–E5 |
+| 20 | Contratos 2B sem código 3D | **PASS** | §19 intacto; sem Immersive |
+
+**GAPs / NÃO VERIFICADOS (não bloqueiam fechamento 2A):**
+
+| Item | Nota |
+|------|------|
+| Tipo G7 `received` | Lacuna §12.2 — recebimento modelável em `vehicle_events` |
+| Unmerge completo | §5.6 / §22.8 — ops documentado; sem UI |
+| Exportação LGPD operacional | §22.4 |
+| RLS AUTHORIZED exhaustivo em todos os predicados edge | §22.9 — base ownership+visibility+share entregue; refinamento contínuo |
+| Smoke E2E browser completo | VAL lista smoke manual |
+
+**Status final:** PLANO 2A **APROVADO eFe** · **IMPLEMENTADO na `dev` (E1–E5)** · checklist §24 com vereditos evidentes.
