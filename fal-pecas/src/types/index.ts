@@ -127,6 +127,20 @@ export interface CustomerOrderSummary {
   pickupAuthorized?: boolean
 }
 
+/** Snapshot de veículo associado a item (carrinho/pedido) — ver §6.3. */
+export type CartVehicleSnapshot = {
+  customerVehicleId: string | null
+  maker: string
+  model: string
+  year: string | number | null
+  version: string | null
+  engine: string | null
+  versionId: string | null
+  plate: string | null
+  associatedAt: string
+  contextSource: 'active' | 'manual' | 'suggested'
+}
+
 export interface OrderItemSnapshot {
   id: string
   productId?: string | null
@@ -137,6 +151,8 @@ export interface OrderItemSnapshot {
   availability?: 'disponivel' | 'disponivel_com_prazo' | 'indisponivel' | null
   leadDays?: number | null
   staffNote?: string | null
+  customerVehicleId?: string | null
+  vehicleSnapshot?: CartVehicleSnapshot | null
 }
 
 export interface OrderStatusEvent {
@@ -298,6 +314,8 @@ export interface PaymentProvider {
 export interface PlaceOrderItemInput {
   productId: string
   quantity: number
+  customerVehicleId?: string | null
+  vehicleSnapshot?: CartVehicleSnapshot | null
 }
 
 /** Atribuição Ads (utm/gclid/fbclid) — espelha orders.attribution. */
@@ -590,6 +608,9 @@ export interface CartItem {
   price: number
   quantity: number
   imageUrl?: string | null
+  /** Veículo ativo no momento do add (imutável no pedido após place_order). */
+  customerVehicleId?: string | null
+  vehicleSnapshot?: CartVehicleSnapshot | null
 }
 
 export type CartStorageKind = 'local' | 'supabase'

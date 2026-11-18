@@ -1,6 +1,7 @@
 import { getSupabase, isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
 import { applyResolvedPricesToCartItems } from '@/services/cart/cartPricing'
+import { parseVehicleSnapshot } from '@/services/garage/vehicleSnapshot'
 import { pickPrimaryStoragePath } from '@/services/products/productImages'
 import type { CartItem } from '@/types'
 
@@ -73,7 +74,7 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
   const { data, error } = await sb
     .from('cart_items')
     .select(
-      'product_id, quantity, unit_price_snapshot, products ( sku, name, price, promo_price )',
+      'product_id, quantity, unit_price_snapshot, customer_vehicle_id, vehicle_snapshot, products ( sku, name, price, promo_price )',
     )
     .eq('cart_id', cartId)
   if (error) throw error
@@ -88,12 +89,17 @@ export async function loadRemoteCart(): Promise<CartItem[]> {
       row.unit_price_snapshot != null
         ? Number(row.unit_price_snapshot)
         : Number(p?.price ?? 0)
+    const vehicleSnapshot = parseVehicleSnapshot(row.vehicle_snapshot)
     return {
       productId: String(row.product_id),
       sku: String(p?.sku ?? ''),
       name: String(p?.name ?? 'Produto'),
       price,
       quantity: Number(row.quantity),
+      customerVehicleId: row.customer_vehicle_id
+        ? String(row.customer_vehicle_id)
+        : vehicleSnapshot?.customerVehicleId ?? null,
+      vehicleSnapshot,
     }
   })
 
@@ -126,6 +132,8 @@ export async function saveRemoteCart(items: CartItem[]): Promise<void> {
       product_id: i.productId,
       quantity: i.quantity,
       unit_price_snapshot: i.price,
+      customer_vehicle_id: i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
+      vehicle_snapshot: i.vehicleSnapshot ?? null,
     })),
     { onConflict: 'cart_id,product_id' },
   )
@@ -163,6 +171,9 @@ export function mergeCartItems(local: CartItem[], remote: CartItem[]): CartItem[
         quantity: Math.max(prev.quantity, item.quantity),
         imageUrl: prev.imageUrl || item.imageUrl,
         commercialRef: prev.commercialRef || item.commercialRef,
+        // Snapshot: preferir o já persistido (remoto) — imutável após 1ª associação
+        customerVehicleId: prev.customerVehicleId ?? item.customerVehicleId ?? null,
+        vehicleSnapshot: prev.vehicleSnapshot ?? item.vehicleSnapshot ?? null,
       })
     } else {
       map.set(item.productId, { ...item })

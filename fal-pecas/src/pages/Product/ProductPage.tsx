@@ -72,6 +72,7 @@ import {
 } from '@/lib/productLabels'
 import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
+import { buildVehicleSnapshotFromActive } from '@/services/garage/vehicleSnapshot'
 import {
   buildPdpCatalogFilterLink,
   joinProductDescription,
@@ -462,7 +463,14 @@ export function ProductPage() {
    */
   function onBuyNow() {
     if (current.available === false) return
-    saveBuyNowIntent({ ...current, price: displayPrice(current) }, qty)
+    const active = garage?.activeVehicle
+    const snap = active
+      ? buildVehicleSnapshotFromActive({ vehicle: active, contextSource: 'active' })
+      : null
+    saveBuyNowIntent({ ...current, price: displayPrice(current) }, qty, {
+      customerVehicleId: snap?.customerVehicleId ?? null,
+      vehicleSnapshot: snap,
+    })
     const here = `${location.pathname}${location.search}`
     saveCheckoutReturnTo(here)
     push('Seguindo para o checkout com a entrega selecionada (se houver)', 'success')

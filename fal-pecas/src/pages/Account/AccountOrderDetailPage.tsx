@@ -757,6 +757,24 @@ export function AccountOrderDetailPage() {
                       }`
                     : ''}
                 </span>
+                {i.vehicleSnapshot ? (
+                  <span className="block text-xs text-fal-muted">
+                    Veículo no pedido:{' '}
+                    {[
+                      i.vehicleSnapshot.maker,
+                      i.vehicleSnapshot.model,
+                      i.vehicleSnapshot.year,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    {i.vehicleSnapshot.plate
+                      ? ` · placa ${String(i.vehicleSnapshot.plate)
+                          .replace(/[^A-Za-z0-9]/g, '')
+                          .toUpperCase()
+                          .slice(0, 4)}***`
+                      : ''}
+                  </span>
+                ) : null}
               </span>
               <span className="font-semibold">{money(i.unitPrice * i.quantity)}</span>
             </li>

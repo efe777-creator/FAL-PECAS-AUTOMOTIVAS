@@ -20,6 +20,8 @@ import {
   classifyCompatibility,
   vehicleFilterToCompatInput,
 } from '@/services/compatibility/compatibilityEngine'
+import { buildVehicleSnapshotFromActive } from '@/services/garage/vehicleSnapshot'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useToast } from '@/components/common/Toast'
 import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { trackAddToCart } from '@/lib/analytics'
@@ -90,10 +92,19 @@ export function ProductCard({ product }: { product: Product }) {
     }
   }
 
-  function onAddToCart(e: MouseEvent) {
+  async function onAddToCart(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
+    if (compatVerdict?.state === 'probable') {
+      const { confirmed } = await confirmDialog({
+        title: 'Compatibilidade provável',
+        message:
+          'Esta peça parece compatível, mas faltam dados para confirmar. Deseja adicionar mesmo assim?',
+        confirmLabel: 'Adicionar mesmo assim',
+      })
+      if (!confirmed) return
+    }
     addItem(product, 1)
     trackAddToCart({
       itemId: product.id,
@@ -116,7 +127,14 @@ export function ProductCard({ product }: { product: Product }) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
-    saveBuyNowIntent({ ...product, price }, 1)
+    const active = garage?.activeVehicle
+    const snap = active
+      ? buildVehicleSnapshotFromActive({ vehicle: active, contextSource: 'active' })
+      : null
+    saveBuyNowIntent({ ...product, price }, 1, {
+      customerVehicleId: snap?.customerVehicleId ?? null,
+      vehicleSnapshot: snap,
+    })
     saveCheckoutReturnTo(returnFrom)
     navigate('/checkout', { state: { from: returnFrom } })
   }
@@ -263,7 +281,7 @@ export function ProductCard({ product }: { product: Product }) {
             <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
               {COMPRAR_AGORA_LABEL}
             </Button>
-            <Button variant="light" size="sm" fullWidth onClick={onAddToCart}>
+            <Button variant="light" size="sm" fullWidth onClick={(e) => void onAddToCart(e)}>
               {ADICIONAR_AO_CARRINHO_LABEL}
             </Button>
           </>

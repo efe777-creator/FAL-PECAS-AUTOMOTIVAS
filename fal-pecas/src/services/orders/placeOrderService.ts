@@ -17,6 +17,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     items: input.items?.map((i) => ({
       product_id: i.productId,
       quantity: i.quantity,
+      customer_vehicle_id: i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
+      vehicle_snapshot: i.vehicleSnapshot ?? null,
     })),
     clear_cart: input.clearCart !== false,
   }

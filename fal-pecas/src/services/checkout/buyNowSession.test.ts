@@ -36,6 +36,29 @@ describe('buyNowSession (C5)', () => {
     expect(items[0].quantity).toBe(2)
   })
 
+  it('propaga vehicle_snapshot do intent para itens de checkout (G6)', () => {
+    const snap = {
+      customerVehicleId: 'v1',
+      maker: 'VW',
+      model: 'Gol',
+      year: 2018,
+      version: null,
+      engine: '1.0',
+      versionId: null,
+      plate: 'ABC1D23',
+      associatedAt: '2026-11-18T00:00:00.000Z',
+      contextSource: 'active' as const,
+    }
+    saveBuyNowIntent(product, 1, {
+      customerVehicleId: 'v1',
+      vehicleSnapshot: snap,
+    })
+    const items = buyNowIntentToCartItems(loadBuyNowIntent()!)
+    expect(items[0].customerVehicleId).toBe('v1')
+    expect(items[0].vehicleSnapshot?.maker).toBe('VW')
+    expect(items[0].vehicleSnapshot?.plate).toBe('ABC1D23')
+  })
+
   it('ao comprar agora limpa sessão de cobrança antiga', () => {
     saveCheckoutSession({
       orderId: 'old-order',

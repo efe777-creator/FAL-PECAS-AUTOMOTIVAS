@@ -2,7 +2,7 @@
  * AJUSTE-035 C5 — intent buy_now isolada do CartContext.
  */
 
-import type { CartItem, Product } from '@/types'
+import type { CartItem, CartVehicleSnapshot, Product } from '@/types'
 import {
   clearCheckoutIdempotencyKey,
   clearCheckoutSession,
@@ -52,9 +52,15 @@ export type BuyNowIntent = {
   price: number
   imageUrl?: string | null
   savedAt: string
+  customerVehicleId?: string | null
+  vehicleSnapshot?: CartVehicleSnapshot | null
 }
 
-export function saveBuyNowIntent(product: Product, quantity: number): void {
+export function saveBuyNowIntent(
+  product: Product,
+  quantity: number,
+  vehicle?: { customerVehicleId?: string | null; vehicleSnapshot?: CartVehicleSnapshot | null },
+): void {
   const qty = Math.max(1, Math.floor(quantity) || 1)
   const payload: BuyNowIntent = {
     productId: product.id,
@@ -64,6 +70,8 @@ export function saveBuyNowIntent(product: Product, quantity: number): void {
     price: product.price,
     imageUrl: product.imageUrl ?? undefined,
     savedAt: new Date().toISOString(),
+    customerVehicleId: vehicle?.customerVehicleId ?? null,
+    vehicleSnapshot: vehicle?.vehicleSnapshot ?? null,
   }
   // Compra nova não deve retomar cobrança antiga (C2 recovery ≠ sequestrar buy_now).
   clearCheckoutSession()
@@ -96,6 +104,8 @@ export function buyNowIntentToCartItems(intent: BuyNowIntent): CartItem[] {
       sku: intent.sku,
       price: intent.price,
       imageUrl: intent.imageUrl,
+      customerVehicleId: intent.customerVehicleId ?? null,
+      vehicleSnapshot: intent.vehicleSnapshot ?? null,
     },
   ]
 }

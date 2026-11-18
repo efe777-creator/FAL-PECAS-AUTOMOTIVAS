@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import { localCartStorage } from '@/services/cart/cartStorage'
 import { applyResolvedPricesToCartItems } from '@/services/cart/cartPricing'
 import {
@@ -7,6 +8,7 @@ import {
   mergeCartItems,
   saveRemoteCart,
 } from '@/services/cart/supabaseCartService'
+import { buildVehicleSnapshotFromActive } from '@/services/garage/vehicleSnapshot'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import type { CartItem, CartStorageKind, Product } from '@/types'
@@ -31,6 +33,11 @@ interface CartContextValue {
   restoreItem: (item: CartItem) => void
   updateQty: (productId: string, quantity: number) => void
   clear: () => void
+  /**
+   * G6 — flush imediato do carrinho remoto (cancela debounce).
+   * Usar antes de place_order para garantir vehicle_snapshot no cart_items.
+   */
+  flushRemote: () => Promise<void>
   /** true enquanto merge/sync remoto em andamento */
   syncPending: boolean
   /** Onde o carrinho está persistido agora. */
@@ -41,6 +48,7 @@ const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const garage = useGarageOptional()
   const [items, setItems] = useState<CartItem[]>([])
   const [ready, setReady] = useState(false)
   const [syncPending, setSyncPending] = useState(false)
@@ -137,58 +145,70 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, ready, user?.id])
 
-  const addItem = useCallback((product: Product, quantity = 1) => {
-    const price = displayPrice(product)
-    setItems((prev) => {
-      const existing = prev.find((i) => i.productId === product.id)
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === product.id
-            ? {
-                ...i,
-                quantity: i.quantity + quantity,
-                price,
-                slug: product.slug || i.slug,
-                commercialRef: product.commercialRef ?? i.commercialRef,
-                imageUrl: product.imageUrl ?? i.imageUrl,
-              }
-            : i,
-        )
-      }
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          sku: product.sku,
-          commercialRef: product.commercialRef ?? product.sku,
-          slug: product.slug,
-          name: product.name,
-          price,
-          quantity,
-          imageUrl: product.imageUrl,
-        },
-      ]
-    })
-    if (isSupabaseConfigured) {
-      void applyResolvedPricesToCartItems(
-        [
+  const addItem = useCallback(
+    (product: Product, quantity = 1) => {
+      const price = displayPrice(product)
+      const active = garage?.activeVehicle
+      const snap = active
+        ? buildVehicleSnapshotFromActive({ vehicle: active, contextSource: 'active' })
+        : null
+      setItems((prev) => {
+        const existing = prev.find((i) => i.productId === product.id)
+        if (existing) {
+          return prev.map((i) =>
+            i.productId === product.id
+              ? {
+                  ...i,
+                  quantity: i.quantity + quantity,
+                  price,
+                  slug: product.slug || i.slug,
+                  commercialRef: product.commercialRef ?? i.commercialRef,
+                  imageUrl: product.imageUrl ?? i.imageUrl,
+                  // Não sobrescreve snapshot já associado
+                  customerVehicleId: i.customerVehicleId ?? snap?.customerVehicleId ?? null,
+                  vehicleSnapshot: i.vehicleSnapshot ?? snap,
+                }
+              : i,
+          )
+        }
+        return [
+          ...prev,
           {
             productId: product.id,
             sku: product.sku,
+            commercialRef: product.commercialRef ?? product.sku,
+            slug: product.slug,
             name: product.name,
             price,
             quantity,
+            imageUrl: product.imageUrl,
+            customerVehicleId: snap?.customerVehicleId ?? null,
+            vehicleSnapshot: snap,
           },
-        ],
-      ).then((priced) => {
-        const next = priced[0]
-        if (!next) return
-        setItems((prev) =>
-          prev.map((i) => (i.productId === product.id ? { ...i, price: next.price } : i)),
-        )
+        ]
       })
-    }
-  }, [])
+      if (isSupabaseConfigured) {
+        void applyResolvedPricesToCartItems(
+          [
+            {
+              productId: product.id,
+              sku: product.sku,
+              name: product.name,
+              price,
+              quantity,
+            },
+          ],
+        ).then((priced) => {
+          const next = priced[0]
+          if (!next) return
+          setItems((prev) =>
+            prev.map((i) => (i.productId === product.id ? { ...i, price: next.price } : i)),
+          )
+        })
+      }
+    },
+    [garage?.activeVehicle],
+  )
 
   const removeItem = useCallback((productId: string) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId))
@@ -224,6 +244,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
+  const flushRemote = useCallback(async () => {
+    if (!user || !isSupabaseConfigured) return
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    const snapshot = items
+    await new Promise<void>((resolve, reject) => {
+      saveChain.current = saveChain.current
+        .then(() => saveRemoteCart(snapshot))
+        .then(() => resolve())
+        .catch((err) => {
+          console.error('[FAL] Falha ao flush do carrinho remoto', err)
+          reject(err)
+        })
+    })
+  }, [items, user])
+
   const itemCount = useMemo(
     () => items.reduce((sum, i) => sum + i.quantity, 0),
     [items],
@@ -246,6 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       restoreItem,
       updateQty,
       clear,
+      flushRemote,
       syncPending,
       storageKind,
     }),
@@ -258,6 +297,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       restoreItem,
       updateQty,
       clear,
+      flushRemote,
       syncPending,
       storageKind,
     ],

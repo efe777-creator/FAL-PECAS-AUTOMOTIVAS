@@ -1,5 +1,6 @@
 import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
+import { parseVehicleSnapshot } from '@/services/garage/vehicleSnapshot'
 import { pickActivePayment } from '@/services/orders/pickActivePayment'
 import type { OrderDetail, OrderLifecycleEvent } from '@/types'
 
@@ -13,7 +14,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
       `
       id, status, subtotal, shipping_amount, total, created_at, address_snapshot, payment_ref, customer_decision, decision_proposal,
       cancellation_request, cancellation_reason,
-      order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note ),
+      order_items ( id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, customer_vehicle_id, vehicle_snapshot ),
       order_status_history ( id, status, note, created_at ),
       order_events ( id, event_type, payload, visibility, created_at ),
       payments ( id, provider, status, amount, external_ref, method, expires_at, pix_qr_code, pix_qr_code_base64, created_at ),
@@ -125,6 +126,9 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
           : null,
       leadDays: i.lead_days != null ? Number(i.lead_days) : null,
       staffNote: i.staff_note != null ? String(i.staff_note) : null,
+      customerVehicleId:
+        i.customer_vehicle_id != null ? String(i.customer_vehicle_id) : null,
+      vehicleSnapshot: parseVehicleSnapshot(i.vehicle_snapshot),
     })),
     history: history
       .map((h: Record<string, unknown>) => ({

@@ -140,7 +140,7 @@ function momentSubtitle(step: number, paymentAwaiting: boolean): string {
 export function CheckoutPage() {
   useDocumentTitle('Checkout | FAL Peças Automotivas')
   const { user } = useAuth()
-  const { items: cartItems, clear: clearCart, addItem } = useCart()
+  const { items: cartItems, clear: clearCart, addItem, flushRemote } = useCart()
   const { push } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -899,6 +899,15 @@ export function CheckoutPage() {
           : 'pix'
         : paymentMethod
 
+      // G6: garante vehicle_snapshot no cart_items antes do RPC (debounce pode atrasar).
+      if (!isBuyNow) {
+        try {
+          await flushRemote()
+        } catch {
+          /* place_order ainda tenta; trigger/payload cobrem o resto */
+        }
+      }
+
       const placed = await placeOrder({
         idempotencyKey,
         addressId,
@@ -906,7 +915,12 @@ export function CheckoutPage() {
         paymentMethod: payMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          customerVehicleId: i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
+          vehicleSnapshot: i.vehicleSnapshot ?? null,
+        })),
         clearCart: !isBuyNow,
       })
 

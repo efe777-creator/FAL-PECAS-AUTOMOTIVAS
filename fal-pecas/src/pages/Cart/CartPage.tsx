@@ -18,6 +18,7 @@ import type { CartItem } from '@/types'
 import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
+import { formatVehicleSnapshotLabel } from '@/services/garage/vehicleSnapshot'
 
 export function CartPage() {
   useDocumentTitle('Carrinho | FAL Peças Automotivas')
@@ -142,6 +143,12 @@ export function CartPage() {
                       Ver produto
                     </Link>
                   </p>
+                  {item.vehicleSnapshot ? (
+                    <p className="mb-0 mt-1 text-xs text-fal-muted">
+                      Veículo associado:{' '}
+                      {formatVehicleSnapshotLabel(item.vehicleSnapshot) ?? '—'}
+                    </p>
+                  ) : null}
                   <p className="mb-0 mt-1 text-xs text-fal-muted">
                     {formatMoney(item.price)} cada (lista)
                     {paymentDisplay
