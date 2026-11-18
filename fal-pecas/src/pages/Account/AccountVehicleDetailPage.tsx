@@ -14,6 +14,7 @@ import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import { VehicleProfessionalsPanel } from '@/components/garage/VehicleProfessionalsPanel'
 import { VehicleSharesPanel } from '@/components/garage/VehicleSharesPanel'
 import { VehicleTransferPanel } from '@/components/garage/VehicleTransferPanel'
+import { VehicleVisualPanel } from '@/components/garage/VehicleVisualPanel'
 import {
   isVehicleIncomplete,
   vehicleCatalogHref,
@@ -55,6 +56,7 @@ const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
   { key: 'evidencias', label: 'Evidências' },
   { key: 'compartilhar', label: 'Compartilhar' },
   { key: 'inteligencia', label: 'Inteligência' },
+  { key: 'visual', label: 'Visual' },
   { key: 'config', label: 'Configurações' },
 ]
 
@@ -471,6 +473,20 @@ export function AccountVehicleDetailPage() {
           <ErrorState
             title="Identidade pendente"
             description="Lembretes e insights exigem identidade permanente."
+          />
+        )
+      ) : null}
+
+      {modulo === 'visual' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleVisualPanel
+            vehicleIdentityId={vehicle.vehicleIdentityId}
+            seedColorHex={vehicle.colorHex}
+          />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Aparência visual exige identidade permanente."
           />
         )
       ) : null}

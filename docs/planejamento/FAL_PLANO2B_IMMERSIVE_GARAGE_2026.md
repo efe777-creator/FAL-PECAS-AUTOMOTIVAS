@@ -1,10 +1,10 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** PLANEJAMENTO (Etapa 0) — **aguarda aprovação eFe** antes de qualquer implementação  
+**Status:** **Etapa 0 aprovada (MARCHA) · Etapa 1 (config 2D) IMPLEMENTADA na `dev`** — 3D/AR ainda fora  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
-**Natureza:** documento técnico-funcional · **não autoriza** código, assets 3D, WebGL/Three, AR/VR, migrations, commit de implementação ou deploy  
+**Natureza:** documento canônico + progresso de implementação (E1 = 2D only; sem Three.js/AR)  
 
 **Pré-requisito obrigatório:** [PLANO 2A — Vehicle Identity](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) (**APROVADO eFe · IMPLEMENTADO E1–E5 · §24**) · [VAL-plano2a](../../fal-pecas/docs/VAL-plano2a-vehicle-identity.md)  
 **Contratos herdados:** PLANO 2A §19 (chave = `vehicle_identities.id`)  
@@ -101,27 +101,26 @@ Preview pós-compra lê `origin_ref` / G7 map / product id — **não** inventa 
 
 ---
 
-## 7. Checklist pré-implementação
+## 7. Checklist
 
-- [ ] eFe aprova este documento  
-- [ ] Contratos §2 confirmados (sem segundo identity)  
-- [ ] Etapa 1 limitada a config 2D (sem Three.js obrigatório)  
-- [ ] Branch `dev` apenas  
-- [ ] Autorização explícita antes de assets/binários grandes no repo  
-- [ ] Autorização explícita antes de commit/push de implementação  
+- [x] eFe aprova via MARCHA  
+- [x] Contratos §2 confirmados (sem segundo identity)  
+- [x] Etapa 1 = config 2D (sem Three.js)  
+- [x] Branch `dev` apenas  
+- [ ] Etapa 2+ (preview peça / 3D / sync instalação) — só com nova MARCHA  
+- [ ] Deploy `main`  
 
-**Não fazer após este doc:** implementar 3D sem aprovação; gravar fato 2A a partir do viewer; alterar `main`.
+**Não fazer:** implementar 3D sem aprovação; gravar fato 2A a partir do viewer; alterar `main`.
 
 ---
 
-## 8. Confirmação Etapa 0
+## 8. Confirmação Etapa 1
 
 | Item | Valor |
 |------|--------|
 | Documento | `docs/planejamento/FAL_PLANO2B_IMMERSIVE_GARAGE_2026.md` |
 | Branch | `dev` |
-| Código / 3D / migrations Immersive | **Não** |
-| Commit deste planejamento | Aguardando MARCHA de docs / aprovação eFe |
-| Próximo passo | Aprovação eFe → só então Etapa 1 (config visual 2D) |
-
-**PARAR.** Aguardar aprovação explícita do eFe antes de qualquer implementação Immersive.
+| Migration | `20261118230000_plano2b_e1_vehicle_visual_configs.sql` |
+| UI | `?modulo=visual` · silhueta SVG 2D |
+| Three.js / AR / WebGL | **Não** |
+| Próximo passo | MARCHA → Etapa 2 (preview peça FAL read-only) |
