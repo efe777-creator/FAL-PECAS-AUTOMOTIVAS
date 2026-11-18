@@ -4,7 +4,7 @@
 **Escopo:** Minha Garagem — Fundação e experiência inicial  
 **Data:** 2026-11-18  
 **Revisão eFe:** 2026-11-18 (R1–R8 — ver changelog §23)  
-**Status:** G0–G6 ok na `dev` · próximo: **G7 histórico append-only**  
+**Status:** G0–G7 ok na `dev` · próximo: **G8 VAL + suite**  
 **Branch de implementação futura:** `dev` exclusivamente (`main` = produção)  
 **Natureza deste documento:** Análise, auditoria e planejamento técnico — **sem implementação nesta entrega**  
 **Workspace auditado:** `C:\Users\user\repos\FAL-PECAS-AUTOMOTIVAS\fal-pecas` (código em `dev`, pós-PLANO 0)

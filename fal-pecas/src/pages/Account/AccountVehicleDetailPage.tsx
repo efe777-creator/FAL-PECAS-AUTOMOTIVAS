@@ -6,6 +6,7 @@ import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
+import { VehiclePartHistory } from '@/components/garage/VehiclePartHistory'
 import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import {
   isVehicleIncomplete,
@@ -432,10 +433,8 @@ export function AccountVehicleDetailPage() {
           </div>
         </Section>
 
-        <Section title="Histórico">
-          <p className="m-0 text-fal-muted">
-            Timeline de peças e eventos chega nas etapas G6–G7.
-          </p>
+        <Section title="Histórico" defaultOpen>
+          <VehiclePartHistory vehicleId={vehicle.id} />
         </Section>
       </div>
     </div>
