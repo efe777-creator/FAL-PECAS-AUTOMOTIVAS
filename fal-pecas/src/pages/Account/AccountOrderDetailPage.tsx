@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { OrderPostPurchaseGarageActions } from '@/components/garage/OrderPostPurchaseGarageActions'
 import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymentPanel'
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
@@ -738,6 +739,8 @@ export function AccountOrderDetailPage() {
           ))}
         </ol>
       </div>
+
+      <OrderPostPurchaseGarageActions order={order} />
 
       <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h3 className="mt-0 text-base font-extrabold">Itens</h3>

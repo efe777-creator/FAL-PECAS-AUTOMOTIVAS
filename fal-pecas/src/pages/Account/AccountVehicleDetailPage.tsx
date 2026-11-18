@@ -8,6 +8,7 @@ import { useToast } from '@/components/common/Toast'
 import { VehicleEvidencePanel } from '@/components/garage/VehicleEvidencePanel'
 import { VehicleIdentityTimeline } from '@/components/garage/VehicleIdentityTimeline'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
+import { VehicleIntelligencePanel } from '@/components/garage/VehicleIntelligencePanel'
 import { VehicleMaintenancesPanel } from '@/components/garage/VehicleMaintenancesPanel'
 import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import { VehicleProfessionalsPanel } from '@/components/garage/VehicleProfessionalsPanel'
@@ -53,6 +54,7 @@ const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
   { key: 'profissionais', label: 'Profissionais' },
   { key: 'evidencias', label: 'Evidências' },
   { key: 'compartilhar', label: 'Compartilhar' },
+  { key: 'inteligencia', label: 'Inteligência' },
   { key: 'config', label: 'Configurações' },
 ]
 
@@ -458,6 +460,17 @@ export function AccountVehicleDetailPage() {
           <ErrorState
             title="Identidade pendente"
             description="Compartilhamento exige identidade permanente."
+          />
+        )
+      ) : null}
+
+      {modulo === 'inteligencia' ? (
+        vehicle.vehicleIdentityId ? (
+          <VehicleIntelligencePanel vehicleIdentityId={vehicle.vehicleIdentityId} />
+        ) : (
+          <ErrorState
+            title="Identidade pendente"
+            description="Lembretes e insights exigem identidade permanente."
           />
         )
       ) : null}

@@ -5,6 +5,7 @@ export type GarageModuleKey =
   | 'profissionais'
   | 'evidencias'
   | 'compartilhar'
+  | 'inteligencia'
   | 'config'
 
 const MODULES: GarageModuleKey[] = [
@@ -14,6 +15,7 @@ const MODULES: GarageModuleKey[] = [
   'profissionais',
   'evidencias',
   'compartilhar',
+  'inteligencia',
   'config',
 ]
 
