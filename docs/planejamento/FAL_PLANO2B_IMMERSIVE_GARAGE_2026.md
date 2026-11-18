@@ -1,7 +1,8 @@
 # FAL — PLANO 2B · Immersive Garage — Experiência visual do veículo
 
-**Status:** **Camada 1 PASS** · **Fase B E0–E5 na `dev`** (Engine + GLB + ADM + perf/a11y). Fase C = AR bloqueada.  
+**Status:** **Camada 1 PASS** · **Fase B E0–E5** · **Fase C C0–C1 na `dev`** (gate XR + detect + launcher; default off). Sem `main`.  
 **Fase B doc:** [FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md](./FAL_PLANO2B_FASE_B_3D_ASSETS_2026.md)  
+**Fase C doc:** [FAL_PLANO2B_FASE_C_XR_2026.md](./FAL_PLANO2B_FASE_C_XR_2026.md)  
 **Data:** 2026-11-18  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento)  
@@ -236,7 +237,8 @@ AR **não** antecede Camada 2. Loader GLB = Fase B E2+ (não B1).
 - [x] Fase B E3 loader GLB lazy + fallback  
 - [x] Fase B E4 ADM `/admin/modelos-3d`  
 - [x] Fase B E5 performance / a11y / obs mínima  
-- [ ] Fase C (AR) — MARCHA + gate  
+- [x] Fase C C0–C1 (gate XR + detect + launcher; default off)  
+- [ ] Fase C C2+ (cena imersiva rica) — nova auth  
 - [ ] Deploy `main`  
 
 ### 7.2 Aceite E1–E4 (resumo)

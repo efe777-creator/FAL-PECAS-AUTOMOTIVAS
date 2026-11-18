@@ -39,6 +39,11 @@ import {
   writeVisualViewerMode,
   type VisualViewerMode,
 } from '@/lib/visualViewerPrefs'
+import {
+  isVisualXrEnvEnabled,
+  readVisualXrUserOptIn,
+  writeVisualXrUserOptIn,
+} from '@/lib/visualXrGate'
 import { canUseWebGL } from '@/lib/webglSupport'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -68,10 +73,17 @@ export function VehicleVisualPanel({
   const [syncInstall, setSyncInstall] = useState(() => readSyncInstallEnabled())
   const [webglOk, setWebglOk] = useState(false)
   const [approvedAsset, setApprovedAsset] = useState<VehicleVisualAsset | null>(null)
+  const [xrEnvOn] = useState(() => isVisualXrEnvEnabled())
+  const [xrOptIn, setXrOptIn] = useState(() => readVisualXrUserOptIn())
 
   useEffect(() => {
     setWebglOk(canUseWebGL())
   }, [])
+
+  function toggleXrOptIn(next: boolean) {
+    setXrOptIn(next)
+    writeVisualXrUserOptIn(next)
+  }
 
   const modelParts = useMemo(
     () => partsForModelReflection(parts, installFacts, syncInstall),
@@ -188,7 +200,26 @@ export function VehicleVisualPanel({
         </span>
       </label>
 
+      {xrEnvOn ? (
+        <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={xrOptIn}
+            onChange={(ev) => toggleXrOptIn(ev.target.checked)}
+          />
+          <span>
+            <span className="font-extrabold text-fal-fg">XR experimental (Fase C)</span>
+            <span className="mt-0.5 block text-xs text-fal-muted">
+              Opt-in local. Requer dispositivo com WebXR. Não altera histórico técnico. Default off.
+              {xrOptIn ? ' · ativo nesta máquina' : ' · desligado'}
+            </span>
+          </span>
+        </label>
+      ) : null}
+
       <VehicleVisualizationEngine
+        key={`xr-${xrOptIn ? '1' : '0'}`}
         payload={payload}
         modelParts={modelParts}
         orphanInstallCount={orphans.length}

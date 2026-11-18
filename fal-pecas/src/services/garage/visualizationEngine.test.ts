@@ -71,7 +71,7 @@ describe('visualizationEngine', () => {
     ).toBe('glb')
   })
 
-  it('XR só com gate + suporte; render ainda procedural até Fase C', () => {
+  it('XR só com gate + suporte; reduced-motion bloqueia; canvas base glb/procedural', () => {
     expect(
       resolveVisualizationSource({
         preferredMode: 'auto',
@@ -81,6 +81,22 @@ describe('visualizationEngine', () => {
         xrSupported: true,
       }),
     ).toBe('xr')
+    expect(
+      resolveVisualizationSource({
+        preferredMode: 'auto',
+        webglOk: true,
+        hasApprovedGlb: false,
+        xrEnabled: true,
+        xrSupported: true,
+        reducedMotion: true,
+      }),
+    ).toBe('2d')
     expect(effectiveRenderSource('xr', true)).toBe('procedural')
+    expect(
+      effectiveRenderSource('xr', true, { hasApprovedGlb: true }),
+    ).toBe('glb')
+    expect(
+      effectiveRenderSource('xr', true, { hasApprovedGlb: true, glbLoadFailed: true }),
+    ).toBe('procedural')
   })
 })

@@ -101,7 +101,7 @@ npm test -- --run src/services/garage/vehicleVisualTypes.test.ts src/services/ga
 
 ## Fora deste VAL
 
-- Fase B (biblioteca GLB / viewer realista)  
-- Fase C (AR/WebXR)  
+- Fase B (biblioteca GLB / viewer realista) — ver doc Fase B (E0–E5 na `dev`)  
+- Fase C C2+ (cena XR rica) — C0–C1 gate/launcher na `dev` (default off); ver `FAL_PLANO2B_FASE_C_XR_2026.md`  
 - Merge `main` / deploy Netlify produção  
 - Promoção de prefs visuais na transferência  

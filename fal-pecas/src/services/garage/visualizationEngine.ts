@@ -20,12 +20,12 @@ export type VisualizationResolveInput = {
 export type EffectiveRenderSource = '2d' | 'procedural' | 'glb'
 
 /**
- * Ordem: XR (gate) → 2d forçado/sem WebGL → glb se aprovado → procedural → 2d.
+ * Ordem: XR (gate+suporte, sem reduced-motion) → 2d forçado/sem WebGL → glb → procedural → 2d.
  */
 export function resolveVisualizationSource(
   input: VisualizationResolveInput,
 ): VisualizationSource {
-  if (input.xrEnabled && input.xrSupported) return 'xr'
+  if (input.xrEnabled && input.xrSupported && !input.reducedMotion) return 'xr'
   if (input.preferredMode === '2d' || !input.webglOk) return '2d'
   // auto + reduced motion → 2D (baseline E5); pref explícita 3d ainda permite 3D estático
   if (input.reducedMotion && input.preferredMode === 'auto') return '2d'
@@ -35,18 +35,27 @@ export function resolveVisualizationSource(
 }
 
 /**
- * E3: glb renderiza de verdade quando WebGL ok.
- * XR ainda degrada para procedural até Fase C.
+ * Canvas real: 2d | procedural | glb.
+ * XR (C1) envolve o canvas base via launcher; base = glb → procedural → 2d.
  */
 export function effectiveRenderSource(
   resolved: VisualizationSource,
   webglOk: boolean,
-  opts?: { glbLoadFailed?: boolean },
+  opts?: { glbLoadFailed?: boolean; hasApprovedGlb?: boolean },
 ): EffectiveRenderSource {
-  if (resolved === '2d' || !webglOk) return '2d'
-  if (resolved === 'glb' && !opts?.glbLoadFailed) return 'glb'
-  if (resolved === 'glb' && opts?.glbLoadFailed) return 'procedural'
-  if (resolved === 'procedural' || resolved === 'xr') return 'procedural'
+  const base: VisualizationSource =
+    resolved === 'xr'
+      ? opts?.hasApprovedGlb && !opts?.glbLoadFailed
+        ? 'glb'
+        : webglOk
+          ? 'procedural'
+          : '2d'
+      : resolved
+
+  if (base === '2d' || !webglOk) return '2d'
+  if (base === 'glb' && !opts?.glbLoadFailed) return 'glb'
+  if (base === 'glb' && opts?.glbLoadFailed) return 'procedural'
+  if (base === 'procedural') return 'procedural'
   return '2d'
 }
 

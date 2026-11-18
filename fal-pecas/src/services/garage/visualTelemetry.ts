@@ -5,7 +5,7 @@
 
 export type VisualTelemetryEvent = {
   at: string
-  source: '2d' | 'procedural' | 'glb'
+  source: '2d' | 'procedural' | 'glb' | 'xr'
   outcome: 'ok' | 'fallback' | 'error' | 'skip'
   /** Código do asset (não é PII). */
   assetCode?: string
