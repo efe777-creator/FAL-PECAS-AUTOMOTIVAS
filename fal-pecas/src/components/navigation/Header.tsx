@@ -34,8 +34,18 @@ export function Header({ theme, onThemeToggle }: Props) {
 
   return (
     <header className="sticky top-0 z-[100] border-b border-fal-line bg-fal-surface shadow-sm dark:bg-fal-bg dark:shadow-none">
-      <Container className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 py-2 sm:gap-x-4 sm:py-2.5 lg:grid-cols-[180px_minmax(0,1fr)_auto] lg:min-h-[84px] lg:gap-x-[22px] lg:py-3">
+      <Container className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 py-2 sm:gap-x-4 sm:py-2.5 lg:grid-cols-[auto_auto_minmax(0,1fr)_auto] lg:min-h-[84px] lg:gap-x-[22px] lg:py-3">
         <Logo />
+        <Link
+          to="/conta/veiculos"
+          className="hidden text-center text-[13px] font-semibold text-fal-navy dark:text-fal-fg lg:block"
+          aria-label="Minha Garagem"
+        >
+          <b className="block text-xl leading-none" aria-hidden>
+            🚗
+          </b>
+          Garagem
+        </Link>
         <SearchBar />
         <div className="flex items-center justify-end gap-2 lg:gap-3">
           <div className="lg:hidden">
