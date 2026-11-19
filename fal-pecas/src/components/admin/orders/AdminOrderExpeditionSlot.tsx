@@ -115,7 +115,7 @@ export function AdminOrderExpeditionSlot({
   return (
     <div className="space-y-4" data-order-ops-block="expedition-wave2-slot">
       <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
-        Expedição · volumes · frete (mesmo surface — slot onda 2)
+        Expedição · volumes · frete
       </p>
 
       {storePickup &&

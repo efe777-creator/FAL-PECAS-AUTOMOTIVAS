@@ -255,7 +255,7 @@ export function MeExpeditionPanel({
           </p>
         ) : null}
         {divergenceMsg ? (
-          <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          <p className="mt-2 rounded-md border border-fal-warning/50 bg-fal-warning/15 px-3 py-2 text-sm text-fal-fg">
             {divergenceMsg}
           </p>
         ) : null}
@@ -265,7 +265,7 @@ export function MeExpeditionPanel({
           </p>
         ) : null}
         {order.payment?.status && order.payment.status !== 'approved' ? (
-          <p className="mt-1 mb-0 text-xs text-amber-800">
+          <p className="mt-1 mb-0 text-xs text-fal-warning">
             Pagamento canônico: {order.payment.status} (exige approved).
           </p>
         ) : null}
@@ -470,7 +470,7 @@ export function MeExpeditionPanel({
             despacho muda o status — o cliente então vê “Enviado”.
           </p>
           {!shipGates.ok ? (
-            <p className="mt-2 mb-0 text-sm text-amber-800">
+            <p className="mt-2 mb-0 text-sm text-fal-warning">
               Despacho bloqueado: {shipGates.message}
             </p>
           ) : null}

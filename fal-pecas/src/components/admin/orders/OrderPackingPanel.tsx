@@ -33,12 +33,46 @@ type Props = {
   onError: (msg: string) => void
 }
 
+function volumesFromOrderMeta(
+  order: AdminOrderDetail,
+  items: { id: string; quantity: number }[],
+): { volumes: OrderPackingVolume[]; exceptionOn: boolean; exceptionReason: string } {
+  const meta = order.shipment?.metadata ?? null
+  const parsed = parseOrderPacking(meta)
+  const qty = items.map((i) => ({ id: i.id, quantity: i.quantity }))
+  const exc = parsed.allocationException
+  if (parsed.volumes.length) {
+    const hasAnyLine = parsed.volumes.some((v) => (v.lines?.length ?? 0) > 0)
+    if (!hasAnyLine && items.length && !exc?.active) {
+      return {
+        volumes: allocateAllToFirstVolume({ volumes: parsed.volumes }, qty).volumes,
+        exceptionOn: Boolean(exc?.active),
+        exceptionReason: exc?.reason ?? '',
+      }
+    }
+    return {
+      volumes: parsed.volumes,
+      exceptionOn: Boolean(exc?.active),
+      exceptionReason: exc?.reason ?? '',
+    }
+  }
+  const seeded = volumesFromContractedMeta(meta)
+  if (seeded.length && items.length) {
+    return {
+      volumes: allocateAllToFirstVolume({ volumes: seeded }, qty).volumes,
+      exceptionOn: Boolean(exc?.active),
+      exceptionReason: exc?.reason ?? '',
+    }
+  }
+  return {
+    volumes: seeded,
+    exceptionOn: Boolean(exc?.active),
+    exceptionReason: exc?.reason ?? '',
+  }
+}
+
 export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError }: Props) {
   const locked = ['enviado', 'entregue', 'cancelado'].includes(order.status)
-  const [volumes, setVolumes] = useState<OrderPackingVolume[]>([])
-  const [exceptionOn, setExceptionOn] = useState(false)
-  const [exceptionReason, setExceptionReason] = useState('')
-
   const pickup = isOrderStorePickup(order)
   const kind = orderShippingKind(order)
   const isMe = orderUsesMelhorEnvio(order)
@@ -53,30 +87,35 @@ export function OrderPackingPanel({ order, busy, onBusy, onReload, onOk, onError
     [order.items],
   )
 
+  const [volumes, setVolumes] = useState<OrderPackingVolume[]>(() =>
+    volumesFromOrderMeta(
+      order,
+      order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+    ).volumes,
+  )
+  const [exceptionOn, setExceptionOn] = useState(
+    () =>
+      volumesFromOrderMeta(
+        order,
+        order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+      ).exceptionOn,
+  )
+  const [exceptionReason, setExceptionReason] = useState(
+    () =>
+      volumesFromOrderMeta(
+        order,
+        order.items.map((i) => ({ id: i.id, quantity: i.quantity })),
+      ).exceptionReason,
+  )
+
   useEffect(() => {
-    const meta = order.shipment?.metadata ?? null
-    const parsed = parseOrderPacking(meta)
-    const qty = items.map((i) => ({ id: i.id, quantity: i.quantity }))
-    if (parsed.volumes.length) {
-      const hasAnyLine = parsed.volumes.some((v) => (v.lines?.length ?? 0) > 0)
-      // Volumes salvos sem lines (seed incompleto) → reaplicar alocação no 1º volume.
-      if (!hasAnyLine && items.length && !parsed.allocationException?.active) {
-        setVolumes(allocateAllToFirstVolume({ volumes: parsed.volumes }, qty).volumes)
-      } else {
-        setVolumes(parsed.volumes)
-      }
-    } else {
-      // Pré-preenche medidas da cotação e aloca itens no 1º volume (ainda precisa Salvar).
-      const seeded = volumesFromContractedMeta(meta)
-      if (seeded.length && items.length) {
-        setVolumes(allocateAllToFirstVolume({ volumes: seeded }, qty).volumes)
-      } else {
-        setVolumes(seeded)
-      }
-    }
-    const exc = parsed.allocationException
-    setExceptionOn(Boolean(exc?.active))
-    setExceptionReason(exc?.reason ?? '')
+    const next = volumesFromOrderMeta(
+      order,
+      items.map((i) => ({ id: i.id, quantity: i.quantity })),
+    )
+    setVolumes(next.volumes)
+    setExceptionOn(next.exceptionOn)
+    setExceptionReason(next.exceptionReason)
   }, [order.id, order.shipment?.metadata, items])
 
   const itemQtys = useMemo(

@@ -43,6 +43,8 @@ describe('orderOpsSurfacePolicy (I1 parity)', () => {
     expect(a.blocks).toContain('itemsInlineOps')
     expect(a.primaryActionId).toBeNull()
     expect(a.pendenciaActionsDeferred).toBe(true)
+    // Footer UI só deve expor cancel (se canCancel); CTAs de análise ficam no painel.
+    expect(a.secondaryActionIds.filter((id) => id !== 'cancel-order')).toEqual([])
   })
 
   it('aguardando_decisao mantém finalize no rail (sem withdraw duplicado)', () => {

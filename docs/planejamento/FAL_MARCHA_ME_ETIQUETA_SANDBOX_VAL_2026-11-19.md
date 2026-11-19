@@ -33,15 +33,53 @@ Confirmar emissão de etiqueta Melhor Envio em **sandbox** (quote → prepare �
 
 **Veredito Edge/sandbox:** **PASS** ciclo completo (HTTP real sandbox, não dry-run).
 
-## Jornada UI operador (checklist eFe)
+## Jornada UI operador
 
-1. Reiniciar Vite (`.env.local` com `VITE_SHIPPING_ME_ENV=sandbox`).
-2. Login staff → `/admin/pedidos/{uuid}` ou hub → aba **Logística**.
-3. Pedido ME em `pronto_para_envio` + packing completo + pagamento aprovado.
-4. Cotar → Preparar → Comprar (confirmar “testes”) → Gerar → Imprimir.
-5. **Não** `ship_order` até postagem física.
+Vite `http://localhost:5173` · `VITE_SHIPPING_ME_ENV=sandbox` · staff `efe.comercioltda@gmail.com`.
 
-Pedido smoke acima serve para abrir na UI e conferir `label_state=printed`.
+### Fase 1 — Âncora printed
+
+| Critério | Resultado |
+|----------|-----------|
+| Pedido | `921d61aa-dc08-4ab6-b288-11812f695cf5` |
+| Aba Logística | **PASS** · Situação **Etiqueta impressa** |
+| Comprar / Gerar | **PASS** · desabilitados |
+| Imprimir | **PASS** · abre sandbox ME (`sandbox.melhorenvio.com.br`) |
+
+### Fase 2 — Ciclo UI fresh (seed → print)
+
+| Passo | Resultado |
+|-------|-----------|
+| Seed | `STOP_AFTER=seed` · `342e6cb7-3abb-46fd-9e8e-90536cdcd2b6` · `label_state=none` + packing completo |
+| Packing 1º paint | **PASS** · “Packing completo” (sem flash 0/1) |
+| Cotar | **PASS** · `Cotação de etiqueta · R$ 11,15` |
+| Preparar | **PASS** · `No carrinho Melhor Envio` |
+| Comprar dialog | **PASS** · copy **ambiente de testes** (não produção) |
+| Comprar | **PASS** · `Etiqueta comprada` · protocolo `PUR-202611151316` |
+| Gerar | **PASS** · `Etiqueta gerada` · dialog despacho → “Agora não” |
+| Imprimir | **PASS** · `Etiqueta impressa` · URL `https://sandbox.melhorenvio.com.br/portal/imprimir/TW0ZyaqKYZK4` |
+
+### Correções UI×Edge nesta marcha
+
+| Sintoma | Correção |
+|---------|----------|
+| Packing “Nenhum volume” / 0/1 no 1º frame | `OrderPackingPanel` hidrata volumes sync no `useState` inicial (`volumesFromOrderMeta`) |
+| Smoke só ciclo completo | `STOP_AFTER=seed\|status\|quote\|prepare\|purchase\|generate` em `scripts/smoke-me-label.mjs` |
+
+### Notas (não bloqueantes)
+
+- Após cada ação ME + `onReload`, a aba volta para **Geral** (operador reabre Logística).
+- Print sandbox pode abrir `/404` intermediário antes do portal `/imprimir/{id}` — URL final OK.
+
+### Aceite
+
+| ID | Critério | Status |
+|----|----------|--------|
+| C1 | Âncora printed + reimprimível | **PASS** |
+| C2 | Pedido novo Cotar→…→Imprimir sandbox | **PASS** · `342e6cb7-…` |
+| C3 | Dialog compra coerente sandbox | **PASS** |
+| C4 | Bugs desta marcha corrigidos/doc | **PASS** |
+| C5 | Sem deploy produção | **PASS** |
 
 ## Segurança
 
@@ -51,4 +89,4 @@ Token ME apareceu em log de terminal local — **considerar regenerar** no paine
 
 Registry fino `packing` / `ownShip` / `meFreight` no surface (`wave=2`) — lógica ME já validada no slot.
 
-**Assinatura:** MARCHA ME etiqueta sandbox PASS · 2026-11-19.
+**Assinatura:** MARCHA ME etiqueta sandbox **UI+Edge PASS** · 2026-11-19.

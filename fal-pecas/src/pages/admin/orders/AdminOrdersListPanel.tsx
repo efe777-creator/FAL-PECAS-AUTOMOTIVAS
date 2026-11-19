@@ -13,6 +13,7 @@ import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
+import { useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 function paymentLabel(o: AdminOrderListRow): string {
@@ -70,6 +71,8 @@ type Props = {
   showItemCount?: boolean
   selectedOrderId?: string | null
   onSelectOrder?: (orderId: string) => void
+  /** Guias empilhadas abertas — esconde “Faça agora” duplicado no card/linha. */
+  openOrderIds?: string[]
   /** Busca já no header do hub. */
   hideSearch?: boolean
 }
@@ -88,10 +91,19 @@ export function AdminOrdersListPanel({
   showItemCount,
   selectedOrderId,
   onSelectOrder,
+  openOrderIds,
   hideSearch,
 }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
+  const openSet = useMemo(
+    () => new Set((openOrderIds ?? []).filter(Boolean)),
+    [openOrderIds],
+  )
+  const anyGuideOpen = openSet.size > 0 || Boolean(selectedOrderId)
+  function guideOpen(id: string): boolean {
+    return openSet.has(id) || selectedOrderId === id
+  }
   function rememberReturn() {
     rememberOrdersReturnPath(`${location.pathname}${location.search}`)
   }
@@ -147,19 +159,23 @@ export function AdminOrdersListPanel({
                     <p className="m-0 shrink-0 text-sm font-bold">{formatMoney(o.total)}</p>
                   </div>
 
-                  <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/25 px-2.5 py-2 text-fal-fg">
-                    <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
-                      Faça agora
-                    </p>
-                    <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-fg">{next}</p>
-                  </div>
+                  {!guideOpen(o.id) ? (
+                    <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/25 px-2.5 py-2 text-fal-fg">
+                      <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
+                        Faça agora
+                      </p>
+                      <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-fg">{next}</p>
+                    </div>
+                  ) : (
+                    <p className="mb-0 mt-2 text-xs text-fal-muted">Aberto na guia · ações no painel</p>
+                  )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className={badgeClass(toneForOrderStatus(o.status))}>
                       {listStatusLabel(o)}
                     </span>
                     {o.shippingChoiceLabel ? (
-                      <span className="rounded-md border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-950">
+                      <span className="rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
                         {o.shippingChoiceLabel}
                       </span>
                     ) : null}
@@ -204,7 +220,7 @@ export function AdminOrdersListPanel({
                     <OrderRowActionsMenu
                       orderId={o.id}
                       onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
-                      utilitiesOnly={Boolean(onSelectOrder && selectedOrderId)}
+                      utilitiesOnly={Boolean(onSelectOrder && anyGuideOpen)}
                     />
                   </div>
                 </article>
@@ -250,9 +266,13 @@ export function AdminOrdersListPanel({
                       </td>
                       <td className="px-3 py-2">{o.customerName ?? '—'}</td>
                       <td className="px-3 py-2">
-                        <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-navy-dark">
-                          {nextActionLabel(o)}
-                        </span>
+                        {guideOpen(o.id) ? (
+                          <span className="text-xs text-fal-muted">Na guia</span>
+                        ) : (
+                          <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-fg">
+                            {nextActionLabel(o)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <span className={badgeClass(toneForOrderStatus(o.status))}>
@@ -261,7 +281,7 @@ export function AdminOrdersListPanel({
                       </td>
                       <td className="px-3 py-2">
                         {o.shippingChoiceLabel ? (
-                          <span className="inline-block rounded-md border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-950">
+                          <span className="inline-block rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
                             {o.shippingChoiceLabel}
                           </span>
                         ) : (
@@ -307,7 +327,7 @@ export function AdminOrdersListPanel({
                           <OrderRowActionsMenu
                             orderId={o.id}
                             onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
-                            utilitiesOnly={Boolean(onSelectOrder && selectedOrderId)}
+                            utilitiesOnly={Boolean(onSelectOrder && anyGuideOpen)}
                           />
                         </div>
                       </td>

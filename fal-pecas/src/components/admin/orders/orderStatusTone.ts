@@ -4,7 +4,7 @@ export type OrderTone = 'neutral' | 'warning' | 'info' | 'success' | 'danger' | 
 
 const TONE_CLASS: Record<OrderTone, string> = {
   neutral: 'border-fal-line bg-fal-surface-2 text-fal-muted',
-  warning: 'border-fal-yellow-dark/60 bg-fal-yellow/40 text-fal-navy-dark',
+  warning: 'border-fal-yellow-dark/60 bg-fal-yellow/40 text-fal-fg',
   info: 'border-fal-accent/40 bg-fal-accent/15 text-fal-fg',
   success: 'border-fal-success/40 bg-fal-success/15 text-fal-fg',
   danger: 'border-fal-danger/40 bg-fal-danger/15 text-fal-fg',

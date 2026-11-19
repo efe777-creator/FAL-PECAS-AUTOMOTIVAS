@@ -505,6 +505,7 @@ export function AdminOrdersHubPage() {
               search={search}
               onSearch={setSearch}
               selectedOrderId={selectedOrderId}
+              openOrderIds={openOrderIds}
               onSelectOrder={openOrderInSplit}
               hideSearch
               emptyTitle="Nenhum pedido neste filtro"
@@ -598,6 +599,7 @@ export function AdminOrdersHubPage() {
             search={search}
             onSearch={setSearch}
             selectedOrderId={selectedOrderId}
+            openOrderIds={openOrderIds}
             onSelectOrder={openOrderInSplit}
             showWaitingTime={hub.area === 'aguardando-pagamento'}
             hideSearch
@@ -620,6 +622,7 @@ export function AdminOrdersHubPage() {
             search={search}
             onSearch={setSearch}
             selectedOrderId={selectedOrderId}
+            openOrderIds={openOrderIds}
             onSelectOrder={openOrderInSplit}
             hideSearch
           />

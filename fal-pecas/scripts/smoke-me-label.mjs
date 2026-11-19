@@ -237,14 +237,28 @@ async function main() {
     console.log(JSON.stringify({ step: 'seed', orderId, payment_ref: PAYMENT_REF }))
   }
 
+  const stopAfter = (process.env.STOP_AFTER || '').trim().toLowerCase()
+  if (stopAfter === 'seed') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter: 'seed' }))
+    return
+  }
+
   const token = await staffAccessToken(service, anon)
   console.log(JSON.stringify({ step: 'auth', staff: STAFF_EMAIL, ok: true }))
 
   const status = await invokeLabel(token, anon, { action: 'status', orderId })
   console.log(JSON.stringify({ step: 'status', http: status.status, sandbox: status.json.sandbox, dryRun: status.json.dryRun, labelState: status.json.labelState, error: status.json.error }))
+  if (stopAfter === 'status') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter }))
+    return
+  }
 
   const quote = await invokeLabel(token, anon, { action: 'quote', orderId })
   console.log(JSON.stringify({ step: 'quote', http: quote.status, ok: quote.json.ok, labelState: quote.json.labelState, sandbox: quote.json.sandbox, dryRun: quote.json.dryRun, message: quote.json.message, error: quote.json.error }))
+  if (stopAfter === 'quote') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter }))
+    return
+  }
 
   const prepare = await invokeLabel(token, anon, { action: 'prepare', orderId })
   console.log(JSON.stringify({ step: 'prepare', http: prepare.status, ok: prepare.json.ok, labelState: prepare.json.labelState, sandbox: prepare.json.sandbox, dryRun: prepare.json.dryRun, message: prepare.json.message, error: prepare.json.error, detail: prepare.json.error === 'me_cart_failed' ? 'see shipment.me.last_error' : undefined }))
@@ -259,6 +273,10 @@ async function main() {
     console.log(JSON.stringify({ step: 'done', orderId, gate: 'prepare_failed' }))
     return
   }
+  if (stopAfter === 'prepare') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter: 'prepare' }))
+    return
+  }
 
   const sandbox = prepare.json.sandbox === true || quote.json.sandbox === true
   const dryRun = prepare.json.dryRun === true || quote.json.dryRun === true
@@ -270,9 +288,17 @@ async function main() {
 
   const purchase = await invokeLabel(token, anon, { action: 'purchase', orderId, confirm: true })
   console.log(JSON.stringify({ step: 'purchase', http: purchase.status, ok: purchase.json.ok, labelState: purchase.json.labelState, message: purchase.json.message, error: purchase.json.error }))
+  if (stopAfter === 'purchase') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter }))
+    return
+  }
 
   const generate = await invokeLabel(token, anon, { action: 'generate', orderId })
   console.log(JSON.stringify({ step: 'generate', http: generate.status, ok: generate.json.ok, labelState: generate.json.labelState, message: generate.json.message, error: generate.json.error }))
+  if (stopAfter === 'generate') {
+    console.log(JSON.stringify({ step: 'done', orderId, gate: null, stopAfter }))
+    return
+  }
 
   const print = await invokeLabel(token, anon, { action: 'print', orderId })
   console.log(JSON.stringify({ step: 'print', http: print.status, ok: print.json.ok, labelState: print.json.labelState, printUrl: print.json.printUrl ?? null, message: print.json.message, error: print.json.error }))

@@ -113,8 +113,8 @@ export function OrderAnalysisResolutionPanel({
         {order.customerDecision === 'continue_available' ||
         order.customerDecision === 'authorized' ? (
           <p className="rounded-lg border border-fal-success/40 bg-fal-success/15 px-3 py-2 text-sm text-fal-fg">
-            Cliente aprovou. Use <strong>Confirmar e enviar à separação</strong> em Faça agora —
-            a separação não inicia sozinha.
+            Cliente aprovou. Use <strong>Confirmar e enviar à separação</strong> em{' '}
+            <strong>Ações do pedido</strong> (rodapé) — a separação não inicia sozinha.
           </p>
         ) : null}
         {onWithdraw ? (

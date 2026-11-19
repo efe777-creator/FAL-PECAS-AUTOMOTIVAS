@@ -1,5 +1,6 @@
 import { AdminOrderExpeditionSlot } from '@/components/admin/orders/AdminOrderExpeditionSlot'
 import { OrderAnalysisResolutionPanel } from '@/components/admin/orders/OrderAnalysisResolutionPanel'
+import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
 import {
   badgeClass,
   toneForOrderStatus,
@@ -542,6 +543,21 @@ export function OrderOpsSurface({
   const workflowSecondary = presentation.secondaryActionIds.filter(
     (id) => id !== 'open-full' && id !== 'copy-id',
   )
+  /** Policy: CTAs de análise ficam no painel — footer só cancel (se houver) + nav guia. */
+  const footerSecondaries = presentation.pendenciaActionsDeferred
+    ? workflowSecondary.filter((id) => id === 'cancel-order')
+    : workflowSecondary
+
+  function navigateWizardAnchor(anchor: string) {
+    if (anchor === 'ops-conferencia') {
+      setTab('itens')
+    } else {
+      setTab('logistica')
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   return (
     <div
@@ -568,13 +584,17 @@ export function OrderOpsSurface({
               </div>
             ) : null}
             {outsideCurrentFilter ? (
-              <p className="mb-0 mt-1 text-xs text-amber-800">
+              <p className="mb-0 mt-1 text-xs text-fal-warning">
                 Pedido fora do filtro atual da lista.
               </p>
             ) : null}
           </div>
           {chromeExtra ? <div className="shrink-0">{chromeExtra}</div> : null}
         </header>
+      ) : null}
+
+      {compact && order ? (
+        <OrderOpsWizardNav order={order} compact onNavigate={navigateWizardAnchor} />
       ) : null}
 
       <div
@@ -615,12 +635,12 @@ export function OrderOpsSurface({
                   ) : null}
                 </p>
                 {pendencia ? (
-                  <div className="mt-1 space-y-0.5">
-                    <p className="mb-0 text-xs font-semibold text-amber-900">
+                  <div className="mt-1 space-y-0.5 rounded-[8px] border border-fal-warning/40 bg-fal-warning/10 px-2 py-1.5">
+                    <p className="mb-0 text-xs font-semibold text-fal-fg">
                       {pendencia.title}
                     </p>
                     {pendencia.body ? (
-                      <p className="mb-0 text-xs text-amber-900/90">{pendencia.body}</p>
+                      <p className="mb-0 text-xs text-fal-muted">{pendencia.body}</p>
                     ) : null}
                   </div>
                 ) : null}
@@ -724,7 +744,7 @@ export function OrderOpsSurface({
           ) : null}
 
           {tab === 'itens' ? (
-            <div role="tabpanel" aria-label="Itens">
+            <div id="ops-conferencia" className="scroll-mt-4" role="tabpanel" aria-label="Itens">
               {order ? (
                 <ItemsBlock
                   order={order}
@@ -900,9 +920,9 @@ export function OrderOpsSurface({
         </div>
 
         {pending ? (
-          <div className="shrink-0 rounded-[10px] border border-amber-300 bg-amber-50 px-2.5 py-2 text-sm text-amber-950">
+          <div className="shrink-0 rounded-[10px] border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-sm text-fal-fg">
             <p className="m-0 font-bold">{PENDING_COPY[pending].title}</p>
-            <p className="mb-0 mt-1 text-xs">{PENDING_COPY[pending].body}</p>
+            <p className="mb-0 mt-1 text-xs text-fal-muted">{PENDING_COPY[pending].body}</p>
             {pending === 'cancel' ? (
               <div className="mt-2">
                 <Input
@@ -938,7 +958,7 @@ export function OrderOpsSurface({
         ) : null}
 
         {order?.cancellationRequest === 'pending' ? (
-          <div className="shrink-0 rounded-[10px] border border-amber-400 bg-amber-50 px-2.5 py-2 text-xs">
+          <div className="shrink-0 rounded-[10px] border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-xs">
             <p className="m-0 font-semibold text-fal-fg">
               Cancelamento solicitado pelo cliente
             </p>
@@ -1000,7 +1020,7 @@ export function OrderOpsSurface({
         ) : null}
 
       {presentation.primaryActionId ||
-      workflowSecondary.length > 0 ||
+      footerSecondaries.length > 0 ||
       (!hideFooter && (onOpenFull || onClose)) ? (
         <footer className="border-t border-fal-line pt-2" aria-label="Ações do pedido">
           {presentation.primaryActionId ? (
@@ -1015,9 +1035,9 @@ export function OrderOpsSurface({
               {ACTION_LABEL[presentation.primaryActionId]}
             </Button>
           ) : null}
-          {workflowSecondary.length > 0 ? (
+          {footerSecondaries.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {workflowSecondary.map((id) => (
+              {footerSecondaries.map((id) => (
                 <Button
                   key={id}
                   type="button"
