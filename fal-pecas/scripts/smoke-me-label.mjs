@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 
 const PROJECT_REF = 'wtbpwuiayednvlhvuhbh'
 const URL = `https://${PROJECT_REF}.supabase.co`
-const STAFF_EMAIL = 'teste@gmail.com'
+const STAFF_EMAIL = 'efe.comercioltda@gmail.com'
 const PAYMENT_REF = `SMOKE-ME-LABEL-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`
 
 function apiKeys() {
@@ -79,6 +79,8 @@ async function seedOrder(admin) {
     city: 'São Paulo',
     state: 'SP',
   }
+  const packingVolumeId = randomUUID()
+  const itemsFingerprint = `${itemId}:1`
   const meMeta = {
     me: {
       label_state: 'none',
@@ -95,6 +97,26 @@ async function seedOrder(admin) {
         itemsWeightKg: 0.35,
         emptyWeightKg: 0.15,
       },
+    },
+    packing: {
+      itemsFingerprint,
+      allocationStatus: 'complete',
+      volumes: [
+        {
+          id: packingVolumeId,
+          lengthCm: 20,
+          widthCm: 15,
+          heightCm: 10,
+          weightKg: 0.5,
+          unitLength: 'cm',
+          unitWeight: 'kg',
+          boxTemplateId: '81c59f38-13d5-47b8-ba59-6f20cdcbfa2a',
+          recordedAt: new Date().toISOString(),
+          lines: [{ orderItemId: itemId, quantity: 1 }],
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'smoke-me-label',
     },
     quote_id: randomUUID(),
     option_id: `meq:smoke:${Date.now()}:2`,
@@ -129,6 +151,17 @@ async function seedOrder(admin) {
     separated: true,
   })
   if (iErr) throw iErr
+
+  const { error: pErr } = await admin.from('payments').insert({
+    order_id: orderId,
+    provider: 'smoke',
+    status: 'approved',
+    amount: 1 + shippingAmount,
+    method: 'pix',
+    external_ref: PAYMENT_REF,
+    metadata: { smoke: true, note: 'ME label sandbox' },
+  })
+  if (pErr) throw pErr
 
   const { error: sErr } = await admin.from('shipments').insert({
     id: shipId,
