@@ -1,11 +1,13 @@
 import { CustomerCadastroPreviewModal } from '@/components/admin/customers/CustomerCadastroPreviewModal'
-import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
+import { OrderOpsSurface } from '@/components/admin/orders/OrderOpsSurface'
+import type { AdaptiveWorkspaceModeApi } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { OrdersFinanceIndicatorsPanel } from '@/components/admin/orders/OrdersFinanceIndicatorsPanel'
 import { OrdersHubAreaCards } from '@/components/admin/orders/OrdersHubAreaCards'
 import { OrdersHubFinanceStrip } from '@/components/admin/orders/OrdersHubFinanceStrip'
 import { OrdersHubKpiRow } from '@/components/admin/orders/OrdersHubKpiRow'
 import { OrdersLogisticsQueuesBar } from '@/components/admin/orders/OrdersLogisticsQueuesBar'
 import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
+import { OrderSplitTabPanels } from '@/components/admin/orders/OrderSplitTabPanels'
 import {
   badgeClass,
   toneForOrderStatus,
@@ -54,7 +56,8 @@ import {
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
 import type { LogisticsQueueCounts } from '@/lib/adminLogisticsQueues'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useOrderSplitTabs } from '@/hooks/useOrderSplitTabs'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 const TABS: { id: OrdersHubTab; label: string }[] = [
@@ -132,9 +135,18 @@ export function AdminOrdersHubPage() {
   const [tableError, setTableError] = useState<string | null>(null)
   const [busyExpire, setBusyExpire] = useState(false)
   const [search, setSearch] = useState('')
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const {
+    openOrderIds,
+    activeOrderId: selectedOrderId,
+    openOrder: openOrderInSplit,
+    closeOrder: closeOrderTab,
+    closeAll: closeAllOrderTabs,
+    hasOpen: hasOpenOrderTabs,
+  } = useOrderSplitTabs()
   const [overviewChip, setOverviewChip] = useState<OverviewChip>('todos')
   const [customerModalOpen, setCustomerModalOpen] = useState(false)
+  const workspaceModeApiRef = useRef<AdaptiveWorkspaceModeApi | null>(null)
+  const [tableEpoch, setTableEpoch] = useState(0)
 
   const setHubParams = useCallback(
     (next: { tab?: OrdersHubTab; area?: OrdersHubArea; fila?: string | null }) => {
@@ -236,7 +248,7 @@ export function AdminOrdersHubPage() {
     return () => {
       cancelled = true
     }
-  }, [hub.tab, hub.area, hub.fila])
+  }, [hub.tab, hub.area, hub.fila, tableEpoch])
 
   const filteredTable = useMemo(() => {
     const base =
@@ -357,7 +369,7 @@ export function AdminOrdersHubPage() {
               active ? 'bg-fal-navy text-white shadow-sm' : 'text-fal-fg hover:bg-fal-bg',
             ].join(' ')}
             onClick={() => {
-              setSelectedOrderId(null)
+              closeAllOrderTabs()
               setHubParams({
                 tab: t.id,
                 area:
@@ -381,50 +393,51 @@ export function AdminOrdersHubPage() {
     </nav>
   )
 
+  const ordersToolbar = (
+    <div className="flex w-full flex-wrap items-end gap-2">
+      <div className="min-w-[14rem] flex-1">
+        <Input
+          label="Buscar pedidos"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="nº, cliente, CPF, item, valor…"
+        />
+      </div>
+      <Button
+        type="button"
+        variant="light"
+        size="sm"
+        onClick={() => setCustomerModalOpen(true)}
+      >
+        Clientes
+      </Button>
+      <Button
+        type="button"
+        variant="light"
+        size="sm"
+        disabled={busyExpire || loading}
+        onClick={() => void runExpireUnpaid()}
+      >
+        {busyExpire ? 'Expirando…' : 'Retirar não pagos'}
+      </Button>
+      <Link
+        to="/admin/pedidos/lista"
+        className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
+      >
+        Lista avançada
+      </Link>
+    </div>
+  )
+
   const primary = (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg">
-            Central de Pedidos
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Gestão comercial, financeira e logística — preview na lateral, operação no detalhe.
-          </p>
-        </div>
-        <div className="flex w-full max-w-xl flex-wrap items-end gap-2 sm:w-auto">
-          <div className="min-w-[12rem] flex-1">
-            <Input
-              label="Buscar pedidos"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="nº, cliente, CPF, item, valor…"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="light"
-            size="sm"
-            onClick={() => setCustomerModalOpen(true)}
-          >
-            Clientes
-          </Button>
-          <Button
-            type="button"
-            variant="light"
-            size="sm"
-            disabled={busyExpire || loading}
-            onClick={() => void runExpireUnpaid()}
-          >
-            {busyExpire ? 'Expirando…' : 'Retirar não pagos'}
-          </Button>
-          <Link
-            to="/admin/pedidos/lista"
-            className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 text-sm font-semibold text-fal-fg"
-          >
-            Lista avançada
-          </Link>
-        </div>
+    <div className="admin-orders-hub space-y-5">
+      <header className="min-w-0">
+        <h1 className="text-2xl font-extrabold tracking-tight text-fal-fg">
+          Central de Pedidos
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-fal-muted">
+          Gestão comercial, financeira e logística — preview na lateral, operação no detalhe.
+        </p>
       </header>
 
       {loading ? <Loading label="Carregando central…" /> : null}
@@ -457,12 +470,13 @@ export function AdminOrdersHubPage() {
           <OrdersHubAreaCards
             cards={areaCards}
             onNavigate={(next) => {
-              setSelectedOrderId(null)
+              closeAllOrderTabs()
               setHubParams(next)
             }}
           />
 
           <section className="space-y-3" aria-label="Pedidos">
+            {ordersToolbar}
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtro rápido">
               {OVERVIEW_CHIPS.map((chip) => {
                 const pressed = overviewChip === chip.id
@@ -491,7 +505,7 @@ export function AdminOrdersHubPage() {
               search={search}
               onSearch={setSearch}
               selectedOrderId={selectedOrderId}
-              onSelectOrder={setSelectedOrderId}
+              onSelectOrder={openOrderInSplit}
               hideSearch
               emptyTitle="Nenhum pedido neste filtro"
               emptyDescription="Troque o chip ou abra uma área de trabalho."
@@ -525,6 +539,7 @@ export function AdminOrdersHubPage() {
 
       {!loading && !error && (hub.tab === 'pedidos' || hub.tab === 'comercial') ? (
         <section className="space-y-3">
+          {ordersToolbar}
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filtro de área">
             {(hub.tab === 'comercial'
               ? ADMIN_ORDER_AREAS.filter(
@@ -583,7 +598,7 @@ export function AdminOrdersHubPage() {
             search={search}
             onSearch={setSearch}
             selectedOrderId={selectedOrderId}
-            onSelectOrder={setSelectedOrderId}
+            onSelectOrder={openOrderInSplit}
             showWaitingTime={hub.area === 'aguardando-pagamento'}
             hideSearch
           />
@@ -592,6 +607,7 @@ export function AdminOrdersHubPage() {
 
       {!loading && !error && hub.tab === 'logistica' ? (
         <section className="space-y-3">
+          {ordersToolbar}
           <OrdersLogisticsQueuesBar
             activeFila={parseFila(hub.fila)}
             counts={logisticsCounts}
@@ -604,7 +620,7 @@ export function AdminOrdersHubPage() {
             search={search}
             onSearch={setSearch}
             selectedOrderId={selectedOrderId}
-            onSelectOrder={setSelectedOrderId}
+            onSelectOrder={openOrderInSplit}
             hideSearch
           />
         </section>
@@ -612,17 +628,31 @@ export function AdminOrdersHubPage() {
     </div>
   )
 
+  const splitTabs = openOrderIds.map((id) => {
+    const row = tableRows.find((r) => r.id === id)
+    return {
+      id,
+      label: `#${id.slice(0, 8)}`,
+      statusLabel: row ? listStatusLabel(row) : undefined,
+    }
+  })
+
   return (
     <>
       <AdaptiveWorkspace
         moduleKey="orders"
+        modeApiRef={workspaceModeApiRef}
         primary={primary}
-        contextualOpen={!!selectedOrderId}
+        contextualOpen={hasOpenOrderTabs}
         onContextualOpenChange={(open) => {
-          if (!open) setSelectedOrderId(null)
+          if (!open) closeAllOrderTabs()
         }}
         contextualTitle={
-          selectedOrderId ? `Pedido #${selectedOrderId.slice(0, 8)}` : 'Pedido'
+          selectedOrderId
+            ? openOrderIds.length > 1
+              ? `#${selectedOrderId.slice(0, 8)} · ${openOrderIds.length} guias`
+              : `Pedido #${selectedOrderId.slice(0, 8)}`
+            : 'Pedido'
         }
         contextualStatusBadge={
           selectedRow ? (
@@ -632,16 +662,39 @@ export function AdminOrdersHubPage() {
           ) : null
         }
         contextualExtraActions={
-          selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
+          selectedOrderId ? (
+            <OrderRowActionsMenu orderId={selectedOrderId} utilitiesOnly />
+          ) : null
         }
         contextual={
           selectedOrderId ? (
-            <OrderPreviewPanel
-              orderId={selectedOrderId}
-              listRow={selectedRow}
-              hideStatusChip
-              onClose={() => setSelectedOrderId(null)}
-              onOpenFull={() => openFull(selectedOrderId)}
+            <OrderSplitTabPanels
+              orderIds={openOrderIds}
+              meta={splitTabs}
+              onCloseTab={closeOrderTab}
+              render={(orderId) => {
+                const row = tableRows.find((r) => r.id === orderId) ?? null
+                const outside = !filteredTable.some((r) => r.id === orderId)
+                return (
+                  <OrderOpsSurface
+                    orderId={orderId}
+                    density="compact"
+                    wave={1}
+                    listRow={row}
+                    outsideCurrentFilter={outside}
+                    hideStatusHeader
+                    onClose={() => closeOrderTab(orderId)}
+                    onOpenFull={() => openFull(orderId)}
+                    onRequestWideMode={(mode) =>
+                      workspaceModeApiRef.current?.requestWideMode(mode)
+                    }
+                    onOrderMutated={() => {
+                      setTableEpoch((n) => n + 1)
+                      void reloadHub()
+                    }}
+                  />
+                )
+              }}
             />
           ) : null
         }

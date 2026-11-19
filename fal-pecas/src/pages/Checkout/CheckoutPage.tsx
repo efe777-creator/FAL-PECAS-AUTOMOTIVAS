@@ -1290,7 +1290,7 @@ export function CheckoutPage() {
       ) : null}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-fal border border-fal-line bg-white p-5">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
           {deliveryViewOnly && momentIndex < 2 ? (
             <div className="mb-4 rounded-fal border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
               Visualização {momentIndex === 0 ? 'dos dados e endereço' : 'da entrega'} — cobrança
@@ -1380,7 +1380,7 @@ export function CheckoutPage() {
                   <label
                     className={`flex cursor-pointer items-start justify-between gap-3 rounded-fal border p-3 ${
                       isPickupMode
-                        ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                        ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
                         : 'border-fal-line hover:border-fal-navy'
                     } ${deliveryViewOnly ? 'pointer-events-none opacity-90' : ''}`}
                   >
@@ -1405,7 +1405,7 @@ export function CheckoutPage() {
                   <label
                     className={`flex cursor-pointer items-start justify-between gap-3 rounded-fal border p-3 ${
                       !isPickupMode
-                        ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                        ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
                         : 'border-fal-line hover:border-fal-navy'
                     } ${deliveryViewOnly ? 'pointer-events-none opacity-90' : ''}`}
                   >
@@ -1480,7 +1480,7 @@ export function CheckoutPage() {
                               <label
                                 className={`flex gap-3 rounded-fal border p-3 ${
                                   addressId === a.id
-                                    ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                    ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
                                     : 'border-fal-line'
                                 } cursor-pointer hover:border-fal-navy`}
                               >
@@ -1556,7 +1556,7 @@ export function CheckoutPage() {
                             <label
                               className={`flex gap-3 rounded-fal border p-3 ${
                                 selected
-                                  ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                  ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
                                   : 'border-fal-line'
                               } ${deliveryViewOnly ? 'cursor-default opacity-90' : 'cursor-pointer hover:border-fal-navy'}`}
                             >
@@ -1724,7 +1724,7 @@ export function CheckoutPage() {
                             <label
                               className={`flex items-center justify-between gap-3 rounded-fal border p-3 ${
                                 selected
-                                  ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
+                                  ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
                                   : 'border-fal-line'
                               } ${locked ? 'opacity-80' : 'cursor-pointer hover:border-fal-navy'}`}
                             >
@@ -1907,7 +1907,7 @@ export function CheckoutPage() {
                             'rounded-[10px] border px-3 py-2 text-sm font-bold',
                             mpAwaiting.channel === 'pix'
                               ? 'border-fal-navy bg-fal-navy text-white'
-                              : 'border-fal-line bg-white text-fal-navy',
+                              : 'border-fal-line bg-fal-surface text-fal-navy dark:text-fal-fg',
                           ].join(' ')}
                           onClick={() => selectPayChannel('pix')}
                         >
@@ -1921,7 +1921,7 @@ export function CheckoutPage() {
                             'rounded-[10px] border px-3 py-2 text-sm font-bold',
                             mpAwaiting.channel === 'credit_card'
                               ? 'border-fal-navy bg-fal-navy text-white'
-                              : 'border-fal-line bg-white text-fal-navy',
+                              : 'border-fal-line bg-fal-surface text-fal-navy dark:text-fal-fg',
                           ].join(' ')}
                           onClick={() => selectPayChannel('credit_card')}
                         >
@@ -1935,7 +1935,7 @@ export function CheckoutPage() {
                             'rounded-[10px] border px-3 py-2 text-sm font-bold',
                             mpAwaiting.channel === 'debit_card'
                               ? 'border-fal-navy bg-fal-navy text-white'
-                              : 'border-fal-line bg-white text-fal-navy',
+                              : 'border-fal-line bg-fal-surface text-fal-navy dark:text-fal-fg',
                           ].join(' ')}
                           onClick={() => selectPayChannel('debit_card')}
                         >
@@ -2170,7 +2170,7 @@ export function CheckoutPage() {
           </div>
         </div>
 
-        <aside className="h-max rounded-fal border border-fal-line bg-white p-5">
+        <aside className="h-max rounded-fal border border-fal-line bg-fal-surface p-5">
           {mpAwaiting ? (
             <>
               <div className="mb-3 text-sm text-fal-muted">

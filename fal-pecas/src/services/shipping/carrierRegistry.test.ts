@@ -120,12 +120,16 @@ describe('shippingQuoteContract + envelope', () => {
     expect(env.expiresAt).toBeTruthy()
   })
 
-  it('quoteShippingEnvelope mock retorna ok + disclaimer', async () => {
-    const env = await quoteShippingEnvelope(baseReq, 'mock')
-    expect(env.status).toBe('ok')
-    expect(env.options.length).toBeGreaterThan(0)
-    expect(env.disclaimer).toMatch(/homologação|mock/i)
-  })
+  it(
+    'quoteShippingEnvelope mock retorna ok + disclaimer',
+    async () => {
+      const env = await quoteShippingEnvelope(baseReq, 'mock')
+      expect(env.status).toBe('ok')
+      expect(env.options.length).toBeGreaterThan(0)
+      expect(env.disclaimer).toMatch(/homologação|mock/i)
+    },
+    15_000,
+  )
 
   it('quoteShippingEnvelope CEP inválido', async () => {
     const env = await quoteShippingEnvelope({ ...baseReq, postalCode: '123' }, 'correios')

@@ -39,7 +39,7 @@ describe('adminWorkspacePrefs', () => {
     writeModulePrefs('orders', { mode: 'split', splitWidthPx: 480 })
     expect(readModulePrefs('orders')).toEqual({ mode: 'split', splitWidthPx: 480 })
     expect(touchedKeys.every((k) => k.includes(ADMIN_WORKSPACE_KEY))).toBe(true)
-    expect(touchedKeys.some((k) => k.includes('fal-admin-dashboard-layout-v1'))).toBe(
+    expect(touchedKeys.some((k) => k.includes('fal-admin-dashboard-layout'))).toBe(
       false,
     )
   })

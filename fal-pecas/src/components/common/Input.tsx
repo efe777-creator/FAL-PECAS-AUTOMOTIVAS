@@ -22,7 +22,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ref={ref}
         id={inputId}
         className={[
-          'w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 outline-none',
+          'fal-field w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 text-fal-fg outline-none',
+          'placeholder:text-fal-muted disabled:cursor-not-allowed disabled:opacity-60',
           'focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]',
           error ? 'border-fal-danger' : '',
           className,

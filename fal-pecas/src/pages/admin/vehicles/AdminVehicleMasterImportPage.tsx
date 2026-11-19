@@ -128,7 +128,7 @@ export function AdminVehicleMasterImportPage() {
           </div>
           <div className="max-h-[420px] overflow-auto rounded-[12px] border border-fal-line">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-              <thead className="sticky top-0 bg-[#f7f9fa]">
+              <thead className="sticky top-0 bg-fal-surface-2">
                 <tr>
                   <th className="px-2 py-2">#</th>
                   <th className="px-2 py-2">Montadora</th>

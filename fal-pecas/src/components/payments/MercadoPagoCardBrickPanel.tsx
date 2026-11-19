@@ -513,7 +513,7 @@ export function MercadoPagoCardBrickPanel({
           </label>
           <input
             id="mp-card-name"
-            className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-base"
+            className="h-12 w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 text-base"
             value={cardholderName}
             onChange={(ev) => setCardholderName(ev.target.value)}
             autoComplete="cc-name"
@@ -528,7 +528,7 @@ export function MercadoPagoCardBrickPanel({
             </label>
             <select
               id="mp-doc-type"
-              className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-2 text-sm"
+              className="h-12 w-full rounded-[10px] border border-fal-line bg-fal-surface px-2 text-sm"
               value={docType}
               onChange={(ev) => setDocType(ev.target.value as 'CPF' | 'CNPJ')}
             >
@@ -542,7 +542,7 @@ export function MercadoPagoCardBrickPanel({
             </label>
             <input
               id="mp-doc-num"
-              className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-base"
+              className="h-12 w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 text-base"
               value={docNumber}
               onChange={(ev) => setDocNumber(ev.target.value)}
               inputMode="numeric"
@@ -558,7 +558,7 @@ export function MercadoPagoCardBrickPanel({
             </label>
             <select
               id="mp-installments"
-              className="h-12 w-full rounded-[10px] border border-fal-line bg-white px-3 text-sm"
+              className="h-12 w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 text-sm"
               value={installments}
               onChange={(ev) => setInstallments(Number(ev.target.value))}
               disabled={!binMethod}

@@ -58,7 +58,7 @@ export function CheckoutPickupConfirm({ origin, onSwitchToHome, viewOnly }: Prop
           href={waHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-full items-center justify-center rounded-[10px] border border-fal-line bg-white px-[19px] py-[13px] text-sm font-extrabold text-fal-navy hover:border-fal-navy"
+          className="inline-flex w-full items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-[19px] py-[13px] text-sm font-extrabold text-fal-navy hover:border-fal-navy"
         >
           Combinar no WhatsApp
         </a>

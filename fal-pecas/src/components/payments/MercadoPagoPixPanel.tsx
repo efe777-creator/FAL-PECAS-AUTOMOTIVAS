@@ -240,7 +240,7 @@ export function MercadoPagoPixPanel({
             <img
               src={imgSrc}
               alt="QR Code Pix"
-              className="mx-auto h-48 w-48 rounded-fal border border-fal-line bg-white p-2"
+              className="mx-auto h-48 w-48 rounded-fal border border-fal-line bg-fal-surface p-2"
             />
           ) : null}
           {!expired && row.pixQrCode ? (

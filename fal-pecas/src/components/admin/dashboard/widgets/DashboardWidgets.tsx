@@ -86,11 +86,11 @@ function SourceBanner({
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-fal-line bg-fal-bg px-2.5 py-2">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+    <div className="rounded-lg border border-fal-line bg-fal-bg px-2 py-1.5">
+      <div className="text-[9px] font-bold uppercase tracking-wide text-fal-muted">
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-extrabold tabular-nums text-fal-fg">
+      <div className="mt-0.5 truncate text-xs font-extrabold tabular-nums text-fal-fg">
         {value}
       </div>
     </div>
@@ -143,26 +143,28 @@ function KpiCard({
     <button
       type="button"
       onClick={onOpen}
-      className={`flex h-full w-full flex-col justify-between rounded-[14px] border bg-fal-surface px-3.5 py-3.5 text-left shadow-sm transition hover:border-fal-accent/45 hover:shadow-md ${toneCls[tone]}`}
+      className={`flex h-full min-h-0 w-full flex-col justify-between rounded-[12px] border bg-fal-surface px-2.5 py-2 text-left shadow-sm transition hover:border-fal-accent/45 hover:shadow-md ${toneCls[tone]}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
           {label}
         </div>
         {icon ? (
           <span
-            className={`inline-flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-black ${iconCls[tone]}`}
+            className={`inline-flex size-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${iconCls[tone]}`}
             aria-hidden
           >
             {icon}
           </span>
         ) : null}
       </div>
-      <div className="mt-2 text-2xl font-extrabold tabular-nums tracking-tight text-fal-fg md:text-[1.65rem]">
+      <div className="mt-1 text-xl font-extrabold tabular-nums tracking-tight text-fal-fg md:text-[1.35rem]">
         {value}
       </div>
       {hint ? (
-        <p className="mb-0 mt-1.5 text-[11px] leading-snug text-fal-muted">{hint}</p>
+        <p className="mb-0 mt-0.5 truncate text-[10px] leading-snug text-fal-muted">
+          {hint}
+        </p>
       ) : null}
     </button>
   )
@@ -186,10 +188,7 @@ export function WidgetExecSummary() {
     canAccessAdminPath('/admin/relatorios', role)
 
   const counts = statusCounts.data ?? {}
-  const activeOrders = ADMIN_ORDER_GROUPS.filter((g) => g.id !== 'finalizados').reduce(
-    (acc, g) => acc + sumGroupCount(counts, g),
-    0,
-  )
+  const ordersInPeriod = Object.values(counts).reduce((acc, n) => acc + n, 0)
   const attentionTotal = teamCount + customerCount
 
   const loading =
@@ -213,15 +212,15 @@ export function WidgetExecSummary() {
       : 'grid-cols-1 sm:grid-cols-2'
 
   return (
-    <div className="flex h-full flex-col gap-2 p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       {loading ? (
         <p className="m-0 text-sm text-fal-muted">Carregando resumo…</p>
       ) : (
-        <div className={`grid flex-1 gap-3 ${cols}`}>
+        <div className={`grid min-h-0 flex-1 gap-2 ${cols}`}>
           <KpiCard
-            label="Pedidos ativos"
+            label="Pedidos no período"
             value={
-              statusCounts.status === 'loading' ? '…' : String(activeOrders)
+              statusCounts.status === 'loading' ? '…' : String(ordersInPeriod)
             }
             onOpen={() =>
               setContextual(
@@ -241,7 +240,7 @@ export function WidgetExecSummary() {
               setContextual(resolveWidgetContextual('attention-table'))
             }
             tone={attentionTotal > 0 ? 'warning' : 'neutral'}
-            hint={`${teamCount} equipe · ${customerCount} cliente`}
+            hint={`${period.label} · ${teamCount} equipe · ${customerCount} cliente`}
             icon="!"
           />
           {showGmv ? (
@@ -252,7 +251,7 @@ export function WidgetExecSummary() {
                 setContextual(resolveWidgetContextual('gmv-delivered'))
               }
               tone="info"
-              hint="≠ caixa payments"
+              hint={`${period.label} · ≠ caixa payments`}
               icon="R$"
             />
           ) : null}
@@ -262,7 +261,7 @@ export function WidgetExecSummary() {
               value={cash}
               onOpen={() => setContextual(resolveWidgetContextual('cash-box'))}
               tone="success"
-              hint="payments · ≠ GMV"
+              hint={`${period.label} · payments · ≠ GMV`}
               icon="◇"
             />
           ) : null}
@@ -292,38 +291,44 @@ export function WidgetQuickControls() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 p-1">
-      <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
+      <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
         Controles rápidos
       </h3>
-      <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
         {controls.map((c) => (
           <button
             key={c.id}
             type="button"
-            className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-left transition hover:border-fal-accent/45 hover:bg-fal-surface-2"
+            className="flex min-h-0 flex-col items-start justify-center gap-0.5 rounded-[10px] border border-fal-line bg-fal-bg px-2.5 py-1.5 text-left transition hover:border-fal-accent/45 hover:bg-fal-surface-2"
             onClick={() => {
               const { contextual } = resolveQuickControl(c.id)
               if (contextual) setContextual(contextual)
             }}
           >
-            <span className="text-sm font-extrabold text-fal-fg">{c.label}</span>
-            <span className="text-[11px] leading-snug text-fal-muted">{c.hint}</span>
+            <span className="text-xs font-extrabold text-fal-fg">{c.label}</span>
+            <span className="truncate text-[10px] leading-snug text-fal-muted">
+              {c.hint}
+            </span>
           </button>
         ))}
         {firstAttention ? (
           <button
             type="button"
-            className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-fal-warning/55 bg-fal-warning/15 px-3 py-2 text-left transition hover:bg-fal-warning/25"
+            className="flex min-h-0 flex-col items-start justify-center gap-0.5 rounded-[10px] border border-fal-warning/55 bg-fal-warning/15 px-2.5 py-1.5 text-left transition hover:bg-fal-warning/25"
             onClick={() => openOrder(firstAttention.id)}
           >
-            <span className="text-sm font-extrabold text-fal-fg">Preview 1º da fila</span>
-            <span className="text-[11px] leading-snug text-fal-muted">Abrir atenção</span>
+            <span className="text-xs font-extrabold text-fal-fg">
+              Preview 1º da fila
+            </span>
+            <span className="text-[10px] leading-snug text-fal-muted">
+              Abrir atenção
+            </span>
           </button>
         ) : (
-          <div className="flex min-h-[4.25rem] flex-col items-start justify-center gap-0.5 rounded-[12px] border border-dashed border-fal-line bg-fal-bg/50 px-3 py-2">
-            <span className="text-sm font-semibold text-fal-muted">Fila vazia</span>
-            <span className="text-[11px] text-fal-muted">Sem preview</span>
+          <div className="flex min-h-0 flex-col items-start justify-center gap-0.5 rounded-[10px] border border-dashed border-fal-line bg-fal-bg/50 px-2.5 py-1.5">
+            <span className="text-xs font-semibold text-fal-muted">Fila vazia</span>
+            <span className="text-[10px] text-fal-muted">Sem preview</span>
           </div>
         )}
       </div>
@@ -347,28 +352,31 @@ export function WidgetShortcutsPinned() {
     setPinned(writeAdminDashboardPrefs({ pinned: next }, allowedPaths).pinned)
   }
 
+  const visiblePinned = pinned.slice(0, 8)
+  const hiddenPinned = pinned.length - visiblePinned.length
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-1">
-      <div>
-        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-0">
+      <div className="min-h-0">
+        <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
           Fixados
         </h3>
         {pinned.length === 0 ? (
-          <p className="mt-1.5 text-xs text-fal-muted">
+          <p className="mt-1 text-[11px] text-fal-muted">
             {editing
               ? 'Nenhum atalho fixado neste dispositivo.'
               : 'Nenhum atalho fixado. Use Personalizar para escolher.'}
           </p>
         ) : (
-          <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {pinned.map((path) => (
+          <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+            {visiblePinned.map((path) => (
               <div
                 key={path}
-                className="flex min-h-11 items-stretch overflow-hidden rounded-[12px] border border-fal-accent/40 bg-fal-accent/10"
+                className="flex min-h-9 items-stretch overflow-hidden rounded-[10px] border border-fal-accent/40 bg-fal-accent/10"
               >
                 <Link
                   to={path}
-                  className="flex min-w-0 flex-1 items-center px-3 text-sm font-extrabold text-fal-fg hover:underline"
+                  className="flex min-w-0 flex-1 items-center px-2.5 text-xs font-extrabold text-fal-fg hover:underline"
                 >
                   <span className="truncate">{labelForShortcutPath(path)}</span>
                 </Link>
@@ -377,7 +385,7 @@ export function WidgetShortcutsPinned() {
                     type="button"
                     aria-label={`Desafixar ${labelForShortcutPath(path)}`}
                     onClick={() => onTogglePin(path)}
-                    className="fal-dash-no-drag shrink-0 border-l border-fal-accent/30 px-2.5 text-sm font-bold text-fal-muted hover:bg-fal-accent/20"
+                    className="fal-dash-no-drag shrink-0 border-l border-fal-accent/30 px-2 text-sm font-bold text-fal-muted hover:bg-fal-accent/20"
                   >
                     ×
                   </button>
@@ -386,14 +394,19 @@ export function WidgetShortcutsPinned() {
             ))}
           </div>
         )}
+        {hiddenPinned > 0 && !editing ? (
+          <p className="mb-0 mt-1 text-[10px] text-fal-muted">
+            +{hiddenPinned} fixados — use Personalizar para ver todos
+          </p>
+        ) : null}
       </div>
 
       {editing ? (
-        <div>
-          <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        <div className="min-h-0">
+          <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
             Disponíveis
           </h3>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <div className="mt-1 flex flex-wrap gap-1">
             {catalog.map((s) => {
               const isPinned = pinned.includes(s.to)
               return (
@@ -403,7 +416,7 @@ export function WidgetShortcutsPinned() {
                   aria-pressed={isPinned}
                   onClick={() => onTogglePin(s.to)}
                   className={[
-                    'fal-dash-no-drag inline-flex min-h-8 items-center rounded-md border px-2.5 text-xs font-semibold',
+                    'fal-dash-no-drag inline-flex min-h-7 items-center rounded-md border px-2 text-[11px] font-semibold',
                     isPinned
                       ? 'border-fal-accent bg-fal-accent text-white'
                       : 'border-fal-line bg-fal-bg text-fal-muted hover:border-fal-accent/40 hover:text-fal-fg',
@@ -424,7 +437,7 @@ export function WidgetShortcutsPinned() {
 export function WidgetPipelineFlow() {
   const { statusCounts, attention, customerCount, logisticsQueues } =
     useDashboardData()
-  const { setContextual } = useDashboardContextual()
+  const { setContextual, openOrder } = useDashboardContextual()
   const counts = statusCounts.data ?? {}
   const totalActive = ADMIN_ORDER_GROUPS.filter((g) => g.id !== 'finalizados').reduce(
     (acc, g) => acc + sumGroupCount(counts, g),
@@ -438,7 +451,7 @@ export function WidgetPipelineFlow() {
   const attentionRows = attention.data ?? []
   const topInGroup = attentionRows
     .filter((o) => adminOrderGroupId(o.status) === selected)
-    .slice(0, 4)
+    .slice(0, 2)
   const waitPayment = counts['aguardando_pagamento'] ?? 0
   const revisao = logisticsQueues.data?.revisao ?? 0
 
@@ -448,12 +461,12 @@ export function WidgetPipelineFlow() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden p-0">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
           Fluxo do pedido
         </h3>
-        <span className="text-[11px] tabular-nums text-fal-muted">
+        <span className="text-[10px] tabular-nums text-fal-muted">
           {totalActive} em andamento
         </span>
       </div>
@@ -464,7 +477,7 @@ export function WidgetPipelineFlow() {
       />
       {statusCounts.status === 'success' || statusCounts.status === 'empty' ? (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
             {ADMIN_ORDER_GROUPS.map((g, idx) => {
               const n = sumGroupCount(counts, g)
               const active = selected === g.id
@@ -476,7 +489,7 @@ export function WidgetPipelineFlow() {
                   onClick={() => setSelected(g.id)}
                   title={g.description}
                   className={[
-                    'relative flex min-h-[5.5rem] flex-col gap-1.5 rounded-[14px] border px-3 py-3 text-left transition',
+                    'relative flex min-h-0 flex-col gap-1 rounded-[12px] border px-2.5 py-2 text-left transition',
                     active
                       ? 'border-fal-accent bg-fal-accent/10 shadow-sm ring-1 ring-fal-accent/25'
                       : 'border-fal-line bg-fal-surface hover:border-fal-accent/40',
@@ -491,19 +504,19 @@ export function WidgetPipelineFlow() {
                     </span>
                   ) : null}
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+                    <span className="truncate text-[10px] font-bold uppercase tracking-wide text-fal-muted">
                       {g.title}
                     </span>
                     {attn > 0 ? (
-                      <span className="rounded-md bg-fal-warning/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-fal-fg">
-                        {attn} atenção
+                      <span className="shrink-0 rounded-md bg-fal-warning/20 px-1 py-0.5 text-[9px] font-bold tabular-nums text-fal-fg">
+                        {attn}
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-2xl font-black tabular-nums tracking-tight text-fal-fg">
+                  <span className="text-xl font-black tabular-nums tracking-tight text-fal-fg">
                     {n}
                   </span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-fal-bg" aria-hidden>
+                  <div className="h-1 overflow-hidden rounded-full bg-fal-bg" aria-hidden>
                     <div
                       className={`h-full rounded-full ${PIPELINE_BAR[g.id] ?? 'bg-fal-accent'}`}
                       style={{
@@ -516,13 +529,13 @@ export function WidgetPipelineFlow() {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-fal-line bg-fal-bg/80 px-3 py-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
-              Exceções e desvios
+          <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-fal-line bg-fal-bg/80 px-2 py-1.5">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-fal-muted">
+              Exceções
             </span>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-warning/40 bg-fal-warning/10 px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              className="inline-flex items-center gap-1 rounded-md border border-fal-warning/40 bg-fal-warning/10 px-2 py-0.5 text-[11px] font-semibold text-fal-fg"
               onClick={() =>
                 setContextual(resolveWidgetContextual('kpi-awaiting-pay'))
               }
@@ -532,7 +545,7 @@ export function WidgetPipelineFlow() {
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-accent/40 bg-fal-accent/10 px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              className="inline-flex items-center gap-1 rounded-md border border-fal-accent/40 bg-fal-accent/10 px-2 py-0.5 text-[11px] font-semibold text-fal-fg"
               onClick={() =>
                 setContextual(
                   resolveWidgetContextual('kpi-customer-action', {
@@ -546,7 +559,7 @@ export function WidgetPipelineFlow() {
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-fal-line bg-fal-surface px-2.5 py-1 text-xs font-semibold text-fal-fg"
+              className="inline-flex items-center gap-1 rounded-md border border-fal-line bg-fal-surface px-2 py-0.5 text-[11px] font-semibold text-fal-fg"
               onClick={() =>
                 setContextual(
                   resolveWidgetContextual('logistics-queues', {
@@ -561,25 +574,27 @@ export function WidgetPipelineFlow() {
           </div>
 
           {group ? (
-            <div className="grid flex-1 gap-4 rounded-[14px] border border-fal-line bg-fal-surface p-4 lg:grid-cols-[1fr_1.15fr]">
-              <div>
-                <h4 className="m-0 text-sm font-extrabold text-fal-fg">{group.title}</h4>
-                <p className="mt-1 mb-3 text-xs leading-relaxed text-fal-muted">
+            <div className="grid min-h-0 flex-1 gap-2 overflow-hidden rounded-[12px] border border-fal-line bg-fal-surface p-2.5 lg:grid-cols-[1fr_1.15fr]">
+              <div className="min-h-0 overflow-hidden">
+                <h4 className="m-0 text-xs font-extrabold text-fal-fg">
+                  {group.title}
+                </h4>
+                <p className="mt-0.5 mb-1.5 line-clamp-2 text-[11px] leading-snug text-fal-muted">
                   {group.description}
                 </p>
-                <p className="m-0 text-3xl font-black tabular-nums tracking-tight text-fal-fg">
+                <p className="m-0 text-2xl font-black tabular-nums tracking-tight text-fal-fg">
                   {groupCount}
-                  <span className="ml-2 text-xs font-semibold text-fal-muted">
+                  <span className="ml-1.5 text-[10px] font-semibold text-fal-muted">
                     na fila
                   </span>
                 </p>
-                <ul className="mt-3 mb-0 list-none space-y-1.5 p-0">
-                  {statuses.map((st) => (
+                <ul className="mt-1.5 mb-0 list-none space-y-0.5 p-0">
+                  {statuses.slice(0, 4).map((st) => (
                     <li
                       key={st}
-                      className="flex justify-between gap-2 border-b border-fal-line/60 py-1 text-xs last:border-0"
+                      className="flex justify-between gap-2 border-b border-fal-line/60 py-0.5 text-[11px] last:border-0"
                     >
-                      <span className="text-fal-muted">
+                      <span className="truncate text-fal-muted">
                         {orderStatusOperatorLabel[st] ?? st}
                       </span>
                       <span className="font-bold tabular-nums text-fal-fg">
@@ -590,7 +605,7 @@ export function WidgetPipelineFlow() {
                 </ul>
                 <button
                   type="button"
-                  className="mt-4 inline-flex text-xs font-bold text-fal-accent underline"
+                  className="mt-2 inline-flex text-[11px] font-bold text-fal-accent underline"
                   onClick={() =>
                     setContextual(
                       resolveWidgetContextual('pipeline-flow', {
@@ -602,29 +617,27 @@ export function WidgetPipelineFlow() {
                   Abrir fila →
                 </button>
               </div>
-              <div>
-                <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+              <div className="min-h-0 overflow-hidden">
+                <p className="m-0 text-[9px] font-bold uppercase tracking-wide text-fal-muted">
                   Prioridades neste grupo
                 </p>
                 {topInGroup.length === 0 ? (
-                  <p className="mt-2 mb-0 text-xs text-fal-muted">
+                  <p className="mt-1.5 mb-0 text-[11px] text-fal-muted">
                     Nenhum na amostra de atenção.
                   </p>
                 ) : (
-                  <ul className="mt-2 mb-0 list-none space-y-2 p-0">
+                  <ul className="mt-1.5 mb-0 list-none space-y-1.5 p-0">
                     {topInGroup.map((o) => (
                       <li key={o.id}>
                         <button
                           type="button"
-                          className="block w-full rounded-xl border border-fal-line px-3 py-2 text-left text-xs transition hover:border-fal-accent/50"
-                          onClick={() =>
-                            setContextual({ kind: 'order', orderId: o.id })
-                          }
+                          className="block w-full rounded-lg border border-fal-line px-2.5 py-1.5 text-left text-[11px] transition hover:border-fal-accent/50"
+                          onClick={() => openOrder(o.id)}
                         >
                           <span className="font-mono font-semibold text-fal-fg">
                             {o.id.slice(0, 8)}…
                           </span>
-                          <span className="mt-0.5 block text-fal-muted">
+                          <span className="mt-0.5 block truncate text-fal-muted">
                             {adminNextActionLabel(o.status, o.customerDecision)}
                           </span>
                         </button>
@@ -646,16 +659,18 @@ export function WidgetAttentionTable() {
   const { contextual, openOrder, setContextual } = useDashboardContextual()
   const selectedOrderId =
     contextual?.kind === 'order' ? contextual.orderId : null
-  const rows = (attention.data ?? []).slice(0, 5)
+  const allRows = attention.data ?? []
+  const rows = allRows.slice(0, 4)
+  const hiddenCount = Math.max(0, allRows.length - rows.length)
   const showReports = canAccessAdminPath('/admin/relatorios', role)
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
           Fila de atenção
         </h3>
-        <p className="m-0 text-[11px] text-fal-muted" aria-live="polite">
+        <p className="m-0 text-[10px] text-fal-muted" aria-live="polite">
           {attention.status === 'loading'
             ? 'Carregando…'
             : `${teamCount} equipe · ${customerCount} cliente`}
@@ -667,18 +682,18 @@ export function WidgetAttentionTable() {
         loadingLabel="Carregando pendências…"
       />
       {attention.status === 'empty' ? (
-        <p className="rounded-[14px] border border-fal-line bg-fal-surface px-4 py-3 text-sm text-fal-muted">
+        <p className="rounded-[12px] border border-fal-line bg-fal-surface px-3 py-2 text-xs text-fal-muted">
           Nenhuma pendência operacional na amostra recente.
         </p>
       ) : null}
       {attention.status === 'success' ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-fal-bg text-[11px] uppercase tracking-wide text-fal-muted">
+        <div className="min-h-0 overflow-hidden rounded-[12px] border border-fal-line bg-fal-surface">
+          <table className="min-w-full text-left text-xs">
+            <thead className="bg-fal-bg text-[10px] uppercase tracking-wide text-fal-muted">
               <tr>
-                <th className="px-3 py-2.5 font-bold">Pedido</th>
-                <th className="px-3 py-2.5 font-bold">Situação</th>
-                <th className="px-3 py-2.5 font-bold">Próxima ação</th>
+                <th className="px-2.5 py-1.5 font-bold">Pedido</th>
+                <th className="px-2.5 py-1.5 font-bold">Situação</th>
+                <th className="px-2.5 py-1.5 font-bold">Próxima ação</th>
               </tr>
             </thead>
             <tbody>
@@ -694,25 +709,25 @@ export function WidgetAttentionTable() {
                     ].join(' ')}
                     onClick={() => openOrder(o.id)}
                   >
-                    <td className="px-3 py-2.5 font-mono text-xs">
+                    <td className="px-2.5 py-1.5 font-mono text-[11px]">
                       <span className="font-semibold text-fal-fg">
                         {o.id.slice(0, 8)}…
                       </span>
-                      <span className="mt-0.5 block text-[11px] text-fal-muted">
+                      <span className="mt-0.5 block truncate text-[10px] text-fal-muted">
                         {o.customerName ?? '—'}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-2.5 py-1.5">
                       <span
-                        className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${actorClass(kind)}`}
+                        className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold ${actorClass(kind)}`}
                       >
                         {adminActorBadgeLabel(kind)}
                       </span>
-                      <span className="mt-1 block text-xs text-fal-fg">
+                      <span className="mt-0.5 block truncate text-[11px] text-fal-fg">
                         {orderStatusOperatorLabel[o.status] ?? o.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-xs font-semibold text-fal-fg">
+                    <td className="px-2.5 py-1.5 text-[11px] font-semibold text-fal-fg">
                       {adminNextActionLabel(o.status, o.customerDecision)}
                     </td>
                   </tr>
@@ -722,7 +737,7 @@ export function WidgetAttentionTable() {
           </table>
         </div>
       ) : null}
-      <p className="m-0 flex flex-wrap gap-3 text-xs">
+      <p className="m-0 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
         <button
           type="button"
           className="font-semibold text-fal-accent underline"
@@ -730,7 +745,9 @@ export function WidgetAttentionTable() {
             setContextual(resolveWidgetContextual('attention-table'))
           }
         >
-          Abrir atenção →
+          {hiddenCount > 0
+            ? `Ver na Central (+${hiddenCount}) →`
+            : 'Ver na Central →'}
         </button>
         {showReports ? (
           <button
@@ -857,14 +874,14 @@ export function WidgetCashBox() {
   return (
     <button
       type="button"
-      className="flex h-full w-full flex-col p-1 text-left"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden p-0 text-left"
       onClick={() => setContextual(resolveWidgetContextual('cash-box'))}
     >
-      <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+      <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
         Caixa (payments)
       </h3>
-      <p className="mt-1 mb-2 text-xs text-fal-muted">
-        Distinto da receita GMV entregue. Abre Financeiro da Central.
+      <p className="mt-0.5 mb-1.5 truncate text-[10px] text-fal-muted">
+        ≠ GMV · abre Financeiro
       </p>
       <SourceBanner
         status={centralIndicators.status}
@@ -872,7 +889,7 @@ export function WidgetCashBox() {
         loadingLabel="Carregando caixa…"
       />
       {ind ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-1.5">
           <MiniStat label="Líquido" value={formatMoney(ind.financial.netReceived)} />
           <MiniStat label="Capturado" value={formatMoney(ind.financial.captured)} />
           <MiniStat
@@ -881,7 +898,7 @@ export function WidgetCashBox() {
           />
         </div>
       ) : null}
-      <p className="mb-0 mt-auto pt-2 text-xs font-semibold text-fal-accent">
+      <p className="mb-0 mt-auto pt-1 text-[11px] font-semibold text-fal-accent">
         Ver financeiro →
       </p>
     </button>
@@ -923,8 +940,8 @@ export function WidgetLogisticsQueues() {
   ]
 
   return (
-    <div className="flex h-full min-h-0 flex-col p-0.5">
-      <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden p-0">
+      <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
         Logística
       </h3>
       <SourceBanner
@@ -933,21 +950,21 @@ export function WidgetLogisticsQueues() {
         loadingLabel="Carregando filas…"
       />
       {counts ? (
-        <div className="mt-2 grid flex-1 grid-cols-2 gap-2">
+        <div className="mt-1.5 grid min-h-0 flex-1 grid-cols-2 gap-1.5">
           {cells.map((c) => {
             const q = ADMIN_LOGISTICS_QUEUES.find((x) => x.id === c.id)
             const body = (
               <>
-                <span className="text-[10px] font-bold uppercase leading-snug tracking-wide text-fal-muted">
+                <span className="text-[9px] font-bold uppercase leading-snug tracking-wide text-fal-muted">
                   {c.label}
                 </span>
-                <span className="mt-1.5 text-xl font-extrabold tabular-nums text-fal-fg">
+                <span className="mt-1 text-lg font-extrabold tabular-nums text-fal-fg">
                   {c.value}
                 </span>
               </>
             )
             const cls = [
-              'flex min-h-[5rem] flex-col justify-center rounded-[14px] border px-3 py-3 transition hover:border-fal-accent/50',
+              'flex min-h-0 flex-col justify-center rounded-[12px] border px-2.5 py-2 transition hover:border-fal-accent/50',
               c.warning
                 ? 'border-fal-warning/40 bg-fal-warning/10'
                 : 'border-fal-line bg-fal-surface',
@@ -1000,20 +1017,20 @@ export function WidgetChartPerformance() {
   }))
 
   return (
-    <div className="flex h-full flex-col gap-2 p-0.5">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        <div className="min-w-0">
+          <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
             Desempenho
           </h3>
-          <p className="m-0 text-xs text-fal-muted">
+          <p className="m-0 truncate text-[10px] text-fal-muted">
             {period.label}
-            {canGmv ? ' · GMV entregue ≠ caixa capturado' : ' · caixa capturado'}
+            {canGmv ? ' · GMV ≠ caixa' : ' · caixa capturado'}
           </p>
         </div>
         <button
           type="button"
-          className="text-xs font-semibold text-fal-accent underline"
+          className="shrink-0 text-[11px] font-semibold text-fal-accent underline"
           onClick={() =>
             setContextual(resolveWidgetContextual('chart-performance'))
           }
@@ -1027,15 +1044,15 @@ export function WidgetChartPerformance() {
         loadingLabel="Carregando série…"
       />
       {dailySeries.status === 'empty' ? (
-        <p className="m-0 text-sm text-fal-muted">Sem dados no período selecionado.</p>
+        <p className="m-0 text-xs text-fal-muted">Sem dados no período selecionado.</p>
       ) : null}
       {dailySeries.status === 'success' ? (
-        <div className="min-h-[200px] flex-1">
-          <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+        <div className="min-h-0 flex-1">
+          <ResponsiveContainer width="100%" height="100%" minHeight={120}>
             <ComposedChart data={chartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} width={56} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={48} />
               <Tooltip
                 formatter={(value, name) => [
                   typeof value === 'number'
@@ -1044,7 +1061,7 @@ export function WidgetChartPerformance() {
                   String(name),
                 ]}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               {canGmv ? (
                 <Area
                   type="monotone"
@@ -1086,20 +1103,20 @@ export function WidgetChartGmvSeries() {
   const ticket = delSum > 0 ? gmvSum / delSum : null
 
   return (
-    <div className="flex h-full flex-col gap-2 p-1">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+        <div className="min-w-0">
+          <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
             Série GMV entregue
           </h3>
-          <p className="m-0 text-xs text-fal-muted">
-            {period.label} · ≠ caixa payments
-            {ticket != null ? ` · ticket médio ${formatMoney(ticket)}` : null}
+          <p className="m-0 truncate text-[10px] text-fal-muted">
+            {period.label} · ≠ caixa
+            {ticket != null ? ` · ticket ${formatMoney(ticket)}` : null}
           </p>
         </div>
         <button
           type="button"
-          className="text-xs font-semibold text-fal-accent underline"
+          className="shrink-0 text-[11px] font-semibold text-fal-accent underline"
           onClick={() =>
             setContextual(resolveWidgetContextual('chart-gmv-series'))
           }
@@ -1113,14 +1130,14 @@ export function WidgetChartGmvSeries() {
         loadingLabel="Carregando série…"
       />
       {dailySeries.status === 'success' ? (
-        <div className="min-h-[180px] flex-1">
-          <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+        <div className="min-h-0 flex-1">
+          <ResponsiveContainer width="100%" height="100%" minHeight={120}>
             <ComposedChart data={chartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} width={56} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={48} />
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Area
                 type="monotone"
                 dataKey="gmv"
@@ -1149,19 +1166,19 @@ export function WidgetChartCashSeries() {
   }))
 
   return (
-    <div className="flex h-full flex-col gap-2 p-1">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+        <div className="min-w-0">
+          <h3 className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-muted">
             Série caixa (payments)
           </h3>
-          <p className="m-0 text-xs text-fal-muted">
-            {period.label} · capturado / líquido diário (≠ GMV)
+          <p className="m-0 truncate text-[10px] text-fal-muted">
+            {period.label} · capturado / líquido (≠ GMV)
           </p>
         </div>
         <button
           type="button"
-          className="text-xs font-semibold text-fal-accent underline"
+          className="shrink-0 text-[11px] font-semibold text-fal-accent underline"
           onClick={() =>
             setContextual(resolveWidgetContextual('chart-cash-series'))
           }
@@ -1175,14 +1192,14 @@ export function WidgetChartCashSeries() {
         loadingLabel="Carregando série…"
       />
       {dailySeries.status === 'success' ? (
-        <div className="min-h-[180px] flex-1">
-          <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+        <div className="min-h-0 flex-1">
+          <ResponsiveContainer width="100%" height="100%" minHeight={120}>
             <ComposedChart data={chartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" className="stroke-fal-line" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} width={56} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={48} />
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line
                 type="monotone"
                 dataKey="capturado"

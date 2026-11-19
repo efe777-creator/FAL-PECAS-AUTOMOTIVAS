@@ -102,7 +102,7 @@ export function AdminOrdersListPanel({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="admin-orders-list-panel space-y-3">
       {!hideSearch ? (
         <div className="max-w-md">
           <Input
@@ -122,8 +122,8 @@ export function AdminOrdersListPanel({
       ) : null}
 
       {!loading && !error && rows.length > 0 ? (
-        <div className="fal-admin-scroll max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
-          <div className="space-y-3 p-3 md:hidden">
+        <div className="admin-orders-list-scroll fal-admin-scroll max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
+          <div className="admin-orders-list-mobile space-y-3 p-3 md:hidden">
             {rows.map((o) => {
               const next = nextActionLabel(o)
               const selected = selectedOrderId === o.id
@@ -147,7 +147,7 @@ export function AdminOrdersListPanel({
                     <p className="m-0 shrink-0 text-sm font-bold">{formatMoney(o.total)}</p>
                   </div>
 
-                  <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 px-2.5 py-2">
+                  <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/25 px-2.5 py-2 text-fal-fg">
                     <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-fal-fg/70">
                       Faça agora
                     </p>
@@ -190,7 +190,7 @@ export function AdminOrdersListPanel({
                         className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
                         onClick={() => onSelectOrder(o.id)}
                       >
-                        Abrir
+                        {selected ? 'Focar guia' : selectedOrderId ? '+ Guia' : 'Abrir guia'}
                       </button>
                     ) : (
                       <Link
@@ -204,6 +204,7 @@ export function AdminOrdersListPanel({
                     <OrderRowActionsMenu
                       orderId={o.id}
                       onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
+                      utilitiesOnly={Boolean(onSelectOrder && selectedOrderId)}
                     />
                   </div>
                 </article>
@@ -211,7 +212,7 @@ export function AdminOrdersListPanel({
             })}
           </div>
 
-          <div className="hidden md:block">
+          <div className="admin-orders-list-desktop hidden md:block">
             <table className="min-w-full text-left text-sm">
               <thead className="sticky top-0 z-10 border-b border-fal-line bg-fal-surface text-xs uppercase text-fal-muted shadow-sm">
                 <tr>
@@ -249,7 +250,7 @@ export function AdminOrdersListPanel({
                       </td>
                       <td className="px-3 py-2">{o.customerName ?? '—'}</td>
                       <td className="px-3 py-2">
-                        <span className="inline-block rounded-[8px] border border-fal-yellow-dark/40 bg-fal-yellow/20 px-2 py-1 text-xs font-extrabold text-fal-navy">
+                        <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-navy-dark">
                           {nextActionLabel(o)}
                         </span>
                       </td>
@@ -292,7 +293,7 @@ export function AdminOrdersListPanel({
                               className="text-sm font-semibold text-fal-accent underline"
                               onClick={() => onSelectOrder(o.id)}
                             >
-                              Abrir
+                              {selected ? 'Focar' : selectedOrderId ? '+ Guia' : 'Abrir guia'}
                             </button>
                           ) : (
                             <Link
@@ -306,6 +307,7 @@ export function AdminOrdersListPanel({
                           <OrderRowActionsMenu
                             orderId={o.id}
                             onOpenFull={onSelectOrder ? undefined : () => openFull(o.id)}
+                            utilitiesOnly={Boolean(onSelectOrder && selectedOrderId)}
                           />
                         </div>
                       </td>

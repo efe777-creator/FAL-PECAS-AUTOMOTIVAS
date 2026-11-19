@@ -1,13 +1,13 @@
-/** Tons semânticos claros (FAL) para badges de etapa/pagamento — alinhados à referência. */
+/** Tons semânticos para badges de etapa/pagamento — legíveis em light e dark. */
 
 export type OrderTone = 'neutral' | 'warning' | 'info' | 'success' | 'danger' | 'navy'
 
 const TONE_CLASS: Record<OrderTone, string> = {
-  neutral: 'border-fal-line bg-fal-bg text-fal-muted',
-  warning: 'border-fal-yellow-dark/50 bg-fal-yellow/25 text-fal-navy',
-  info: 'border-sky-300 bg-sky-50 text-sky-950',
-  success: 'border-green-300 bg-green-50 text-green-950',
-  danger: 'border-red-300 bg-red-50 text-red-900',
+  neutral: 'border-fal-line bg-fal-surface-2 text-fal-muted',
+  warning: 'border-fal-yellow-dark/60 bg-fal-yellow/40 text-fal-navy-dark',
+  info: 'border-fal-accent/40 bg-fal-accent/15 text-fal-fg',
+  success: 'border-fal-success/40 bg-fal-success/15 text-fal-fg',
+  danger: 'border-fal-danger/40 bg-fal-danger/15 text-fal-fg',
   navy: 'border-fal-navy/30 bg-fal-navy text-white',
 }
 

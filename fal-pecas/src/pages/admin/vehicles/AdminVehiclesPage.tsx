@@ -398,7 +398,7 @@ export function AdminVehiclesPage() {
             key={m.id}
             className={[
               'rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm',
-              modelId === m.id ? 'border-fal-yellow bg-[#fff8db]' : '',
+              modelId === m.id ? 'border-fal-yellow bg-fal-yellow/30' : '',
             ].join(' ')}
           >
             <p className="m-0 text-xs text-fal-muted">{makerNameById.get(m.manufacturerId) ?? '—'}</p>
@@ -457,7 +457,7 @@ export function AdminVehiclesPage() {
                 key={m.id}
                 className={[
                   'border-t border-fal-line',
-                  modelId === m.id ? 'bg-[#fff8db]' : '',
+                  modelId === m.id ? 'bg-fal-yellow/30' : '',
                 ].join(' ')}
               >
                 <td className="px-3 py-2">{makerNameById.get(m.manufacturerId) ?? '—'}</td>

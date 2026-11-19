@@ -19,7 +19,7 @@ export function StorePickupNotice({ origin, compact, showSwitchHint }: Props) {
     <div
       className={
         compact
-          ? 'mt-2 rounded-[8px] border border-fal-line bg-white px-2.5 py-2 text-xs text-fal-ink'
+          ? 'mt-2 rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-2 text-xs text-fal-ink'
           : 'mt-3 rounded-fal border border-fal-line bg-fal-bg px-3 py-3 text-sm text-fal-ink'
       }
       role="status"

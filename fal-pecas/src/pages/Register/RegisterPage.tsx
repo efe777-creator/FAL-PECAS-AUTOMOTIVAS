@@ -106,7 +106,7 @@ export function RegisterPage() {
   if (needsEmailConfirm) {
     return (
       <Container className="py-8">
-        <div className="mx-auto max-w-[560px] rounded-fal border border-fal-line bg-white p-6 text-center sm:p-8">
+        <div className="mx-auto max-w-[560px] rounded-fal border border-fal-line bg-fal-surface p-6 text-center sm:p-8">
           <h1 className="mt-0 text-[28px] font-black">Confirme seu e-mail</h1>
           <p className="text-fal-muted">
             Enviamos um link de confirmação para <strong>{email}</strong>. Abra o e-mail, confirme
@@ -134,22 +134,22 @@ export function RegisterPage() {
               : 'Nome, e-mail e senha bastam. CPF e telefone são opcionais agora — o checkout pede o documento na compra.'}
           </p>
           {!isConfigured ? (
-            <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+            <p className="mt-4 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3 text-sm">
               Cadastro indisponível no momento. Tente novamente mais tarde.
             </p>
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-fal border border-fal-line bg-white">
+        <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
           <div className="grid grid-cols-2 border-b border-fal-line">
             <Link
               to="/login"
               state={loginState}
-              className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]"
+              className="px-4 py-4 text-center font-extrabold hover:bg-fal-surface-2"
             >
               Entrar
             </Link>
-            <span className="bg-[#fafbfc] px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
+            <span className="bg-fal-surface-2 px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
               Criar conta grátis
             </span>
           </div>

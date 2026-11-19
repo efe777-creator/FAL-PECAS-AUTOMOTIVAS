@@ -74,10 +74,10 @@ export function PurchasedShippingSummary({ order, variant = 'banner' }: Props) {
 
   return (
     <section
-      className="rounded-[14px] border-2 border-fal-navy/15 bg-[#f4f7fb] px-4 py-3"
+      className="rounded-[14px] border-2 border-fal-line bg-fal-surface-2 px-4 py-3 text-fal-fg"
       aria-label="Frete e prazo comprados pelo cliente"
     >
-      <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-fg/70">
+      <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         Frete e prazo que o cliente comprou
       </p>
       <div className="mt-2">

@@ -1,11 +1,12 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { listSavedVehicles } from '@/services/customers/customerVehicleService'
 import {
-  clearActiveGarage,
   readActiveGarage,
-  resolveActiveAgainstGarage,
+  resolveActiveState,
   vehicleToActiveFilter,
-  writeActiveGarage,
+  writeClearedActiveGarage,
+  writeSessionActiveGarage,
+  writeVehicleActiveGarage,
 } from '@/services/garage/activeGarageStorage'
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 import {
@@ -19,13 +20,18 @@ import {
 } from 'react'
 
 type GarageContextValue = {
-  /** Veículo ativo de navegação (≠ is_primary). */
+  /** Veículo ativo de navegação (≠ is_primary). Null em sessão manual ou limpo. */
   activeVehicle: CustomerSavedVehicle | null
+  /** Filtro que alimenta selos/avisos (veículo ou sessão). */
   activeFilter: VehicleFilter | null
+  /** true quando o filtro veio só da sessão (não está na garagem). */
+  isSessionActive: boolean
   vehicles: CustomerSavedVehicle[]
   loading: boolean
   refreshVehicles: () => Promise<CustomerSavedVehicle[]>
   setActiveVehicle: (vehicle: CustomerSavedVehicle) => void
+  /** Confirma filtro manual só nesta sessão (selos). */
+  setSessionFilter: (filter: VehicleFilter) => void
   clearActiveVehicle: () => void
   /** Após exclusão: se era o ativo, cai no principal ou limpa. */
   notifyVehicleRemoved: (vehicleId: string) => Promise<void>
@@ -38,23 +44,33 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const userId = user?.id ?? null
   const [vehicles, setVehicles] = useState<CustomerSavedVehicle[]>([])
   const [activeVehicle, setActiveVehicleState] = useState<CustomerSavedVehicle | null>(null)
+  const [sessionFilter, setSessionFilterState] = useState<VehicleFilter | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const persistActive = useCallback(
-    (vehicle: CustomerSavedVehicle | null) => {
-      if (!userId) return
-      if (!vehicle) {
-        clearActiveGarage(userId)
+  const applyResolved = useCallback(
+    (list: CustomerSavedVehicle[]) => {
+      if (!userId) {
         setActiveVehicleState(null)
+        setSessionFilterState(null)
         return
       }
-      const payload = {
-        customerVehicleId: vehicle.id,
-        filter: vehicleToActiveFilter(vehicle),
-        updatedAt: new Date().toISOString(),
+      const stored = readActiveGarage(userId)
+      const resolved = resolveActiveState(stored, list)
+      if (resolved.mode === 'session') {
+        setActiveVehicleState(null)
+        setSessionFilterState(resolved.filter)
+        return
       }
-      writeActiveGarage(userId, payload)
-      setActiveVehicleState(vehicle)
+      if (resolved.mode === 'cleared' || resolved.mode === 'none') {
+        setActiveVehicleState(null)
+        setSessionFilterState(null)
+        return
+      }
+      setActiveVehicleState(resolved.vehicle)
+      setSessionFilterState(null)
+      if (resolved.vehicle) {
+        writeVehicleActiveGarage(userId, resolved.vehicle)
+      }
     },
     [userId],
   )
@@ -63,20 +79,14 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setVehicles([])
       setActiveVehicleState(null)
+      setSessionFilterState(null)
       return []
     }
     setLoading(true)
     try {
       const list = await listSavedVehicles()
       setVehicles(list)
-      const stored = readActiveGarage(userId)
-      const resolved = resolveActiveAgainstGarage(stored?.customerVehicleId, list)
-      if (resolved) {
-        persistActive(resolved)
-      } else {
-        clearActiveGarage(userId)
-        setActiveVehicleState(null)
-      }
+      applyResolved(list)
       return list
     } catch {
       setVehicles([])
@@ -84,13 +94,14 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [userId, persistActive])
+  }, [userId, applyResolved])
 
   useEffect(() => {
     if (authLoading) return
     if (!userId) {
       setVehicles([])
       setActiveVehicleState(null)
+      setSessionFilterState(null)
       return
     }
     void refreshVehicles()
@@ -98,50 +109,72 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const setActiveVehicle = useCallback(
     (vehicle: CustomerSavedVehicle) => {
-      persistActive(vehicle)
+      if (!userId) return
+      writeVehicleActiveGarage(userId, vehicle)
+      setActiveVehicleState(vehicle)
+      setSessionFilterState(null)
     },
-    [persistActive],
+    [userId],
+  )
+
+  const setSessionFilter = useCallback(
+    (filter: VehicleFilter) => {
+      if (!userId) return
+      writeSessionActiveGarage(userId, filter)
+      setActiveVehicleState(null)
+      setSessionFilterState(filter)
+    },
+    [userId],
   )
 
   const clearActiveVehicle = useCallback(() => {
-    persistActive(null)
-  }, [persistActive])
+    if (!userId) return
+    writeClearedActiveGarage(userId)
+    setActiveVehicleState(null)
+    setSessionFilterState(null)
+  }, [userId])
 
   const notifyVehicleRemoved = useCallback(
     async (vehicleId: string) => {
       if (!userId) return
       const stored = readActiveGarage(userId)
-      if (stored?.customerVehicleId === vehicleId) {
-        clearActiveGarage(userId)
+      if (stored?.mode === 'vehicle' && stored.customerVehicleId === vehicleId) {
+        writeClearedActiveGarage(userId)
       }
       await refreshVehicles()
     },
     [userId, refreshVehicles],
   )
 
-  const activeFilter = useMemo(
-    () => (activeVehicle ? vehicleToActiveFilter(activeVehicle) : null),
-    [activeVehicle],
-  )
+  const activeFilter = useMemo(() => {
+    if (activeVehicle) return vehicleToActiveFilter(activeVehicle)
+    return sessionFilter
+  }, [activeVehicle, sessionFilter])
+
+  const isSessionActive = Boolean(sessionFilter && !activeVehicle)
 
   const value = useMemo<GarageContextValue>(
     () => ({
       activeVehicle,
       activeFilter,
+      isSessionActive,
       vehicles,
       loading,
       refreshVehicles,
       setActiveVehicle,
+      setSessionFilter,
       clearActiveVehicle,
       notifyVehicleRemoved,
     }),
     [
       activeVehicle,
       activeFilter,
+      isSessionActive,
       vehicles,
       loading,
       refreshVehicles,
       setActiveVehicle,
+      setSessionFilter,
       clearActiveVehicle,
       notifyVehicleRemoved,
     ],

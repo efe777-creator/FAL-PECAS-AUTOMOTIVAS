@@ -77,9 +77,9 @@ export function OrderAnalysisResolutionPanel({
 
   if (confirmedLike) {
     return (
-      <section className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-emerald-900">Análise concluída</h3>
-        <p className="text-sm text-emerald-800">
+      <section className="space-y-3 rounded-xl border border-fal-success/40 bg-fal-success/15 p-4 text-fal-fg">
+        <h3 className="text-sm font-semibold text-fal-fg">Análise concluída</h3>
+        <p className="text-sm text-fal-muted">
           Pedido confirmado. Imprima o romaneio / lista de separação e siga a conferência física.
         </p>
         {onPrintSeparation ? (
@@ -87,7 +87,7 @@ export function OrderAnalysisResolutionPanel({
             type="button"
             disabled={busy}
             onClick={onPrintSeparation}
-            className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50"
+            className="rounded-lg bg-fal-success px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             Imprimir lista de separação / romaneio
           </button>
@@ -98,22 +98,22 @@ export function OrderAnalysisResolutionPanel({
 
   if (awaitingDecision) {
     return (
-      <section className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-sky-900">Aguardando decisão do cliente</h3>
-        <p className="text-sm text-sky-800">
+      <section className="space-y-3 rounded-xl border border-fal-accent/40 bg-fal-accent/15 p-4 text-fal-fg">
+        <h3 className="text-sm font-semibold text-fal-fg">Aguardando decisão do cliente</h3>
+        <p className="text-sm text-fal-fg">
           Proposta:{' '}
           <strong>{String(order.decisionProposal?.kind ?? '—')}</strong>
           {order.decisionProposal?.reason_text
             ? ` — ${String(order.decisionProposal.reason_text)}`
             : null}
         </p>
-        <p className="text-xs text-sky-700">
+        <p className="text-xs text-fal-muted">
           Decisão atual: {order.customerDecision ?? 'pending'}
         </p>
         {order.customerDecision === 'continue_available' ||
         order.customerDecision === 'authorized' ? (
-          <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
-            Cliente aprovou. Use <strong>Confirmar pedido e enviar para separação</strong> abaixo —
+          <p className="rounded-lg border border-fal-success/40 bg-fal-success/15 px-3 py-2 text-sm text-fal-fg">
+            Cliente aprovou. Use <strong>Confirmar e enviar à separação</strong> em Faça agora —
             a separação não inicia sozinha.
           </p>
         ) : null}
@@ -122,7 +122,7 @@ export function OrderAnalysisResolutionPanel({
             type="button"
             disabled={busy}
             onClick={() => void onWithdraw()}
-            className="rounded-lg border border-sky-300 bg-fal-surface px-3 py-2 text-sm text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+            className="rounded-lg border border-fal-line bg-fal-surface px-3 py-2 text-sm text-fal-fg hover:bg-fal-surface-2 disabled:opacity-50"
           >
             Retirar solicitação (voltar à análise)
           </button>
@@ -132,10 +132,10 @@ export function OrderAnalysisResolutionPanel({
   }
 
   return (
-    <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-4">
+    <section className="space-y-4 rounded-xl border border-fal-yellow-dark/50 bg-fal-yellow/20 p-4 text-fal-fg">
       <div>
-        <h3 className="text-sm font-semibold text-amber-950">Resolução da análise</h3>
-        <p className="mt-1 text-xs text-amber-800">
+        <h3 className="text-sm font-semibold text-fal-fg">Resolução da análise</h3>
+        <p className="mt-1 text-xs text-fal-muted">
           {mode === 'incomplete' && 'Defina a disponibilidade de todos os itens antes de seguir.'}
           {mode === 'all_ok' && 'Tudo disponível — confirme o envio para separação.'}
           {mode === 'prazo_only' &&
@@ -146,14 +146,14 @@ export function OrderAnalysisResolutionPanel({
         </p>
       </div>
 
-      <label className="block text-xs font-medium text-amber-950">
+      <label className="block text-xs font-medium text-fal-fg">
         Texto para o cliente (proposta)
         <textarea
           value={reasonDraft}
           onChange={(e) => setReasonDraft(e.target.value)}
           rows={3}
           disabled={busy || mode === 'incomplete'}
-          className="mt-1 w-full rounded-lg border border-amber-200 bg-fal-surface px-3 py-2 text-sm text-slate-800"
+          className="fal-field mt-1 w-full rounded-lg border border-fal-line bg-fal-surface px-3 py-2 text-sm text-fal-fg placeholder:text-fal-muted"
           placeholder="Pré-preencha com o botão do caminho escolhido ou escreva livremente"
         />
       </label>
@@ -196,7 +196,7 @@ export function OrderAnalysisResolutionPanel({
             type="button"
             disabled={busy}
             onClick={() => fillTemplate('prazo')}
-            className="rounded-lg border border-amber-300 bg-fal-surface px-3 py-2 text-sm text-amber-950"
+            className="rounded-lg border border-fal-line bg-fal-surface px-3 py-2 text-sm text-fal-fg"
           >
             Pré-preencher texto de prazo
           </button>
@@ -205,11 +205,11 @@ export function OrderAnalysisResolutionPanel({
 
       {mode === 'has_unavailable' ? (
         <div className="space-y-3">
-          <p className="text-xs text-amber-900 rounded-lg bg-amber-100/80 px-3 py-2">
+          <p className="rounded-lg border border-fal-yellow-dark/40 bg-fal-yellow/15 px-3 py-2 text-xs text-fal-fg">
             {REFUND_MANUAL_NOTICE}
           </p>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs font-medium text-amber-950">
+            <label className="text-xs font-medium text-fal-fg">
               Dias estimados (espera)
               <input
                 type="number"
@@ -217,17 +217,17 @@ export function OrderAnalysisResolutionPanel({
                 value={waitDays}
                 onChange={(e) => setWaitDays(e.target.value)}
                 disabled={busy}
-                className="mt-1 block w-28 rounded-lg border border-amber-200 bg-fal-surface px-2 py-1.5 text-sm"
+                className="fal-field mt-1 block w-28 rounded-lg border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
               />
             </label>
-            <label className="text-xs font-medium text-amber-950 flex-1 min-w-[12rem]">
+            <label className="min-w-[12rem] flex-1 text-xs font-medium text-fal-fg">
               Nota do hold
               <input
                 type="text"
                 value={holdNote}
                 onChange={(e) => setHoldNote(e.target.value)}
                 disabled={busy}
-                className="mt-1 block w-full rounded-lg border border-amber-200 bg-fal-surface px-2 py-1.5 text-sm"
+                className="fal-field mt-1 block w-full rounded-lg border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg placeholder:text-fal-muted"
                 placeholder="Ex.: aguardando reposição do SKU"
               />
             </label>
@@ -237,7 +237,7 @@ export function OrderAnalysisResolutionPanel({
               onClick={() =>
                 void onHold(waitDays.trim() ? Number(waitDays) : null, holdNote.trim())
               }
-              className="rounded-lg border border-amber-400 bg-fal-surface px-3 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-50"
+              className="rounded-lg border border-fal-yellow-dark/50 bg-fal-surface px-3 py-2 text-sm font-medium text-fal-fg hover:bg-fal-surface-2 disabled:opacity-50"
             >
               Esperar chegada
             </button>
@@ -270,7 +270,9 @@ export function OrderAnalysisResolutionPanel({
       ) : null}
 
       {mode === 'incomplete' ? (
-        <p className="text-sm text-amber-900">Salve a disponibilidade de cada item acima.</p>
+        <p className="text-sm text-fal-muted">
+          Salve a disponibilidade de cada item na conferência (nesta seção Ops / aba Itens).
+        </p>
       ) : null}
     </section>
   )

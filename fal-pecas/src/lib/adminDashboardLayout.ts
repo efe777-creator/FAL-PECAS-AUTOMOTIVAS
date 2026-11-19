@@ -3,7 +3,7 @@
  * Chave separada dos pins (`adminDashboardPrefs`).
  */
 
-export const ADMIN_DASHBOARD_LAYOUT_KEY = 'fal-admin-dashboard-layout-v1'
+export const ADMIN_DASHBOARD_LAYOUT_KEY = 'fal-admin-dashboard-layout-v2'
 export const DASHBOARD_LAYOUT_VERSION = 1 as const
 export const DASHBOARD_GRID_COLS = 12
 
@@ -433,11 +433,15 @@ export function applyBreakpointOrderToLgLayout(
   }))
 }
 
+/** Cortes alinhados ao engine — md desde 520 para primary comprimido pelo split. */
+export const DASHBOARD_BP_LG = 1024
+export const DASHBOARD_BP_MD = 520
+
 /** Breakpoint do motor a partir da largura do container (alinhado ao engine). */
 export function dashboardBreakpointFromWidth(
   width: number,
 ): 'lg' | 'md' | 'sm' {
-  if (width >= 1024) return 'lg'
-  if (width >= 768) return 'md'
+  if (width >= DASHBOARD_BP_LG) return 'lg'
+  if (width >= DASHBOARD_BP_MD) return 'md'
   return 'sm'
 }

@@ -20,8 +20,8 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   return (
-    <div className="rounded-fal border border-fal-line bg-white px-5 py-14 text-center text-fal-muted">
-      <h2 className="m-0 text-xl font-extrabold text-fal-navy-dark">{title}</h2>
+    <div className="rounded-fal border border-fal-line bg-fal-surface px-5 py-14 text-center text-fal-muted">
+      <h2 className="m-0 text-xl font-extrabold text-fal-fg">{title}</h2>
       {description ? <p className="mt-2">{description}</p> : null}
       {children}
       {actionLabel && onAction ? (

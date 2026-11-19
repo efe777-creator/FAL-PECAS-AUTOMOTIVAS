@@ -241,7 +241,7 @@ export function AdminInventoryPage() {
         ) : null}
 
         {pendingMode ? (
-          <div className="mt-4 rounded-[12px] border border-fal-navy/30 bg-[#f7f9fc] p-4">
+          <div className="mt-4 rounded-[12px] border border-fal-navy/30 bg-fal-surface-2 p-4">
             <h2 className="m-0 text-base font-extrabold text-fal-fg">
               Alterar modo para “{INVENTORY_MODE_LABELS[pendingMode]}”?
             </h2>

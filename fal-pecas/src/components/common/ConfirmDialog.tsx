@@ -83,10 +83,10 @@ export function ConfirmDialogHost() {
         <div className="space-y-4">
           <p className="m-0 text-sm text-fal-ink whitespace-pre-wrap">{pending.message}</p>
           {pending.requireReason || pending.askReason ? (
-            <label className="block text-sm font-semibold text-fal-navy">
+            <label className="block text-sm font-semibold text-fal-fg">
               {pending.reasonLabel ?? (pending.requireReason ? 'Motivo' : 'Nota (opcional)')}
               <textarea
-                className="mt-1 w-full rounded-[10px] border border-fal-line px-3 py-2 text-sm font-normal text-fal-ink"
+                className="fal-field mt-1 w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg placeholder:text-fal-muted"
                 rows={3}
                 value={reason}
                 placeholder={pending.reasonPlaceholder ?? ''}

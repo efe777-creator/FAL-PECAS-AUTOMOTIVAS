@@ -269,7 +269,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         {available && inCart ? (
           <p
-            className="m-0 w-fit max-w-full truncate rounded-full bg-[#fff8db] px-2.5 py-1 text-xs font-bold text-fal-navy"
+            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2.5 py-1 text-xs font-bold text-fal-navy"
             aria-live="polite"
           >
             No carrinho: {cartQty}

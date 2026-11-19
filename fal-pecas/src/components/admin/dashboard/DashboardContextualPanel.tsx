@@ -1,4 +1,3 @@
-import { OrderPreviewPanel } from '@/components/admin/orders/OrderPreviewPanel'
 import { OrdersAttentionListPanel } from '@/components/admin/orders/OrdersAttentionListPanel'
 import { OrdersFinanceIndicatorsPanel } from '@/components/admin/orders/OrdersFinanceIndicatorsPanel'
 import { OrdersLogisticsQueuesBar } from '@/components/admin/orders/OrdersLogisticsQueuesBar'
@@ -37,7 +36,6 @@ import { useNavigate } from 'react-router-dom'
 
 type Props = {
   contextual: NonNullable<DashboardContextual>
-  onClose: () => void
   onOpenOrder: (orderId: string) => void
   onOpenFullOrder: (orderId: string) => void
   /** Troca fila no contextual logística. */
@@ -46,7 +44,6 @@ type Props = {
 
 export function DashboardContextualPanel({
   contextual,
-  onClose,
   onOpenOrder,
   onOpenFullOrder,
   onChangeLogisticsFila,
@@ -61,16 +58,27 @@ export function DashboardContextualPanel({
     navigate(deepLink)
   }
 
+  // Pedido: montado só em AdminDashboardPage (OrderSplitTabPanels) — evita surface duplo.
+  if (contextual.kind === 'order') {
+    return (
+      <div className="flex flex-col gap-2 p-1">
+        <p className="mb-0 text-sm text-fal-muted">
+          O pedido está no painel dividido do Adaptive. Use Expandir ou Página completa.
+        </p>
+        <button
+          type="button"
+          className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+          onClick={() => onOpenFullOrder(contextual.orderId)}
+        >
+          Abrir página completa →
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="min-h-0 flex-1 overflow-auto">
-        {contextual.kind === 'order' ? (
-          <OrderPreviewPanel
-            orderId={contextual.orderId}
-            onClose={onClose}
-            onOpenFull={() => onOpenFullOrder(contextual.orderId)}
-          />
-        ) : null}
+    <div className="flex flex-col gap-2">
+      <div className="min-w-0">
         {contextual.kind === 'hub-finance' ? <FinanceBody /> : null}
         {contextual.kind === 'hub-attention' ? (
           <AttentionBody
@@ -99,20 +107,18 @@ export function DashboardContextualPanel({
           <ReportsBody focus={contextual.focus} />
         ) : null}
       </div>
-      {contextual.kind !== 'order' ? (
-        <div className="shrink-0 border-t border-fal-line pt-3">
-          <button
-            type="button"
-            className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
-            onClick={openFullScreen}
-          >
-            Abrir tela completa →
-          </button>
-          <p className="mb-0 mt-1 text-xs text-fal-muted">
-            {contextualTitle(contextual)}
-          </p>
-        </div>
-      ) : null}
+      <div className="border-t border-fal-line pt-2">
+        <button
+          type="button"
+          className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
+          onClick={openFullScreen}
+        >
+          Abrir tela completa →
+        </button>
+        <p className="mb-0 mt-1 text-xs text-fal-muted">
+          {contextualTitle(contextual)}
+        </p>
+      </div>
     </div>
   )
 }

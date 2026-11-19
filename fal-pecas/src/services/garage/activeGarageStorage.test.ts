@@ -3,10 +3,14 @@ import type { CustomerSavedVehicle } from '@/types'
 import {
   activeGarageStorageKey,
   clearActiveGarage,
+  filterDisplayLabel,
   readActiveGarage,
   resolveActiveAgainstGarage,
+  resolveActiveState,
   vehicleToActiveFilter,
   writeActiveGarage,
+  writeClearedActiveGarage,
+  writeSessionActiveGarage,
 } from './activeGarageStorage'
 
 const store = new Map<string, string>()
@@ -29,8 +33,8 @@ describe('activeGarageStorage (#10)', () => {
     store.clear()
     vi.stubGlobal('localStorage', {
       getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
-        store.set(k, v)
+      setItem: (k: string, val: string) => {
+        store.set(k, val)
       },
       removeItem: (k: string) => {
         store.delete(k)
@@ -43,15 +47,34 @@ describe('activeGarageStorage (#10)', () => {
 
   it('persiste e reidrata por userId (cross-session)', () => {
     writeActiveGarage('user-a', {
+      mode: 'vehicle',
       customerVehicleId: 'v2',
       filter: { maker: 'Chevrolet', model: 'Onix' },
       updatedAt: '2026-11-18T00:00:00.000Z',
     })
     expect(readActiveGarage('user-a')?.customerVehicleId).toBe('v2')
+    expect(readActiveGarage('user-a')?.mode).toBe('vehicle')
     expect(readActiveGarage('user-b')).toBeNull()
     expect(activeGarageStorageKey('user-a')).toBe('fal_active_garage_vehicle:user-a')
     clearActiveGarage('user-a')
     expect(readActiveGarage('user-a')).toBeNull()
+  })
+
+  it('legado sem mode: reidrata como vehicle', () => {
+    store.set(
+      activeGarageStorageKey('user-a'),
+      JSON.stringify({
+        customerVehicleId: 'v9',
+        filter: { maker: 'VW' },
+        updatedAt: '2026-11-01T00:00:00.000Z',
+      }),
+    )
+    expect(readActiveGarage('user-a')).toEqual({
+      mode: 'vehicle',
+      customerVehicleId: 'v9',
+      filter: { maker: 'VW' },
+      updatedAt: '2026-11-01T00:00:00.000Z',
+    })
   })
 
   it('invalidação: id excluído cai no principal', () => {
@@ -62,9 +85,35 @@ describe('activeGarageStorage (#10)', () => {
     ]
     expect(resolveActiveAgainstGarage('v2', list)?.id).toBe('v2')
     expect(resolveActiveAgainstGarage('gone', list)?.id).toBe('v1')
-    // sem principal restante → limpa (não inventa outro ativo)
     expect(resolveActiveAgainstGarage('gone', list.filter((x) => x.id !== 'v1'))).toBeNull()
     expect(resolveActiveAgainstGarage('x', [])).toBeNull()
+  })
+
+  it('cleared não restaura o principal', () => {
+    const list = [v({ id: 'v1', isPrimary: true }), v({ id: 'v2' })]
+    writeClearedActiveGarage('user-a')
+    const stored = readActiveGarage('user-a')
+    expect(stored?.mode).toBe('cleared')
+    const resolved = resolveActiveState(stored, list)
+    expect(resolved.vehicle).toBeNull()
+    expect(resolved.filter).toBeNull()
+    expect(resolved.mode).toBe('cleared')
+  })
+
+  it('session devolve filter sem veículo', () => {
+    const list = [v({ id: 'v1', isPrimary: true })]
+    writeSessionActiveGarage('user-a', { maker: 'Fiat', model: 'Palio', year: '2010' })
+    const resolved = resolveActiveState(readActiveGarage('user-a'), list)
+    expect(resolved.mode).toBe('session')
+    expect(resolved.vehicle).toBeNull()
+    expect(resolved.filter).toEqual({ maker: 'Fiat', model: 'Palio', year: '2010' })
+  })
+
+  it('sem storage: fallback ao principal', () => {
+    const list = [v({ id: 'v1', isPrimary: true }), v({ id: 'v2' })]
+    const resolved = resolveActiveState(null, list)
+    expect(resolved.vehicle?.id).toBe('v1')
+    expect(resolved.mode).toBe('vehicle')
   })
 
   it('filtro derivado não muda is_primary', () => {
@@ -74,5 +123,12 @@ describe('activeGarageStorage (#10)', () => {
     expect(filter.maker).toBe('Chevrolet')
     expect(filter.engine).toBe('1.0')
     expect(filter.version).toBe('LT')
+  })
+
+  it('filterDisplayLabel', () => {
+    expect(filterDisplayLabel({ maker: 'Chevrolet', model: 'Classic', year: '2012' })).toBe(
+      'Chevrolet Classic 2012',
+    )
+    expect(filterDisplayLabel({})).toBe('Veículo')
   })
 })

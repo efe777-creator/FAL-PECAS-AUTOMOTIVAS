@@ -88,7 +88,7 @@ export function OrderConfirmationPage() {
 
   return (
     <Container className="py-10">
-      <div className="mx-auto max-w-lg rounded-fal border border-fal-line bg-white p-8 text-center">
+      <div className="mx-auto max-w-lg rounded-fal border border-fal-line bg-fal-surface p-8 text-center">
         <p className="m-0 text-4xl" aria-hidden>
           ✓
         </p>

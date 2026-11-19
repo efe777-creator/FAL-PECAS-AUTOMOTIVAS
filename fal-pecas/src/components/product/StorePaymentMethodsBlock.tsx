@@ -64,7 +64,7 @@ export function StorePaymentMethodsBlock({
       <h3 className="m-0 text-sm font-extrabold text-fal-navy">Formas de pagamento</h3>
       <ul className="m-0 list-none space-y-2 p-0">
         {avail.credit ? (
-          <li className="rounded-[10px] border border-fal-line bg-white px-3 py-2">
+          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-fal-ink">Cartão de crédito</span>
               <span className="text-xs font-bold text-emerald-800">Ativo</span>
@@ -73,7 +73,7 @@ export function StorePaymentMethodsBlock({
           </li>
         ) : null}
         {avail.debit ? (
-          <li className="rounded-[10px] border border-fal-line bg-white px-3 py-2">
+          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-fal-ink">Cartão de débito</span>
               <span className="text-xs font-bold text-emerald-800">Ativo</span>
@@ -84,7 +84,7 @@ export function StorePaymentMethodsBlock({
           </li>
         ) : null}
         {avail.pix ? (
-          <li className="rounded-[10px] border border-fal-line bg-white px-3 py-2">
+          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-fal-ink">Pix</span>
               <span className="text-xs font-bold text-emerald-800">Ativo</span>

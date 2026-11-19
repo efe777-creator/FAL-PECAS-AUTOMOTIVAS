@@ -92,7 +92,7 @@ export function SavedVehiclesQuickPick({
                 ? 'border-fal-accent bg-fal-accent/15 text-fal-navy ring-2 ring-fal-accent/40'
                 : v.isPrimary
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-[#d8dee3] bg-[#f7f9fa] text-fal-navy hover:border-fal-navy',
+                  : 'border-[#d8dee3] bg-fal-surface-2 text-fal-navy hover:border-fal-navy',
             ].join(' ')}
             onClick={() => apply(v)}
           >

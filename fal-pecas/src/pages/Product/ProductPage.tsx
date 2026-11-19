@@ -636,7 +636,7 @@ export function ProductPage() {
                   >
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Diminuir quantidade"
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -651,7 +651,7 @@ export function ProductPage() {
                     </span>
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-white text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Aumentar quantidade"
                       disabled={qty >= MAX_QTY}
                       onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
@@ -745,7 +745,7 @@ export function ProductPage() {
           ) : null}
         </div>
         {fullDescription ? (
-          <div className="rounded-[10px] border border-fal-line bg-white p-4 text-sm text-fal-ink">
+          <div className="rounded-[10px] border border-fal-line bg-fal-surface p-4 text-sm text-fal-ink">
             <p className="m-0 font-semibold text-fal-navy">{DESCRICAO_SECTION_LABEL}</p>
             <p className="mb-0 mt-1 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
             {descriptionCollapses ? (
@@ -761,14 +761,14 @@ export function ProductPage() {
           </div>
         ) : null}
         {specRows.length ? (
-          <div className="overflow-x-auto rounded-[10px] border border-fal-line bg-white p-4 text-sm text-fal-ink">
+          <div className="overflow-x-auto rounded-[10px] border border-fal-line bg-fal-surface p-4 text-sm text-fal-ink">
             <p className="m-0 font-semibold text-fal-navy">{ESPECIFICACOES_SECTION_LABEL}</p>
             <table className="mt-2 w-full min-w-0 border-collapse">
               <tbody>
                 {specRows.map((row, i) => (
                   <tr
                     key={`${row.label}-${row.value}`}
-                    className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-white'}
+                    className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-fal-surface'}
                   >
                     <th
                       scope="row"

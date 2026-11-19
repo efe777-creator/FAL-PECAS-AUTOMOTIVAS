@@ -607,7 +607,7 @@ export function CatalogPage() {
 
       <form
         onSubmit={applySearch}
-        className="mt-4 grid grid-cols-1 gap-3 rounded-fal border border-fal-line bg-white p-3 sm:p-3.5 lg:grid-cols-[1fr_auto]"
+        className="mt-4 grid grid-cols-1 gap-3 rounded-fal border border-fal-line bg-fal-surface p-3 text-fal-fg sm:p-3.5 lg:grid-cols-[1fr_auto]"
       >
         <Input
           label="Busca"
@@ -685,7 +685,7 @@ export function CatalogPage() {
         </div>
 
         <details
-          className="mt-3 rounded-fal border border-fal-line bg-white open:pb-3"
+          className="mt-3 rounded-fal border border-fal-line bg-fal-surface text-fal-fg open:pb-3"
           open={vehicleDetailsOpen || vehicleFiltersActive}
           onToggle={(e) => setVehicleDetailsOpen((e.target as HTMLDetailsElement).open)}
         >
@@ -693,7 +693,7 @@ export function CatalogPage() {
             <span className="inline-flex items-center gap-2">
               Filtros por veículo
               {vehicleFiltersActive ? (
-                <span className="rounded-full bg-[#fff8db] px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark">
+                <span className="rounded-full bg-fal-yellow/35 px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark">
                   ativos
                 </span>
               ) : (
@@ -950,7 +950,7 @@ export function CatalogPage() {
 
       {searchHint ? (
         <div
-          className="mt-3 rounded-lg border border-fal-yellow-dark/40 bg-[#fff8e6] px-3 py-2.5 text-sm text-fal-navy"
+          className="mt-3 rounded-lg border border-fal-yellow-dark/50 bg-fal-yellow/25 px-3 py-2.5 text-sm text-fal-fg"
           role="status"
         >
           {searchHint}
@@ -970,7 +970,7 @@ export function CatalogPage() {
             <button
               key={chip.key}
               type="button"
-              className="rounded-full border border-[#d8dee3] bg-[#f7f9fa] px-2.5 py-1.5 text-xs hover:border-fal-navy"
+              className="rounded-full border border-[#d8dee3] bg-fal-surface-2 px-2.5 py-1.5 text-xs hover:border-fal-navy"
               onClick={() => removeChip(chip.key)}
             >
               {chip.label} ×
@@ -1026,7 +1026,7 @@ export function CatalogPage() {
                   <button
                     key={`empty-${chip.key}`}
                     type="button"
-                    className="rounded-full border border-[#d8dee3] bg-[#f7f9fa] px-2.5 py-1.5 text-xs hover:border-fal-navy"
+                    className="rounded-full border border-[#d8dee3] bg-fal-surface-2 px-2.5 py-1.5 text-xs hover:border-fal-navy"
                     onClick={() => removeChip(chip.key)}
                   >
                     Remover: {chip.label} ×

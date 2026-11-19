@@ -135,7 +135,8 @@ html {
   }
 
   input,
-  select {
+  select,
+  textarea {
     color: var(--fal-fg);
     background-color: var(--fal-surface);
   }
@@ -147,6 +148,20 @@ html {
   #root {
     min-height: 100vh;
   }
+}
+
+/**
+ * Campo de formulário (Input/Select/textarea ad hoc).
+ * Preferir este util ou os primitivos — nunca bg-white / hex light em dark.
+ */
+.fal-field {
+  color: var(--fal-fg);
+  background-color: var(--fal-surface);
+  border-color: var(--fal-line);
+}
+
+.fal-field::placeholder {
+  color: var(--fal-muted);
 }
 
 /** Tipografia da “placa” — não herda Inter do input global. */
@@ -205,4 +220,46 @@ input.fal-plate-input {
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+/*
+ * AdaptiveWorkspace: primary compacto com split aberto
+ * (data-workspace-primary=compact no wrapper do primary).
+ */
+[data-workspace-primary='compact'] .admin-orders-hub.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-block-start: 0.75rem; /* space-y-3 */
+}
+
+[data-workspace-primary='compact'] .admin-orders-hub .min-h-11 {
+  min-height: 2.25rem; /* min-h-9 */
+}
+
+[data-workspace-primary='compact'] .admin-orders-hub .text-sm {
+  font-size: 0.75rem; /* text-xs */
+  line-height: 1rem;
+}
+
+[data-workspace-primary='compact'] .admin-orders-hub header h1 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+[data-workspace-primary='compact'] .admin-orders-list-scroll {
+  max-height: min(50dvh, 480px);
+}
+
+[data-workspace-primary='compact'] .admin-orders-list-panel .min-h-11 {
+  min-height: 2.25rem;
+}
+
+/*
+ * Split aberto: tabela larga empurra Ações sob o painel fixed.
+ * Força cards no primary compacto (viewport md+ ainda “desktop”).
+ */
+[data-workspace-primary='compact'] .admin-orders-list-mobile {
+  display: block;
+}
+
+[data-workspace-primary='compact'] .admin-orders-list-desktop {
+  display: none;
 }

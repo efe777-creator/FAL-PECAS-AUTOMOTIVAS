@@ -1,14 +1,15 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { formatDateTime } from '@/lib/datetime'
+import {
+  actionAuthorizeStorePickup,
+  actionConfirmStorePickup,
+  type OrderOpsActionRunner,
+} from '@/lib/orderOpsActions'
 import { isOrderStorePickup } from '@/lib/orderShippingKind'
 import { isStorePickupAuthorized, parseStorePickupMeta } from '@/lib/storePickupOps'
 import { toUserMessage } from '@/lib/toUserMessage'
-import {
-  adminAuthorizeStorePickup,
-  adminConfirmStorePickup,
-  type AdminOrderDetail,
-} from '@/services/admin/adminOrderService'
+import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 import { useMemo, useState } from 'react'
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   onReload: () => Promise<void>
   onOk: (msg: string) => void
   onError: (msg: string) => void
+  /** Runner do surface — anti-duplo (I3) e único caminho de mutate. */
+  actionRunner: OrderOpsActionRunner
 }
 
 /** Pós-separação — autorizar retirada e confirmar que o cliente retirou. */
@@ -28,6 +31,7 @@ export function StorePickupPanel({
   onReload,
   onOk,
   onError,
+  actionRunner,
 }: Props) {
   const [proof, setProof] = useState('')
   const pickup = isOrderStorePickup(order)
@@ -48,16 +52,14 @@ export function StorePickupPanel({
     return null
   }
 
+  const fb = { ok: onOk, error: onError }
+
   async function authorize() {
+    if (busy || actionRunner.isBusy()) return
     onBusy(true)
     try {
-      const r = await adminAuthorizeStorePickup(order.id)
-      onOk(
-        r.already
-          ? 'Retirada já estava autorizada — cliente já vê Pronto para retirar.'
-          : 'Retirada autorizada — cliente avisado no app (Pronto para retirar).',
-      )
-      await onReload()
+      const ok = await actionAuthorizeStorePickup(actionRunner, order.id, fb)
+      if (ok) await onReload()
     } catch (e) {
       onError(toUserMessage(e, 'Falha ao autorizar retirada'))
     } finally {
@@ -66,11 +68,16 @@ export function StorePickupPanel({
   }
 
   async function confirmPickup() {
+    if (busy || actionRunner.isBusy()) return
     onBusy(true)
     try {
-      await adminConfirmStorePickup(order.id, proof.trim() || undefined)
-      onOk('Cliente retirou — pedido entregue.')
-      await onReload()
+      const ok = await actionConfirmStorePickup(
+        actionRunner,
+        order.id,
+        proof.trim() || undefined,
+        fb,
+      )
+      if (ok) await onReload()
     } catch (e) {
       onError(toUserMessage(e, 'Falha ao confirmar retirada'))
     } finally {

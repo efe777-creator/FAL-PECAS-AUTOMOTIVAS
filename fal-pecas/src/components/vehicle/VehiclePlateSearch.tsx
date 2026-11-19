@@ -262,7 +262,7 @@ export function VehiclePlateSearch({
   return (
     <div
       className={[
-        'rounded-[16px] bg-white text-fal-navy-dark',
+        'rounded-[16px] bg-fal-surface text-fal-navy-dark',
         compact
           ? 'border border-fal-line/80 p-3 shadow-sm'
           : 'border border-fal-line p-4 shadow-[0_12px_32px_rgba(15,23,42,0.08)] sm:p-5',

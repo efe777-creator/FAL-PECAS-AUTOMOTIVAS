@@ -172,7 +172,7 @@ export function AdminVisualAssetsPage() {
 
       <form
         onSubmit={onCreate}
-        className="grid gap-2 rounded-fal border border-fal-line bg-white p-4 sm:grid-cols-2"
+        className="grid gap-2 rounded-fal border border-fal-line bg-fal-surface p-4 text-fal-fg sm:grid-cols-2"
       >
         <h2 className="m-0 sm:col-span-2 text-sm font-extrabold">Novo asset (draft)</h2>
         <Input label="Código" value={code} onChange={(ev) => setCode(ev.target.value)} required />
@@ -244,7 +244,9 @@ export function AdminVisualAssetsPage() {
               <li
                 key={a.id}
                 className={`rounded-fal border p-3 ${
-                  selectedId === a.id ? 'border-fal-accent bg-fal-accent/5' : 'border-fal-line bg-white'
+                  selectedId === a.id
+                    ? 'border-fal-accent bg-fal-accent/5'
+                    : 'border-fal-line bg-fal-surface'
                 }`}
               >
                 <button
@@ -315,7 +317,7 @@ export function AdminVisualAssetsPage() {
       </section>
 
       {selected ? (
-        <section className="space-y-3 rounded-fal border border-fal-line bg-white p-4">
+        <section className="space-y-3 rounded-fal border border-fal-line bg-fal-surface p-4 text-fal-fg">
           <h2 className="m-0 text-sm font-extrabold">Compat · {selected.code}</h2>
           <form onSubmit={onAddCompat} className="grid gap-2 sm:grid-cols-2">
             <label className="block text-sm font-semibold">

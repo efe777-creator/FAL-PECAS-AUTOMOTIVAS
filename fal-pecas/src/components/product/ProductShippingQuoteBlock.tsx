@@ -293,8 +293,8 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
           <label
             className={`flex cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
               pickupSelected
-                ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
-                : 'border-fal-line bg-white hover:border-fal-navy/40'
+                ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
+                : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
             }`}
           >
             <span className="flex min-w-0 items-start gap-2.5">
@@ -390,8 +390,8 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
                   <label
                     className={`flex cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
                       active
-                        ? 'border-fal-navy bg-white ring-1 ring-fal-navy'
-                        : 'border-fal-line bg-white hover:border-fal-navy/40'
+                        ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
+                        : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
                     }`}
                   >
                     <span className="flex min-w-0 items-start gap-2.5">
@@ -422,7 +422,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
         ) : null}
 
         {selectedDelivery && !pickupSelected ? (
-          <p className="mb-0 mt-3 rounded-[8px] border border-fal-line bg-white px-2.5 py-2 text-xs text-fal-ink">
+          <p className="mb-0 mt-3 rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-2 text-xs text-fal-ink">
             {selectedProvisional ? (
               <>
                 <span className="font-semibold text-fal-navy">Entrega FAL</span>

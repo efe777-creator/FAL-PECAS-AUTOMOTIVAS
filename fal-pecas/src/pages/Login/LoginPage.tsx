@@ -59,21 +59,21 @@ export function LoginPage() {
               : 'Acesse sua conta para acompanhar pedidos, endereços e favoritos.'}
           </p>
           {!isConfigured ? (
-            <p className="mt-4 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+            <p className="mt-4 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3 text-sm">
               Login indisponível no momento. Tente novamente mais tarde.
             </p>
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-fal border border-fal-line bg-white">
+        <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
           <div className="grid grid-cols-2 border-b border-fal-line">
-            <span className="bg-[#fafbfc] px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
+            <span className="bg-fal-surface-2 px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
               Entrar
             </span>
             <Link
               to="/cadastro"
               state={fromState ? { from: fromState } : undefined}
-              className="px-4 py-4 text-center font-extrabold hover:bg-[#fafbfc]"
+              className="px-4 py-4 text-center font-extrabold hover:bg-fal-surface-2"
             >
               Criar conta grátis
             </Link>

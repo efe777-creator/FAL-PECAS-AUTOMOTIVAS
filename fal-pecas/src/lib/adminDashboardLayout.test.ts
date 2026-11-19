@@ -54,6 +54,12 @@ const bounds = new Map<string, WidgetSizeBounds>([
   ],
 ])
 
+describe('adminDashboardLayout key', () => {
+  it('usa layout-v2 (fresh start compacto)', () => {
+    expect(ADMIN_DASHBOARD_LAYOUT_KEY).toBe('fal-admin-dashboard-layout-v2')
+  })
+})
+
 describe('adminDashboardLayout', () => {
   it('dedupeLayoutItems remove duplicatas por widgetId', () => {
     const items = dedupeLayoutItems([
@@ -241,6 +247,9 @@ describe('adminDashboardLayout', () => {
 
   it('dashboardBreakpointFromWidth alinha aos cortes do engine', () => {
     expect(dashboardBreakpointFromWidth(500)).toBe('sm')
+    expect(dashboardBreakpointFromWidth(519)).toBe('sm')
+    expect(dashboardBreakpointFromWidth(520)).toBe('md')
+    expect(dashboardBreakpointFromWidth(600)).toBe('md')
     expect(dashboardBreakpointFromWidth(800)).toBe('md')
     expect(dashboardBreakpointFromWidth(1280)).toBe('lg')
   })

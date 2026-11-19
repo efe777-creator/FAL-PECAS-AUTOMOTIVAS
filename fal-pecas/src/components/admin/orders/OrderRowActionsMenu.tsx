@@ -9,9 +9,19 @@ type Props = {
   onOpenPreview?: () => void
   /** Omitir quando já estamos na página completa. */
   onOpenFull?: () => void
+  /**
+   * No chrome do painel dividido: só utilitários (evita duplicar print/CTAs do surface).
+   * Na lista: menu completo.
+   */
+  utilitiesOnly?: boolean
 }
 
-export function OrderRowActionsMenu({ orderId, onOpenPreview, onOpenFull }: Props) {
+export function OrderRowActionsMenu({
+  orderId,
+  onOpenPreview,
+  onOpenFull,
+  utilitiesOnly = false,
+}: Props) {
   const toast = useToast()
 
   async function runPrint(kind: 'separation' | 'romaneio') {
@@ -59,22 +69,26 @@ export function OrderRowActionsMenu({ orderId, onOpenPreview, onOpenFull }: Prop
             )
           },
         },
-        {
-          id: 'print-separation',
-          label: 'Imprimir lista de separação',
-          onSelect: () => void runPrint('separation'),
-        },
-        {
-          id: 'print-romaneio',
-          label: 'Imprimir romaneio',
-          onSelect: () => void runPrint('romaneio'),
-        },
-        {
-          id: 'pdf-stub',
-          label: 'Gerar PDF (em breve)',
-          onSelect: () => undefined,
-          disabled: isPdfStubDisabled(),
-        },
+        ...(utilitiesOnly
+          ? []
+          : [
+              {
+                id: 'print-separation',
+                label: 'Imprimir lista de separação',
+                onSelect: () => void runPrint('separation'),
+              },
+              {
+                id: 'print-romaneio',
+                label: 'Imprimir romaneio',
+                onSelect: () => void runPrint('romaneio'),
+              },
+              {
+                id: 'pdf-stub',
+                label: 'Gerar PDF (em breve)',
+                onSelect: () => undefined,
+                disabled: isPdfStubDisabled(),
+              },
+            ]),
       ]}
     />
   )

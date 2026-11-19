@@ -2,6 +2,8 @@ import { DashboardEditingProvider } from '@/components/admin/dashboard/Dashboard
 import { renderDashboardWidget } from '@/components/admin/dashboard/widgets/DashboardWidgets'
 import {
   applyBreakpointOrderToLgLayout,
+  DASHBOARD_BP_LG,
+  DASHBOARD_BP_MD,
   dashboardBreakpointFromWidth,
   fromRglLayout,
   toRglLayout,
@@ -21,7 +23,7 @@ import {
 } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 
-const BREAKPOINTS = { lg: 1024, md: 768, sm: 0 }
+const BREAKPOINTS = { lg: DASHBOARD_BP_LG, md: DASHBOARD_BP_MD, sm: 0 }
 const COLS = { lg: 12, md: 8, sm: 1 }
 
 type Props = {
@@ -47,8 +49,8 @@ function scaleForBreakpoint(
   if (cols <= 1) {
     let y = 0
     return items.map((it) => {
-      // Mobile empilha o conteúdo — sobe a altura para não cortar texto/KPIs
-      const h = Math.max(it.h + 3, Math.ceil(it.h * 1.4), 5)
+      // sm: empilha sem inflate agressivo (split/desktop usa md ≥ 520)
+      const h = Math.max(it.h, 3)
       const next = { ...it, x: 0, y, w: 1, h }
       y += next.h
       return next
@@ -251,8 +253,8 @@ export function DashboardLayoutEngine({
                 ) : null}
                 <div
                   className={[
-                    'fal-admin-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto',
-                    editing ? 'fal-dash-no-drag p-2.5' : 'p-3',
+                    'min-h-0 flex-1 overflow-hidden',
+                    editing ? 'fal-dash-no-drag p-2' : 'p-2.5',
                   ].join(' ')}
                 >
                   {renderDashboardWidget(item.widgetId)}

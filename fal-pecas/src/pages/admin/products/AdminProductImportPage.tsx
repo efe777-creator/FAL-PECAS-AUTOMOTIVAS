@@ -193,7 +193,7 @@ export function AdminProductImportPage() {
 
           {preview && phase !== 'done' ? (
             <>
-              <p className="rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+              <p className="rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3 text-sm">
                 Nenhuma alteração foi feita até a confirmação. Válidos: {validCount}.
               </p>
               <label className="flex items-center gap-2 text-sm">

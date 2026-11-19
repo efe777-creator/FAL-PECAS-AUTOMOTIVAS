@@ -19,7 +19,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <h1 className="text-xl font-extrabold text-fal-navy">Algo deu errado</h1>
+          <h1 className="text-xl font-extrabold text-fal-fg">Algo deu errado</h1>
           <p className="mt-2 text-sm text-fal-muted">
             A página falhou ao carregar. Tente recarregar.
           </p>
@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             type="button"
-            className="mt-4 rounded-[10px] bg-fal-yellow px-4 py-2.5 text-sm font-extrabold text-fal-navy"
+            className="mt-4 rounded-[10px] bg-fal-yellow px-4 py-2.5 text-sm font-extrabold text-fal-navy-dark"
             onClick={() => window.location.reload()}
           >
             Recarregar

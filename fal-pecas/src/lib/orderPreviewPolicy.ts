@@ -1,4 +1,7 @@
-/** Lista branca de ações do preview / mini menu (somente leitura / navegação / print). */
+/**
+ * Lista branca do mini-menu (⋯) — navegação / print.
+ * Mutações de pedido ficam em orderOpsActions + OrderOpsSurface (não aqui).
+ */
 
 export const ORDER_PREVIEW_ACTION_IDS = [
   'open-preview',

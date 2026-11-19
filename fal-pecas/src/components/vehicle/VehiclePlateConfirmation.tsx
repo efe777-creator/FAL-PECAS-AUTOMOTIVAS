@@ -28,7 +28,7 @@ export function VehiclePlateConfirmation({
   return (
     <div className="space-y-3" aria-busy={false}>
       {result.isMock ? (
-        <p className="rounded-[9px] border border-[#f0d48a] bg-[#fff8db] px-3 py-2 text-xs font-semibold text-fal-navy-dark">
+        <p className="rounded-[9px] border border-fal-yellow-dark/50 bg-fal-yellow/30 px-3 py-2 text-xs font-semibold text-fal-navy-dark">
           Ambiente de teste (mock) — esta identificação não é uma consulta real de placa.
         </p>
       ) : null}
@@ -46,7 +46,7 @@ export function VehiclePlateConfirmation({
       </div>
 
       {result.fuel || result.transmission ? (
-        <p className="m-0 rounded-[9px] border border-[#e8edf5] bg-[#f7f9fc] px-3 py-2 text-xs text-fal-muted">
+        <p className="m-0 rounded-[9px] border border-[#e8edf5] bg-fal-surface-2 px-3 py-2 text-xs text-fal-muted">
           {result.fuel ? (
             <>
               Combustível: <strong>{result.fuel}</strong>

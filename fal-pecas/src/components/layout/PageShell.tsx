@@ -18,7 +18,9 @@ export function PageShell({
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             {title ? (
-              <h1 className="m-0 text-xl font-extrabold text-fal-navy sm:text-2xl">{title}</h1>
+              <h1 className="m-0 text-xl font-extrabold text-fal-navy dark:text-fal-fg sm:text-2xl">
+                {title}
+              </h1>
             ) : null}
             {description ? (
               <p className="mt-1 text-sm text-fal-muted">{description}</p>

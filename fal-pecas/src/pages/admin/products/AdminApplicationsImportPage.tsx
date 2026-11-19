@@ -267,7 +267,7 @@ export function AdminApplicationsImportPage() {
                   </ul>
                 </div>
               </div>
-              <p className="mt-3 mb-0 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3">
+              <p className="mt-3 mb-0 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3">
                 Nenhuma alteração foi feita até a confirmação.
               </p>
             </div>

@@ -123,7 +123,9 @@ export function DashboardDataProvider({
       if (canSeries) setDailySeries((s) => loadingSource(s))
       else setDailySeries(emptySource())
 
-      const countsP = adminOrderStatusCounts()
+      const periodRange = { from: period.from, to: period.to }
+
+      const countsP = adminOrderStatusCounts(periodRange)
         .then((data) => {
           if (cancelled) return
           const empty = Object.values(data).every((n) => !n)
@@ -145,6 +147,8 @@ export function DashboardDataProvider({
       const attentionP = adminListOrders(null, {
         statuses: ATTENTION_STATUSES,
         limit: ADMIN_LIST_PAGE_SIZE,
+        createdFrom: period.from,
+        createdTo: period.to,
       })
         .then((list) => {
           if (cancelled) return
@@ -173,7 +177,7 @@ export function DashboardDataProvider({
         })
 
       const cashP = canCash
-        ? adminCentralIndicators()
+        ? adminCentralIndicators(periodRange)
             .then((data) => {
               if (cancelled) return
               setCentralIndicators({ status: 'success', data, error: null })
@@ -213,7 +217,7 @@ export function DashboardDataProvider({
             return
           }
           try {
-            const data = await adminBasicTotals()
+            const data = await adminBasicTotals(periodRange)
             if (cancelled) return
             setBasicTotals({ status: 'success', data, error: null })
           } catch (e) {

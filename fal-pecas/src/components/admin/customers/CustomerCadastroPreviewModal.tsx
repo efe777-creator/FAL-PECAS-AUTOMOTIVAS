@@ -163,7 +163,7 @@ export function CustomerCadastroPreviewModal({ open, onClose }: Props) {
                         type="button"
                         className={[
                           'flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition hover:bg-fal-bg/60',
-                          selectedId === r.id ? 'bg-[#fff8db]' : 'bg-transparent',
+                          selectedId === r.id ? 'bg-fal-yellow/30' : 'bg-transparent',
                         ].join(' ')}
                         onClick={() => void openCustomer(r.id)}
                       >

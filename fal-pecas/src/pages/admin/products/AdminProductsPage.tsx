@@ -962,7 +962,7 @@ export function AdminProductsPage() {
       ) : null}
 
       {/* Mobile: cards (não só tabela encolhida) */}
-      <div className="space-y-3 md:hidden">
+      <div className="fal-admin-scroll max-h-[min(60dvh,640px)] space-y-3 overflow-y-auto md:hidden">
         {items.map((p) => (
           <article
             key={p.id}
@@ -1027,9 +1027,9 @@ export function AdminProductsPage() {
         ) : null}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+      <div className="fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-fal-bg text-fal-muted">
+          <thead className="sticky top-0 z-[1] bg-fal-bg text-fal-muted">
             <tr>
               <th className="px-3 py-2">
                 <input

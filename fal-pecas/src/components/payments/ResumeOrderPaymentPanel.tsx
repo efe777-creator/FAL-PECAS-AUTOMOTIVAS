@@ -157,7 +157,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
                 'rounded-[10px] border px-3 py-2 text-sm font-bold',
                 channel === 'pix'
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-fal-line bg-white text-fal-navy',
+                  : 'border-fal-line bg-fal-surface text-fal-navy',
               ].join(' ')}
               onClick={() => selectChannel('pix')}
             >
@@ -171,7 +171,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
                 'rounded-[10px] border px-3 py-2 text-sm font-bold',
                 channel === 'credit_card'
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-fal-line bg-white text-fal-navy',
+                  : 'border-fal-line bg-fal-surface text-fal-navy',
               ].join(' ')}
               onClick={() => selectChannel('credit_card')}
             >
@@ -185,7 +185,7 @@ export function ResumeOrderPaymentPanel({ order, onPaid }: Props) {
                 'rounded-[10px] border px-3 py-2 text-sm font-bold',
                 channel === 'debit_card'
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-fal-line bg-white text-fal-navy',
+                  : 'border-fal-line bg-fal-surface text-fal-navy',
               ].join(' ')}
               onClick={() => selectChannel('debit_card')}
             >

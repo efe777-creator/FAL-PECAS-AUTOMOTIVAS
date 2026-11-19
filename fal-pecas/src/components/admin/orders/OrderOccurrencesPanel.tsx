@@ -334,7 +334,7 @@ export function OrderOccurrencesPanel({
       )}
 
       {resolveFor ? (
-        <div className="rounded-[12px] border border-fal-navy/30 bg-[#f7f9fc] p-3">
+        <div className="rounded-[12px] border border-fal-navy/30 bg-fal-surface-2 p-3">
           <p className="m-0 text-sm font-bold text-fal-fg">
             Resolver {resolveFor.occurrenceId.slice(0, 8)}…
           </p>

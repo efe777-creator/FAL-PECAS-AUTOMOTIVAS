@@ -6,8 +6,13 @@ import {
   DashboardContextualProvider,
   useDashboardContextual,
 } from '@/components/admin/dashboard/DashboardContextualContext'
+import { OrderOpsSurface } from '@/components/admin/orders/OrderOpsSurface'
 import { OrderRowActionsMenu } from '@/components/admin/orders/OrderRowActionsMenu'
-import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { OrderSplitTabPanels } from '@/components/admin/orders/OrderSplitTabPanels'
+import {
+  AdaptiveWorkspace,
+  type AdaptiveWorkspaceModeApi,
+} from '@/components/admin/workspace/AdaptiveWorkspace'
 import { contextualTitle } from '@/lib/adminDashboardDeepLinks'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -38,7 +43,7 @@ import {
   type DashboardPeriodRange,
 } from '@/lib/adminDashboardPeriod'
 import { formatDateTime } from '@/lib/datetime'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 function DashboardShell({
@@ -52,10 +57,23 @@ function DashboardShell({
   const role = user?.role
   const data = useDashboardData()
   const navigate = useNavigate()
-  const { contextual, setContextual, openOrder, clearContextual } =
-    useDashboardContextual()
-  const selectedOrderId =
-    contextual?.kind === 'order' ? contextual.orderId : null
+  const {
+    contextual,
+    setContextual,
+    openOrder,
+    openOrderIds,
+    activeOrderId,
+    closeOrderTab,
+    clearContextual,
+  } = useDashboardContextual()
+  const selectedOrderId = activeOrderId
+  const workspaceModeApiRef = useRef<AdaptiveWorkspaceModeApi | null>(null)
+  const dataRefresh = data.refresh
+
+  const orderSplitTabs = openOrderIds.map((id) => ({
+    id,
+    label: `#${id.slice(0, 8)}`,
+  }))
 
   const available = useMemo(() => listAvailableWidgets(role), [role])
   const bounds = useMemo(() => boundsMapForRole(role), [role])
@@ -423,20 +441,50 @@ function DashboardShell({
   return (
     <AdaptiveWorkspace
       moduleKey="dashboard"
+      modeApiRef={workspaceModeApiRef}
       primary={primary}
       contextualOpen={!!contextual}
       onContextualOpenChange={(open) => {
         if (!open) clearContextual()
       }}
-      contextualTitle={contextual ? contextualTitle(contextual) : 'Detalhe'}
-      contextualExtraActions={
-        selectedOrderId ? <OrderRowActionsMenu orderId={selectedOrderId} /> : null
+      contextualTitle={
+        contextual?.kind === 'order' && openOrderIds.length > 1
+          ? `${openOrderIds.length} guias abertas`
+          : contextual
+            ? contextualTitle(contextual)
+            : 'Detalhe'
       }
-      contextual={
-        contextual ? (
+      contextualExtraActions={
+        selectedOrderId ? (
+          <OrderRowActionsMenu orderId={selectedOrderId} utilitiesOnly />
+        ) : null
+      }
+        contextual={
+        contextual?.kind === 'order' && selectedOrderId ? (
+          <OrderSplitTabPanels
+            orderIds={openOrderIds}
+            meta={orderSplitTabs}
+            onCloseTab={closeOrderTab}
+            render={(orderId) => (
+              <OrderOpsSurface
+                orderId={orderId}
+                density="compact"
+                wave={1}
+                hideStatusHeader
+                onClose={() => closeOrderTab(orderId)}
+                onOpenFull={() => openFull(orderId)}
+                onRequestWideMode={(mode) =>
+                  workspaceModeApiRef.current?.requestWideMode(mode)
+                }
+                onOrderMutated={() => {
+                  void dataRefresh?.()
+                }}
+              />
+            )}
+          />
+        ) : contextual ? (
           <DashboardContextualPanel
             contextual={contextual}
-            onClose={clearContextual}
             onOpenOrder={openOrder}
             onOpenFullOrder={openFull}
             onChangeLogisticsFila={(fila) =>

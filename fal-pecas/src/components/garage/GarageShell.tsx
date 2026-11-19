@@ -106,7 +106,7 @@ export function GarageShell() {
                 key={item.key}
                 type="button"
                 disabled={!focusVehicleId}
-                onClick={() => goModule(item.key)}
+                onClick={() => goModule(item.key as GarageModuleKey)}
                 className={[
                   'flex min-h-11 items-center gap-2 rounded-[10px] px-3 text-left text-sm font-semibold transition',
                   active
@@ -144,9 +144,8 @@ export function GarageShell() {
                 const next = e.target.value
                 if (!next) return
                 if (isHome) {
-                  garage.setActiveVehicle(
-                    garage.vehicles.find((v) => v.id === next) ?? null,
-                  )
+                  const found = garage.vehicles.find((v) => v.id === next)
+                  if (found) garage.setActiveVehicle(found)
                   return
                 }
                 const mod = (activeModulo as GarageModuleKey) || 'visao'

@@ -22,4 +22,12 @@ describe('adminDashboardPeriod', () => {
     expect(r.from).toBe('2026-11-01')
     expect(r.to).toBe(toIsoDate(now))
   })
+
+  it('last_30 cobre 30 dias inclusive', () => {
+    const now = new Date(2026, 10, 19)
+    const r = resolveDashboardPeriod('last_30', now)
+    expect(r.from).toBe('2026-10-21')
+    expect(r.to).toBe('2026-11-19')
+    expect(r.preset).toBe('last_30')
+  })
 })

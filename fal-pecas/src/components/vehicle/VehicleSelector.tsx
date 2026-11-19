@@ -153,7 +153,7 @@ export function VehicleSelector({
   return (
     <div
       className={[
-        'rounded-[18px] bg-white text-fal-navy-dark shadow-[0_20px_50px_rgba(0,0,0,0.2)]',
+        'rounded-[18px] bg-fal-surface text-fal-fg shadow-[0_20px_50px_rgba(0,0,0,0.2)]',
         compact ? 'p-4' : 'p-6',
       ].join(' ')}
     >

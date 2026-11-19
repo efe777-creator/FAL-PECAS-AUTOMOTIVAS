@@ -81,7 +81,7 @@ export function AdminOrderCommandBar({
             </span>
           </div>
         </div>
-        <OrderRowActionsMenu orderId={order.id} />
+        <OrderRowActionsMenu orderId={order.id} utilitiesOnly />
       </div>
 
       {nextStep ? (

@@ -1,6 +1,6 @@
 /**
  * Persistência do Adaptive Workspace — ortogonal ao layout RGL do Painel.
- * Nunca escrever em fal-admin-dashboard-layout-v1.
+ * Nunca escrever em fal-admin-dashboard-layout-* (layout RGL do Painel).
  */
 
 export const ADMIN_WORKSPACE_KEY = 'fal-admin-workspace-v1'

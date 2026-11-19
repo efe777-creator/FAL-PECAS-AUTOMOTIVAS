@@ -7,13 +7,16 @@ export function AccountButton() {
   const isStaff = isStaffRole(user?.role)
 
   return (
-    <div className="flex flex-col items-center gap-0.5 text-center text-[13px] text-fal-navy">
+    <div className="flex flex-col items-center gap-0.5 text-center text-[13px] text-fal-navy dark:text-fal-fg">
       <Link to={user ? '/conta' : '/login'}>
         <b className="block text-xl">👤</b>
         {user ? 'Minha conta' : 'Entrar'}
       </Link>
       {isStaff ? (
-        <Link to="/admin" className="text-[11px] font-extrabold text-fal-navy/80 hover:underline">
+        <Link
+          to="/admin"
+          className="text-[11px] font-extrabold text-fal-navy/80 hover:underline dark:text-fal-fg/80"
+        >
           Painel Admin
         </Link>
       ) : null}

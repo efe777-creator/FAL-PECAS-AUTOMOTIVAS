@@ -10,11 +10,14 @@ import {
   useEffect,
   useRef,
   useState,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
 
 const DESKTOP_MQ = '(min-width: 1024px)'
+/** Altura do header admin sticky — painel fixo fica abaixo dele. */
+const DESKTOP_PANEL_TOP = '4.25rem'
 
 export type AdaptiveWorkspaceProps = {
   moduleKey: WorkspaceModuleKey
@@ -26,6 +29,16 @@ export type AdaptiveWorkspaceProps = {
   contextualExtraActions?: ReactNode
   /** Badge de status no chrome do painel (ex.: etapa do pedido). */
   contextualStatusBadge?: ReactNode
+  /**
+   * API para o conteúdo pedir só workspaceMode (expanded/fullscreen).
+   * Não altera density do OrderOpsSurface.
+   */
+  modeApiRef?: MutableRefObject<AdaptiveWorkspaceModeApi | null>
+}
+
+export type AdaptiveWorkspaceModeApi = {
+  requestWideMode: (mode: 'expanded' | 'fullscreen') => void
+  setMode: (mode: WorkspaceMode) => void
 }
 
 export function AdaptiveWorkspace({
@@ -37,12 +50,14 @@ export function AdaptiveWorkspace({
   contextualTitle = 'Detalhe',
   contextualExtraActions,
   contextualStatusBadge,
+  modeApiRef,
 }: AdaptiveWorkspaceProps) {
   const [prefs, setPrefs] = useState(() => readModulePrefs(moduleKey))
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(DESKTOP_MQ).matches : true,
   )
   const dragging = useRef(false)
+  const panelRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     setPrefs(readModulePrefs(moduleKey))
@@ -90,6 +105,19 @@ export function AdaptiveWorkspace({
     if (!contextualOpen) onContextualOpenChange(true)
   }
 
+  useEffect(() => {
+    if (!modeApiRef) return
+    modeApiRef.current = {
+      requestWideMode: (mode) => handleModeChange(mode),
+      setMode: (mode) => handleModeChange(mode),
+    }
+    return () => {
+      modeApiRef.current = null
+    }
+    // handleModeChange closes over prefs — refresh when prefs/module change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeApiRef, moduleKey, prefs.mode, prefs.splitWidthPx, contextualOpen])
+
   function handleClose() {
     persist({ mode: 'collapsed' })
     onContextualOpenChange(false)
@@ -124,17 +152,31 @@ export function AdaptiveWorkspace({
   const expanded = showContextual && effectiveMode === 'expanded'
   const splitWidth = expanded ? Math.max(prefs.splitWidthPx, 560) : prefs.splitWidthPx
 
+  // Painel desktop fica fixed na viewport — clique no meio/fim da página sempre vê o split.
+  useEffect(() => {
+    if (!showContextual || !isDesktop || fullscreen) return
+    panelRef.current?.focus({ preventScroll: true })
+  }, [showContextual, isDesktop, fullscreen, contextualTitle])
+
   const panel = showContextual ? (
     <aside
+      ref={panelRef}
+      tabIndex={-1}
       className={[
-        'flex min-h-0 flex-col rounded-[14px] border border-fal-line bg-fal-surface p-3 shadow-sm',
+        'flex min-h-0 flex-col rounded-[14px] border border-fal-line bg-fal-surface p-2.5 shadow-sm outline-none',
         !isDesktop || fullscreen
-          ? 'fixed inset-0 z-40 m-0 rounded-none border-0 bg-fal-bg p-4'
-          : '',
+          ? 'fixed inset-0 z-40 m-0 flex h-full max-h-[100dvh] rounded-none border-0 bg-fal-bg p-4'
+          : 'fixed z-30 overflow-y-auto shadow-lg',
       ].join(' ')}
       style={
         isDesktop && !fullscreen
-          ? { width: splitWidth, maxWidth: '100%', flexShrink: 0 }
+          ? {
+              width: splitWidth,
+              maxWidth: 'min(100vw - 1.5rem, 640px)',
+              top: DESKTOP_PANEL_TOP,
+              right: '0.75rem',
+              bottom: '0.75rem',
+            }
           : undefined
       }
       aria-label={contextualTitle}
@@ -147,7 +189,14 @@ export function AdaptiveWorkspace({
         extraActions={contextualExtraActions}
         statusBadge={contextualStatusBadge}
       />
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto">{contextual}</div>
+      <div
+        className={[
+          'mt-1.5 flex min-h-0 flex-col',
+          !isDesktop || fullscreen ? 'min-h-0 flex-1 overflow-y-auto' : '',
+        ].join(' ')}
+      >
+        {contextual}
+      </div>
     </aside>
   ) : null
 
@@ -162,18 +211,30 @@ export function AdaptiveWorkspace({
     )
   }
 
+  const primaryCompact = showContextual && !fullscreen
+
   if (!isDesktop && showContextual) {
     return (
       <div className="relative">
-        {primary}
+        <div
+          className="min-w-0"
+          data-workspace-primary={primaryCompact ? 'compact' : 'full'}
+        >
+          {primary}
+        </div>
         {panel}
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-0 items-stretch gap-0">
-      <div className="min-w-0 flex-1">{primary}</div>
+    <div className="flex min-h-0 items-start gap-0">
+      <div
+        className="min-w-0 flex-1 overflow-x-hidden"
+        data-workspace-primary={primaryCompact ? 'compact' : 'full'}
+      >
+        {primary}
+      </div>
       {showContextual ? (
         <>
           <div
@@ -183,6 +244,12 @@ export function AdaptiveWorkspace({
             tabIndex={0}
             className="mx-1 hidden w-1.5 shrink-0 cursor-col-resize rounded-full bg-fal-line hover:bg-fal-accent lg:block"
             onPointerDown={onSplitterPointerDown}
+          />
+          {/* Reserva = largura do painel + margem right (0.75rem) do fixed */}
+          <div
+            className="hidden shrink-0 lg:block"
+            style={{ width: `calc(${splitWidth}px + 0.75rem)` }}
+            aria-hidden
           />
           {panel}
         </>

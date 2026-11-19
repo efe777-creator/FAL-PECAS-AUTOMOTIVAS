@@ -34,20 +34,20 @@ export function NotificationInboxItem({
 
   const shellClass = compact
     ? [
-        'block w-full max-w-full px-3 py-2.5 text-left hover:bg-fal-bg/80',
+        'block w-full max-w-full px-3 py-2.5 text-left text-fal-fg hover:bg-fal-bg/80',
         actionable && !n.readAt
-          ? 'bg-amber-50/80'
+          ? 'bg-fal-yellow/20'
           : n.readAt
             ? 'opacity-80'
-            : 'bg-fal-yellow/10',
+            : 'bg-fal-yellow/15',
       ].join(' ')
     : [
-        'w-full max-w-full rounded-fal border px-3 py-3 text-left transition hover:border-fal-navy/40 sm:px-4',
+        'w-full max-w-full rounded-fal border px-3 py-3 text-left text-fal-fg transition hover:border-fal-line sm:px-4',
         actionable && !n.readAt
-          ? 'border-amber-400/70 bg-amber-50/60'
+          ? 'border-fal-yellow-dark/50 bg-fal-yellow/25'
           : n.readAt
-            ? 'border-fal-line bg-white'
-            : 'border-fal-yellow-dark/40 bg-fal-yellow/15',
+            ? 'border-fal-line bg-fal-surface'
+            : 'border-fal-yellow-dark/40 bg-fal-yellow/20',
       ].join(' ')
 
   return (
@@ -60,7 +60,7 @@ export function NotificationInboxItem({
     >
       <span className="block min-w-0">
         <span
-          className={`block break-words text-sm font-extrabold text-fal-navy ${
+          className={`block break-words text-sm font-extrabold text-fal-fg ${
             compact ? 'line-clamp-2' : ''
           }`}
         >

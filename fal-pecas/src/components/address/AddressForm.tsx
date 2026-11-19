@@ -307,7 +307,7 @@ export function AddressForm({
       <label className="block text-sm sm:col-span-2">
         <span className="mb-1 block text-xs font-extrabold text-fal-muted">Estado</span>
         <select
-          className="w-full rounded-[9px] border border-fal-line bg-white px-3 py-3 outline-none focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
+          className="fal-field w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 text-fal-fg outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
           name="state"
           autoComplete="address-level1"
           value={form.state}

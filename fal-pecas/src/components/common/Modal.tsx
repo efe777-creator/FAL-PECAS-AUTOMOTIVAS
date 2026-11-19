@@ -67,7 +67,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     >
       <div
         ref={panelRef}
-        className="max-h-[90vh] w-full max-w-[620px] overflow-auto rounded-2xl bg-white p-6 shadow-fal outline-none"
+        className="max-h-[90vh] w-full max-w-[620px] overflow-auto rounded-2xl bg-fal-surface p-6 text-fal-fg shadow-fal outline-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -75,12 +75,12 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id={titleId} className="m-0 text-xl font-extrabold text-fal-navy-dark">
+          <h2 id={titleId} className="m-0 text-xl font-extrabold text-fal-fg">
             {title}
           </h2>
           <button
             type="button"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#eef1f3] text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-navy"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-fal-surface-2 text-lg text-fal-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
             onClick={onClose}
             aria-label="Fechar"
           >

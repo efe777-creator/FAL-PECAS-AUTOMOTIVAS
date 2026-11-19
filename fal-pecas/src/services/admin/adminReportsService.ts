@@ -34,9 +34,7 @@ export async function staffCanViewReportsF8(): Promise<boolean> {
   return Boolean(data)
 }
 
-export async function adminBasicTotals(): Promise<AdminBasicTotals> {
-  const { data, error } = await getSupabase().rpc('admin_orders_basic_totals')
-  if (error) throw error
+function mapBasicTotals(data: unknown): AdminBasicTotals {
   const o = (data ?? {}) as Record<string, number>
   return {
     ordersTotal: Number(o.orders_total ?? 0),
@@ -45,6 +43,58 @@ export async function adminBasicTotals(): Promise<AdminBasicTotals> {
     ordersCancelled: Number(o.orders_cancelled ?? 0),
     revenueDelivered: Number(o.revenue_delivered ?? 0),
   }
+}
+
+/** Deriva totais F8 a partir da série diária do painel (já filtrada por período). */
+export function basicTotalsFromDailySeries(series: AdminDailySeries): AdminBasicTotals {
+  let ordersTotal = 0
+  let ordersDelivered = 0
+  let revenueDelivered = 0
+  for (const d of series.days) {
+    ordersTotal += d.ordersCreated
+    if (d.ordersDelivered != null) ordersDelivered += d.ordersDelivered
+    if (d.gmvDelivered != null) revenueDelivered += d.gmvDelivered
+  }
+  return {
+    ordersTotal,
+    ordersOpen: 0,
+    ordersDelivered,
+    ordersCancelled: 0,
+    revenueDelivered,
+  }
+}
+
+export function cashFromDailySeries(series: AdminDailySeries): {
+  captured: number
+  refunded: number
+  netReceived: number
+} {
+  let captured = 0
+  let refunded = 0
+  for (const d of series.days) {
+    captured += d.captured
+    refunded += d.refunded
+  }
+  return { captured, refunded, netReceived: captured - refunded }
+}
+
+export async function adminBasicTotals(
+  period?: { from: string; to: string } | null,
+): Promise<AdminBasicTotals> {
+  const sb = getSupabase()
+  if (period?.from && period?.to) {
+    const { data, error } = await sb.rpc('admin_orders_basic_totals', {
+      p_from: period.from,
+      p_to: period.to,
+    })
+    if (!error) return mapBasicTotals(data)
+    // Sem overload: usa série diária (mesma definição GMV do painel).
+    const series = await adminDashboardDailySeries(period.from, period.to)
+    return basicTotalsFromDailySeries(series)
+  }
+  const { data, error } = await sb.rpc('admin_orders_basic_totals')
+  if (error) throw error
+  return mapBasicTotals(data)
 }
 
 export async function adminDashboardDailySeries(

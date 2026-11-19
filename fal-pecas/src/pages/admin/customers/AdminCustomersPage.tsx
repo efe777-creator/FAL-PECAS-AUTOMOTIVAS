@@ -184,7 +184,7 @@ export function AdminCustomersPage() {
                     key={r.id}
                     className={[
                       'cursor-pointer border-b border-fal-line last:border-0 hover:bg-fal-bg/60',
-                      selectedId === r.id ? 'bg-[#fff8db]' : '',
+                      selectedId === r.id ? 'bg-fal-yellow/30' : '',
                     ].join(' ')}
                     onClick={() => void open(r.id)}
                   >

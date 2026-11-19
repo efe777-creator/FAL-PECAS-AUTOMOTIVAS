@@ -92,7 +92,7 @@ export function CartPage() {
         {syncPending ? ' Salvando…' : ''}
       </p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_350px]">
-        <div className="rounded-fal border border-fal-line bg-white p-5">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
           {items.map((item) => {
             const productHref = item.slug
               ? `/produto/${encodeURIComponent(item.slug)}`
@@ -158,7 +158,7 @@ export function CartPage() {
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       type="button"
-                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-fal-surface"
                       aria-label={`Diminuir quantidade de ${item.name}`}
                       onClick={() => updateQty(item.productId, item.quantity - 1)}
                     >
@@ -172,7 +172,7 @@ export function CartPage() {
                     </span>
                     <button
                       type="button"
-                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-white"
+                      className="h-9 w-9 rounded-[7px] border border-fal-line bg-fal-surface"
                       aria-label={`Aumentar quantidade de ${item.name}`}
                       onClick={() => updateQty(item.productId, item.quantity + 1)}
                     >
@@ -199,7 +199,7 @@ export function CartPage() {
             )
           })}
         </div>
-        <aside className="h-max rounded-fal border border-fal-line bg-white p-5">
+        <aside className="h-max rounded-fal border border-fal-line bg-fal-surface p-5">
           <div className="mb-3 flex justify-between">
             <span>Subtotal (lista)</span>
             <strong>{formatMoney(subtotal)}</strong>

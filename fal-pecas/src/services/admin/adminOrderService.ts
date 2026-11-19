@@ -169,6 +169,9 @@ export type AdminListOrdersOpts = {
    * (pagamento failed/rejected ainda refinado no cliente sobre este subconjunto).
    */
   problems?: boolean
+  /** YYYY-MM-DD inclusive — created_at em America/Sao_Paulo. */
+  createdFrom?: string | null
+  createdTo?: string | null
 }
 
 export async function adminListOrders(
@@ -208,6 +211,13 @@ export async function adminListOrders(
   }
   if (opts?.customerDecision) {
     q = q.eq('customer_decision', opts.customerDecision)
+  }
+  // Limites em timestamptz com offset SP (−03) — alinhado às RPCs do painel.
+  if (opts?.createdFrom) {
+    q = q.gte('created_at', `${opts.createdFrom}T00:00:00-03:00`)
+  }
+  if (opts?.createdTo) {
+    q = q.lte('created_at', `${opts.createdTo}T23:59:59.999-03:00`)
   }
 
   const { data, error } = await q
@@ -521,13 +531,45 @@ export async function adminSetShipmentFreightCost(input: {
   return data as { g8_complete: boolean }
 }
 
-export async function adminOrderStatusCounts(): Promise<Record<string, number>> {
-  const { data, error } = await getSupabase().rpc('admin_order_status_counts')
-  if (error) throw error
+function mapStatusCountObj(data: unknown): Record<string, number> {
   const obj = (data ?? {}) as Record<string, number>
   const out: Record<string, number> = {}
   for (const [k, v] of Object.entries(obj)) out[k] = Number(v)
   return out
+}
+
+/** Contagens por status; com período filtra created_at (TZ SP ≈ −03). */
+export async function adminOrderStatusCounts(
+  period?: { from: string; to: string } | null,
+): Promise<Record<string, number>> {
+  const sb = getSupabase()
+  if (period?.from && period?.to) {
+    const { data, error } = await sb.rpc('admin_order_status_counts', {
+      p_from: period.from,
+      p_to: period.to,
+    })
+    if (!error) return mapStatusCountObj(data)
+
+    // Fallback: RPC sem overload de datas — agrega no cliente.
+    const { data: rows, error: qErr } = await sb
+      .from('orders')
+      .select('status')
+      .gte('created_at', `${period.from}T00:00:00-03:00`)
+      .lte('created_at', `${period.to}T23:59:59.999-03:00`)
+      .limit(10000)
+    if (qErr) throw error ?? qErr
+    const out: Record<string, number> = {}
+    for (const row of rows ?? []) {
+      const s = String((row as { status?: string }).status ?? '')
+      if (!s) continue
+      out[s] = (out[s] ?? 0) + 1
+    }
+    return out
+  }
+
+  const { data, error } = await sb.rpc('admin_order_status_counts')
+  if (error) throw error
+  return mapStatusCountObj(data)
 }
 
 /** Marcha 1 — contagens das filas logísticas (RPC server-side). */
@@ -761,9 +803,7 @@ export type AdminCentralIndicators = {
   }
 }
 
-export async function adminCentralIndicators(): Promise<AdminCentralIndicators> {
-  const { data, error } = await getSupabase().rpc('admin_central_indicators')
-  if (error) throw error
+function mapCentralIndicators(data: unknown): AdminCentralIndicators {
   const raw = (data ?? {}) as Record<string, unknown>
   const ops = (raw.operational ?? {}) as Record<string, unknown>
   const fin = (raw.financial ?? {}) as Record<string, unknown>
@@ -788,6 +828,50 @@ export async function adminCentralIndicators(): Promise<AdminCentralIndicators> 
       pendingPayment: Number(fin.pending_payment ?? 0),
     },
   }
+}
+
+export async function adminCentralIndicators(
+  period?: { from: string; to: string } | null,
+): Promise<AdminCentralIndicators> {
+  const sb = getSupabase()
+  if (period?.from && period?.to) {
+    const { data, error } = await sb.rpc('admin_central_indicators', {
+      p_from: period.from,
+      p_to: period.to,
+    })
+    if (!error) return mapCentralIndicators(data)
+
+    // Fallback: caixa da série diária + ops das contagens do período.
+    const [{ adminDashboardDailySeries, cashFromDailySeries }, counts] = await Promise.all([
+      import('@/services/admin/adminReportsService'),
+      adminOrderStatusCounts(period),
+    ])
+    const series = await adminDashboardDailySeries(period.from, period.to)
+    const cash = cashFromDailySeries(series)
+    const ordersCreated = Object.values(counts).reduce((a, n) => a + n, 0)
+    return {
+      currency: 'BRL',
+      operational: {
+        ordersCreated,
+        awaitingDecision: counts['aguardando_decisao'] ?? 0,
+        cancelled: counts['cancelado'] ?? 0,
+        cancellationPending: 0,
+        byStatus: counts,
+      },
+      financial: {
+        captured: cash.captured,
+        refunded: cash.refunded,
+        netReceived: cash.netReceived,
+        grossSold: 0,
+        cancelledAmount: 0,
+        pendingPayment: 0,
+      },
+    }
+  }
+
+  const { data, error } = await sb.rpc('admin_central_indicators')
+  if (error) throw error
+  return mapCentralIndicators(data)
 }
 
 export async function adminSetItemAvailability(input: {

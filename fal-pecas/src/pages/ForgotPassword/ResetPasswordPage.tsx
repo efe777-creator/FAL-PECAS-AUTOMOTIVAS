@@ -84,13 +84,13 @@ export function ResetPasswordPage() {
 
   return (
     <Container className="py-8">
-      <div className="mx-auto max-w-md rounded-fal border border-fal-line bg-white p-6">
+      <div className="mx-auto max-w-md rounded-fal border border-fal-line bg-fal-surface p-6">
         <h1 className="mt-0 text-[28px] font-extrabold">Redefinir senha</h1>
         <p className="text-fal-muted">
           Escolha uma nova senha para acessar sua conta.
         </p>
         {!isConfigured ? (
-          <p className="mt-3 rounded-[10px] border border-[#f0d979] bg-[#fff8db] p-3 text-sm">
+          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3 text-sm">
             Autenticação indisponível no momento. Tente mais tarde.
           </p>
         ) : null}

@@ -89,7 +89,7 @@ export function GarageAskPrompt() {
 
   return (
     <div
-      className="mb-4 rounded-[18px] border border-fal-line bg-white p-4 text-fal-navy-dark shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
+      className="mb-4 rounded-[18px] border border-fal-line bg-fal-surface p-4 text-fal-navy-dark shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
       role="dialog"
       aria-labelledby="garage-ask-title"
     >

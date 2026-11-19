@@ -752,7 +752,7 @@ export function AdminProductFormPage() {
           )}
         </div>
 
-        <div className="grid gap-3 rounded-[12px] border border-fal-yellow/60 bg-[#fffdf3] p-3 md:grid-cols-2">
+        <div className="grid gap-3 rounded-[12px] border border-fal-yellow/60 bg-fal-yellow/20 p-3 text-fal-fg md:grid-cols-2">
           <label className="flex items-center gap-2 text-sm font-semibold md:col-span-2">
             <input
               type="checkbox"
@@ -939,7 +939,7 @@ export function AdminProductFormPage() {
         </div>
 
         {productId ? (
-          <div className="rounded-[10px] border border-fal-line bg-[#f7f9fc] p-3">
+          <div className="rounded-[10px] border border-fal-line bg-fal-surface-2 p-3 text-fal-fg">
             <h3 className="m-0 text-sm font-extrabold text-fal-fg">Histórico de medidas</h3>
             <p className="mt-1 mb-2 text-xs text-fal-muted">
               Alterações de peso, dimensões e capacidade (deste produto ou em lote). Máx. 30

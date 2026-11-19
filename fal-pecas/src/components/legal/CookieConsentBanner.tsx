@@ -37,7 +37,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => choose(false)}
-            className="rounded-[10px] border border-[#5a6570] bg-transparent px-4 py-2.5 text-sm font-bold text-[#e8ecf0] hover:bg-white/5"
+            className="rounded-[10px] border border-[#5a6570] bg-transparent px-4 py-2.5 text-sm font-bold text-[#e8ecf0] hover:bg-fal-surface/5"
           >
             Só essenciais
           </button>
