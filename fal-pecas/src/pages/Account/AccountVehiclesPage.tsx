@@ -206,12 +206,13 @@ export function AccountVehiclesPage() {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3 lg:hidden">
-        <div>
-          <h2 className="mt-0 mb-1 text-xl font-extrabold sm:text-2xl">Minha Garagem</h2>
-          <p className="mb-0 text-sm text-fal-muted">
-            Identidade, cuidados e visual do seu veículo — cores FAL.
-          </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="lg:hidden">
+          <h2 className="mt-0 mb-1 text-xl font-extrabold">Garagem</h2>
+          <p className="mb-0 text-sm text-fal-muted">Seu carro, cuidados e histórico.</p>
+        </div>
+        <div className="hidden lg:block">
+          <p className="mb-0 text-sm text-fal-muted">Seu carro, cuidados e histórico.</p>
         </div>
         <Button
           type="button"
@@ -220,21 +221,6 @@ export function AccountVehiclesPage() {
           {showAdd ? 'Fechar' : 'Adicionar veículo'}
         </Button>
       </header>
-
-      <div className="hidden flex-wrap items-center justify-between gap-3 lg:flex">
-        <div>
-          <h2 className="m-0 text-2xl font-extrabold text-fal-fg">Minha Garagem</h2>
-          <p className="mb-0 mt-1 text-sm text-fal-muted">
-            Dashboard do veículo principal, atalhos e resumo.
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={() => (showAdd ? closeAdd() : openAdd('placa'))}
-        >
-          {showAdd ? 'Fechar' : 'Adicionar veículo'}
-        </Button>
-      </div>
 
       <IncomingTransferBanner onAccepted={() => void reload()} />
 

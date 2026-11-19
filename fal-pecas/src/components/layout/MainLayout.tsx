@@ -1,4 +1,5 @@
 import { StorefrontAnalytics } from '@/components/analytics/StorefrontAnalytics'
+import { GarageNavTracker } from '@/components/garage/GarageNavTracker'
 import { Footer } from '@/components/layout/Footer'
 import { Topbar } from '@/components/layout/Topbar'
 import { CookieConsentBanner } from '@/components/legal/CookieConsentBanner'
@@ -30,6 +31,7 @@ export function MainLayout() {
       className={`flex min-h-screen flex-col bg-fal-bg text-fal-fg ${theme === 'dark' ? 'dark' : ''}`}
     >
       <ScrollToTop />
+      <GarageNavTracker />
       <StorefrontAnalytics />
       <Topbar />
       <Header theme={theme} onThemeToggle={onThemeToggle} />

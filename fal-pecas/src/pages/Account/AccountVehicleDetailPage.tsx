@@ -16,15 +16,15 @@ import { VehicleSharesPanel } from '@/components/garage/VehicleSharesPanel'
 import { VehicleTransferPanel } from '@/components/garage/VehicleTransferPanel'
 import { VehicleVisualPanel } from '@/components/garage/VehicleVisualPanel'
 import {
-  isVehicleIncomplete,
   vehicleCatalogHref,
   vehicleDisplayName,
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
 import { useGarage } from '@/contexts/GarageContext'
-import { GARAGE_MODULE_TABS } from '@/lib/garageNav'
+import { GARAGE_MODULE_TABS, GARAGE_MORE_LABELS } from '@/lib/garageNav'
 import {
+  GARAGE_MORE_MODULE_KEYS,
   parseGarageModule,
   writeGarageWorkspacePrefs,
   type GarageModuleKey,
@@ -47,7 +47,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 function Section({
   title,
@@ -210,16 +210,17 @@ export function AccountVehicleDetailPage() {
   }
 
   const plateLabel = vehiclePlateLabel(vehicle)
-  const incomplete = isVehicleIncomplete(vehicle)
+  const tabHighlight: GarageModuleKey =
+    modulo === 'visao' ||
+    modulo === 'historico' ||
+    modulo === 'inteligencia' ||
+    modulo === 'mais'
+      ? modulo
+      : 'mais'
+  const inMoreBranch = (GARAGE_MORE_MODULE_KEYS as string[]).includes(modulo)
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Link to="/conta/veiculos" className="font-semibold text-fal-auth-link hover:underline">
-          ← Minha Garagem
-        </Link>
-      </div>
-
       <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-navy/95 text-white dark:bg-fal-navy-dark">
         <VehicleImageFrame
           image={image}
@@ -278,7 +279,7 @@ export function AccountVehicleDetailPage() {
               </span>
             )}
             <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
-              {incomplete ? 'Buscar no catálogo' : 'Ver peças compatíveis'}
+              Peças no catálogo
             </ButtonLink>
             <Button
               type="button"
@@ -396,25 +397,8 @@ export function AccountVehicleDetailPage() {
       ) : null}
 
       <nav
-        className="flex gap-2 overflow-x-auto pb-1 lg:hidden"
-        aria-label="Módulos da garagem"
-      >
-        {GARAGE_MODULE_TABS.map((tab) => (
-          <Button
-            key={tab.key}
-            type="button"
-            size="sm"
-            variant={modulo === tab.key ? 'primary' : 'light'}
-            onClick={() => setModulo(tab.key)}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </nav>
-
-      <nav
-        className="hidden flex-wrap gap-2 lg:flex"
-        aria-label="Módulos da ficha"
+        className="flex gap-2 overflow-x-auto pb-1"
+        aria-label="Seções do veículo"
       >
         {GARAGE_MODULE_TABS.map((tab) => (
           <button
@@ -422,8 +406,8 @@ export function AccountVehicleDetailPage() {
             type="button"
             onClick={() => setModulo(tab.key)}
             className={[
-              'min-h-10 rounded-[10px] border px-3 text-sm font-extrabold transition',
-              modulo === tab.key
+              'min-h-11 shrink-0 rounded-[10px] border px-3 text-sm font-extrabold transition',
+              tabHighlight === tab.key
                 ? 'border-fal-navy bg-fal-navy text-white dark:border-fal-yellow dark:bg-fal-yellow dark:text-fal-navy-dark'
                 : 'border-fal-line bg-fal-surface text-fal-muted hover:text-fal-fg',
             ].join(' ')}
@@ -433,6 +417,41 @@ export function AccountVehicleDetailPage() {
         ))}
       </nav>
 
+      {modulo === 'mais' ? (
+        <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
+          <h3 className="mt-0 mb-1 text-base font-extrabold">Mais opções</h3>
+          <p className="mt-0 mb-3 text-sm text-fal-muted">
+            Recursos avançados — use quando precisar. O dia a dia fica em Resumo, Histórico e
+            Cuidados.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {GARAGE_MORE_MODULE_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setModulo(key)}
+                className="flex min-h-11 items-center justify-between rounded-[10px] border border-fal-line bg-fal-bg px-3 text-left text-sm font-extrabold text-fal-fg hover:border-fal-navy/40"
+              >
+                {GARAGE_MORE_LABELS[key] ?? key}
+                <span aria-hidden className="text-fal-muted">
+                  →
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {inMoreBranch ? (
+        <button
+          type="button"
+          onClick={() => setModulo('mais')}
+          className="text-sm font-semibold text-fal-auth-link hover:underline"
+        >
+          ← Mais opções
+        </button>
+      ) : null}
+
       {modulo === 'historico' ? (
         vehicle.vehicleIdentityId ? (
           <VehicleIdentityTimeline
@@ -441,8 +460,8 @@ export function AccountVehicleDetailPage() {
           />
         ) : (
           <ErrorState
-            title="Identidade pendente"
-            description="Este veículo ainda não tem identidade permanente. Atualize a página ou recadastre após a Etapa 1."
+            title="Histórico indisponível"
+            description="Complete o cadastro do veículo para ver o histórico."
           />
         )
       ) : null}
@@ -496,8 +515,8 @@ export function AccountVehicleDetailPage() {
           <VehicleIntelligencePanel vehicleIdentityId={vehicle.vehicleIdentityId} />
         ) : (
           <ErrorState
-            title="Identidade pendente"
-            description="Lembretes e insights exigem identidade permanente."
+            title="Cuidados indisponíveis"
+            description="Complete o cadastro do veículo para adicionar lembretes."
           />
         )
       ) : null}
@@ -522,6 +541,28 @@ export function AccountVehicleDetailPage() {
         <div className="space-y-2">
           {modulo === 'visao' ? (
             <>
+              <div className="rounded-fal border border-fal-line bg-fal-surface p-4">
+                <p className="m-0 text-sm font-extrabold text-fal-fg">Resumo</p>
+                <p className="mt-1 mb-3 text-sm text-fal-muted">
+                  Quilometragem e acesso rápido aos cuidados do veículo.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModulo('inteligencia')}
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
+                  >
+                    Ver cuidados
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModulo('historico')}
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
+                  >
+                    Ver histórico
+                  </button>
+                </div>
+              </div>
               <Section title="Identificação" defaultOpen>
                 <dl className="m-0 grid gap-2 sm:grid-cols-2">
                   <div>

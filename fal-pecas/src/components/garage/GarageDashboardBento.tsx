@@ -168,13 +168,13 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
                   to={detailHref}
                   className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-4 text-sm font-extrabold text-white hover:bg-fal-navy-dark"
                 >
-                  Ver detalhes do veículo
+                  Ver carro
                 </Link>
                 <Link
                   to={vehicleCatalogHref(primary)}
                   className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-4 text-sm font-extrabold text-fal-fg"
                 >
-                  Ver peças
+                  Peças no catálogo
                 </Link>
               </div>
             </div>
@@ -189,14 +189,16 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               to={moduleLink(primary.id, 'inteligencia')}
               className="text-xs font-bold text-fal-accent hover:underline"
             >
-              Ver tudo
+              Ver cuidados
             </Link>
           </div>
           {!primary.vehicleIdentityId ? (
-            <p className="m-0 text-sm text-fal-muted">Identidade do veículo ainda pendente.</p>
+            <p className="m-0 text-sm text-fal-muted">
+              Cadastro do veículo incompleto — cuidados aparecem após salvar.
+            </p>
           ) : insights.length === 0 ? (
             <p className="m-0 text-sm text-fal-muted">
-              Nenhum lembrete no momento. Cadastre na Inteligência.
+              Nenhum cuidado agendado. Adicione um lembrete.
             </p>
           ) : (
             <ul className="m-0 list-none space-y-2 p-0">
@@ -221,7 +223,7 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               to={moduleLink(primary.id, 'historico')}
               className="text-xs font-bold text-fal-accent hover:underline"
             >
-              Abrir
+              Ver histórico
             </Link>
           </div>
           {recent.length === 0 ? (
@@ -246,11 +248,11 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
           )}
         </section>
 
-        {/* Preview 3D */}
+        {/* Preview visual secundário */}
         <section className="rounded-fal border border-fal-line bg-fal-navy p-4 text-white lg:col-span-4">
-          <h3 className="m-0 text-sm font-extrabold text-fal-yellow">Visualização 3D</h3>
+          <h3 className="m-0 text-sm font-extrabold text-fal-yellow">Visualização</h3>
           <p className="mt-1 text-xs text-white/70">
-            Interativa quando houver modelo aprovado. Senão, imagem ilustrativa.
+            Ilustração de referência — não é a foto do seu carro.
           </p>
           <div className="mt-3 overflow-hidden rounded-[12px] bg-black/30">
             {image.url ? (
@@ -266,16 +268,16 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
             )}
           </div>
           <Link
-            to={moduleLink(primary.id, 'visual')}
+            to={moduleLink(primary.id, 'mais')}
             className="mt-3 inline-flex min-h-10 items-center text-sm font-extrabold text-fal-yellow hover:underline"
           >
-            Abrir visual →
+            Mais opções →
           </Link>
         </section>
 
         {/* Resumo */}
         <section className="rounded-fal border border-fal-line bg-fal-surface p-4 lg:col-span-4">
-          <h3 className="m-0 text-sm font-extrabold">Resumo da garagem</h3>
+          <h3 className="m-0 text-sm font-extrabold">Resumo</h3>
           <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="rounded-[10px] bg-fal-bg px-2 py-3">
               <dt className="text-[10px] font-semibold uppercase text-fal-muted">Veículos</dt>
@@ -284,7 +286,7 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               </dd>
             </div>
             <div className="rounded-[10px] bg-fal-bg px-2 py-3">
-              <dt className="text-[10px] font-semibold uppercase text-fal-muted">Registros</dt>
+              <dt className="text-[10px] font-semibold uppercase text-fal-muted">Histórico</dt>
               <dd className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-yellow">
                 {counts.events}
               </dd>
@@ -305,25 +307,6 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               + Adicionar veículo
             </button>
           ) : null}
-        </section>
-
-        {/* Inteligência */}
-        <section className="rounded-fal border border-fal-accent/30 bg-gradient-to-br from-fal-navy to-fal-navy-2 p-4 text-white lg:col-span-12">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="m-0 text-base font-extrabold text-fal-yellow">FAL Inteligência</h3>
-              <p className="mt-1 mb-0 max-w-2xl text-sm text-white/75">
-                Lembretes e insights com base no histórico e nos cuidados cadastrados — estimativa,
-                não diagnóstico mecânico.
-              </p>
-            </div>
-            <Link
-              to={moduleLink(primary.id, 'inteligencia')}
-              className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-4 text-sm font-extrabold text-fal-navy-dark"
-            >
-              Abrir inteligência
-            </Link>
-          </div>
         </section>
       </div>
     </div>

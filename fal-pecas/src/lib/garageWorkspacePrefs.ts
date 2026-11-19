@@ -8,6 +8,7 @@ export type GarageModuleKey =
   | 'inteligencia'
   | 'visual'
   | 'config'
+  | 'mais'
 
 const MODULES: GarageModuleKey[] = [
   'visao',
@@ -19,7 +20,12 @@ const MODULES: GarageModuleKey[] = [
   'inteligencia',
   'visual',
   'config',
+  'mais',
 ]
+
+/** Módulos avançados agrupados em Mais (código permanece; fora da nav primária). */
+export const GARAGE_MORE_MODULE_KEYS: Exclude<GarageModuleKey, 'visao' | 'historico' | 'inteligencia' | 'mais'>[] =
+  ['manutencoes', 'visual', 'profissionais', 'evidencias', 'compartilhar', 'config']
 
 const KEY = 'fal-garage-workspace-v1'
 

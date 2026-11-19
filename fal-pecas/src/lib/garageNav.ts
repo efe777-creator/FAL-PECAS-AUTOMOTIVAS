@@ -1,45 +1,42 @@
 import type { GarageModuleKey } from '@/lib/garageWorkspacePrefs'
 
-/** Navegação da Minha Garagem (layout bento / mockup eFe — cores FAL). */
+/** Navegação da Minha Garagem — um caminho por intenção (padrão UX 2026-11-18). */
 export type GarageNavItem = {
   key: 'home' | GarageModuleKey
   label: string
   shortLabel: string
-  /** Ícone textual compacto (sem emoji de marketing). */
   glyph: string
 }
 
+/** Sidebar / primária: Garagem, Histórico, Cuidados, Mais. */
 export const GARAGE_SIDEBAR_ITEMS: GarageNavItem[] = [
-  { key: 'home', label: 'Minha Garagem', shortLabel: 'Garagem', glyph: '⌂' },
+  { key: 'home', label: 'Garagem', shortLabel: 'Garagem', glyph: '⌂' },
   { key: 'historico', label: 'Histórico', shortLabel: 'Histórico', glyph: '◷' },
-  { key: 'manutencoes', label: 'Manutenção', shortLabel: 'Manutenção', glyph: '⚙' },
-  { key: 'profissionais', label: 'Profissionais', shortLabel: 'Pro', glyph: '◎' },
-  { key: 'evidencias', label: 'Evidências', shortLabel: 'Evidências', glyph: '▣' },
-  { key: 'inteligencia', label: 'Inteligência', shortLabel: 'Insights', glyph: '◇' },
-  { key: 'visual', label: 'Visual 3D', shortLabel: '3D', glyph: '◻' },
-  { key: 'compartilhar', label: 'Compartilhar', shortLabel: 'Share', glyph: '↗' },
-  { key: 'config', label: 'Configurações', shortLabel: 'Config', glyph: '☰' },
+  { key: 'inteligencia', label: 'Cuidados', shortLabel: 'Cuidados', glyph: '◇' },
+  { key: 'mais', label: 'Mais', shortLabel: 'Mais', glyph: '☰' },
 ]
 
-/** Abas do detalhe (inclui visão geral). */
+/** Abas do detalhe — espelham a nav primária (+ Resumo). */
 export const GARAGE_MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
-  { key: 'visao', label: 'Visão geral' },
+  { key: 'visao', label: 'Resumo' },
   { key: 'historico', label: 'Histórico' },
-  { key: 'manutencoes', label: 'Manutenção' },
-  { key: 'profissionais', label: 'Profissionais' },
-  { key: 'evidencias', label: 'Evidências' },
-  { key: 'compartilhar', label: 'Compartilhar' },
-  { key: 'inteligencia', label: 'Inteligência' },
-  { key: 'visual', label: 'Visual' },
-  { key: 'config', label: 'Config' },
+  { key: 'inteligencia', label: 'Cuidados' },
+  { key: 'mais', label: 'Mais' },
 ]
 
-/** Atalhos mobile na home (grade 2×3). */
+/** Atalhos mobile na home (sem repetir a lista longa de módulos). */
 export const GARAGE_MOBILE_SHORTCUTS: GarageNavItem[] = [
   { key: 'historico', label: 'Histórico', shortLabel: 'Histórico', glyph: '◷' },
-  { key: 'manutencoes', label: 'Manutenção', shortLabel: 'Manutenção', glyph: '⚙' },
-  { key: 'profissionais', label: 'Profissionais', shortLabel: 'Pro', glyph: '◎' },
-  { key: 'evidencias', label: 'Evidências', shortLabel: 'Evidências', glyph: '▣' },
-  { key: 'inteligencia', label: 'Inteligência', shortLabel: 'Insights', glyph: '◇' },
-  { key: 'visual', label: '3D', shortLabel: '3D', glyph: '◻' },
+  { key: 'inteligencia', label: 'Cuidados', shortLabel: 'Cuidados', glyph: '◇' },
+  { key: 'mais', label: 'Mais', shortLabel: 'Mais', glyph: '☰' },
 ]
+
+/** Rótulos dos itens dentro de Mais. */
+export const GARAGE_MORE_LABELS: Record<string, string> = {
+  manutencoes: 'Manutenção',
+  visual: 'Visualização',
+  profissionais: 'Profissionais',
+  evidencias: 'Evidências',
+  compartilhar: 'Compartilhar',
+  config: 'Configurações',
+}

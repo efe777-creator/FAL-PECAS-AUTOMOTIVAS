@@ -42,7 +42,7 @@ export function VehicleIntelligencePanel({
       setInsights(ins)
       setSchedules(sch)
     } catch (e) {
-      toast.push(toUserMessage(e, 'Erro ao carregar inteligência'), 'error')
+      toast.push(toUserMessage(e, 'Erro ao carregar cuidados'), 'error')
     } finally {
       setLoading(false)
     }
