@@ -47,9 +47,12 @@ export function Header({ theme, onThemeToggle }: Props) {
           Garagem
         </Link>
         <SearchBar />
-        <div className="flex items-center justify-end gap-2 lg:gap-3">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
           <div className="lg:hidden">
             <StoreThemeToggle theme={theme} onToggle={onThemeToggle} />
+          </div>
+          <div className="max-w-[148px] sm:max-w-[180px] lg:hidden">
+            <GarageActiveSwitcher compact />
           </div>
           {user ? (
             <div className="lg:hidden">
@@ -58,7 +61,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           ) : null}
           <div className="hidden items-center gap-3 lg:flex">
             <StoreThemeToggle theme={theme} onToggle={onThemeToggle} showLabel />
-            {user ? <GarageActiveSwitcher /> : null}
+            <GarageActiveSwitcher />
             {user ? (
               <NotificationBell allHref="/conta/avisos" audience="customer" variant="light" />
             ) : null}
@@ -109,11 +112,9 @@ export function Header({ theme, onThemeToggle }: Props) {
           >
             Minha Garagem
           </Link>
-          {user ? (
-            <div className="px-3 py-2">
-              <GarageActiveSwitcher compact />
-            </div>
-          ) : null}
+          <div className="px-3 py-2">
+            <GarageActiveSwitcher compact />
+          </div>
           <Link
             to="/carrinho"
             className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"

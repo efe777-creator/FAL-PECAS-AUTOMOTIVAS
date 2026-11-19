@@ -4,8 +4,11 @@ import {
   activeGarageStorageKey,
   clearActiveGarage,
   filterDisplayLabel,
+  GUEST_ACTIVE_GARAGE_ID,
+  promoteGuestSessionToUser,
   readActiveGarage,
   resolveActiveAgainstGarage,
+  resolveActiveGarageStorageId,
   resolveActiveState,
   vehicleToActiveFilter,
   writeActiveGarage,
@@ -130,5 +133,25 @@ describe('activeGarageStorage (#10)', () => {
       'Chevrolet Classic 2012',
     )
     expect(filterDisplayLabel({})).toBe('Veículo')
+  })
+
+  it('guest storage id e sessão anônima', () => {
+    expect(resolveActiveGarageStorageId(null)).toBe(GUEST_ACTIVE_GARAGE_ID)
+    expect(resolveActiveGarageStorageId('u1')).toBe('u1')
+    writeSessionActiveGarage(GUEST_ACTIVE_GARAGE_ID, { maker: 'Fiat', model: 'Uno' })
+    expect(readActiveGarage(GUEST_ACTIVE_GARAGE_ID)?.mode).toBe('session')
+  })
+
+  it('promoteGuestSessionToUser só se user sem preferência', () => {
+    writeSessionActiveGarage(GUEST_ACTIVE_GARAGE_ID, { maker: 'VW', model: 'Gol', year: '2012' })
+    const promoted = promoteGuestSessionToUser('user-a')
+    expect(promoted?.mode).toBe('session')
+    expect(promoted?.filter).toEqual({ maker: 'VW', model: 'Gol', year: '2012' })
+    expect(readActiveGarage(GUEST_ACTIVE_GARAGE_ID)).toBeNull()
+
+    writeSessionActiveGarage(GUEST_ACTIVE_GARAGE_ID, { maker: 'Fiat', model: 'Argo' })
+    writeClearedActiveGarage('user-a')
+    expect(promoteGuestSessionToUser('user-a')).toBeNull()
+    expect(readActiveGarage(GUEST_ACTIVE_GARAGE_ID)).toBeNull()
   })
 })

@@ -45,10 +45,10 @@
 **Files:**
 - Modify: `fal-pecas/src/components/garage/GarageActiveSwitcher.tsx`
 
-- [ ] CTA sem ativo: Confirmar compatibilidade
-- [ ] Popover: lista, limpar, manual → VehicleSelector, gerenciar
-- [ ] Toast salvar via `ensureSavedVehicleFromFilter`
-- [ ] compact + desktop
+- [x] CTA sem ativo: Confirmar compatibilidade (também guest)
+- [x] Popover: lista, limpar, manual → VehicleSelector, gerenciar
+- [x] Toast salvar via `ensureSavedVehicleFromFilter` (guest → login + pending)
+- [x] compact + desktop
 - [ ] Commit
 
 ### Task 4: Verificação

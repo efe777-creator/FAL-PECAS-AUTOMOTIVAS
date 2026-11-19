@@ -1,7 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { listSavedVehicles } from '@/services/customers/customerVehicleService'
 import {
+  GUEST_ACTIVE_GARAGE_ID,
+  promoteGuestSessionToUser,
   readActiveGarage,
+  resolveActiveGarageStorageId,
   resolveActiveState,
   vehicleToActiveFilter,
   writeClearedActiveGarage,
@@ -39,19 +42,40 @@ type GarageContextValue = {
 
 const GarageContext = createContext<GarageContextValue | null>(null)
 
+function applyGuestStored(
+  setActiveVehicleState: (v: CustomerSavedVehicle | null) => void,
+  setSessionFilterState: (f: VehicleFilter | null) => void,
+) {
+  const stored = readActiveGarage(GUEST_ACTIVE_GARAGE_ID)
+  const resolved = resolveActiveState(stored, [])
+  if (resolved.mode === 'session') {
+    setActiveVehicleState(null)
+    setSessionFilterState(resolved.filter)
+    return
+  }
+  setActiveVehicleState(null)
+  setSessionFilterState(null)
+}
+
 export function GarageProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const userId = user?.id ?? null
+  const storageId = resolveActiveGarageStorageId(userId)
   const [vehicles, setVehicles] = useState<CustomerSavedVehicle[]>([])
   const [activeVehicle, setActiveVehicleState] = useState<CustomerSavedVehicle | null>(null)
   const [sessionFilter, setSessionFilterState] = useState<VehicleFilter | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Hidrata guest cedo (antes do auth terminar) para selos sem flash.
+  useEffect(() => {
+    if (userId) return
+    applyGuestStored(setActiveVehicleState, setSessionFilterState)
+  }, [userId])
+
   const applyResolved = useCallback(
     (list: CustomerSavedVehicle[]) => {
       if (!userId) {
-        setActiveVehicleState(null)
-        setSessionFilterState(null)
+        applyGuestStored(setActiveVehicleState, setSessionFilterState)
         return
       }
       const stored = readActiveGarage(userId)
@@ -78,8 +102,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const refreshVehicles = useCallback(async () => {
     if (!userId) {
       setVehicles([])
-      setActiveVehicleState(null)
-      setSessionFilterState(null)
+      applyGuestStored(setActiveVehicleState, setSessionFilterState)
       return []
     }
     setLoading(true)
@@ -100,9 +123,13 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     if (authLoading) return
     if (!userId) {
       setVehicles([])
-      setActiveVehicleState(null)
-      setSessionFilterState(null)
+      applyGuestStored(setActiveVehicleState, setSessionFilterState)
       return
+    }
+    const promoted = promoteGuestSessionToUser(userId)
+    if (promoted?.mode === 'session' && promoted.filter) {
+      setActiveVehicleState(null)
+      setSessionFilterState(promoted.filter)
     }
     void refreshVehicles()
   }, [userId, authLoading, refreshVehicles])
@@ -119,20 +146,18 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const setSessionFilter = useCallback(
     (filter: VehicleFilter) => {
-      if (!userId) return
-      writeSessionActiveGarage(userId, filter)
+      writeSessionActiveGarage(storageId, filter)
       setActiveVehicleState(null)
       setSessionFilterState(filter)
     },
-    [userId],
+    [storageId],
   )
 
   const clearActiveVehicle = useCallback(() => {
-    if (!userId) return
-    writeClearedActiveGarage(userId)
+    writeClearedActiveGarage(storageId)
     setActiveVehicleState(null)
     setSessionFilterState(null)
-  }, [userId])
+  }, [storageId])
 
   const notifyVehicleRemoved = useCallback(
     async (vehicleId: string) => {

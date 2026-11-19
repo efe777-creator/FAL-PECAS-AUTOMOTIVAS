@@ -1,6 +1,6 @@
 # FAL — PLANO · Busca, Equivalência e Compatibilidade de Peças
 
-**Status:** **EM ANÁLISE · AGUARDANDO eFe** (Fase 0 — auditoria + spec de telas pós-marcha; sem implementação)  
+**Status:** **EM IMPLEMENTAÇÃO NA `dev`** — Fase 0 spec fechada; **Marcha 2026-11-19** executa **Fase 2+3 (E.1)** + sessão guest (auth só ao salvar na garagem). Sem main/prod neste ciclo.  
 **Data:** 2026-11-19  
 **Branch de trabalho:** `dev`  
 **Branch de produção:** `main` (não usar para desenvolvimento / sem deploy neste ciclo)  
@@ -79,7 +79,14 @@ Núcleo atual: PVC + `search_products` + G5 + Garagem 2A + snapshot G6. Gap: con
 | Log | Só checkout |
 | Conflitos | PVC > equivalência > nota; incompat vence |
 
-ML = benchmark. Sem Figma nesta etapa — wireframes na Parte E. Sem código nesta etapa.
+ML = benchmark. Sem Figma nesta etapa — wireframes na Parte E.
+
+### Marcha DEV 2026-11-19 (assertiva eFe)
+
+- **Fase 2+3 / E.1:** selos card PVC + copy Compatível/similar/A verificar; incompatível some; ranking.
+- **Guest:** confirmar compatibilidade **sem login**; cadastro/login **somente** ao salvar na Minha Garagem.
+- **M24/M25:** picker catálogo ≠ chip; fit = chip/sessão → senão URL YMM → senão sem selo.
+- Spec irmã: [`docs/superpowers/specs/2026-11-19-header-compat-switcher-design.md`](../superpowers/specs/2026-11-19-header-compat-switcher-design.md).
 
 ---
 

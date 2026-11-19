@@ -10,6 +10,16 @@ import { MobileDrawer } from '@/components/navigation/MobileDrawer'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SavedVehiclesQuickPick } from '@/components/vehicle/SavedVehiclesQuickPick'
 import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
+import { useGarageOptional } from '@/contexts/GarageContext'
+import {
+  cardSealRank,
+  classifyCompatibility,
+  resolveCardSeal,
+  resolveFitContext,
+  vehicleFilterToCompatInput,
+  type PvcCompatRow,
+} from '@/services/compatibility/compatibilityEngine'
+import { loadPvcEvidenceByProductIds } from '@/services/compatibility/loadPvcEvidence'
 import { selectOptionsWithValue } from '@/services/plates/reconcileVehicleFilter'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
 import { listActiveBrands } from '@/services/brands/brandService'
@@ -85,6 +95,7 @@ function parsePage(value: string | null): number {
 
 export function CatalogPage() {
   const toast = useToast()
+  const garage = useGarageOptional()
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const navType = useNavigationType()
@@ -101,6 +112,10 @@ export function CatalogPage() {
 
   const [searchDraft, setSearchDraft] = useState(q)
   const [products, setProducts] = useState<Product[]>([])
+  const [pvcByProductId, setPvcByProductId] = useState<Map<string, PvcCompatRow[]>>(
+    () => new Map(),
+  )
+  const [pvcReady, setPvcReady] = useState(false)
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [loadedPage, setLoadedPage] = useState(1)
@@ -131,6 +146,69 @@ export function CatalogPage() {
   }
 
   const vehicleFiltersActive = Boolean(maker || model || year || engine || version)
+
+  /** Filtro URL do catálogo (M23) — não escreve o chip (M24). */
+  const pageVehicleFilter = useMemo<VehicleFilter | null>(() => {
+    if (!maker.trim() || !model.trim()) return null
+    return {
+      maker: maker.trim(),
+      model: model.trim(),
+      year: year.trim() || undefined,
+      engine: engine.trim() || undefined,
+      version: version.trim() || undefined,
+    }
+  }, [maker, model, year, engine, version])
+
+  /** M25: chip/sessão → senão URL; desempate por especificidade. */
+  const fitFilter = useMemo(
+    () => resolveFitContext(garage?.activeFilter ?? null, pageVehicleFilter),
+    [garage?.activeFilter, pageVehicleFilter],
+  )
+  const fitInput = useMemo(() => vehicleFilterToCompatInput(fitFilter), [fitFilter])
+
+  useEffect(() => {
+    if (!fitInput || products.length === 0) {
+      setPvcByProductId(new Map())
+      setPvcReady(!fitInput)
+      return
+    }
+    let cancelled = false
+    setPvcReady(false)
+    const ids = products.map((p) => p.id)
+    void loadPvcEvidenceByProductIds(ids)
+      .then((map) => {
+        if (cancelled) return
+        setPvcByProductId(map)
+        setPvcReady(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPvcByProductId(new Map())
+        setPvcReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fitInput, products])
+
+  const displayProducts = useMemo(() => {
+    if (!fitInput || !pvcReady) return products
+    const scored = products.map((p, index) => {
+      const rows = pvcByProductId.get(p.id) ?? []
+      const verdict = classifyCompatibility(fitInput, rows)
+      const seal = resolveCardSeal(verdict)
+      return { p, index, seal }
+    })
+    return scored
+      .filter((row) => row.seal.kind !== 'hide')
+      .sort((a, b) => {
+        const ra = cardSealRank(a.seal.kind)
+        const rb = cardSealRank(b.seal.kind)
+        if (ra !== rb) return ra - rb
+        return a.index - b.index
+      })
+      .map((row) => row.p)
+  }, [fitInput, pvcReady, products, pvcByProductId])
 
   useDocumentTitle(
     q.trim()
@@ -1044,8 +1122,15 @@ export function CatalogPage() {
                 refreshing ? 'opacity-70 transition-opacity' : '',
               ].join(' ')}
             >
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+              {displayProducts.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  fitFilter={fitFilter}
+                  pvcRows={
+                    fitInput && pvcReady ? (pvcByProductId.get(p.id) ?? []) : null
+                  }
+                />
               ))}
             </div>
             {hasMore ? (

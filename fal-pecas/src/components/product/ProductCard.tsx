@@ -16,10 +16,13 @@ import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import {
-  appGroupsToPvcRows,
   classifyCompatibility,
+  resolveCardSeal,
   vehicleFilterToCompatInput,
+  type CompatibilityVerdict,
+  type PvcCompatRow,
 } from '@/services/compatibility/compatibilityEngine'
+import { loadPvcEvidenceByProductIds } from '@/services/compatibility/loadPvcEvidence'
 import { buildVehicleSnapshotFromActive } from '@/services/garage/vehicleSnapshot'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useToast } from '@/components/common/Toast'
@@ -44,11 +47,24 @@ import {
 import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
-import type { Product } from '@/types'
-import { useMemo, type MouseEvent } from 'react'
+import type { Product, VehicleFilter } from '@/types'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
-export function ProductCard({ product }: { product: Product }) {
+type Props = {
+  product: Product
+  /**
+   * Evidência PVC (E.1).
+   * - omitido (`undefined`): o card carrega PVC sozinho
+   * - `null`: pai ainda carregando (sem selo)
+   * - array: evidência pronta
+   */
+  pvcRows?: PvcCompatRow[] | null
+  /** Fit M25 já resolvido (chip ou URL). Se omitido, usa só garage.activeFilter. */
+  fitFilter?: VehicleFilter | null
+}
+
+export function ProductCard({ product, pvcRows, fitFilter }: Props) {
   const { user } = useAuth()
   const { items, addItem } = useCart()
   const { isFavorite, toggle } = useFavorites()
@@ -71,11 +87,42 @@ export function ProductCard({ product }: { product: Product }) {
   const cartQty = items.find((i) => i.productId === product.id)?.quantity ?? 0
   const inCart = cartQty > 0
 
-  const compatVerdict = useMemo(() => {
-    const input = vehicleFilterToCompatInput(garage?.activeFilter)
+  const effectiveFit = fitFilter !== undefined ? fitFilter : garage?.activeFilter ?? null
+  const [selfPvc, setSelfPvc] = useState<PvcCompatRow[] | null>(null)
+  const parentOwnsPvc = pvcRows !== undefined
+
+  useEffect(() => {
+    if (parentOwnsPvc) return
+    const input = vehicleFilterToCompatInput(effectiveFit)
+    if (!input) {
+      setSelfPvc(null)
+      return
+    }
+    let cancelled = false
+    void loadPvcEvidenceByProductIds([product.id])
+      .then((map) => {
+        if (!cancelled) setSelfPvc(map.get(product.id) ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setSelfPvc([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [parentOwnsPvc, effectiveFit, product.id])
+
+  const resolvedPvc = parentOwnsPvc ? pvcRows : selfPvc
+
+  const compatVerdict: CompatibilityVerdict | null = useMemo(() => {
+    const input = vehicleFilterToCompatInput(effectiveFit)
     if (!input) return null
-    return classifyCompatibility(input, appGroupsToPvcRows(product.compatibilityGroups))
-  }, [garage?.activeFilter, product.compatibilityGroups])
+    // Sem PVC ainda: não inventar selo com apps fraca.
+    if (resolvedPvc == null) return null
+    return classifyCompatibility(input, resolvedPvc)
+  }, [effectiveFit, resolvedPvc])
+
+  const showSeal = Boolean(compatVerdict && resolveCardSeal(compatVerdict).kind !== 'hide')
+  const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()
@@ -98,7 +145,7 @@ export function ProductCard({ product }: { product: Product }) {
     if (!available) return
     if (compatVerdict?.state === 'probable') {
       const { confirmed } = await confirmDialog({
-        title: 'Compatibilidade provável',
+        title: 'Compatibilidade similar',
         message:
           'Esta peça parece compatível, mas faltam dados para confirmar. Deseja adicionar mesmo assim?',
         confirmLabel: 'Adicionar mesmo assim',
@@ -122,7 +169,6 @@ export function ProductCard({ product }: { product: Product }) {
     )
   }
 
-  /** AJUSTE-035 C5 — compra direta isolada; não mistura nem altera o carrinho. */
   function onBuyNow(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
@@ -165,7 +211,12 @@ export function ProductCard({ product }: { product: Product }) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <ProductMediaFrame variant="card" className="mb-1 shrink-0">
+      <ProductMediaFrame variant="card" className="relative mb-1 shrink-0">
+        {showSeal && compatVerdict ? (
+          <div className="pointer-events-none absolute bottom-2 left-2 z-[1]">
+            <CompatibilityStateBadge verdict={compatVerdict} variant="card" compact />
+          </div>
+        ) : null}
         {product.imageUrl ? (
           <Link
             to={productHref}
@@ -237,17 +288,14 @@ export function ProductCard({ product }: { product: Product }) {
               .join(' · ')}
           </p>
         ) : null}
-        {compatVerdict ? (
-          <div className="my-1.5">
-            <CompatibilityStateBadge verdict={compatVerdict} />
-          </div>
+        {!hasFitContext ? (
+          <CompatibilityAppsBlock
+            className="my-2 text-xs"
+            variant="card"
+            groups={product.compatibilityGroups}
+            summary={product.compatibilitySummary}
+          />
         ) : null}
-        <CompatibilityAppsBlock
-          className="my-2 text-xs"
-          variant="card"
-          groups={product.compatibilityGroups}
-          summary={product.compatibilitySummary}
-        />
       </Link>
 
       <div className="mt-auto flex shrink-0 flex-col gap-2 pt-2">

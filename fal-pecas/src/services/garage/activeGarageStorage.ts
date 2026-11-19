@@ -1,6 +1,8 @@
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 
 export const ACTIVE_GARAGE_KEY_PREFIX = 'fal_active_garage_vehicle:'
+/** Storage de compatibilidade de sessão sem login (selos); salvar na garagem exige auth. */
+export const GUEST_ACTIVE_GARAGE_ID = 'guest'
 
 export type ActiveGarageMode = 'vehicle' | 'session' | 'cleared'
 
@@ -20,6 +22,30 @@ export type ResolvedActiveGarage = {
 
 export function activeGarageStorageKey(userId: string): string {
   return `${ACTIVE_GARAGE_KEY_PREFIX}${userId}`
+}
+
+/** userId autenticado ou chave guest para filtro de sessão anônimo. */
+export function resolveActiveGarageStorageId(userId: string | null | undefined): string {
+  return userId?.trim() ? userId : GUEST_ACTIVE_GARAGE_ID
+}
+
+/**
+ * Após login: promove filtro de sessão guest → user (se user ainda não tem preferência)
+ * e limpa a chave guest.
+ */
+export function promoteGuestSessionToUser(userId: string): ActiveGarageStored | null {
+  if (!userId || userId === GUEST_ACTIVE_GARAGE_ID) return null
+  const guest = readActiveGarage(GUEST_ACTIVE_GARAGE_ID)
+  clearActiveGarage(GUEST_ACTIVE_GARAGE_ID)
+  if (!guest || guest.mode !== 'session') return null
+  const filter = guest.filter && Object.keys(guest.filter).length ? guest.filter : null
+  if (!filter) return null
+  const existing = readActiveGarage(userId)
+  if (existing?.mode === 'vehicle' || existing?.mode === 'session' || existing?.mode === 'cleared') {
+    return null
+  }
+  writeSessionActiveGarage(userId, filter)
+  return readActiveGarage(userId)
 }
 
 export function vehicleToActiveFilter(v: CustomerSavedVehicle): VehicleFilter {

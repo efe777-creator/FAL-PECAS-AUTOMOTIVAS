@@ -1,20 +1,25 @@
 import { useToast } from '@/components/common/Toast'
 import { vehicleDisplayName } from '@/components/garage/garageVehicleUi'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
+import { useAuth } from '@/contexts/AuthContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehicleService'
 import { filterDisplayLabel } from '@/services/garage/activeGarageStorage'
+import { savePendingGarageVehicle } from '@/services/plates/pendingGarage'
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 type Panel = 'menu' | 'manual'
 
-/** Chip / CTA do veículo ativo (contexto loja) — distinto de “principal”. */
+/** Chip / CTA do veículo ativo (contexto loja) — distinto de “principal”. Guest OK (sessão); salvar exige login. */
 export function GarageActiveSwitcher({ compact = false }: { compact?: boolean }) {
   const garage = useGarageOptional()
+  const { user } = useAuth()
   const toast = useToast()
+  const navigate = useNavigate()
+  const location = useLocation()
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -45,6 +50,7 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
 
   if (!garage) return null
 
+  const loggedIn = Boolean(user)
   const hasActive = Boolean(garage.activeFilter)
   const label = garage.activeVehicle
     ? vehicleDisplayName(garage.activeVehicle)
@@ -67,6 +73,10 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
     setPanel('menu')
   }
 
+  function returnPath() {
+    return `${location.pathname}${location.search}`
+  }
+
   function onManualConfirm(filter: VehicleFilter) {
     garage!.setSessionFilter(filter)
     setOpen(false)
@@ -75,7 +85,7 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
     toast.push(`Compatibilidade confirmada: ${name}`, 'success', {
       durationMs: 8000,
       action: {
-        label: 'Salvar na garagem',
+        label: loggedIn ? 'Salvar na garagem' : 'Entrar ou criar conta para salvar',
         onClick: () => {
           void saveToGarage(filter)
         },
@@ -85,6 +95,15 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
 
   async function saveToGarage(filter: VehicleFilter) {
     if (saving) return
+    if (!loggedIn) {
+      savePendingGarageVehicle({ ...filter, returnTo: returnPath() })
+      navigate('/login', { state: { from: returnPath() } })
+      toast.push(
+        'Para guardar na Minha Garagem, entre ou crie uma conta. Os selos desta sessão continuam.',
+        'info',
+      )
+      return
+    }
     setSaving(true)
     try {
       const saved = await ensureSavedVehicleFromFilter(filter)
@@ -148,9 +167,14 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
           {panel === 'menu' ? (
             <div className="flex flex-col gap-0.5">
               <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-                Minha Garagem
+                {loggedIn ? 'Minha Garagem' : 'Nesta sessão'}
               </p>
-              {garage.vehicles.length === 0 ? (
+              {!loggedIn ? (
+                <p className="px-2 py-2 text-xs text-fal-muted">
+                  Confirme o modelo para ver selos — sem cadastro. Conta só é pedida para guardar o
+                  carro na Minha Garagem.
+                </p>
+              ) : garage.vehicles.length === 0 ? (
                 <p className="px-2 py-2 text-xs text-fal-muted">
                   Nenhum carro salvo. Use o filtro manual ou gerencie a garagem.
                 </p>
@@ -199,13 +223,34 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
                 </button>
               ) : null}
 
-              <Link
-                to="/conta/veiculos"
-                className="min-h-10 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-fal-auth-link hover:bg-fal-surface-2"
-                onClick={() => setOpen(false)}
-              >
-                Gerenciar garagem
-              </Link>
+              {loggedIn ? (
+                <Link
+                  to="/conta/veiculos"
+                  className="min-h-10 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-fal-auth-link hover:bg-fal-surface-2"
+                  onClick={() => setOpen(false)}
+                >
+                  Gerenciar garagem
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    state={{ from: returnPath() }}
+                    className="min-h-10 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-fal-auth-link hover:bg-fal-surface-2"
+                    onClick={() => setOpen(false)}
+                  >
+                    Entrar para Minha Garagem
+                  </Link>
+                  <Link
+                    to="/cadastro"
+                    state={{ from: returnPath() }}
+                    className="min-h-10 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-fal-muted hover:bg-fal-surface-2"
+                    onClick={() => setOpen(false)}
+                  >
+                    Criar conta grátis
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div className="max-h-[70vh] overflow-y-auto">
@@ -220,7 +265,11 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
                 compact
                 hideQuickPick
                 title="Filtrar modelo"
-                subtitle="Confirme para ver compatibilidade nesta página. Depois pode salvar na garagem."
+                subtitle={
+                  loggedIn
+                    ? 'Confirme para ver compatibilidade nesta página. Depois pode salvar na garagem.'
+                    : 'Confirme para ver selos agora. Guardar o carro na Minha Garagem pede entrar ou criar conta.'
+                }
                 confirmLabel="Confirmar compatibilidade"
                 onConfirm={onManualConfirm}
               />

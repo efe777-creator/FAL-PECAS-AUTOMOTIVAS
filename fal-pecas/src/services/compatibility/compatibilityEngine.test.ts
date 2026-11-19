@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   appGroupsToPvcRows,
   classifyCompatibility,
+  resolveCardSeal,
+  resolveFitContext,
   type PvcCompatRow,
   type VehicleCompatInput,
 } from './compatibilityEngine'
@@ -88,5 +90,44 @@ describe('classifyCompatibility (#16)', () => {
     expect(withEngine.state).toBe('confirmed')
     const onlyMm = classifyCompatibility({ maker: 'Chevrolet', model: 'Onix' }, rows)
     expect(onlyMm.state).toBe('probable')
+  })
+})
+
+describe('resolveCardSeal E.1', () => {
+  it('confirmed → Compatível; probable → similar; no_intersection → hide', () => {
+    expect(resolveCardSeal({ state: 'confirmed', label: 'x', evidences: [] }).kind).toBe(
+      'compatible',
+    )
+    expect(resolveCardSeal({ state: 'probable', label: 'x', evidences: [] })).toEqual({
+      kind: 'similar',
+      label: 'Compatível',
+      micro: 'similar',
+    })
+    expect(
+      resolveCardSeal({
+        state: 'unconfirmed',
+        label: 'x',
+        evidences: [{ code: 'no_intersection', detail: 'n' }],
+      }).kind,
+    ).toBe('hide')
+    expect(
+      resolveCardSeal({
+        state: 'unconfirmed',
+        label: 'x',
+        evidences: [{ code: 'no_pvc', detail: 'n' }],
+      }).label,
+    ).toBe('A verificar')
+  })
+})
+
+describe('resolveFitContext M25', () => {
+  it('chip vence URL se igual ou mais específico; URL vence se mais rica', () => {
+    const chip = { maker: 'Fiat', model: 'Palio' }
+    const page = { maker: 'Fiat', model: 'Palio', year: '2015', engine: '1.0' }
+    expect(resolveFitContext(chip, page)).toEqual(page)
+    expect(resolveFitContext(page, chip)).toEqual(page)
+    expect(resolveFitContext(chip, null)).toEqual(chip)
+    expect(resolveFitContext(null, chip)).toEqual(chip)
+    expect(resolveFitContext(null, null)).toBeNull()
   })
 })

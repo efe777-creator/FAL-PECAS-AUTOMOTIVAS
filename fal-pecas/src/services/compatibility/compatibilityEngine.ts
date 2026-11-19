@@ -255,3 +255,59 @@ export function classifyCompatibility(
     ],
   }
 }
+
+/** Copy E.1 do card — independente das labels longas do motor/PDP. */
+export type CardSealKind = 'compatible' | 'similar' | 'check' | 'hide'
+
+export type CardSeal = {
+  kind: CardSealKind
+  label: string
+  micro?: string
+}
+
+export function resolveCardSeal(
+  verdict: CompatibilityVerdict | null | undefined,
+): CardSeal {
+  if (!verdict) return { kind: 'hide', label: '' }
+  if (verdict.state === 'confirmed') return { kind: 'compatible', label: 'Compatível' }
+  if (verdict.state === 'probable') {
+    return { kind: 'similar', label: 'Compatível', micro: 'similar' }
+  }
+  if (verdict.evidences.some((e) => e.code === 'no_intersection')) {
+    return { kind: 'hide', label: '' }
+  }
+  return { kind: 'check', label: 'A verificar' }
+}
+
+export function cardSealRank(kind: CardSealKind): number {
+  if (kind === 'compatible') return 0
+  if (kind === 'similar') return 1
+  if (kind === 'check') return 2
+  return 99
+}
+
+/** Pontuação M25 — maker+model base; +ano/motor/versão. */
+export function fitSpecificityScore(filter: VehicleFilter | null | undefined): number {
+  if (!filter?.maker?.trim() || !filter?.model?.trim()) return 0
+  let score = 2
+  if (filter.year?.trim()) score += 1
+  if (filter.engine?.trim()) score += 1
+  if (filter.version?.trim() || filter.versionId?.trim()) score += 1
+  return score
+}
+
+/**
+ * M25: chip/sessão primeiro; senão URL da tela; desempate pelo mais específico;
+ * empate de especificidade → chip.
+ */
+export function resolveFitContext(
+  chipFilter: VehicleFilter | null | undefined,
+  pageFilter: VehicleFilter | null | undefined,
+): VehicleFilter | null {
+  const chipScore = fitSpecificityScore(chipFilter)
+  const pageScore = fitSpecificityScore(pageFilter)
+  if (chipScore === 0 && pageScore === 0) return null
+  if (pageScore > chipScore) return pageFilter ?? null
+  if (chipScore > 0) return chipFilter ?? null
+  return pageFilter ?? null
+}
