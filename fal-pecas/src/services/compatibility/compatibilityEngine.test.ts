@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appGroupsToPvcRows,
   classifyCompatibility,
+  resolveCardEvidence,
   resolveCardSeal,
   resolveFitContext,
   type PvcCompatRow,
@@ -129,5 +130,23 @@ describe('resolveFitContext M25', () => {
     expect(resolveFitContext(chip, null)).toEqual(chip)
     expect(resolveFitContext(null, chip)).toEqual(chip)
     expect(resolveFitContext(null, null)).toBeNull()
+  })
+})
+
+describe('resolveCardEvidence híbrida', () => {
+  it('PVC não vazio vence; vazio cai em appGroups', () => {
+    const pvc: PvcCompatRow[] = [
+      { maker: 'Fiat', model: 'Palio', yearStart: 2010, yearEnd: 2015 },
+    ]
+    const groups = [
+      {
+        maker: 'Chevrolet',
+        lines: [{ model: 'Onix', engine: null, version: null, yearLabel: '20' }],
+      },
+    ]
+    expect(resolveCardEvidence(pvc, groups)).toEqual(pvc)
+    expect(resolveCardEvidence([], groups)[0]?.maker).toBe('Chevrolet')
+    expect(resolveCardEvidence(null, groups)[0]?.maker).toBe('Chevrolet')
+    expect(resolveCardEvidence([], null)).toEqual([])
   })
 })

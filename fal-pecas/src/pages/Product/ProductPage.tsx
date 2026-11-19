@@ -45,6 +45,7 @@ import { useGarageOptional } from '@/contexts/GarageContext'
 import { useToast } from '@/components/common/Toast'
 import {
   classifyCompatibility,
+  resolveCardEvidence,
   type CompatibilityVerdict,
   vehicleFilterToCompatInput,
 } from '@/services/compatibility/compatibilityEngine'
@@ -130,17 +131,21 @@ export function ProductPage() {
     void loadPvcEvidenceByProductIds([product.id])
       .then((map) => {
         if (cancelled) return
-        setCompatVerdict(
-          classifyCompatibility(activeCompatInput, map.get(product.id) ?? []),
+        const evidence = resolveCardEvidence(
+          map.get(product.id) ?? [],
+          product.compatibilityGroups,
         )
+        setCompatVerdict(classifyCompatibility(activeCompatInput, evidence))
       })
       .catch(() => {
-        if (!cancelled) setCompatVerdict(null)
+        if (cancelled) return
+        const evidence = resolveCardEvidence([], product.compatibilityGroups)
+        setCompatVerdict(classifyCompatibility(activeCompatInput, evidence))
       })
     return () => {
       cancelled = true
     }
-  }, [product?.id, activeCompatInput])
+  }, [product?.id, product?.compatibilityGroups, activeCompatInput])
 
   useDocumentTitle(
     product
@@ -725,9 +730,10 @@ export function ProductPage() {
                 </p>
               ) : null}
             </div>
-          ) : garage?.activeVehicle ? null : (
+          ) : garage?.activeFilter ? null : (
             <p className="mb-3 text-xs text-fal-muted">
-              Defina um veículo ativo na Minha Garagem para ver a compatibilidade com esta peça.
+              Confirme um veículo no chip do header para ver a compatibilidade com esta peça — sem
+              precisar entrar na conta.
             </p>
           )}
           <CompatibilityAppsBlock

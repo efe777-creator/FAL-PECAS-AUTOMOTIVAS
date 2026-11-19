@@ -17,6 +17,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import {
   classifyCompatibility,
+  resolveCardEvidence,
   resolveCardSeal,
   vehicleFilterToCompatInput,
   type CompatibilityVerdict,
@@ -116,10 +117,11 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
   const compatVerdict: CompatibilityVerdict | null = useMemo(() => {
     const input = vehicleFilterToCompatInput(effectiveFit)
     if (!input) return null
-    // Sem PVC ainda: não inventar selo com apps fraca.
+    // Pai ainda carregando PVC: sem selo (evita flash). Self-load: null até resolver.
     if (resolvedPvc == null) return null
-    return classifyCompatibility(input, resolvedPvc)
-  }, [effectiveFit, resolvedPvc])
+    const evidence = resolveCardEvidence(resolvedPvc, product.compatibilityGroups)
+    return classifyCompatibility(input, evidence)
+  }, [effectiveFit, resolvedPvc, product.compatibilityGroups])
 
   const showSeal = Boolean(compatVerdict && resolveCardSeal(compatVerdict).kind !== 'hide')
   const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
@@ -211,30 +213,32 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
         {liked ? '♥' : '♡'}
       </button>
 
-      <ProductMediaFrame variant="card" className="relative mb-1 shrink-0">
+      <div className="relative mb-1 shrink-0">
+        <ProductMediaFrame variant="card">
+          {product.imageUrl ? (
+            <Link
+              to={productHref}
+              state={pdpLinkState}
+              className="group relative flex h-full w-full items-center justify-center"
+              aria-label={`Ver ${displayName}`}
+            >
+              <img
+                src={product.imageUrl}
+                alt={displayName}
+                className={`${productMediaImgClassCard} transition group-hover:scale-[1.22]`}
+                loading="lazy"
+              />
+            </Link>
+          ) : (
+            <ProductImagePlaceholder className="scale-75" />
+          )}
+        </ProductMediaFrame>
         {showSeal && compatVerdict ? (
-          <div className="pointer-events-none absolute bottom-2 left-2 z-[1]">
+          <div className="pointer-events-none absolute bottom-2 left-2 z-[3]">
             <CompatibilityStateBadge verdict={compatVerdict} variant="card" compact />
           </div>
         ) : null}
-        {product.imageUrl ? (
-          <Link
-            to={productHref}
-            state={pdpLinkState}
-            className="group relative flex h-full w-full items-center justify-center"
-            aria-label={`Ver ${displayName}`}
-          >
-            <img
-              src={product.imageUrl}
-              alt={displayName}
-              className={`${productMediaImgClassCard} transition group-hover:scale-[1.22]`}
-              loading="lazy"
-            />
-          </Link>
-        ) : (
-          <ProductImagePlaceholder className="scale-75" />
-        )}
-      </ProductMediaFrame>
+      </div>
 
       <Link to={productHref} state={pdpLinkState} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <h3

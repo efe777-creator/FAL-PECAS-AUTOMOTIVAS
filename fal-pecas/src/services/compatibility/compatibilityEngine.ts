@@ -311,3 +311,15 @@ export function resolveFitContext(
   if (chipScore > 0) return chipFilter ?? null
   return pageFilter ?? null
 }
+
+/**
+ * Evidência do selo no card: PVC completo primeiro; se vazio, apps de vitrine
+ * (paridade guest/logado — sem inventar selo sem fit no caller).
+ */
+export function resolveCardEvidence(
+  pvcRows: PvcCompatRow[] | null | undefined,
+  groups: CompatibilityAppGroup[] | null | undefined,
+): PvcCompatRow[] {
+  if (pvcRows && pvcRows.length > 0) return pvcRows
+  return appGroupsToPvcRows(groups)
+}

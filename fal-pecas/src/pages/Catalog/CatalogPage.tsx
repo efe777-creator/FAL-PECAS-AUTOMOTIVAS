@@ -14,6 +14,7 @@ import { useGarageOptional } from '@/contexts/GarageContext'
 import {
   cardSealRank,
   classifyCompatibility,
+  resolveCardEvidence,
   resolveCardSeal,
   resolveFitContext,
   vehicleFilterToCompatInput,
@@ -194,8 +195,11 @@ export function CatalogPage() {
   const displayProducts = useMemo(() => {
     if (!fitInput || !pvcReady) return products
     const scored = products.map((p, index) => {
-      const rows = pvcByProductId.get(p.id) ?? []
-      const verdict = classifyCompatibility(fitInput, rows)
+      const evidence = resolveCardEvidence(
+        pvcByProductId.get(p.id) ?? [],
+        p.compatibilityGroups,
+      )
+      const verdict = classifyCompatibility(fitInput, evidence)
       const seal = resolveCardSeal(verdict)
       return { p, index, seal }
     })
