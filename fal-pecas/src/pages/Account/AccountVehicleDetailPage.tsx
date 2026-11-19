@@ -23,6 +23,7 @@ import {
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
 import { useGarage } from '@/contexts/GarageContext'
+import { GARAGE_MODULE_TABS } from '@/lib/garageNav'
 import {
   parseGarageModule,
   writeGarageWorkspacePrefs,
@@ -47,18 +48,6 @@ import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-
-const MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
-  { key: 'visao', label: 'Visão geral' },
-  { key: 'historico', label: 'Histórico' },
-  { key: 'manutencoes', label: 'Manutenções' },
-  { key: 'profissionais', label: 'Profissionais' },
-  { key: 'evidencias', label: 'Evidências' },
-  { key: 'compartilhar', label: 'Compartilhar' },
-  { key: 'inteligencia', label: 'Inteligência' },
-  { key: 'visual', label: 'Visual' },
-  { key: 'config', label: 'Configurações' },
-]
 
 function Section({
   title,
@@ -231,33 +220,45 @@ export function AccountVehicleDetailPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,300px)_1fr]">
+      <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-navy/95 text-white dark:bg-fal-navy-dark">
         <VehicleImageFrame
           image={image}
           colorHex={vehicle.colorHex}
           title={vehicleDisplayName(vehicle)}
-          className="min-h-[200px]"
+          className="min-h-[220px] rounded-none bg-transparent sm:min-h-[320px]"
         />
-
-        <div className="space-y-3">
+        <div className="space-y-3 border-t border-white/10 p-4 sm:p-5">
           <div>
-            <h2 className="mt-0 mb-1 text-xl font-extrabold">{vehicleDisplayName(vehicle)}</h2>
-            <p className="mb-0 text-sm text-fal-muted">{vehicleTechLine(vehicle) || '—'}</p>
+            {vehicle.isPrimary ? (
+              <span className="inline-flex rounded-full bg-fal-success/20 px-2.5 py-1 text-[11px] font-extrabold text-fal-success">
+                Veículo principal
+              </span>
+            ) : null}
+            <h2 className="mt-2 mb-1 text-xl font-extrabold text-white sm:text-2xl">
+              {vehicleDisplayName(vehicle)}
+            </h2>
+            <p className="mb-0 text-sm text-white/70">{vehicleTechLine(vehicle) || '—'}</p>
             {vehicle.falCode ? (
-              <p className="mb-0 mt-1 text-xs font-bold tabular-nums tracking-wide text-fal-muted">
+              <p className="mb-0 mt-1 text-xs font-bold tabular-nums tracking-wide text-white/55">
                 ID FAL · {vehicle.falCode}
               </p>
             ) : null}
-            <p className="mb-0 mt-1 text-xs text-fal-muted">
-              Quilometragem ·{' '}
-              {latestKm != null ? (
-                <span className="font-extrabold tabular-nums text-fal-fg">
-                  {latestKm.toLocaleString('pt-BR')} km
-                </span>
-              ) : (
-                <span className="font-semibold">Sem dado</span>
-              )}
-            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Km</p>
+              <p className="m-0 text-sm font-extrabold">
+                {latestKm != null ? latestKm.toLocaleString('pt-BR') : '—'}
+              </p>
+            </div>
+            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Placa</p>
+              <p className="m-0 text-sm font-extrabold tracking-wide">{plateLabel || '—'}</p>
+            </div>
+            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Status</p>
+              <p className="m-0 text-sm font-extrabold text-fal-success">Na garagem</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {garage.activeVehicle?.id !== vehicle.id ? (
@@ -272,7 +273,7 @@ export function AccountVehicleDetailPage() {
                 Usar na loja
               </Button>
             ) : (
-              <span className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-accent/40 bg-fal-accent/10 px-3 text-xs font-extrabold text-fal-navy">
+              <span className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-yellow/50 bg-fal-yellow/15 px-3 text-xs font-extrabold text-fal-yellow">
                 Ativo na loja
               </span>
             )}
@@ -394,8 +395,11 @@ export function AccountVehicleDetailPage() {
         </form>
       ) : null}
 
-      <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Módulos da garagem">
-        {MODULE_TABS.map((tab) => (
+      <nav
+        className="flex gap-2 overflow-x-auto pb-1 lg:hidden"
+        aria-label="Módulos da garagem"
+      >
+        {GARAGE_MODULE_TABS.map((tab) => (
           <Button
             key={tab.key}
             type="button"
@@ -405,6 +409,27 @@ export function AccountVehicleDetailPage() {
           >
             {tab.label}
           </Button>
+        ))}
+      </nav>
+
+      <nav
+        className="hidden flex-wrap gap-2 lg:flex"
+        aria-label="Módulos da ficha"
+      >
+        {GARAGE_MODULE_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setModulo(tab.key)}
+            className={[
+              'min-h-10 rounded-[10px] border px-3 text-sm font-extrabold transition',
+              modulo === tab.key
+                ? 'border-fal-navy bg-fal-navy text-white dark:border-fal-yellow dark:bg-fal-yellow dark:text-fal-navy-dark'
+                : 'border-fal-line bg-fal-surface text-fal-muted hover:text-fal-fg',
+            ].join(' ')}
+          >
+            {tab.label}
+          </button>
         ))}
       </nav>
 

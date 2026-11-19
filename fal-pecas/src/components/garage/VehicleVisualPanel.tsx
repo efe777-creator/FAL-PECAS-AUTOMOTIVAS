@@ -168,100 +168,32 @@ export function VehicleVisualPanel({
     }
   }
 
-  if (loading) return <Loading label="Carregando aparência…" />
+  const glbPaintLocked = Boolean(approvedAsset) && viewerPref !== '2d'
+
+  if (loading) return <Loading label="Carregando visualização…" />
 
   return (
     <div className="space-y-4">
-      <p className="m-0 text-xs text-fal-muted">
-        Camada visual (2B). O <strong>Visualization Engine</strong> escolhe 2D, 3D procedural ou
-        GLB aprovado (e XR só com gate). Pintura/preview <strong>não</strong> criam fato 2A. Sync
-        instalação e XR são opt-in.
+      <p className="m-0 text-sm text-fal-muted">
+        Visualização do veículo. A aparência <strong>não altera</strong> o histórico técnico.
+        Arraste para girar · pinça para zoom (quando houver modelo 3D).
       </p>
 
-      <div
-        className="flex flex-wrap items-center gap-2"
-        role="group"
-        aria-label="Preferência do viewer visual"
-      >
-        <span className="text-xs font-semibold text-fal-muted" id="fal-visual-viewer-label">
-          Viewer:
-        </span>
-        {(['auto', '2d', '3d'] as VisualViewerMode[]).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={viewerPref === mode}
-            aria-describedby="fal-visual-viewer-label"
-            className={`rounded-[8px] border px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${
-              viewerPref === mode
-                ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'
-                : 'border-fal-line bg-fal-bg text-fal-muted'
-            }`}
-            onClick={() => setViewerMode(mode)}
-          >
-            {mode}
-          </button>
-        ))}
-        {!webglOk ? (
-          <span className="text-[11px] font-semibold text-fal-muted">WebGL indisponível · 2D</span>
-        ) : null}
-      </div>
-
-      <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={syncInstall}
-          onChange={(ev) => toggleSyncInstall(ev.target.checked)}
-        />
-        <span>
-          <span className="font-extrabold text-fal-fg">Refletir instalações 2A no modelo</span>
-          <span className="mt-0.5 block text-xs text-fal-muted">
-            Opt-in. Lê G7 `installed_declared` + eventos `instalacao` (exceto rejeitado/contestado).
-            Não cria nem altera histórico técnico.
-            {installFacts.length
-              ? ` · ${installFacts.length} fato(s) elegível(is)`
-              : ' · nenhum fato de instalação ainda'}
-          </span>
-        </span>
-      </label>
-
-      {xrEnvOn ? (
-        <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={xrOptIn}
-            onChange={(ev) => toggleXrOptIn(ev.target.checked)}
-          />
-          <span>
-            <span className="font-extrabold text-fal-fg">XR experimental (Fase C)</span>
-            <span className="mt-0.5 block text-xs text-fal-muted">
-              Opt-in local. Requer dispositivo com WebXR. Não altera histórico técnico. Default off.
-              {xrOptIn ? ' · ativo nesta máquina' : ' · desligado'}
-            </span>
-          </span>
-        </label>
-      ) : null}
-
       {!approvedAsset ? (
-        <div className="rounded-fal border border-fal-line bg-fal-bg/40 p-3">
-          <p className="m-0 text-sm font-extrabold text-fal-fg">3D indisponível para este veículo</p>
+        <div className="rounded-fal border border-fal-yellow/40 bg-fal-yellow/10 p-3">
+          <p className="m-0 text-sm font-extrabold text-fal-navy-dark dark:text-fal-yellow">
+            Modelo 3D ainda não disponível
+          </p>
           <p className="mt-1 m-0 text-xs text-fal-muted">
-            Não há modelo GLB aprovado na biblioteca FAL. Exibindo imagem 2D ilustrativa (quando
-            houver) ou silhueta — não confundir com o veículo real.
+            Mostramos imagem ilustrativa ou silhueta — não é a foto do seu carro.
           </p>
           {stockImage.url ? (
             <img
               src={stockImage.url}
               alt=""
-              className="mt-3 max-h-56 w-full rounded-fal object-contain"
+              className="mt-3 max-h-40 w-full rounded-fal object-contain"
             />
           ) : null}
-          <p className="mt-2 m-0 text-[11px] font-semibold text-fal-muted">
-            {stockImage.label}
-            {stockImage.source === 'carimages' ? ' · fonte complementar' : ''}
-          </p>
         </div>
       ) : null}
 
@@ -277,9 +209,91 @@ export function VehicleVisualPanel({
         approvedAsset={approvedAsset}
       />
 
+      <details className="rounded-fal border border-fal-line bg-fal-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 font-extrabold marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="flex min-h-10 items-center justify-between gap-2">
+            Opções avançadas
+            <span className="text-xs font-semibold text-fal-muted">abrir</span>
+          </span>
+        </summary>
+        <div className="space-y-3 border-t border-fal-line px-4 py-3">
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Modo de visualização"
+          >
+            <span className="text-xs font-semibold text-fal-muted" id="fal-visual-viewer-label">
+              Modo:
+            </span>
+            {(
+              [
+                { id: 'auto' as const, label: 'Automático' },
+                { id: '2d' as const, label: 'Imagem' },
+                { id: '3d' as const, label: '3D' },
+              ] as const
+            ).map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                aria-pressed={viewerPref === mode.id}
+                aria-describedby="fal-visual-viewer-label"
+                className={`min-h-10 rounded-[10px] border px-3 text-sm font-bold ${
+                  viewerPref === mode.id
+                    ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'
+                    : 'border-fal-line bg-fal-bg text-fal-muted'
+                }`}
+                onClick={() => setViewerMode(mode.id)}
+              >
+                {mode.label}
+              </button>
+            ))}
+            {!webglOk ? (
+              <span className="text-xs font-semibold text-fal-muted">
+                3D indisponível neste dispositivo
+              </span>
+            ) : null}
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-line bg-fal-bg/40 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={syncInstall}
+              onChange={(ev) => toggleSyncInstall(ev.target.checked)}
+            />
+            <span>
+              <span className="font-extrabold text-fal-fg">Espelhar peças instaladas</span>
+              <span className="mt-0.5 block text-xs text-fal-muted">
+                Mostra no modelo as instalações que você declarou. Não altera o histórico.
+                {installFacts.length
+                  ? ` · ${installFacts.length} instalação(ões)`
+                  : ' · nenhuma ainda'}
+              </span>
+            </span>
+          </label>
+
+          {xrEnvOn ? (
+            <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={xrOptIn}
+                onChange={(ev) => toggleXrOptIn(ev.target.checked)}
+              />
+              <span>
+                <span className="font-extrabold text-fal-fg">Realidade aumentada (experimental)</span>
+                <span className="mt-0.5 block text-xs text-fal-muted">
+                  Só neste aparelho. Requer suporte XR. Desligado por padrão.
+                </span>
+              </span>
+            </label>
+          ) : null}
+        </div>
+      </details>
+
       {syncInstall && orphans.length > 0 ? (
         <section className="space-y-2">
-          <h3 className="m-0 text-sm font-extrabold">Instalações 2A no modelo (sem peça G7)</h3>
+          <h3 className="m-0 text-sm font-extrabold">Instalações sem peça vinculada</h3>
           <ul className="m-0 list-none space-y-1 p-0">
             {orphans.map((f) => (
               <li
@@ -289,7 +303,6 @@ export function VehicleVisualPanel({
                 <span className="font-extrabold text-fal-fg">{f.title}</span>
                 {' · '}
                 {f.validationState}
-                {' · espelho visual'}
               </li>
             ))}
           </ul>
@@ -297,11 +310,11 @@ export function VehicleVisualPanel({
       ) : null}
 
       <section className="space-y-2">
-        <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo (preview)</h3>
+        <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo</h3>
         {!parts.length ? (
           <EmptyState
             title="Nenhuma peça FAL vinculada"
-            description="Compras/associações G7 aparecem aqui só para preview — declare instalação no pedido ou no histórico."
+            description="Compras e instalações declaradas aparecem aqui só como prévia."
           />
         ) : (
           <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
@@ -326,7 +339,7 @@ export function VehicleVisualPanel({
                   <p className="m-0 text-xs font-semibold text-fal-muted">
                     {VISUAL_PART_STATE_LABEL[p.state]}
                     {p.sku ? ` · ${p.sku}` : ''}
-                    {syncInstall && mirroredKeys.has(p.key) ? ' · no modelo (2A)' : ''}
+                    {syncInstall && mirroredKeys.has(p.key) ? ' · no modelo' : ''}
                   </p>
                   {p.orderId ? (
                     <Link
@@ -347,52 +360,63 @@ export function VehicleVisualPanel({
         onSubmit={onSave}
         className="grid gap-2 rounded-fal border border-fal-line bg-fal-surface p-3 sm:grid-cols-2"
       >
-        <label className="block text-sm font-semibold">
-          Cor da carroceria
-          <input
-            type="color"
-            className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg"
-            value={payload.bodyColorHex}
-            onChange={(ev) => patch({ bodyColorHex: ev.target.value })}
-          />
-        </label>
-        <label className="block text-sm font-semibold">
-          Cor de destaque
-          <input
-            type="color"
-            className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg"
-            value={payload.accentHex}
-            onChange={(ev) => patch({ accentHex: ev.target.value })}
-          />
-        </label>
-        <label className="block text-sm font-semibold">
-          Rodas
-          <select
-            className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm"
-            value={payload.wheelStyle}
-            onChange={(ev) => patch({ wheelStyle: ev.target.value as VisualWheelStyle })}
-          >
-            {(Object.keys(WHEEL_STYLE_LABEL) as VisualWheelStyle[]).map((k) => (
-              <option key={k} value={k}>
-                {WHEEL_STYLE_LABEL[k]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm font-semibold">
-          Acabamento
-          <select
-            className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm"
-            value={payload.finish}
-            onChange={(ev) => patch({ finish: ev.target.value as VisualFinish })}
-          >
-            {(Object.keys(FINISH_LABEL) as VisualFinish[]).map((k) => (
-              <option key={k} value={k}>
-                {FINISH_LABEL[k]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {glbPaintLocked ? (
+          <p className="m-0 sm:col-span-2 text-xs text-fal-muted">
+            Com modelo 3D aprovado, a pintura personalizada aplica só na silhueta/imagem. O modelo
+            3D da biblioteca FAL não muda de cor nesta versão. Use o modo Imagem para ajustar cores.
+          </p>
+        ) : null}
+        <fieldset
+          disabled={glbPaintLocked}
+          className="contents disabled:opacity-50"
+        >
+          <label className="block text-sm font-semibold">
+            Cor da carroceria
+            <input
+              type="color"
+              className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
+              value={payload.bodyColorHex}
+              onChange={(ev) => patch({ bodyColorHex: ev.target.value })}
+            />
+          </label>
+          <label className="block text-sm font-semibold">
+            Cor de destaque
+            <input
+              type="color"
+              className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
+              value={payload.accentHex}
+              onChange={(ev) => patch({ accentHex: ev.target.value })}
+            />
+          </label>
+          <label className="block text-sm font-semibold">
+            Rodas
+            <select
+              className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
+              value={payload.wheelStyle}
+              onChange={(ev) => patch({ wheelStyle: ev.target.value as VisualWheelStyle })}
+            >
+              {(Object.keys(WHEEL_STYLE_LABEL) as VisualWheelStyle[]).map((k) => (
+                <option key={k} value={k}>
+                  {WHEEL_STYLE_LABEL[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-semibold">
+            Acabamento
+            <select
+              className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
+              value={payload.finish}
+              onChange={(ev) => patch({ finish: ev.target.value as VisualFinish })}
+            >
+              {(Object.keys(FINISH_LABEL) as VisualFinish[]).map((k) => (
+                <option key={k} value={k}>
+                  {FINISH_LABEL[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </fieldset>
         <Input
           label="Apelido visual (opcional)"
           value={payload.label}

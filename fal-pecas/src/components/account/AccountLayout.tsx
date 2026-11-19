@@ -1,8 +1,9 @@
 import { Button } from '@/components/common/Button'
+import { GarageShell } from '@/components/garage/GarageShell'
 import { Container } from '@/components/layout/Container'
 import { useAuth } from '@/contexts/AuthContext'
 import { isStaffRole } from '@/services/admin/staffService'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const links = [
   { to: '/conta', label: 'Início', end: true },
@@ -27,8 +28,18 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export function AccountLayout() {
   const { user, signOut } = useAuth()
+  const location = useLocation()
   const isStaff = isStaffRole(user?.role)
   const firstName = (user?.fullName ?? user?.email ?? 'cliente').split(' ')[0]
+  const isGarage = location.pathname.startsWith('/conta/veiculos')
+
+  if (isGarage) {
+    return (
+      <Container className="py-4 sm:py-6">
+        <GarageShell />
+      </Container>
+    )
+  }
 
   return (
     <Container className="py-6 sm:py-8">
