@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:me-antiregress": "vitest run src/lib/meLabelLiveAntiregress.test.ts src/lib/meLabelPurchaseGates.test.ts src/lib/meLabelPurchaseGates.parity.test.ts src/services/shipping/carrierRegistry.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium"
   },

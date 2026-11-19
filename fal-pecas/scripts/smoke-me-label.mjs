@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { execSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { shouldAutoPurchaseMeLabel } from './lib/meSmokePurchasePolicy.mjs'
 
 const PROJECT_REF = 'wtbpwuiayednvlhvuhbh'
 const URL = `https://${PROJECT_REF}.supabase.co`
@@ -280,7 +281,7 @@ async function main() {
 
   const sandbox = prepare.json.sandbox === true || quote.json.sandbox === true
   const dryRun = prepare.json.dryRun === true || quote.json.dryRun === true
-  if (!sandbox && !dryRun) {
+  if (!shouldAutoPurchaseMeLabel({ sandbox, dryRun })) {
     console.log(JSON.stringify({ step: 'purchase', skipped: true, reason: 'ME live — compra automática bloqueada; gate humano na Expedição' }))
     console.log(JSON.stringify({ step: 'done', orderId, gate: 'purchase_live', prepare: 'ok' }))
     return

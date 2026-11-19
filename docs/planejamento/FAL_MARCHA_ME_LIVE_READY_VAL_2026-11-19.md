@@ -35,24 +35,17 @@ Arquivos: `AdminOrdersListPanel.tsx`, `AdminOrdersHubPage.tsx`, `OrderOpsSurface
 
 | Item | Resultado |
 |------|-----------|
-| Script | [`fal-pecas/scripts/wire-me-live-secrets.mjs`](../../fal-pecas/scripts/wire-me-live-secrets.mjs) — set API_BASE prod + token + redeploy |
-| Secrets atuais | Ainda **sandbox** (`MELHOR_ENVIO_API_BASE` sandbox · smoke `sandbox:true`) |
-| Token produção | **BLOCKED** — não disponível no ambiente do agente; eFe deve exportar `MELHOR_ENVIO_TOKEN` e rodar o script |
-| `.env.local` VITE live | **não** alterado (evita mismatch front live × Edge sandbox) |
-
-```powershell
-$env:MELHOR_ENVIO_TOKEN='<token produção ME>'
-node scripts/wire-me-live-secrets.mjs
-# depois: VITE_SHIPPING_ME_ENV=live em .env.local + reiniciar Vite
-```
+| Script | [`fal-pecas/scripts/wire-me-live-secrets.mjs`](../../fal-pecas/scripts/wire-me-live-secrets.mjs) — `--remote` + `--yes` |
+| Fonte token | Root `.env.local` (`MELHOR_ENVIO_API_BASE=https://melhorenvio.com.br`) |
+| Secrets Edge | **PASS** · API_BASE prod + token prod + USER_AGENT · redeploy `quote-shipping` + `melhorenvio-label` |
+| Front `fal-pecas/.env.local` | `VITE_SHIPPING_ME_ENV=production` |
 
 ## V — Verify live até prepare
 
 | Item | Resultado |
 |------|-----------|
-| Hub `apiBase` produção | **BLOCKED** (depende B) |
-| Smoke `STOP_AFTER=prepare` live | **BLOCKED** (depende B) |
-| Purchase | **não executado** (conforme plano) |
+| Smoke `STOP_AFTER=prepare` live | **PASS** · `4573c9bb-7451-47a8-b823-cef3faaec747` · `sandbox:false` · quote→cart |
+| Purchase | **não executado** (`stopAfter=prepare`) |
 
 ## Checklist Netlify (não aplicado)
 
@@ -66,28 +59,35 @@ node scripts/wire-me-live-secrets.mjs
 | ID | Critério | Status |
 |----|----------|--------|
 | A1 | Smoke sandbox completo | **PASS** |
-| A2 | Edge+front live | **BLOCKED** (token) |
-| A3 | prepare live · zero purchase | **BLOCKED** (token) / purchase N/A |
+| A2 | Edge+front live | **PASS** |
+| A3 | prepare live · zero purchase | **PASS** |
 | A4 | D1–D6 corrigidos | **PASS** |
 | A5 | Guias sem Faça agora duplicado + wizard compact | **PASS** |
 | A6 | Sem main / Netlify prod / compra real | **PASS** |
 
-## Próximo (humano)
+## Próximo
 
-1. Colar token ME **produção** e rodar `wire-me-live-secrets.mjs`.
-2. `VITE_SHIPPING_ME_ENV=live` + reiniciar Vite.
-3. Smoke `STOP_AFTER=prepare` + UI Cotar/Preparar (sem Comprar).
-4. Commit/push `dev` se autorizado.
+1. UI Cotar/Preparar em live (sem Comprar) + reiniciar Vite se ainda em sandbox.
+2. Commit/push `dev` (script `--yes` + VAL) se autorizado.
+3. MAIN / Netlify prod — só com autorização expressa.
+4. Compra real de etiqueta — fora desta marcha.
 
 ## Revalidação MARCHA (2026-11-19 ~19h)
 
 | Item | Resultado |
 |------|-----------|
-| `tsc` + vitest focado (44) | **PASS** |
-| Smoke `STOP_AFTER=prepare` | **PASS** · `e541dcd5-…` · `sandbox:true` · `label_state=cart` |
-| UI guia (lista) | **PASS** · Aberto na guia / Focar / wizard |
-| UI `/:id` Logística ME | **PASS** · Cotar/Preparar · “No carrinho Melhor Envio” · sem copy “slot onda” |
-| Dark tokens (warning/success/wizard) | **PASS** (código + smoke visual anterior) |
-| Wire live | **BLOCKED** · sem `MELHOR_ENVIO_TOKEN` no shell |
+| Wire live + deploy | **PASS** |
+| Smoke prepare live | **PASS** · `4573c9bb-…` · `sandbox:false` · `cart` · zero purchase |
+| UX guias/dedupe (rodada anterior) | **PASS** |
 
-**Assinatura:** MARCHA revalidação UX/sandbox **PASS** · wire live **BLOCKED** (token) · 2026-11-19 19h.
+## Anti-regressão (2026-11-19 ~19h20)
+
+| Gate | Como |
+|------|------|
+| Live sem auto-purchase | `scripts/lib/meSmokePurchasePolicy.mjs` + smoke |
+| `STOP_AFTER=prepare` antes de purchase | assert estático no vitest |
+| Wire só API prod + `--yes` + `--env-file` | assert estático (token fora do argv) |
+| Purchase gates Edge ↔ src | parity + `evaluateMePurchaseGates` |
+| npm | `npm run test:me-antiregress` |
+
+**Assinatura:** MARCHA ME live-ready **PASS** (prepare, sem purchase) + gates anti-regressão · 2026-11-19 ~19h20.

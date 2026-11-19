@@ -5,9 +5,12 @@
  *   node scripts/wire-me-live-secrets.mjs
  *
  * Opcional: MELHOR_ENVIO_USER_AGENT (default FAL Pecas…)
- * Depois: reiniciar Vite com VITE_SHIPPING_ME_ENV=live
+ * Depois: reiniciar Vite com VITE_SHIPPING_ME_ENV=live|production
  */
 import { execSync } from 'node:child_process'
+import { unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const PROJECT_REF = 'wtbpwuiayednvlhvuhbh'
 const API_BASE = 'https://melhorenvio.com.br'
@@ -31,14 +34,32 @@ function sh(cmd) {
   execSync(cmd, { stdio: 'inherit', shell: true })
 }
 
-console.log(JSON.stringify({ step: 'secrets', apiBase: API_BASE, userAgent: USER_AGENT }))
-sh(
-  `npx supabase secrets set --project-ref ${PROJECT_REF} MELHOR_ENVIO_API_BASE=${API_BASE} MELHOR_ENVIO_USER_AGENT="${USER_AGENT}" MELHOR_ENVIO_TOKEN="${TOKEN}"`,
+const envPath = join(tmpdir(), `fal-me-wire-${process.pid}.env`)
+writeFileSync(
+  envPath,
+  [
+    `MELHOR_ENVIO_API_BASE=${API_BASE}`,
+    `MELHOR_ENVIO_USER_AGENT=${USER_AGENT}`,
+    `MELHOR_ENVIO_TOKEN=${TOKEN}`,
+    '',
+  ].join('\n'),
+  { encoding: 'utf8', mode: 0o600 },
 )
 
+try {
+  console.log(JSON.stringify({ step: 'secrets', apiBase: API_BASE, userAgent: USER_AGENT }))
+  sh(`npx supabase secrets set --remote=${PROJECT_REF} --yes --env-file "${envPath}"`)
+} finally {
+  try {
+    unlinkSync(envPath)
+  } catch {
+    /* ignore */
+  }
+}
+
 console.log(JSON.stringify({ step: 'deploy', functions: ['quote-shipping', 'melhorenvio-label'] }))
-sh(`npx supabase functions deploy quote-shipping --project-ref ${PROJECT_REF} --use-api --yes`)
-sh(`npx supabase functions deploy melhorenvio-label --project-ref ${PROJECT_REF} --use-api --yes`)
+sh(`npx supabase functions deploy quote-shipping --remote=${PROJECT_REF} --use-api --yes`)
+sh(`npx supabase functions deploy melhorenvio-label --remote=${PROJECT_REF} --use-api --yes`)
 
 console.log(
   JSON.stringify({
