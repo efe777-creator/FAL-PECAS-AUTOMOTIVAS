@@ -49,7 +49,7 @@ export function CompatibilityStateBadge({
       >
         <span className="truncate">{seal.label}</span>
         {seal.micro ? (
-          <span className="shrink-0 text-[9px] font-bold opacity-80">{seal.micro}</span>
+          <span className="shrink-0 text-[9px] font-bold opacity-80"> {seal.micro}</span>
         ) : null}
       </span>
     )
