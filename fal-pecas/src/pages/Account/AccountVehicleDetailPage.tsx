@@ -14,10 +14,11 @@ import { VehiclePhotoGallery } from '@/components/garage/VehiclePhotoGallery'
 import { VehicleProfessionalsPanel } from '@/components/garage/VehicleProfessionalsPanel'
 import { VehicleSharesPanel } from '@/components/garage/VehicleSharesPanel'
 import { VehicleTransferPanel } from '@/components/garage/VehicleTransferPanel'
+import { VehicleCompatiblePartsPanel } from '@/components/garage/VehicleCompatiblePartsPanel'
 import { VehicleVisualPanel } from '@/components/garage/VehicleVisualPanel'
 import {
-  vehicleCatalogHref,
   vehicleDisplayName,
+  vehiclePartsModuleHref,
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
@@ -214,6 +215,7 @@ export function AccountVehicleDetailPage() {
     modulo === 'visao' ||
     modulo === 'historico' ||
     modulo === 'inteligencia' ||
+    modulo === 'pecas' ||
     modulo === 'mais'
       ? modulo
       : 'mais'
@@ -278,8 +280,8 @@ export function AccountVehicleDetailPage() {
                 Ativo na loja
               </span>
             )}
-            <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
-              Peças no catálogo
+            <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
+              Peças compatíveis
             </ButtonLink>
             <Button
               type="button"
@@ -421,8 +423,8 @@ export function AccountVehicleDetailPage() {
         <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
           <h3 className="mt-0 mb-1 text-base font-extrabold">Mais opções</h3>
           <p className="mt-0 mb-3 text-sm text-fal-muted">
-            Recursos avançados — use quando precisar. O dia a dia fica em Resumo, Histórico e
-            Cuidados.
+            Recursos avançados — use quando precisar. O dia a dia fica em Resumo, Histórico,
+            Cuidados e Peças.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {GARAGE_MORE_MODULE_KEYS.map((key) => (
@@ -520,6 +522,8 @@ export function AccountVehicleDetailPage() {
           />
         )
       ) : null}
+
+      {modulo === 'pecas' ? <VehicleCompatiblePartsPanel vehicle={vehicle} /> : null}
 
       {modulo === 'visual' ? (
         vehicle.vehicleIdentityId ? (
@@ -658,30 +662,6 @@ export function AccountVehicleDetailPage() {
                 </dl>
               </Section>
 
-              <Section title="Produtos / compatibilidade">
-                <p className="m-0 text-fal-muted">
-                  Com este veículo <strong>ativo na loja</strong>, o catálogo e a página do produto
-                  mostram o veredito do motor (confirmada / provável / não confirmada) com
-                  evidências.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {garage.activeVehicle?.id !== vehicle.id ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        garage.setActiveVehicle(vehicle)
-                        toast.push('Veículo ativo — abra o catálogo para ver badges.', 'success')
-                      }}
-                    >
-                      Usar na loja e ver peças
-                    </Button>
-                  ) : null}
-                  <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
-                    Abrir catálogo filtrado
-                  </ButtonLink>
-                </div>
-              </Section>
             </>
           ) : null}
 

@@ -32,6 +32,11 @@ export function vehicleCatalogHref(v: CustomerSavedVehicle): string {
   return qs ? `/catalogo?${qs}` : '/catalogo'
 }
 
+/** Deep-link do módulo Peças compatíveis na garagem. */
+export function vehiclePartsModuleHref(v: Pick<CustomerSavedVehicle, 'id'>): string {
+  return `/conta/veiculos/${v.id}?modulo=pecas`
+}
+
 /**
  * Casa filtro de placa/catálogo com veículo salvo (placa primeiro, depois maker+model+ano).
  * Usado para alinhar “ativo” ao contexto de navegação e evitar snapshot errado no carrinho.

@@ -3,8 +3,8 @@ import { ButtonLink } from '@/components/common/ButtonLink'
 import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
 import {
   isVehicleIncomplete,
-  vehicleCatalogHref,
   vehicleDisplayName,
+  vehiclePartsModuleHref,
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
@@ -114,8 +114,8 @@ export function GarageVehicleHero({
             <ButtonLink to={`/conta/veiculos/${vehicle.id}`} size="sm" variant={onUseInStore && !isActive ? 'light' : 'primary'}>
               Abrir
             </ButtonLink>
-            <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
-              {incomplete ? 'Buscar no catálogo' : 'Ver peças'}
+            <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
+              {incomplete ? 'Peças compatíveis' : 'Peças'}
             </ButtonLink>
             <Link
               to={`/conta/veiculos/${vehicle.id}?edit=1`}

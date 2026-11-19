@@ -2,8 +2,8 @@ import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
 import {
   isVehicleIncomplete,
-  vehicleCatalogHref,
   vehicleDisplayName,
+  vehiclePartsModuleHref,
   vehiclePlateLabel,
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
@@ -67,7 +67,7 @@ export function GarageVehicleCard({
           <ButtonLink to={`/conta/veiculos/${vehicle.id}`} variant="light" size="sm">
             Abrir
           </ButtonLink>
-          <ButtonLink to={vehicleCatalogHref(vehicle)} variant="light" size="sm">
+          <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
             Peças
           </ButtonLink>
           {!vehicle.isPrimary && onSetPrimary ? (
