@@ -313,8 +313,8 @@ export function resolveFitContext(
 }
 
 /**
- * Evidência do selo no card: PVC completo primeiro; se vazio, apps de vitrine
- * (paridade guest/logado — sem inventar selo sem fit no caller).
+ * @deprecated Preferir classifyCardCompatibility — apps fraca não eleva selo.
+ * Mantido para testes legados: PVC se houver; senão apps.
  */
 export function resolveCardEvidence(
   pvcRows: PvcCompatRow[] | null | undefined,
@@ -322,4 +322,31 @@ export function resolveCardEvidence(
 ): PvcCompatRow[] {
   if (pvcRows && pvcRows.length > 0) return pvcRows
   return appGroupsToPvcRows(groups)
+}
+
+/**
+ * Classificação do selo no card (E.1 honesto):
+ * - Com PVC → motor G5 normal (Compatível / similar / hide).
+ * - Sem PVC → sempre A verificar (nunca confirmed/similar via apps fraca).
+ */
+export function classifyCardCompatibility(
+  vehicle: VehicleCompatInput | null | undefined,
+  pvcRows: PvcCompatRow[] | null | undefined,
+): CompatibilityVerdict {
+  if (pvcRows && pvcRows.length > 0) {
+    return classifyCompatibility(vehicle, pvcRows)
+  }
+  if (!vehicle?.maker?.trim() || !vehicle?.model?.trim()) {
+    return classifyCompatibility(vehicle, [])
+  }
+  return {
+    state: 'unconfirmed',
+    label: STATE_LABEL.unconfirmed,
+    evidences: [
+      {
+        code: 'no_pvc',
+        detail: 'Sem aplicação PVC completa — compatibilidade a verificar',
+      },
+    ],
+  }
 }

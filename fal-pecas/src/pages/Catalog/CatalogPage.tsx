@@ -13,13 +13,14 @@ import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import {
   cardSealRank,
-  classifyCompatibility,
-  resolveCardEvidence,
+  classifyCardCompatibility,
+  fitSpecificityScore,
   resolveCardSeal,
   resolveFitContext,
   vehicleFilterToCompatInput,
   type PvcCompatRow,
 } from '@/services/compatibility/compatibilityEngine'
+import { filterDisplayLabel } from '@/services/garage/activeGarageStorage'
 import { loadPvcEvidenceByProductIds } from '@/services/compatibility/loadPvcEvidence'
 import { selectOptionsWithValue } from '@/services/plates/reconcileVehicleFilter'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
@@ -195,11 +196,7 @@ export function CatalogPage() {
   const displayProducts = useMemo(() => {
     if (!fitInput || !pvcReady) return products
     const scored = products.map((p, index) => {
-      const evidence = resolveCardEvidence(
-        pvcByProductId.get(p.id) ?? [],
-        p.compatibilityGroups,
-      )
-      const verdict = classifyCompatibility(fitInput, evidence)
+      const verdict = classifyCardCompatibility(fitInput, pvcByProductId.get(p.id) ?? [])
       const seal = resolveCardSeal(verdict)
       return { p, index, seal }
     })
@@ -213,6 +210,31 @@ export function CatalogPage() {
       })
       .map((row) => row.p)
   }, [fitInput, pvcReady, products, pvcByProductId])
+
+  const fitSourceLabel = useMemo(() => {
+    if (!fitFilter) return null
+    const chipScore = fitSpecificityScore(garage?.activeFilter)
+    const pageScore = fitSpecificityScore(pageVehicleFilter)
+    if (chipScore > 0 && chipScore >= pageScore) {
+      return garage?.isSessionActive ? 'sessão' : 'garagem'
+    }
+    return 'filtros'
+  }, [fitFilter, garage?.activeFilter, garage?.isSessionActive, pageVehicleFilter])
+
+  function clearFitContext() {
+    if (garage?.activeFilter) garage.clearActiveVehicle()
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      let changed = false
+      for (const key of ['maker', 'model', 'year', 'engine', 'version', 'page'] as const) {
+        if (next.has(key)) {
+          next.delete(key)
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }
 
   useDocumentTitle(
     q.trim()
@@ -1062,6 +1084,24 @@ export function CatalogPage() {
       ) : null}
 
       <div id="catalog-results" ref={resultsRef} className="mt-4 scroll-mt-20">
+        {fitFilter && fitInput ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[10px] border border-fal-accent/35 bg-fal-accent/10 px-3 py-2.5">
+            <p className="m-0 min-w-0 flex-1 text-sm font-semibold text-fal-navy dark:text-fal-fg">
+              Compatibilidade:{' '}
+              <span className="font-extrabold">{filterDisplayLabel(fitFilter)}</span>
+              {fitSourceLabel ? (
+                <span className="font-medium text-fal-muted"> · {fitSourceLabel}</span>
+              ) : null}
+            </p>
+            <button
+              type="button"
+              className="shrink-0 rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-1.5 text-xs font-bold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
+              onClick={clearFitContext}
+            >
+              Limpar
+            </button>
+          </div>
+        ) : null}
         <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8] px-1 py-2 sm:bg-fal-bg">
           {!loading && !error ? (
             <p className="m-0 text-sm font-semibold text-fal-navy-dark">

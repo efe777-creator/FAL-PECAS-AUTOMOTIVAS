@@ -16,8 +16,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import {
-  classifyCompatibility,
-  resolveCardEvidence,
+  classifyCardCompatibility,
   resolveCardSeal,
   vehicleFilterToCompatInput,
   type CompatibilityVerdict,
@@ -119,9 +118,8 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
     if (!input) return null
     // Pai ainda carregando PVC: sem selo (evita flash). Self-load: null até resolver.
     if (resolvedPvc == null) return null
-    const evidence = resolveCardEvidence(resolvedPvc, product.compatibilityGroups)
-    return classifyCompatibility(input, evidence)
-  }, [effectiveFit, resolvedPvc, product.compatibilityGroups])
+    return classifyCardCompatibility(input, resolvedPvc)
+  }, [effectiveFit, resolvedPvc])
 
   const showSeal = Boolean(compatVerdict && resolveCardSeal(compatVerdict).kind !== 'hide')
   const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
@@ -234,8 +232,8 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
           )}
         </ProductMediaFrame>
         {showSeal && compatVerdict ? (
-          <div className="pointer-events-none absolute bottom-2 left-2 z-[3]">
-            <CompatibilityStateBadge verdict={compatVerdict} variant="card" compact />
+          <div className="pointer-events-none absolute top-2 left-2 z-[3]">
+            <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
           </div>
         ) : null}
       </div>

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   appGroupsToPvcRows,
+  classifyCardCompatibility,
   classifyCompatibility,
-  resolveCardEvidence,
   resolveCardSeal,
   resolveFitContext,
   type PvcCompatRow,
@@ -133,20 +133,17 @@ describe('resolveFitContext M25', () => {
   })
 })
 
-describe('resolveCardEvidence híbrida', () => {
-  it('PVC não vazio vence; vazio cai em appGroups', () => {
-    const pvc: PvcCompatRow[] = [
-      { maker: 'Fiat', model: 'Palio', yearStart: 2010, yearEnd: 2015 },
-    ]
-    const groups = [
-      {
-        maker: 'Chevrolet',
-        lines: [{ model: 'Onix', engine: null, version: null, yearLabel: '20' }],
-      },
-    ]
-    expect(resolveCardEvidence(pvc, groups)).toEqual(pvc)
-    expect(resolveCardEvidence([], groups)[0]?.maker).toBe('Chevrolet')
-    expect(resolveCardEvidence(null, groups)[0]?.maker).toBe('Chevrolet')
-    expect(resolveCardEvidence([], null)).toEqual([])
+describe('classifyCardCompatibility honesto', () => {
+  it('PVC full → Compatível; sem PVC → A verificar (não similar via apps)', () => {
+    const full = classifyCardCompatibility(vehicle, [fullPvc])
+    expect(resolveCardSeal(full).kind).toBe('compatible')
+
+    const noPvc = classifyCardCompatibility(
+      { maker: 'Chevrolet', model: 'Onix' },
+      [],
+    )
+    expect(noPvc.evidences.some((e) => e.code === 'no_pvc')).toBe(true)
+    expect(resolveCardSeal(noPvc).kind).toBe('check')
+    expect(resolveCardSeal(noPvc).label).toBe('A verificar')
   })
 })

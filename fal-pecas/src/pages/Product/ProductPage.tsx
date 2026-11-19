@@ -44,8 +44,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { useToast } from '@/components/common/Toast'
 import {
-  classifyCompatibility,
-  resolveCardEvidence,
+  classifyCardCompatibility,
   type CompatibilityVerdict,
   vehicleFilterToCompatInput,
 } from '@/services/compatibility/compatibilityEngine'
@@ -131,21 +130,18 @@ export function ProductPage() {
     void loadPvcEvidenceByProductIds([product.id])
       .then((map) => {
         if (cancelled) return
-        const evidence = resolveCardEvidence(
-          map.get(product.id) ?? [],
-          product.compatibilityGroups,
+        setCompatVerdict(
+          classifyCardCompatibility(activeCompatInput, map.get(product.id) ?? []),
         )
-        setCompatVerdict(classifyCompatibility(activeCompatInput, evidence))
       })
       .catch(() => {
         if (cancelled) return
-        const evidence = resolveCardEvidence([], product.compatibilityGroups)
-        setCompatVerdict(classifyCompatibility(activeCompatInput, evidence))
+        setCompatVerdict(classifyCardCompatibility(activeCompatInput, []))
       })
     return () => {
       cancelled = true
     }
-  }, [product?.id, product?.compatibilityGroups, activeCompatInput])
+  }, [product?.id, activeCompatInput])
 
   useDocumentTitle(
     product
