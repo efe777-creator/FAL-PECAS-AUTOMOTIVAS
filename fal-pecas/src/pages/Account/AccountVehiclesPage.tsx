@@ -9,6 +9,7 @@ import { useToast } from '@/components/common/Toast'
 import { GarageVehicleCard } from '@/components/garage/GarageVehicleCard'
 import { GarageVehicleHero } from '@/components/garage/GarageVehicleHero'
 import { IncomingTransferBanner } from '@/components/garage/IncomingTransferBanner'
+import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
 import { useGarage } from '@/contexts/GarageContext'
 import {
   ensureSavedVehicleFromFilter,
@@ -23,7 +24,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import type { CustomerSavedVehicle, VehicleOptionTree } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+
+type AddTab = 'placa' | 'manual'
 
 export function AccountVehiclesPage() {
   useDocumentTitle('Minha Garagem | FAL Peças Automotivas')
@@ -40,6 +42,7 @@ export function AccountVehiclesPage() {
   const [plate, setPlate] = useState('')
   const [asPrimary, setAsPrimary] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [addTab, setAddTab] = useState<AddTab>('placa')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,6 +54,23 @@ export function AccountVehiclesPage() {
   function pushOk(message: string) {
     setError(null)
     toast.push(message, 'success')
+  }
+
+  function openAdd(tab: AddTab = 'placa') {
+    setAddTab(tab)
+    setShowAdd(true)
+  }
+
+  function closeAdd() {
+    setShowAdd(false)
+    setMaker('')
+    setModel('')
+    setYear('')
+    setEngine('')
+    setVersion('')
+    setNickname('')
+    setPlate('')
+    setAsPrimary(false)
   }
 
   async function reload() {
@@ -114,7 +134,7 @@ export function AccountVehiclesPage() {
     }))
   }, [tree, maker, model])
 
-  async function onSubmit(e: FormEvent) {
+  async function onSubmitManual(e: FormEvent) {
     e.preventDefault()
     setError(null)
     if (!maker || !model) {
@@ -130,7 +150,7 @@ export function AccountVehiclesPage() {
       }
     }
     try {
-      await ensureSavedVehicleFromFilter({
+      const saved = await ensureSavedVehicleFromFilter({
         maker,
         model,
         year: year || undefined,
@@ -140,17 +160,10 @@ export function AccountVehiclesPage() {
         nickname,
         isPrimary: asPrimary || items.length === 0,
       })
-      setMaker('')
-      setModel('')
-      setYear('')
-      setEngine('')
-      setVersion('')
-      setNickname('')
-      setPlate('')
-      setAsPrimary(false)
-      setShowAdd(false)
+      closeAdd()
       pushOk('Veículo salvo na garagem.')
       await garage.refreshVehicles()
+      garage.setActiveVehicle(saved)
       await reload()
     } catch (err) {
       pushError(toUserMessage(err, 'Falha ao salvar veículo'))
@@ -199,17 +212,12 @@ export function AccountVehiclesPage() {
             Seus carros salvos para filtrar o catálogo e acompanhar o histórico.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/veiculo"
-            className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-bg px-4 text-sm font-bold text-fal-fg hover:border-fal-navy"
-          >
-            Buscar por placa
-          </Link>
-          <Button type="button" onClick={() => setShowAdd((v) => !v)}>
-            {showAdd ? 'Fechar' : 'Adicionar veículo'}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          onClick={() => (showAdd ? closeAdd() : openAdd('placa'))}
+        >
+          {showAdd ? 'Fechar' : 'Adicionar veículo'}
+        </Button>
       </header>
 
       <IncomingTransferBanner onAccepted={() => void reload()} />
@@ -218,94 +226,136 @@ export function AccountVehiclesPage() {
 
       {showAdd ? (
         <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
-          <h3 className="mt-0 text-base font-extrabold">Adicionar manualmente</h3>
+          <h3 className="mt-0 text-base font-extrabold">Adicionar veículo</h3>
           <p className="mt-0 text-sm text-fal-muted">
-            Montadora e modelo bastam. Ano, motor, versão, placa e apelido são opcionais.
+            Pela placa (mais rápido) ou seleção manual. O carro fica salvo na sua garagem.
           </p>
-          <form onSubmit={onSubmit} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Select
-              label="Montadora"
-              value={maker}
-              options={(tree?.makers ?? []).map((m) => ({ value: m, label: m }))}
-              placeholder="Selecione"
-              onChange={(e) => {
-                setMaker(e.target.value)
-                setModel('')
-                setYear('')
-                setEngine('')
-                setVersion('')
-              }}
-            />
-            <Select
-              label="Modelo"
-              value={model}
-              options={modelOptions}
-              placeholder="Selecione"
-              disabled={!maker}
-              onChange={(e) => {
-                setModel(e.target.value)
-                setYear('')
-                setEngine('')
-                setVersion('')
-              }}
-            />
-            <Select
-              label="Ano"
-              value={year}
-              options={yearOptions}
-              placeholder="Opcional"
-              disabled={!model}
-              onChange={(e) => setYear(e.target.value)}
-            />
-            <Select
-              label="Motor"
-              value={engine}
-              options={engineOptions}
-              placeholder="Opcional"
-              disabled={!model}
-              onChange={(e) => setEngine(e.target.value)}
-            />
-            <Select
-              label="Versão"
-              value={version}
-              options={versionOptions}
-              placeholder="Opcional"
-              disabled={!model}
-              onChange={(e) => setVersion(e.target.value)}
-            />
-            <Input
-              label="Placa (opcional)"
-              value={plate}
-              onChange={(e) => setPlate(formatPlateMask(e.target.value))}
-              placeholder="ABC1D23"
-              autoComplete="off"
-            />
-            <Input
-              label="Apelido (opcional)"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-            />
-            <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2">
-              <input
-                type="checkbox"
-                checked={asPrimary}
-                onChange={(e) => setAsPrimary(e.target.checked)}
+
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Como adicionar"
+          >
+            {(
+              [
+                { id: 'placa' as const, label: 'Placa' },
+                { id: 'manual' as const, label: 'Manual' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={addTab === tab.id}
+                className={`min-h-10 rounded-[10px] border px-3 text-sm font-extrabold ${
+                  addTab === tab.id
+                    ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'
+                    : 'border-fal-line bg-fal-bg text-fal-muted'
+                }`}
+                onClick={() => setAddTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4" role="tabpanel">
+            {addTab === 'placa' ? (
+              <VehiclePlateSearch
+                intent="garage"
+                compact
+                onGarageSaved={() => {
+                  closeAdd()
+                  void reload()
+                }}
               />
-              Definir como veículo principal
-            </label>
-            <div className="sm:col-span-2">
-              <Button type="submit">Salvar na garagem</Button>
-            </div>
-          </form>
+            ) : (
+              <form onSubmit={onSubmitManual} className="grid gap-3 sm:grid-cols-2">
+                <Select
+                  label="Montadora"
+                  value={maker}
+                  options={(tree?.makers ?? []).map((m) => ({ value: m, label: m }))}
+                  placeholder="Selecione"
+                  onChange={(e) => {
+                    setMaker(e.target.value)
+                    setModel('')
+                    setYear('')
+                    setEngine('')
+                    setVersion('')
+                  }}
+                />
+                <Select
+                  label="Modelo"
+                  value={model}
+                  options={modelOptions}
+                  placeholder="Selecione"
+                  disabled={!maker}
+                  onChange={(e) => {
+                    setModel(e.target.value)
+                    setYear('')
+                    setEngine('')
+                    setVersion('')
+                  }}
+                />
+                <Select
+                  label="Ano"
+                  value={year}
+                  options={yearOptions}
+                  placeholder="Opcional"
+                  disabled={!model}
+                  onChange={(e) => setYear(e.target.value)}
+                />
+                <Select
+                  label="Motor"
+                  value={engine}
+                  options={engineOptions}
+                  placeholder="Opcional"
+                  disabled={!model}
+                  onChange={(e) => setEngine(e.target.value)}
+                />
+                <Select
+                  label="Versão"
+                  value={version}
+                  options={versionOptions}
+                  placeholder="Opcional"
+                  disabled={!model}
+                  onChange={(e) => setVersion(e.target.value)}
+                />
+                <Input
+                  label="Placa (opcional)"
+                  value={plate}
+                  onChange={(e) => setPlate(formatPlateMask(e.target.value))}
+                  placeholder="ABC1D23"
+                  autoComplete="off"
+                />
+                <Input
+                  label="Apelido (opcional)"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                />
+                <label className="flex min-h-10 items-center gap-2 text-sm font-semibold sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={asPrimary}
+                    onChange={(e) => setAsPrimary(e.target.checked)}
+                  />
+                  Definir como veículo principal
+                </label>
+                <div className="sm:col-span-2">
+                  <Button type="submit">Salvar na garagem</Button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       ) : null}
 
-      {items.length === 0 ? (
+      {items.length === 0 && !showAdd ? (
         <EmptyState
           title="Sua garagem está vazia."
-          description="Salve um carro pela placa ou adicione montadora e modelo manualmente."
-          actionTo="/veiculo"
-          actionLabel="Buscar por placa"
+          description="Adicione pela placa ou escolha montadora e modelo manualmente."
+          actionLabel="Adicionar veículo"
+          onAction={() => openAdd('placa')}
         />
       ) : null}
 

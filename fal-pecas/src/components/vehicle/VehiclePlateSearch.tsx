@@ -15,32 +15,38 @@ import {
   requiresManualSelection,
   type PlateLookupResult,
 } from '@/services/plates/plateTypes'
-import {
-  clearAskGaragePrompt,
-  saveAskGaragePrompt,
-  savePendingGarageVehicle,
-} from '@/services/plates/pendingGarage'
+import { clearAskGaragePrompt } from '@/services/plates/pendingGarage'
 import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehicleService'
 import { buildVehicleQuery } from '@/services/vehicles/vehicleService'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
-import type { VehicleFilter } from '@/types'
+import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+export type VehiclePlateSearchIntent = 'discover' | 'garage'
+
 export type VehiclePlateSearchProps = {
   compact?: boolean
+  /**
+   * `garage` — salvar direto na Minha Garagem (sem catálogo).
+   * `discover` — filtrar peças; se logado, auto-save + toast (sem modal).
+   */
+  intent?: VehiclePlateSearchIntent
   /** Quando no catálogo: aplica filtros via callback em vez de navegar. */
   onApplyFilters?: (filter: VehicleFilter) => void
-  /** Path atual para preservar após login (garagem). */
+  /** Path atual para preservar após login (legado). */
   returnPath?: string
+  /** Callback após salvar na garagem (intent garage). */
+  onGarageSaved?: (vehicle: CustomerSavedVehicle) => void
 }
 
-type Phase = 'input' | 'loading' | 'confirm' | 'manual' | 'garage'
+type Phase = 'input' | 'loading' | 'confirm' | 'manual'
 
 export function VehiclePlateSearch({
   compact = false,
+  intent = 'discover',
   onApplyFilters,
-  returnPath,
+  onGarageSaved,
 }: VehiclePlateSearchProps) {
   const toast = useToast()
   const navigate = useNavigate()
@@ -49,15 +55,50 @@ export function VehiclePlateSearch({
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('input')
   const [result, setResult] = useState<PlateLookupResult | null>(null)
-  const [confirmedFilter, setConfirmedFilter] = useState<VehicleFilter | null>(null)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
-  const [savingGarage, setSavingGarage] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   function syncActiveToFilter(filter: VehicleFilter) {
     if (!garage) return
     const match = matchSavedVehicleForFilter(garage.vehicles, filter)
     if (match) garage.setActiveVehicle(match)
     else if (garage.activeVehicle) garage.clearActiveVehicle()
+  }
+
+  function resetToInput() {
+    setPhase('input')
+    setResult(null)
+    setManualMessage(null)
+    setPlateDraft('')
+  }
+
+  async function saveToGarage(filter: VehicleFilter): Promise<CustomerSavedVehicle | null> {
+    if (!isSupabaseConfigured) return null
+    const {
+      data: { user },
+    } = await getSupabase().auth.getUser()
+    if (!user) return null
+
+    const already = garage
+      ? matchSavedVehicleForFilter(garage.vehicles, filter)
+      : null
+
+    const saved = await ensureSavedVehicleFromFilter({
+      ...filter,
+      plate: filter.plate ?? result?.plate ?? undefined,
+      manufacturerId: filter.manufacturerId ?? result?.manufacturerId ?? undefined,
+      modelId: filter.modelId ?? result?.modelId ?? undefined,
+      versionId: filter.versionId ?? result?.versionId ?? undefined,
+    })
+    if (garage) {
+      await garage.refreshVehicles()
+      garage.setActiveVehicle(saved)
+    }
+    toast.push(
+      already ? 'Veículo já estava na Minha Garagem.' : 'Veículo adicionado à Minha Garagem.',
+      'success',
+    )
+    return saved
   }
 
   async function handleSearch(e?: FormEvent) {
@@ -92,8 +133,9 @@ export function VehiclePlateSearch({
   }
 
   async function applyConfirmed(filter: VehicleFilter) {
+    setBusy(true)
+    clearAskGaragePrompt()
     let next = filter
-    // R4: usuário autenticado + ano → re-upsert mestre quando IDs faltam / ano mudou
     try {
       if (isSupabaseConfigured && needsConfirmCanonicalUpsert(filter, result?.year)) {
         const {
@@ -113,107 +155,52 @@ export function VehiclePlateSearch({
       )
     }
 
-    setConfirmedFilter(next)
-    syncActiveToFilter(next)
-    if (onApplyFilters) {
-      onApplyFilters(next)
-      setPhase('garage')
-      return
-    }
-    // Home / rota veículo: aplica filtros no catálogo e pergunta garagem lá.
-    saveAskGaragePrompt(next)
-    const qs = buildVehicleQuery(next).toString()
-    navigate(qs ? `/catalogo?${qs}` : '/catalogo')
-  }
-
-  async function handleSaveGarage(yes: boolean) {
-    if (!yes || !confirmedFilter?.maker || !confirmedFilter?.model) {
-      clearAskGaragePrompt()
-      setPhase('input')
-      setResult(null)
-      setConfirmedFilter(null)
-      return
-    }
-    setSavingGarage(true)
     try {
-      if (!isSupabaseConfigured) {
-        toast.push('Faça login para salvar veículos na garagem.', 'info')
-        setPhase('input')
-        return
-      }
-      const {
-        data: { user },
-      } = await getSupabase().auth.getUser()
-      const catalogPath =
-        returnPath ??
-        `/catalogo?${buildVehicleQuery(confirmedFilter).toString()}`
-
-      if (!user) {
-        savePendingGarageVehicle({ ...confirmedFilter, returnTo: catalogPath })
-        clearAskGaragePrompt()
-        navigate('/login', { state: { from: catalogPath } })
+      if (intent === 'garage') {
+        syncActiveToFilter(next)
+        const {
+          data: { user },
+        } = await getSupabase().auth.getUser()
+        if (!isSupabaseConfigured || !user) {
+          toast.push('Faça login para salvar veículos na garagem.', 'info')
+          setBusy(false)
+          return
+        }
+        const saved = await saveToGarage(next)
+        if (saved) onGarageSaved?.(saved)
+        resetToInput()
+        setBusy(false)
         return
       }
 
-      const saved = await ensureSavedVehicleFromFilter({
-        ...confirmedFilter,
-        plate: confirmedFilter.plate ?? result?.plate ?? undefined,
-        manufacturerId: confirmedFilter.manufacturerId ?? result?.manufacturerId ?? undefined,
-        modelId: confirmedFilter.modelId ?? result?.modelId ?? undefined,
-        versionId: confirmedFilter.versionId ?? result?.versionId ?? undefined,
-      })
-      if (garage) {
-        await garage.refreshVehicles()
-        garage.setActiveVehicle(saved)
+      // discover: filtrar peças sem interromper; auto-save se logado
+      syncActiveToFilter(next)
+      if (onApplyFilters) {
+        onApplyFilters(next)
+      } else {
+        const qs = buildVehicleQuery(next).toString()
+        navigate(qs ? `/catalogo?${qs}` : '/catalogo')
       }
-      clearAskGaragePrompt()
-      toast.push('Veículo salvo na sua garagem.', 'success')
-      setPhase('input')
-      setResult(null)
-      setConfirmedFilter(null)
-      setPlateDraft('')
+
+      try {
+        const {
+          data: { user },
+        } = await getSupabase().auth.getUser()
+        if (user) {
+          await saveToGarage(next)
+        } else {
+          toast.push('Entre na conta para salvar este veículo na garagem.', 'info')
+        }
+      } catch (err) {
+        toast.push(toUserMessage(err, 'Não foi possível salvar na garagem.'), 'error')
+      }
+
+      resetToInput()
     } catch (err) {
-      toast.push(toUserMessage(err, 'Não foi possível salvar o veículo.'), 'error')
+      toast.push(toUserMessage(err, 'Não foi possível concluir.'), 'error')
     } finally {
-      setSavingGarage(false)
+      setBusy(false)
     }
-  }
-
-  if (phase === 'garage') {
-    return (
-      <div
-        className={[
-          'rounded-[18px] bg-white text-fal-navy-dark shadow-[0_20px_50px_rgba(0,0,0,0.2)]',
-          compact ? 'p-4' : 'p-6',
-        ].join(' ')}
-      >
-        <h2 className={['mt-0 font-extrabold', compact ? 'text-xl' : 'text-[23px]'].join(' ')}>
-          Deseja salvar este veículo na sua garagem?
-        </h2>
-        <p className="text-sm text-fal-muted">
-          Assim fica mais fácil encontrar peças nas próximas compras. Nunca salvamos sem a sua
-          confirmação.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            variant="primary"
-            type="button"
-            disabled={savingGarage}
-            onClick={() => void handleSaveGarage(true)}
-          >
-            Sim, salvar
-          </Button>
-          <Button
-            variant="outline"
-            type="button"
-            disabled={savingGarage}
-            onClick={() => void handleSaveGarage(false)}
-          >
-            Agora não
-          </Button>
-        </div>
-      </div>
-    )
   }
 
   if (phase === 'confirm' && result) {
@@ -246,8 +233,12 @@ export function VehiclePlateSearch({
         ) : null}
         <VehicleSelector
           compact={compact}
-          title="Seleção manual"
-          subtitle="Escolha montadora, modelo, ano, motor e versão para encontrar peças compatíveis."
+          title={intent === 'garage' ? 'Seleção manual' : 'Seleção manual'}
+          subtitle={
+            intent === 'garage'
+              ? 'Escolha montadora e modelo para salvar na garagem. Ano, motor e versão ajudam na compatibilidade.'
+              : 'Escolha montadora, modelo, ano, motor e versão para encontrar peças compatíveis.'
+          }
           onConfirm={(f) => {
             void applyConfirmed(f)
           }}
@@ -255,6 +246,7 @@ export function VehiclePlateSearch({
         <Button
           variant="light"
           type="button"
+          disabled={busy}
           onClick={() => {
             setPhase('input')
             setManualMessage(null)
@@ -278,7 +270,7 @@ export function VehiclePlateSearch({
     >
       <VehiclePlateField
         value={plateDraft}
-        loading={phase === 'loading'}
+        loading={phase === 'loading' || busy}
         error={fieldError}
         onChange={(masked) => {
           setPlateDraft(masked)

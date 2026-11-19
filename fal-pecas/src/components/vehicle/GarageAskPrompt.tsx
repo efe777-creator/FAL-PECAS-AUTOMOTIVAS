@@ -16,7 +16,9 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 /**
- * Prompt único no catálogo após placa na Home (evita Strict Mode + 2× VehiclePlateSearch).
+ * @deprecated Fluxo discover não interrompe mais com modal.
+ * Auto-save + toast ficam em VehiclePlateSearch (intent=discover).
+ * Mantido no repo só por compat transitória — não montar no CatalogPage.
  */
 export function GarageAskPrompt() {
   const toast = useToast()
