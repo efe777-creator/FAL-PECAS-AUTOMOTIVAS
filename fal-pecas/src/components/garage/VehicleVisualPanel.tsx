@@ -310,11 +310,11 @@ export function VehicleVisualPanel({
       ) : null}
 
       <section className="space-y-2">
-        <h3 className="m-0 text-sm font-extrabold">Peças FAL no veículo</h3>
+        <h3 className="m-0 text-sm font-extrabold">Peças no visual</h3>
         {!parts.length ? (
           <EmptyState
-            title="Nenhuma peça FAL vinculada"
-            description="Compras e instalações declaradas aparecem aqui só como prévia."
+            title="Nenhuma peça no modelo"
+            description="Compras e instalações declaradas aparecem aqui só como prévia no visual 3D."
           />
         ) : (
           <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">

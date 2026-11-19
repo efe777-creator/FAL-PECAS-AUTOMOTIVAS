@@ -5,6 +5,7 @@ import {
   matchSavedVehicleForFilter,
   vehicleCatalogHref,
   vehicleDisplayName,
+  vehiclePartsModuleHref,
   vehiclePlateLabel,
   vehicleTechLine,
 } from './garageVehicleUi'
@@ -37,6 +38,7 @@ describe('garageVehicleUi (#9 helpers)', () => {
     expect(href).toContain('maker=Chevrolet')
     expect(href).toContain('model=Onix')
     expect(href).toContain('year=2020')
+    expect(vehiclePartsModuleHref(base)).toBe('/conta/veiculos/1?modulo=pecas')
   })
 
   it('placa formatada e incomplete sem versionId', () => {

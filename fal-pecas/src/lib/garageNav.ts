@@ -8,11 +8,12 @@ export type GarageNavItem = {
   glyph: string
 }
 
-/** Sidebar / primária: Garagem, Histórico, Cuidados, Mais. */
+/** Sidebar / primária: Garagem, Histórico, Cuidados, Peças, Mais. */
 export const GARAGE_SIDEBAR_ITEMS: GarageNavItem[] = [
   { key: 'home', label: 'Garagem', shortLabel: 'Garagem', glyph: '⌂' },
   { key: 'historico', label: 'Histórico', shortLabel: 'Histórico', glyph: '◷' },
   { key: 'inteligencia', label: 'Cuidados', shortLabel: 'Cuidados', glyph: '◇' },
+  { key: 'pecas', label: 'Peças', shortLabel: 'Peças', glyph: '▣' },
   { key: 'mais', label: 'Mais', shortLabel: 'Mais', glyph: '☰' },
 ]
 
@@ -21,6 +22,7 @@ export const GARAGE_MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
   { key: 'visao', label: 'Resumo' },
   { key: 'historico', label: 'Histórico' },
   { key: 'inteligencia', label: 'Cuidados' },
+  { key: 'pecas', label: 'Peças' },
   { key: 'mais', label: 'Mais' },
 ]
 
@@ -28,6 +30,7 @@ export const GARAGE_MODULE_TABS: { key: GarageModuleKey; label: string }[] = [
 export const GARAGE_MOBILE_SHORTCUTS: GarageNavItem[] = [
   { key: 'historico', label: 'Histórico', shortLabel: 'Histórico', glyph: '◷' },
   { key: 'inteligencia', label: 'Cuidados', shortLabel: 'Cuidados', glyph: '◇' },
+  { key: 'pecas', label: 'Peças', shortLabel: 'Peças', glyph: '▣' },
   { key: 'mais', label: 'Mais', shortLabel: 'Mais', glyph: '☰' },
 ]
 

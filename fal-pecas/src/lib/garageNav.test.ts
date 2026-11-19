@@ -7,42 +7,51 @@ import {
 import { GARAGE_MORE_MODULE_KEYS } from '@/lib/garageWorkspacePrefs'
 
 describe('garageNav anti-regressão padrão UX', () => {
-  it('sidebar primária: Garagem, Histórico, Cuidados, Mais', () => {
+  it('sidebar primária: Garagem, Histórico, Cuidados, Peças, Mais', () => {
     expect(GARAGE_SIDEBAR_ITEMS.map((i) => i.key)).toEqual([
       'home',
       'historico',
       'inteligencia',
+      'pecas',
       'mais',
     ])
     expect(GARAGE_SIDEBAR_ITEMS.map((i) => i.label)).toEqual([
       'Garagem',
       'Histórico',
       'Cuidados',
+      'Peças',
       'Mais',
     ])
   })
 
-  it('abas do detalhe: Resumo, Histórico, Cuidados, Mais', () => {
+  it('abas do detalhe: Resumo, Histórico, Cuidados, Peças, Mais', () => {
     expect(GARAGE_MODULE_TABS.map((t) => t.key)).toEqual([
       'visao',
       'historico',
       'inteligencia',
+      'pecas',
       'mais',
     ])
     expect(GARAGE_MODULE_TABS.map((t) => t.label)).toEqual([
       'Resumo',
       'Histórico',
       'Cuidados',
+      'Peças',
       'Mais',
     ])
   })
 
-  it('atalhos mobile são 3 essenciais sem home', () => {
-    expect(GARAGE_MOBILE_SHORTCUTS).toHaveLength(3)
+  it('atalhos mobile incluem Peças sem home', () => {
+    expect(GARAGE_MOBILE_SHORTCUTS.map((i) => i.key)).toEqual([
+      'historico',
+      'inteligencia',
+      'pecas',
+      'mais',
+    ])
     expect(GARAGE_MOBILE_SHORTCUTS.every((i) => i.key !== 'home')).toBe(true)
   })
 
-  it('Mais agrupa módulos avançados', () => {
+  it('Mais agrupa módulos avançados (sem Peças)', () => {
     expect(GARAGE_MORE_MODULE_KEYS).toEqual([
       'manutencoes',
       'visual',
@@ -51,6 +60,7 @@ describe('garageNav anti-regressão padrão UX', () => {
       'compartilhar',
       'config',
     ])
+    expect(GARAGE_MORE_MODULE_KEYS).not.toContain('pecas')
   })
 
   it('labels não usam jargão Engine/G7/2B/Inteligência', () => {

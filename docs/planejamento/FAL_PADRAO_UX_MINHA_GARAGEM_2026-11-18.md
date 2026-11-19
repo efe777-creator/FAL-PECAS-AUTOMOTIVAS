@@ -21,10 +21,11 @@
 
 | Agora | Depois (fase 2) |
 |-------|-----------------|
-| Km, status, próximos cuidados (óleo) | Listagem de peças do veículo com foto |
-| Histórico no tempo (compras/registros) | Tela dividida ao abrir peça |
-| Resumo + Histórico + Cuidados + Mais | Widgets personalizáveis |
-| Voltar → catálogo (c/ filtros) ou conta | Bottom nav do mockup (opcional) |
+| Km, status, próximos cuidados (óleo) | Widgets personalizáveis |
+| Histórico no tempo (compras/registros) | Bottom nav do mockup (opcional) |
+| Resumo + Histórico + Cuidados + **Peças** + Mais | — |
+| Peças compatíveis (confirmadas) com split lista/detalhe | — |
+| Voltar → catálogo (c/ filtros) ou conta | — |
 
 Ficha “parceiros” completa **não** é a jornada principal agora. Código dos módulos avançados permanece acessível em **Mais**.
 
@@ -34,7 +35,8 @@ Ficha “parceiros” completa **não** é a jornada principal agora. Código do
 
 - **Shell:** sidebar navy + item ativo amarelo; header com Voltar + seletor de veículo.
 - **Home:** bento — hero, próximos cuidados, histórico recente, preview visual secundário, resumo enxuto.
-- **Detalhe:** stage do carro + abas Resumo | Histórico | Cuidados | Mais.
+- **Detalhe:** stage do carro + abas Resumo | Histórico | Cuidados | **Peças** | Mais.
+- **Peças:** desktop split lista | detalhe (`lg:grid-cols-[1fr_minmax(320px,400px)]`); mobile stack com Voltar interno.
 - **Tokens:** `--fal-navy`, `--fal-yellow`, `--fal-accent`, `--fal-success` em `fal-pecas/src/styles/index.css`.
 - **Tema:** interruptor do cabeçalho da loja (um só).
 
@@ -48,9 +50,10 @@ Ficha “parceiros” completa **não** é a jornada principal agora. Código do
 | Ver o carro | CTA **Ver carro** → Resumo |
 | Histórico | Nav/aba **Histórico** (widgets só deep-link) |
 | Lembretes / óleo | Nav/aba **Cuidados** |
+| Peças que cabem no carro | Nav/aba/CTA **Peças** → `?modulo=pecas` |
+| Catálogo completo (escape) | Só no rodapé do módulo Peças → **Catálogo completo** |
 | Avançado | **Mais** → Visual, Profissionais, Evidências, Compartilhar, Config, Manutenção |
 | Sair da garagem | Botão **Voltar** (origem real) |
-| Comprar no catálogo | CTA **Peças no catálogo** |
 
 Entrada externa pela loja (`MobileNav` Garagem) permanece válida.
 
@@ -64,9 +67,12 @@ Entrada externa pela loja (`MobileNav` Garagem) permanece válida.
 | Tela do carro | Resumo | Visão geral, ficha, identity |
 | Lembretes | Cuidados / Próximos cuidados | Inteligência, FAL IA, Engine |
 | Linha do tempo | Histórico | Timeline, G7 |
+| Peças do veículo | **Peças compatíveis** / **Peças** | Peças no catálogo (espalhado), Ver peças, Produtos/compatibilidade |
+| Escape catálogo | **Catálogo completo** (1× no módulo Peças) | Abrir catálogo filtrado (vários lugares) |
+| Peças no 3D | **No modelo** / **Peças no visual** (só Visual/Mais) | Peças FAL no veículo (ambíguo) |
 | CTA hero | Ver carro | Ver detalhes do veículo |
-| CTA catálogo | Peças no catálogo | Ver peças (ambíguo) |
 | Empty cuidados | Nenhum cuidado agendado. Adicione um lembrete. | Cadastre na Inteligência |
+| Empty peças | Selecione ou complete o veículo. / Nenhuma peça confirmada. | — |
 | Subtítulo home | Seu carro, cuidados e histórico. | Dashboard do veículo… |
 | Visual | Visualização / Modelo 3D | Visualization Engine, GLB, 2B |
 | Voltar | Voltar | Voltar à conta + Voltar |
@@ -82,13 +88,17 @@ Regra: no máximo um título “Minha Garagem” visível por viewport (sidebar 
 - Sidebar longa + abas longas + grade mobile repetindo os mesmos 9 módulos
 - Dois controles de “voltar”
 - Card “FAL Inteligência” separado de “Próximos cuidados”
+- Múltiplos CTAs “Peças no catálogo” saindo da garagem (usar `modulo=pecas`)
+- Badge de compatibilidade só com apps truncadas (confirmadas exigem PVC + `classifyCompatibility`)
 
 ---
 
 ## 7. Evidência de implementação
 
 - `fal-pecas/src/lib/garageNav.ts`
+- `fal-pecas/src/lib/garageWorkspacePrefs.ts` (`pecas`)
 - `fal-pecas/src/components/garage/GarageShell.tsx`
 - `fal-pecas/src/components/garage/GarageDashboardBento.tsx`
+- `fal-pecas/src/components/garage/VehicleCompatiblePartsPanel.tsx`
 - `fal-pecas/src/pages/Account/AccountVehicleDetailPage.tsx`
 - `fal-pecas/src/lib/garageNavStack.ts` + `GarageBackButton` / `GarageNavTracker`
