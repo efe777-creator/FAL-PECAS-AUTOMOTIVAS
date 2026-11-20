@@ -149,12 +149,17 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/Aplicação e compatibilidade/)
     expect(page).toMatch(/Conteúdo da embalagem/)
     expect(page).toMatch(/id="pdp-detalhes"/)
+    // Fonte: galeria → buy-box → acordeão; CSS order + lg:col garante layout.
     const galleryIdx = page.indexOf('<ProductGallery')
-    const accIdx = page.indexOf('<PdpAccordion')
     const buyStickyIdx = page.indexOf('lg:sticky lg:top-24')
+    const accIdx = page.indexOf('<PdpAccordion')
     expect(galleryIdx).toBeGreaterThan(-1)
-    expect(accIdx).toBeGreaterThan(galleryIdx)
-    expect(buyStickyIdx).toBeGreaterThan(accIdx)
+    expect(buyStickyIdx).toBeGreaterThan(galleryIdx)
+    expect(accIdx).toBeGreaterThan(buyStickyIdx)
+    expect(page).toMatch(/order-1/)
+    expect(page).toMatch(/order-2/)
+    expect(page).toMatch(/order-3/)
+    expect(page).toMatch(/lg:col-start-1 lg:row-start-2/)
 
     const acc = readFileSync(src('components/product/PdpAccordion.tsx'), 'utf8')
     expect(acc).toMatch(/aria-expanded/)
@@ -182,12 +187,10 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/surface="equiv"/)
     expect(page).toMatch(/fitFilter=\{effectiveVehicleFilter\}/)
 
-    // Acordeão (col esquerda) não embute o form local; ele fica no buy-box.
+    // Acordeão não embute o form local; VehicleSelector fica no buy-box.
     const accStart = page.indexOf('<PdpAccordion')
-    const buyStart = page.indexOf('lg:sticky lg:top-24')
     expect(accStart).toBeGreaterThan(-1)
-    expect(buyStart).toBeGreaterThan(accStart)
-    const accordionSlice = page.slice(accStart, buyStart)
+    const accordionSlice = page.slice(accStart, page.indexOf('</PdpAccordion>') + 20)
     expect(accordionSlice).not.toMatch(/VehicleSelector/)
     expect(accordionSlice).not.toMatch(/Verificar nesta página/)
     expect(page).toMatch(/Verificar nesta página/)

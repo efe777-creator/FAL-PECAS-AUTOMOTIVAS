@@ -14,5 +14,6 @@
 | **6 Acordeões** | 4 seções sob galeria (col 45) | Sem eco veredito | Catálogo/apps |
 | **7 Buy-box ref** | Badge, Add→Comprar, Favoritar+WA, barra | Espelha onBuyNow | Não duplica Add |
 | **8 Acabamento** | Thumbs amarelas, dark:, Inter/radius | Checklist + antiregress | Gate final |
+| **9 Mobile order** | `order-1/2/3` + grid lg sob galeria | Galeria→buy-box→acordeões | — |
 
 Por marcha: implementar → refine → VAL → commit `dev`.

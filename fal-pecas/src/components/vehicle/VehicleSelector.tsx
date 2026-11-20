@@ -153,8 +153,10 @@ export function VehicleSelector({
   return (
     <div
       className={[
-        'rounded-[18px] bg-fal-surface text-fal-fg shadow-[0_20px_50px_rgba(0,0,0,0.2)]',
-        compact ? 'p-4' : 'p-6',
+        'rounded-fal bg-fal-surface text-fal-fg',
+        compact
+          ? 'border border-fal-line p-3 shadow-none'
+          : 'rounded-[18px] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.2)]',
       ].join(' ')}
     >
       <h2 className={['mt-0 font-extrabold', compact ? 'text-xl' : 'text-[23px]'].join(' ')}>

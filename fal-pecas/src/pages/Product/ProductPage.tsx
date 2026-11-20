@@ -651,134 +651,13 @@ export function ProductPage() {
         </ol>
       </nav>
 
-      {/* Desktop 45/55 · Mobile: galeria → buy-box → acordeões (ordem do grid) */}
+      {/* Desktop: galeria+acordeões col1, buy-box col2. Mobile: galeria → buy-box → acordeões */}
       <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-8">
-        <div className="min-w-0">
+        <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
           <ProductGallery images={galleryImages} alt={displayName} />
-          <div id="pdp-detalhes" className="scroll-mt-24">
-          <PdpAccordion
-            items={[
-              {
-                id: 'apps',
-                title: 'Aplicação e compatibilidade',
-                defaultOpen: true,
-                children: (
-                  <>
-                    {garage?.activeFilter ? (
-                      <p className="mb-3 m-0 text-xs text-fal-muted">
-                        Veículo:{' '}
-                        <span className="font-semibold text-fal-fg">
-                          {filterDisplayLabel(garage.activeFilter)}
-                        </span>
-                        {' · '}
-                        <Link
-                          to="/garagem"
-                          className="font-semibold text-fal-accent hover:underline"
-                        >
-                          Trocar
-                        </Link>
-                      </p>
-                    ) : null}
-                    <CompatibilityAppsBlock
-                      variant="pdp"
-                      groups={current.compatibilityGroups}
-                      summary={current.compatibilitySummary}
-                    />
-                    {current.compatibilityGroups?.length || current.compatibilitySummary ? (
-                      <p className="mb-0 mt-3 text-sm">
-                        <Link
-                          to={catalogFilter.href}
-                          className="font-semibold text-fal-navy hover:underline dark:text-fal-fg"
-                        >
-                          {FILTRAR_NO_CATALOGO_LABEL}
-                        </Link>
-                        <span className="text-fal-muted">{catalogFilter.hint}</span>
-                      </p>
-                    ) : null}
-                    <p className="mb-0 mt-3 text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
-                  </>
-                ),
-              },
-              {
-                id: 'desc',
-                title: DESCRICAO_SECTION_LABEL,
-                children: fullDescription ? (
-                  <>
-                    <p className="mb-0 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
-                    {descriptionCollapses ? (
-                      <button
-                        type="button"
-                        className="mt-2 text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
-                        aria-expanded={descExpanded}
-                        onClick={() => setDescExpanded((v) => !v)}
-                      >
-                        {descExpanded ? VER_MENOS_DESCRICAO_LABEL : VER_DESCRICAO_COMPLETA_LABEL}
-                      </button>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="mb-0 text-fal-muted">Sem descrição cadastrada.</p>
-                ),
-              },
-              {
-                id: 'specs',
-                title: ESPECIFICACOES_SECTION_LABEL,
-                children: specRows.length ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-0 border-collapse">
-                      <tbody>
-                        {specRows.map((row, i) => (
-                          <tr
-                            key={`${row.label}-${row.value}`}
-                            className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-fal-surface'}
-                          >
-                            <th
-                              scope="row"
-                              className="w-[38%] px-2 py-2 text-left align-top font-semibold text-fal-navy dark:text-fal-fg"
-                            >
-                              {row.label}
-                            </th>
-                            <td className="min-w-0 break-words px-2 py-2 text-fal-muted">
-                              {row.value}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="mb-0 text-fal-muted">Sem especificações cadastradas.</p>
-                ),
-              },
-              {
-                id: 'pack',
-                title: 'Conteúdo da embalagem',
-                children: (
-                  <ul className="mb-0 mt-0 list-disc space-y-1 pl-4 text-fal-muted">
-                    <li>1 unidade do produto conforme título e referência.</li>
-                    {current.weightKg != null && current.weightKg > 0 ? (
-                      <li>Peso aproximado: {current.weightKg} kg</li>
-                    ) : null}
-                    {current.lengthCm != null &&
-                    current.widthCm != null &&
-                    current.heightCm != null &&
-                    current.lengthCm > 0 &&
-                    current.widthCm > 0 &&
-                    current.heightCm > 0 ? (
-                      <li>
-                        Dimensões aprox.: {current.lengthCm}×{current.widthCm}×{current.heightCm}{' '}
-                        cm
-                      </li>
-                    ) : null}
-                  </ul>
-                ),
-              },
-            ]}
-          />
-          </div>
         </div>
 
-        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:sticky lg:top-24 lg:self-start lg:pb-5">
+        <div className="relative order-2 min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-5">
           {brandName ? (
             <span className="inline-flex rounded-fal border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg">
               Marca: {brandName}
@@ -1059,6 +938,131 @@ export function ProductPage() {
               </a>
             </div>
           </div>
+        </div>
+
+        <div
+          id="pdp-detalhes"
+          className="order-3 min-w-0 scroll-mt-24 lg:col-start-1 lg:row-start-2"
+        >
+          <PdpAccordion
+            items={[
+              {
+                id: 'apps',
+                title: 'Aplicação e compatibilidade',
+                defaultOpen: true,
+                children: (
+                  <>
+                    {garage?.activeFilter ? (
+                      <p className="mb-3 m-0 text-xs text-fal-muted">
+                        Veículo:{' '}
+                        <span className="font-semibold text-fal-fg">
+                          {filterDisplayLabel(garage.activeFilter)}
+                        </span>
+                        {' · '}
+                        <Link
+                          to="/garagem"
+                          className="font-semibold text-fal-accent hover:underline"
+                        >
+                          Trocar
+                        </Link>
+                      </p>
+                    ) : null}
+                    <CompatibilityAppsBlock
+                      variant="pdp"
+                      groups={current.compatibilityGroups}
+                      summary={current.compatibilitySummary}
+                    />
+                    {current.compatibilityGroups?.length || current.compatibilitySummary ? (
+                      <p className="mb-0 mt-3 text-sm">
+                        <Link
+                          to={catalogFilter.href}
+                          className="font-semibold text-fal-navy hover:underline dark:text-fal-fg"
+                        >
+                          {FILTRAR_NO_CATALOGO_LABEL}
+                        </Link>
+                        <span className="text-fal-muted">{catalogFilter.hint}</span>
+                      </p>
+                    ) : null}
+                    <p className="mb-0 mt-3 text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
+                  </>
+                ),
+              },
+              {
+                id: 'desc',
+                title: DESCRICAO_SECTION_LABEL,
+                children: fullDescription ? (
+                  <>
+                    <p className="mb-0 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
+                    {descriptionCollapses ? (
+                      <button
+                        type="button"
+                        className="mt-2 text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
+                        aria-expanded={descExpanded}
+                        onClick={() => setDescExpanded((v) => !v)}
+                      >
+                        {descExpanded ? VER_MENOS_DESCRICAO_LABEL : VER_DESCRICAO_COMPLETA_LABEL}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="mb-0 text-fal-muted">Sem descrição cadastrada.</p>
+                ),
+              },
+              {
+                id: 'specs',
+                title: ESPECIFICACOES_SECTION_LABEL,
+                children: specRows.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-0 border-collapse">
+                      <tbody>
+                        {specRows.map((row, i) => (
+                          <tr
+                            key={`${row.label}-${row.value}`}
+                            className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-fal-surface'}
+                          >
+                            <th
+                              scope="row"
+                              className="w-[38%] px-2 py-2 text-left align-top font-semibold text-fal-navy dark:text-fal-fg"
+                            >
+                              {row.label}
+                            </th>
+                            <td className="min-w-0 break-words px-2 py-2 text-fal-muted">
+                              {row.value}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mb-0 text-fal-muted">Sem especificações cadastradas.</p>
+                ),
+              },
+              {
+                id: 'pack',
+                title: 'Conteúdo da embalagem',
+                children: (
+                  <ul className="mb-0 mt-0 list-disc space-y-1 pl-4 text-fal-muted">
+                    <li>1 unidade do produto conforme título e referência.</li>
+                    {current.weightKg != null && current.weightKg > 0 ? (
+                      <li>Peso aproximado: {current.weightKg} kg</li>
+                    ) : null}
+                    {current.lengthCm != null &&
+                    current.widthCm != null &&
+                    current.heightCm != null &&
+                    current.lengthCm > 0 &&
+                    current.widthCm > 0 &&
+                    current.heightCm > 0 ? (
+                      <li>
+                        Dimensões aprox.: {current.lengthCm}×{current.widthCm}×{current.heightCm}{' '}
+                        cm
+                      </li>
+                    ) : null}
+                  </ul>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 
