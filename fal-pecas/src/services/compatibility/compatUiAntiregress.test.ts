@@ -100,6 +100,24 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(lightbox).toMatch(/h-11/)
   })
 
+  it('PDP M3: pag colapsável; compat antes do preço; copiar link; 1 âncora', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    const verdictIdx = page.indexOf('<CompatVerdictSummary')
+    const priceIdx = page.indexOf('text-3xl font-black')
+    const buyIdx = page.indexOf('onClick={onBuyNow}')
+    expect(verdictIdx).toBeGreaterThan(-1)
+    expect(priceIdx).toBeGreaterThan(verdictIdx)
+    expect(buyIdx).toBeGreaterThan(priceIdx)
+    expect(page).toMatch(/Copiar link/)
+    expect(page).toMatch(/navigator\.clipboard/)
+    expect(page.match(/href="#pdp-detalhes"/g)?.length).toBe(1)
+
+    const pay = readFileSync(src('components/product/StorePaymentMethodsBlock.tsx'), 'utf8')
+    expect(pay).toMatch(/<details/)
+    expect(pay).toMatch(/Formas de pagamento/)
+    expect(page).toMatch(/PaymentConditionHint/)
+  })
+
   it('Badge card trata hide com label (não retorna null cego)', () => {
     const badge = readFileSync(src('components/product/CompatibilityStateBadge.tsx'), 'utf8')
     expect(badge).toMatch(/hide: 'border-fal-danger/)

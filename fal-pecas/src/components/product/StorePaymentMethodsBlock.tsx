@@ -59,42 +59,57 @@ export function StorePaymentMethodsBlock({
     return null
   }
 
+  const methods = (
+    <ul className="m-0 list-none space-y-2 p-0">
+      {avail.credit ? (
+        <li className="rounded-fal border border-fal-line bg-fal-surface px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-fal-ink">Cartão de crédito</span>
+            <span className="text-xs font-bold text-emerald-800">Ativo</span>
+          </div>
+          {cardSub ? <p className="mb-0 mt-1 text-xs text-fal-muted">{cardSub}</p> : null}
+        </li>
+      ) : null}
+      {avail.debit ? (
+        <li className="rounded-fal border border-fal-line bg-fal-surface px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-fal-ink">Cartão de débito</span>
+            <span className="text-xs font-bold text-emerald-800">Ativo</span>
+          </div>
+          <p className="mb-0 mt-1 text-xs text-fal-muted">
+            À vista{debitAmt != null ? ` · ${formatMoney(debitAmt)}` : ''}
+          </p>
+        </li>
+      ) : null}
+      {avail.pix ? (
+        <li className="rounded-fal border border-fal-line bg-fal-surface px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-fal-ink">Pix</span>
+            <span className="text-xs font-bold text-emerald-800">Ativo</span>
+          </div>
+          <p className="mb-0 mt-1 text-xs text-fal-muted">
+            {pixLine ?? 'Pagamento instantâneo'}
+          </p>
+        </li>
+      ) : null}
+    </ul>
+  )
+
+  // PDP: colapsado por padrão — linha essencial fica no PaymentConditionHint.
   return (
-    <div className={className || 'mt-4 space-y-2'}>
-      <h3 className="m-0 text-sm font-extrabold text-fal-navy">Formas de pagamento</h3>
-      <ul className="m-0 list-none space-y-2 p-0">
-        {avail.credit ? (
-          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fal-ink">Cartão de crédito</span>
-              <span className="text-xs font-bold text-emerald-800">Ativo</span>
-            </div>
-            {cardSub ? <p className="mb-0 mt-1 text-xs text-fal-muted">{cardSub}</p> : null}
-          </li>
-        ) : null}
-        {avail.debit ? (
-          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fal-ink">Cartão de débito</span>
-              <span className="text-xs font-bold text-emerald-800">Ativo</span>
-            </div>
-            <p className="mb-0 mt-1 text-xs text-fal-muted">
-              À vista{debitAmt != null ? ` · ${formatMoney(debitAmt)}` : ''}
-            </p>
-          </li>
-        ) : null}
-        {avail.pix ? (
-          <li className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fal-ink">Pix</span>
-              <span className="text-xs font-bold text-emerald-800">Ativo</span>
-            </div>
-            <p className="mb-0 mt-1 text-xs text-fal-muted">
-              {pixLine ?? 'Pagamento instantâneo'}
-            </p>
-          </li>
-        ) : null}
-      </ul>
-    </div>
+    <details className={className || 'mt-2 group'}>
+      <summary className="cursor-pointer list-none text-sm font-semibold text-fal-navy hover:underline [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-1">
+          Formas de pagamento
+          <span className="text-xs font-bold text-fal-muted group-open:hidden" aria-hidden="true">
+            ▾
+          </span>
+          <span className="hidden text-xs font-bold text-fal-muted group-open:inline" aria-hidden="true">
+            ▴
+          </span>
+        </span>
+      </summary>
+      <div className="mt-2 space-y-2">{methods}</div>
+    </details>
   )
 }

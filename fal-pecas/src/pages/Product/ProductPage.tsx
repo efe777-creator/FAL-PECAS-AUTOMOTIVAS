@@ -655,7 +655,7 @@ export function ProductPage() {
             </p>
           ) : null}
           {current.available !== false && offer.isOffer && presentation.showOfertaBadge ? (
-            <div className="mt-4">
+            <div className="mt-3">
               <Badge>
                 {formatOfertaBadgeLabel(offer, {
                   showDiscountPercent: presentation.showDiscountPercent,
@@ -663,11 +663,21 @@ export function ProductPage() {
               </Badge>
             </div>
           ) : null}
-          <p
-            className={`${
-              offer.isOffer && presentation.showOfertaBadge ? 'mt-2' : 'mt-4'
-            } text-3xl font-black`}
-          >
+
+          {/* Ordem M3: compat antes de preço/CTAs (spec consolidada). */}
+          <CompatVerdictSummary
+            className="mt-4"
+            framed
+            incompatEmphasis
+            verdict={compatVerdict}
+            vehicleLabel={
+              garage?.activeFilter ? filterDisplayLabel(garage.activeFilter) : null
+            }
+            loading={Boolean(garage?.activeFilter && !compatVerdict)}
+            emptyHint="Confirme um veículo no chip do header para ver se esta peça serve."
+          />
+
+          <p className="mt-4 text-3xl font-black">
             {current.available === false
               ? '—'
               : formatStorePriceLabel(storefrontPrice, listPrice)}
@@ -691,19 +701,6 @@ export function ProductPage() {
             )}
           </p>
 
-          {/* Aviso único acima do CTA (E.2) — apps/form ficam em #pdp-detalhes. */}
-          <CompatVerdictSummary
-            className="mt-4"
-            framed
-            incompatEmphasis
-            verdict={compatVerdict}
-            vehicleLabel={
-              garage?.activeFilter ? filterDisplayLabel(garage.activeFilter) : null
-            }
-            loading={Boolean(garage?.activeFilter && !compatVerdict)}
-            emptyHint="Confirme um veículo no chip do header para ver se esta peça serve."
-          />
-
           <div className="mt-5 space-y-3">
             {current.available === false ? (
               <Button variant="primary" fullWidth disabled>
@@ -722,7 +719,7 @@ export function ProductPage() {
                   >
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Diminuir quantidade"
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -730,14 +727,14 @@ export function ProductPage() {
                       −
                     </button>
                     <span
-                      className="grid h-11 min-w-[3rem] place-items-center rounded-[10px] bg-fal-bg px-2 text-base font-black text-fal-navy"
+                      className="grid h-11 min-w-[3rem] place-items-center rounded-fal bg-fal-bg px-2 text-base font-black text-fal-navy"
                       aria-live="polite"
                     >
                       {qty}
                     </span>
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
                       aria-label="Aumentar quantidade"
                       disabled={qty >= MAX_QTY}
                       onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
@@ -755,13 +752,6 @@ export function ProductPage() {
                 <Button variant="light" fullWidth onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
                 </Button>
-
-                <a
-                  href="#pdp-detalhes"
-                  className="inline-block text-sm font-semibold text-fal-navy hover:underline"
-                >
-                  Ver mais informações do produto ↓
-                </a>
 
                 {inCart ? (
                   <p className="m-0 text-sm text-fal-muted" aria-live="polite">
@@ -789,12 +779,35 @@ export function ProductPage() {
                   href={href}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex w-full items-center justify-center rounded-[10px] border border-transparent px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 hover:underline"
+                  className="flex w-full items-center justify-center rounded-fal border border-transparent px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 hover:underline"
                 >
                   Comprar pelo WhatsApp
                 </a>
               )
             })()}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button
+                type="button"
+                className="text-sm font-semibold text-fal-navy hover:underline"
+                onClick={() => {
+                  const url =
+                    typeof window !== 'undefined' ? window.location.href : ''
+                  if (!url) return
+                  void navigator.clipboard?.writeText(url).then(
+                    () => push('Link copiado', 'success'),
+                    () => push('Não foi possível copiar o link', 'error'),
+                  )
+                }}
+              >
+                Copiar link
+              </button>
+              <a
+                href="#pdp-detalhes"
+                className="text-sm font-semibold text-fal-navy hover:underline"
+              >
+                Ver detalhes do produto ↓
+              </a>
+            </div>
           </div>
         </div>
       </div>
