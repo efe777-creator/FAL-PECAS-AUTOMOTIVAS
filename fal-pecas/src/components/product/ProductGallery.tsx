@@ -68,8 +68,10 @@ export function ProductGallery({ images, alt }: Props) {
               aria-selected={selected}
               aria-label={`Imagem ${i + 1} de ${urls.length}`}
               onClick={() => setActive(i)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-fal border-2 bg-fal-surface-2 p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-navy ${
-                selected ? 'border-fal-navy' : 'border-fal-line hover:border-fal-navy/50'
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-fal border-2 bg-fal-surface-2 p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-yellow ${
+                selected
+                  ? 'border-fal-yellow'
+                  : 'border-fal-line hover:border-fal-yellow/60'
               }`}
             >
               <img src={url} alt="" className={productMediaImgClass} loading="lazy" />
@@ -112,10 +114,20 @@ export function ProductGallery({ images, alt }: Props) {
               draggable={false}
             />
             {urls.length > 1 ? (
-              <span className="pointer-events-none absolute bottom-2 right-2 rounded-fal bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white">
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-fal bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white">
                 {safeIndex + 1}/{urls.length}
               </span>
             ) : null}
+            <span
+              className="pointer-events-none absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-fal border border-fal-line/40 bg-fal-surface/90 text-fal-navy shadow-sm dark:bg-fal-surface-2 dark:text-fal-fg"
+              aria-hidden="true"
+              title="Ampliar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="2" />
+                <path d="M15 15l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
           </button>
         ) : (
           <ProductImagePlaceholder />

@@ -10,9 +10,9 @@
 | **2 Galeria** | Hover zoom, lightbox polish | Contain; a11y | — |
 | **3 Buy-box** | Compactar, pag consolidado, CTAs, copiar link, 1 âncora | Fluxos compra | Pag + âncora |
 | **4 Compat** | Form local, sheet, selo cinza equiv | Chip intacto; antiregress | Veredito único |
-| **5 Frete** | Compacto + handoff | Cotação OK | Um frete |
-| **6 Acordeões** | 4 seções | Sem eco veredito | Catálogo/apps |
-| **7 Barra** | Preço + Comprar | Espelha onBuyNow | Não duplica painel |
-| **8 Acabamento** | Radius 14, Inter, testes | Checklist dedup PASS | Gate final |
+| **5 Frete** | Casca “Calcular frete” CEP+Consultar | Cotação + handoff | Um frete |
+| **6 Acordeões** | 4 seções sob galeria (col 45) | Sem eco veredito | Catálogo/apps |
+| **7 Buy-box ref** | Badge, Add→Comprar, Favoritar+WA, barra | Espelha onBuyNow | Não duplica Add |
+| **8 Acabamento** | Thumbs amarelas, dark:, Inter/radius | Checklist + antiregress | Gate final |
 
 Por marcha: implementar → refine → VAL → commit `dev`.

@@ -64,12 +64,14 @@ export function CompatVerdictSummary({
 
   const frameClass = framed
     ? [
-        'rounded-[10px] border px-3 py-2.5',
+        'rounded-fal border px-3 py-2.5',
         seal.kind === 'hide'
-          ? 'border-fal-danger/40 bg-fal-danger/10'
+          ? 'border-fal-danger/40 bg-fal-danger/10 dark:bg-fal-danger/15'
           : seal.kind === 'compatible'
-            ? 'border-fal-success/40 bg-fal-success/10'
-            : 'border-fal-line bg-fal-bg',
+            ? 'border-fal-success/40 bg-fal-success/10 dark:bg-fal-success/15'
+            : seal.kind === 'similar'
+              ? 'border-fal-yellow/50 bg-fal-yellow/15 dark:bg-fal-yellow/10'
+              : 'border-fal-line bg-fal-bg dark:bg-fal-surface-2',
       ].join(' ')
     : ''
 

@@ -118,6 +118,16 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/PaymentConditionHint/)
   })
 
+  it('PDP M8: thumb amarela; lupa na mídia; veredito framed rounded-fal', () => {
+    const gallery = readFileSync(src('components/product/ProductGallery.tsx'), 'utf8')
+    expect(gallery).toMatch(/border-fal-yellow/)
+    expect(gallery).toMatch(/viewBox="0 0 24 24"/)
+
+    const summary = readFileSync(src('components/product/CompatVerdictSummary.tsx'), 'utf8')
+    expect(summary).toMatch(/rounded-fal/)
+    expect(summary).toMatch(/dark:bg-fal-success\/15/)
+  })
+
   it('PDP M7: badge marca; Add primary + Comprar dark; Favoritar/WA; barra mobile', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/Marca: \{brandName\}/)
