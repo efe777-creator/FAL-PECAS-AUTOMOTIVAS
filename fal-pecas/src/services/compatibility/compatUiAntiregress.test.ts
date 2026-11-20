@@ -72,8 +72,8 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
   it('PDP M1: container 1440 só via maxWidth pdp; grid 45/55; galeria 4:3', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/maxWidth=\"pdp\"/)
-    expect(page).toMatch(/48fr/)
-    expect(page).toMatch(/52fr/)
+    expect(page).toMatch(/55fr/)
+    expect(page).toMatch(/45fr/)
     expect(page).toMatch(/lg:sticky/)
 
     const container = readFileSync(src('components/layout/Container.tsx'), 'utf8')
@@ -138,9 +138,11 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/Marca: \{brandName\}/)
     expect(page).toMatch(/PdpPurchaseBar/)
-    expect(page).toMatch(/variant="primary" fullWidth onClick=\{onAddToCart\}/)
-    expect(page).toMatch(/variant="dark" fullWidth onClick=\{onBuyNow\}/)
+    expect(page).toMatch(/variant="primary"[\s\S]*?onClick=\{onAddToCart\}/)
+    expect(page).toMatch(/variant="dark"[\s\S]*?onClick=\{onBuyNow\}/)
     expect(page).toMatch(/Favoritar/)
+    expect(page).toMatch(/Alterar veículo/)
+    expect(page).toMatch(/55fr/)
     expect(page).not.toMatch(/absolute top-4 right-4.*Favoritar/s)
 
     const bar = readFileSync(src('components/product/PdpPurchaseBar.tsx'), 'utf8')

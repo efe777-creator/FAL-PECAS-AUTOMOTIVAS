@@ -286,8 +286,23 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
     >
       <h2
         id="pdp-entrega-frete-title"
-        className="m-0 text-sm font-extrabold text-fal-navy dark:text-fal-fg"
+        className="m-0 flex items-center gap-2 text-sm font-extrabold text-fal-navy dark:text-fal-fg"
       >
+        <span
+          className="grid h-7 w-7 place-items-center rounded-fal bg-fal-surface text-fal-navy dark:bg-fal-bg dark:text-fal-fg"
+          aria-hidden="true"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M3 7h11v10H3V7zm11 3h4l3 3v4h-7v-7z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="7.5" cy="18.5" r="1.5" fill="currentColor" />
+            <circle cx="17.5" cy="18.5" r="1.5" fill="currentColor" />
+          </svg>
+        </span>
         Calcular frete
       </h2>
 

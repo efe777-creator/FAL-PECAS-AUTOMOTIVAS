@@ -15,6 +15,7 @@ import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMetho
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { ProductCard } from '@/components/product/ProductCard'
 import { PdpAccordion } from '@/components/product/PdpAccordion'
+import { PdpPaymentIcons } from '@/components/product/PdpPaymentIcons'
 import { PdpPurchaseBar } from '@/components/product/PdpPurchaseBar'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
@@ -651,37 +652,41 @@ export function ProductPage() {
         </ol>
       </nav>
 
-      {/* Desktop: galeria+acordeões col1, buy-box col2. Mobile: galeria → buy-box → acordeões */}
-      <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,48fr)_minmax(0,52fr)] lg:gap-6">
+      {/* Referência: galeria ~55% | buy-box ~45%. Mobile: galeria → buy-box → acordeões */}
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:gap-8">
         <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
           <ProductGallery images={galleryImages} alt={displayName} />
         </div>
 
-        <div className="relative order-2 min-w-0 rounded-fal border border-fal-line/80 bg-fal-surface p-3.5 sm:p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-4">
+        <div className="relative order-2 min-w-0 bg-transparent p-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-2">
           {brandName ? (
-            <span className="inline-flex rounded-fal border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg">
+            <span className="inline-flex rounded-fal border border-fal-navy/15 bg-fal-navy/5 px-2.5 py-1 text-xs font-bold text-fal-navy dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg">
               Marca: {brandName}
             </span>
           ) : null}
           <h1
             className={[
-              'text-[22px] font-extrabold leading-tight text-fal-navy dark:text-fal-fg sm:text-[28px]',
+              'text-[24px] font-extrabold leading-tight tracking-tight text-fal-navy dark:text-fal-fg sm:text-[30px]',
               brandName ? 'mt-2' : 'mt-0',
             ].join(' ')}
           >
             {displayName}
           </h1>
-          <p className="mt-1 text-sm text-fal-muted">{formatReferenciaFromProduct(current)}</p>
-          {brandName ? (
-            <p className="mt-1 text-sm text-fal-ink">
-              <span className="font-semibold text-fal-navy dark:text-fal-fg">
-                {FABRICANTE_LABEL}:
-              </span>{' '}
-              {brandName}
-            </p>
-          ) : null}
+          <p className="mt-1 text-sm text-fal-muted">
+            {formatReferenciaFromProduct(current)}
+            {brandName ? (
+              <>
+                <span className="mx-1.5 text-fal-line" aria-hidden="true">
+                  |
+                </span>
+                <span>
+                  {FABRICANTE_LABEL}: {brandName}
+                </span>
+              </>
+            ) : null}
+          </p>
           {current.available !== false && offer.isOffer && presentation.showOfertaBadge ? (
-            <div className="mt-3">
+            <div className="mt-2">
               <Badge>
                 {formatOfertaBadgeLabel(offer, {
                   showDiscountPercent: presentation.showDiscountPercent,
@@ -690,11 +695,11 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          {/* Ordem M3: compat antes de preço/CTAs · M4: form local / sheet. */}
           <CompatVerdictSummary
-            className="mt-4"
+            className="mt-3"
             framed
             incompatEmphasis
+            showMotivo={pdpSealKind === 'hide'}
             showFaltante={pdpSealKind === 'check' || pdpSealKind === 'similar'}
             verdict={compatVerdict}
             vehicleLabel={
@@ -702,13 +707,13 @@ export function ProductPage() {
             }
             vehicleAction={
               garage?.activeFilter ? (
-                <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
-                  Trocar
+                <Link to="/garagem" className="text-fal-navy hover:underline dark:text-fal-fg">
+                  Alterar veículo
                 </Link>
               ) : localVehicleFilter ? (
                 <button
                   type="button"
-                  className="font-semibold text-fal-accent hover:underline"
+                  className="text-fal-navy hover:underline dark:text-fal-fg"
                   onClick={() => setLocalVehicleFilter(null)}
                 >
                   Limpar
@@ -785,7 +790,7 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          <p className="mt-3 text-[1.75rem] font-black leading-none sm:text-3xl">
+          <p className="mt-4 text-[2rem] font-black leading-none tracking-tight text-fal-navy dark:text-fal-fg sm:text-[2.25rem]">
             {current.available === false
               ? '—'
               : formatStorePriceLabel(storefrontPrice, listPrice)}
@@ -796,39 +801,37 @@ export function ProductPage() {
             </p>
           ) : null}
           {current.available !== false ? (
-            <>
+            <div className="mt-1 space-y-2">
               <PaymentConditionHint amount={price} surface="pdp" />
+              <PdpPaymentIcons />
               <StorePaymentMethodsBlock amount={price} surface="pdp" />
-            </>
+            </div>
           ) : null}
 
           <div className="mt-4 space-y-2.5 pb-20 lg:pb-0">
             {current.available === false ? (
               <>
-                <p className="m-0 text-sm">
-                  <span className="font-semibold text-fal-danger">Indisponível</span>
-                </p>
+                <p className="m-0 text-sm font-semibold text-fal-danger">Indisponível</p>
                 <Button variant="primary" fullWidth disabled>
                   Indisponível
                 </Button>
               </>
             ) : (
               <>
-                <div className="flex items-center gap-3">
-                  <span
-                    id="pdp-qty-label"
-                    className="text-sm font-semibold text-fal-navy dark:text-fal-fg"
-                  >
-                    Quantidade
-                  </span>
+                <ProductShippingQuoteBlock product={current} quantity={qty} />
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="m-0 inline-flex items-center gap-1.5 text-sm font-semibold text-fal-success">
+                    <span aria-hidden="true">✓</span> Disponível
+                  </p>
                   <div
                     className="inline-flex items-center gap-1"
                     role="group"
-                    aria-labelledby="pdp-qty-label"
+                    aria-label="Quantidade"
                   >
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50 dark:text-fal-fg"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Diminuir quantidade"
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -836,14 +839,14 @@ export function ProductPage() {
                       −
                     </button>
                     <span
-                      className="grid h-11 min-w-[3rem] place-items-center rounded-fal bg-fal-bg px-2 text-base font-black text-fal-navy dark:text-fal-fg"
+                      className="grid h-9 min-w-[2.5rem] place-items-center rounded-fal bg-fal-bg px-2 text-sm font-black text-fal-navy dark:text-fal-fg"
                       aria-live="polite"
                     >
                       {qty}
                     </span>
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50 dark:text-fal-fg"
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Aumentar quantidade"
                       disabled={qty >= MAX_QTY}
                       onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
@@ -853,16 +856,10 @@ export function ProductPage() {
                   </div>
                 </div>
 
-                <ProductShippingQuoteBlock product={current} quantity={qty} />
-
-                <p className="m-0 text-sm">
-                  <span className="font-semibold text-fal-success">Disponível</span>
-                </p>
-
-                <Button variant="primary" fullWidth onClick={onAddToCart}>
+                <Button variant="primary" fullWidth className="h-12 text-base" onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
                 </Button>
-                <Button variant="dark" fullWidth onClick={onBuyNow}>
+                <Button variant="dark" fullWidth className="h-12 text-base" onClick={onBuyNow}>
                   {COMPRAR_AGORA_LABEL}
                 </Button>
 
@@ -877,7 +874,7 @@ export function ProductPage() {
               </>
             )}
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 fullWidth
@@ -889,7 +886,12 @@ export function ProductPage() {
               {(() => {
                 if (!waPhone || current.available === false) {
                   return (
-                    <span className="hidden sm:block" aria-hidden="true" />
+                    <span
+                      className="flex items-center justify-center rounded-fal border border-fal-line px-3 text-sm text-fal-muted"
+                      aria-hidden="true"
+                    >
+                      —
+                    </span>
                   )
                 }
                 const href = whatsAppHref(
@@ -906,15 +908,15 @@ export function ProductPage() {
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex w-full items-center justify-center rounded-fal border border-fal-navy/30 bg-fal-surface px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 dark:border-fal-line"
+                    className="flex w-full items-center justify-center rounded-fal border border-fal-navy/25 bg-fal-surface px-3 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 dark:border-fal-line"
                   >
-                    Comprar pelo WhatsApp
+                    WhatsApp
                   </a>
                 )
               })()}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
               <button
                 type="button"
                 className="text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
@@ -934,7 +936,7 @@ export function ProductPage() {
                 href="#pdp-detalhes"
                 className="text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
               >
-                Ver detalhes do produto ↓
+                Ver detalhes ↓
               </a>
             </div>
           </div>
@@ -949,6 +951,7 @@ export function ProductPage() {
               {
                 id: 'apps',
                 title: 'Aplicação e compatibilidade',
+                icon: 'A',
                 defaultOpen: true,
                 children: (
                   <>
@@ -990,6 +993,7 @@ export function ProductPage() {
               {
                 id: 'desc',
                 title: DESCRICAO_SECTION_LABEL,
+                icon: 'D',
                 children: fullDescription ? (
                   <>
                     <p className="mb-0 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
@@ -1011,6 +1015,7 @@ export function ProductPage() {
               {
                 id: 'specs',
                 title: ESPECIFICACOES_SECTION_LABEL,
+                icon: 'E',
                 children: specRows.length ? (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-0 border-collapse">
@@ -1041,6 +1046,7 @@ export function ProductPage() {
               {
                 id: 'pack',
                 title: 'Conteúdo da embalagem',
+                icon: 'C',
                 children: (
                   <ul className="mb-0 mt-0 list-disc space-y-1 pl-4 text-fal-muted">
                     <li>1 unidade do produto conforme título e referência.</li>
