@@ -17,6 +17,7 @@
 | 7 | E.2 aviso no buy-box + selo Incompatível no card | `FAL_MARCHA_COMPAT_E2_AVISO_BUYBOX_VAL_2026-11-20.md` |
 | 8 | E.7 Gate/M32 bottom sheet mobile | `FAL_MARCHA_COMPAT_E7_SHEETS_VAL_2026-11-20.md` |
 | 9 | Dedup UI (summary + ModalActions) | `FAL_MARCHA_COMPAT_DEDUP_UI_VAL_2026-11-20.md` |
+| 10 | Anti-regress Vitest estável | `FAL_MARCHA_COMPAT_ANTIREGRESS_VAL_2026-11-20.md` |
 
 ## Aceite consolidado
 
