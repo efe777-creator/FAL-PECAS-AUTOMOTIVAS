@@ -118,6 +118,23 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/PaymentConditionHint/)
   })
 
+  it('PDP M6: acordeões sob galeria; 4 seções; sem eco veredito', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    expect(page).toMatch(/PdpAccordion/)
+    expect(page).toMatch(/Aplicação e compatibilidade/)
+    expect(page).toMatch(/Conteúdo da embalagem/)
+    expect(page).toMatch(/id="pdp-detalhes"/)
+    const galleryIdx = page.indexOf('<ProductGallery')
+    const accIdx = page.indexOf('<PdpAccordion')
+    const buyStickyIdx = page.indexOf('lg:sticky lg:top-24')
+    expect(galleryIdx).toBeGreaterThan(-1)
+    expect(accIdx).toBeGreaterThan(galleryIdx)
+    expect(buyStickyIdx).toBeGreaterThan(accIdx)
+
+    const acc = readFileSync(src('components/product/PdpAccordion.tsx'), 'utf8')
+    expect(acc).toMatch(/aria-expanded/)
+  })
+
   it('PDP M5: frete compacto CEP + Consultar; handoff preservado', () => {
     const ship = readFileSync(src('components/product/ProductShippingQuoteBlock.tsx'), 'utf8')
     expect(ship).toMatch(/Calcular frete/)
@@ -140,10 +157,15 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/surface="equiv"/)
     expect(page).toMatch(/fitFilter=\{effectiveVehicleFilter\}/)
 
-    const detalhesIdx = page.indexOf('id="pdp-detalhes"')
-    const afterDetalhes = page.slice(detalhesIdx)
-    expect(afterDetalhes).not.toMatch(/setVerifyApplied/)
-    expect(afterDetalhes).not.toMatch(/Verificar nesta página/)
+    // Acordeão (col esquerda) não embute o form local; ele fica no buy-box.
+    const accStart = page.indexOf('<PdpAccordion')
+    const buyStart = page.indexOf('lg:sticky lg:top-24')
+    expect(accStart).toBeGreaterThan(-1)
+    expect(buyStart).toBeGreaterThan(accStart)
+    const accordionSlice = page.slice(accStart, buyStart)
+    expect(accordionSlice).not.toMatch(/VehicleSelector/)
+    expect(accordionSlice).not.toMatch(/Verificar nesta página/)
+    expect(page).toMatch(/Verificar nesta página/)
 
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/surface === 'equiv'/)

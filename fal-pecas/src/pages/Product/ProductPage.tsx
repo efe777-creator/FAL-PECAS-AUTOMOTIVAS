@@ -14,6 +14,7 @@ import {
 import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMethodsBlock'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { ProductCard } from '@/components/product/ProductCard'
+import { PdpAccordion } from '@/components/product/PdpAccordion'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
 import { productHref, safeInternalReturnTo } from '@/lib/productHref'
@@ -649,9 +650,132 @@ export function ProductPage() {
         </ol>
       </nav>
 
-      {/* Desktop 45/55 · Mobile: galeria → buy-box (spec redesign M1) */}
+      {/* Desktop 45/55 · Mobile: galeria → buy-box → acordeões (ordem do grid) */}
       <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-8">
-        <ProductGallery images={galleryImages} alt={displayName} />
+        <div className="min-w-0">
+          <ProductGallery images={galleryImages} alt={displayName} />
+          <div id="pdp-detalhes" className="scroll-mt-24">
+          <PdpAccordion
+            items={[
+              {
+                id: 'apps',
+                title: 'Aplicação e compatibilidade',
+                defaultOpen: true,
+                children: (
+                  <>
+                    {garage?.activeFilter ? (
+                      <p className="mb-3 m-0 text-xs text-fal-muted">
+                        Veículo:{' '}
+                        <span className="font-semibold text-fal-fg">
+                          {filterDisplayLabel(garage.activeFilter)}
+                        </span>
+                        {' · '}
+                        <Link
+                          to="/garagem"
+                          className="font-semibold text-fal-accent hover:underline"
+                        >
+                          Trocar
+                        </Link>
+                      </p>
+                    ) : null}
+                    <CompatibilityAppsBlock
+                      variant="pdp"
+                      groups={current.compatibilityGroups}
+                      summary={current.compatibilitySummary}
+                    />
+                    {current.compatibilityGroups?.length || current.compatibilitySummary ? (
+                      <p className="mb-0 mt-3 text-sm">
+                        <Link
+                          to={catalogFilter.href}
+                          className="font-semibold text-fal-navy hover:underline dark:text-fal-fg"
+                        >
+                          {FILTRAR_NO_CATALOGO_LABEL}
+                        </Link>
+                        <span className="text-fal-muted">{catalogFilter.hint}</span>
+                      </p>
+                    ) : null}
+                    <p className="mb-0 mt-3 text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
+                  </>
+                ),
+              },
+              {
+                id: 'desc',
+                title: DESCRICAO_SECTION_LABEL,
+                children: fullDescription ? (
+                  <>
+                    <p className="mb-0 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
+                    {descriptionCollapses ? (
+                      <button
+                        type="button"
+                        className="mt-2 text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
+                        aria-expanded={descExpanded}
+                        onClick={() => setDescExpanded((v) => !v)}
+                      >
+                        {descExpanded ? VER_MENOS_DESCRICAO_LABEL : VER_DESCRICAO_COMPLETA_LABEL}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="mb-0 text-fal-muted">Sem descrição cadastrada.</p>
+                ),
+              },
+              {
+                id: 'specs',
+                title: ESPECIFICACOES_SECTION_LABEL,
+                children: specRows.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-0 border-collapse">
+                      <tbody>
+                        {specRows.map((row, i) => (
+                          <tr
+                            key={`${row.label}-${row.value}`}
+                            className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-fal-surface'}
+                          >
+                            <th
+                              scope="row"
+                              className="w-[38%] px-2 py-2 text-left align-top font-semibold text-fal-navy dark:text-fal-fg"
+                            >
+                              {row.label}
+                            </th>
+                            <td className="min-w-0 break-words px-2 py-2 text-fal-muted">
+                              {row.value}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mb-0 text-fal-muted">Sem especificações cadastradas.</p>
+                ),
+              },
+              {
+                id: 'pack',
+                title: 'Conteúdo da embalagem',
+                children: (
+                  <ul className="mb-0 mt-0 list-disc space-y-1 pl-4 text-fal-muted">
+                    <li>1 unidade do produto conforme título e referência.</li>
+                    {current.weightKg != null && current.weightKg > 0 ? (
+                      <li>Peso aproximado: {current.weightKg} kg</li>
+                    ) : null}
+                    {current.lengthCm != null &&
+                    current.widthCm != null &&
+                    current.heightCm != null &&
+                    current.lengthCm > 0 &&
+                    current.widthCm > 0 &&
+                    current.heightCm > 0 ? (
+                      <li>
+                        Dimensões aprox.: {current.lengthCm}×{current.widthCm}×{current.heightCm}{' '}
+                        cm
+                      </li>
+                    ) : null}
+                  </ul>
+                ),
+              },
+            ]}
+          />
+          </div>
+        </div>
 
         <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:sticky lg:top-24 lg:self-start">
           <button
@@ -963,80 +1087,6 @@ export function ProductPage() {
           </label>
         </div>
       </Modal>
-
-      {/* Abaixo do buy-box: apps → desc → specs · form/veredito só no buy-box (M4). */}
-      <div id="pdp-detalhes" className="mt-8 min-w-0 scroll-mt-24 space-y-4">
-        <div className="rounded-fal border border-fal-line bg-fal-bg p-3 sm:p-4">
-          <h2 className="m-0 mb-2 text-sm font-extrabold tracking-tight text-fal-navy dark:text-fal-fg">
-            Compatibilidade
-          </h2>
-          {garage?.activeFilter ? (
-            <p className="mb-3 m-0 text-xs text-fal-muted">
-              Veículo:{' '}
-              <span className="font-semibold text-fal-fg">
-                {filterDisplayLabel(garage.activeFilter)}
-              </span>
-              {' · '}
-              <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
-                Trocar
-              </Link>
-            </p>
-          ) : null}
-          <CompatibilityAppsBlock
-            variant="pdp"
-            groups={current.compatibilityGroups}
-            summary={current.compatibilitySummary}
-          />
-          {current.compatibilityGroups?.length || current.compatibilitySummary ? (
-            <p className="mb-0 mt-3 text-sm">
-              <Link to={catalogFilter.href} className="font-semibold text-fal-navy hover:underline">
-                {FILTRAR_NO_CATALOGO_LABEL}
-              </Link>
-              <span className="text-fal-muted">{catalogFilter.hint}</span>
-            </p>
-          ) : null}
-        </div>
-        {fullDescription ? (
-          <div className="rounded-[10px] border border-fal-line bg-fal-surface p-4 text-sm text-fal-ink">
-            <p className="m-0 font-semibold text-fal-navy">{DESCRICAO_SECTION_LABEL}</p>
-            <p className="mb-0 mt-1 whitespace-pre-wrap text-fal-muted">{descriptionShown}</p>
-            {descriptionCollapses ? (
-              <button
-                type="button"
-                className="mt-2 text-sm font-semibold text-fal-navy hover:underline"
-                aria-expanded={descExpanded}
-                onClick={() => setDescExpanded((v) => !v)}
-              >
-                {descExpanded ? VER_MENOS_DESCRICAO_LABEL : VER_DESCRICAO_COMPLETA_LABEL}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        {specRows.length ? (
-          <div className="overflow-x-auto rounded-[10px] border border-fal-line bg-fal-surface p-4 text-sm text-fal-ink">
-            <p className="m-0 font-semibold text-fal-navy">{ESPECIFICACOES_SECTION_LABEL}</p>
-            <table className="mt-2 w-full min-w-0 border-collapse">
-              <tbody>
-                {specRows.map((row, i) => (
-                  <tr
-                    key={`${row.label}-${row.value}`}
-                    className={i % 2 === 0 ? 'bg-fal-bg/80' : 'bg-fal-surface'}
-                  >
-                    <th
-                      scope="row"
-                      className="w-[38%] px-3 py-2.5 text-left align-top font-semibold text-fal-navy"
-                    >
-                      {row.label}
-                    </th>
-                    <td className="min-w-0 break-words px-3 py-2.5 text-fal-muted">{row.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-        <p className="text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
-      </div>
 
       {equivalents.length ? (
         <section className="mt-10 min-w-0" aria-labelledby="pdp-equiv-heading">
