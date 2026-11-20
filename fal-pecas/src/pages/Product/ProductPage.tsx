@@ -15,6 +15,7 @@ import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMetho
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { ProductCard } from '@/components/product/ProductCard'
 import { PdpAccordion } from '@/components/product/PdpAccordion'
+import { PdpPurchaseBar } from '@/components/product/PdpPurchaseBar'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
 import { productHref, safeInternalReturnTo } from '@/lib/productHref'
@@ -777,27 +778,27 @@ export function ProductPage() {
           </div>
         </div>
 
-        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:sticky lg:top-24 lg:self-start">
-          <button
-            type="button"
+        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:sticky lg:top-24 lg:self-start lg:pb-5">
+          {brandName ? (
+            <span className="inline-flex rounded-fal border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg">
+              Marca: {brandName}
+            </span>
+          ) : null}
+          <h1
             className={[
-              'absolute top-4 right-4 grid h-10 w-10 place-items-center rounded-full border bg-fal-surface text-base shadow-sm',
-              liked
-                ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
-                : 'border-fal-line text-fal-muted hover:border-fal-navy',
+              'text-[26px] font-extrabold leading-tight text-fal-navy dark:text-fal-fg sm:text-[32px]',
+              brandName ? 'mt-2' : 'mt-0',
             ].join(' ')}
-            aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
-            onClick={() => void onFavoriteClick()}
           >
-            {liked ? '♥' : '♡'}
-          </button>
-          <h1 className="mt-0 pr-12 text-[26px] font-extrabold leading-tight sm:text-[32px]">
             {displayName}
           </h1>
           <p className="mt-1 text-sm text-fal-muted">{formatReferenciaFromProduct(current)}</p>
           {brandName ? (
             <p className="mt-1 text-sm text-fal-ink">
-              <span className="font-semibold text-fal-navy">{FABRICANTE_LABEL}:</span> {brandName}
+              <span className="font-semibold text-fal-navy dark:text-fal-fg">
+                {FABRICANTE_LABEL}:
+              </span>{' '}
+              {brandName}
             </p>
           ) : null}
           {current.available !== false && offer.isOffer && presentation.showOfertaBadge ? (
@@ -921,23 +922,24 @@ export function ProductPage() {
               <StorePaymentMethodsBlock amount={price} surface="pdp" />
             </>
           ) : null}
-          <p className="mt-2 text-sm">
-            {current.available === false ? (
-              <span className="font-semibold text-fal-danger">Indisponível</span>
-            ) : (
-              <span className="font-semibold text-fal-success">Disponível</span>
-            )}
-          </p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-3 pb-20 lg:pb-0">
             {current.available === false ? (
-              <Button variant="primary" fullWidth disabled>
-                Indisponível
-              </Button>
+              <>
+                <p className="m-0 text-sm">
+                  <span className="font-semibold text-fal-danger">Indisponível</span>
+                </p>
+                <Button variant="primary" fullWidth disabled>
+                  Indisponível
+                </Button>
+              </>
             ) : (
               <>
                 <div className="flex items-center gap-3">
-                  <span id="pdp-qty-label" className="text-sm font-semibold text-fal-navy">
+                  <span
+                    id="pdp-qty-label"
+                    className="text-sm font-semibold text-fal-navy dark:text-fal-fg"
+                  >
                     Quantidade
                   </span>
                   <div
@@ -947,7 +949,7 @@ export function ProductPage() {
                   >
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Diminuir quantidade"
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -955,14 +957,14 @@ export function ProductPage() {
                       −
                     </button>
                     <span
-                      className="grid h-11 min-w-[3rem] place-items-center rounded-fal bg-fal-bg px-2 text-base font-black text-fal-navy"
+                      className="grid h-11 min-w-[3rem] place-items-center rounded-fal bg-fal-bg px-2 text-base font-black text-fal-navy dark:text-fal-fg"
                       aria-live="polite"
                     >
                       {qty}
                     </span>
                     <button
                       type="button"
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-lg font-bold text-fal-navy hover:bg-fal-bg disabled:cursor-not-allowed disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Aumentar quantidade"
                       disabled={qty >= MAX_QTY}
                       onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
@@ -974,11 +976,15 @@ export function ProductPage() {
 
                 <ProductShippingQuoteBlock product={current} quantity={qty} />
 
-                <Button variant="primary" fullWidth onClick={onBuyNow}>
-                  {COMPRAR_AGORA_LABEL}
-                </Button>
-                <Button variant="light" fullWidth onClick={onAddToCart}>
+                <p className="m-0 text-sm">
+                  <span className="font-semibold text-fal-success">Disponível</span>
+                </p>
+
+                <Button variant="primary" fullWidth onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
+                </Button>
+                <Button variant="dark" fullWidth onClick={onBuyNow}>
+                  {COMPRAR_AGORA_LABEL}
                 </Button>
 
                 {inCart ? (
@@ -991,32 +997,48 @@ export function ProductPage() {
                 ) : null}
               </>
             )}
-            {(() => {
-              if (!waPhone || current.available === false) return null
-              const href = whatsAppHref(
-                waPhone,
-                buildProductWhatsAppMessage({
-                  name: displayName,
-                  sku: current.commercialRef ?? current.sku,
-                  quantity: qty,
-                  productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
-                }),
-              )
-              return (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-full items-center justify-center rounded-fal border border-transparent px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 hover:underline"
-                >
-                  Comprar pelo WhatsApp
-                </a>
-              )
-            })()}
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                fullWidth
+                type="button"
+                onClick={() => void onFavoriteClick()}
+              >
+                {liked ? '♥ Favoritado' : '♡ Favoritar'}
+              </Button>
+              {(() => {
+                if (!waPhone || current.available === false) {
+                  return (
+                    <span className="hidden sm:block" aria-hidden="true" />
+                  )
+                }
+                const href = whatsAppHref(
+                  waPhone,
+                  buildProductWhatsAppMessage({
+                    name: displayName,
+                    sku: current.commercialRef ?? current.sku,
+                    quantity: qty,
+                    productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+                  }),
+                )
+                return (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex w-full items-center justify-center rounded-fal border border-fal-navy/30 bg-fal-surface px-4 py-2 text-sm font-bold text-[#128C7E] hover:bg-[#25D366]/10 dark:border-fal-line"
+                  >
+                    Comprar pelo WhatsApp
+                  </a>
+                )
+              })()}
+            </div>
+
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <button
                 type="button"
-                className="text-sm font-semibold text-fal-navy hover:underline"
+                className="text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
                 onClick={() => {
                   const url =
                     typeof window !== 'undefined' ? window.location.href : ''
@@ -1031,7 +1053,7 @@ export function ProductPage() {
               </button>
               <a
                 href="#pdp-detalhes"
-                className="text-sm font-semibold text-fal-navy hover:underline"
+                className="text-sm font-semibold text-fal-navy hover:underline dark:text-fal-fg"
               >
                 Ver detalhes do produto ↓
               </a>
@@ -1039,6 +1061,12 @@ export function ProductPage() {
           </div>
         </div>
       </div>
+
+      <PdpPurchaseBar
+        available={current.available !== false}
+        priceLabel={formatStorePriceLabel(storefrontPrice, listPrice)}
+        onBuyNow={onBuyNow}
+      />
 
       <Modal
         open={verifySheetOpen}

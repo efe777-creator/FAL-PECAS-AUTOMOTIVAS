@@ -118,6 +118,21 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/PaymentConditionHint/)
   })
 
+  it('PDP M7: badge marca; Add primary + Comprar dark; Favoritar/WA; barra mobile', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    expect(page).toMatch(/Marca: \{brandName\}/)
+    expect(page).toMatch(/PdpPurchaseBar/)
+    expect(page).toMatch(/variant="primary" fullWidth onClick=\{onAddToCart\}/)
+    expect(page).toMatch(/variant="dark" fullWidth onClick=\{onBuyNow\}/)
+    expect(page).toMatch(/Favoritar/)
+    expect(page).not.toMatch(/absolute top-4 right-4.*Favoritar/s)
+
+    const bar = readFileSync(src('components/product/PdpPurchaseBar.tsx'), 'utf8')
+    expect(bar).toMatch(/onBuyNow/)
+    expect(bar).toMatch(/lg:hidden/)
+    expect(bar).toMatch(/COMPRAR_AGORA_LABEL/)
+  })
+
   it('PDP M6: acordeões sob galeria; 4 seções; sem eco veredito', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/PdpAccordion/)
