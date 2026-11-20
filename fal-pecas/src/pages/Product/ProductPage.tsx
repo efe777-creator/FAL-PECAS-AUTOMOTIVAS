@@ -652,12 +652,12 @@ export function ProductPage() {
       </nav>
 
       {/* Desktop: galeria+acordeões col1, buy-box col2. Mobile: galeria → buy-box → acordeões */}
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-8">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,48fr)_minmax(0,52fr)] lg:gap-6">
         <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
           <ProductGallery images={galleryImages} alt={displayName} />
         </div>
 
-        <div className="relative order-2 min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-5">
+        <div className="relative order-2 min-w-0 rounded-fal border border-fal-line/80 bg-fal-surface p-3.5 sm:p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-4">
           {brandName ? (
             <span className="inline-flex rounded-fal border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg">
               Marca: {brandName}
@@ -665,7 +665,7 @@ export function ProductPage() {
           ) : null}
           <h1
             className={[
-              'text-[26px] font-extrabold leading-tight text-fal-navy dark:text-fal-fg sm:text-[32px]',
+              'text-[22px] font-extrabold leading-tight text-fal-navy dark:text-fal-fg sm:text-[28px]',
               brandName ? 'mt-2' : 'mt-0',
             ].join(' ')}
           >
@@ -785,7 +785,7 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          <p className="mt-4 text-3xl font-black">
+          <p className="mt-3 text-[1.75rem] font-black leading-none sm:text-3xl">
             {current.available === false
               ? '—'
               : formatStorePriceLabel(storefrontPrice, listPrice)}
@@ -802,7 +802,7 @@ export function ProductPage() {
             </>
           ) : null}
 
-          <div className="mt-5 space-y-3 pb-20 lg:pb-0">
+          <div className="mt-4 space-y-2.5 pb-20 lg:pb-0">
             {current.available === false ? (
               <>
                 <p className="m-0 text-sm">

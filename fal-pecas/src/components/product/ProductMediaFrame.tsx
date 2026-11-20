@@ -5,17 +5,17 @@ type Variant = 'card' | 'gallery' | 'thumb'
 const shell: Record<Variant, string> = {
   /** Cards do catálogo / carrosséis — área um pouco maior, foto preenche melhor */
   card: 'flex h-[132px] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2 sm:h-[176px]',
-  /** Área principal da PDP — proporção 4:3 (spec redesign). */
+  /** Área principal da PDP — 4:3, foto mais presente (referência visual). */
   gallery:
-    'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2',
+    'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface dark:bg-fal-surface-2',
   /** Miniaturas / busca / carrinho */
   thumb: 'flex h-full w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2',
 }
 
-/** Padding interno: card apertado (fotos com margem branca própria); gallery respira mais. */
+/** Padding interno: gallery apertada para a peça preencher o quadro. */
 const pad: Record<Variant, string> = {
   card: 'p-1 sm:p-1.5',
-  gallery: 'p-2.5 sm:p-4',
+  gallery: 'p-1 sm:p-1.5',
   thumb: 'p-0.5',
 }
 
@@ -50,4 +50,4 @@ export const productMediaImgClassCard =
   'h-full w-full origin-center object-contain object-center scale-[1.18]'
 
 export const productMediaImgClassGallery =
-  'max-h-full max-w-full origin-center object-contain object-center scale-[1.06]'
+  'max-h-full max-w-full origin-center object-contain object-center scale-[1.14]'

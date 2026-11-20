@@ -292,13 +292,8 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
       </h2>
 
       {ready ? (
-        <div className="mt-2.5 space-y-2">
-          <SavedAddressQuoteSelect
-            valueId={savedAddressId}
-            name="pdp-saved-address"
-            onSelect={onSavedAddress}
-          />
-          <div className="flex items-stretch gap-2">
+        <div className="mt-2 space-y-2">
+          <div className="flex items-end gap-2">
             <div className="min-w-0 flex-1">
               <Input
                 label="CEP"
@@ -326,11 +321,23 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
               size="sm"
               disabled={loading}
               onClick={onConsultar}
-              className="shrink-0 self-end"
+              className="shrink-0"
             >
               {loading ? '…' : 'Consultar'}
             </Button>
           </div>
+          <details className="group">
+            <summary className="cursor-pointer list-none text-xs font-semibold text-fal-navy hover:underline dark:text-fal-fg [&::-webkit-details-marker]:hidden">
+              Usar endereço salvo
+            </summary>
+            <div className="mt-1.5">
+              <SavedAddressQuoteSelect
+                valueId={savedAddressId}
+                name="pdp-saved-address"
+                onSelect={onSavedAddress}
+              />
+            </div>
+          </details>
         </div>
       ) : (
         <p className="mb-0 mt-2 text-xs text-fal-muted">

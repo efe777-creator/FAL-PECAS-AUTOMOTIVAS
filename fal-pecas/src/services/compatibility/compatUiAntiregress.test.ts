@@ -72,8 +72,8 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
   it('PDP M1: container 1440 só via maxWidth pdp; grid 45/55; galeria 4:3', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/maxWidth=\"pdp\"/)
-    expect(page).toMatch(/45fr/)
-    expect(page).toMatch(/55fr/)
+    expect(page).toMatch(/48fr/)
+    expect(page).toMatch(/52fr/)
     expect(page).toMatch(/lg:sticky/)
 
     const container = readFileSync(src('components/layout/Container.tsx'), 'utf8')
@@ -103,11 +103,17 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
   it('PDP M3: pag colapsável; compat antes do preço; copiar link; 1 âncora', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     const verdictIdx = page.indexOf('<CompatVerdictSummary')
-    const priceIdx = page.indexOf('text-3xl font-black')
+    const priceIdx = page.indexOf('formatStorePriceLabel(storefrontPrice, listPrice)')
+    // Ignora import: usa a ocorrência no JSX do buy-box (depois do CompatVerdictSummary).
+    const priceJsxIdx = page.indexOf(
+      'formatStorePriceLabel(storefrontPrice, listPrice)',
+      verdictIdx,
+    )
     const buyIdx = page.indexOf('onClick={onBuyNow}')
     expect(verdictIdx).toBeGreaterThan(-1)
-    expect(priceIdx).toBeGreaterThan(verdictIdx)
-    expect(buyIdx).toBeGreaterThan(priceIdx)
+    expect(priceJsxIdx).toBeGreaterThan(verdictIdx)
+    expect(buyIdx).toBeGreaterThan(priceJsxIdx)
+    expect(priceIdx).toBeGreaterThan(-1)
     expect(page).toMatch(/Copiar link/)
     expect(page).toMatch(/navigator\.clipboard/)
     expect(page.match(/href="#pdp-detalhes"/g)?.length).toBe(1)
