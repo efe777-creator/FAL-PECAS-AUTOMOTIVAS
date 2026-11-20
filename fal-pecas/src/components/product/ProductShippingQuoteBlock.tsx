@@ -1,5 +1,4 @@
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 import { SavedAddressQuoteSelect } from '@/components/shipping/SavedAddressQuoteSelect'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCepMask } from '@/lib/cep'
@@ -279,20 +278,22 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
     void runQuoteFor(digits, hintFromAddress(address))
   }
 
+  const showShipOptions = pickupSelected || deliveryOptions.length > 0 || quoted
+
   return (
     <section
-      className="rounded-fal border border-fal-line bg-fal-bg p-3 dark:bg-fal-surface-2/40"
+      className="rounded-fal border border-fal-line bg-fal-bg px-2.5 py-2 dark:bg-fal-surface-2/40"
       aria-labelledby="pdp-entrega-frete-title"
     >
       <h2
         id="pdp-entrega-frete-title"
-        className="m-0 flex items-center gap-2 text-sm font-extrabold text-fal-navy dark:text-fal-fg"
+        className="m-0 flex items-center gap-1.5 text-[13px] font-extrabold text-fal-navy dark:text-fal-fg"
       >
         <span
-          className="grid h-7 w-7 place-items-center rounded-fal bg-fal-surface text-fal-navy dark:bg-fal-bg dark:text-fal-fg"
+          className="grid h-6 w-6 place-items-center rounded-fal bg-fal-surface text-fal-navy dark:bg-fal-bg dark:text-fal-fg"
           aria-hidden="true"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path
               d="M3 7h11v10H3V7zm11 3h4l3 3v4h-7v-7z"
               stroke="currentColor"
@@ -307,36 +308,39 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
       </h2>
 
       {ready ? (
-        <div className="mt-2 space-y-2">
-          <div className="flex items-end gap-2">
-            <div className="min-w-0 flex-1">
-              <Input
-                label="CEP"
-                name="pdp-shipping-cep"
-                inputMode="numeric"
-                autoComplete="postal-code"
-                placeholder="Digite seu CEP"
-                value={cep}
-                onChange={(e) => {
-                  setSavedAddressId('')
-                  setSavedAddress(null)
-                  setCep(formatCepInput(e.target.value))
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    onConsultar()
-                  }
-                }}
-              />
-            </div>
+        <div className="mt-1.5 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="pdp-shipping-cep">
+              CEP
+            </label>
+            <input
+              id="pdp-shipping-cep"
+              name="pdp-shipping-cep"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              placeholder="Digite seu CEP"
+              aria-label="CEP"
+              className="fal-field min-w-0 flex-1 rounded-[9px] border border-fal-line bg-fal-surface px-2.5 py-1.5 text-sm text-fal-fg outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
+              value={cep}
+              onChange={(e) => {
+                setSavedAddressId('')
+                setSavedAddress(null)
+                setCep(formatCepInput(e.target.value))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onConsultar()
+                }
+              }}
+            />
             <Button
               type="button"
               variant="dark"
               size="sm"
               disabled={loading}
               onClick={onConsultar}
-              className="shrink-0"
+              className="h-9 shrink-0"
             >
               {loading ? '…' : 'Consultar'}
             </Button>
@@ -355,44 +359,54 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
           </details>
         </div>
       ) : (
-        <p className="mb-0 mt-2 text-xs text-fal-muted">
+        <p className="mb-0 mt-1.5 text-xs text-fal-muted">
           Frete por transportadora indisponível neste produto. Use a retirada ou confirme no
           checkout.
         </p>
       )}
 
-      <div className="mt-3 space-y-2">
-        <label
-          className={`flex cursor-pointer items-center justify-between gap-2 rounded-fal border px-2.5 py-2 text-sm transition-colors ${
-            pickupSelected
-              ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy dark:border-fal-yellow'
-              : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
-          }`}
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <input
-              type="radio"
-              name="pdp-ship-opt"
-              className="shrink-0"
-              checked={pickupSelected}
-              onChange={selectPickup}
-            />
-            <span className="truncate font-semibold text-fal-navy dark:text-fal-fg">
-              Retirada na loja
+      <div className="mt-1.5 space-y-1.5">
+        {showShipOptions ? (
+          <label
+            className={`flex cursor-pointer items-center justify-between gap-2 rounded-fal border px-2 py-1.5 text-sm transition-colors ${
+              pickupSelected
+                ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy dark:border-fal-yellow'
+                : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <input
+                type="radio"
+                name="pdp-ship-opt"
+                className="shrink-0"
+                checked={pickupSelected}
+                onChange={selectPickup}
+              />
+              <span className="truncate font-semibold text-fal-navy dark:text-fal-fg">
+                Retirada na loja
+              </span>
             </span>
-          </span>
-          <strong className="shrink-0 text-fal-navy dark:text-fal-fg">{formatMoney(0)}</strong>
-        </label>
+            <strong className="shrink-0 text-fal-navy dark:text-fal-fg">{formatMoney(0)}</strong>
+          </label>
+        ) : (
+          <button
+            type="button"
+            className="text-xs font-semibold text-fal-navy hover:underline dark:text-fal-fg"
+            onClick={selectPickup}
+          >
+            Preferir retirada na loja
+          </button>
+        )}
 
         {deliveryOptions.length > 0 ? (
-          <ul className="m-0 list-none space-y-2 p-0" role="listbox" aria-label="Opções de frete">
+          <ul className="m-0 list-none space-y-1.5 p-0" role="listbox" aria-label="Opções de frete">
             {deliveryOptions.map((o) => {
               const eta = formatShippingEtaLabel(o)
               const active = selectedId === o.id
               return (
                 <li key={o.id}>
                   <label
-                    className={`flex cursor-pointer items-start justify-between gap-2 rounded-fal border px-2.5 py-2 transition-colors ${
+                    className={`flex cursor-pointer items-start justify-between gap-2 rounded-fal border px-2 py-1.5 transition-colors ${
                       active
                         ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy dark:border-fal-yellow'
                         : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'

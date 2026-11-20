@@ -159,7 +159,7 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/id="pdp-detalhes"/)
     // Fonte: galeria → buy-box → acordeão; CSS order + lg:col garante layout.
     const galleryIdx = page.indexOf('<ProductGallery')
-    const buyStickyIdx = page.indexOf('lg:sticky lg:top-24')
+    const buyStickyIdx = page.indexOf('lg:sticky lg:top-20')
     const accIdx = page.indexOf('<PdpAccordion')
     expect(galleryIdx).toBeGreaterThan(-1)
     expect(buyStickyIdx).toBeGreaterThan(galleryIdx)

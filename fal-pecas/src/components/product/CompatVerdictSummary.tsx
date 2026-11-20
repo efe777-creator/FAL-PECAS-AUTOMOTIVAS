@@ -88,7 +88,7 @@ export function CompatVerdictSummary({
 
     return (
       <div
-        className={['rounded-fal border px-3 py-2.5', frameTone, className]
+        className={['rounded-fal border px-2.5 py-2', frameTone, className]
           .filter(Boolean)
           .join(' ')}
         role="status"
@@ -112,8 +112,12 @@ export function CompatVerdictSummary({
             {seal.kind === 'hide' && vehicleLabel ? (
               <p className="m-0 text-[11px] text-fal-muted">Veículo: {vehicleLabel}</p>
             ) : null}
-            {motivo ? <p className="m-0 text-[11px] text-fal-muted">Motivo: {motivo}</p> : null}
-            {faltante ? <p className="m-0 text-[11px] text-fal-muted">Falta: {faltante}</p> : null}
+            {motivo ? (
+              <p className="m-0 line-clamp-1 text-[11px] text-fal-muted">Motivo: {motivo}</p>
+            ) : null}
+            {faltante ? (
+              <p className="m-0 line-clamp-1 text-[11px] text-fal-muted">Falta: {faltante}</p>
+            ) : null}
           </div>
           {vehicleAction ? (
             <div className="shrink-0 pt-0.5 text-xs font-semibold">{vehicleAction}</div>

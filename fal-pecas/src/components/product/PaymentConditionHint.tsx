@@ -46,7 +46,7 @@ export function PaymentConditionHint({
           className={
             surface === 'card'
               ? 'm-0 truncate text-[11px] font-semibold text-emerald-800'
-              : 'm-0 text-sm font-semibold text-emerald-800'
+              : 'm-0 truncate text-[13px] font-semibold text-emerald-800'
           }
         >
           {pixLine}
@@ -57,7 +57,7 @@ export function PaymentConditionHint({
           className={
             surface === 'card'
               ? 'm-0 truncate text-[11px] font-semibold text-fal-navy/80'
-              : 'm-0 text-sm font-semibold text-fal-navy'
+              : 'm-0 truncate text-[13px] font-semibold text-fal-navy dark:text-fal-fg'
           }
         >
           {primary.method === 'pix' && primary.adjustPercent !== 0
@@ -66,10 +66,12 @@ export function PaymentConditionHint({
         </p>
       ) : null}
       {surface === 'pdp' && settings.footnote ? (
-        <span className="mt-0.5 block text-xs font-normal text-fal-muted">{settings.footnote}</span>
+        <span className="mt-0.5 block truncate text-[11px] font-normal text-fal-muted">
+          {settings.footnote}
+        </span>
       ) : null}
       {surface === 'pdp' && primary.adjustPercent !== 0 ? (
-        <span className="block text-xs text-fal-muted">
+        <span className="block truncate text-[11px] text-fal-muted">
           Preço da lista {formatMoney(amount)} · condição {primary.label}
         </span>
       ) : null}

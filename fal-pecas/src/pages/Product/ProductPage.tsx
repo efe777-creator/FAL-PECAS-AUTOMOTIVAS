@@ -11,7 +11,6 @@ import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
 } from '@/components/product/PaymentConditionHint'
-import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMethodsBlock'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { ProductCard } from '@/components/product/ProductCard'
 import { PdpAccordion } from '@/components/product/PdpAccordion'
@@ -592,16 +591,16 @@ export function ProductPage() {
   }
 
   return (
-    <Container maxWidth="pdp" className="overflow-x-hidden py-6 sm:py-8">
+    <Container maxWidth="pdp" className="overflow-x-hidden py-2 sm:py-3">
       <button
         type="button"
         onClick={goBack}
-        className="mb-1.5 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
+        className="mb-0.5 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
         aria-label="Voltar"
       >
         ← Voltar
       </button>
-      <nav className="mb-4 text-[13px] text-fal-muted" aria-label="Caminho do produto">
+      <nav className="mb-2 text-[12px] text-fal-muted" aria-label="Caminho do produto">
         <ol className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
           <li className="inline-flex items-center gap-x-1">
             <Link to="/" className="hover:underline">
@@ -653,12 +652,12 @@ export function ProductPage() {
       </nav>
 
       {/* Referência: galeria ~55% | buy-box ~45%. Mobile: galeria → buy-box → acordeões */}
-      <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:gap-8">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:gap-6">
         <div className="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
           <ProductGallery images={galleryImages} alt={displayName} />
         </div>
 
-        <div className="relative order-2 min-w-0 bg-transparent p-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start lg:pb-2">
+        <div className="relative order-2 min-w-0 bg-transparent p-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-20 lg:self-start lg:pb-1">
           {brandName ? (
             <span className="inline-flex rounded-fal border border-fal-navy/15 bg-fal-navy/5 px-2.5 py-1 text-xs font-bold text-fal-navy dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg">
               Marca: {brandName}
@@ -666,8 +665,8 @@ export function ProductPage() {
           ) : null}
           <h1
             className={[
-              'text-[24px] font-extrabold leading-tight tracking-tight text-fal-navy dark:text-fal-fg sm:text-[30px]',
-              brandName ? 'mt-2' : 'mt-0',
+              'text-[22px] font-extrabold leading-snug tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]',
+              brandName ? 'mt-1.5' : 'mt-0',
             ].join(' ')}
           >
             {displayName}
@@ -790,25 +789,24 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          <p className="mt-4 text-[2rem] font-black leading-none tracking-tight text-fal-navy dark:text-fal-fg sm:text-[2.25rem]">
+          <p className="mt-2 text-[1.625rem] font-black leading-none tracking-tight text-fal-navy dark:text-fal-fg sm:text-[1.875rem]">
             {current.available === false
               ? '—'
               : formatStorePriceLabel(storefrontPrice, listPrice)}
           </p>
           {current.available !== false && offer.isOffer ? (
-            <p className="mt-1 text-sm text-fal-muted line-through">
+            <p className="mt-0.5 text-sm text-fal-muted line-through">
               {formatMoney(offer.listPrice)}
             </p>
           ) : null}
           {current.available !== false ? (
-            <div className="mt-1 space-y-2">
+            <div className="mt-1 flex flex-col gap-1">
               <PaymentConditionHint amount={price} surface="pdp" />
               <PdpPaymentIcons />
-              <StorePaymentMethodsBlock amount={price} surface="pdp" />
             </div>
           ) : null}
 
-          <div className="mt-4 space-y-2.5 pb-20 lg:pb-0">
+          <div className="mt-1.5 space-y-1.5 pb-20 lg:pb-0">
             {current.available === false ? (
               <>
                 <p className="m-0 text-sm font-semibold text-fal-danger">Indisponível</p>
@@ -820,7 +818,7 @@ export function ProductPage() {
               <>
                 <ProductShippingQuoteBlock product={current} quantity={qty} />
 
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="m-0 inline-flex items-center gap-1.5 text-sm font-semibold text-fal-success">
                     <span aria-hidden="true">✓</span> Disponível
                   </p>
@@ -831,7 +829,7 @@ export function ProductPage() {
                   >
                     <button
                       type="button"
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Diminuir quantidade"
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -839,14 +837,14 @@ export function ProductPage() {
                       −
                     </button>
                     <span
-                      className="grid h-9 min-w-[2.5rem] place-items-center rounded-fal bg-fal-bg px-2 text-sm font-black text-fal-navy dark:text-fal-fg"
+                      className="grid h-8 min-w-[2.25rem] place-items-center rounded-fal bg-fal-bg px-2 text-sm font-black text-fal-navy dark:text-fal-fg"
                       aria-live="polite"
                     >
                       {qty}
                     </span>
                     <button
                       type="button"
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-fal border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg disabled:opacity-50 dark:text-fal-fg"
                       aria-label="Aumentar quantidade"
                       disabled={qty >= MAX_QTY}
                       onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
@@ -856,10 +854,10 @@ export function ProductPage() {
                   </div>
                 </div>
 
-                <Button variant="primary" fullWidth className="h-12 text-base" onClick={onAddToCart}>
+                <Button variant="primary" fullWidth className="h-10 text-[15px]" onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
                 </Button>
-                <Button variant="dark" fullWidth className="h-12 text-base" onClick={onBuyNow}>
+                <Button variant="dark" fullWidth className="h-10 text-[15px]" onClick={onBuyNow}>
                   {COMPRAR_AGORA_LABEL}
                 </Button>
 
