@@ -183,6 +183,21 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(ship).toMatch(/Digite seu CEP|placeholder="Digite seu CEP"/)
   })
 
+  it('PDP M13: disponível+qty antes do frete; grid 55/45; thumbs verticais lg', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    const availIdx = page.indexOf('✓</span> Disponível')
+    const shipIdx = page.indexOf('<ProductShippingQuoteBlock')
+    const addIdx = page.indexOf('onClick={onAddToCart}')
+    expect(availIdx).toBeGreaterThan(-1)
+    expect(shipIdx).toBeGreaterThan(availIdx)
+    expect(addIdx).toBeGreaterThan(shipIdx)
+    expect(page).toMatch(/55fr.*45fr|minmax\(0,55fr\).*minmax\(0,45fr\)/)
+
+    const gallery = readFileSync(src('components/product/ProductGallery.tsx'), 'utf8')
+    expect(gallery).toMatch(/lg:flex-col/)
+    expect(gallery).toMatch(/lg:flex-row/)
+  })
+
   it('PDP M4: form local sem chip; sheet mobile; equiv cinza sem CTA', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/localVehicleFilter/)

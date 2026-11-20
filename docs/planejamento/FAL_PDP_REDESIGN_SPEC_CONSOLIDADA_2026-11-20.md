@@ -33,9 +33,9 @@ Direção: **Compacta + Premium + Inteligente** · layout alinhado à referênci
 
 **Override CTA (referência):** painel = **Adicionar** `primary` (amarelo) → **Comprar agora** `dark` (navy). Barra mobile espelha `onBuyNow` (não duplica Add).
 
-**Preliminares:** grid **45/55**; galeria **4:3** contain; thumbs verticais desktop / horizontais mobile; thumb ativa **amarelo**; sticky buy-box.
+**Preliminares:** grid **55/45** (galeria / buy-box) — override pós-M10/M12; galeria **4:3** contain; thumbs verticais desktop / horizontais mobile; thumb ativa **amarelo**; sticky buy-box.
 
-**Ordem buy-box:** badge marca → nome → ref/fabricante → **compat** → preço → pagamento → qty → frete → disponível → CTAs → Favoritar+WA → copiar/âncora.
+**Ordem buy-box:** badge marca → nome → ref/fabricante → **compat** → preço → pagamento → disponível+qty → frete → CTAs → Favoritar+WA → copiar/âncora.
 
 ## 3. Matriz anti-redundância
 

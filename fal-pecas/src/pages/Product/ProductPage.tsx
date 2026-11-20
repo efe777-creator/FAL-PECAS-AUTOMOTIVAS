@@ -816,8 +816,6 @@ export function ProductPage() {
               </>
             ) : (
               <>
-                <ProductShippingQuoteBlock product={current} quantity={qty} />
-
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="m-0 inline-flex items-center gap-1.5 text-sm font-semibold text-fal-success">
                     <span aria-hidden="true">✓</span> Disponível
@@ -853,6 +851,8 @@ export function ProductPage() {
                     </button>
                   </div>
                 </div>
+
+                <ProductShippingQuoteBlock product={current} quantity={qty} />
 
                 <Button variant="primary" fullWidth className="h-10 text-[15px]" onClick={onAddToCart}>
                   {ADICIONAR_AO_CARRINHO_LABEL}
