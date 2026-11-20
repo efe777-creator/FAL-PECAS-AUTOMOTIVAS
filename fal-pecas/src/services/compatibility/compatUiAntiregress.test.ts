@@ -69,6 +69,21 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(card).toMatch(/CompatibilityStateBadge/)
   })
 
+  it('PDP M1: container 1440 só via maxWidth pdp; grid 45/55; galeria 4:3', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    expect(page).toMatch(/maxWidth=\"pdp\"/)
+    expect(page).toMatch(/45fr/)
+    expect(page).toMatch(/55fr/)
+    expect(page).toMatch(/lg:sticky/)
+
+    const container = readFileSync(src('components/layout/Container.tsx'), 'utf8')
+    expect(container).toMatch(/max-w-\[1440px\]/)
+    expect(container).toMatch(/max-w-\[1240px\]/)
+
+    const frame = readFileSync(src('components/product/ProductMediaFrame.tsx'), 'utf8')
+    expect(frame).toMatch(/aspect-\[4\/3\]/)
+  })
+
   it('Badge card trata hide com label (não retorna null cego)', () => {
     const badge = readFileSync(src('components/product/CompatibilityStateBadge.tsx'), 'utf8')
     expect(badge).toMatch(/hide: 'border-fal-danger/)

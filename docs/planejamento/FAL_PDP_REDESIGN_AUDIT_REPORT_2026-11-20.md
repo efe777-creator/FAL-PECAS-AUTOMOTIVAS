@@ -7,7 +7,8 @@
 **Data da auditoria:** 2026-11-20  
 **Branch de referência:** `dev`  
 **Escopo deste documento:** diagnóstico factual + proposta + matrizes — **sem implementação**  
-**Canônico compat:** E.2 em `FAL_PLANO_BUSCA_EQUIVALENCIA_COMPATIBILIDADE_2026.md`
+**Canônico compat:** E.2 em `FAL_PLANO_BUSCA_EQUIVALENCIA_COMPATIBILIDADE_2026.md`  
+**Spec consolidada (12/12 fechadas):** `FAL_PDP_REDESIGN_SPEC_CONSOLIDADA_2026-11-20.md` · marchas: `FAL_PDP_REDESIGN_MARCHAS_2026-11-20.md`
 
 ---
 

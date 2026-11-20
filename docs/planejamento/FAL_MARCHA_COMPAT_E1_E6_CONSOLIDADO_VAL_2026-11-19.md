@@ -34,7 +34,7 @@
 ## Fora / próximo
 
 - Figma / polish visual E.8  
-- Redesign PDP: auditoria docs `FAL_PDP_REDESIGN_AUDIT_REPORT_2026-11-20.md` (implementação só após decisões 1–12)  
+- Redesign PDP: spec `FAL_PDP_REDESIGN_SPEC_CONSOLIDADA_2026-11-20.md` · Marcha 1 estrutura (VAL `FAL_MARCHA_PDP_REDESIGN_M1_ESTRUTURA_VAL_2026-11-20.md`)  
 - Métricas/RMA Fase 7 full (ops dashboard)  
 - Transitividade de equivalência (proibido — manter)
 

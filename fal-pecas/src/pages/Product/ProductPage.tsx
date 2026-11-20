@@ -398,7 +398,7 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <Container className="py-8">
+      <Container maxWidth="pdp" className="py-8">
         <Loading />
       </Container>
     )
@@ -406,7 +406,7 @@ export function ProductPage() {
 
   if (backendDown) {
     return (
-      <Container className="py-8">
+      <Container maxWidth="pdp" className="py-8">
         <EmptyState
           title={STORE_BACKEND_UNAVAILABLE_TITLE}
           description={loadError ?? STORE_BACKEND_UNAVAILABLE_MESSAGE}
@@ -419,7 +419,7 @@ export function ProductPage() {
 
   if (loadError) {
     return (
-      <Container className="py-8">
+      <Container maxWidth="pdp" className="py-8">
         <ErrorState
           message={loadError}
           onRetry={() => {
@@ -449,7 +449,7 @@ export function ProductPage() {
 
   if (!product) {
     return (
-      <Container className="py-8">
+      <Container maxWidth="pdp" className="py-8">
         <EmptyState
           title="Produto não encontrado"
           description="O item solicitado não está disponível no catálogo."
@@ -567,16 +567,16 @@ export function ProductPage() {
   }
 
   return (
-    <Container className="overflow-x-hidden py-8">
+    <Container maxWidth="pdp" className="overflow-x-hidden py-6 sm:py-8">
       <button
         type="button"
         onClick={goBack}
-        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
+        className="mb-1.5 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
         aria-label="Voltar"
       >
         ← Voltar
       </button>
-      <nav className="mb-2 text-[13px] text-fal-muted" aria-label="Caminho do produto">
+      <nav className="mb-4 text-[13px] text-fal-muted" aria-label="Caminho do produto">
         <ol className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
           <li className="inline-flex items-center gap-x-1">
             <Link to="/" className="hover:underline">
@@ -627,11 +627,11 @@ export function ProductPage() {
         </ol>
       </nav>
 
-      {/* Desktop: galeria | buy-box · Mobile: galeria → compra (CTA alto) */}
-      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
+      {/* Desktop 45/55 · Mobile: galeria → buy-box (spec redesign M1) */}
+      <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-8">
         <ProductGallery images={galleryImages} alt={displayName} />
 
-        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-5">
+        <div className="relative min-w-0 rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5 lg:sticky lg:top-24 lg:self-start">
           <button
             type="button"
             className={[

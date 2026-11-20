@@ -13,7 +13,8 @@ type Props = {
 }
 
 /**
- * Galeria PDP — clique na principal abre lightbox com zoom.
+ * Galeria PDP — 4:3 contain; thumbs verticais no desktop, horizontais abaixo no mobile.
+ * Clique na principal abre lightbox (hover zoom fino na Marcha 2).
  */
 export function ProductGallery({ images, alt }: Props) {
   const urls = images.filter(Boolean)
@@ -27,52 +28,49 @@ export function ProductGallery({ images, alt }: Props) {
   const safeIndex = urls.length ? Math.min(active, urls.length - 1) : 0
   const mainSrc = urls[safeIndex]
 
-  return (
-    <div className="flex min-w-0 flex-col gap-3 sm:flex-row">
-      {urls.length > 1 ? (
-        <div
-          className="flex shrink-0 gap-2 overflow-x-auto sm:max-h-[480px] sm:flex-col sm:overflow-y-auto sm:overflow-x-hidden"
-          role="listbox"
-          aria-label="Miniaturas do produto"
-        >
-          {urls.map((url, i) => {
-            const selected = i === safeIndex
-            return (
-              <button
-                key={`${url}-${i}`}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                aria-label={`Imagem ${i + 1} de ${urls.length}`}
-                onClick={() => setActive(i)}
-                className={`h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border-2 bg-[#f8f9fa] p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-navy ${
-                  selected ? 'border-fal-navy' : 'border-fal-line hover:border-fal-navy/50'
-                }`}
-              >
-                <img
-                  src={url}
-                  alt=""
-                  className={productMediaImgClass}
-                  loading="lazy"
-                />
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
+  const thumbs =
+    urls.length > 1 ? (
+      <div
+        className="order-2 flex shrink-0 gap-2 overflow-x-auto lg:order-1 lg:max-h-full lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden"
+        role="listbox"
+        aria-label="Miniaturas do produto"
+      >
+        {urls.map((url, i) => {
+          const selected = i === safeIndex
+          return (
+            <button
+              key={`${url}-${i}`}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              aria-label={`Imagem ${i + 1} de ${urls.length}`}
+              onClick={() => setActive(i)}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-fal border-2 bg-fal-surface-2 p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fal-navy ${
+                selected ? 'border-fal-navy' : 'border-fal-line hover:border-fal-navy/50'
+              }`}
+            >
+              <img src={url} alt="" className={productMediaImgClass} loading="lazy" />
+            </button>
+          )
+        })}
+      </div>
+    ) : null
 
-      <ProductMediaFrame variant="gallery" className="min-w-0 flex-1">
+  return (
+    <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start">
+      {thumbs}
+      <ProductMediaFrame variant="gallery" className="order-1 min-w-0 flex-1 lg:order-2">
         {mainSrc ? (
           <button
             type="button"
-            className="group relative flex h-full min-h-[300px] w-full items-center justify-center lg:min-h-[480px]"
+            className="group relative flex h-full w-full items-center justify-center"
             onClick={() => setLightboxOpen(true)}
             aria-label={`Ampliar imagem de ${alt}`}
           >
             <img
               src={mainSrc}
               alt={alt}
-              className={`${productMediaImgClassGallery} max-h-[276px] transition group-hover:scale-[1.08] lg:max-h-[440px]`}
+              className={`${productMediaImgClassGallery} max-h-full transition group-hover:scale-[1.08]`}
               loading="eager"
             />
           </button>

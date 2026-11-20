@@ -4,12 +4,12 @@ type Variant = 'card' | 'gallery' | 'thumb'
 
 const shell: Record<Variant, string> = {
   /** Cards do catálogo / carrosséis — área um pouco maior, foto preenche melhor */
-  card: 'flex h-[132px] w-full items-center justify-center overflow-hidden rounded-[10px] bg-[#f8f9fa] sm:h-[176px]',
-  /** Área principal da PDP */
+  card: 'flex h-[132px] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2 sm:h-[176px]',
+  /** Área principal da PDP — proporção 4:3 (spec redesign). */
   gallery:
-    'flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-2xl bg-[#f8f9fa] lg:min-h-[480px]',
+    'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2',
   /** Miniaturas / busca / carrinho */
-  thumb: 'flex h-full w-full items-center justify-center overflow-hidden rounded-[8px] bg-[#f8f9fa]',
+  thumb: 'flex h-full w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2',
 }
 
 /** Padding interno: card apertado (fotos com margem branca própria); gallery respira mais. */
