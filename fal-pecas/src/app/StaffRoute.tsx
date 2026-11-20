@@ -27,7 +27,7 @@ export function StaffRoute({ children }: { children: ReactNode }) {
   if (gating && timedOut) {
     return (
       <div className="mx-auto flex min-h-[40vh] max-w-md flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-        <h1 className="m-0 text-xl font-extrabold text-fal-navy">Não foi possível verificar a sessão</h1>
+        <h1 className="m-0 text-xl font-extrabold text-fal-navy dark:text-fal-fg">Não foi possível verificar a sessão</h1>
         <p className="m-0 text-sm text-fal-muted">
           A verificação de permissões demorou demais. Tente entrar novamente ou volte à loja.
         </p>

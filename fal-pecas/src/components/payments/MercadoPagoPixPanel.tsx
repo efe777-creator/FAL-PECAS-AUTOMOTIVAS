@@ -218,7 +218,7 @@ export function MercadoPagoPixPanel({
               <>
                 {' '}
                 · <strong>Tempo restante:</strong>{' '}
-                <span className="font-mono text-base font-extrabold text-fal-navy">
+                <span className="font-mono text-base font-extrabold text-fal-navy dark:text-fal-fg">
                   {formatCountdown(remaining)}
                 </span>
               </>

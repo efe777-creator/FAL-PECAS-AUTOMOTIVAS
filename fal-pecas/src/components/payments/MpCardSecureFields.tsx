@@ -12,7 +12,7 @@ const fieldStyle = {
 
 /** Shell igual ao HTML READY — sem overflow:hidden (corta caret/toque no PCI). */
 const fieldShellClass =
-  'fal-mp-field-shell w-full rounded-[10px] border border-fal-line bg-white'
+  'fal-mp-field-shell w-full rounded-[10px] border border-fal-line bg-fal-surface'
 
 type Props = {
   mountKey: number

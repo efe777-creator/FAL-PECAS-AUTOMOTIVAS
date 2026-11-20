@@ -34,14 +34,14 @@ export function CheckoutPickupConfirm({ origin, onSwitchToHome, viewOnly }: Prop
       </p>
 
       <div className="rounded-fal border border-fal-line bg-fal-bg px-3 py-3 text-sm text-fal-ink">
-        <p className="m-0 font-bold text-fal-navy">Endereço</p>
+        <p className="m-0 font-bold text-fal-navy dark:text-fal-fg">Endereço</p>
         {origin ? (
           <p className="mb-0 mt-1">{formatStoreOriginAddress(origin)}</p>
         ) : (
           <p className="mb-0 mt-1 text-fal-muted">Carregando endereço da loja…</p>
         )}
 
-        <p className="mb-0 mt-3 font-bold text-fal-navy">Horário</p>
+        <p className="mb-0 mt-3 font-bold text-fal-navy dark:text-fal-fg">Horário</p>
         <p className="mb-0 mt-1">{STORE_PICKUP_HOURS_LABEL}</p>
       </div>
 
@@ -58,7 +58,7 @@ export function CheckoutPickupConfirm({ origin, onSwitchToHome, viewOnly }: Prop
           href={waHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex w-full items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-[19px] py-[13px] text-sm font-extrabold text-fal-navy hover:border-fal-navy"
+          className="inline-flex w-full items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-[19px] py-[13px] text-sm font-extrabold text-fal-navy dark:text-fal-fg hover:border-fal-navy"
         >
           Combinar no WhatsApp
         </a>
@@ -71,7 +71,7 @@ export function CheckoutPickupConfirm({ origin, onSwitchToHome, viewOnly }: Prop
       {onSwitchToHome && !viewOnly ? (
         <button
           type="button"
-          className="text-sm font-semibold text-fal-navy underline"
+          className="text-sm font-semibold text-fal-navy dark:text-fal-fg underline"
           onClick={onSwitchToHome}
         >
           Prefiro receber em casa

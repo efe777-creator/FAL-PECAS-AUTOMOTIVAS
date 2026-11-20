@@ -19,7 +19,7 @@ export function DevMpBrickPage() {
       <p className="text-sm text-fal-muted">
         PK: {pk ? `${pk.slice(0, 12)}…` : 'ausente/inválida'} · tokenizeOnly (sem Edge)
       </p>
-      {msg ? <p className="text-sm text-fal-navy">{msg}</p> : null}
+      {msg ? <p className="text-sm text-fal-navy dark:text-fal-fg">{msg}</p> : null}
       {pk ? (
         <MercadoPagoCardBrickPanel
           orderId="00000000-0000-0000-0000-000000000000"

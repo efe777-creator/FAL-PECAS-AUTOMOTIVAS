@@ -102,7 +102,7 @@ export function VehiclePlateField({
             aria-label={loading ? 'Consultando placa' : 'Consultar placa'}
             className={[
               'absolute top-1/2 right-1.5 flex h-9 w-9 -translate-y-1/2 items-center justify-center',
-              'rounded-full text-fal-navy transition',
+              'rounded-full text-fal-navy dark:text-fal-fg transition',
               'hover:bg-fal-navy/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow',
               'disabled:cursor-wait disabled:opacity-60',
             ].join(' ')}

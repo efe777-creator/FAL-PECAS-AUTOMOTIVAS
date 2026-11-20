@@ -243,11 +243,11 @@ export function RegisterPage() {
               />
               <span>
                 Li e aceito os{' '}
-                <Link to="/termos" className="font-semibold text-fal-navy hover:underline">
+                <Link to="/termos" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   termos de uso
                 </Link>{' '}
                 e a{' '}
-                <Link to="/privacidade" className="font-semibold text-fal-navy hover:underline">
+                <Link to="/privacidade" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   política de privacidade
                 </Link>
                 .

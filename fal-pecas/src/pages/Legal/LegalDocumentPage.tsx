@@ -57,7 +57,7 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
         {' / '}
         <span className="text-fal-ink">{doc.title}</span>
       </p>
-      <h1 className="m-0 text-[28px] font-black text-fal-navy sm:text-[32px]">{doc.title}</h1>
+      <h1 className="m-0 text-[28px] font-black text-fal-navy dark:text-fal-fg sm:text-[32px]">{doc.title}</h1>
       <p className="mt-2 text-xs font-semibold tracking-wide text-fal-muted uppercase">
         Versão {version}
       </p>
@@ -73,7 +73,7 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
           <>
             {' '}
             (
-            <a className="font-semibold text-fal-navy hover:underline" href={`mailto:${store.email}`}>
+            <a className="font-semibold text-fal-navy dark:text-fal-fg hover:underline" href={`mailto:${store.email}`}>
               {store.email}
             </a>
             )
@@ -86,7 +86,7 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
         <p className="mt-4 max-w-2xl text-sm">
           <Link
             to="/trocas-devolucoes"
-            className="font-semibold text-fal-navy hover:underline"
+            className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
           >
             Ver política de trocas e devoluções
           </Link>

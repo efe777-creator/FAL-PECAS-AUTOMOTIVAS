@@ -85,7 +85,7 @@ export function AsaasCardPanel({
 
   return (
     <div className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-      <h2 className="m-0 text-lg font-extrabold text-fal-navy">
+      <h2 className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-fg">
         {preferredPaymentType === 'debit_card' ? 'Cartão de débito' : 'Cartão de crédito'}
       </h2>
       <p className="m-0 text-sm text-fal-muted">

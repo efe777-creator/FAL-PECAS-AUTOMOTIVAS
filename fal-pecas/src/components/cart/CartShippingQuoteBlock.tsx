@@ -227,7 +227,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
 
   return (
     <div className="mb-3 border-b border-fal-line pb-3">
-      <p className="m-0 mb-2 text-sm font-extrabold text-fal-navy">Entrega e frete</p>
+      <p className="m-0 mb-2 text-sm font-extrabold text-fal-navy dark:text-fal-fg">Entrega e frete</p>
 
       <SavedAddressQuoteSelect
         valueId={savedAddressId}

@@ -37,12 +37,12 @@ export function ShippingOptionBrand({ option, className }: Props) {
   return (
     <div className={className ? `flex items-start gap-2 ${className}` : 'flex items-start gap-2'}>
       {picture ? (
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded border border-fal-line bg-white">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded border border-fal-line bg-fal-surface">
           <img src={picture} alt="" className="max-h-7 max-w-7 object-contain" loading="lazy" />
         </div>
       ) : null}
       <div className="min-w-0">
-        <div className="font-extrabold text-fal-navy">{option.label}</div>
+        <div className="font-extrabold text-fal-navy dark:text-fal-fg">{option.label}</div>
         {company && !option.label.includes(company) ? (
           <div className="text-xs text-fal-muted">{company}</div>
         ) : null}

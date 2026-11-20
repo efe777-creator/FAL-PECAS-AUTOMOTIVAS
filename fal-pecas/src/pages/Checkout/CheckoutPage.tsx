@@ -1330,7 +1330,7 @@ export function CheckoutPage() {
     <Container className="py-8">
       <Link
         to={backLeaveTo}
-        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
+        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline"
         aria-label={backLeaveLabel}
       >
         ← {backLeaveLabel}
@@ -1401,8 +1401,8 @@ export function CheckoutPage() {
                       ? 'bg-fal-navy text-white hover:bg-fal-navy-dark'
                       : 'cursor-not-allowed bg-fal-navy text-white opacity-70'
                     : clickable
-                      ? 'bg-[#e9edef] text-fal-navy hover:bg-fal-line'
-                      : 'cursor-not-allowed bg-[#e9edef] text-fal-muted opacity-60',
+                      ? 'bg-fal-surface-2 text-fal-navy hover:bg-fal-line dark:text-fal-fg'
+                      : 'cursor-not-allowed bg-fal-surface-2 text-fal-muted opacity-60',
               ].join(' ')}
             >
               {mi + 1}. {label}
@@ -1450,7 +1450,7 @@ export function CheckoutPage() {
               </p>
               {profileDocReady ? (
                 <div className="rounded-fal border border-fal-line bg-fal-bg/50 p-4 text-sm">
-                  <p className="m-0 font-semibold text-fal-navy">Documento do perfil</p>
+                  <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">Documento do perfil</p>
                   <p className="mb-0 mt-2 text-base font-extrabold tracking-wide text-fal-ink">
                     {docKind.toUpperCase()}: {formatDocumentMask(docKind, docValue)}
                   </p>
@@ -1582,7 +1582,7 @@ export function CheckoutPage() {
                             className="rounded-fal border border-fal-line bg-fal-bg/50 p-3 text-sm"
                             role="status"
                           >
-                            <p className="m-0 font-semibold text-fal-navy">
+                            <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">
                               Endereço na nota fiscal
                             </p>
                             <p className="mb-0 mt-1 text-fal-ink">
@@ -1595,7 +1595,7 @@ export function CheckoutPage() {
                             {!deliveryViewOnly ? (
                               <button
                                 type="button"
-                                className="mt-2 text-sm font-semibold text-fal-navy underline"
+                                className="mt-2 text-sm font-semibold text-fal-navy dark:text-fal-fg underline"
                                 onClick={() => {
                                   setShowNewAddress(true)
                                 }}
@@ -1716,7 +1716,7 @@ export function CheckoutPage() {
                               <span className="text-sm">
                                 <strong>{a.label || a.recipient}</strong>
                                 {fromVitrine ? (
-                                  <span className="ml-2 text-[11px] font-semibold text-fal-navy">
+                                  <span className="ml-2 text-[11px] font-semibold text-fal-navy dark:text-fal-fg">
                                     Vitrine
                                   </span>
                                 ) : null}
@@ -1879,7 +1879,7 @@ export function CheckoutPage() {
                                 <span>
                                   <strong>{o.label}</strong>
                                   {selected ? (
-                                    <span className="ml-2 text-[11px] font-semibold text-fal-navy">
+                                    <span className="ml-2 text-[11px] font-semibold text-fal-navy dark:text-fal-fg">
                                       Selecionada
                                     </span>
                                   ) : null}
@@ -1899,7 +1899,7 @@ export function CheckoutPage() {
                 )}
                 <button
                   type="button"
-                  className="text-sm font-semibold text-fal-navy underline"
+                  className="text-sm font-semibold text-fal-navy dark:text-fal-fg underline"
                   onClick={() => void loadQuotes(true)}
                 >
                   Recalcular frete
@@ -1907,7 +1907,7 @@ export function CheckoutPage() {
                 {!deliveryViewOnly ? (
                   <button
                     type="button"
-                    className="ml-4 text-sm font-semibold text-fal-navy underline"
+                    className="ml-4 text-sm font-semibold text-fal-navy dark:text-fal-fg underline"
                     onClick={() => chooseDeliveryMode('pickup')}
                   >
                     Prefiro retirar na loja
@@ -2213,20 +2213,20 @@ export function CheckoutPage() {
                     />
                     <span>
                       Li e aceito os{' '}
-                      <Link to="/termos" className="font-semibold text-fal-navy hover:underline">
+                      <Link to="/termos" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                         termos de uso
                       </Link>
                       , a{' '}
                       <Link
                         to="/privacidade"
-                        className="font-semibold text-fal-navy hover:underline"
+                        className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
                       >
                         política de privacidade
                       </Link>{' '}
                       e a política de{' '}
                       <Link
                         to="/trocas-devolucoes"
-                        className="font-semibold text-fal-navy hover:underline"
+                        className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
                       >
                         trocas e devoluções
                       </Link>
@@ -2341,7 +2341,7 @@ export function CheckoutPage() {
             </>
           ) : (
             <>
-              <h2 className="mt-0 mb-3 text-sm font-extrabold text-fal-navy">Resumo do pedido</h2>
+              <h2 className="mt-0 mb-3 text-sm font-extrabold text-fal-navy dark:text-fal-fg">Resumo do pedido</h2>
               {compatAlertLines.length > 0 ? (
                 <p className="mb-2 text-[11px] font-semibold text-fal-muted">
                   {compatAlertLines.length}{' '}

@@ -77,7 +77,7 @@ export function AccountHomePage() {
           </p>
         ) : null}
         {user && user.emailConfirmed === false ? (
-          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 p-3 text-sm text-fal-navy">
+          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 p-3 text-sm text-fal-navy dark:text-fal-fg">
             <strong>Confirme seu e-mail</strong> — sua conta já está ativa e você pode navegar na
             loja. Verifique a caixa de entrada (e o spam) e clique no link de confirmação.
           </p>

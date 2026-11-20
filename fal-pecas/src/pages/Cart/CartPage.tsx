@@ -194,7 +194,7 @@ export function CartPage() {
               >
                 <Link
                   to={productHref}
-                  className="flex h-[75px] items-center justify-center overflow-hidden rounded-[9px] bg-[#f8f9fa] p-1.5 text-3xl no-underline"
+                  className="flex h-[75px] items-center justify-center overflow-hidden rounded-[9px] bg-fal-surface-2 p-1.5 text-3xl no-underline"
                   aria-label={`Abrir produto ${item.name}`}
                 >
                   {item.imageUrl ? (
@@ -212,7 +212,7 @@ export function CartPage() {
                   <h3 className="m-0 text-base font-bold">
                     <Link
                       to={productHref}
-                      className="text-fal-navy no-underline hover:underline"
+                      className="text-fal-navy dark:text-fal-fg no-underline hover:underline"
                     >
                       {item.name}
                     </Link>
@@ -228,7 +228,7 @@ export function CartPage() {
                   <p className="mb-0 mt-1">
                     <Link
                       to={productHref}
-                      className="text-xs font-extrabold text-fal-navy underline"
+                      className="text-xs font-extrabold text-fal-navy dark:text-fal-fg underline"
                     >
                       Ver produto
                     </Link>

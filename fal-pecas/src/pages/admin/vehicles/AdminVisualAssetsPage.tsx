@@ -163,7 +163,7 @@ export function AdminVisualAssetsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-navy-dark">Modelos 3D (Camada 2)</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Modelos 3D (Camada 2)</h1>
         <p className="mt-1 text-sm text-fal-muted">
           Biblioteca GLB/glTF separada de evidências. Aprovar asset ≠ instalar peça ≠ fato 2A.
           Procedência e licença são obrigatórias para uso comercial.

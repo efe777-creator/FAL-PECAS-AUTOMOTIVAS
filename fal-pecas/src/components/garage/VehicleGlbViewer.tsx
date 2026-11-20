@@ -239,7 +239,7 @@ export function VehicleGlbViewer({
             <button
               key={p.id}
               type="button"
-              className="rounded-[8px] border border-fal-line bg-white px-2 py-1 text-[11px] font-bold text-fal-fg hover:border-fal-accent"
+              className="rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1 text-[11px] font-bold text-fal-fg hover:border-fal-accent"
               onClick={() => applyPreset(p.id)}
             >
               {p.label}

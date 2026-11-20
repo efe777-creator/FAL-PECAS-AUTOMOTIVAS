@@ -98,7 +98,7 @@ export function StorePaymentMethodsBlock({
   // PDP: colapsado por padrão — linha essencial fica no PaymentConditionHint.
   return (
     <details className={className || 'mt-2 group'}>
-      <summary className="cursor-pointer list-none text-sm font-semibold text-fal-navy hover:underline [&::-webkit-details-marker]:hidden">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline [&::-webkit-details-marker]:hidden">
         <span className="inline-flex items-center gap-1">
           Formas de pagamento
           <span className="text-xs font-bold text-fal-muted group-open:hidden" aria-hidden="true">

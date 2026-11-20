@@ -158,7 +158,7 @@ export function AsaasEmbeddedCreditPanel({
 
   return (
     <div className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-      <h2 className="m-0 text-lg font-extrabold text-fal-navy">Cartão de crédito</h2>
+      <h2 className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-fg">Cartão de crédito</h2>
       <p className="m-0 text-sm text-fal-muted">
         Total {formatMoney(amount)}
         {conditionLine ? ` · ${conditionLine}` : null}

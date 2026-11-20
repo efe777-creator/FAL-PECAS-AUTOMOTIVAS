@@ -595,7 +595,7 @@ export function ProductPage() {
       <button
         type="button"
         onClick={goBack}
-        className="mb-0.5 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy hover:underline"
+        className="mb-0.5 inline-flex items-center gap-1 text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline"
         aria-label="Voltar"
       >
         ← Voltar
@@ -740,7 +740,7 @@ export function ProductPage() {
             <div className="mt-3">
               <button
                 type="button"
-                className="w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-left text-sm font-semibold text-fal-navy hover:border-fal-navy/40 md:hidden"
+                className="w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-left text-sm font-semibold text-fal-navy dark:text-fal-fg hover:border-fal-navy/40 md:hidden"
                 onClick={() => setVerifySheetOpen(true)}
               >
                 Completar ano, motor ou versão
@@ -864,7 +864,7 @@ export function ProductPage() {
                 {inCart ? (
                   <p className="m-0 text-sm text-fal-muted" aria-live="polite">
                     Já há {cartQty} no carrinho —{' '}
-                    <Link to="/carrinho" className="font-semibold text-fal-navy hover:underline">
+                    <Link to="/carrinho" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                       Ver carrinho
                     </Link>
                   </p>
@@ -1128,7 +1128,7 @@ export function ProductPage() {
         <section className="mt-10 min-w-0" aria-labelledby="pdp-equiv-heading">
           <h2
             id="pdp-equiv-heading"
-            className="m-0 mb-3 text-lg font-extrabold text-fal-navy sm:text-xl"
+            className="m-0 mb-3 text-lg font-extrabold text-fal-navy dark:text-fal-fg sm:text-xl"
           >
             {EQUIVALENTES_SECTION_LABEL}
           </h2>
@@ -1150,14 +1150,14 @@ export function ProductPage() {
           <div className="mb-3 flex min-w-0 flex-wrap items-baseline justify-between gap-2">
             <h2
               id="pdp-related-heading"
-              className="m-0 text-lg font-extrabold text-fal-navy sm:text-xl"
+              className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-fg sm:text-xl"
             >
               {RELACIONADOS_SECTION_LABEL}
             </h2>
             {categoryHref ? (
               <Link
                 to={categoryHref}
-                className="text-sm font-semibold text-fal-navy hover:underline"
+                className="text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline"
               >
                 {VER_MAIS_CATALOGO_LABEL}
               </Link>

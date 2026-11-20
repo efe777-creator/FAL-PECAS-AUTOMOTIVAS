@@ -227,7 +227,7 @@ export function VehiclePlateSearch({
     return (
       <div className="space-y-3">
         {manualMessage ? (
-          <p className="m-0 rounded-[9px] border border-fal-line bg-[#f7f9fb] px-3 py-2 text-sm text-fal-navy-dark">
+          <p className="m-0 rounded-[9px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-fg">
             {manualMessage}
           </p>
         ) : null}
@@ -282,7 +282,7 @@ export function VehiclePlateSearch({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         <button
           type="button"
-          className="m-0 border-0 bg-transparent p-0 text-sm font-semibold text-fal-navy underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
+          className="m-0 border-0 bg-transparent p-0 text-sm font-semibold text-fal-navy dark:text-fal-fg underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
           onClick={() => {
             setManualMessage(null)
             setPhase('manual')

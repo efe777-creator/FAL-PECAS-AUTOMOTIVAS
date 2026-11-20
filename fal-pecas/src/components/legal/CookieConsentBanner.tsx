@@ -44,7 +44,7 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => choose(true)}
-            className="rounded-[10px] bg-fal-yellow px-4 py-2.5 text-sm font-extrabold text-fal-navy hover:brightness-95"
+            className="rounded-[10px] bg-fal-yellow px-4 py-2.5 text-sm font-extrabold text-fal-navy dark:text-fal-fg hover:brightness-95"
           >
             Aceitar analytics
           </button>

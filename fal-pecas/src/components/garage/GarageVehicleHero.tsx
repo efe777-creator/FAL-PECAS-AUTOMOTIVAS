@@ -90,7 +90,7 @@ export function GarageVehicleHero({
                 </span>
               ) : null}
               {isActive ? (
-                <span className="rounded-[8px] border border-fal-accent/50 bg-fal-accent/15 px-2.5 py-1 text-fal-navy">
+                <span className="rounded-[8px] border border-fal-accent/50 bg-fal-accent/15 px-2.5 py-1 text-fal-navy dark:text-fal-fg">
                   Ativo na loja
                 </span>
               ) : null}

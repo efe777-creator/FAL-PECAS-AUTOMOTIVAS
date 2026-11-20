@@ -24,7 +24,7 @@ export function StorePickupNotice({ origin, compact, showSwitchHint }: Props) {
       }
       role="status"
     >
-      <p className="m-0 font-bold text-fal-navy">
+      <p className="m-0 font-bold text-fal-navy dark:text-fal-fg">
         {compact ? 'Retirada na loja' : 'Onde retirar'}
       </p>
       {origin ? (
@@ -36,14 +36,14 @@ export function StorePickupNotice({ origin, compact, showSwitchHint }: Props) {
       )}
       {!compact ? (
         <p className="mb-0 mt-1 text-fal-ink">
-          <span className="font-semibold text-fal-navy">Horário:</span> {STORE_PICKUP_HOURS_LABEL}
+          <span className="font-semibold text-fal-navy dark:text-fal-fg">Horário:</span> {STORE_PICKUP_HOURS_LABEL}
         </p>
       ) : null}
       <p className={`mb-0 mt-1 text-fal-muted ${compact ? 'text-[11px]' : 'text-xs'}`}>
         {compact ? STORE_PICKUP_READY_NOTICE : STORE_PICKUP_NOTIFY_NOTICE}
       </p>
       {!compact && showSwitchHint !== false ? (
-        <p className="mb-0 mt-2 text-xs font-semibold text-fal-navy">{STORE_PICKUP_SWITCH_NOTICE}</p>
+        <p className="mb-0 mt-2 text-xs font-semibold text-fal-navy dark:text-fal-fg">{STORE_PICKUP_SWITCH_NOTICE}</p>
       ) : null}
     </div>
   )

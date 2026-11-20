@@ -793,7 +793,7 @@ export function CatalogPage() {
           open={vehicleDetailsOpen || vehicleFiltersActive}
           onToggle={(e) => setVehicleDetailsOpen((e.target as HTMLDetailsElement).open)}
         >
-          <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy marker:content-none [&::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none px-3.5 py-2.5 text-sm font-semibold text-fal-navy dark:text-fal-fg marker:content-none [&::-webkit-details-marker]:hidden">
             <span className="inline-flex items-center gap-2">
               Filtros por veículo
               {vehicleFiltersActive ? (
@@ -1102,7 +1102,7 @@ export function CatalogPage() {
             </button>
           </div>
         ) : null}
-        <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-[#f4f6f8] px-1 py-2 sm:bg-fal-bg">
+        <div className="sticky top-0 z-[1] -mx-1 mb-3 border-b border-fal-line bg-fal-bg px-1 py-2">
           {!loading && !error ? (
             <p className="m-0 text-sm font-semibold text-fal-navy-dark">
               {refreshing ? 'Atualizando… · ' : ''}

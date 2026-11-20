@@ -341,7 +341,7 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
 
         {available && inCart ? (
           <p
-            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2.5 py-1 text-xs font-bold text-fal-navy"
+            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2.5 py-1 text-xs font-bold text-fal-navy-dark dark:bg-fal-yellow/25 dark:text-fal-yellow"
             aria-live="polite"
           >
             No carrinho: {cartQty}

@@ -26,7 +26,7 @@ export function SavedVehiclesQuickPick({
         <Link
           to="/login"
           state={{ from: '/catalogo' }}
-          className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+          className="font-semibold text-fal-navy dark:text-fal-fg underline-offset-2 hover:underline"
         >
           Entrar
         </Link>{' '}
@@ -40,7 +40,7 @@ export function SavedVehiclesQuickPick({
       <p className="m-0 text-xs text-fal-muted">
         <Link
           to="/conta/veiculos"
-          className="font-semibold text-fal-navy underline-offset-2 hover:underline"
+          className="font-semibold text-fal-navy dark:text-fal-fg underline-offset-2 hover:underline"
         >
           Minha Garagem
         </Link>
@@ -89,10 +89,10 @@ export function SavedVehiclesQuickPick({
             className={[
               'rounded-full border px-2.5 py-1 text-xs font-semibold transition',
               isActive
-                ? 'border-fal-accent bg-fal-accent/15 text-fal-navy ring-2 ring-fal-accent/40'
+                ? 'border-fal-accent bg-fal-accent/15 text-fal-navy dark:text-fal-fg ring-2 ring-fal-accent/40'
                 : v.isPrimary
                   ? 'border-fal-navy bg-fal-navy text-white'
-                  : 'border-[#d8dee3] bg-fal-surface-2 text-fal-navy hover:border-fal-navy',
+                  : 'border-[#d8dee3] bg-fal-surface-2 text-fal-navy dark:text-fal-fg hover:border-fal-navy',
             ].join(' ')}
             onClick={() => apply(v)}
           >

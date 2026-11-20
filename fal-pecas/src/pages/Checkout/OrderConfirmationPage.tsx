@@ -92,7 +92,7 @@ export function OrderConfirmationPage() {
         <p className="m-0 text-4xl" aria-hidden>
           ✓
         </p>
-        <h1 className="mt-3 text-[28px] font-black text-fal-navy">Pedido recebido</h1>
+        <h1 className="mt-3 text-[28px] font-black text-fal-navy dark:text-fal-fg">Pedido recebido</h1>
         <p className="text-fal-muted">
           Obrigado! Seu pedido <strong>#{short}</strong> foi registrado. Acompanhe o status e o
           pagamento na área da conta.

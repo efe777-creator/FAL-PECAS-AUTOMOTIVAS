@@ -63,6 +63,17 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(m32).toMatch(/footer=\{/)
   })
 
+  it('Store dark: CartButton e tokens fg no .dark', () => {
+    const cart = readFileSync(src('components/navigation/CartButton.tsx'), 'utf8')
+    expect(cart).toMatch(/text-fal-navy dark:text-fal-fg/)
+
+    const css = readFileSync(src('styles/index.css'), 'utf8')
+    expect(css).toMatch(/\.dark\s*\{/)
+    expect(css).toMatch(/--fal-fg:\s*#f3f5f7/i)
+    expect(css).toMatch(/--fal-bg:\s*#0e1116/i)
+    expect(css).toMatch(/--color-fal-fg:\s*var\(--fal-fg\)/)
+  })
+
   it('Card M15: selo após título (não overlay); Oferta absoluta na foto; Incompatível visível', () => {
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/cardSeal\.kind !== 'hide' \|\| cardSeal\.label/)

@@ -45,8 +45,8 @@ export function PaymentConditionHint({
         <p
           className={
             surface === 'card'
-              ? 'm-0 truncate text-[11px] font-semibold text-emerald-800'
-              : 'm-0 truncate text-[13px] font-semibold text-emerald-800'
+              ? 'm-0 truncate text-[11px] font-semibold text-emerald-800 dark:text-emerald-300'
+              : 'm-0 truncate text-[13px] font-semibold text-emerald-800 dark:text-emerald-300'
           }
         >
           {pixLine}
@@ -56,7 +56,7 @@ export function PaymentConditionHint({
         <p
           className={
             surface === 'card'
-              ? 'm-0 truncate text-[11px] font-semibold text-fal-navy/80'
+              ? 'm-0 truncate text-[11px] font-semibold text-fal-navy/80 dark:text-fal-fg/80'
               : 'm-0 truncate text-[13px] font-semibold text-fal-navy dark:text-fal-fg'
           }
         >

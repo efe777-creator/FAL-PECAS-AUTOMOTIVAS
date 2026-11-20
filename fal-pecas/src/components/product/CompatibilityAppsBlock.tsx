@@ -62,10 +62,10 @@ export function CompatibilityAppsBlock({
 
     return (
       <div className={`space-y-1.5 text-sm text-fal-ink ${className}`.trim()}>
-        <p className="m-0 font-semibold text-fal-navy">{APLICACAO_SECTION_LABEL}</p>
+        <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">{APLICACAO_SECTION_LABEL}</p>
         {visible.map((g, gi) => (
           <div key={`${gi}-${g.maker}`}>
-            <p className="m-0 font-bold text-fal-navy">{g.maker}</p>
+            <p className="m-0 font-bold text-fal-navy dark:text-fal-fg">{g.maker}</p>
             <ul className="m-0 list-none space-y-0.5 p-0 text-fal-muted">
               {g.lines.map((line, li) => {
                 const mid = [line.engine, line.version].filter(Boolean).join(' · ')
@@ -107,7 +107,7 @@ export function CompatibilityAppsBlock({
   if (summary) {
     return (
       <div className={`text-sm ${className}`.trim()}>
-        <p className="m-0 font-semibold text-fal-navy">{APLICACAO_SECTION_LABEL}</p>
+        <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">{APLICACAO_SECTION_LABEL}</p>
         <ul className="mb-0 mt-1 list-none space-y-0.5 p-0 text-fal-ink">
           {summary.split(' · ').map((line, i) => (
             <li key={`${i}-${line}`}>{line}</li>
