@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
-import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
+import { CompatVerdictSummary } from '@/components/product/CompatVerdictSummary'
 import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
@@ -46,8 +46,6 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { useToast } from '@/components/common/Toast'
 import {
-  compatFaltante,
-  compatMotivo,
   compatPurchaseConfirmCopy,
   needsCompatPurchaseConfirm,
 } from '@/services/compatibility/compatCopy'
@@ -127,6 +125,10 @@ export function ProductPage() {
   const resolvedForHooks = product ? displayPrice(product) : 0
   const storefrontPrice = useStorefrontDisplayAmount(resolvedForHooks)
   const [compatVerdict, setCompatVerdict] = useState<CompatibilityVerdict | null>(null)
+  const pdpSealKind = useMemo(
+    () => (compatVerdict ? resolveCardSeal(compatVerdict).kind : null),
+    [compatVerdict],
+  )
   /** E.2: rascunho local ano/motor/versão — não altera o chip da garagem. */
   const [verifyYear, setVerifyYear] = useState('')
   const [verifyEngine, setVerifyEngine] = useState('')
@@ -689,62 +691,18 @@ export function ProductPage() {
             )}
           </p>
 
-          {/* Aviso acima do CTA (E.2) — o bloco completo fica em #pdp-detalhes, fora da dobra. */}
-          {(() => {
-            if (!compatVerdict) {
-              return garage?.activeFilter ? (
-                <p className="mt-4 text-xs text-fal-muted" role="status">
-                  Verificando compatibilidade…
-                </p>
-              ) : (
-                <p className="mt-4 text-xs text-fal-muted" role="status">
-                  Confirme um veículo no chip do header para ver se esta peça serve.
-                </p>
-              )
+          {/* Aviso único acima do CTA (E.2) — apps/form ficam em #pdp-detalhes. */}
+          <CompatVerdictSummary
+            className="mt-4"
+            framed
+            incompatEmphasis
+            verdict={compatVerdict}
+            vehicleLabel={
+              garage?.activeFilter ? filterDisplayLabel(garage.activeFilter) : null
             }
-            const seal = resolveCardSeal(compatVerdict)
-            const motivo = compatMotivo(compatVerdict)
-            return (
-              <div
-                className={[
-                  'mt-4 rounded-[10px] border px-3 py-2.5',
-                  seal.kind === 'hide'
-                    ? 'border-fal-danger/40 bg-fal-danger/10'
-                    : seal.kind === 'compatible'
-                      ? 'border-fal-success/40 bg-fal-success/10'
-                      : 'border-fal-line bg-fal-bg',
-                ].join(' ')}
-                role="status"
-              >
-                {garage?.activeFilter ? (
-                  <p className="m-0 text-[11px] text-fal-muted">
-                    Veículo:{' '}
-                    <span className="font-semibold text-fal-fg">
-                      {filterDisplayLabel(garage.activeFilter)}
-                    </span>
-                  </p>
-                ) : null}
-                {seal.kind === 'hide' ? (
-                  <p className="mb-0 mt-0.5 text-sm font-bold text-fal-danger">
-                    Incompatível com o veículo ativo
-                  </p>
-                ) : (
-                  <div className="mt-1">
-                    <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
-                  </div>
-                )}
-                {motivo ? (
-                  <p className="mb-0 mt-1 text-[11px] text-fal-muted">Motivo: {motivo}</p>
-                ) : null}
-                <a
-                  href="#pdp-detalhes"
-                  className="mt-1 inline-block text-[11px] font-semibold text-fal-navy hover:underline"
-                >
-                  Ver aplicação e detalhes ↓
-                </a>
-              </div>
-            )
-          })()}
+            loading={Boolean(garage?.activeFilter && !compatVerdict)}
+            emptyHint="Confirme um veículo no chip do header para ver se esta peça serve."
+          />
 
           <div className="mt-5 space-y-3">
             {current.available === false ? (
@@ -847,100 +805,71 @@ export function ProductPage() {
           <h2 className="m-0 mb-2 text-sm font-extrabold tracking-tight text-fal-navy dark:text-fal-fg">
             Compatibilidade
           </h2>
-          {compatVerdict ? (
-            <div className="mb-3 space-y-1.5">
-              {garage?.activeFilter ? (
-                <p className="m-0 text-xs text-fal-muted">
-                  Veículo:{' '}
-                  <span className="font-semibold text-fal-fg">
-                    {filterDisplayLabel(garage.activeFilter)}
-                  </span>
-                  {' · '}
-                  <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
-                    Trocar
-                  </Link>
-                </p>
-              ) : null}
-              {resolveCardSeal(compatVerdict).kind === 'hide' ? (
-                <p className="m-0 text-sm font-bold text-fal-danger">
-                  Incompatível com o veículo ativo
-                </p>
-              ) : (
-                <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
-              )}
-              {compatMotivo(compatVerdict) ? (
-                <p className="m-0 text-xs text-fal-muted">
-                  Motivo: {compatMotivo(compatVerdict)}
-                </p>
-              ) : null}
-              {compatFaltante(compatVerdict) ? (
-                <p className="m-0 text-xs text-fal-muted">
-                  Falta: {compatFaltante(compatVerdict)}
-                </p>
-              ) : null}
-              {resolveCardSeal(compatVerdict).kind === 'check' ||
-              resolveCardSeal(compatVerdict).kind === 'similar' ? (
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <label className="block text-[11px] font-semibold text-fal-muted">
-                    Ano
-                    <input
-                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                      value={verifyYear}
-                      onChange={(e) => setVerifyYear(e.target.value)}
-                      inputMode="numeric"
-                      placeholder="Ex.: 2015"
-                      aria-label="Ano do veículo para verificar"
-                    />
-                  </label>
-                  <label className="block text-[11px] font-semibold text-fal-muted">
-                    Motor
-                    <input
-                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                      value={verifyEngine}
-                      onChange={(e) => setVerifyEngine(e.target.value)}
-                      placeholder="Ex.: 1.0"
-                      aria-label="Motor do veículo para verificar"
-                    />
-                  </label>
-                  <label className="block text-[11px] font-semibold text-fal-muted">
-                    Versão
-                    <input
-                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                      value={verifyVersion}
-                      onChange={(e) => setVerifyVersion(e.target.value)}
-                      placeholder="Ex.: Unique"
-                      aria-label="Versão do veículo para verificar"
-                    />
-                  </label>
-                  <div className="sm:col-span-3">
-                    <Button
-                      variant="light"
-                      type="button"
-                      onClick={() =>
-                        setVerifyApplied({
-                          year: verifyYear,
-                          engine: verifyEngine,
-                          version: verifyVersion,
-                        })
-                      }
-                    >
-                      Verificar
-                    </Button>
-                    <p className="mb-0 mt-1 text-[11px] text-fal-muted">
-                      Só reavalia esta página — não altera o veículo ativo no header.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : garage?.activeFilter ? (
-            <p className="mb-3 text-xs text-fal-muted">Verificando compatibilidade…</p>
-          ) : (
-            <p className="mb-3 text-xs text-fal-muted">
-              Confirme um veículo no chip do header para ver a compatibilidade com esta peça — sem
-              precisar entrar na conta.
+          {garage?.activeFilter ? (
+            <p className="mb-3 m-0 text-xs text-fal-muted">
+              Veículo:{' '}
+              <span className="font-semibold text-fal-fg">
+                {filterDisplayLabel(garage.activeFilter)}
+              </span>
+              {' · '}
+              <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
+                Trocar
+              </Link>
             </p>
-          )}
+          ) : null}
+          {pdpSealKind === 'check' || pdpSealKind === 'similar' ? (
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <label className="block text-[11px] font-semibold text-fal-muted">
+                Ano
+                <input
+                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                  value={verifyYear}
+                  onChange={(e) => setVerifyYear(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Ex.: 2015"
+                  aria-label="Ano do veículo para verificar"
+                />
+              </label>
+              <label className="block text-[11px] font-semibold text-fal-muted">
+                Motor
+                <input
+                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                  value={verifyEngine}
+                  onChange={(e) => setVerifyEngine(e.target.value)}
+                  placeholder="Ex.: 1.0"
+                  aria-label="Motor do veículo para verificar"
+                />
+              </label>
+              <label className="block text-[11px] font-semibold text-fal-muted">
+                Versão
+                <input
+                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                  value={verifyVersion}
+                  onChange={(e) => setVerifyVersion(e.target.value)}
+                  placeholder="Ex.: Unique"
+                  aria-label="Versão do veículo para verificar"
+                />
+              </label>
+              <div className="sm:col-span-3">
+                <Button
+                  variant="light"
+                  type="button"
+                  onClick={() =>
+                    setVerifyApplied({
+                      year: verifyYear,
+                      engine: verifyEngine,
+                      version: verifyVersion,
+                    })
+                  }
+                >
+                  Verificar
+                </Button>
+                <p className="mb-0 mt-1 text-[11px] text-fal-muted">
+                  Só reavalia esta página — não altera o veículo ativo no header.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <CompatibilityAppsBlock
             variant="pdp"
             groups={current.compatibilityGroups}

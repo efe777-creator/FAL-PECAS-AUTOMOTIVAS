@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { useToast } from '@/components/common/Toast'
 import { CartShippingQuoteBlock } from '@/components/cart/CartShippingQuoteBlock'
 import { ReplaceCartItemModal } from '@/components/cart/ReplaceCartItemModal'
-import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
+import { CompatVerdictSummary } from '@/components/product/CompatVerdictSummary'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -25,11 +25,6 @@ import {
 } from '@/lib/analytics'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
-import {
-  compatFaltante,
-  compatMotivo,
-  compatSealDisplayLabel,
-} from '@/services/compatibility/compatCopy'
 import {
   buildCompatDecisionEntries,
   compatGateCounts,
@@ -248,23 +243,12 @@ export function CartPage() {
                     const verdict = compatVerdicts.get(item.productId)
                     if (!verdict) return null
                     const seal = resolveCardSeal(verdict)
-                    const motivo = compatMotivo(verdict)
-                    const faltante = compatFaltante(verdict)
                     return (
-                      <div className="mt-1.5 space-y-0.5">
-                        {seal.kind === 'hide' ? (
-                          <p className="m-0 text-xs font-bold text-fal-danger">
-                            {compatSealDisplayLabel(verdict)}
-                          </p>
-                        ) : (
-                          <CompatibilityStateBadge verdict={verdict} variant="card" />
-                        )}
-                        {motivo ? (
-                          <p className="m-0 text-[11px] text-fal-muted">Motivo: {motivo}</p>
-                        ) : null}
-                        {faltante ? (
-                          <p className="m-0 text-[11px] text-fal-muted">Falta: {faltante}</p>
-                        ) : null}
+                      <CompatVerdictSummary
+                        className="mt-1.5"
+                        verdict={verdict}
+                        showFaltante
+                      >
                         {seal.kind === 'hide' ? (
                           <button
                             type="button"
@@ -274,7 +258,7 @@ export function CartPage() {
                             Trocar peça
                           </button>
                         ) : null}
-                      </div>
+                      </CompatVerdictSummary>
                     )
                   })()}
                   <p className="mb-0 mt-1 text-xs text-fal-muted">

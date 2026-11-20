@@ -1,5 +1,5 @@
-import { Button } from '@/components/common/Button'
 import { Modal } from '@/components/common/Modal'
+import { ModalActions } from '@/components/common/ModalActions'
 import { useCallback, useState } from 'react'
 
 export type ConfirmDialogOptions = {
@@ -80,24 +80,13 @@ export function ConfirmDialogHost() {
       onClose={() => close({ confirmed: false })}
       footer={
         pending ? (
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button
-              variant="light"
-              fullWidth
-              className="sm:w-auto"
-              onClick={() => close({ confirmed: false })}
-            >
-              {pending.cancelLabel ?? 'Cancelar'}
-            </Button>
-            <Button
-              variant={pending.danger ? 'danger' : 'primary'}
-              fullWidth
-              className="sm:w-auto"
-              onClick={onConfirm}
-            >
-              {pending.confirmLabel ?? 'Confirmar'}
-            </Button>
-          </div>
+          <ModalActions
+            cancelLabel={pending.cancelLabel ?? 'Cancelar'}
+            confirmLabel={pending.confirmLabel ?? 'Confirmar'}
+            confirmVariant={pending.danger ? 'danger' : 'primary'}
+            onCancel={() => close({ confirmed: false })}
+            onConfirm={onConfirm}
+          />
         ) : null
       }
     >

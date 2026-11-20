@@ -1,6 +1,6 @@
-import { Button } from '@/components/common/Button'
 import { Loading } from '@/components/common/Loading'
 import { Modal } from '@/components/common/Modal'
+import { ModalActions } from '@/components/common/ModalActions'
 import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { formatMoney } from '@/lib/money'
@@ -85,30 +85,22 @@ export function ReplaceCartItemModal({
       title={`Substituir ${item.name}`}
       onClose={onClose}
       footer={
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="light" type="button" fullWidth className="sm:w-auto" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            fullWidth
-            className="sm:w-auto"
-            disabled={!selected}
-            onClick={() => {
-              if (!selected) return
-              onReplace(
-                item.productId,
-                selected.product,
-                item.quantity,
-                selected.fromEquivalence,
-              )
-              onClose()
-            }}
-          >
-            Substituir no carrinho
-          </Button>
-        </div>
+        <ModalActions
+          cancelLabel="Cancelar"
+          confirmLabel="Substituir no carrinho"
+          confirmDisabled={!selected}
+          onCancel={onClose}
+          onConfirm={() => {
+            if (!selected) return
+            onReplace(
+              item.productId,
+              selected.product,
+              item.quantity,
+              selected.fromEquivalence,
+            )
+            onClose()
+          }}
+        />
       }
     >
       <p className="m-0 text-sm text-fal-muted">
