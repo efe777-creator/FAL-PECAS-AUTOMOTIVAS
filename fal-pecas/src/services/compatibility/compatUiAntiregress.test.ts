@@ -321,6 +321,39 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(badge).toMatch(/hide: 'border-fal-danger/)
     expect(badge).toMatch(/seal\.kind === 'hide' && !seal\.label/)
   })
+
+  it('PDP related intelligence: wiring único + sem pad de categoria + localOnly não muta garagem', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    // Um caminho: inteligência direta; sem mergeRelatedProducts legado na PDP.
+    expect(page).toMatch(/listIntelligentRelatedForPdp/)
+    expect(page).not.toMatch(/mergeRelatedProducts/)
+    expect(page).not.toMatch(/listRelatedProductsForPdp/)
+    expect(page).toMatch(/vehicleFilter: effectiveVehicleFilter/)
+    expect(page).toMatch(/loadPvcEvidenceByProductIds/)
+
+    const svc = readFileSync(src('services/products/productService.ts'), 'utf8')
+    expect(svc).toMatch(/listIntelligentRelatedForPdp/)
+    expect(svc).toMatch(/relatedProductsIntelligence/)
+    // listRelatedProductsForPdp permanece só como fachada delegada.
+    expect(svc).toMatch(/export async function listRelatedProductsForPdp/)
+
+    const intel = readFileSync(src('services/products/relatedProductsIntelligence.ts'), 'utf8')
+    expect(intel).toMatch(/isEligibleRelatedRow/)
+    expect(intel).toMatch(/isOppositeSidePair/)
+    expect(intel).toMatch(/countPvcOverlap/)
+    expect(intel).toMatch(/rankRelatedCandidates/)
+    // Qualidade > quantidade: não preenche com check/categoria irrelevante.
+    expect(intel).toMatch(/export function isEligibleRelatedRow/)
+
+    const plate = readFileSync(src('components/vehicle/VehiclePlateSearch.tsx'), 'utf8')
+    // Early-return localOnly antes de syncActiveToFilter / saveToGarage.
+    const localOnlyIdx = plate.indexOf('if (localOnly)')
+    const syncIdx = plate.indexOf('syncActiveToFilter(next)', localOnlyIdx)
+    const returnIdx = plate.indexOf('return', localOnlyIdx)
+    expect(localOnlyIdx).toBeGreaterThan(-1)
+    expect(returnIdx).toBeGreaterThan(localOnlyIdx)
+    expect(syncIdx).toBeGreaterThan(returnIdx)
+  })
 })
 
 describe('compat UI anti-regressão (motor/copy)', () => {

@@ -46,13 +46,17 @@ npm run test:compat-antiregress
 | M13 | Ordem | disponível+qty → frete → CTAs; SPEC 55/45 | `ProductPage`, SPEC | PDP M13 |
 | M14 | Medidas+AR | Tokens FAL + densidade no gate | `index.css`, antiregress | PDP M14 |
 | **M15** | **Selo card** | Compat **após título** (não overlay); Oferta na foto | `ProductCard` | **Card M15** |
+| **M16** | **Related intelligence** | Uma seção; curados+L/R+PVC; qualidade>qtd; `fitFilter`+batch PVC | `relatedProductsIntelligence`, `ProductPage` | **PDP related** + unit |
+| **M17** | **Verify mini-menu** | Botão → modal placa\|manual `localOnly`; sem mutar chip | `ProductPage`, `VehiclePlateSearch` | **PDP M4** |
+| **M18** | **Anti-duplicidade** | Marca≠Fabricante eco; disclaimer 1× modal; acordeão sem Trocar | `ProductPage`, SPEC §3 | **PDP M4/M6** |
 
 ### Domínio preservado (não duplicar)
 
 - Um motor PVC/compat (E.1–E.7)
 - Um frete + `saveShippingQuoteHandoff`
 - Cart/checkout/`onBuyNow` existentes
-- Chip do header **não** alterado pelo form local da PDP
+- Chip do header **não** alterado pelo form/modal local da PDP (`localOnly`)
+- Uma seção de relacionados (sem segundo motor / pad de categoria)
 
 ---
 
@@ -93,11 +97,16 @@ Medido em home com veículo ativo (ex.: HB20): 6/6 cards Incompatível abaixo da
 | PDP M1 / M13 | Grid ou proporção 55/45 quebrada |
 | PDP M7 / M14 | CTAs / densidade / tokens alterados |
 | PDP M3 | Compat deixou de vir antes do preço |
-| PDP M4 | Form local passou a mutar chip |
+| PDP M4 | Form/modal local passou a mutar chip; eco de textos verify |
 | PDP M5 | Frete/handoff regrediu |
+| PDP M6 | Eco veredito/Trocar no acordeão |
+| PDP related | Related voltou a `mergeRelatedProducts` / perdeu PVC+L/R / padou lixo |
 | Motor/copy | Selo Incompatível ou confirm de compra errado |
+| `relatedProductsIntelligence.test.ts` | Ranking/elegibilidade L/R/PVC quebrou |
 
-VALs pontuais: `FAL_PDP_REDESIGN_VAL_RESPONSIVO_*`, `VAL_M13_*`, `VAL_M14_*`.
+**Gate npm** inclui UI antiregress + motor/copy + **related intelligence** (ver `package.json` → `test:compat-antiregress`).
+
+VALs: `FAL_MARCHA_PDP_RELATED_INTELLIGENCE_VAL_*`, `FAL_MARCHA_PDP_VERIFY_COMPAT_MENU_VAL_*`, `FAL_MARCHA_PDP_DUPLICIDADES_HIERARQUIA_VAL_*`, `VAL_M13_*`, `VAL_M14_*`.
 
 ---
 
@@ -111,4 +120,4 @@ VALs pontuais: `FAL_PDP_REDESIGN_VAL_RESPONSIVO_*`, `VAL_M13_*`, `VAL_M14_*`.
 
 ## 6. Commits de referência (dev)
 
-Inclui série `feat/fix/test(pdp): Marcha 1…14` + M15 (selo card + este inventário). Ver `git log --oneline` na `dev`.
+Inclui série Marcha 1…15 + `e799250` (related intelligence, verify mini-menu, anti-duplicidade) + gate M16–M18. Ver `git log --oneline` na `dev`.
