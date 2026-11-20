@@ -5,7 +5,7 @@ import {
   productMediaImgClass,
   productMediaImgClassGallery,
 } from '@/components/product/ProductMediaFrame'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 
 type Props = {
   images: string[]
@@ -13,25 +13,48 @@ type Props = {
 }
 
 /**
- * Galeria PDP — 4:3 contain; thumbs verticais no desktop, horizontais abaixo no mobile.
- * Clique na principal abre lightbox (hover zoom fino na Marcha 2).
+ * Galeria PDP — 4:3 contain; thumbs verticais desktop / horizontais abaixo no mobile.
+ * Desktop (hover fino): zoom sob o cursor; clique abre lightbox.
+ * Mobile/toque: toque abre lightbox (sem loupe).
  */
 export function ProductGallery({ images, alt }: Props) {
   const urls = images.filter(Boolean)
   const [active, setActive] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [hoverZoom, setHoverZoom] = useState(false)
+  const [origin, setOrigin] = useState({ x: 50, y: 50 })
+  const [fineHover, setFineHover] = useState(false)
 
   useEffect(() => {
     setActive(0)
   }, [urls.join('|')])
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const sync = () => setFineHover(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
   const safeIndex = urls.length ? Math.min(active, urls.length - 1) : 0
   const mainSrc = urls[safeIndex]
+
+  function onMainMove(e: MouseEvent<HTMLButtonElement>) {
+    if (!fineHover) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    setOrigin({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    })
+  }
 
   const thumbs =
     urls.length > 1 ? (
       <div
-        className="order-2 flex shrink-0 gap-2 overflow-x-auto lg:order-1 lg:max-h-full lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden"
+        className="order-2 flex shrink-0 gap-2 overflow-x-auto lg:order-1 lg:max-h-[min(100%,calc(100vw*0.45*0.75))] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden"
         role="listbox"
         aria-label="Miniaturas do produto"
       >
@@ -63,16 +86,36 @@ export function ProductGallery({ images, alt }: Props) {
         {mainSrc ? (
           <button
             type="button"
-            className="group relative flex h-full w-full items-center justify-center"
+            className={[
+              'relative flex h-full w-full items-center justify-center overflow-hidden',
+              fineHover ? 'cursor-zoom-in' : 'cursor-pointer',
+            ].join(' ')}
             onClick={() => setLightboxOpen(true)}
+            onMouseEnter={() => fineHover && setHoverZoom(true)}
+            onMouseLeave={() => {
+              setHoverZoom(false)
+              setOrigin({ x: 50, y: 50 })
+            }}
+            onMouseMove={onMainMove}
             aria-label={`Ampliar imagem de ${alt}`}
           >
             <img
               src={mainSrc}
               alt={alt}
-              className={`${productMediaImgClassGallery} max-h-full transition group-hover:scale-[1.08]`}
+              className={`${productMediaImgClassGallery} max-h-full will-change-transform`}
+              style={{
+                transform: hoverZoom && fineHover ? 'scale(2)' : undefined,
+                transformOrigin: `${origin.x}% ${origin.y}%`,
+                transition: hoverZoom ? 'none' : 'transform 160ms ease-out',
+              }}
               loading="eager"
+              draggable={false}
             />
+            {urls.length > 1 ? (
+              <span className="pointer-events-none absolute bottom-2 right-2 rounded-fal bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white">
+                {safeIndex + 1}/{urls.length}
+              </span>
+            ) : null}
           </button>
         ) : (
           <ProductImagePlaceholder />

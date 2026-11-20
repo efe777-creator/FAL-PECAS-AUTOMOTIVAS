@@ -148,14 +148,18 @@ export function ProductImageLightbox({
       onClick={onBackdrop}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 text-white">
-        <p className="m-0 truncate text-sm font-semibold">
-          {alt}
-          {urls.length > 1 ? ` · ${index + 1}/${urls.length}` : ''}
-        </p>
+        <div className="min-w-0">
+          <p className="m-0 truncate text-sm font-semibold">{alt}</p>
+          {urls.length > 1 ? (
+            <p className="m-0 mt-0.5 text-xs text-white/80" aria-live="polite">
+              Imagem {index + 1} de {urls.length}
+            </p>
+          ) : null}
+        </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
-            className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
+            className="grid h-11 min-w-11 place-items-center rounded-fal border border-white/40 px-2 text-sm font-bold hover:bg-white/10"
             onClick={() =>
               setZoom((z) => {
                 const next = Math.max(MIN_ZOOM, z - ZOOM_STEP)
@@ -167,10 +171,12 @@ export function ProductImageLightbox({
           >
             −
           </button>
-          <span className="min-w-[3rem] text-center text-xs">{Math.round(zoom * 100)}%</span>
+          <span className="min-w-[3rem] text-center text-xs tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
           <button
             type="button"
-            className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
+            className="grid h-11 min-w-11 place-items-center rounded-fal border border-white/40 px-2 text-sm font-bold hover:bg-white/10"
             onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP))}
             aria-label="Aumentar zoom"
           >
@@ -178,7 +184,7 @@ export function ProductImageLightbox({
           </button>
           <button
             type="button"
-            className="rounded-md border border-white/40 px-2 py-1 text-sm font-bold hover:bg-white/10"
+            className="grid h-11 place-items-center rounded-fal border border-white/40 px-3 text-sm font-bold hover:bg-white/10"
             onClick={resetView}
             aria-label="Resetar zoom"
           >
@@ -186,7 +192,7 @@ export function ProductImageLightbox({
           </button>
           <button
             type="button"
-            className="rounded-md border border-white/40 px-3 py-1 text-sm font-bold hover:bg-white/10"
+            className="grid h-11 place-items-center rounded-fal border border-white/40 px-3 text-sm font-bold hover:bg-white/10"
             onClick={onClose}
             aria-label="Fechar"
           >
@@ -218,7 +224,7 @@ export function ProductImageLightbox({
         {urls.length > 1 ? (
           <button
             type="button"
-            className="absolute left-1 z-[1] rounded-full border border-white/50 bg-black/40 px-3 py-2 text-lg text-white hover:bg-black/70 sm:left-4"
+            className="absolute left-1 z-[1] grid h-11 w-11 place-items-center rounded-fal border border-white/50 bg-black/40 text-lg text-white hover:bg-black/70 sm:left-4"
             aria-label="Imagem anterior"
             onClick={(e) => {
               e.stopPropagation()
@@ -245,7 +251,7 @@ export function ProductImageLightbox({
         {urls.length > 1 ? (
           <button
             type="button"
-            className="absolute right-1 z-[1] rounded-full border border-white/50 bg-black/40 px-3 py-2 text-lg text-white hover:bg-black/70 sm:right-4"
+            className="absolute right-1 z-[1] grid h-11 w-11 place-items-center rounded-fal border border-white/50 bg-black/40 text-lg text-white hover:bg-black/70 sm:right-4"
             aria-label="Próxima imagem"
             onClick={(e) => {
               e.stopPropagation()

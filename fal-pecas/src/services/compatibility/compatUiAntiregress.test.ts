@@ -84,6 +84,22 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(frame).toMatch(/aspect-\[4\/3\]/)
   })
 
+  it('PDP M2: hover zoom fino na galeria; lightbox contador + nav + Escape', () => {
+    const gallery = readFileSync(src('components/product/ProductGallery.tsx'), 'utf8')
+    expect(gallery).toMatch(/\(hover: hover\) and \(pointer: fine\)/)
+    expect(gallery).toMatch(/scale\(2\)/)
+    expect(gallery).toMatch(/transformOrigin/)
+    expect(gallery).toMatch(/ProductImageLightbox/)
+
+    const lightbox = readFileSync(src('components/product/ProductImageLightbox.tsx'), 'utf8')
+    expect(lightbox).toMatch(/Imagem \{index \+ 1\} de \{urls\.length\}/)
+    expect(lightbox).toMatch(/aria-live="polite"/)
+    expect(lightbox).toMatch(/Escape/)
+    expect(lightbox).toMatch(/ArrowRight/)
+    expect(lightbox).toMatch(/ArrowLeft/)
+    expect(lightbox).toMatch(/h-11/)
+  })
+
   it('Badge card trata hide com label (não retorna null cego)', () => {
     const badge = readFileSync(src('components/product/CompatibilityStateBadge.tsx'), 'utf8')
     expect(badge).toMatch(/hide: 'border-fal-danger/)
