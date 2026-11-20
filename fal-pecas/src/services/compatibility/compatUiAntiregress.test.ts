@@ -118,6 +118,16 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/PaymentConditionHint/)
   })
 
+  it('PDP M5: frete compacto CEP + Consultar; handoff preservado', () => {
+    const ship = readFileSync(src('components/product/ProductShippingQuoteBlock.tsx'), 'utf8')
+    expect(ship).toMatch(/Calcular frete/)
+    expect(ship).toMatch(/Consultar/)
+    expect(ship).toMatch(/variant="dark"/)
+    expect(ship).toMatch(/saveShippingQuoteHandoff/)
+    expect(ship).toMatch(/quoteStorefrontShippingEnvelope/)
+    expect(ship).toMatch(/Digite seu CEP|placeholder="Digite seu CEP"/)
+  })
+
   it('PDP M4: form local sem chip; sheet mobile; equiv cinza sem CTA', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/localVehicleFilter/)

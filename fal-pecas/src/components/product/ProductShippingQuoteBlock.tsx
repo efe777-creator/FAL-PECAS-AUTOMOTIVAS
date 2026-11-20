@@ -281,129 +281,111 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
 
   return (
     <section
-      className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4"
+      className="rounded-fal border border-fal-line bg-fal-bg p-3 dark:bg-fal-surface-2/40"
       aria-labelledby="pdp-entrega-frete-title"
     >
-      <h2 id="pdp-entrega-frete-title" className="m-0 text-base font-extrabold text-fal-navy">
-        Entrega
+      <h2
+        id="pdp-entrega-frete-title"
+        className="m-0 text-sm font-extrabold text-fal-navy dark:text-fal-fg"
+      >
+        Calcular frete
       </h2>
 
-      <ul className="m-0 mt-3 list-none p-0" aria-label="Retirada na loja">
-        <li>
-          <label
-            className={`flex cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
-              pickupSelected
-                ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
-                : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
-            }`}
-          >
-            <span className="flex min-w-0 items-start gap-2.5">
-              <input
-                type="radio"
-                name="pdp-ship-opt"
-                className="mt-1 shrink-0"
-                checked={pickupSelected}
-                onChange={selectPickup}
+      {ready ? (
+        <div className="mt-2.5 space-y-2">
+          <SavedAddressQuoteSelect
+            valueId={savedAddressId}
+            name="pdp-saved-address"
+            onSelect={onSavedAddress}
+          />
+          <div className="flex items-stretch gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="CEP"
+                name="pdp-shipping-cep"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                placeholder="Digite seu CEP"
+                value={cep}
+                onChange={(e) => {
+                  setSavedAddressId('')
+                  setSavedAddress(null)
+                  setCep(formatCepInput(e.target.value))
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    onConsultar()
+                  }
+                }}
               />
-              <span className="min-w-0">
-                <span className="block text-sm font-extrabold text-fal-navy">
-                  Retirada na loja
-                </span>
-                <span className="mt-0.5 block text-xs text-fal-muted">
-                  {pickupSelected
-                    ? 'Sem frete · endereço e horário no checkout'
-                    : 'Sem frete · sem precisar de CEP'}
-                </span>
-              </span>
-            </span>
-            <strong className="shrink-0 text-sm text-fal-navy">{formatMoney(0)}</strong>
-          </label>
-        </li>
-      </ul>
-
-      <div className="mt-4 border-t border-fal-line pt-3">
-        <h3 className="m-0 text-sm font-extrabold text-fal-navy">Receber em casa</h3>
-        <p className="mb-0 mt-1 text-[11px] text-fal-muted">
-          Informe o CEP para ver prazo e valor das entregas.
-        </p>
-
-        {ready ? (
-          <div className="mt-3 space-y-3">
-            <SavedAddressQuoteSelect
-              valueId={savedAddressId}
-              name="pdp-saved-address"
-              onSelect={onSavedAddress}
-            />
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <Input
-                  label="CEP de destino"
-                  name="pdp-shipping-cep"
-                  inputMode="numeric"
-                  autoComplete="postal-code"
-                  placeholder="00000-000"
-                  value={cep}
-                  onChange={(e) => {
-                    setSavedAddressId('')
-                    setSavedAddress(null)
-                    setCep(formatCepInput(e.target.value))
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      onConsultar()
-                    }
-                  }}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={loading}
-                onClick={onConsultar}
-                className="sm:mb-0.5"
-              >
-                {loading ? 'Calculando…' : 'Calcular'}
-              </Button>
             </div>
+            <Button
+              type="button"
+              variant="dark"
+              size="sm"
+              disabled={loading}
+              onClick={onConsultar}
+              className="shrink-0 self-end"
+            >
+              {loading ? '…' : 'Consultar'}
+            </Button>
           </div>
-        ) : (
-          <p className="mb-0 mt-2 text-xs text-fal-muted">
-            Frete por transportadora indisponível neste produto no momento. Use a retirada na
-            loja ou confirme a entrega no checkout.
-          </p>
-        )}
+        </div>
+      ) : (
+        <p className="mb-0 mt-2 text-xs text-fal-muted">
+          Frete por transportadora indisponível neste produto. Use a retirada ou confirme no
+          checkout.
+        </p>
+      )}
+
+      <div className="mt-3 space-y-2">
+        <label
+          className={`flex cursor-pointer items-center justify-between gap-2 rounded-fal border px-2.5 py-2 text-sm transition-colors ${
+            pickupSelected
+              ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy dark:border-fal-yellow'
+              : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
+          }`}
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <input
+              type="radio"
+              name="pdp-ship-opt"
+              className="shrink-0"
+              checked={pickupSelected}
+              onChange={selectPickup}
+            />
+            <span className="truncate font-semibold text-fal-navy dark:text-fal-fg">
+              Retirada na loja
+            </span>
+          </span>
+          <strong className="shrink-0 text-fal-navy dark:text-fal-fg">{formatMoney(0)}</strong>
+        </label>
 
         {deliveryOptions.length > 0 ? (
-          <ul
-            className="m-0 mt-3 list-none space-y-2 p-0"
-            role="listbox"
-            aria-label="Opções de frete"
-          >
+          <ul className="m-0 list-none space-y-2 p-0" role="listbox" aria-label="Opções de frete">
             {deliveryOptions.map((o) => {
               const eta = formatShippingEtaLabel(o)
               const active = selectedId === o.id
               return (
                 <li key={o.id}>
                   <label
-                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
+                    className={`flex cursor-pointer items-start justify-between gap-2 rounded-fal border px-2.5 py-2 transition-colors ${
                       active
-                        ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy'
+                        ? 'border-fal-navy bg-fal-surface ring-1 ring-fal-navy dark:border-fal-yellow'
                         : 'border-fal-line bg-fal-surface hover:border-fal-navy/40'
                     }`}
                   >
-                    <span className="flex min-w-0 items-start gap-2.5">
+                    <span className="flex min-w-0 items-start gap-2">
                       <input
                         type="radio"
                         name="pdp-ship-opt"
-                        className="mt-1 shrink-0"
+                        className="mt-0.5 shrink-0"
                         checked={active}
                         onChange={() => selectDeliveryOption(o.id)}
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-extrabold text-fal-navy">
+                        <span className="block truncate text-sm font-semibold text-fal-navy dark:text-fal-fg">
                           {o.label}
                         </span>
                         {eta ? (
@@ -411,7 +393,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
                         ) : null}
                       </span>
                     </span>
-                    <strong className="shrink-0 text-sm text-fal-navy">
+                    <strong className="shrink-0 text-sm text-fal-navy dark:text-fal-fg">
                       {optionAmountLabel(o)}
                     </strong>
                   </label>
@@ -422,16 +404,16 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
         ) : null}
 
         {selectedDelivery && !pickupSelected ? (
-          <p className="mb-0 mt-3 rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-2 text-xs text-fal-ink">
+          <p className="mb-0 rounded-fal border border-fal-line bg-fal-surface px-2.5 py-2 text-xs text-fal-ink">
             {selectedProvisional ? (
               <>
-                <span className="font-semibold text-fal-navy">Entrega FAL</span>
+                <span className="font-semibold text-fal-navy dark:text-fal-fg">Entrega FAL</span>
                 {selectedEta ? <span className="text-fal-muted"> · {selectedEta}</span> : null}
                 <span className="text-fal-muted"> · confirme o valor no checkout</span>
               </>
             ) : (
               <>
-                <span className="font-semibold text-fal-navy">
+                <span className="font-semibold text-fal-navy dark:text-fal-fg">
                   {selectedDelivery && isOwnEstimateOption(selectedDelivery)
                     ? `Entrega FAL ${formatMoney(freightAmount)}`
                     : `Frete ${formatMoney(freightAmount)}`}
@@ -441,19 +423,13 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
                   {' '}
                   · Total estimado {formatMoney(estimatedTotal)}
                 </span>
-                {selectedDelivery && isOwnEstimateOption(selectedDelivery) ? (
-                  <span className="mt-1 block text-[11px] text-fal-muted">
-                    Estimativa pelo CEP. No checkout, com o número do endereço, o valor pode ajustar
-                    levemente.
-                  </span>
-                ) : null}
               </>
             )}
           </p>
         ) : null}
 
         {envelope && envelope.status !== 'ok' && quoted ? (
-          <p className="mb-0 mt-2 text-xs text-fal-danger" role="alert">
+          <p className="mb-0 text-xs text-fal-danger" role="alert">
             {envelope.message ?? 'Consulta de entrega indisponível no momento.'}
           </p>
         ) : null}
