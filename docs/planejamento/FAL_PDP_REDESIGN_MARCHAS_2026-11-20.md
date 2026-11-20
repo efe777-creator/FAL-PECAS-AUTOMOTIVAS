@@ -20,5 +20,8 @@
 | **12 Densidade** | Buy-box acima da dobra ≥900px; VAL responsivo | CTAs fold; 35 antiregress | — |
 | **13 Alinhamento** | Ordem disponível+qty→frete; SPEC 55/45; QA dark/thumbs | Docs + dobra | — |
 | **14 Medidas+AR** | Contratos densidade/tokens/CTAs; microcorte 768h | Antiregress + VAL medidas | — |
+| **15 Selo card** | Compat após título (não overlay foto/Oferta) | Card M15 + inventário baseline | — |
+| **16 Inventário** | Docs implantações + baseline medidas + gate AR | `FAL_PDP_IMPLANTACOES_BASELINE_*` | — |
 
-Por marcha: implementar → refine → VAL → commit `dev`.
+Por marcha: implementar → refine → VAL → commit `dev`.  
+**Gate obrigatório:** `cd fal-pecas && npm run test:compat-antiregress`

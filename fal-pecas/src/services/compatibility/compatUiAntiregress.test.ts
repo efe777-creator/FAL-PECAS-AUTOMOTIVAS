@@ -63,10 +63,24 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(m32).toMatch(/footer=\{/)
   })
 
-  it('Card: selo Incompatível entra no showSeal (não some no hide com label)', () => {
+  it('Card M15: selo após título (não overlay); Oferta absoluta na foto; Incompatível visível', () => {
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/cardSeal\.kind !== 'hide' \|\| cardSeal\.label/)
     expect(card).toMatch(/CompatibilityStateBadge/)
+    // Gate: selo NÃO volta para cima da foto (não tapa Oferta/peça).
+    expect(card).not.toMatch(/absolute top-2 left-2[\s\S]*CompatibilityStateBadge/)
+    expect(card).not.toMatch(/pointer-events-none absolute[\s\S]*CompatibilityStateBadge/)
+    const titleIdx = card.indexOf('title={displayName}')
+    const sealIdx = card.indexOf('<CompatibilityStateBadge')
+    const refIdx = card.indexOf('formatReferenciaFromProduct(product)')
+    expect(titleIdx).toBeGreaterThan(-1)
+    expect(sealIdx).toBeGreaterThan(titleIdx)
+    expect(refIdx).toBeGreaterThan(sealIdx)
+    // Oferta permanece no canto da mídia.
+    expect(card).toMatch(/showOfertaBadge/)
+    expect(card).toMatch(/absolute top-3\.5 left-3\.5/)
+    expect(card).toMatch(/formatOfertaBadgeLabel/)
+    expect(card).toMatch(/shadow-none/)
   })
 
   it('PDP M1: container 1440 só via maxWidth pdp; grid 55/45; galeria 4:3', () => {

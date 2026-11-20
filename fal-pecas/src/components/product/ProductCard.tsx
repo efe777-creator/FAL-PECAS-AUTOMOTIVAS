@@ -248,15 +248,6 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
             <ProductImagePlaceholder className="scale-75" />
           )}
         </ProductMediaFrame>
-        {showSeal && compatVerdict ? (
-          <div className="pointer-events-none absolute top-2 left-2 z-[3]">
-            <CompatibilityStateBadge
-              verdict={compatVerdict}
-              variant="card"
-              tone={equivIncompatible ? 'neutral' : 'default'}
-            />
-          </div>
-        ) : null}
       </div>
 
       <Link to={productHref} state={pdpLinkState} className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -266,6 +257,16 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
         >
           {displayName}
         </h3>
+        {showSeal && compatVerdict ? (
+          <div className="mb-1.5">
+            <CompatibilityStateBadge
+              verdict={compatVerdict}
+              variant="card"
+              tone={equivIncompatible ? 'neutral' : 'default'}
+              className="max-w-full shadow-none"
+            />
+          </div>
+        ) : null}
         <p className="m-0 truncate text-[11px] text-fal-muted">
           {formatReferenciaFromProduct(product)}
         </p>
