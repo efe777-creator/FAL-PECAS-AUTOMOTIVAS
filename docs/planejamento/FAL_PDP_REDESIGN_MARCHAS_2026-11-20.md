@@ -19,5 +19,6 @@
 | **11 Ref. visual** | Alinhamento meticuloso à referência | Light/dark tokens | — |
 | **12 Densidade** | Buy-box acima da dobra ≥900px; VAL responsivo | CTAs fold; 35 antiregress | — |
 | **13 Alinhamento** | Ordem disponível+qty→frete; SPEC 55/45; QA dark/thumbs | Docs + dobra | — |
+| **14 Medidas+AR** | Contratos densidade/tokens/CTAs; microcorte 768h | Antiregress + VAL medidas | — |
 
 Por marcha: implementar → refine → VAL → commit `dev`.

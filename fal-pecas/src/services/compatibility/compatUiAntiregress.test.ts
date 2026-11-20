@@ -69,11 +69,10 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(card).toMatch(/CompatibilityStateBadge/)
   })
 
-  it('PDP M1: container 1440 só via maxWidth pdp; grid 45/55; galeria 4:3', () => {
+  it('PDP M1: container 1440 só via maxWidth pdp; grid 55/45; galeria 4:3', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/maxWidth=\"pdp\"/)
-    expect(page).toMatch(/55fr/)
-    expect(page).toMatch(/45fr/)
+    expect(page).toMatch(/minmax\(0,55fr\).*minmax\(0,45fr\)/s)
     expect(page).toMatch(/lg:sticky/)
 
     const container = readFileSync(src('components/layout/Container.tsx'), 'utf8')
@@ -191,11 +190,40 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(availIdx).toBeGreaterThan(-1)
     expect(shipIdx).toBeGreaterThan(availIdx)
     expect(addIdx).toBeGreaterThan(shipIdx)
-    expect(page).toMatch(/55fr.*45fr|minmax\(0,55fr\).*minmax\(0,45fr\)/)
+    expect(page).toMatch(/minmax\(0,55fr\).*minmax\(0,45fr\)/s)
 
     const gallery = readFileSync(src('components/product/ProductGallery.tsx'), 'utf8')
     expect(gallery).toMatch(/lg:flex-col/)
     expect(gallery).toMatch(/lg:flex-row/)
+  })
+
+  it('PDP M14: densidade fold + tokens FAL + CTAs primary→dark + frete compacto', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    expect(page).toMatch(/py-2 sm:py-3/)
+    expect(page).toMatch(/lg:sticky lg:top-20/)
+    expect(page).toMatch(/variant="primary"[\s\S]*?h-10[\s\S]*?onClick=\{onAddToCart\}/)
+    expect(page).toMatch(/variant="dark"[\s\S]*?h-10[\s\S]*?onClick=\{onBuyNow\}/)
+    expect(page).not.toMatch(/StorePaymentMethodsBlock/)
+    expect(page).toMatch(/PdpPaymentIcons/)
+    expect(page).toMatch(/order-1/)
+    expect(page).toMatch(/order-2/)
+    expect(page).toMatch(/order-3/)
+
+    const icons = readFileSync(src('components/product/PdpPaymentIcons.tsx'), 'utf8')
+    expect(icons).toMatch(/min-height:820px/)
+    expect(icons).toMatch(/Formas de pagamento aceitas/)
+
+    const ship = readFileSync(src('components/product/ProductShippingQuoteBlock.tsx'), 'utf8')
+    expect(ship).toMatch(/Preferir retirada na loja/)
+    expect(ship).toMatch(/showShipOptions/)
+    expect(ship).toMatch(/pdp-shipping-cep/)
+
+    const css = readFileSync(src('styles/index.css'), 'utf8')
+    expect(css).toMatch(/--fal-yellow:\s*#f2c84b/i)
+    expect(css).toMatch(/--fal-navy:\s*#303846/i)
+    expect(css).toMatch(/--fal-bg:\s*#f4f6f7/i)
+    expect(css).toMatch(/--fal-bg:\s*#0e1116/i)
+    expect(css).toMatch(/--fal-fg:\s*#f3f5f7/i)
   })
 
   it('PDP M4: form local sem chip; sheet mobile; equiv cinza sem CTA', () => {

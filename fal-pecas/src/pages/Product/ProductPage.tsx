@@ -806,7 +806,7 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          <div className="mt-1.5 space-y-1.5 pb-20 lg:pb-0">
+          <div className="mt-1 space-y-1 pb-20 lg:pb-0">
             {current.available === false ? (
               <>
                 <p className="m-0 text-sm font-semibold text-fal-danger">Indisponível</p>
