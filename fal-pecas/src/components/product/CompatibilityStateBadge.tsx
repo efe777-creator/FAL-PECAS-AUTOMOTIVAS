@@ -14,11 +14,12 @@ const CARD_STYLES = {
   compatible: 'border-fal-success bg-fal-success text-white',
   similar: 'border-fal-yellow-dark bg-fal-yellow text-fal-navy-dark',
   check: 'border-fal-line bg-fal-surface text-fal-navy dark:bg-fal-surface-2 dark:text-fal-fg',
+  hide: 'border-fal-danger bg-fal-danger text-white',
 } as const
 
 /**
  * Badge que só consome o veredito do motor — sem lógica de classificação.
- * `variant="card"` = copy E.1 (Compatível / similar / A verificar).
+ * `variant="card"` = copy E.1 (Compatível / similar / A verificar / Incompatível).
  */
 export function CompatibilityStateBadge({
   verdict,
@@ -35,7 +36,8 @@ export function CompatibilityStateBadge({
 
   if (variant === 'card') {
     const seal = resolveCardSeal(verdict)
-    if (seal.kind === 'hide') return null
+    // Sem veredito de cruzamento: não pinta selo vazio.
+    if (seal.kind === 'hide' && !seal.label) return null
     const tip = verdict.evidences.map((e) => e.detail).join(' · ')
     return (
       <span

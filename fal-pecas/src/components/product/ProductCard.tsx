@@ -125,12 +125,14 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
     return classifyCardCompatibility(input, resolvedPvc)
   }, [effectiveFit, resolvedPvc])
 
-  const showSeal = Boolean(compatVerdict && resolveCardSeal(compatVerdict).kind !== 'hide')
+  const cardSeal = compatVerdict ? resolveCardSeal(compatVerdict) : null
+  // Inclui Incompatível (hide com label) — antes o hide sumia e o aviso não aparecia no card.
+  const showSeal = Boolean(cardSeal && (cardSeal.kind !== 'hide' || cardSeal.label))
   const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
-  // Com fit + selo (Compatível/similar/A verificar) o selo substitui o bloco.
-  // Sem selo (guest, ou incompatível hide E.1) mantém Aplicação — senão o card fica vazio.
+  // Compatível/similar/A verificar: selo substitui apps. Incompatível: selo + apps.
   const sealPending = hasFitContext && resolvedPvc == null
-  const showApps = !showSeal && !sealPending
+  const showApps =
+    !sealPending && (!showSeal || cardSeal?.kind === 'hide')
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()

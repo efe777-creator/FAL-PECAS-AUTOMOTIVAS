@@ -274,7 +274,7 @@ export function resolveCardSeal(
     return { kind: 'similar', label: 'Compatível', micro: 'similar' }
   }
   if (verdict.evidences.some((e) => e.code === 'no_intersection')) {
-    return { kind: 'hide', label: '' }
+    return { kind: 'hide', label: 'Incompatível' }
   }
   return { kind: 'check', label: 'A verificar' }
 }

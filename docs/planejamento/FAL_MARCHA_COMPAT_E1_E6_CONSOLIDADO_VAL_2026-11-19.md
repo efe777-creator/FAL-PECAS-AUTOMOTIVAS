@@ -14,13 +14,14 @@
 | 4 | Pedido mostra fit + Completar dados | `FAL_MARCHA_COMPAT_E5_PEDIDO_GATE_COMPLETAR_VAL_2026-11-19.md` |
 | 5 | Equivalentes E.6 admin+PDP | `FAL_MARCHA_COMPAT_E6_EQUIVALENTES_VAL_2026-11-19.md` |
 | 6 | M32 prioriza E.6 + admin fit no pedido | este doc |
+| 7 | E.2 aviso no buy-box + selo Incompatível no card | `FAL_MARCHA_COMPAT_E2_AVISO_BUYBOX_VAL_2026-11-20.md` |
 
 ## Aceite consolidado
 
 | Superfície | Critério | Status |
 |------------|----------|--------|
-| Card | Selo E.1 / apps sem selo | PASS |
-| PDP | Bloco + form triplo local + equivalentes | PASS |
+| Card | Selo E.1 / apps sem selo; Incompatível visível com fit | PASS |
+| PDP | Bloco + form triplo local + equivalentes; aviso acima do CTA | PASS |
 | Carrinho | Fit por item + Trocar + gate | PASS |
 | Checkout | Alerta M7 + log no snapshot | PASS |
 | Pedido conta/admin | compatDecision imutável | PASS |

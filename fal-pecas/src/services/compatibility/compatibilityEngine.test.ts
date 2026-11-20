@@ -109,8 +109,8 @@ describe('resolveCardSeal E.1', () => {
         state: 'unconfirmed',
         label: 'x',
         evidences: [{ code: 'no_intersection', detail: 'n' }],
-      }).kind,
-    ).toBe('hide')
+      }),
+    ).toEqual({ kind: 'hide', label: 'Incompatível' })
     expect(
       resolveCardSeal({
         state: 'unconfirmed',

@@ -689,6 +689,63 @@ export function ProductPage() {
             )}
           </p>
 
+          {/* Aviso acima do CTA (E.2) — o bloco completo fica em #pdp-detalhes, fora da dobra. */}
+          {(() => {
+            if (!compatVerdict) {
+              return garage?.activeFilter ? (
+                <p className="mt-4 text-xs text-fal-muted" role="status">
+                  Verificando compatibilidade…
+                </p>
+              ) : (
+                <p className="mt-4 text-xs text-fal-muted" role="status">
+                  Confirme um veículo no chip do header para ver se esta peça serve.
+                </p>
+              )
+            }
+            const seal = resolveCardSeal(compatVerdict)
+            const motivo = compatMotivo(compatVerdict)
+            return (
+              <div
+                className={[
+                  'mt-4 rounded-[10px] border px-3 py-2.5',
+                  seal.kind === 'hide'
+                    ? 'border-fal-danger/40 bg-fal-danger/10'
+                    : seal.kind === 'compatible'
+                      ? 'border-fal-success/40 bg-fal-success/10'
+                      : 'border-fal-line bg-fal-bg',
+                ].join(' ')}
+                role="status"
+              >
+                {garage?.activeFilter ? (
+                  <p className="m-0 text-[11px] text-fal-muted">
+                    Veículo:{' '}
+                    <span className="font-semibold text-fal-fg">
+                      {filterDisplayLabel(garage.activeFilter)}
+                    </span>
+                  </p>
+                ) : null}
+                {seal.kind === 'hide' ? (
+                  <p className="mb-0 mt-0.5 text-sm font-bold text-fal-danger">
+                    Incompatível com o veículo ativo
+                  </p>
+                ) : (
+                  <div className="mt-1">
+                    <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
+                  </div>
+                )}
+                {motivo ? (
+                  <p className="mb-0 mt-1 text-[11px] text-fal-muted">Motivo: {motivo}</p>
+                ) : null}
+                <a
+                  href="#pdp-detalhes"
+                  className="mt-1 inline-block text-[11px] font-semibold text-fal-navy hover:underline"
+                >
+                  Ver aplicação e detalhes ↓
+                </a>
+              </div>
+            )
+          })()}
+
           <div className="mt-5 space-y-3">
             {current.available === false ? (
               <Button variant="primary" fullWidth disabled>
