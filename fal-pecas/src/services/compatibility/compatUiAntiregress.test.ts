@@ -118,6 +118,34 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/PaymentConditionHint/)
   })
 
+  it('PDP M4: form local sem chip; sheet mobile; equiv cinza sem CTA', () => {
+    const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
+    expect(page).toMatch(/localVehicleFilter/)
+    expect(page).toMatch(/setLocalVehicleFilter/)
+    expect(page).not.toMatch(/setActiveFilter/)
+    expect(page).toMatch(/<VehicleSelector/)
+    expect(page).toMatch(/onConfirm=\{\(filter\) => setLocalVehicleFilter\(filter\)\}/)
+    expect(page).toMatch(/verifySheetOpen/)
+    expect(page).toMatch(/Completar ano, motor ou versão/)
+    expect(page).toMatch(/surface="equiv"/)
+    expect(page).toMatch(/fitFilter=\{effectiveVehicleFilter\}/)
+
+    const detalhesIdx = page.indexOf('id="pdp-detalhes"')
+    const afterDetalhes = page.slice(detalhesIdx)
+    expect(afterDetalhes).not.toMatch(/setVerifyApplied/)
+    expect(afterDetalhes).not.toMatch(/Verificar nesta página/)
+
+    const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
+    expect(card).toMatch(/surface === 'equiv'/)
+    expect(card).toMatch(/equivIncompatible/)
+    expect(card).toMatch(/showPurchaseCtas/)
+    expect(card).toMatch(/tone=\{equivIncompatible \? 'neutral' : 'default'\}/)
+
+    const badge = readFileSync(src('components/product/CompatibilityStateBadge.tsx'), 'utf8')
+    expect(badge).toMatch(/tone === 'neutral'/)
+    expect(badge).toMatch(/CARD_STYLES_NEUTRAL_HIDE/)
+  })
+
   it('Badge card trata hide com label (não retorna null cego)', () => {
     const badge = readFileSync(src('components/product/CompatibilityStateBadge.tsx'), 'utf8')
     expect(badge).toMatch(/hide: 'border-fal-danger/)

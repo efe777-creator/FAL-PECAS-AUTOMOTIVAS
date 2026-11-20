@@ -17,18 +17,25 @@ const CARD_STYLES = {
   hide: 'border-fal-danger bg-fal-danger text-white',
 } as const
 
+/** Equiv incompatíveis (decisão 12): selo cinza neutro, sem alarme de compra. */
+const CARD_STYLES_NEUTRAL_HIDE =
+  'border-fal-line bg-fal-bg text-fal-muted dark:bg-fal-surface-2 dark:text-fal-muted'
+
 /**
  * Badge que só consome o veredito do motor — sem lógica de classificação.
  * `variant="card"` = copy E.1 (Compatível / similar / A verificar / Incompatível).
+ * `tone="neutral"` = hide/Incompatível em cinza (lista de equivalentes).
  */
 export function CompatibilityStateBadge({
   verdict,
   className = '',
   variant = 'pdp',
+  tone = 'default',
 }: {
   verdict: CompatibilityVerdict | null | undefined
   className?: string
   variant?: 'pdp' | 'card'
+  tone?: 'default' | 'neutral'
   /** @deprecated Card usa tamanho único legível. */
   compact?: boolean
 }) {
@@ -39,13 +46,17 @@ export function CompatibilityStateBadge({
     // Sem veredito de cruzamento: não pinta selo vazio.
     if (seal.kind === 'hide' && !seal.label) return null
     const tip = verdict.evidences.map((e) => e.detail).join(' · ')
+    const hideStyle =
+      tone === 'neutral' && seal.kind === 'hide'
+        ? CARD_STYLES_NEUTRAL_HIDE
+        : CARD_STYLES[seal.kind]
     return (
       <span
         role="status"
         title={tip || seal.label}
         className={[
           'inline-flex max-w-[min(100%,11rem)] items-baseline gap-0.5 rounded-[8px] border-2 px-2 py-1 text-[11px] font-black leading-tight shadow-fal sm:text-xs',
-          CARD_STYLES[seal.kind],
+          hideStyle,
           className,
         ].join(' ')}
       >

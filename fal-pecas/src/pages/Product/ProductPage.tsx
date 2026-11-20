@@ -4,12 +4,15 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Loading } from '@/components/common/Loading'
 import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import { Button } from '@/components/common/Button'
+import { Modal } from '@/components/common/Modal'
 import { CompatVerdictSummary } from '@/components/product/CompatVerdictSummary'
 import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
 } from '@/components/product/PaymentConditionHint'
 import { StorePaymentMethodsBlock } from '@/components/product/StorePaymentMethodsBlock'
+import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { ProductCard } from '@/components/product/ProductCard'
 import { ProductGallery } from '@/components/product/ProductGallery'
 import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQuoteBlock'
@@ -37,8 +40,7 @@ import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import type { Product } from '@/types'
-import { Button } from '@/components/common/Button'
+import type { Product, VehicleFilter } from '@/types'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -129,6 +131,8 @@ export function ProductPage() {
     () => (compatVerdict ? resolveCardSeal(compatVerdict).kind : null),
     [compatVerdict],
   )
+  /** Fit só desta PDP — nunca grava em garage.activeFilter. */
+  const [localVehicleFilter, setLocalVehicleFilter] = useState<VehicleFilter | null>(null)
   /** E.2: rascunho local ano/motor/versão — não altera o chip da garagem. */
   const [verifyYear, setVerifyYear] = useState('')
   const [verifyEngine, setVerifyEngine] = useState('')
@@ -138,9 +142,12 @@ export function ProductPage() {
     engine: string
     version: string
   } | null>(null)
+  const [verifySheetOpen, setVerifySheetOpen] = useState(false)
+
+  const effectiveVehicleFilter = garage?.activeFilter ?? localVehicleFilter
 
   const activeCompatInput = useMemo(() => {
-    const base = vehicleFilterToCompatInput(garage?.activeFilter)
+    const base = vehicleFilterToCompatInput(effectiveVehicleFilter)
     if (!base) return null
     if (!verifyApplied) return base
     return {
@@ -149,21 +156,36 @@ export function ProductPage() {
       engine: verifyApplied.engine.trim() || base.engine,
       version: verifyApplied.version.trim() || base.version,
     }
-  }, [garage?.activeFilter, verifyApplied])
+  }, [effectiveVehicleFilter, verifyApplied])
 
   useEffect(() => {
-    // Reset rascunho ao trocar veículo ativo.
-    setVerifyYear(garage?.activeFilter?.year ?? '')
-    setVerifyEngine(garage?.activeFilter?.engine ?? '')
-    setVerifyVersion(garage?.activeFilter?.version ?? '')
+    // Chip da garagem vence o rascunho local da PDP.
+    if (garage?.activeFilter) setLocalVehicleFilter(null)
+  }, [garage?.activeFilter])
+
+  useEffect(() => {
+    // Reset rascunho ao trocar veículo efetivo.
+    setVerifyYear(effectiveVehicleFilter?.year ?? '')
+    setVerifyEngine(effectiveVehicleFilter?.engine ?? '')
+    setVerifyVersion(effectiveVehicleFilter?.version ?? '')
     setVerifyApplied(null)
+    setVerifySheetOpen(false)
   }, [
-    garage?.activeFilter?.maker,
-    garage?.activeFilter?.model,
-    garage?.activeFilter?.year,
-    garage?.activeFilter?.engine,
-    garage?.activeFilter?.version,
+    effectiveVehicleFilter?.maker,
+    effectiveVehicleFilter?.model,
+    effectiveVehicleFilter?.year,
+    effectiveVehicleFilter?.engine,
+    effectiveVehicleFilter?.version,
   ])
+
+  function applyVerifyDraft() {
+    setVerifyApplied({
+      year: verifyYear,
+      engine: verifyEngine,
+      version: verifyVersion,
+    })
+    setVerifySheetOpen(false)
+  }
 
   useEffect(() => {
     if (!product?.id || !activeCompatInput) {
@@ -664,18 +686,100 @@ export function ProductPage() {
             </div>
           ) : null}
 
-          {/* Ordem M3: compat antes de preço/CTAs (spec consolidada). */}
+          {/* Ordem M3: compat antes de preço/CTAs · M4: form local / sheet. */}
           <CompatVerdictSummary
             className="mt-4"
             framed
             incompatEmphasis
+            showFaltante={pdpSealKind === 'check' || pdpSealKind === 'similar'}
             verdict={compatVerdict}
             vehicleLabel={
-              garage?.activeFilter ? filterDisplayLabel(garage.activeFilter) : null
+              effectiveVehicleFilter ? filterDisplayLabel(effectiveVehicleFilter) : null
             }
-            loading={Boolean(garage?.activeFilter && !compatVerdict)}
-            emptyHint="Confirme um veículo no chip do header para ver se esta peça serve."
+            vehicleAction={
+              garage?.activeFilter ? (
+                <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
+                  Trocar
+                </Link>
+              ) : localVehicleFilter ? (
+                <button
+                  type="button"
+                  className="font-semibold text-fal-accent hover:underline"
+                  onClick={() => setLocalVehicleFilter(null)}
+                >
+                  Limpar
+                </button>
+              ) : null
+            }
+            loading={Boolean(effectiveVehicleFilter && !compatVerdict)}
+            emptyHint="Informe o veículo abaixo para ver se esta peça serve — não altera a garagem."
           />
+
+          {!effectiveVehicleFilter ? (
+            <div className="mt-3">
+              <VehicleSelector
+                compact
+                hideQuickPick
+                title="Informar veículo"
+                subtitle="Só para esta página — não altera o veículo ativo no header."
+                confirmLabel="Verificar nesta página"
+                onConfirm={(filter) => setLocalVehicleFilter(filter)}
+              />
+            </div>
+          ) : null}
+
+          {pdpSealKind === 'check' || pdpSealKind === 'similar' ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                className="w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-left text-sm font-semibold text-fal-navy hover:border-fal-navy/40 md:hidden"
+                onClick={() => setVerifySheetOpen(true)}
+              >
+                Completar ano, motor ou versão
+              </button>
+              <div className="mb-0 hidden grid-cols-1 gap-2 sm:grid-cols-3 md:grid">
+                <label className="block text-[11px] font-semibold text-fal-muted">
+                  Ano
+                  <input
+                    className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                    value={verifyYear}
+                    onChange={(e) => setVerifyYear(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Ex.: 2015"
+                    aria-label="Ano do veículo para verificar"
+                  />
+                </label>
+                <label className="block text-[11px] font-semibold text-fal-muted">
+                  Motor
+                  <input
+                    className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                    value={verifyEngine}
+                    onChange={(e) => setVerifyEngine(e.target.value)}
+                    placeholder="Ex.: 1.0"
+                    aria-label="Motor do veículo para verificar"
+                  />
+                </label>
+                <label className="block text-[11px] font-semibold text-fal-muted">
+                  Versão
+                  <input
+                    className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                    value={verifyVersion}
+                    onChange={(e) => setVerifyVersion(e.target.value)}
+                    placeholder="Ex.: Unique"
+                    aria-label="Versão do veículo para verificar"
+                  />
+                </label>
+                <div className="sm:col-span-3">
+                  <Button variant="light" type="button" onClick={applyVerifyDraft}>
+                    Verificar
+                  </Button>
+                  <p className="mb-0 mt-1 text-[11px] text-fal-muted">
+                    Só reavalia esta página — não altera o veículo ativo no header.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <p className="mt-4 text-3xl font-black">
             {current.available === false
@@ -812,9 +916,57 @@ export function ProductPage() {
         </div>
       </div>
 
-      {/* Abaixo do buy-box: apps → desc → specs → ajuda */}
+      <Modal
+        open={verifySheetOpen}
+        title="Completar dados do veículo"
+        onClose={() => setVerifySheetOpen(false)}
+        footer={
+          <Button variant="primary" fullWidth type="button" onClick={applyVerifyDraft}>
+            Verificar
+          </Button>
+        }
+      >
+        <p className="m-0 mb-3 text-sm text-fal-muted">
+          Só reavalia esta página — não altera o veículo ativo no header.
+        </p>
+        <div className="grid grid-cols-1 gap-3">
+          <label className="block text-[11px] font-semibold text-fal-muted">
+            Ano
+            <input
+              className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+              value={verifyYear}
+              onChange={(e) => setVerifyYear(e.target.value)}
+              inputMode="numeric"
+              placeholder="Ex.: 2015"
+              aria-label="Ano do veículo para verificar"
+            />
+          </label>
+          <label className="block text-[11px] font-semibold text-fal-muted">
+            Motor
+            <input
+              className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+              value={verifyEngine}
+              onChange={(e) => setVerifyEngine(e.target.value)}
+              placeholder="Ex.: 1.0"
+              aria-label="Motor do veículo para verificar"
+            />
+          </label>
+          <label className="block text-[11px] font-semibold text-fal-muted">
+            Versão
+            <input
+              className="mt-0.5 w-full rounded-fal border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+              value={verifyVersion}
+              onChange={(e) => setVerifyVersion(e.target.value)}
+              placeholder="Ex.: Unique"
+              aria-label="Versão do veículo para verificar"
+            />
+          </label>
+        </div>
+      </Modal>
+
+      {/* Abaixo do buy-box: apps → desc → specs · form/veredito só no buy-box (M4). */}
       <div id="pdp-detalhes" className="mt-8 min-w-0 scroll-mt-24 space-y-4">
-        <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
+        <div className="rounded-fal border border-fal-line bg-fal-bg p-3 sm:p-4">
           <h2 className="m-0 mb-2 text-sm font-extrabold tracking-tight text-fal-navy dark:text-fal-fg">
             Compatibilidade
           </h2>
@@ -829,59 +981,6 @@ export function ProductPage() {
                 Trocar
               </Link>
             </p>
-          ) : null}
-          {pdpSealKind === 'check' || pdpSealKind === 'similar' ? (
-            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <label className="block text-[11px] font-semibold text-fal-muted">
-                Ano
-                <input
-                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                  value={verifyYear}
-                  onChange={(e) => setVerifyYear(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="Ex.: 2015"
-                  aria-label="Ano do veículo para verificar"
-                />
-              </label>
-              <label className="block text-[11px] font-semibold text-fal-muted">
-                Motor
-                <input
-                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                  value={verifyEngine}
-                  onChange={(e) => setVerifyEngine(e.target.value)}
-                  placeholder="Ex.: 1.0"
-                  aria-label="Motor do veículo para verificar"
-                />
-              </label>
-              <label className="block text-[11px] font-semibold text-fal-muted">
-                Versão
-                <input
-                  className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
-                  value={verifyVersion}
-                  onChange={(e) => setVerifyVersion(e.target.value)}
-                  placeholder="Ex.: Unique"
-                  aria-label="Versão do veículo para verificar"
-                />
-              </label>
-              <div className="sm:col-span-3">
-                <Button
-                  variant="light"
-                  type="button"
-                  onClick={() =>
-                    setVerifyApplied({
-                      year: verifyYear,
-                      engine: verifyEngine,
-                      version: verifyVersion,
-                    })
-                  }
-                >
-                  Verificar
-                </Button>
-                <p className="mb-0 mt-1 text-[11px] text-fal-muted">
-                  Só reavalia esta página — não altera o veículo ativo no header.
-                </p>
-              </div>
-            </div>
           ) : null}
           <CompatibilityAppsBlock
             variant="pdp"
@@ -949,7 +1048,12 @@ export function ProductPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {equivalents.map((item) => (
-              <ProductCard key={item.id} product={item} />
+              <ProductCard
+                key={item.id}
+                product={item}
+                surface="equiv"
+                fitFilter={effectiveVehicleFilter}
+              />
             ))}
           </div>
         </section>

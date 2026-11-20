@@ -66,9 +66,13 @@ type Props = {
   pvcRows?: PvcCompatRow[] | null
   /** Fit M25 já resolvido (chip ou URL). Se omitido, usa só garage.activeFilter. */
   fitFilter?: VehicleFilter | null
+  /**
+   * `equiv`: incompatíveis com selo cinza e sem CTA de compra (spec PDP #12).
+   */
+  surface?: 'default' | 'equiv'
 }
 
-export function ProductCard({ product, pvcRows, fitFilter }: Props) {
+export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }: Props) {
   const { user } = useAuth()
   const { items, addItem } = useCart()
   const { isFavorite, toggle } = useFavorites()
@@ -133,6 +137,9 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
   const sealPending = hasFitContext && resolvedPvc == null
   const showApps =
     !sealPending && (!showSeal || cardSeal?.kind === 'hide')
+  const equivIncompatible =
+    surface === 'equiv' && Boolean(cardSeal?.kind === 'hide' && cardSeal.label)
+  const showPurchaseCtas = available && !equivIncompatible
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()
@@ -243,7 +250,11 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
         </ProductMediaFrame>
         {showSeal && compatVerdict ? (
           <div className="pointer-events-none absolute top-2 left-2 z-[3]">
-            <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
+            <CompatibilityStateBadge
+              verdict={compatVerdict}
+              variant="card"
+              tone={equivIncompatible ? 'neutral' : 'default'}
+            />
           </div>
         ) : null}
       </div>
@@ -336,7 +347,7 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
           </p>
         ) : null}
 
-        {available ? (
+        {showPurchaseCtas ? (
           <>
             <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
               {COMPRAR_AGORA_LABEL}
@@ -345,6 +356,9 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
               {ADICIONAR_AO_CARRINHO_LABEL}
             </Button>
           </>
+        ) : null}
+        {equivIncompatible ? (
+          <p className="m-0 text-xs font-semibold text-fal-muted">Não recomendado para o veículo</p>
         ) : null}
       </div>
     </article>
