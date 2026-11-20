@@ -80,7 +80,37 @@ export function ReplaceCartItemModal({
   const vehicleLabel = filterDisplayLabel(garage?.activeFilter)
 
   return (
-    <Modal open={open} title={`Substituir ${item.name}`} onClose={onClose}>
+    <Modal
+      open={open}
+      title={`Substituir ${item.name}`}
+      onClose={onClose}
+      footer={
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="light" type="button" fullWidth className="sm:w-auto" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            variant="primary"
+            type="button"
+            fullWidth
+            className="sm:w-auto"
+            disabled={!selected}
+            onClick={() => {
+              if (!selected) return
+              onReplace(
+                item.productId,
+                selected.product,
+                item.quantity,
+                selected.fromEquivalence,
+              )
+              onClose()
+            }}
+          >
+            Substituir no carrinho
+          </Button>
+        </div>
+      }
+    >
       <p className="m-0 text-sm text-fal-muted">
         Veículo: <span className="font-semibold text-fal-fg">{vehicleLabel}</span>
       </p>
@@ -102,7 +132,7 @@ export function ReplaceCartItemModal({
       ) : null}
 
       {!loading && candidates.length > 0 ? (
-        <ul className="mt-3 max-h-[50vh] list-none space-y-2 overflow-y-auto p-0">
+        <ul className="mt-3 list-none space-y-2 p-0">
           {candidates.map((c) => {
             const checked = selectedId === c.product.id
             const price = displayPrice(c.product)
@@ -141,29 +171,6 @@ export function ReplaceCartItemModal({
           })}
         </ul>
       ) : null}
-
-      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button variant="light" type="button" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button
-          variant="primary"
-          type="button"
-          disabled={!selected}
-          onClick={() => {
-            if (!selected) return
-            onReplace(
-              item.productId,
-              selected.product,
-              item.quantity,
-              selected.fromEquivalence,
-            )
-            onClose()
-          }}
-        >
-          Substituir no carrinho
-        </Button>
-      </div>
     </Modal>
   )
 }

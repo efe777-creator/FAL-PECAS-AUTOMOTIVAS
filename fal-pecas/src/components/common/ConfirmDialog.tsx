@@ -78,10 +78,32 @@ export function ConfirmDialogHost() {
       open={Boolean(pending)}
       title={pending?.title ?? ''}
       onClose={() => close({ confirmed: false })}
+      footer={
+        pending ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="light"
+              fullWidth
+              className="sm:w-auto"
+              onClick={() => close({ confirmed: false })}
+            >
+              {pending.cancelLabel ?? 'Cancelar'}
+            </Button>
+            <Button
+              variant={pending.danger ? 'danger' : 'primary'}
+              fullWidth
+              className="sm:w-auto"
+              onClick={onConfirm}
+            >
+              {pending.confirmLabel ?? 'Confirmar'}
+            </Button>
+          </div>
+        ) : null
+      }
     >
       {pending ? (
         <div className="space-y-4">
-          <p className="m-0 text-sm text-fal-ink whitespace-pre-wrap">{pending.message}</p>
+          <p className="m-0 whitespace-pre-wrap text-sm text-fal-ink">{pending.message}</p>
           {pending.requireReason || pending.askReason ? (
             <label className="block text-sm font-semibold text-fal-fg">
               {pending.reasonLabel ?? (pending.requireReason ? 'Motivo' : 'Nota (opcional)')}
@@ -100,17 +122,6 @@ export function ConfirmDialogHost() {
               ) : null}
             </label>
           ) : null}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="light" onClick={() => close({ confirmed: false })}>
-              {pending.cancelLabel ?? 'Cancelar'}
-            </Button>
-            <Button
-              variant={pending.danger ? 'danger' : 'primary'}
-              onClick={onConfirm}
-            >
-              {pending.confirmLabel ?? 'Confirmar'}
-            </Button>
-          </div>
         </div>
       ) : null}
     </Modal>

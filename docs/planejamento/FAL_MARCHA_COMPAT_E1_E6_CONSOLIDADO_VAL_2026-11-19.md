@@ -15,6 +15,7 @@
 | 5 | Equivalentes E.6 admin+PDP | `FAL_MARCHA_COMPAT_E6_EQUIVALENTES_VAL_2026-11-19.md` |
 | 6 | M32 prioriza E.6 + admin fit no pedido | este doc |
 | 7 | E.2 aviso no buy-box + selo Incompatível no card | `FAL_MARCHA_COMPAT_E2_AVISO_BUYBOX_VAL_2026-11-20.md` |
+| 8 | E.7 Gate/M32 bottom sheet mobile | `FAL_MARCHA_COMPAT_E7_SHEETS_VAL_2026-11-20.md` |
 
 ## Aceite consolidado
 
@@ -22,7 +23,7 @@
 |------------|----------|--------|
 | Card | Selo E.1 / apps sem selo; Incompatível visível com fit | PASS |
 | PDP | Bloco + form triplo local + equivalentes; aviso acima do CTA | PASS |
-| Carrinho | Fit por item + Trocar + gate | PASS |
+| Carrinho | Fit por item + Trocar + gate (sheet mobile E.7) | PASS |
 | Checkout | Alerta M7 + log no snapshot | PASS |
 | Pedido conta/admin | compatDecision imutável | PASS |
 | Admin produto | Equivalentes ≠ Relacionados | PASS |
@@ -31,7 +32,7 @@
 ## Fora / próximo
 
 - Figma / polish visual E.8  
-- Métricas/RMA Fase 7  
+- Métricas/RMA Fase 7 full (ops dashboard)  
 - Transitividade de equivalência (proibido — manter)
 
 ## Comandos

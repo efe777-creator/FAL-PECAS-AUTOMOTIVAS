@@ -6,9 +6,14 @@ interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
+  /** Ações fixas abaixo do body (não rolam no sheet). */
+  footer?: ReactNode
 }
 
-export function Modal({ open, title, onClose, children }: ModalProps) {
+/**
+ * Dialog responsivo E.7: bottom sheet em &lt;md, modal central em md+.
+ */
+export function Modal({ open, title, onClose, children, footer }: ModalProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -42,7 +47,6 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     }
 
     window.addEventListener('keydown', onKey)
-    // Foco inicial no painel (ou no primeiro focoável)
     requestAnimationFrame(() => {
       const first = panelRef.current?.querySelector<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -61,33 +65,42 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(20,25,31,0.55)] p-[18px]"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-[rgba(20,25,31,0.55)] p-0 md:items-center md:p-[18px]"
       role="presentation"
       onClick={onClose}
     >
       <div
         ref={panelRef}
-        className="max-h-[90vh] w-full max-w-[620px] overflow-auto rounded-2xl bg-fal-surface p-6 text-fal-fg shadow-fal outline-none"
+        className={[
+          'flex w-full max-w-[620px] flex-col overflow-hidden bg-fal-surface text-fal-fg shadow-fal outline-none',
+          'max-h-[92dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]',
+          'md:max-h-[90vh] md:rounded-2xl md:pb-0',
+        ].join(' ')}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-5 md:px-6 md:pt-6">
           <h2 id={titleId} className="m-0 text-xl font-extrabold text-fal-fg">
             {title}
           </h2>
           <button
             type="button"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-fal-surface-2 text-lg text-fal-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-0 bg-fal-surface-2 text-lg text-fal-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow md:h-[34px] md:w-[34px]"
             onClick={onClose}
             aria-label="Fechar"
           >
             ×
           </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 md:px-6">
+          {children}
+        </div>
+        {footer ? (
+          <div className="shrink-0 border-t border-fal-line px-5 py-4 md:px-6">{footer}</div>
+        ) : null}
       </div>
     </div>
   )
