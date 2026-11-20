@@ -193,6 +193,12 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(page).toMatch(/order-3/)
     expect(page).toMatch(/lg:col-start-1 lg:row-start-2/)
 
+    // Veredito/Trocar só no buy-box — acordeão apps não ecoa veículo+Trocar.
+    const accordionSlice = page.slice(accIdx, page.indexOf('</PdpAccordion>') + 20)
+    expect(accordionSlice).not.toMatch(/>Trocar</)
+    expect(accordionSlice).not.toMatch(/Veículo:/)
+    expect(accordionSlice).not.toMatch(/to="\/garagem"/)
+
     const acc = readFileSync(src('components/product/PdpAccordion.tsx'), 'utf8')
     expect(acc).toMatch(/aria-expanded/)
   })
@@ -251,25 +257,53 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(css).toMatch(/--fal-fg:\s*#f3f5f7/i)
   })
 
-  it('PDP M4: form local sem chip; sheet mobile; equiv cinza sem CTA', () => {
+  it('PDP M4: verify compat via mini-menu (placa|manual); sheet mobile; equiv cinza sem CTA', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/localVehicleFilter/)
     expect(page).toMatch(/setLocalVehicleFilter/)
     expect(page).not.toMatch(/setActiveFilter/)
-    expect(page).toMatch(/<VehicleSelector/)
-    expect(page).toMatch(/onConfirm=\{\(filter\) => setLocalVehicleFilter\(filter\)\}/)
+    expect(page).toMatch(/verifyCompatOpen/)
+    expect(page).toMatch(/Verificar compatibilidade/)
+    expect(page).toMatch(/VehiclePlateSearch/)
+    expect(page).toMatch(/localOnly/)
     expect(page).toMatch(/verifySheetOpen/)
     expect(page).toMatch(/Completar ano, motor ou versão/)
     expect(page).toMatch(/surface="equiv"/)
     expect(page).toMatch(/fitFilter=\{effectiveVehicleFilter\}/)
+    expect(page).toMatch(/listIntelligentRelatedForPdp/)
+    expect(page).toMatch(/relatedPvcById/)
+    // Seção related também passa fit + pvc batch (não só equiv).
+    expect(page).toMatch(/related\.map\(\(item\) => \(/)
+    expect(page).toMatch(/pvcRows=\{\s*\n\s*effectiveVehicleFilter/)
 
-    // Acordeão não embute o form local; VehicleSelector fica no buy-box.
+    // Acordeão não embute o seletor; buy-box usa botão + modal.
     const accStart = page.indexOf('<PdpAccordion')
     expect(accStart).toBeGreaterThan(-1)
     const accordionSlice = page.slice(accStart, page.indexOf('</PdpAccordion>') + 20)
-    expect(accordionSlice).not.toMatch(/VehicleSelector/)
-    expect(accordionSlice).not.toMatch(/Verificar nesta página/)
-    expect(page).toMatch(/Verificar nesta página/)
+    expect(accordionSlice).not.toMatch(/VehiclePlateSearch/)
+    expect(accordionSlice).not.toMatch(/Verificar compatibilidade/)
+    // Form embutido antigo (sempre aberto) não deve voltar.
+    expect(page).not.toMatch(/title="Informar veículo"/)
+
+    // Hierarquia textos: disclaimer de garagem 1× no modal; emptyHint sem eco.
+    expect(page).toMatch(/emptyHint="Verifique a compatibilidade pela placa ou seleção manual\."/)
+    expect(page).not.toMatch(/Placa ou montadora\/modelo — só nesta página\./)
+    const modalDisclaimerHits = page.match(
+      /Só nesta página — não altera a Minha Garagem\.|Só reavalia esta página — não altera o veículo ativo no header\./g,
+    )
+    expect(modalDisclaimerHits?.length).toBe(2)
+
+    // Badge Marca; sem Fabricante eco na linha de referência.
+    expect(page).toMatch(/Marca: \{brandName\}/)
+    expect(page).not.toMatch(/FABRICANTE_LABEL/)
+
+    const plate = readFileSync(src('components/vehicle/VehiclePlateSearch.tsx'), 'utf8')
+    expect(plate).toMatch(/localOnly/)
+    expect(plate).toMatch(/if \(localOnly\)/)
+    // Manual localOnly não repete disclaimer de garagem (já no modal PDP).
+    expect(plate).not.toMatch(
+      /localOnly\s*\n\s*\? 'Só para esta página — não altera o veículo ativo na Minha Garagem\.'/,
+    )
 
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/surface === 'equiv'/)

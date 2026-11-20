@@ -10,11 +10,7 @@ import {
   attachProductImageGallery,
 } from '@/services/products/productImages'
 import { listEquivalentProductIds } from '@/services/products/equivalenceLinksService'
-import { listCuratedRelatedProductIds } from '@/services/products/relatedLinksService'
-import {
-  RELATED_PRODUCTS_LIMIT,
-  mergeRelatedProducts,
-} from '@/services/products/relatedProducts'
+import { RELATED_PRODUCTS_LIMIT } from '@/services/products/relatedProducts'
 import type { Product } from '@/types'
 
 type Named = { name: string; id?: string; slug?: string }
@@ -152,7 +148,7 @@ export async function listProductsByCategorySlug(
 }
 
 /** Produtos publicados por IDs (preserva ordem pedida). */
-async function listPublishedProductsByIds(ids: string[]): Promise<Product[]> {
+export async function listPublishedProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return []
   assertStoreBackendConfigured()
   if (!isSupabaseConfigured || !supabase) {
@@ -181,35 +177,24 @@ async function listPublishedProductsByIds(ids: string[]): Promise<Product[]> {
 }
 
 /**
- * Relacionados na PDP: curadoria admin primeiro; completa com mesma categoria.
- * Sem aleatório / sem “quem viu”.
+ * Relacionados na PDP — delega à inteligência (curados + L/R + PVC).
+ * Import dinâmico evita ciclo com relatedProductsIntelligence.
  */
 export async function listRelatedProductsForPdp(
-  product: Pick<Product, 'id' | 'categorySlug'>,
+  product: Pick<Product, 'id' | 'categorySlug' | 'lado' | 'posicao'>,
   limit = RELATED_PRODUCTS_LIMIT,
+  vehicleFilter?: import('@/types').VehicleFilter | null,
 ): Promise<Product[]> {
   if (!product.id) return []
-
-  let curated: Product[] = []
-  try {
-    const curatedIds = await listCuratedRelatedProductIds(product.id)
-    curated = await listPublishedProductsByIds(curatedIds.slice(0, limit))
-  } catch {
-    curated = []
-  }
-
-  if (curated.length >= limit) {
-    return curated.slice(0, limit)
-  }
-
-  const slug = product.categorySlug?.trim()
-  let fallback: Product[] = []
-  if (slug) {
-    const poolSize = Math.min(Math.max(limit + 8, limit), 40)
-    fallback = await listProductsByCategorySlug(slug, poolSize)
-  }
-
-  return mergeRelatedProducts(curated, fallback, { excludeId: product.id, limit })
+  const { listIntelligentRelatedForPdp } = await import(
+    '@/services/products/relatedProductsIntelligence'
+  )
+  const result = await listIntelligentRelatedForPdp({
+    product,
+    vehicleFilter: vehicleFilter ?? null,
+    limit,
+  })
+  return result.products
 }
 
 /** Equivalentes técnicos E.6 (sem fallback comercial de categoria). */

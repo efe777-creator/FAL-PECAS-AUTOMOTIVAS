@@ -32,6 +32,11 @@ export type VehiclePlateSearchProps = {
    * `discover` — filtrar peças; se logado, auto-save + toast (sem modal).
    */
   intent?: VehiclePlateSearchIntent
+  /**
+   * PDP / contexto local: só chama `onApplyFilters`.
+   * Não altera veículo ativo da garagem nem auto-salva.
+   */
+  localOnly?: boolean
   /** Quando no catálogo: aplica filtros via callback em vez de navegar. */
   onApplyFilters?: (filter: VehicleFilter) => void
   /** Path atual para preservar após login (legado). */
@@ -45,6 +50,7 @@ type Phase = 'input' | 'loading' | 'confirm' | 'manual'
 export function VehiclePlateSearch({
   compact = false,
   intent = 'discover',
+  localOnly = false,
   onApplyFilters,
   onGarageSaved,
 }: VehiclePlateSearchProps) {
@@ -156,6 +162,13 @@ export function VehiclePlateSearch({
     }
 
     try {
+      if (localOnly) {
+        onApplyFilters?.(next)
+        resetToInput()
+        setBusy(false)
+        return
+      }
+
       if (intent === 'garage') {
         syncActiveToFilter(next)
         const {
@@ -233,12 +246,15 @@ export function VehiclePlateSearch({
         ) : null}
         <VehicleSelector
           compact={compact}
-          title={intent === 'garage' ? 'Seleção manual' : 'Seleção manual'}
+          title="Seleção manual"
           subtitle={
-            intent === 'garage'
-              ? 'Escolha montadora e modelo para salvar na garagem. Ano, motor e versão ajudam na compatibilidade.'
-              : 'Escolha montadora, modelo, ano, motor e versão para encontrar peças compatíveis.'
+            localOnly
+              ? 'Escolha montadora e modelo. Ano, motor e versão ajudam na compatibilidade.'
+              : intent === 'garage'
+                ? 'Escolha montadora e modelo para salvar na garagem. Ano, motor e versão ajudam na compatibilidade.'
+                : 'Escolha montadora, modelo, ano, motor e versão para encontrar peças compatíveis.'
           }
+          confirmLabel={localOnly ? 'Verificar nesta página' : undefined}
           onConfirm={(f) => {
             void applyConfirmed(f)
           }}

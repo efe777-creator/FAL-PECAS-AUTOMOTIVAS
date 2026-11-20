@@ -35,7 +35,7 @@ Direção: **Compacta + Premium + Inteligente** · layout alinhado à referênci
 
 **Preliminares:** grid **55/45** (galeria / buy-box) — override pós-M10/M12; galeria **4:3** contain; thumbs verticais desktop / horizontais mobile; thumb ativa **amarelo**; sticky buy-box.
 
-**Ordem buy-box:** badge marca → nome → ref/fabricante → **compat** → preço → pagamento → disponível+qty → frete → CTAs → Favoritar+WA → copiar/âncora.
+**Ordem buy-box:** badge marca → nome → ref → **compat** → preço → pagamento → disponível+qty → frete → CTAs → Favoritar+WA → copiar/âncora.
 
 ## 3. Matriz anti-redundância
 
@@ -44,7 +44,7 @@ Direção: **Compacta + Premium + Inteligente** · layout alinhado à referênci
 | Voltar/contexto | Voltar + breadcrumb compacto |
 | Catálogo | Breadcrumb; filtro apps só em Aplicação |
 | Detalhes | **Uma** âncora → `#pdp-detalhes` (acordeões) |
-| Veículo | Form local buy-box; Trocar 1× no acordeão apps; form ≠ chip |
+| Veículo | Alterar/Trocar/Limpar **só** no veredito buy-box; form/modal local ≠ chip; acordeão apps sem eco veículo |
 | Veredito | **Só** buy-box |
 | Pagamento | Linha essencial + `<details>` |
 | Frete | Um bloco compacto |

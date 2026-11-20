@@ -11,7 +11,7 @@ import {
   PaymentConditionHint,
   useStorefrontDisplayAmount,
 } from '@/components/product/PaymentConditionHint'
-import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
+import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
 import { ProductCard } from '@/components/product/ProductCard'
 import { PdpAccordion } from '@/components/product/PdpAccordion'
 import { PdpPaymentIcons } from '@/components/product/PdpPaymentIcons'
@@ -22,8 +22,9 @@ import { productHref, safeInternalReturnTo } from '@/lib/productHref'
 import {
   getProductBySlugOrId,
   listEquivalentProductsForPdp,
-  listRelatedProductsForPdp,
 } from '@/services/products/productService'
+import { listIntelligentRelatedForPdp } from '@/services/products/relatedProductsIntelligence'
+import type { PvcCompatRow } from '@/services/compatibility/compatibilityEngine'
 import {
   categoryChainById,
   categoryChainBySlug,
@@ -71,7 +72,6 @@ import {
   AJUDA_APLICACAO_TEXT,
   DESCRICAO_SECTION_LABEL,
   ESPECIFICACOES_SECTION_LABEL,
-  FABRICANTE_LABEL,
   FILTRAR_NO_CATALOGO_LABEL,
   EQUIVALENTES_SECTION_LABEL,
   RELACIONADOS_SECTION_LABEL,
@@ -113,6 +113,9 @@ export function ProductPage() {
   const [backendDown, setBackendDown] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [related, setRelated] = useState<Product[]>([])
+  const [relatedPvcById, setRelatedPvcById] = useState<Map<string, PvcCompatRow[]>>(
+    () => new Map(),
+  )
   const [equivalents, setEquivalents] = useState<Product[]>([])
   const [categoryPath, setCategoryPath] = useState<CategoryPathCrumb[]>([])
   const [qty, setQty] = useState(1)
@@ -145,6 +148,8 @@ export function ProductPage() {
     version: string
   } | null>(null)
   const [verifySheetOpen, setVerifySheetOpen] = useState(false)
+  /** Mini-menu: placa ou seleção manual (só PDP; não altera garagem). */
+  const [verifyCompatOpen, setVerifyCompatOpen] = useState(false)
 
   const effectiveVehicleFilter = garage?.activeFilter ?? localVehicleFilter
 
@@ -322,22 +327,40 @@ export function ProductPage() {
 
   useEffect(() => {
     const currentProduct = product
-    if (!currentProduct?.id || !currentProduct.categorySlug?.trim()) {
+    if (!currentProduct?.id) {
       setRelated([])
+      setRelatedPvcById(new Map())
       return
     }
     let active = true
-    void listRelatedProductsForPdp(currentProduct)
-      .then((items) => {
-        if (active) setRelated(items)
+    void listIntelligentRelatedForPdp({
+      product: currentProduct,
+      vehicleFilter: effectiveVehicleFilter,
+    })
+      .then((result) => {
+        if (!active) return
+        setRelated(result.products)
+        setRelatedPvcById(result.pvcByProductId)
       })
       .catch(() => {
-        if (active) setRelated([])
+        if (!active) return
+        setRelated([])
+        setRelatedPvcById(new Map())
       })
     return () => {
       active = false
     }
-  }, [product?.id, product?.categorySlug])
+  }, [
+    product?.id,
+    product?.categorySlug,
+    product?.lado,
+    product?.posicao,
+    effectiveVehicleFilter?.maker,
+    effectiveVehicleFilter?.model,
+    effectiveVehicleFilter?.year,
+    effectiveVehicleFilter?.engine,
+    effectiveVehicleFilter?.version,
+  ])
 
   useEffect(() => {
     const id = product?.id
@@ -673,16 +696,6 @@ export function ProductPage() {
           </h1>
           <p className="mt-1 text-sm text-fal-muted">
             {formatReferenciaFromProduct(current)}
-            {brandName ? (
-              <>
-                <span className="mx-1.5 text-fal-line" aria-hidden="true">
-                  |
-                </span>
-                <span>
-                  {FABRICANTE_LABEL}: {brandName}
-                </span>
-              </>
-            ) : null}
           </p>
           {current.available !== false && offer.isOffer && presentation.showOfertaBadge ? (
             <div className="mt-2">
@@ -710,29 +723,38 @@ export function ProductPage() {
                   Alterar veículo
                 </Link>
               ) : localVehicleFilter ? (
-                <button
-                  type="button"
-                  className="text-fal-navy hover:underline dark:text-fal-fg"
-                  onClick={() => setLocalVehicleFilter(null)}
-                >
-                  Limpar
-                </button>
+                <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <button
+                    type="button"
+                    className="text-fal-navy hover:underline dark:text-fal-fg"
+                    onClick={() => setVerifyCompatOpen(true)}
+                  >
+                    Trocar
+                  </button>
+                  <button
+                    type="button"
+                    className="text-fal-navy hover:underline dark:text-fal-fg"
+                    onClick={() => setLocalVehicleFilter(null)}
+                  >
+                    Limpar
+                  </button>
+                </span>
               ) : null
             }
             loading={Boolean(effectiveVehicleFilter && !compatVerdict)}
-            emptyHint="Informe o veículo abaixo para ver se esta peça serve — não altera a garagem."
+            emptyHint="Verifique a compatibilidade pela placa ou seleção manual."
           />
 
           {!effectiveVehicleFilter ? (
             <div className="mt-3">
-              <VehicleSelector
-                compact
-                hideQuickPick
-                title="Informar veículo"
-                subtitle="Só para esta página — não altera o veículo ativo no header."
-                confirmLabel="Verificar nesta página"
-                onConfirm={(filter) => setLocalVehicleFilter(filter)}
-              />
+              <Button
+                type="button"
+                variant="light"
+                className="w-full sm:w-auto"
+                onClick={() => setVerifyCompatOpen(true)}
+              >
+                Verificar compatibilidade
+              </Button>
             </div>
           ) : null}
 
@@ -781,9 +803,6 @@ export function ProductPage() {
                   <Button variant="light" type="button" onClick={applyVerifyDraft}>
                     Verificar
                   </Button>
-                  <p className="mb-0 mt-1 text-[11px] text-fal-muted">
-                    Só reavalia esta página — não altera o veículo ativo no header.
-                  </p>
                 </div>
               </div>
             </div>
@@ -953,21 +972,6 @@ export function ProductPage() {
                 defaultOpen: true,
                 children: (
                   <>
-                    {garage?.activeFilter ? (
-                      <p className="mb-3 m-0 text-xs text-fal-muted">
-                        Veículo:{' '}
-                        <span className="font-semibold text-fal-fg">
-                          {filterDisplayLabel(garage.activeFilter)}
-                        </span>
-                        {' · '}
-                        <Link
-                          to="/garagem"
-                          className="font-semibold text-fal-accent hover:underline"
-                        >
-                          Trocar
-                        </Link>
-                      </p>
-                    ) : null}
                     <CompatibilityAppsBlock
                       variant="pdp"
                       groups={current.compatibilityGroups}
@@ -1077,6 +1081,24 @@ export function ProductPage() {
       />
 
       <Modal
+        open={verifyCompatOpen}
+        title="Verificar compatibilidade"
+        onClose={() => setVerifyCompatOpen(false)}
+      >
+        <p className="m-0 mb-3 text-sm text-fal-muted">
+          Placa ou montadora/modelo. Só nesta página — não altera a Minha Garagem.
+        </p>
+        <VehiclePlateSearch
+          compact
+          localOnly
+          onApplyFilters={(filter) => {
+            setLocalVehicleFilter(filter)
+            setVerifyCompatOpen(false)
+          }}
+        />
+      </Modal>
+
+      <Modal
         open={verifySheetOpen}
         title="Completar dados do veículo"
         onClose={() => setVerifySheetOpen(false)}
@@ -1165,7 +1187,16 @@ export function ProductPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {related.map((item) => (
-              <ProductCard key={item.id} product={item} />
+              <ProductCard
+                key={item.id}
+                product={item}
+                fitFilter={effectiveVehicleFilter}
+                pvcRows={
+                  effectiveVehicleFilter
+                    ? (relatedPvcById.get(item.id) ?? [])
+                    : null
+                }
+              />
             ))}
           </div>
         </section>

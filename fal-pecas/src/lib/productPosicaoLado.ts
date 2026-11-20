@@ -113,6 +113,15 @@ export function normalizePosicao(
   return { ok: true, value: composePosicao(atoms) }
 }
 
+/** Lado oposto para pareamento L/R. `AMBOS` e null → null (sem par). */
+export function oppositeLado(
+  lado: CanonicalLado | null | undefined,
+): Extract<CanonicalLado, 'ESQUERDO' | 'DIREITO'> | null {
+  if (lado === 'ESQUERDO') return 'DIREITO'
+  if (lado === 'DIREITO') return 'ESQUERDO'
+  return null
+}
+
 export function normalizeLado(
   raw: string | null | undefined,
 ): { ok: true; value: CanonicalLado | null } | { ok: false; raw: string } {
