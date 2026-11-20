@@ -625,10 +625,10 @@ export function AdminApplicationsPage() {
       <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
         <div className="min-w-[180px] flex-1">
           <Input
-            label="Buscar (código / nome / veículo)"
+            label="Buscar (SKU, fabricante, marca, veículo)"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Código ou montadora…"
+            placeholder="Ex.: Nakata, PVI1032, Fiat, Palio…"
           />
         </div>
         <label className="block min-w-[140px] text-sm">

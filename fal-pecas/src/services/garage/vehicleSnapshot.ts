@@ -1,4 +1,4 @@
-import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
+import type { CartCompatDecision, CustomerSavedVehicle, VehicleFilter } from '@/types'
 
 /** Contrato §6.3 — congelado no momento da associação ao item. */
 export type VehicleSnapshot = {
@@ -13,6 +13,8 @@ export type VehicleSnapshot = {
   plate: string | null
   associatedAt: string
   contextSource: 'active' | 'manual' | 'suggested'
+  /** E.5 lite — decisão de fit no checkout. */
+  compatDecision?: CartCompatDecision | null
 }
 
 export function buildVehicleSnapshotFromActive(input: {
@@ -106,5 +108,28 @@ export function parseVehicleSnapshot(raw: unknown): VehicleSnapshot | null {
       o.contextSource === 'manual' || o.contextSource === 'suggested'
         ? o.contextSource
         : 'active',
+    compatDecision: parseCompatDecision(o.compatDecision),
+  }
+}
+
+function parseCompatDecision(raw: unknown): CartCompatDecision | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  const action = o.action
+  if (
+    action !== 'continue_unconfirmed' &&
+    action !== 'continue_incompatible' &&
+    action !== 'confirmed'
+  ) {
+    return null
+  }
+  const sealLabel = typeof o.sealLabel === 'string' ? o.sealLabel : ''
+  if (!sealLabel) return null
+  return {
+    sealLabel,
+    action,
+    motivo: o.motivo == null ? null : String(o.motivo),
+    faltante: o.faltante == null ? null : String(o.faltante),
+    at: typeof o.at === 'string' ? o.at : new Date().toISOString(),
   }
 }

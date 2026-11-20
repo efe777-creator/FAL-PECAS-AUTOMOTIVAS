@@ -1,22 +1,45 @@
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Container } from '@/components/layout/Container'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useToast } from '@/components/common/Toast'
 import { CartShippingQuoteBlock } from '@/components/cart/CartShippingQuoteBlock'
+import { ReplaceCartItemModal } from '@/components/cart/ReplaceCartItemModal'
+import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useProductCompatVerdicts } from '@/hooks/useProductCompatVerdicts'
 import { formatMoney } from '@/lib/money'
 import {
   applyPaymentCondition,
   formatPixConditionLine,
   storefrontPrimaryAmount,
 } from '@/lib/paymentDisplay'
+import {
+  trackCompatGateCompleteVehicle,
+  trackCompatGateContinue,
+  trackCompatGateReplace,
+  trackCompatGateShown,
+  trackCompatItemReplaced,
+} from '@/lib/analytics'
 import { formatReferenciaFromProduct } from '@/lib/productLabels'
 import { usePaymentDisplay } from '@/hooks/usePaymentDisplay'
-import type { CartItem } from '@/types'
+import {
+  compatFaltante,
+  compatMotivo,
+  compatSealDisplayLabel,
+} from '@/services/compatibility/compatCopy'
+import {
+  buildCompatDecisionEntries,
+  compatGateCounts,
+  compatGateDialogCopy,
+  writeCompatDecisionLog,
+} from '@/services/compatibility/compatDecisionSession'
+import { resolveCardSeal } from '@/services/compatibility/compatibilityEngine'
+import type { CartItem, Product } from '@/types'
 import { useCallback, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import { formatVehicleSnapshotLabel } from '@/services/garage/vehicleSnapshot'
 
@@ -24,10 +47,12 @@ export function CartPage() {
   useDocumentTitle('Carrinho | FAL Peças Automotivas')
   const { user } = useAuth()
   const { push } = useToast()
+  const navigate = useNavigate()
   const {
     items,
     itemCount,
     subtotal,
+    addItem,
     updateQty,
     removeItem,
     restoreItem,
@@ -35,7 +60,77 @@ export function CartPage() {
     syncPending,
   } = useCart()
   const [shippingAmount, setShippingAmount] = useState<number | null>(null)
+  const [gateBusy, setGateBusy] = useState(false)
+  const [replaceItem, setReplaceItem] = useState<CartItem | null>(null)
   const paymentDisplay = usePaymentDisplay()
+  const productIds = useMemo(() => items.map((i) => i.productId), [items])
+  const { verdicts: compatVerdicts, loading: compatLoading } =
+    useProductCompatVerdicts(productIds)
+
+  function onReplaceCartItem(
+    fromProductId: string,
+    replacement: Product,
+    quantity: number,
+    fromEquivalence?: boolean,
+  ) {
+    removeItem(fromProductId)
+    addItem(replacement, quantity)
+    trackCompatItemReplaced({
+      fromProductId,
+      toProductId: replacement.id,
+      fromEquivalence,
+    })
+    push(`Trocado por ${replacement.name}`, 'success')
+  }
+
+  async function onFinalizarCompra() {
+    if (gateBusy) return
+    setGateBusy(true)
+    try {
+      if (!compatLoading) {
+        const entries = buildCompatDecisionEntries(items, compatVerdicts)
+        if (entries.length) {
+          const counts = compatGateCounts(entries)
+          trackCompatGateShown(counts)
+          const copy = compatGateDialogCopy(entries)
+          const hasIncompat = counts.incompatCount > 0
+          const { confirmed } = await confirmDialog({
+            ...copy,
+            cancelLabel: hasIncompat ? 'Trocar no carrinho' : 'Completar dados do veículo',
+          })
+          if (!confirmed) {
+            if (hasIncompat) {
+              const first = entries.find((e) => e.action === 'continue_incompatible')
+              const target = first
+                ? items.find((i) => i.productId === first.productId) ?? null
+                : null
+              if (target) {
+                trackCompatGateReplace({
+                  productId: target.productId,
+                  incompatCount: counts.incompatCount,
+                })
+                setReplaceItem(target)
+              }
+            } else {
+              trackCompatGateCompleteVehicle(counts)
+              // E.4: Completar dados → garagem (não muda o carrinho)
+              navigate('/garagem', { state: { from: '/carrinho' } })
+            }
+            return
+          }
+          trackCompatGateContinue(counts)
+          writeCompatDecisionLog({
+            gatedAt: new Date().toISOString(),
+            entries,
+          })
+        }
+      }
+      saveCheckoutReturnTo('/carrinho')
+      navigate('/checkout', { state: { from: '/carrinho' } })
+    } finally {
+      setGateBusy(false)
+    }
+  }
   const onShippingAmountChange = useCallback((amount: number | null) => {
     setShippingAmount(amount)
   }, [])
@@ -149,6 +244,39 @@ export function CartPage() {
                       {formatVehicleSnapshotLabel(item.vehicleSnapshot) ?? '—'}
                     </p>
                   ) : null}
+                  {(() => {
+                    const verdict = compatVerdicts.get(item.productId)
+                    if (!verdict) return null
+                    const seal = resolveCardSeal(verdict)
+                    const motivo = compatMotivo(verdict)
+                    const faltante = compatFaltante(verdict)
+                    return (
+                      <div className="mt-1.5 space-y-0.5">
+                        {seal.kind === 'hide' ? (
+                          <p className="m-0 text-xs font-bold text-fal-danger">
+                            {compatSealDisplayLabel(verdict)}
+                          </p>
+                        ) : (
+                          <CompatibilityStateBadge verdict={verdict} variant="card" />
+                        )}
+                        {motivo ? (
+                          <p className="m-0 text-[11px] text-fal-muted">Motivo: {motivo}</p>
+                        ) : null}
+                        {faltante ? (
+                          <p className="m-0 text-[11px] text-fal-muted">Falta: {faltante}</p>
+                        ) : null}
+                        {seal.kind === 'hide' ? (
+                          <button
+                            type="button"
+                            className="mt-1 text-xs font-extrabold text-fal-accent underline-offset-2 hover:underline"
+                            onClick={() => setReplaceItem(item)}
+                          >
+                            Trocar peça
+                          </button>
+                        ) : null}
+                      </div>
+                    )
+                  })()}
                   <p className="mb-0 mt-1 text-xs text-fal-muted">
                     {formatMoney(item.price)} cada (lista)
                     {paymentDisplay
@@ -244,16 +372,16 @@ export function CartPage() {
             No checkout o total muda conforme Pix, débito ou crédito.
           </p>
           {user ? (
-            <Link
-              to="/checkout"
-              state={{ from: '/carrinho' }}
-              onClick={() => saveCheckoutReturnTo('/carrinho')}
-              className="mt-4 block"
-            >
-              <Button variant="primary" fullWidth>
-                Finalizar compra
+            <div className="mt-4">
+              <Button
+                variant="primary"
+                fullWidth
+                disabled={gateBusy}
+                onClick={() => void onFinalizarCompra()}
+              >
+                {gateBusy ? 'Verificando…' : 'Finalizar compra'}
               </Button>
-            </Link>
+            </div>
           ) : (
             <div className="mt-4 space-y-2">
               <Link to="/cadastro" state={{ from: '/checkout' }} className="block">
@@ -276,6 +404,13 @@ export function CartPage() {
           </p>
         </aside>
       </div>
+      <ReplaceCartItemModal
+        open={Boolean(replaceItem)}
+        item={replaceItem}
+        excludeCartProductIds={productIds}
+        onClose={() => setReplaceItem(null)}
+        onReplace={onReplaceCartItem}
+      />
     </Container>
   )
 }

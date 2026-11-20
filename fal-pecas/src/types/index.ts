@@ -151,6 +151,15 @@ export interface CustomerOrderSummary {
   pickupAuthorized?: boolean
 }
 
+/** Decisão de fit no checkout (E.5 lite — congelada no snapshot jsonb). */
+export type CartCompatDecision = {
+  sealLabel: string
+  action: 'continue_unconfirmed' | 'continue_incompatible' | 'confirmed'
+  motivo?: string | null
+  faltante?: string | null
+  at: string
+}
+
 /** Snapshot de veículo associado a item (carrinho/pedido) — ver §6.3. */
 export type CartVehicleSnapshot = {
   customerVehicleId: string | null
@@ -163,6 +172,8 @@ export type CartVehicleSnapshot = {
   plate: string | null
   associatedAt: string
   contextSource: 'active' | 'manual' | 'suggested'
+  /** E.5 lite: estado fit + decisão consciente (imutável no pedido). */
+  compatDecision?: CartCompatDecision | null
 }
 
 export interface OrderItemSnapshot {

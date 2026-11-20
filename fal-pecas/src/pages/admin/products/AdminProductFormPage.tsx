@@ -1,4 +1,5 @@
 import { AdminProductApplicationsSection } from '@/components/admin/AdminProductApplicationsSection'
+import { AdminProductEquivalenceSection } from '@/components/admin/AdminProductEquivalenceSection'
 import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
 import { AdminProductReferencesSection } from '@/components/admin/AdminProductReferencesSection'
 import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
@@ -1012,6 +1013,7 @@ export function AdminProductFormPage() {
       {productId ? (
         <>
           <AdminProductRelatedSection productId={productId} />
+          <AdminProductEquivalenceSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />
           <AdminProductApplicationsSection productId={productId} />
           <AdminProductImagesSection productId={productId} />

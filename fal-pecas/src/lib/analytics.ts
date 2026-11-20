@@ -12,6 +12,13 @@ export type AnalyticsEventName =
   | 'add_to_cart'
   | 'begin_checkout'
   | 'purchase'
+  /** Fase 7 lite — funil de fit (incompat contado à parte). */
+  | 'compat_gate_shown'
+  | 'compat_gate_continue'
+  | 'compat_gate_complete_vehicle'
+  | 'compat_gate_replace'
+  | 'compat_item_replaced'
+  | 'compat_order_fit_log'
 
 export type AnalyticsPayload = Record<string, unknown>
 
@@ -158,5 +165,70 @@ export function trackPurchase(input: {
     transaction_id: input.orderId,
     value: input.value,
     currency: input.currency ?? 'BRL',
+  })
+}
+
+/** Contagens do gate — incompat sempre separado de “a verificar”. */
+export type CompatGateCounts = {
+  unconfirmedCount: number
+  incompatCount: number
+  itemCount: number
+}
+
+export function trackCompatGateShown(counts: CompatGateCounts): void {
+  track('compat_gate_shown', {
+    unconfirmed_count: counts.unconfirmedCount,
+    incompat_count: counts.incompatCount,
+    items_count: counts.itemCount,
+  })
+}
+
+export function trackCompatGateContinue(counts: CompatGateCounts): void {
+  track('compat_gate_continue', {
+    unconfirmed_count: counts.unconfirmedCount,
+    incompat_count: counts.incompatCount,
+    items_count: counts.itemCount,
+  })
+}
+
+export function trackCompatGateCompleteVehicle(counts: CompatGateCounts): void {
+  track('compat_gate_complete_vehicle', {
+    unconfirmed_count: counts.unconfirmedCount,
+    incompat_count: counts.incompatCount,
+    items_count: counts.itemCount,
+  })
+}
+
+export function trackCompatGateReplace(input: {
+  productId: string
+  incompatCount: number
+}): void {
+  track('compat_gate_replace', {
+    item_id: input.productId,
+    incompat_count: input.incompatCount,
+  })
+}
+
+export function trackCompatItemReplaced(input: {
+  fromProductId: string
+  toProductId: string
+  fromEquivalence?: boolean
+}): void {
+  track('compat_item_replaced', {
+    from_item_id: input.fromProductId,
+    to_item_id: input.toProductId,
+    from_equivalence: Boolean(input.fromEquivalence),
+  })
+}
+
+export function trackCompatOrderFitLog(input: {
+  orderId: string
+  unconfirmedCount: number
+  incompatCount: number
+}): void {
+  track('compat_order_fit_log', {
+    transaction_id: input.orderId,
+    unconfirmed_count: input.unconfirmedCount,
+    incompat_count: input.incompatCount,
   })
 }

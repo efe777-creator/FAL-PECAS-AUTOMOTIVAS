@@ -122,6 +122,11 @@ export function OrderConfirmationPage() {
                 <li key={it.id} className="flex justify-between gap-3">
                   <span>
                     {it.quantity}× {it.nameSnapshot}
+                    {it.vehicleSnapshot?.compatDecision ? (
+                      <span className="mt-0.5 block text-[11px] text-fal-muted">
+                        Compat.: {it.vehicleSnapshot.compatDecision.sealLabel}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="shrink-0 font-semibold">
                     {formatMoney(it.unitPrice * it.quantity)}

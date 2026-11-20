@@ -9,6 +9,7 @@ import {
   attachPrimaryProductImages,
   attachProductImageGallery,
 } from '@/services/products/productImages'
+import { listEquivalentProductIds } from '@/services/products/equivalenceLinksService'
 import { listCuratedRelatedProductIds } from '@/services/products/relatedLinksService'
 import {
   RELATED_PRODUCTS_LIMIT,
@@ -209,6 +210,21 @@ export async function listRelatedProductsForPdp(
   }
 
   return mergeRelatedProducts(curated, fallback, { excludeId: product.id, limit })
+}
+
+/** Equivalentes técnicos E.6 (sem fallback comercial de categoria). */
+export async function listEquivalentProductsForPdp(
+  productId: string,
+  limit = 8,
+): Promise<Product[]> {
+  if (!productId) return []
+  try {
+    const ids = await listEquivalentProductIds(productId)
+    if (!ids.length) return []
+    return listPublishedProductsByIds(ids.slice(0, limit))
+  } catch {
+    return []
+  }
 }
 
 export async function listPublishedProducts(limit = 40): Promise<Product[]> {

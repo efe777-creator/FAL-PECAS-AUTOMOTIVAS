@@ -16,6 +16,7 @@ import { ProductShippingQuoteBlock } from '@/components/product/ProductShippingQ
 import { productHref, safeInternalReturnTo } from '@/lib/productHref'
 import {
   getProductBySlugOrId,
+  listEquivalentProductsForPdp,
   listRelatedProductsForPdp,
 } from '@/services/products/productService'
 import {
@@ -38,17 +39,26 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Product } from '@/types'
 import { Button } from '@/components/common/Button'
+import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { useToast } from '@/components/common/Toast'
 import {
+  compatFaltante,
+  compatMotivo,
+  compatPurchaseConfirmCopy,
+  needsCompatPurchaseConfirm,
+} from '@/services/compatibility/compatCopy'
+import {
   classifyCardCompatibility,
+  resolveCardSeal,
   type CompatibilityVerdict,
   vehicleFilterToCompatInput,
 } from '@/services/compatibility/compatibilityEngine'
 import { loadPvcEvidenceByProductIds } from '@/services/compatibility/loadPvcEvidence'
+import { filterDisplayLabel } from '@/services/garage/activeGarageStorage'
 import {
   buildProductWhatsAppMessage,
   storeWhatsAppPhone,
@@ -61,6 +71,7 @@ import {
   ESPECIFICACOES_SECTION_LABEL,
   FABRICANTE_LABEL,
   FILTRAR_NO_CATALOGO_LABEL,
+  EQUIVALENTES_SECTION_LABEL,
   RELACIONADOS_SECTION_LABEL,
   VER_DESCRICAO_COMPLETA_LABEL,
   VER_MAIS_CATALOGO_LABEL,
@@ -100,6 +111,7 @@ export function ProductPage() {
   const [backendDown, setBackendDown] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [related, setRelated] = useState<Product[]>([])
+  const [equivalents, setEquivalents] = useState<Product[]>([])
   const [categoryPath, setCategoryPath] = useState<CategoryPathCrumb[]>([])
   const [qty, setQty] = useState(1)
   const { addItem, items } = useCart()
@@ -115,11 +127,41 @@ export function ProductPage() {
   const resolvedForHooks = product ? displayPrice(product) : 0
   const storefrontPrice = useStorefrontDisplayAmount(resolvedForHooks)
   const [compatVerdict, setCompatVerdict] = useState<CompatibilityVerdict | null>(null)
+  /** E.2: rascunho local ano/motor/versão — não altera o chip da garagem. */
+  const [verifyYear, setVerifyYear] = useState('')
+  const [verifyEngine, setVerifyEngine] = useState('')
+  const [verifyVersion, setVerifyVersion] = useState('')
+  const [verifyApplied, setVerifyApplied] = useState<{
+    year: string
+    engine: string
+    version: string
+  } | null>(null)
 
-  const activeCompatInput = useMemo(
-    () => vehicleFilterToCompatInput(garage?.activeFilter),
-    [garage?.activeFilter],
-  )
+  const activeCompatInput = useMemo(() => {
+    const base = vehicleFilterToCompatInput(garage?.activeFilter)
+    if (!base) return null
+    if (!verifyApplied) return base
+    return {
+      ...base,
+      year: verifyApplied.year.trim() || base.year,
+      engine: verifyApplied.engine.trim() || base.engine,
+      version: verifyApplied.version.trim() || base.version,
+    }
+  }, [garage?.activeFilter, verifyApplied])
+
+  useEffect(() => {
+    // Reset rascunho ao trocar veículo ativo.
+    setVerifyYear(garage?.activeFilter?.year ?? '')
+    setVerifyEngine(garage?.activeFilter?.engine ?? '')
+    setVerifyVersion(garage?.activeFilter?.version ?? '')
+    setVerifyApplied(null)
+  }, [
+    garage?.activeFilter?.maker,
+    garage?.activeFilter?.model,
+    garage?.activeFilter?.year,
+    garage?.activeFilter?.engine,
+    garage?.activeFilter?.version,
+  ])
 
   useEffect(() => {
     if (!product?.id || !activeCompatInput) {
@@ -270,6 +312,25 @@ export function ProductPage() {
       active = false
     }
   }, [product?.id, product?.categorySlug])
+
+  useEffect(() => {
+    const id = product?.id
+    if (!id) {
+      setEquivalents([])
+      return
+    }
+    let active = true
+    void listEquivalentProductsForPdp(id)
+      .then((items) => {
+        if (active) setEquivalents(items)
+      })
+      .catch(() => {
+        if (active) setEquivalents([])
+      })
+    return () => {
+      active = false
+    }
+  }, [product?.id])
 
   /** Path completo Categoria → Grupo → Subgrupo (cache listAllCategories). */
   useEffect(() => {
@@ -441,8 +502,16 @@ export function ProductPage() {
     }
   }
 
-  function onAddToCart() {
+  async function confirmCompatIfNeeded(intent: 'add' | 'buy'): Promise<boolean> {
+    if (!needsCompatPurchaseConfirm(compatVerdict) || !compatVerdict) return true
+    const copy = compatPurchaseConfirmCopy(compatVerdict, intent)
+    const { confirmed } = await confirmDialog(copy)
+    return confirmed
+  }
+
+  async function onAddToCart() {
     if (current.available === false) return
+    if (!(await confirmCompatIfNeeded('add'))) return
     addItem(current, qty)
     trackAddToCart({
       itemId: current.id,
@@ -462,8 +531,9 @@ export function ProductPage() {
    * AJUSTE-035 C5 — compra direta isolada do carrinho.
    * Frete escolhido na PDP segue via handoff de sessão.
    */
-  function onBuyNow() {
+  async function onBuyNow() {
     if (current.available === false) return
+    if (!(await confirmCompatIfNeeded('buy'))) return
     const active = garage?.activeVehicle
     const snap = active
       ? buildVehicleSnapshotFromActive({ vehicle: active, contextSource: 'active' })
@@ -717,16 +787,98 @@ export function ProductPage() {
       {/* Abaixo do buy-box: apps → desc → specs → ajuda */}
       <div id="pdp-detalhes" className="mt-8 min-w-0 scroll-mt-24 space-y-4">
         <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
+          <h2 className="m-0 mb-2 text-sm font-extrabold tracking-tight text-fal-navy dark:text-fal-fg">
+            Compatibilidade
+          </h2>
           {compatVerdict ? (
-            <div className="mb-3 space-y-1">
-              <CompatibilityStateBadge verdict={compatVerdict} />
-              {compatVerdict.evidences.length ? (
+            <div className="mb-3 space-y-1.5">
+              {garage?.activeFilter ? (
                 <p className="m-0 text-xs text-fal-muted">
-                  {compatVerdict.evidences.map((e) => e.detail).join(' · ')}
+                  Veículo:{' '}
+                  <span className="font-semibold text-fal-fg">
+                    {filterDisplayLabel(garage.activeFilter)}
+                  </span>
+                  {' · '}
+                  <Link to="/garagem" className="font-semibold text-fal-accent hover:underline">
+                    Trocar
+                  </Link>
                 </p>
               ) : null}
+              {resolveCardSeal(compatVerdict).kind === 'hide' ? (
+                <p className="m-0 text-sm font-bold text-fal-danger">
+                  Incompatível com o veículo ativo
+                </p>
+              ) : (
+                <CompatibilityStateBadge verdict={compatVerdict} variant="card" />
+              )}
+              {compatMotivo(compatVerdict) ? (
+                <p className="m-0 text-xs text-fal-muted">
+                  Motivo: {compatMotivo(compatVerdict)}
+                </p>
+              ) : null}
+              {compatFaltante(compatVerdict) ? (
+                <p className="m-0 text-xs text-fal-muted">
+                  Falta: {compatFaltante(compatVerdict)}
+                </p>
+              ) : null}
+              {resolveCardSeal(compatVerdict).kind === 'check' ||
+              resolveCardSeal(compatVerdict).kind === 'similar' ? (
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <label className="block text-[11px] font-semibold text-fal-muted">
+                    Ano
+                    <input
+                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                      value={verifyYear}
+                      onChange={(e) => setVerifyYear(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="Ex.: 2015"
+                      aria-label="Ano do veículo para verificar"
+                    />
+                  </label>
+                  <label className="block text-[11px] font-semibold text-fal-muted">
+                    Motor
+                    <input
+                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                      value={verifyEngine}
+                      onChange={(e) => setVerifyEngine(e.target.value)}
+                      placeholder="Ex.: 1.0"
+                      aria-label="Motor do veículo para verificar"
+                    />
+                  </label>
+                  <label className="block text-[11px] font-semibold text-fal-muted">
+                    Versão
+                    <input
+                      className="mt-0.5 w-full rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm text-fal-fg"
+                      value={verifyVersion}
+                      onChange={(e) => setVerifyVersion(e.target.value)}
+                      placeholder="Ex.: Unique"
+                      aria-label="Versão do veículo para verificar"
+                    />
+                  </label>
+                  <div className="sm:col-span-3">
+                    <Button
+                      variant="light"
+                      type="button"
+                      onClick={() =>
+                        setVerifyApplied({
+                          year: verifyYear,
+                          engine: verifyEngine,
+                          version: verifyVersion,
+                        })
+                      }
+                    >
+                      Verificar
+                    </Button>
+                    <p className="mb-0 mt-1 text-[11px] text-fal-muted">
+                      Só reavalia esta página — não altera o veículo ativo no header.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          ) : garage?.activeFilter ? null : (
+          ) : garage?.activeFilter ? (
+            <p className="mb-3 text-xs text-fal-muted">Verificando compatibilidade…</p>
+          ) : (
             <p className="mb-3 text-xs text-fal-muted">
               Confirme um veículo no chip do header para ver a compatibilidade com esta peça — sem
               precisar entrar na conta.
@@ -787,6 +939,22 @@ export function ProductPage() {
         ) : null}
         <p className="text-xs text-fal-muted">{AJUDA_APLICACAO_TEXT}</p>
       </div>
+
+      {equivalents.length ? (
+        <section className="mt-10 min-w-0" aria-labelledby="pdp-equiv-heading">
+          <h2
+            id="pdp-equiv-heading"
+            className="m-0 mb-3 text-lg font-extrabold text-fal-navy sm:text-xl"
+          >
+            {EQUIVALENTES_SECTION_LABEL}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {equivalents.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {related.length ? (
         <section className="mt-10 min-w-0" aria-labelledby="pdp-related-heading">

@@ -10,6 +10,7 @@ import { AsaasEmbeddedCreditPanel } from '@/components/payments/AsaasEmbeddedCre
 import { CheckoutPixPanel } from '@/components/payments/CheckoutPixPanel'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
+import { useGarageOptional } from '@/contexts/GarageContext'
 import {
   formatDocumentMask,
   isValidCnpj,
@@ -102,7 +103,22 @@ import type {
   StoreShippingOrigin,
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useProductCompatVerdicts } from '@/hooks/useProductCompatVerdicts'
 import { toUserMessage } from '@/lib/toUserMessage'
+import {
+  compatSealDisplayLabel,
+} from '@/services/compatibility/compatCopy'
+import { trackCompatGateContinue, trackCompatGateShown, trackCompatOrderFitLog } from '@/lib/analytics'
+import {
+  buildCompatDecisionEntries,
+  clearCompatDecisionLog,
+  compatGateCounts,
+  compatGateDialogCopy,
+  readCompatDecisionLog,
+  writeCompatDecisionLog,
+} from '@/services/compatibility/compatDecisionSession'
+import { resolveCardSeal } from '@/services/compatibility/compatibilityEngine'
+import type { CartCompatDecision, CartVehicleSnapshot } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -141,10 +157,23 @@ export function CheckoutPage() {
   useDocumentTitle('Checkout | FAL Peças Automotivas')
   const { user } = useAuth()
   const { items: cartItems, clear: clearCart, addItem, flushRemote } = useCart()
+  const garage = useGarageOptional()
   const { push } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const [cancelBusy, setCancelBusy] = useState(false)
+  const garageMakerModel = useMemo(() => {
+    const f = garage?.activeFilter
+    if (!f?.maker?.trim() || !f?.model?.trim()) return null
+    return {
+      maker: f.maker.trim(),
+      model: f.model.trim(),
+      year: f.year ?? null,
+      version: f.version ?? null,
+      engine: f.engine ?? null,
+      versionId: f.versionId ?? null,
+    }
+  }, [garage?.activeFilter])
 
   const [buyNowItems] = useState<CartItem[] | null>(() => {
     const intent = loadBuyNowIntent()
@@ -156,6 +185,25 @@ export function CheckoutPage() {
     () => items.reduce((s, i) => s + i.price * i.quantity, 0),
     [items],
   )
+  const compatProductIds = useMemo(() => items.map((i) => i.productId), [items])
+  const { verdicts: compatVerdicts } = useProductCompatVerdicts(compatProductIds)
+  /** M7 lite: itens sem Compatível confirmado sob o fit ativo. */
+  const compatAlertLines = useMemo(() => {
+    const lines: { productId: string; name: string; sku?: string; label: string }[] = []
+    for (const item of items) {
+      const verdict = compatVerdicts.get(item.productId)
+      if (!verdict) continue
+      const seal = resolveCardSeal(verdict)
+      if (seal.kind === 'compatible') continue
+      lines.push({
+        productId: item.productId,
+        name: item.name,
+        sku: item.sku,
+        label: compatSealDisplayLabel(verdict),
+      })
+    }
+    return lines
+  }, [items, compatVerdicts])
 
   const [step, setStep] = useState(0)
   const [maxReachedStep, setMaxReachedStep] = useState(0)
@@ -908,6 +956,37 @@ export function CheckoutPage() {
         }
       }
 
+      // E.4: gate se chegou sem passar pelo carrinho (buy now / deep link).
+      let decisionLog = readCompatDecisionLog()
+      const pendingGate = buildCompatDecisionEntries(items, compatVerdicts)
+      if (pendingGate.length && !decisionLog?.entries?.length) {
+        const counts = compatGateCounts(pendingGate)
+        trackCompatGateShown(counts)
+        const copy = compatGateDialogCopy(pendingGate)
+        const { confirmed } = await confirmDialog({
+          ...copy,
+          cancelLabel: 'Voltar',
+        })
+        if (!confirmed) {
+          submitLockRef.current = false
+          setSubmitting(false)
+          return
+        }
+        trackCompatGateContinue(counts)
+        decisionLog = {
+          gatedAt: new Date().toISOString(),
+          entries: pendingGate,
+        }
+        writeCompatDecisionLog(decisionLog)
+      }
+
+      const decisionByProduct = new Map(
+        (decisionLog?.entries ?? []).map((e) => [e.productId, e]),
+      )
+      const fitLogCounts = decisionLog?.entries?.length
+        ? compatGateCounts(decisionLog.entries)
+        : null
+
       const placed = await placeOrder({
         idempotencyKey,
         addressId,
@@ -915,14 +994,54 @@ export function CheckoutPage() {
         paymentMethod: payMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
-        items: items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          customerVehicleId: i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
-          vehicleSnapshot: i.vehicleSnapshot ?? null,
-        })),
+        items: items.map((i) => {
+          const entry = decisionByProduct.get(i.productId)
+          const base = i.vehicleSnapshot ?? null
+          let vehicleSnapshot: CartVehicleSnapshot | null = base
+          if (entry) {
+            const compatDecision: CartCompatDecision = {
+              sealLabel: entry.sealLabel,
+              action: entry.action,
+              motivo: entry.motivo,
+              faltante: entry.faltante,
+              at: entry.at,
+            }
+            if (base) {
+              vehicleSnapshot = { ...base, compatDecision }
+            } else if (garageMakerModel) {
+              vehicleSnapshot = {
+                customerVehicleId: null,
+                maker: garageMakerModel.maker,
+                model: garageMakerModel.model,
+                year: garageMakerModel.year,
+                version: garageMakerModel.version,
+                engine: garageMakerModel.engine,
+                versionId: garageMakerModel.versionId,
+                plate: null,
+                associatedAt: new Date().toISOString(),
+                contextSource: 'manual',
+                compatDecision,
+              }
+            }
+          }
+          return {
+            productId: i.productId,
+            quantity: i.quantity,
+            customerVehicleId:
+              i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
+            vehicleSnapshot,
+          }
+        }),
         clearCart: !isBuyNow,
       })
+      if (fitLogCounts) {
+        trackCompatOrderFitLog({
+          orderId: placed.orderId,
+          unconfirmedCount: fitLogCounts.unconfirmedCount,
+          incompatCount: fitLogCounts.incompatCount,
+        })
+      }
+      clearCompatDecisionLog()
 
       let orderTotal = placed.total
       if (
@@ -1224,6 +1343,27 @@ export function CheckoutPage() {
       <p className="mt-0.5 text-xs text-fal-muted">
         {momentSubtitle(step, paymentAwaiting)}
       </p>
+      {compatAlertLines.length > 0 ? (
+        <div
+          role="status"
+          className="mt-4 rounded-[10px] border border-fal-yellow/50 bg-fal-yellow/15 px-3 py-2.5 text-sm text-fal-navy dark:text-fal-fg"
+        >
+          <p className="m-0 font-extrabold">Compatibilidade a observar</p>
+          <p className="mb-0 mt-1 text-xs text-fal-muted">
+            Estas peças ainda não estão confirmadas para o veículo ativo. Você pode seguir com a
+            compra mesmo assim.
+          </p>
+          <ul className="mb-0 mt-2 list-none space-y-1 p-0">
+            {compatAlertLines.map((line) => (
+              <li key={line.productId} className="text-xs font-semibold">
+                {line.sku ? `${line.sku} — ` : ''}
+                {line.name}
+                <span className="font-bold text-fal-navy dark:text-fal-yellow"> · {line.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-2" role="navigation" aria-label="Etapas do checkout">
         {MOMENT_LABELS.map((label, mi) => {
           const moment = mi as CheckoutMomentIndex
@@ -2202,20 +2342,36 @@ export function CheckoutPage() {
           ) : (
             <>
               <h2 className="mt-0 mb-3 text-sm font-extrabold text-fal-navy">Resumo do pedido</h2>
+              {compatAlertLines.length > 0 ? (
+                <p className="mb-2 text-[11px] font-semibold text-fal-muted">
+                  {compatAlertLines.length}{' '}
+                  {compatAlertLines.length === 1
+                    ? 'item sem compatibilidade confirmada'
+                    : 'itens sem compatibilidade confirmada'}
+                </p>
+              ) : null}
               <ul className="mb-3 m-0 max-h-48 list-none space-y-1.5 overflow-y-auto p-0">
-                {items.map((item) => (
-                  <li
-                    key={item.productId}
-                    className="flex items-start justify-between gap-2 text-xs text-fal-ink"
-                  >
-                    <span className="min-w-0 leading-snug">
-                      <span className="font-bold">{item.quantity}×</span> {item.name}
-                    </span>
-                    <span className="shrink-0 font-semibold tabular-nums">
-                      {money(item.price * item.quantity)}
-                    </span>
-                  </li>
-                ))}
+                {items.map((item) => {
+                  const alert = compatAlertLines.find((l) => l.productId === item.productId)
+                  return (
+                    <li
+                      key={item.productId}
+                      className="flex items-start justify-between gap-2 text-xs text-fal-ink"
+                    >
+                      <span className="min-w-0 leading-snug">
+                        <span className="font-bold">{item.quantity}×</span> {item.name}
+                        {alert ? (
+                          <span className="mt-0.5 block text-[10px] font-bold text-fal-muted">
+                            {alert.label}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 font-semibold tabular-nums">
+                        {money(item.price * item.quantity)}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
               <div className="mb-3 flex justify-between border-t border-fal-line pt-3 text-sm">
                 <span>Produtos (lista)</span>

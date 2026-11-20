@@ -90,14 +90,147 @@ function mapRow(raw: Record<string, unknown>): AdminApplicationRow {
   }
 }
 
-async function resolveProductIdsFromQ(q: string): Promise<string[] | null> {
+export function mergeUniqueIds(
+  ...groups: Array<readonly string[] | null | undefined>
+): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const group of groups) {
+    for (const id of group ?? []) {
+      const value = String(id ?? '').trim()
+      if (!value || seen.has(value)) continue
+      seen.add(value)
+      out.push(value)
+    }
+  }
+  return out
+}
+
+export type ApplicationSearchClause =
+  | { kind: 'empty' }
+  | { kind: 'none' }
+  | { kind: 'and'; productIds: string[] | null; versionIds: string[] | null }
+  | { kind: 'or'; productIds: string[]; versionIds: string[] }
+
+/**
+ * Decide como aplicar a busca textual (q) e os filtros cascata de veículo.
+ * - Só q: OR entre produtos (SKU/marca/ref) e veículos (montadora/modelo).
+ * - Cascata de veículo: AND (como antes), e sobrescreve o match veicular do q.
+ */
+export function buildApplicationSearchClause(input: {
+  productIds: string[] | null
+  versionIdsFromQ: string[] | null
+  versionIdsFromFilters: string[] | null
+}): ApplicationSearchClause {
+  const productIds = input.productIds
+  const versionIdsFromQ = input.versionIdsFromQ
+  const versionIdsFromFilters = input.versionIdsFromFilters
+
+  if (versionIdsFromFilters) {
+    if (versionIdsFromFilters.length === 0) return { kind: 'empty' }
+    if (productIds && productIds.length === 0) return { kind: 'empty' }
+    return {
+      kind: 'and',
+      productIds: productIds && productIds.length ? productIds : null,
+      versionIds: versionIdsFromFilters,
+    }
+  }
+
+  const hasProductQuery = productIds != null
+  const hasVersionQuery = versionIdsFromQ != null
+  if (!hasProductQuery && !hasVersionQuery) return { kind: 'none' }
+
+  const products = productIds ?? []
+  const versions = versionIdsFromQ ?? []
+  if (products.length === 0 && versions.length === 0) return { kind: 'empty' }
+  if (products.length > 0 && versions.length > 0) {
+    return { kind: 'or', productIds: products, versionIds: versions }
+  }
+  return {
+    kind: 'and',
+    productIds: products.length ? products : null,
+    versionIds: versions.length ? versions : null,
+  }
+}
+
+async function resolveProductIdsFromQ(q: string): Promise<string[]> {
   const text = q.trim()
-  if (!text) return null
-  const { data, error } = await getSupabase()
-    .from('products')
-    .select('id')
-    .or(`sku.ilike.%${text}%,name.ilike.%${text}%`)
-    .limit(80)
+  if (!text) return []
+  const sb = getSupabase()
+  const like = `%${text}%`
+
+  const [byProduct, byRef, byBrand] = await Promise.all([
+    sb
+      .from('products')
+      .select('id')
+      .or(
+        [
+          `sku.ilike.${like}`,
+          `name.ilike.${like}`,
+          `manufacturer_code.ilike.${like}`,
+          `search_document.ilike.${like}`,
+        ].join(','),
+      )
+      .limit(120),
+    sb
+      .from('product_references')
+      .select('product_id')
+      .or(`code.ilike.${like},brand_label.ilike.${like}`)
+      .limit(120),
+    sb.from('product_brands').select('id').ilike('name', like).limit(40),
+  ])
+
+  if (byProduct.error) throw byProduct.error
+  if (byRef.error) throw byRef.error
+  if (byBrand.error) throw byBrand.error
+
+  const brandIds = (byBrand.data ?? []).map((r) => String(r.id))
+  let byBrandProducts: string[] = []
+  if (brandIds.length) {
+    const { data, error } = await sb
+      .from('products')
+      .select('id')
+      .in('brand_id', brandIds)
+      .limit(120)
+    if (error) throw error
+    byBrandProducts = (data ?? []).map((r) => String(r.id))
+  }
+
+  return mergeUniqueIds(
+    (byProduct.data ?? []).map((r) => String(r.id)),
+    (byRef.data ?? []).map((r) => String(r.product_id)),
+    byBrandProducts,
+  )
+}
+
+async function resolveVersionIdsFromQ(q: string): Promise<string[]> {
+  const text = q.trim()
+  if (!text) return []
+  const sb = getSupabase()
+  const like = `%${text}%`
+
+  const [makers, models] = await Promise.all([
+    sb.from('manufacturers').select('id').ilike('name', like).limit(40),
+    sb.from('models').select('id').ilike('name', like).limit(80),
+  ])
+  if (makers.error) throw makers.error
+  if (models.error) throw models.error
+
+  const makerIds = (makers.data ?? []).map((r) => String(r.id))
+  const modelIds = (models.data ?? []).map((r) => String(r.id))
+  if (!makerIds.length && !modelIds.length) return []
+
+  let query = sb.from('vehicle_versions').select('id')
+  if (makerIds.length && modelIds.length) {
+    query = query.or(
+      `manufacturer_id.in.(${makerIds.join(',')}),model_id.in.(${modelIds.join(',')})`,
+    )
+  } else if (makerIds.length) {
+    query = query.in('manufacturer_id', makerIds)
+  } else {
+    query = query.in('model_id', modelIds)
+  }
+  const { data, error } = await query.limit(800)
   if (error) throw error
   return (data ?? []).map((r) => String(r.id))
 }
@@ -130,21 +263,31 @@ export async function adminListApplicationsGlobal(
   const offset = Math.max(filter.offset ?? 0, 0)
 
   let productIds: string[] | null = null
+  let versionIdsFromQ: string[] | null = null
   if (filter.productId) {
     productIds = [filter.productId]
   } else if (filter.q?.trim()) {
-    const ids = (await resolveProductIdsFromQ(filter.q)) ?? []
-    if (ids.length === 0) return { rows: [], total: 0 }
-    productIds = ids
+    const [fromProducts, fromVehicles] = await Promise.all([
+      resolveProductIdsFromQ(filter.q),
+      resolveVersionIdsFromQ(filter.q),
+    ])
+    productIds = fromProducts
+    versionIdsFromQ = fromVehicles
   }
 
-  const versionIds = await resolveVersionIds({
+  const versionIdsFromFilters = await resolveVersionIds({
     manufacturerId: filter.manufacturerId,
     modelId: filter.modelId,
     engine: filter.engine,
     versionName: filter.versionName,
   })
-  if (versionIds && versionIds.length === 0) return { rows: [], total: 0 }
+
+  const clause = buildApplicationSearchClause({
+    productIds,
+    versionIdsFromQ,
+    versionIdsFromFilters,
+  })
+  if (clause.kind === 'empty') return { rows: [], total: 0 }
 
   let q = getSupabase()
     .from('product_vehicle_compatibility')
@@ -162,8 +305,14 @@ export async function adminListApplicationsGlobal(
     )
     .order('created_at', { ascending: false })
 
-  if (productIds) q = q.in('product_id', productIds)
-  if (versionIds) q = q.in('vehicle_version_id', versionIds)
+  if (clause.kind === 'and') {
+    if (clause.productIds) q = q.in('product_id', clause.productIds)
+    if (clause.versionIds) q = q.in('vehicle_version_id', clause.versionIds)
+  } else if (clause.kind === 'or') {
+    q = q.or(
+      `product_id.in.(${clause.productIds.join(',')}),vehicle_version_id.in.(${clause.versionIds.join(',')})`,
+    )
+  }
 
   const { data, error, count } = await q.range(offset, offset + limit - 1)
   if (error) throw error

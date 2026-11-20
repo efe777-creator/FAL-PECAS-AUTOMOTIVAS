@@ -20,7 +20,10 @@ describe('reduceOrderSplitTabs — empilhar guias', () => {
   })
 
   it('fechar guia individual mantém as outras', () => {
-    let s = { openOrderIds: ['a', 'b', 'c'], activeOrderId: 'b' }
+    let s: Parameters<typeof reduceOrderSplitTabs>[0] = {
+      openOrderIds: ['a', 'b', 'c'],
+      activeOrderId: 'b',
+    }
     s = reduceOrderSplitTabs(s, { type: 'close', orderId: 'b' })
     expect(s.openOrderIds).toEqual(['a', 'c'])
     expect(s.activeOrderId).toBe('c')

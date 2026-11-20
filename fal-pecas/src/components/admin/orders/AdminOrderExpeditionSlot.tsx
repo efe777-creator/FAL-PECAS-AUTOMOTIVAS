@@ -70,7 +70,7 @@ export function AdminOrderExpeditionSlot({
     setCarrier((prev) => prev || order.shipment?.carrier || me?.company_name || '')
     setService((prev) => prev || order.shipment?.service || '')
     setTracking((prev) => prev || order.shipment?.trackingCode || me?.tracking || '')
-    setTrackingUrl((prev) => prev || order.shipment?.trackingUrl || me?.tracking_url || '')
+    setTrackingUrl((prev) => prev || me?.tracking_url || '')
   }, [order])
 
   function setBusyBoth(v: boolean) {
@@ -168,7 +168,7 @@ export function AdminOrderExpeditionSlot({
                   onTracking={setTracking}
                   onTrackingUrl={setTrackingUrl}
                   onRequestShip={() => void runShip()}
-                  onReload={() => void reload()}
+                  onReload={reload}
                   onMessage={(m) => {
                     if (m) pushOk(m)
                   }}
@@ -197,7 +197,7 @@ export function AdminOrderExpeditionSlot({
                   onRequestDeliver={() => void runDeliver()}
                   proofRef={proofRef}
                   onProofRef={setProofRef}
-                  onReload={() => void reload()}
+                  onReload={reload}
                   onOk={pushOk}
                   onError={(m) => {
                     if (m) pushError(m)

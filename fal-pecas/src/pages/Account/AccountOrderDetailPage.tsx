@@ -778,6 +778,24 @@ export function AccountOrderDetailPage() {
                       : ''}
                   </span>
                 ) : null}
+                {i.vehicleSnapshot?.compatDecision ? (
+                  <span className="mt-0.5 block text-xs text-fal-muted">
+                    Compatibilidade no pedido:{' '}
+                    <span className="font-semibold text-fal-fg">
+                      {i.vehicleSnapshot.compatDecision.sealLabel}
+                    </span>
+                    {i.vehicleSnapshot.compatDecision.action === 'continue_unconfirmed'
+                      ? ' · seguiu sem confirmar'
+                      : i.vehicleSnapshot.compatDecision.action === 'continue_incompatible'
+                        ? ' · seguiu mesmo incompatível'
+                        : null}
+                    {i.vehicleSnapshot.compatDecision.faltante
+                      ? ` · Falta: ${i.vehicleSnapshot.compatDecision.faltante}`
+                      : i.vehicleSnapshot.compatDecision.motivo
+                        ? ` · ${i.vehicleSnapshot.compatDecision.motivo}`
+                        : null}
+                  </span>
+                ) : null}
               </span>
               <span className="font-semibold">{money(i.unitPrice * i.quantity)}</span>
             </li>

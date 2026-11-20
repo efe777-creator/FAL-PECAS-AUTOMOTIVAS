@@ -49,6 +49,8 @@ export const FILTRAR_NO_CATALOGO_LABEL = 'Filtrar no catálogo'
 
 /** Bloco PDP: curadoria admin + fallback categoria (Onda 4 / 26). */
 export const RELACIONADOS_SECTION_LABEL = 'Produtos relacionados'
+/** Bloco PDP: equivalentes técnicos (E.6) — distinto de relacionados comerciais. */
+export const EQUIVALENTES_SECTION_LABEL = 'Equivalentes técnicos'
 export const VER_MAIS_CATALOGO_LABEL = 'Ver mais no catálogo'
 
 /** @deprecated Prefira passar o produto; mantido para callers que só têm string. */

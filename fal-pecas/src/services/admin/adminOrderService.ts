@@ -13,8 +13,10 @@ import {
 import { isOrderStorePickup } from '@/lib/orderShippingKind'
 import { isStorePickupAuthorized } from '@/lib/storePickupOps'
 import { getSupabase } from '@/lib/supabase'
+import { parseVehicleSnapshot } from '@/services/garage/vehicleSnapshot'
 import { pickPrimaryStoragePath } from '@/services/products/productImages'
 import { transitionOrderStatus } from '@/services/orders/orderTransitionService'
+import type { CartVehicleSnapshot } from '@/types'
 
 export type OrderItemAvailability = 'disponivel' | 'disponivel_com_prazo' | 'indisponivel'
 
@@ -99,6 +101,8 @@ export type AdminOrderItem = {
   quantityReserved?: number | null
   /** URL pública da imagem primária (quando houver em product_images). */
   imageUrl?: string | null
+  /** G6 + E.5 lite: veículo/fit congelados no item. */
+  vehicleSnapshot?: CartVehicleSnapshot | null
 }
 
 export type AdminOrderDetail = {
@@ -248,6 +252,7 @@ async function mapAdminOrderItemsWithImages(
       quantityOnHand: inv?.quantity_on_hand != null ? Number(inv.quantity_on_hand) : null,
       quantityReserved: inv?.quantity_reserved != null ? Number(inv.quantity_reserved) : null,
       imageUrl: null,
+      vehicleSnapshot: parseVehicleSnapshot(i.vehicle_snapshot),
     }
   })
 
@@ -294,7 +299,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
       cancellation_request, cancellation_reason, cancellation_resolve_note, inventory_mode_at_order,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items (
-        id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated,
+        id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated, vehicle_snapshot,
         products ( inventory ( quantity_on_hand, quantity_reserved ) )
       ),
       order_events ( id, event_type, payload, visibility, created_at ),

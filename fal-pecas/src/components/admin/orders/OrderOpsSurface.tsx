@@ -1141,6 +1141,19 @@ function ItemsBlock({
                   {it.leadDays != null ? ` · ${it.leadDays}d` : ''}
                 </p>
               ) : null}
+              {it.vehicleSnapshot?.compatDecision ? (
+                <p className="mb-0 mt-0.5 text-[11px] text-fal-muted">
+                  Fit no pedido:{' '}
+                  <span className="font-semibold text-fal-fg">
+                    {it.vehicleSnapshot.compatDecision.sealLabel}
+                  </span>
+                  {it.vehicleSnapshot.compatDecision.action === 'continue_unconfirmed'
+                    ? ' · sem confirmar'
+                    : it.vehicleSnapshot.compatDecision.action === 'continue_incompatible'
+                      ? ' · incompatível aceito'
+                      : null}
+                </p>
+              ) : null}
               {conference ? (
                 <div className="mt-1.5 space-y-1.5">
                   <select

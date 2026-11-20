@@ -6,6 +6,7 @@ import { StaffRoute } from '@/app/StaffRoute'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Loading } from '@/components/common/Loading'
+import { RouteErrorPage } from '@/components/common/ErrorBoundary'
 
 const HomePage = lazy(() =>
   import('@/pages/Home/HomePage').then((m) => ({ default: m.HomePage })),
@@ -338,6 +339,7 @@ function AdminSuspend({ children }: { children: ReactNode }) {
 export const router = createBrowserRouter([
   {
     path: '/admin',
+    errorElement: <RouteErrorPage />,
     element: (
       <AppChrome>
         <AdminSuspend>
@@ -434,6 +436,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
+    errorElement: <RouteErrorPage />,
     element: (
       <AppChrome>
         <MainLayout />

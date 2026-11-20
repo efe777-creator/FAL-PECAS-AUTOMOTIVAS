@@ -16,6 +16,10 @@ import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import {
+  compatPurchaseConfirmCopy,
+  needsCompatPurchaseConfirm,
+} from '@/services/compatibility/compatCopy'
+import {
   classifyCardCompatibility,
   resolveCardSeal,
   vehicleFilterToCompatInput,
@@ -123,6 +127,10 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
 
   const showSeal = Boolean(compatVerdict && resolveCardSeal(compatVerdict).kind !== 'hide')
   const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
+  // Com fit + selo (Compatível/similar/A verificar) o selo substitui o bloco.
+  // Sem selo (guest, ou incompatível hide E.1) mantém Aplicação — senão o card fica vazio.
+  const sealPending = hasFitContext && resolvedPvc == null
+  const showApps = !showSeal && !sealPending
 
   async function onFavoriteClick(e: MouseEvent) {
     e.preventDefault()
@@ -139,19 +147,18 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
     }
   }
 
+  async function confirmCompatIfNeeded(intent: 'add' | 'buy'): Promise<boolean> {
+    if (!needsCompatPurchaseConfirm(compatVerdict) || !compatVerdict) return true
+    const copy = compatPurchaseConfirmCopy(compatVerdict, intent)
+    const { confirmed } = await confirmDialog(copy)
+    return confirmed
+  }
+
   async function onAddToCart(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
-    if (compatVerdict?.state === 'probable') {
-      const { confirmed } = await confirmDialog({
-        title: 'Compatibilidade similar',
-        message:
-          'Esta peça parece compatível, mas faltam dados para confirmar. Deseja adicionar mesmo assim?',
-        confirmLabel: 'Adicionar mesmo assim',
-      })
-      if (!confirmed) return
-    }
+    if (!(await confirmCompatIfNeeded('add'))) return
     addItem(product, 1)
     trackAddToCart({
       itemId: product.id,
@@ -169,10 +176,11 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
     )
   }
 
-  function onBuyNow(e: MouseEvent) {
+  async function onBuyNow(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!available) return
+    if (!(await confirmCompatIfNeeded('buy'))) return
     const active = garage?.activeVehicle
     const snap = active
       ? buildVehicleSnapshotFromActive({ vehicle: active, contextSource: 'active' })
@@ -290,7 +298,7 @@ export function ProductCard({ product, pvcRows, fitFilter }: Props) {
               .join(' · ')}
           </p>
         ) : null}
-        {!hasFitContext ? (
+        {showApps ? (
           <CompatibilityAppsBlock
             className="my-2 text-xs"
             variant="card"
