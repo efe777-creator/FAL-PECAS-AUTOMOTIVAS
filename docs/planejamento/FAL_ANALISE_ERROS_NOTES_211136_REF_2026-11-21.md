@@ -125,3 +125,11 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 | Residual | Latência 1ª cotação ME/Edge ainda depende da rede; Edge própria fora deste escopo. |
 
 **Próximo:** Erro #4 — Arquivar/inativar + filtro ativos/inativos.
+
+---
+
+## Trilha paralela · Guias Adaptive (estudo 2026-11-21)
+
+**Intenção:** facilitar alteração (categoria / aplicação / preços) **pela guia**, sem depender da ficha.  
+**Plano:** [FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md](./FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md) — status ESTUDO; implementação após decisões G1–G3.  
+**Não substitui** a fila Notes #4+; caminha em paralelo no admin Adaptive.
