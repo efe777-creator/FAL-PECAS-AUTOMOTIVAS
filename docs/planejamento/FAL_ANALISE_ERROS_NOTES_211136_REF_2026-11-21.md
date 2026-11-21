@@ -137,5 +137,6 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 
 ### Estrutura widgets Home (2026-11-21)
 
-Registry `productWidgets` + loader stub (`bestsellers`/`new_arrivals`/`campaign` planned).  
+Registry `productWidgets` · **bestsellers ready** (RPC + trilho Home).  
+`new_arrivals` / `campaign` ainda planned.  
 Doc: [FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md](./FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md).
