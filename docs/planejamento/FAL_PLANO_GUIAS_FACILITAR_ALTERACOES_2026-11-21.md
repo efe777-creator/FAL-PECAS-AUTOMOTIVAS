@@ -1,7 +1,7 @@
 # FAL — Plano · Facilitar alteração pelas guias Adaptive
 
 **Data:** 2026-11-21 · **Branch:** `dev`  
-**Status:** **DECISÕES TRAVADAS** + hierarquia mini-menus (estudo UX) — implementação em marchas G1+  
+**Status:** Decisões travadas · **G1 DONE** (mini-menus) · G2–G4 pendentes  
 **Intenção:** a guia do produto é o lugar para **alterar** categoria, aplicações (PVC completo) e preços das listas — com mini-menus claros.  
 **REF Notes:** [FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md)  
 **VAL pontes:** [FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md)
@@ -115,7 +115,7 @@ Link discreto: “Editar nós na Classificação” (ponte futura)
 
 | Marcha | Entrega | Risco |
 |--------|---------|-------|
-| **G1** | Refator visual: mini-menus + `?section=` + persistência menu; Categoria/Identidade nos menus | Médio (UI) |
+| **G1** | Refator visual: mini-menus + `?section=` + persistência menu; Categoria/Identidade nos menus | **DONE** `dev` |
 | **G2** | Menu Preços multi-lista (embed quick-adjust filtrado pelo SKU) | Médio |
 | **G3** | Menu Aplicações: embed `ApplicationWorkSurface` + SKU forçado + anos início/fim no create | Médio-alto |
 | **G4** | Antiregress FL + VAL smoke guia (cat / preço lista / app com anos) | Baixo |

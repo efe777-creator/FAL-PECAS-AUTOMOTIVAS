@@ -314,7 +314,10 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(surface).toMatch(/adminListProductRelated/)
     expect(surface).toMatch(/KITS_OPEN_GUIDE_KEY|fal\.kits\.openGuideId/)
     expect(surface).toMatch(/\+ Guia/)
-    expect(surface).toMatch(/Expandir|Recolher/)
+    // G1 mini-menus (um painel ativo) — substitui accordion Expandir/Recolher
+    expect(surface).toMatch(/data-product-guide-menus|Mini-menus da guia/)
+    expect(surface).toMatch(/fal\.products\.guideMenu|PRODUCT_GUIDE_MENU_KEY/)
+    expect(surface).toMatch(/parseProductGuideSectionParam|\?section=|sectionFromUrl/)
 
     const products = read('pages/admin/products/AdminProductsPage.tsx')
     expect(products).toMatch(/\+ Guia/)

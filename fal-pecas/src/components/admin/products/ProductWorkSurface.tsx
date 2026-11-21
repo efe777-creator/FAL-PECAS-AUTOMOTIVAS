@@ -32,14 +32,32 @@ import {
 } from '@/services/admin/adminPriceListService'
 import type { Category, Product } from '@/types'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
-const SECTIONS_KEY = 'fal.products.guideSections'
+/** Persistência do mini-menu ativo (G1 — um painel por vez). */
+export const PRODUCT_GUIDE_MENU_KEY = 'fal.products.guideMenu'
 
 /** Re-export — hubs/kits e antiregress importam daqui ou de `adminGuideBridges`. */
 export { KITS_OPEN_GUIDE_KEY }
 
-type SectionId = 'identidade' | 'preco' | 'categoria' | 'aplicacoes' | 'kits' | 'relacionados'
+export type ProductGuideMenuId =
+  | 'identidade'
+  | 'categoria'
+  | 'precos'
+  | 'aplicacoes'
+  | 'kits'
+  | 'relacionados'
+
+const GUIDE_MENUS: { id: ProductGuideMenuId; label: string }[] = [
+  { id: 'identidade', label: 'Identidade' },
+  { id: 'categoria', label: 'Categoria' },
+  { id: 'precos', label: 'Preços' },
+  { id: 'aplicacoes', label: 'Aplicações' },
+  { id: 'kits', label: 'Kits' },
+  { id: 'relacionados', label: 'Relacionados' },
+]
+
+const GUIDE_MENU_IDS = new Set(GUIDE_MENUS.map((m) => m.id))
 
 type Props = {
   focused: Product | null
@@ -56,14 +74,32 @@ type Props = {
   onOpenProductGuide?: (productId: string) => void
 }
 
-function readOpenSections(): Set<SectionId> {
+export function parseProductGuideSectionParam(
+  raw: string | null | undefined,
+): ProductGuideMenuId | null {
+  const v = (raw ?? '').trim().toLowerCase()
+  if (!v) return null
+  if (v === 'preco' || v === 'preço' || v === 'preços') return 'precos'
+  if (GUIDE_MENU_IDS.has(v as ProductGuideMenuId)) return v as ProductGuideMenuId
+  return null
+}
+
+function readStoredGuideMenu(): ProductGuideMenuId {
   try {
-    const raw = sessionStorage.getItem(SECTIONS_KEY)
-    if (!raw) return new Set<SectionId>(['identidade', 'preco'])
-    const parsed = JSON.parse(raw) as SectionId[]
-    return new Set(parsed)
+    const raw = sessionStorage.getItem(PRODUCT_GUIDE_MENU_KEY)?.trim()
+    const parsed = parseProductGuideSectionParam(raw)
+    if (parsed) return parsed
   } catch {
-    return new Set<SectionId>(['identidade', 'preco'])
+    /* ignore */
+  }
+  return 'identidade'
+}
+
+function persistGuideMenu(id: ProductGuideMenuId) {
+  try {
+    sessionStorage.setItem(PRODUCT_GUIDE_MENU_KEY, id)
+  } catch {
+    /* ignore */
   }
 }
 
@@ -113,7 +149,7 @@ function appLabel(row: Record<string, unknown>): string {
 
 /**
  * Superfície contextual do hub Produtos (padrão Adaptive Central).
- * Preview + edição rápida na guia (híbrido); full = cadastro abas.
+ * G1: mini-menus (um painel ativo) — identidade, categoria, preços, apps, kits, relacionados.
  */
 export function ProductWorkSurface({
   focused,
@@ -130,7 +166,11 @@ export function ProductWorkSurface({
   const toast = useToast()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [openSections, setOpenSections] = useState(readOpenSections)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sectionFromUrl = parseProductGuideSectionParam(searchParams.get('section'))
+  const [activeMenu, setActiveMenu] = useState<ProductGuideMenuId>(
+    () => sectionFromUrl ?? readStoredGuideMenu(),
+  )
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [commercialRef, setCommercialRef] = useState('')
@@ -194,18 +234,20 @@ export function ProductWorkSurface({
     }
   }, [focused, categories, isKit])
 
-  function toggleSection(id: SectionId) {
-    setOpenSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      try {
-        sessionStorage.setItem(SECTIONS_KEY, JSON.stringify([...next]))
-      } catch {
-        /* ignore */
-      }
-      return next
-    })
+  useEffect(() => {
+    if (sectionFromUrl && sectionFromUrl !== activeMenu) {
+      setActiveMenu(sectionFromUrl)
+      persistGuideMenu(sectionFromUrl)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage à URL
+  }, [sectionFromUrl])
+
+  function selectMenu(id: ProductGuideMenuId) {
+    setActiveMenu(id)
+    persistGuideMenu(id)
+    const next = new URLSearchParams(searchParams)
+    next.set('section', id)
+    setSearchParams(next, { replace: true })
   }
 
   async function saveIdentity() {
@@ -334,29 +376,30 @@ export function ProductWorkSurface({
     )
   }
 
-  const sectionBtn = (id: SectionId, label: string, hint?: string) => {
-    const open = openSections.has(id)
-    return (
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-left"
-        aria-expanded={open}
-        onClick={() => toggleSection(id)}
-      >
-        <span>
-          <span className="block text-sm font-extrabold text-fal-fg">{label}</span>
-          {hint ? <span className="block text-[11px] text-fal-muted">{hint}</span> : null}
-        </span>
-        <span className="text-xs font-bold text-fal-muted">{open ? 'Recolher' : 'Expandir'}</span>
-      </button>
-    )
-  }
-
   const categoryHint = useMemo(() => {
     const id = focused?.categoryId
     if (!id) return 'Sem categoria'
     return categories.find((c) => c.id === id)?.name ?? 'Categoria definida'
   }, [focused?.categoryId, categories])
+
+  const menuHint =
+    activeMenu === 'categoria'
+      ? categoryHint
+      : activeMenu === 'aplicacoes'
+        ? loadingExtra
+          ? '…'
+          : `${apps.length} vínculo(s)`
+        : activeMenu === 'kits'
+          ? loadingExtra
+            ? '…'
+            : `${kitRows.length} kit(s)`
+          : activeMenu === 'relacionados'
+            ? loadingExtra
+              ? '…'
+              : `${related.length} item(ns)`
+            : activeMenu === 'precos'
+              ? 'Lista Base (multi-lista na G2)'
+              : 'Nome e código referência'
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3" data-product-ops-density="compact">
@@ -458,21 +501,41 @@ export function ProductWorkSurface({
               .
             </p>
           ) : (
-            <>
-              <div className="space-y-2">
-                {sectionBtn('identidade', 'Identidade', 'Nome e código referência')}
-                {openSections.has('identidade') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+            <div className="space-y-2" data-product-guide-menus>
+              <nav
+                className="flex flex-wrap gap-1.5"
+                aria-label="Mini-menus da guia do produto"
+              >
+                {GUIDE_MENUS.map((m) => {
+                  const current = activeMenu === m.id
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      aria-current={current ? 'page' : undefined}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-bold transition-colors ${
+                        current
+                          ? 'border-fal-navy bg-fal-navy text-white dark:border-fal-yellow dark:bg-fal-yellow dark:text-fal-navy-dark'
+                          : 'border-fal-line bg-fal-surface text-fal-fg hover:border-fal-navy/40'
+                      }`}
+                      onClick={() => selectMenu(m.id)}
+                    >
+                      {m.label}
+                    </button>
+                  )
+                })}
+              </nav>
+              <p className="m-0 text-[11px] text-fal-muted">{menuHint}</p>
+
+              <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+                {activeMenu === 'identidade' ? (
+                  <>
                     <Input
                       label="Código referência"
                       value={commercialRef}
                       onChange={(e) => setCommercialRef(e.target.value)}
                     />
-                    <Input
-                      label="Nome"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
+                    <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
                     <Button
                       type="button"
                       size="sm"
@@ -481,37 +544,11 @@ export function ProductWorkSurface({
                     >
                       {saving ? 'Salvando…' : 'Salvar identidade'}
                     </Button>
-                  </div>
+                  </>
                 ) : null}
-              </div>
 
-              <div className="space-y-2">
-                {sectionBtn('preco', 'Preço (Lista Base)', 'Editar direto na guia')}
-                {openSections.has('preco') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
-                    <Input
-                      label="Preço Base"
-                      inputMode="decimal"
-                      value={priceInput}
-                      onChange={(e) => setPriceInput(e.target.value)}
-                      hint="Grava na Lista Base e espelha no cadastro."
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={saving}
-                      onClick={() => void savePrice()}
-                    >
-                      {saving ? 'Salvando…' : 'Salvar preço'}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                {sectionBtn('categoria', 'Categoria', categoryHint)}
-                {openSections.has('categoria') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+                {activeMenu === 'categoria' ? (
+                  <>
                     <CategoryCascadeSelects
                       categories={categories}
                       value={cascade}
@@ -529,18 +566,31 @@ export function ProductWorkSurface({
                     >
                       {saving ? 'Salvando…' : 'Salvar categoria'}
                     </Button>
-                  </div>
+                  </>
                 ) : null}
-              </div>
 
-              <div className="space-y-2">
-                {sectionBtn(
-                  'aplicacoes',
-                  'Aplicações',
-                  loadingExtra ? '…' : `${apps.length} vínculo(s)`,
-                )}
-                {openSections.has('aplicacoes') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+                {activeMenu === 'precos' ? (
+                  <>
+                    <Input
+                      label="Preço (Lista Base)"
+                      inputMode="decimal"
+                      value={priceInput}
+                      onChange={(e) => setPriceInput(e.target.value)}
+                      hint="G1: Lista Base. G2: seletor multi-lista na mesma guia."
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={saving}
+                      onClick={() => void savePrice()}
+                    >
+                      {saving ? 'Salvando…' : 'Salvar preço'}
+                    </Button>
+                  </>
+                ) : null}
+
+                {activeMenu === 'aplicacoes' ? (
+                  <>
                     {apps.length === 0 ? (
                       <p className="m-0 text-sm text-fal-muted">Nenhuma aplicação PVC.</p>
                     ) : (
@@ -562,6 +612,9 @@ export function ProductWorkSurface({
                         ))}
                       </ul>
                     )}
+                    <p className="m-0 text-[11px] text-fal-muted">
+                      G3: surface completa de aplicações nesta guia (com ano início/fim).
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {editTo ? (
                         <Link
@@ -578,18 +631,11 @@ export function ProductWorkSurface({
                         Hub Aplicações
                       </Link>
                     </div>
-                  </div>
+                  </>
                 ) : null}
-              </div>
 
-              <div className="space-y-2">
-                {sectionBtn(
-                  'kits',
-                  'Usado em kits',
-                  loadingExtra ? '…' : `${kitRows.length} kit(s)`,
-                )}
-                {openSections.has('kits') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+                {activeMenu === 'kits' ? (
+                  <>
                     {kitRows.length === 0 ? (
                       <p className="m-0 text-sm text-fal-muted">Não entra em nenhum kit.</p>
                     ) : (
@@ -625,18 +671,11 @@ export function ProductWorkSurface({
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </>
                 ) : null}
-              </div>
 
-              <div className="space-y-2">
-                {sectionBtn(
-                  'relacionados',
-                  'Relacionados',
-                  loadingExtra ? '…' : `${related.length} item(ns)`,
-                )}
-                {openSections.has('relacionados') ? (
-                  <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-surface p-3">
+                {activeMenu === 'relacionados' ? (
+                  <>
                     {related.length === 0 ? (
                       <p className="m-0 text-sm text-fal-muted">Sem produtos relacionados.</p>
                     ) : (
@@ -674,10 +713,10 @@ export function ProductWorkSurface({
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </>
                 ) : null}
               </div>
-            </>
+            </div>
           )}
         </div>
       ) : null}
