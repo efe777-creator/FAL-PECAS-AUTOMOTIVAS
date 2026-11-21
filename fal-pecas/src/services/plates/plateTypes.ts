@@ -1,9 +1,12 @@
 import type { VehicleFilter } from '@/types'
+import type { PlateConfidenceBand } from '@/services/plates/plateIdentityAssert'
 import { isModelNameClean, splitApiModelo } from '@/services/plates/splitApiModelo'
 import {
   buildPlateSourceSnapshot,
   type PlateSourceSnapshot,
 } from '@/services/plates/plateSourceSnapshot'
+
+export type { PlateConfidenceBand }
 
 export type PlateLookupStatus =
   | 'found'
@@ -49,12 +52,18 @@ export interface PlateLookupResult {
   source: PlateLookupSource
   queriedAt: string
   confidence: number | null
+  /** INV / assertividade no catálogo (A–D). */
+  confidenceBand?: PlateConfidenceBand | null
   message: string | null
   candidates: PlateLookupCandidate[]
   /** Ambiente de teste — UI deve deixar claro que não é consulta real. */
   isMock: boolean
   /** R3 — snapshot congelado da consulta (opcional; montado no client se ausente). */
   sourceSnapshot?: PlateSourceSnapshot | null
+  /** Client passou por `assertPlateAgainstCatalog`. */
+  identityAsserted?: boolean
+  /** Assistência LLM aplicada (merge validado no catálogo). */
+  identityLlmAssisted?: boolean
 }
 
 export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {

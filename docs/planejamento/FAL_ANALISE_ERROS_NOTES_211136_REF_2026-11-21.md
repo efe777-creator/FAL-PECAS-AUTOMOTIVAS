@@ -16,7 +16,7 @@
 | 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | **DONE** |
 | 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | **DONE** |
 | 5 | Ajustar e melhorar favoritos | **DONE** |
-| 6 | Placa consultada errada — assertividade do lookup | PENDING |
+| 6 | Placa consultada errada — assertividade do lookup | **DONE** |
 | 7 | Cards poluídos / grandes no mobile | PENDING |
 | 8 | Header mobile muito cheio | PENDING |
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | PENDING |
@@ -180,4 +180,14 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 | Evidência | `tsc` + `adminProductLifecycle.test` 7 PASS |
 | Arquivos | `adminProductLifecycle.ts`, `adminProductService.ts`, `AdminProductsPage.tsx`, este REF |
 
-**Próximo:** Erro #6 — Placa consultada errada (assertividade).
+### Erro #6 — Placa + assertividade + IA
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Lookup ok na base, mas UI sem faixa INV; `ambiguous` quase só mock; modelos irmãos (Kwid × Kwid Intense) podiam confirmar errado; sem LLM na placa. |
+| Estrutura | (1) `assertPlateAgainstCatalog` — ranking no mestre + ambiguidade de família split. (2) Faixa A–D na conferência + escolha obrigatória se ambíguo. (3) `assistPlateIdentity` — Groq via `interpret-search-nl` (flags `VITE_PLATE_NL_LLM` / `VITE_SEARCH_NL_LLM`), merge só contra catálogo. (4) Edge devolve `confidenceBand`. |
+| Evidência | `tsc` + `plateIdentityAssert.test` 5 PASS |
+| Ops | Redeploy Edge `plate-lookup` para expor `confidenceBand` (client já deriva se ausente). |
+
+**Próximo:** Erro #7 — Cards poluídos / mobile.

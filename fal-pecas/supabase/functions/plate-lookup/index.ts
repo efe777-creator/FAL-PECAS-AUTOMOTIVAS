@@ -280,6 +280,7 @@ Deno.serve(async (req) => {
   let yearOut = raw.year
   let engineOut = raw.engine
   let versionOut = raw.version
+  let confidenceBandOut: 'A' | 'B' | 'C' | 'D' | null = null
 
   if (sb && (raw.status === 'found' || raw.status === 'incomplete') && raw.maker && raw.model) {
     try {
@@ -318,6 +319,7 @@ Deno.serve(async (req) => {
           inv.filter.version === ''
             ? null
             : (inv.filter.version ?? enriched.version)
+        confidenceBandOut = inv.confidenceBand
         raw.message = inv.message
         if (inv.status === 'not_in_catalog') status = 'not_in_catalog'
         else if (inv.status === 'pending_validation' || inv.status === 'incomplete') {
@@ -441,6 +443,7 @@ Deno.serve(async (req) => {
     source: provider.source,
     queriedAt,
     confidence: raw.confidence,
+    confidenceBand: confidenceBandOut,
     message: raw.message,
     candidates: raw.candidates ?? [],
     isMock: provider.source === 'mock',

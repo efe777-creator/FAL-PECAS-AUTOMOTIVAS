@@ -60,6 +60,8 @@ export interface NormalizedPlateLookupResult {
   source: PlateLookupSource
   queriedAt: string
   confidence: number | null
+  /** INV band A–D — UI de assertividade no client. */
+  confidenceBand?: 'A' | 'B' | 'C' | 'D' | null
   message: string | null
   candidates: Array<{
     maker: string | null

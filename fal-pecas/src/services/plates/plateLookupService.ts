@@ -10,9 +10,18 @@ import type { PlateLookupResult } from '@/services/plates/plateTypes'
 
 function asResult(data: unknown): PlateLookupResult | null {
   if (!data || typeof data !== 'object') return null
-  const r = data as PlateLookupResult
+  const r = data as PlateLookupResult & { confidence_band?: string }
   if (!r.plate || !r.status) return null
-  return r
+  const bandRaw = r.confidenceBand ?? r.confidence_band
+  const confidenceBand =
+    bandRaw === 'A' || bandRaw === 'B' || bandRaw === 'C' || bandRaw === 'D'
+      ? bandRaw
+      : r.confidenceBand ?? null
+  return {
+    ...r,
+    candidates: Array.isArray(r.candidates) ? r.candidates : [],
+    confidenceBand,
+  }
 }
 
 /**

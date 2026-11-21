@@ -1,9 +1,19 @@
 import { Button } from '@/components/common/Button'
 import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
+import {
+  plateBandAssertivenessCopy,
+  type PlateConfidenceBand,
+} from '@/services/plates/plateIdentityAssert'
 import type { PlateLookupResult } from '@/services/plates/plateTypes'
 import { plateResultToFilter } from '@/services/plates/plateTypes'
 import type { VehicleFilter } from '@/types'
 import { useMemo, useState } from 'react'
+
+function bandTone(band: PlateConfidenceBand): string {
+  if (band === 'A') return 'border-fal-line bg-fal-surface-2 text-fal-muted'
+  if (band === 'B') return 'border-fal-yellow-dark/40 bg-fal-yellow/20 text-fal-navy-dark'
+  return 'border-amber-700/40 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-100'
+}
 
 export type VehiclePlateConfirmationProps = {
   result: PlateLookupResult
@@ -22,6 +32,9 @@ export function VehiclePlateConfirmation({
 }: VehiclePlateConfirmationProps) {
   const initial = useMemo(() => plateResultToFilter(result), [result])
   const [pickedCandidate, setPickedCandidate] = useState<VehicleFilter | null>(null)
+  const band: PlateConfidenceBand = result.confidenceBand ?? 'B'
+  const needsCandidatePick =
+    result.status === 'ambiguous' && result.candidates.length > 0 && !pickedCandidate
 
   const filter = pickedCandidate ?? initial
 
@@ -32,6 +45,18 @@ export function VehiclePlateConfirmation({
           Ambiente de teste (mock) — esta identificação não é uma consulta real de placa.
         </p>
       ) : null}
+
+      <div
+        className={`rounded-[9px] border px-3 py-2 text-xs font-semibold ${bandTone(band)}`}
+        role="status"
+      >
+        <p className="m-0">
+          Confiança da identificação: <strong>faixa {band}</strong>
+          {result.identityLlmAssisted ? ' · assistência IA aplicada' : ''}
+          {result.identityAsserted ? ' · validado no catálogo FAL' : ''}
+        </p>
+        <p className="mb-0 mt-1 font-normal">{plateBandAssertivenessCopy(band)}</p>
+      </div>
 
       <div role="status" aria-live="polite">
         {result.message ? (
@@ -44,6 +69,12 @@ export function VehiclePlateConfirmation({
           </p>
         )}
       </div>
+
+      {needsCandidatePick ? (
+        <p className="m-0 text-sm font-semibold text-fal-fg">
+          Escolha uma das opções abaixo antes de confirmar — modelos próximos no cadastro.
+        </p>
+      ) : null}
 
       {result.fuel || result.transmission ? (
         <p className="m-0 rounded-[9px] border border-[#e8edf5] bg-fal-surface-2 px-3 py-2 text-xs text-fal-muted">
@@ -78,7 +109,7 @@ export function VehiclePlateConfirmation({
             return (
               <Button
                 key={`${label}-${idx}`}
-                variant="outline"
+                variant={selected ? 'primary' : 'outline'}
                 type="button"
                 aria-pressed={selected}
                 onClick={() =>
@@ -104,33 +135,43 @@ export function VehiclePlateConfirmation({
         </div>
       ) : null}
 
-      <VehicleSelector
-        key={[filter.maker, filter.model, filter.year, filter.engine, filter.version].join('|')}
-        compact={compact}
-        initialFilter={filter}
-        hideQuickPick
-        title="Confirme o veículo"
-        subtitle="Modelo, versão, motor e ano separados. Corrija se necessário; campos sem evidência ficam em Não informado. Os filtros só entram após confirmar."
-        confirmLabel="Confirmar e ver peças"
-        onConfirm={(f) => {
-          const base = pickedCandidate ?? initial
-          const sameIdentity =
-            (f.maker ?? '').toLowerCase() === (base.maker ?? '').toLowerCase() &&
-            (f.model ?? '').toLowerCase() === (base.model ?? '').toLowerCase()
-          onConfirm({
-            ...f,
-            plate: result.plate || f.plate,
-            manufacturerId: sameIdentity ? base.manufacturerId ?? result.manufacturerId ?? undefined : undefined,
-            modelId: sameIdentity ? base.modelId ?? result.modelId ?? undefined : undefined,
-            versionId: sameIdentity ? base.versionId ?? result.versionId ?? undefined : undefined,
-            engineRaw: sameIdentity ? base.engineRaw ?? result.engineRaw ?? undefined : f.engineRaw,
-            versionRaw: sameIdentity ? base.versionRaw ?? result.versionRaw ?? undefined : f.versionRaw,
-            sourceSnapshot: sameIdentity
-              ? base.sourceSnapshot ?? result.sourceSnapshot ?? undefined
-              : f.sourceSnapshot ?? base.sourceSnapshot,
-          })
-        }}
-      />
+      {!needsCandidatePick ? (
+        <VehicleSelector
+          key={[filter.maker, filter.model, filter.year, filter.engine, filter.version].join('|')}
+          compact={compact}
+          initialFilter={filter}
+          hideQuickPick
+          title="Confirme o veículo"
+          subtitle="Modelo, versão, motor e ano separados. Corrija se necessário; campos sem evidência ficam em Não informado. Os filtros só entram após confirmar."
+          confirmLabel="Confirmar e ver peças"
+          onConfirm={(f) => {
+            const base = pickedCandidate ?? initial
+            const sameIdentity =
+              (f.maker ?? '').toLowerCase() === (base.maker ?? '').toLowerCase() &&
+              (f.model ?? '').toLowerCase() === (base.model ?? '').toLowerCase()
+            onConfirm({
+              ...f,
+              plate: result.plate || f.plate,
+              manufacturerId: sameIdentity
+                ? base.manufacturerId ?? result.manufacturerId ?? undefined
+                : undefined,
+              modelId: sameIdentity ? base.modelId ?? result.modelId ?? undefined : undefined,
+              versionId: sameIdentity
+                ? base.versionId ?? result.versionId ?? undefined
+                : undefined,
+              engineRaw: sameIdentity
+                ? base.engineRaw ?? result.engineRaw ?? undefined
+                : f.engineRaw,
+              versionRaw: sameIdentity
+                ? base.versionRaw ?? result.versionRaw ?? undefined
+                : f.versionRaw,
+              sourceSnapshot: sameIdentity
+                ? base.sourceSnapshot ?? result.sourceSnapshot ?? undefined
+                : f.sourceSnapshot ?? base.sourceSnapshot,
+            })
+          }}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button variant="light" type="button" onClick={onCancelManual}>

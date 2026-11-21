@@ -7,6 +7,8 @@ import { VehicleSelector } from '@/components/vehicle/VehicleSelector'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { confirmVehicleCanonicalUpsert } from '@/services/plates/confirmVehicleCanonicalUpsert'
+import { assistPlateIdentity } from '@/services/plates/interpretPlateAssist'
+import { assertPlateAgainstCatalog } from '@/services/plates/plateIdentityAssert'
 import { lookupPlate } from '@/services/plates/plateLookupService'
 import { needsConfirmCanonicalUpsert } from '@/services/plates/needsConfirmCanonicalUpsert'
 import { plateValidationMessage } from '@/services/plates/plateNormalize'
@@ -17,7 +19,11 @@ import {
 } from '@/services/plates/plateTypes'
 import { clearAskGaragePrompt } from '@/services/plates/pendingGarage'
 import { ensureSavedVehicleFromFilter } from '@/services/customers/customerVehicleService'
-import { buildVehicleQuery } from '@/services/vehicles/vehicleService'
+import {
+  buildVehicleQuery,
+  getVehicleOptions,
+  listVehicleCatalogEntries,
+} from '@/services/vehicles/vehicleService'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 import { useState, type FormEvent } from 'react'
@@ -117,7 +123,21 @@ export function VehiclePlateSearch({
     setFieldError(null)
     setPhase('loading')
     try {
-      const lookup = await lookupPlate(plateDraft)
+      let lookup = await lookupPlate(plateDraft)
+      // Assertividade: cruza com catálogo FAL + assistência IA opcional (mesmo padrão NL).
+      try {
+        const [tree, catalog] = await Promise.all([
+          getVehicleOptions(),
+          listVehicleCatalogEntries(),
+        ])
+        lookup = assertPlateAgainstCatalog(lookup, tree)
+        lookup = await assistPlateIdentity(lookup, catalog)
+        if (lookup.identityLlmAssisted) {
+          lookup = assertPlateAgainstCatalog(lookup, tree)
+        }
+      } catch {
+        /* catálogo/IA down — mantém payload da Edge */
+      }
       setResult(lookup)
       if (canOpenConfirmation(lookup)) {
         setPhase('confirm')
