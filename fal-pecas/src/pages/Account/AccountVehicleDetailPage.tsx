@@ -280,9 +280,11 @@ export function AccountVehicleDetailPage() {
                 Ativo na loja
               </span>
             )}
-            <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
-              Peças compatíveis
-            </ButtonLink>
+            {modulo !== 'pecas' ? (
+              <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
+                Peças
+              </ButtonLink>
+            ) : null}
             <Button
               type="button"
               variant="light"

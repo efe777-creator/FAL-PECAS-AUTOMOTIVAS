@@ -115,7 +115,7 @@ export function GarageVehicleHero({
               Abrir
             </ButtonLink>
             <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
-              {incomplete ? 'Peças compatíveis' : 'Peças'}
+              Peças
             </ButtonLink>
             <Link
               to={`/conta/veiculos/${vehicle.id}?edit=1`}

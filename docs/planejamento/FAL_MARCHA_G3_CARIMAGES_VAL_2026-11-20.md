@@ -27,3 +27,9 @@
 ## Assinatura
 
 VAL G3 CarImages **código PASS** · smoke runtime **pendente key rotacionada** · 2026-11-20.
+
+## MARCHA follow-up (2026-11-20 noite)
+
+- Netlify sites `fal-pecas-automotivas` / `fal-pecas-automotivas-efe`: env `CARIMAGES_API_KEY` **ausente** (404).
+- **STOP OPS** até eFe: (1) rotacionar key no dashboard CarImages; (2) setar `CARIMAGES_API_KEY` no Netlify Dev; (3) `node scripts/smoke-carimages-g3.mjs`.
+- Deploy / `main`: continua **BLOCKED**.

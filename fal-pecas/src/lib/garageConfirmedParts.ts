@@ -17,3 +17,19 @@ export function filterConfirmedCompatibleProducts(
     return classifyCompatibility(vehicle, rows).state === 'confirmed'
   })
 }
+
+/** Une páginas sem duplicar id (paginação searchCatalog → confirmed). */
+export function mergeUniqueProductsById(
+  existing: Product[],
+  next: Product[],
+): Product[] {
+  if (!next.length) return existing
+  const seen = new Set(existing.map((p) => p.id))
+  const out = existing.slice()
+  for (const p of next) {
+    if (seen.has(p.id)) continue
+    seen.add(p.id)
+    out.push(p)
+  }
+  return out
+}
