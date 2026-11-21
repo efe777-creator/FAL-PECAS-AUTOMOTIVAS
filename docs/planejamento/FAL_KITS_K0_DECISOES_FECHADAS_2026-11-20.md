@@ -48,6 +48,7 @@
 12. **K13** — devolução/reposição física pós-envio (snapshot) → **FEITO**  
 
 **Roadmap kits (auditoria):** K0–K13 concluídos na `dev`.  
+**Loja residual:** filtro catálogo `?kind=kit|item` via `search_products.p_product_kind` (2026-11-20).  
 
 **Não fazer:** segundo catálogo, segundo resolve, inventory do kit, herança de promo/compat.
 

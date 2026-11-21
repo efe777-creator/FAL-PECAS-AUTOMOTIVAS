@@ -36,6 +36,10 @@ import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
+import {
+  catalogProductKindLabel,
+  parseCatalogProductKind,
+} from '@/services/search/catalogProductKind'
 import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
 import type { SearchIntent } from '@/services/search/interpretSearchQuery'
 import { searchCatalog } from '@/services/search/searchService'
@@ -109,6 +113,7 @@ export function CatalogPage() {
   const engine = params.get('engine') ?? ''
   const version = params.get('version') ?? ''
   const brand = params.get('brand') ?? ''
+  const productKind = parseCatalogProductKind(params.get('kind'))
   const sort = parseSort(params.get('sort'))
   const urlPage = parsePage(params.get('page'))
 
@@ -310,9 +315,10 @@ export function CatalogPage() {
       year,
       engine,
       version,
+      productKind: productKind || null,
       sort,
     }),
-    [q, cat, brand, maker, model, year, engine, version, sort],
+    [q, cat, brand, maker, model, year, engine, version, productKind, sort],
   )
 
   /**
@@ -650,6 +656,10 @@ export function CatalogPage() {
     engine && { key: 'engine', label: `Motor: ${engine}` },
     version && { key: 'version', label: `Versão: ${version}` },
     brand && { key: 'brand', label: `Fabricante: ${brand}` },
+    productKind && {
+      key: 'kind',
+      label: catalogProductKindLabel(productKind),
+    },
     sort !== 'relevance' && {
       key: 'sort',
       label: `Ordenar: ${SORT_OPTIONS.find((o) => o.value === sort)?.label ?? sort}`,
@@ -740,7 +750,7 @@ export function CatalogPage() {
 
       {/* Classificação + veículo: inline no desktop; MobileDrawer no mobile */}
       <div className="mt-3 hidden lg:block">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Select
             label="Categoria"
             name="cat-root"
@@ -774,6 +784,17 @@ export function CatalogPage() {
             value={brand}
             options={brandOptions}
             onChange={(e) => patchParams({ brand: e.target.value || null })}
+          />
+          <Select
+            label="Tipo"
+            name="kind"
+            placeholder="Todos"
+            value={productKind}
+            options={[
+              { value: 'kit', label: 'Kits' },
+              { value: 'item', label: 'Itens avulsos' },
+            ]}
+            onChange={(e) => patchParams({ kind: e.target.value || null })}
           />
           <Select
             label="Ordenar"
@@ -933,6 +954,17 @@ export function CatalogPage() {
               value={brand}
               options={brandOptions}
               onChange={(e) => patchParams({ brand: e.target.value || null })}
+            />
+            <Select
+              label="Tipo"
+              name="kind-m"
+              placeholder="Todos"
+              value={productKind}
+              options={[
+                { value: 'kit', label: 'Kits' },
+                { value: 'item', label: 'Itens avulsos' },
+              ]}
+              onChange={(e) => patchParams({ kind: e.target.value || null })}
             />
             <Select
               label="Ordenar"

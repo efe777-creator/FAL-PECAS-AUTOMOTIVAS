@@ -618,6 +618,8 @@ export interface ProductSearchParams {
   year?: string | null
   engine?: string | null
   version?: string | null
+  /** Filtro opcional: só kits ou só itens (`product_kind`). */
+  productKind?: 'item' | 'kit' | null
   sort?: ProductSearchSort | null
   /** 1-based. */
   page?: number | null

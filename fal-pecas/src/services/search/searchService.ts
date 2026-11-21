@@ -153,6 +153,9 @@ function mockSearch(params: ProductSearchParams): ProductSearchResult {
         (p.categoryId ?? '').toLowerCase() === c,
     )
   }
+  if (params.productKind === 'kit' || params.productKind === 'item') {
+    list = list.filter((p) => (p.productKind ?? 'item') === params.productKind)
+  }
 
   const sort = normalizeSort(params.sort)
   list = [...list].sort((a, b) => {
@@ -222,6 +225,10 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
   }
 
   const qPrepared = await prepareSearchQuery(effective.q)
+  const productKind =
+    effective.productKind === 'kit' || effective.productKind === 'item'
+      ? effective.productKind
+      : null
   const { data, error } = await supabase.rpc('search_products', {
     p_q: qPrepared || null,
     p_category: effective.category?.trim() || null,
@@ -234,6 +241,7 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
     p_sort: sort,
     p_page: page,
     p_page_size: pageSize,
+    p_product_kind: productKind,
   })
 
   if (error) throw error
