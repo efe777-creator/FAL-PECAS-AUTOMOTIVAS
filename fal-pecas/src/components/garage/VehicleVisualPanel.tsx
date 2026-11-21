@@ -62,7 +62,7 @@ export function VehicleVisualPanel({
   vehicleIdentityId: string
   membershipId: string
   seedColorHex?: string | null
-  /** Para fallback 2D stock/CarImages quando não há GLB aprovado. */
+  /** Para fallback 2D stock/placeholder quando não há GLB aprovado. */
   vehicle?: Pick<
     CustomerSavedVehicle,
     'id' | 'makerName' | 'modelName' | 'year' | 'colorHex' | 'primaryAssetId'
