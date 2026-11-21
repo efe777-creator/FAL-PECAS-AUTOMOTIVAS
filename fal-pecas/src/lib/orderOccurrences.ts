@@ -2,7 +2,17 @@
  * Ocorrências imutáveis via order_events (CP-EVT-01 + Marcha 7).
  * Situação: aberta | em_andamento | resolvida | reaberta.
  * Histórico append-only — nunca some por patch de metadata.
+ * F3: stage / return_mode / me_reverse no payload.
  */
+
+import {
+  asPostSaleReturnMode,
+  asPostSaleStage,
+  parseMeReversePayload,
+  type MeReversePayload,
+  type PostSaleReturnMode,
+  type PostSaleStage,
+} from '@/lib/postSaleStages'
 
 export type OccurrenceSeverity = 'baixa' | 'media' | 'alta'
 export type OccurrencePriority = 'baixa' | 'media' | 'alta' | 'urgente'
@@ -35,6 +45,11 @@ export type OccurrenceCurrent = {
   lastEventType: string
   lastEventAt: string
   eventCount: number
+  /** F3 pós-venda */
+  stage: PostSaleStage | null
+  returnMode: PostSaleReturnMode | null
+  serviceOverride: string | null
+  meReverse: MeReversePayload | null
 }
 
 export const OCCURRENCE_EVENTS = new Set([
@@ -107,6 +122,10 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
     let responsavelId: string | null = null
     let assigneeId: string | null = null
     let visibility = 'internal'
+    let stage: PostSaleStage | null = null
+    let returnMode: PostSaleReturnMode | null = null
+    let serviceOverride: string | null = null
+    let meReverse: MeReversePayload | null = null
     for (const e of sorted) {
       const p = e.payload
       if (p.tipo != null && String(p.tipo)) tipo = String(p.tipo)
@@ -127,9 +146,24 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
       }
       if (p.responsavel_id != null) responsavelId = String(p.responsavel_id)
       if (p.assignee_id != null) assigneeId = String(p.assignee_id)
+      const st = asPostSaleStage(p.stage)
+      if (st) stage = st
+      const rm = asPostSaleReturnMode(p.return_mode)
+      if (rm) returnMode = rm
+      if (p.service_override != null && String(p.service_override)) {
+        serviceOverride = String(p.service_override)
+      }
+      const mr = parseMeReversePayload(p.me_reverse)
+      if (mr?.tracking_code) meReverse = mr
       visibility = e.visibility
     }
     const last = sorted[sorted.length - 1]!
+    if (!stage) {
+      if (last.eventType === 'occurrence_resolved') stage = 'resolvido'
+      else if (last.eventType === 'occurrence_started' || last.eventType === 'occurrence_reopened') {
+        stage = 'em_analise'
+      } else if (last.eventType === 'occurrence_opened') stage = 'aberto'
+    }
     out.push({
       occurrenceId,
       status: statusFromLastEvent(last.eventType),
@@ -147,6 +181,10 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
       lastEventType: last.eventType,
       lastEventAt: last.createdAt,
       eventCount: sorted.length,
+      stage,
+      returnMode,
+      serviceOverride,
+      meReverse,
     })
   }
 

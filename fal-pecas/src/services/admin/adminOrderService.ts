@@ -1209,3 +1209,45 @@ export async function adminOccurrenceAction(input: {
   if (error) throw error
   return data as { occurrence_id: string; event_type: string }
 }
+
+/** F3 — stages pós-venda (authorize/refuse/awaiting_piece/conference/resolve). */
+export async function adminPostSaleCaseAction(input: {
+  orderId: string
+  occurrenceId: string
+  action:
+    | 'start'
+    | 'authorize'
+    | 'refuse'
+    | 'awaiting_piece'
+    | 'conference'
+    | 'resolve'
+    | 'reopen'
+  returnMode?: 'me_codigo' | 'wa' | 'loja' | null
+  note?: string | null
+  serviceOverride?: 'pac' | 'sedex' | null
+  solucao?: string | null
+}): Promise<{
+  order_id: string
+  occurrence_id: string
+  stage: string
+  event_type: string
+  return_mode?: string | null
+}> {
+  const { data, error } = await getSupabase().rpc('admin_post_sale_case_action', {
+    p_order_id: input.orderId,
+    p_occurrence_id: input.occurrenceId,
+    p_action: input.action,
+    p_return_mode: input.returnMode ?? null,
+    p_note: input.note ?? null,
+    p_service_override: input.serviceOverride ?? null,
+    p_solucao: input.solucao ?? null,
+  })
+  if (error) throw error
+  return data as {
+    order_id: string
+    occurrence_id: string
+    stage: string
+    event_type: string
+    return_mode?: string | null
+  }
+}

@@ -2,6 +2,11 @@ import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { formatDateTime } from '@/lib/datetime'
 import {
+  countShipmentVolumes,
+  evaluateMeReverseEligibility,
+  readMeCartItemId,
+} from '@/lib/meReverseEligibility'
+import {
   deriveOccurrences,
   OCCURRENCE_STATUS_LABEL,
   validateOccurrenceAction,
@@ -9,6 +14,14 @@ import {
   type OccurrencePriority,
   type OccurrenceSeverity,
 } from '@/lib/orderOccurrences'
+import { createOrderOpsActionRunner, actionPostSaleCase } from '@/lib/orderOpsActions'
+import {
+  isPostSaleTipo,
+  meReverseCodeValid,
+  POST_SALE_RETURN_MODE_LABEL,
+  POST_SALE_STAGE_LABEL,
+  type PostSaleReturnMode,
+} from '@/lib/postSaleStages'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminOccurrenceAction,
@@ -46,6 +59,7 @@ export function OrderOccurrencesPanel({
   onOk,
   onError,
 }: Props) {
+  const runner = useMemo(() => createOrderOpsActionRunner(), [])
   const list = useMemo(
     () =>
       deriveOccurrences(
@@ -60,6 +74,16 @@ export function OrderOccurrencesPanel({
     [order.events],
   )
 
+  const meEligible = useMemo(() => {
+    const meta = order.shipment?.metadata ?? null
+    return evaluateMeReverseEligibility({
+      orderStatus: order.status,
+      provider: order.shipment?.provider,
+      volumeCount: countShipmentVolumes(meta),
+      meOrderId: readMeCartItemId(meta),
+    })
+  }, [order])
+
   const [tipo, setTipo] = useState<string>('divergencia')
   const [gravidade, setGravidade] = useState<OccurrenceSeverity>('media')
   const [prioridade, setPrioridade] = useState<OccurrencePriority>('media')
@@ -68,8 +92,12 @@ export function OrderOccurrencesPanel({
   const [visibility, setVisibility] = useState<'internal' | 'customer'>('internal')
   const [resolveFor, setResolveFor] = useState<OccurrenceCurrent | null>(null)
   const [reopenFor, setReopenFor] = useState<OccurrenceCurrent | null>(null)
+  const [authorizeFor, setAuthorizeFor] = useState<OccurrenceCurrent | null>(null)
+  const [returnMode, setReturnMode] = useState<PostSaleReturnMode>('wa')
+  const [serviceOverride, setServiceOverride] = useState<'pac' | 'sedex' | ''>('')
   const [solucao, setSolucao] = useState('')
   const [reopenReason, setReopenReason] = useState('')
+  const [authNote, setAuthNote] = useState('')
 
   async function openOccurrence() {
     const v = validateOccurrenceAction({
@@ -111,19 +139,80 @@ export function OrderOccurrencesPanel({
   async function startOccurrence(o: OccurrenceCurrent) {
     onBusy(true)
     try {
-      await adminOccurrenceAction({
-        orderId: order.id,
-        action: 'start',
-        occurrenceId: o.occurrenceId,
-        visibility: o.visibility === 'customer' ? 'customer' : 'internal',
-      })
-      onOk('Ocorrência em andamento')
-      await onReload()
+      if (isPostSaleTipo(o.tipo)) {
+        const ok = await actionPostSaleCase(
+          runner,
+          { orderId: order.id, occurrenceId: o.occurrenceId, action: 'start' },
+          { ok: onOk, error: onError },
+        )
+        if (ok) await onReload()
+      } else {
+        await adminOccurrenceAction({
+          orderId: order.id,
+          action: 'start',
+          occurrenceId: o.occurrenceId,
+          visibility: o.visibility === 'customer' ? 'customer' : 'internal',
+        })
+        onOk('Ocorrência em andamento')
+        await onReload()
+      }
     } catch (e) {
       onError(toUserMessage(e, 'Falha ao iniciar'))
     } finally {
       onBusy(false)
     }
+  }
+
+  async function runPostSale(
+    o: OccurrenceCurrent,
+    action: 'authorize' | 'refuse' | 'awaiting_piece' | 'conference' | 'resolve' | 'reopen',
+    extra?: {
+      returnMode?: PostSaleReturnMode
+      note?: string
+      serviceOverride?: 'pac' | 'sedex' | null
+      solucao?: string
+    },
+  ) {
+    onBusy(true)
+    try {
+      const ok = await actionPostSaleCase(
+        runner,
+        {
+          orderId: order.id,
+          occurrenceId: o.occurrenceId,
+          action,
+          returnMode: extra?.returnMode ?? null,
+          note: extra?.note ?? null,
+          serviceOverride: extra?.serviceOverride ?? null,
+          solucao: extra?.solucao ?? null,
+        },
+        { ok: onOk, error: onError },
+      )
+      if (ok) await onReload()
+    } catch (e) {
+      onError(toUserMessage(e, 'Falha na ação pós-venda'))
+    } finally {
+      onBusy(false)
+    }
+  }
+
+  async function confirmAuthorize() {
+    if (!authorizeFor) return
+    if (!returnMode) {
+      onError('Escolha o modo de devolução.')
+      return
+    }
+    if (returnMode === 'me_codigo' && !meEligible.ok) {
+      onError(meEligible.reason)
+      return
+    }
+    await runPostSale(authorizeFor, 'authorize', {
+      returnMode,
+      note: authNote.trim() || undefined,
+      serviceOverride: serviceOverride || null,
+    })
+    setAuthorizeFor(null)
+    setAuthNote('')
   }
 
   async function resolveOccurrence() {
@@ -132,15 +221,22 @@ export function OrderOccurrencesPanel({
       onError(v.reason ?? 'Informe a solução.')
       return
     }
+    const target = resolveFor
+    if (isPostSaleTipo(target.tipo)) {
+      await runPostSale(target, 'resolve', { solucao: solucao.trim() })
+      setResolveFor(null)
+      setSolucao('')
+      return
+    }
     onBusy(true)
     try {
       await adminOccurrenceAction({
         orderId: order.id,
         action: 'resolve',
-        occurrenceId: resolveFor.occurrenceId,
+        occurrenceId: target.occurrenceId,
         solucao: solucao.trim(),
         motivoEncerramento: solucao.trim(),
-        visibility: resolveFor.visibility === 'customer' ? 'customer' : 'internal',
+        visibility: target.visibility === 'customer' ? 'customer' : 'internal',
       })
       setResolveFor(null)
       setSolucao('')
@@ -159,14 +255,21 @@ export function OrderOccurrencesPanel({
       onError(v.reason ?? 'Informe o motivo da reabertura.')
       return
     }
+    const target = reopenFor
+    if (isPostSaleTipo(target.tipo)) {
+      await runPostSale(target, 'reopen', { note: reopenReason.trim() })
+      setReopenFor(null)
+      setReopenReason('')
+      return
+    }
     onBusy(true)
     try {
       await adminOccurrenceAction({
         orderId: order.id,
         action: 'reopen',
-        occurrenceId: reopenFor.occurrenceId,
+        occurrenceId: target.occurrenceId,
         motivoReabertura: reopenReason.trim(),
-        visibility: reopenFor.visibility === 'customer' ? 'customer' : 'internal',
+        visibility: target.visibility === 'customer' ? 'customer' : 'internal',
       })
       setReopenFor(null)
       setReopenReason('')
@@ -184,9 +287,18 @@ export function OrderOccurrencesPanel({
       <div>
         <h2 className="m-0 text-lg font-extrabold text-fal-fg">Ocorrências / revisão</h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Ciclo: aberta → em andamento → resolvida → (reaberta com motivo). Histórico
-          append-only — não some.
+          Ciclo: aberta → em andamento → resolvida → (reaberta com motivo). Pós-venda: stages
+          autorizar / conferência / resolver. Histórico append-only.
         </p>
+        {!meEligible.ok ? (
+          <p className="mt-2 mb-0 text-xs text-fal-muted">
+            ME reversa: {meEligible.reason} Fallback: WA ou loja.
+          </p>
+        ) : (
+          <p className="mt-2 mb-0 text-xs text-fal-muted">
+            Pedido elegível para código Melhor Envio (volume único).
+          </p>
+        )}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -267,75 +379,212 @@ export function OrderOccurrencesPanel({
         <p className="text-sm text-fal-muted">Nenhuma ocorrência neste pedido.</p>
       ) : (
         <ul className="m-0 list-none space-y-2 p-0">
-          {list.map((o) => (
-            <li key={o.occurrenceId} className="rounded-[12px] border border-fal-line px-3 py-2">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="m-0 text-sm font-bold text-fal-fg">
-                    {o.tipo ?? 'ocorrência'} · {OCCURRENCE_STATUS_LABEL[o.status]} · prioridade{' '}
-                    {o.prioridade} · {o.gravidade}
-                  </p>
-                  <p className="mb-0 mt-1 text-xs text-fal-muted">
-                    ID {o.occurrenceId.slice(0, 8)}… · {o.eventCount} evento(s) ·{' '}
-                    {formatDateTime(o.lastEventAt)}
-                  </p>
-                  {o.acaoNecessaria ? (
-                    <p className="mb-0 mt-1 text-sm">Ação: {o.acaoNecessaria}</p>
-                  ) : null}
-                  {o.note ? <p className="mb-0 mt-1 text-sm">{o.note}</p> : null}
-                  {o.solucao ? (
-                    <p className="mb-0 mt-1 text-sm text-fal-muted">Solução: {o.solucao}</p>
-                  ) : null}
-                  {o.motivoReabertura ? (
-                    <p className="mb-0 mt-1 text-sm text-amber-800">
-                      Reabertura: {o.motivoReabertura}
+          {list.map((o) => {
+            const postSale = isPostSaleTipo(o.tipo)
+            const stageLabel = o.stage ? POST_SALE_STAGE_LABEL[o.stage] : null
+            const modeLabel = o.returnMode ? POST_SALE_RETURN_MODE_LABEL[o.returnMode] : null
+            const hasCode = meReverseCodeValid(o.meReverse)
+            return (
+              <li key={o.occurrenceId} className="rounded-[12px] border border-fal-line px-3 py-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="m-0 text-sm font-bold text-fal-fg">
+                      {o.tipo ?? 'ocorrência'} · {OCCURRENCE_STATUS_LABEL[o.status]}
+                      {stageLabel ? ` · ${stageLabel}` : ''} · prioridade {o.prioridade} ·{' '}
+                      {o.gravidade}
                     </p>
-                  ) : null}
+                    <p className="mb-0 mt-1 text-xs text-fal-muted">
+                      ID {o.occurrenceId.slice(0, 8)}… · {o.eventCount} evento(s) ·{' '}
+                      {formatDateTime(o.lastEventAt)}
+                    </p>
+                    {modeLabel ? (
+                      <p className="mb-0 mt-1 text-sm">Devolução: {modeLabel}</p>
+                    ) : null}
+                    {hasCode ? (
+                      <p className="mb-0 mt-1 text-sm font-semibold text-fal-fg">
+                        Código ME: {o.meReverse?.tracking_code}
+                        {o.meReverse?.expires_at
+                          ? ` · válido até ${formatDateTime(o.meReverse.expires_at)}`
+                          : ''}
+                      </p>
+                    ) : null}
+                    {o.acaoNecessaria ? (
+                      <p className="mb-0 mt-1 text-sm">Ação: {o.acaoNecessaria}</p>
+                    ) : null}
+                    {o.note ? <p className="mb-0 mt-1 text-sm">{o.note}</p> : null}
+                    {o.solucao ? (
+                      <p className="mb-0 mt-1 text-sm text-fal-muted">Solução: {o.solucao}</p>
+                    ) : null}
+                    {o.motivoReabertura ? (
+                      <p className="mb-0 mt-1 text-sm text-amber-800">
+                        Reabertura: {o.motivoReabertura}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(o.status === 'open' || o.status === 'reopened') &&
+                      (!postSale || o.stage === 'aberto' || !o.stage) && (
+                        <Button
+                          type="button"
+                          variant="light"
+                          disabled={busy}
+                          onClick={() => void startOccurrence(o)}
+                        >
+                          Em análise
+                        </Button>
+                      )}
+                    {postSale && o.status !== 'resolved' && o.stage === 'em_analise' ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="light"
+                          disabled={busy}
+                          onClick={() => {
+                            setAuthorizeFor(o)
+                            setReturnMode(meEligible.ok ? 'me_codigo' : 'wa')
+                            setServiceOverride('')
+                            setAuthNote('')
+                            setResolveFor(null)
+                            setReopenFor(null)
+                          }}
+                        >
+                          Autorizar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="light"
+                          disabled={busy}
+                          onClick={() =>
+                            void runPostSale(o, 'refuse', {
+                              solucao: 'Solicitação recusada após análise',
+                              note: 'Recusa fundamentada',
+                            })
+                          }
+                        >
+                          Recusar
+                        </Button>
+                      </>
+                    ) : null}
+                    {postSale &&
+                    o.status !== 'resolved' &&
+                    (o.stage === 'autorizada' || o.stage === 'aguardando_peca') ? (
+                      <>
+                        {o.stage === 'autorizada' ? (
+                          <Button
+                            type="button"
+                            variant="light"
+                            disabled={busy}
+                            onClick={() => void runPostSale(o, 'awaiting_piece')}
+                          >
+                            Aguardando peça
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="light"
+                          disabled={busy}
+                          onClick={() => void runPostSale(o, 'conference')}
+                        >
+                          Conferência
+                        </Button>
+                      </>
+                    ) : null}
+                    {o.status !== 'resolved' ? (
+                      <Button
+                        type="button"
+                        variant="light"
+                        disabled={busy}
+                        onClick={() => {
+                          setResolveFor(o)
+                          setSolucao('')
+                          setReopenFor(null)
+                          setAuthorizeFor(null)
+                        }}
+                      >
+                        Resolver
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="light"
+                        disabled={busy}
+                        onClick={() => {
+                          setReopenFor(o)
+                          setReopenReason('')
+                          setResolveFor(null)
+                          setAuthorizeFor(null)
+                        }}
+                      >
+                        Reabrir
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {(o.status === 'open' || o.status === 'reopened') && (
-                    <Button
-                      type="button"
-                      variant="light"
-                      disabled={busy}
-                      onClick={() => void startOccurrence(o)}
-                    >
-                      Em andamento
-                    </Button>
-                  )}
-                  {o.status !== 'resolved' ? (
-                    <Button
-                      type="button"
-                      variant="light"
-                      disabled={busy}
-                      onClick={() => {
-                        setResolveFor(o)
-                        setSolucao('')
-                        setReopenFor(null)
-                      }}
-                    >
-                      Resolver
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="light"
-                      disabled={busy}
-                      onClick={() => {
-                        setReopenFor(o)
-                        setReopenReason('')
-                        setResolveFor(null)
-                      }}
-                    >
-                      Reabrir
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
+
+      {authorizeFor ? (
+        <div className="rounded-[12px] border border-fal-navy/30 bg-fal-surface-2 p-3">
+          <p className="m-0 text-sm font-bold text-fal-fg">
+            Autorizar devolução {authorizeFor.occurrenceId.slice(0, 8)}…
+          </p>
+          <label className="mt-2 block text-sm font-semibold text-fal-muted">
+            Modo de retorno
+            <select
+              className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
+              value={returnMode}
+              disabled={busy}
+              onChange={(e) => setReturnMode(e.target.value as PostSaleReturnMode)}
+            >
+              {meEligible.ok ? (
+                <option value="me_codigo">Código Melhor Envio (FAL paga)</option>
+              ) : null}
+              <option value="wa">WhatsApp / Correios manual</option>
+              <option value="loja">Devolver na loja</option>
+            </select>
+          </label>
+          {returnMode === 'me_codigo' ? (
+            <label className="mt-2 block text-sm font-semibold text-fal-muted">
+              Override serviço (opcional)
+              <select
+                className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
+                value={serviceOverride}
+                disabled={busy}
+                onChange={(e) =>
+                  setServiceOverride(e.target.value as 'pac' | 'sedex' | '')
+                }
+              >
+                <option value="">Mais barato (PAC/SEDEX)</option>
+                <option value="pac">Forçar PAC</option>
+                <option value="sedex">Forçar SEDEX</option>
+              </select>
+            </label>
+          ) : null}
+          <Input
+            label="Nota (opcional)"
+            value={authNote}
+            disabled={busy}
+            onChange={(e) => setAuthNote(e.target.value)}
+            placeholder="Orientação ao cliente"
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" disabled={busy} onClick={() => void confirmAuthorize()}>
+              Confirmar autorização
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy}
+              onClick={() => setAuthorizeFor(null)}
+            >
+              Voltar
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {resolveFor ? (
         <div className="rounded-[12px] border border-fal-navy/30 bg-fal-surface-2 p-3">
@@ -347,7 +596,7 @@ export function OrderOccurrencesPanel({
             value={solucao}
             disabled={busy}
             onChange={(e) => setSolucao(e.target.value)}
-            placeholder="Como foi tratado"
+            placeholder="Como foi tratado (ex.: restock + estorno pendente)"
           />
           <div className="mt-2 flex flex-wrap gap-2">
             <Button

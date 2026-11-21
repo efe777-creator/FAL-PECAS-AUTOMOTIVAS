@@ -14,6 +14,7 @@ import {
   adminConfirmStorePickup,
   adminFinalizeConfirmation,
   adminHoldForAvailability,
+  adminPostSaleCaseAction,
   adminRequestCustomerDecision,
   adminSetItemAvailability,
   adminSetItemSeparated,
@@ -254,4 +255,42 @@ export async function actionSetItemAvailability(
 
 export function actionErrorMessage(e: unknown, fallback: string): string {
   return toUserMessage(e, fallback)
+}
+
+/** F3 — stages do caso pós-venda (OrderOps / ocorrências). */
+export async function actionPostSaleCase(
+  runner: OrderOpsActionRunner,
+  input: {
+    orderId: string
+    occurrenceId: string
+    action:
+      | 'start'
+      | 'authorize'
+      | 'refuse'
+      | 'awaiting_piece'
+      | 'conference'
+      | 'resolve'
+      | 'reopen'
+    returnMode?: 'me_codigo' | 'wa' | 'loja' | null
+    note?: string | null
+    serviceOverride?: 'pac' | 'sedex' | null
+    solucao?: string | null
+  },
+  fb: OrderOpsActionFeedback,
+): Promise<boolean> {
+  const result = await runner.runExclusive(async () => {
+    const r = await adminPostSaleCaseAction(input)
+    const labels: Record<string, string> = {
+      start: 'Caso em análise',
+      authorize: 'Devolução autorizada',
+      refuse: 'Solicitação recusada',
+      awaiting_piece: 'Aguardando peça',
+      conference: 'Em conferência',
+      resolve: 'Caso resolvido',
+      reopen: 'Caso reaberto',
+    }
+    fb.ok(labels[input.action] ?? `Stage: ${r.stage}`)
+    return true
+  })
+  return result === true
 }

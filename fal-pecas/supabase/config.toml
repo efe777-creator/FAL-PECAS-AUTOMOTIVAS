@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.verify-auth-otp]
 verify_jwt = false
+
+[functions.melhorenvio-reverse]
+verify_jwt = true

@@ -1,3 +1,4 @@
+import { PostSaleAuthorizedPanel } from '@/components/account/PostSaleAuthorizedPanel'
 import { PostSaleHelpPanel } from '@/components/account/PostSaleHelpPanel'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
@@ -8,11 +9,14 @@ import { useToast } from '@/components/common/Toast'
 import { OrderPostPurchaseGarageActions } from '@/components/garage/OrderPostPurchaseGarageActions'
 import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymentPanel'
 import { minimizeRecipientName } from '@/lib/postSaleMotives'
+import { deriveOccurrences } from '@/lib/orderOccurrences'
+import { isPostSaleTipo } from '@/lib/postSaleStages'
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
 import { paymentProviderLabel, paymentStatusLabel } from '@/lib/paymentLabels'
 import { shipmentStatusLabel } from '@/lib/shippingLabels'
+import { meReverseGenerate } from '@/services/shipping/melhorEnvioReverseService'
 import {
   buildOrderWhatsAppMessage,
   storeWhatsAppPhone,
@@ -355,12 +359,25 @@ export function AccountOrderDetailPage() {
   )
   const canPostDelivery =
     order?.status === 'entregue' || order?.status === 'enviado'
-  const hasOpenPostSaleCase = Boolean(
-    order?.events?.some(
-      (e) =>
-        e.eventType === 'occurrence_opened' &&
-        String(e.payload?.tipo ?? '').startsWith('pos_venda'),
-    ),
+  const postSaleOccurrences = useMemo(() => {
+    if (!order?.events?.length) return []
+    return deriveOccurrences(
+      order.events.map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        payload: e.payload,
+        visibility: e.visibility,
+        createdAt: e.createdAt,
+      })),
+    ).filter((o) => isPostSaleTipo(o.tipo))
+  }, [order?.events])
+
+  const hasOpenPostSaleCase = postSaleOccurrences.some((o) => o.status !== 'resolved')
+  const authorizedPostSale = postSaleOccurrences.find(
+    (o) =>
+      o.status !== 'resolved' &&
+      o.stage === 'autorizada' &&
+      (o.returnMode === 'me_codigo' || o.returnMode === 'wa' || o.returnMode === 'loja'),
   )
   const recipientMinimized = minimizeRecipientName(
     String(
@@ -416,6 +433,24 @@ export function AccountOrderDetailPage() {
       await reload()
     } catch (e) {
       pushError(toUserMessage(e, 'Falha ao reportar problema'))
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function onGenerateReturnCode() {
+    if (!order || !authorizedPostSale) return
+    setActionBusy(true)
+    try {
+      const r = await meReverseGenerate(order.id, authorizedPostSale.occurrenceId)
+      if (!r.ok) {
+        pushError(r.message || r.error || 'Falha ao gerar código')
+        return
+      }
+      pushOk(r.message || `Código: ${r.trackingCode}`)
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao gerar código de devolução'))
     } finally {
       setActionBusy(false)
     }
@@ -634,6 +669,19 @@ export function AccountOrderDetailPage() {
             )}
           </div>
         </div>
+      ) : null}
+
+      {authorizedPostSale && authorizedPostSale.returnMode ? (
+        <PostSaleAuthorizedPanel
+          orderId={order.id}
+          orderNumber={order.id.slice(0, 8).toUpperCase()}
+          occurrenceId={authorizedPostSale.occurrenceId}
+          returnMode={authorizedPostSale.returnMode}
+          meReverse={authorizedPostSale.meReverse}
+          storeAddress={storeOrigin ? formatStoreOriginAddress(storeOrigin) : null}
+          busy={actionBusy}
+          onGenerateCode={onGenerateReturnCode}
+        />
       ) : null}
 
       {canPostDelivery ? (

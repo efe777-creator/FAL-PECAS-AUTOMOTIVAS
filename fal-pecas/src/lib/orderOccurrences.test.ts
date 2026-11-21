@@ -52,7 +52,50 @@ describe('deriveOccurrences (Marcha 7 ciclo de vida)', () => {
     expect(list[0]?.gravidade).toBe('media')
     expect(list[0]?.solucao).toBe('reenviado')
     expect(list[0]?.eventCount).toBe(3)
+    expect(list[0]?.stage).toBe('resolvido')
     expect(isOccurrenceOpenForQueue(list[0]!)).toBe(false)
+  })
+
+  it('F3: stage autorizada + return_mode + me_reverse', () => {
+    const list = deriveOccurrences([
+      {
+        id: '1',
+        eventType: 'occurrence_opened',
+        payload: {
+          occurrence_id: id,
+          tipo: 'pos_venda_devolucao',
+          stage: 'aberto',
+          acao_necessaria: 'analisar',
+        },
+        visibility: 'customer',
+        createdAt: '2026-11-21T10:00:00Z',
+      },
+      {
+        id: '2',
+        eventType: 'occurrence_started',
+        payload: { occurrence_id: id, stage: 'em_analise' },
+        visibility: 'customer',
+        createdAt: '2026-11-21T11:00:00Z',
+      },
+      {
+        id: '3',
+        eventType: 'occurrence_updated',
+        payload: {
+          occurrence_id: id,
+          stage: 'autorizada',
+          return_mode: 'me_codigo',
+          me_reverse: {
+            tracking_code: 'AA123',
+            expires_at: '2026-11-28T11:00:00Z',
+          },
+        },
+        visibility: 'customer',
+        createdAt: '2026-11-21T12:00:00Z',
+      },
+    ])
+    expect(list[0]?.stage).toBe('autorizada')
+    expect(list[0]?.returnMode).toBe('me_codigo')
+    expect(list[0]?.meReverse?.tracking_code).toBe('AA123')
   })
 
   it('reabertura com motivo volta para fila (último ≠ resolved)', () => {
