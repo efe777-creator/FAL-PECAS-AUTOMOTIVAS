@@ -25,8 +25,8 @@ import {
   whatsAppHref,
 } from '@/lib/whatsapp'
 import {
+  customerFacingOrderEventLabel,
   customerFacingOrderStatusLabel,
-  orderEventLabel,
   projectCustomerTimeline,
 } from '@/lib/orderLifecycle'
 import { readContractedShipping } from '@/lib/contractedShipping'
@@ -1057,12 +1057,14 @@ export function AccountOrderDetailPage() {
           {updates.map((ev) => {
             const payload = ev.payload as Record<string, unknown>
             const note =
+              (typeof payload.solucao === 'string' && payload.solucao) ||
+              (typeof payload.motivo_encerramento === 'string' && payload.motivo_encerramento) ||
               (typeof payload.reason === 'string' && payload.reason) ||
               (typeof payload.note === 'string' && payload.note) ||
               null
             return (
               <li key={ev.id} className="border-l-2 border-fal-yellow pl-3 text-sm">
-                <strong>{orderEventLabel[ev.eventType] ?? ev.eventType}</strong>
+                <strong>{customerFacingOrderEventLabel(ev.eventType, payload)}</strong>
                 <span className="block text-xs text-fal-muted">
                   {formatDateTime(ev.createdAt)}
                   {note ? ` — ${note}` : ''}

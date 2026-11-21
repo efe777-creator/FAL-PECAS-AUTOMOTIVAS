@@ -316,6 +316,11 @@ async function main() {
       eligible: st.json.eligible,
       dryRun: st.json.dryRun,
       sandbox: st.json.sandbox,
+      liveReady: st.json.liveReady,
+      liveBlockers: st.json.liveBlockers,
+      hasMeToken: st.json.hasMeToken,
+      meOrderIdPresent: st.json.meOrderIdPresent,
+      hint: st.json.hint,
       error: st.json.error,
     }),
   )

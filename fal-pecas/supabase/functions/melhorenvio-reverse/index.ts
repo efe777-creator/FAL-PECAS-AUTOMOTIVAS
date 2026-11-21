@@ -215,6 +215,17 @@ Deno.serve(async (req) => {
       Boolean(meOrderId)
 
     if (action === 'status') {
+      const hasMeToken = Boolean(meToken)
+      const liveBlockers: string[] = []
+      if (!eligible) liveBlockers.push('not_eligible')
+      if (!hasMeToken) liveBlockers.push('me_token_missing')
+      if (sandbox) liveBlockers.push('sandbox_mode')
+      if (returnMode && returnMode !== 'me_codigo') liveBlockers.push('return_mode_not_me')
+      if (stage && stage !== 'autorizada' && stage !== 'aguardando_peca') {
+        liveBlockers.push('stage_not_ready')
+      }
+      if (codeValid) liveBlockers.push('code_already_valid')
+      const liveReady = liveBlockers.length === 0
       return json(200, {
         ok: true,
         orderId,
@@ -226,7 +237,18 @@ Deno.serve(async (req) => {
         meReverse: meReverseExisting,
         sandbox,
         dryRun,
+        hasMeToken,
+        meOrderIdPresent: Boolean(meOrderId),
+        volumeCount: vol.count,
+        provider,
+        liveReady,
+        liveBlockers,
         selectedServiceHint: lastPayload.service_override ?? null,
+        hint: liveReady
+          ? 'Pronto para generate live (sem forceDryRun).'
+          : forceDryRun || dryRun
+            ? 'Use forceDryRun (staff) para smoke; live exige token + elegibilidade + stage.'
+            : `Bloqueios live: ${liveBlockers.join(', ') || 'desconhecido'}`,
       })
     }
 

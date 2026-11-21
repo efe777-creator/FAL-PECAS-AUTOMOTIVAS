@@ -19,6 +19,13 @@ export type MeReverseResponse = {
   dryRun?: boolean
   eligible?: boolean
   codeValid?: boolean
+  hasMeToken?: boolean
+  meOrderIdPresent?: boolean
+  volumeCount?: number
+  provider?: string
+  liveReady?: boolean
+  liveBlockers?: string[]
+  hint?: string
   meReverse?: Record<string, unknown> | null
 }
 

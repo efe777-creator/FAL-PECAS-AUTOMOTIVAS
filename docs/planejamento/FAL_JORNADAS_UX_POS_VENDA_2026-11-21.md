@@ -108,7 +108,7 @@ Legenda ação: **EXISTE** · **EVOLUIR** · **CRIAR**
 | 4 | `entregue` | Detalhe | Janela aberta/fechada | Problema só se aberta (ou caso já aberto) | Helper window + RPC gate | 1 | CRIAR |
 | 5 | `entregue` | Detalhe | — | Confirmar recebimento | `customer_confirm_receipt` | 1 | EXISTE |
 | 6 | `enviado`/`entregue` | Detalhe | Formulário motivos; se incompat/devolução: todo/itens + política ACK | Enviar | Report tipado → `occurrence_opened` | 1 | EVOLUIR RPC/UI |
-| 7 | qualquer c/ caso | Detalhe timeline | Eventos customer do caso | — | `order_events` visibility customer | 1–3 | EVOLUIR labels stage |
+| 7 | qualquer c/ caso | Detalhe timeline | Eventos customer do caso (labels por stage) | — | `customerFacingOrderEventLabel` | 1–3 | FEITO |
 | 8a | caso `autorizada` ME | Detalhe | Instruções + Gerar código | Gerar código de devolução | Edge reversa ME (FAL paga) | 3 | FEITO |
 | 8b | caso `autorizada` fallback | Detalhe | Texto loja + WA | Falar no WhatsApp / Devolver na loja | `buildPostSaleWhatsAppMessage` + return_mode | 3 | FEITO |
 | 9 | resolvido / aberto / recusa | Detalhe | Painel situação + Resultado | WA se aberto/recusa | `PostSaleCaseStatusPanel` | 3 | FEITO |
@@ -239,14 +239,14 @@ flowchart TB
 
 ### Checklist QA anti-erro
 
-- [ ] Confirm receipt não inicia janela 7d  
-- [ ] Caso aberto não fecha só por calendário  
-- [ ] Sem auto-deliver  
-- [ ] Sem código ME na abertura  
-- [ ] Sem rota/módulo isolado  
-- [ ] Sem usar visão `problemas` para pós-venda  
-- [ ] Copy legal única  
-- [ ] Lista revisão mostra ocorrência do cliente  
+- [x] Confirm receipt não inicia janela 7d  
+- [x] Caso aberto não fecha só por calendário  
+- [x] Sem auto-deliver  
+- [x] Sem código ME na abertura  
+- [x] Sem rota/módulo isolado  
+- [x] Sem usar visão `problemas` para pós-venda  
+- [x] Copy legal única  
+- [x] Lista revisão mostra ocorrência do cliente  
 
 ---
 

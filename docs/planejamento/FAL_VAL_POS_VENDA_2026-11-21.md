@@ -46,10 +46,13 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 
 ## VAL manual restante (produção ME real)
 
-1. Pedido com etiqueta ME **real** (cart_item_id válido) → generate **sem** `forceDryRun`.  
+Pré-check: Edge `action:status` deve retornar `liveReady:true` (token ME + elegível + stage + não sandbox). Smoke com `cart_item_id` sintético espera `liveReady:false` + `forceDryRun`.
+
+1. Pedido com etiqueta ME **real** (`cart_item_id` válido) → `status.liveReady` → generate **sem** `forceDryRun`.  
 2. UI conta: cliente clica Gerar código (sem flag staff).  
 3. Conferência ok → Repor estoque + Marcar estorno.  
-4. Frete próprio: ops só vê WA/loja na UI (elegibilidade).
+4. Frete próprio: ops só vê WA/loja na UI (elegibilidade).  
+5. Timeline conta: labels de stage (autorizada / código / resolvido).
 
 ## Hotfix (2026-11-21)
 

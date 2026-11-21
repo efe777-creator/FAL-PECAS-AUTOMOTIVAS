@@ -328,6 +328,74 @@ export function adminOrderNextStep(
   }
 }
 
+/**
+ * Label amigável na timeline da conta (jornada #7).
+ * Usa stage / return_mode / me_reverse do payload quando for pós-venda.
+ */
+export function customerFacingOrderEventLabel(
+  eventType: string,
+  payload?: Record<string, unknown> | null,
+): string {
+  const p = payload && typeof payload === 'object' ? payload : null
+  const stage = p?.stage != null ? String(p.stage) : ''
+  const returnMode = p?.return_mode != null ? String(p.return_mode) : ''
+  const meReverse =
+    p?.me_reverse && typeof p.me_reverse === 'object'
+      ? (p.me_reverse as Record<string, unknown>)
+      : null
+  const tracking = meReverse?.tracking_code != null ? String(meReverse.tracking_code).trim() : ''
+  const tipo = p?.tipo != null ? String(p.tipo).toLowerCase() : ''
+  const isPostSale =
+    tipo.startsWith('pos_venda') ||
+    tipo === 'pos_entrega' ||
+    Boolean(stage) ||
+    Boolean(returnMode) ||
+    Boolean(tracking)
+
+  if (eventType === 'occurrence_opened') {
+    return isPostSale
+      ? 'Você solicitou ajuda com este pedido'
+      : (orderEventLabel.occurrence_opened ?? 'Ocorrência aberta')
+  }
+  if (eventType === 'occurrence_started') {
+    return isPostSale
+      ? 'A loja começou a analisar seu caso'
+      : (orderEventLabel.occurrence_started ?? 'Ocorrência em andamento')
+  }
+  if (eventType === 'occurrence_updated') {
+    if (tracking) return `Código de devolução gerado (${tracking})`
+    if (stage === 'autorizada') {
+      if (returnMode === 'wa') return 'Devolução autorizada — combine a postagem pelo WhatsApp'
+      if (returnMode === 'loja') return 'Devolução autorizada — leve a peça à loja'
+      if (returnMode === 'me_codigo') return 'Devolução autorizada — gere o código de postagem'
+      return 'Devolução autorizada'
+    }
+    if (stage === 'recusada') return 'Solicitação de devolução não autorizada'
+    if (stage === 'aguardando_peca') return 'Aguardando a peça chegar na loja'
+    if (stage === 'em_conferencia') return 'Peça em conferência na loja'
+    if (stage === 'em_analise') return 'Caso em análise pela loja'
+    if (isPostSale) return 'Atualização do atendimento pós-venda'
+    return orderEventLabel.occurrence_updated ?? 'Ocorrência atualizada'
+  }
+  if (eventType === 'occurrence_resolved') {
+    return isPostSale
+      ? 'Atendimento pós-venda encerrado'
+      : (orderEventLabel.occurrence_resolved ?? 'Ocorrência resolvida')
+  }
+  if (eventType === 'occurrence_reopened') {
+    return isPostSale
+      ? 'Atendimento pós-venda reaberto'
+      : (orderEventLabel.occurrence_reopened ?? 'Ocorrência reaberta')
+  }
+  if (eventType === 'occurrence_assigned') {
+    return isPostSale
+      ? 'Caso atribuído na loja'
+      : (orderEventLabel.occurrence_assigned ?? 'Ocorrência atribuída')
+  }
+
+  return orderEventLabel[eventType] ?? eventType
+}
+
 export const orderEventLabel: Record<string, string> = {
   order_created: 'Pedido realizado',
   payment_approved: 'Pagamento aprovado',
