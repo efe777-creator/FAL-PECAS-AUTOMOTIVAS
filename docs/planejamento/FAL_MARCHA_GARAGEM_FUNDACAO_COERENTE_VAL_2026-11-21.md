@@ -35,7 +35,8 @@
 ## Resultado
 
 **Automação sessão CP: PASS** (tsc + 133 garagem/layout + 88 placas).  
-**Commits:** `a6b442e` (fundação) · `651b537` (VAL push) · *este* (CP testes/correção prefs).  
+**Plano:** **MARCHA CONCLUÍDA** — fases 0–4 DONE em `FAL_PLANO_GARAGEM_FUNDACAO_COERENTE_2026-11-21.md`.  
+**Commits:** `a6b442e` · `651b537` · `2cb7f1b` · *este* (fecho plano).  
 **Push:** `origin/dev`.
 
 Smoke compra→histórico: aplicar migration `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql` no wtbp.
