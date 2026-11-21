@@ -25,7 +25,7 @@ export function AdminSupplierCostImportPage() {
           o custo base no fornecedor (exige conversão prévia). Preços de venda não são
           recalculados aqui. Para custo + lista de preços, use o assistente em{' '}
           <Link className="font-semibold underline" to="/admin/precos">
-            Listas de preços
+            Listas de preço
           </Link>
           .
         </p>

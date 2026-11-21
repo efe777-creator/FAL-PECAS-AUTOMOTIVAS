@@ -216,6 +216,31 @@ export function CatalogPage() {
       .map((row) => row.p)
   }, [fitInput, pvcReady, products, pvcByProductId])
 
+  /** Busca retornou hits, mas o PVC do veículo ativo ocultou todos os cards. */
+  const allHitsHiddenByFit =
+    Boolean(fitInput) &&
+    pvcReady &&
+    !loading &&
+    !error &&
+    products.length > 0 &&
+    displayProducts.length === 0
+
+  const visibleCountLabel = (() => {
+    if (products.length === 0) return 'Nenhum produto neste filtro'
+    if (fitInput && pvcReady) {
+      const hidden = products.length - displayProducts.length
+      if (displayProducts.length === 0) {
+        return `${products.length} encontrado${products.length === 1 ? '' : 's'} · nenhum compatível com o veículo`
+      }
+      return `${displayProducts.length} produto${displayProducts.length === 1 ? '' : 's'}${
+        hidden > 0 ? ` · ${hidden} oculto${hidden === 1 ? '' : 's'} (incompatível)` : ''
+      }`
+    }
+    return `${total} produto${total === 1 ? '' : 's'}${
+      products.length < total ? ` · mostrando ${products.length}` : ''
+    }`
+  })()
+
   const fitSourceLabel = useMemo(() => {
     if (!fitFilter) return null
     const chipScore = fitSpecificityScore(garage?.activeFilter)
@@ -1138,11 +1163,7 @@ export function CatalogPage() {
           {!loading && !error ? (
             <p className="m-0 text-sm font-semibold text-fal-navy-dark">
               {refreshing ? 'Atualizando… · ' : ''}
-              {products.length === 0
-                ? 'Nenhum produto neste filtro'
-                : `${total} produto${total === 1 ? '' : 's'}${
-                    products.length < total ? ` · mostrando ${products.length}` : ''
-                  }`}
+              {visibleCountLabel}
             </p>
           ) : (
             <p className="m-0 text-sm text-fal-muted">{loading ? 'Carregando resultados…' : ' '}</p>
@@ -1151,27 +1172,42 @@ export function CatalogPage() {
 
         {loading && products.length === 0 ? <Loading /> : null}
         {error ? <ErrorState message={error} /> : null}
-        {!loading && !error && products.length === 0 ? (
+        {!loading && !error && (products.length === 0 || allHitsHiddenByFit) ? (
           <EmptyState
             title={
-              vehicleFiltersActive
-                ? 'Veículo reconhecido — sem peças compatíveis'
+              allHitsHiddenByFit || vehicleFiltersActive || fitFilter
+                ? 'Veículo ativo — sem peças compatíveis neste resultado'
                 : 'Nenhum produto encontrado'
             }
-            description={emptyDescription}
+            description={
+              allHitsHiddenByFit
+                ? 'A busca encontrou SKU(s), mas nenhum combina com o veículo da garagem/sessão. Limpe a compatibilidade para ver o resultado sem filtro de veículo.'
+                : emptyDescription
+            }
             actionLabel={
-              cat.trim() && parentCategorySlug
-                ? 'Ver classificação superior'
-                : activeChips.length
-                  ? 'Limpar filtros'
-                  : undefined
+              allHitsHiddenByFit || fitFilter
+                ? 'Limpar veículo'
+                : cat.trim() && parentCategorySlug
+                  ? 'Ver classificação superior'
+                  : activeChips.length
+                    ? 'Limpar filtros'
+                    : undefined
             }
             actionTo={
-              cat.trim() && parentCategorySlug
-                ? `/catalogo?cat=${encodeURIComponent(parentCategorySlug)}`
-                : activeChips.length
-                  ? '/catalogo'
-                  : undefined
+              allHitsHiddenByFit || fitFilter
+                ? undefined
+                : cat.trim() && parentCategorySlug
+                  ? `/catalogo?cat=${encodeURIComponent(parentCategorySlug)}`
+                  : activeChips.length
+                    ? '/catalogo'
+                    : undefined
+            }
+            onAction={
+              allHitsHiddenByFit || fitFilter
+                ? () => {
+                    clearFitContext()
+                  }
+                : undefined
             }
           >
             {activeChips.length ? (
@@ -1190,7 +1226,7 @@ export function CatalogPage() {
             ) : null}
           </EmptyState>
         ) : null}
-        {!error && products.length > 0 ? (
+        {!error && displayProducts.length > 0 ? (
           <>
             <div
               className={[

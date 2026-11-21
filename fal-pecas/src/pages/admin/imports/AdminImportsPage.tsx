@@ -151,6 +151,12 @@ export function AdminImportsPage() {
           >
             Importar imagens
           </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/produtos/importar-kits"
+          >
+            Importar composição de kits
+          </Link>
         </div>
       </div>
 

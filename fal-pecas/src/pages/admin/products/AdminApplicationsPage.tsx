@@ -1,33 +1,42 @@
-import { Button } from '@/components/common/Button'
-import { confirmDialog } from '@/components/common/ConfirmDialog'
+import {
+  ApplicationWorkSurface,
+  type ApplicationGuideMode,
+} from '@/components/admin/applications/ApplicationWorkSurface'
+import { OrderSplitTabPanels } from '@/components/admin/orders/OrderSplitTabPanels'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { Button, buttonClassName } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
+import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   ADMIN_APPLICATIONS_PAGE_SIZE,
-  adminAddApplicationsBulk,
-  adminFindProductIdBySku,
   adminListApplicationsGlobal,
-  adminRemoveApplication,
-  adminRemoveApplicationsBulk,
-  adminUpdateApplicationVehicleVersion,
-  adminUpdateApplicationYears,
   type AdminApplicationRow,
 } from '@/services/admin/adminApplicationService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
-import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { SKU_FAL_LABEL } from '@/lib/productLabels'
-import { toUserMessage } from '@/lib/toUserMessage'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
+const FILTERS_KEY = 'fal.applications.filtersExpanded'
+
 function canManage(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
+}
+
+function readFiltersExpanded(): boolean {
+  try {
+    return sessionStorage.getItem(FILTERS_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 export function AdminApplicationsPage() {
@@ -36,23 +45,13 @@ export function AdminApplicationsPage() {
   const toast = useToast()
   const allowed = canManage(user?.role)
   const [searchParams, setSearchParams] = useSearchParams()
+  const splitTabs = useIdSplitTabs()
 
   const [rows, setRows] = useState<AdminApplicationRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  function pushError(msg: string) {
-    setError(msg)
-    toast.push(msg, 'error')
-  }
-
-  function pushOk(msg: string) {
-    setError(null)
-    toast.push(msg, 'success')
-  }
 
   const [q, setQ] = useState(searchParams.get('q') ?? '')
   const [qDebounced, setQDebounced] = useState(q)
@@ -66,28 +65,9 @@ export function AdminApplicationsPage() {
   const [versions, setVersions] = useState<VehicleVersion[]>([])
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editStart, setEditStart] = useState('')
-  const [editEnd, setEditEnd] = useState('')
-
-  const [swappingId, setSwappingId] = useState<string | null>(null)
-  const [swapMakerId, setSwapMakerId] = useState('')
-  const [swapModelId, setSwapModelId] = useState('')
-  const [swapEngine, setSwapEngine] = useState('')
-  const [swapVersion, setSwapVersion] = useState('')
-  const [swapModels, setSwapModels] = useState<VehicleModel[]>([])
-  const [swapVersions, setSwapVersions] = useState<VehicleVersion[]>([])
-
+  const [filtersExpanded, setFiltersExpanded] = useState(readFiltersExpanded)
   const [createOpen, setCreateOpen] = useState(false)
-  const [createSku, setCreateSku] = useState('')
-  const [createMakerId, setCreateMakerId] = useState('')
-  const [createModelId, setCreateModelId] = useState('')
-  const [createEngine, setCreateEngine] = useState('')
-  const [createVersion, setCreateVersion] = useState('')
-  const [createYearStart, setCreateYearStart] = useState('')
-  const [createYearEnd, setCreateYearEnd] = useState('')
-  const [createModels, setCreateModels] = useState<VehicleModel[]>([])
-  const [createVersions, setCreateVersions] = useState<VehicleVersion[]>([])
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   useEffect(() => {
     const t = window.setTimeout(() => setQDebounced(q.trim()), 250)
@@ -119,44 +99,6 @@ export function AdminApplicationsPage() {
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
 
-  useEffect(() => {
-    if (!createMakerId) {
-      setCreateModels([])
-      setCreateModelId('')
-      return
-    }
-    void adminListModels(createMakerId).then(setCreateModels)
-  }, [createMakerId])
-
-  useEffect(() => {
-    if (!createModelId) {
-      setCreateVersions([])
-      setCreateEngine('')
-      setCreateVersion('')
-      return
-    }
-    void adminListVersions(createModelId).then(setCreateVersions)
-  }, [createModelId])
-
-  useEffect(() => {
-    if (!swapMakerId) {
-      setSwapModels([])
-      setSwapModelId('')
-      return
-    }
-    void adminListModels(swapMakerId).then(setSwapModels)
-  }, [swapMakerId])
-
-  useEffect(() => {
-    if (!swapModelId) {
-      setSwapVersions([])
-      setSwapEngine('')
-      setSwapVersion('')
-      return
-    }
-    void adminListVersions(swapModelId).then(setSwapVersions)
-  }, [swapModelId])
-
   const engineOptions = useMemo(() => {
     const set = new Set<string>()
     for (const v of versions) {
@@ -177,64 +119,6 @@ export function AdminApplicationsPage() {
     }
     return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   }, [versions, engineFilter])
-
-  const createEngineOptions = useMemo(() => {
-    const set = new Set<string>()
-    for (const v of createVersions) {
-      const e = (v.engine ?? '').trim()
-      if (e) set.add(e)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [createVersions])
-
-  const createVersionOptions = useMemo(() => {
-    const filtered = createEngine
-      ? createVersions.filter((v) => (v.engine ?? '').trim() === createEngine)
-      : createVersions
-    const set = new Set<string>()
-    for (const v of filtered) {
-      const name = (v.versionName ?? '').trim()
-      if (name) set.add(name)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [createVersions, createEngine])
-
-  const matchingCreateVersions = useMemo(() => {
-    return createVersions.filter((v) => {
-      if (createEngine && (v.engine ?? '').trim() !== createEngine) return false
-      if (createVersion && (v.versionName ?? '').trim() !== createVersion) return false
-      return true
-    })
-  }, [createVersions, createEngine, createVersion])
-
-  const swapEngineOptions = useMemo(() => {
-    const set = new Set<string>()
-    for (const v of swapVersions) {
-      const e = (v.engine ?? '').trim()
-      if (e) set.add(e)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [swapVersions])
-
-  const swapVersionOptions = useMemo(() => {
-    const filtered = swapEngine
-      ? swapVersions.filter((v) => (v.engine ?? '').trim() === swapEngine)
-      : swapVersions
-    const set = new Set<string>()
-    for (const v of filtered) {
-      const name = (v.versionName ?? '').trim()
-      if (name) set.add(name)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [swapVersions, swapEngine])
-
-  const matchingSwapVersions = useMemo(() => {
-    return swapVersions.filter((v) => {
-      if (swapEngine && (v.engine ?? '').trim() !== swapEngine) return false
-      if (swapVersion && (v.versionName ?? '').trim() !== swapVersion) return false
-      return true
-    })
-  }, [swapVersions, swapEngine, swapVersion])
 
   const productIdFilter = searchParams.get('productId') || ''
 
@@ -316,6 +200,30 @@ export function AdminApplicationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qDebounced, makerId, modelId, engineFilter, versionFilter, productIdFilter])
 
+  function setFiltersExpandedPersist(next: boolean) {
+    setFiltersExpanded(next)
+    try {
+      sessionStorage.setItem(FILTERS_KEY, next ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const filterChips = useMemo(() => {
+    const chips: string[] = []
+    if (makerId) {
+      const m = makers.find((x) => x.id === makerId)
+      chips.push(m?.name ? `Montadora: ${m.name}` : 'Montadora')
+    }
+    if (modelId) {
+      const m = models.find((x) => x.id === modelId)
+      chips.push(m?.name ? `Modelo: ${m.name}` : 'Modelo')
+    }
+    if (engineFilter) chips.push(`Motor: ${engineFilter}`)
+    if (versionFilter) chips.push(`Versão: ${versionFilter}`)
+    return chips
+  }, [makerId, makers, modelId, models, engineFilter, versionFilter])
+
   function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -326,220 +234,167 @@ export function AdminApplicationsPage() {
   }
 
   function toggleAllVisible() {
-    if (selected.size === rows.length) {
+    if (rows.length > 0 && selected.size === rows.length) {
       setSelected(new Set())
       return
     }
     setSelected(new Set(rows.map((r) => r.id)))
   }
 
-  async function onSavePeriod(row: AdminApplicationRow) {
-    const period = validatePvcYearInputs(editStart, editEnd)
-    if (!period.ok) {
-      pushError(period.message)
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      await adminUpdateApplicationYears(row.id, {
-        yearStart: period.yearStart,
-        yearEnd: period.yearEnd,
-      })
-      setEditingId(null)
-      pushOk('Período atualizado.')
-      await reload()
-    } catch (e) {
-      pushError(toUserMessage(e, 'Falha ao salvar período'))
-    } finally {
-      setBusy(false)
-    }
+  function openAppGuide(id: string) {
+    setCreateOpen(false)
+    setBulkOpen(false)
+    splitTabs.openTab(id)
   }
 
-  function beginSwap(row: AdminApplicationRow) {
-    setEditingId(null)
-    setSwappingId(row.id)
-    setSwapMakerId(row.makerId ?? '')
-    setSwapModelId(row.modelId ?? '')
-    setSwapEngine((row.engine ?? '').trim())
-    setSwapVersion((row.versionName ?? '').trim())
+  function openCreate() {
+    splitTabs.closeAll()
+    setBulkOpen(false)
+    setCreateOpen(true)
   }
 
-  async function onSaveSwap(row: AdminApplicationRow) {
-    if (!swapModelId) {
-      pushError('Selecione montadora e modelo')
-      return
-    }
-    if (matchingSwapVersions.length === 0) {
-      pushError('Nenhuma configuração bate com motorização/versão')
-      return
-    }
-    if (matchingSwapVersions.length > 1 && (!swapEngine || !swapVersion)) {
-      pushError('Refine motorização e versão até restar uma configuração')
-      return
-    }
-    const nextVersionId = matchingSwapVersions[0]!.id
-    if (nextVersionId === row.vehicleVersionId) {
-      pushError('Selecione uma configuração diferente da atual')
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      await adminUpdateApplicationVehicleVersion(row.id, nextVersionId)
-      setSwappingId(null)
-      pushOk('Configuração veicular atualizada.')
-      await reload()
-    } catch (e) {
-      pushError(toUserMessage(e, 'Falha ao trocar configuração'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onDeleteOne(id: string) {
-    const { confirmed } = await confirmDialog({
-      title: 'Excluir aplicação?',
-      message: 'Excluir esta aplicação?',
-      confirmLabel: 'Excluir',
-      danger: true,
-    })
-    if (!confirmed) return
-    setBusy(true)
-    setError(null)
-    try {
-      await adminRemoveApplication(id)
-      pushOk('Aplicação excluída.')
-      await reload()
-    } catch (e) {
-      pushError(toUserMessage(e, 'Falha ao excluir'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onDeleteSelected() {
+  function openBulk() {
     if (!selected.size) return
-    const { confirmed } = await confirmDialog({
-      title: 'Excluir aplicações?',
-      message: `Excluir ${selected.size} aplicação(ões)?`,
-      confirmLabel: 'Excluir',
-      danger: true,
-    })
-    if (!confirmed) return
-    setBusy(true)
-    setError(null)
-    try {
-      const n = await adminRemoveApplicationsBulk([...selected])
-      pushOk(`${n} aplicação(ões) excluída(s).`)
-      await reload()
-    } catch (e) {
-      pushError(toUserMessage(e, 'Falha ao excluir seleção'))
-    } finally {
-      setBusy(false)
-    }
+    splitTabs.closeAll()
+    setCreateOpen(false)
+    setBulkOpen(true)
   }
 
-  async function onCreate() {
-    setError(null)
-    const sku = createSku.trim()
-    if (!sku) {
-      pushError(`Informe o ${SKU_FAL_LABEL.toLowerCase()} do produto`)
-      return
-    }
-    if (!createModelId) {
-      pushError('Selecione montadora e modelo')
-      return
-    }
-    if (matchingCreateVersions.length === 0) {
-      pushError('Nenhuma configuração bate com motorização/versão')
-      return
-    }
-    const period = validatePvcYearInputs(createYearStart, createYearEnd)
-    if (!period.ok) {
-      pushError(period.message)
-      return
-    }
-    setBusy(true)
-    try {
-      const productId = await adminFindProductIdBySku(sku)
-      if (!productId) {
-        pushError(`Produto não encontrado: ${sku}`)
-        return
-      }
-      const n = await adminAddApplicationsBulk(
-        productId,
-        matchingCreateVersions.map((v) => v.id),
-        { yearStart: period.yearStart, yearEnd: period.yearEnd },
-      )
-      pushOk(`${n} aplicação(ões) criada(s) para ${sku}.`)
-      setCreateOpen(false)
-      setCreateSku('')
-      setQ(sku)
-      setQDebounced(sku)
-      await reload()
-    } catch (e) {
-      pushError(toUserMessage(e, 'Falha ao criar aplicação'))
-    } finally {
-      setBusy(false)
-    }
+  function closeContextual() {
+    setCreateOpen(false)
+    setBulkOpen(false)
+    splitTabs.closeAll()
   }
+
+  const rowsById = useMemo(() => {
+    const map: Record<string, AdminApplicationRow> = {}
+    for (const r of rows) map[r.id] = r
+    return map
+  }, [rows])
+
+  const focused = splitTabs.activeId ? rowsById[splitTabs.activeId] ?? null : null
+  const selectedRows = useMemo(
+    () => rows.filter((r) => selected.has(r.id)),
+    [rows, selected],
+  )
+
+  const guideMode: ApplicationGuideMode = createOpen
+    ? 'create'
+    : bulkOpen
+      ? 'bulk'
+      : 'focus'
+
+  const contextualOpen = createOpen || bulkOpen || splitTabs.hasOpen
 
   if (!allowed) {
     return (
-      <p className="text-sm text-red-600">
+      <p className="text-sm text-fal-danger">
         Somente administrador ou gerente podem gerenciar aplicações.
       </p>
     )
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+  const guideLabel = (row: AdminApplicationRow) =>
+    `${row.productSku || 'SKU'} · ${row.makerName ?? '—'} ${row.modelName ?? ''}`.trim()
+
+  const primary = (
+    <div className="admin-applications-hub space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-fal-fg">Aplicações</h1>
-          <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Controle as compatibilidades produto × veículo (incluindo as da importação): criar,
-            editar período e excluir. Ano inicial obrigatório; ano final em branco = vigente até o
-            ano atual. Motor/versão em branco na config = serve para todas no catálogo; preenchido =
-            só aquela (vale para qualquer montadora/modelo).
+          <p className="mt-1 mb-0 max-w-2xl text-sm text-fal-muted">
+            Compatibilidades produto × veículo (PVC): listar, criar e editar na guia.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/admin/produtos/importar-aplicacoes">
-            <Button type="button" variant="light">
-              Importar planilha
-            </Button>
+          <Link
+            to="/admin/produtos/importar-aplicacoes"
+            className={buttonClassName({ variant: 'light' })}
+          >
+            Importar planilha
           </Link>
-          <Button type="button" variant="primary" onClick={() => setCreateOpen((v) => !v)}>
-            {createOpen ? 'Fechar formulário' : '+ Nova aplicação'}
+          <Button type="button" variant="primary" onClick={openCreate}>
+            Nova aplicação
           </Button>
         </div>
       </div>
 
-      {createOpen ? (
-        <div className="space-y-3 rounded-[14px] border border-fal-yellow-dark bg-fal-surface p-4 ring-2 ring-fal-yellow/30">
-          <h2 className="m-0 text-lg font-extrabold text-fal-fg">Nova aplicação</h2>
-          <p className="m-0 text-xs text-fal-muted">
-            Motorização/versão vazia no vínculo = todas as configs elegíveis agora (
-            {matchingCreateVersions.length}). Na pesquisa: campo vazio na config = coringa; preenchido
-            = só aquela.
-          </p>
-          <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
+      <form
+        className="admin-applications-filters space-y-2 rounded-[14px] border border-fal-line bg-fal-surface p-3"
+        data-filters-expanded={filtersExpanded ? 'true' : 'false'}
+        onSubmit={(e) => {
+          e.preventDefault()
+          setQDebounced(q.trim())
+        }}
+      >
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[200px] flex-1">
             <Input
-              label={SKU_FAL_LABEL}
-              value={createSku}
-              onChange={(e) => setCreateSku(e.target.value)}
-              placeholder="Código do produto"
+              label="Buscar (SKU, fabricante, marca, veículo)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Ex.: Nakata, PVI1032, Fiat…"
             />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="primary">
+              Buscar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setQ('')
+                setQDebounced('')
+                setMakerId('')
+                setModelId('')
+                setEngineFilter('')
+                setVersionFilter('')
+              }}
+            >
+              Limpar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              aria-expanded={filtersExpanded}
+              onClick={() => setFiltersExpandedPersist(!filtersExpanded)}
+            >
+              {filtersExpanded
+                ? 'Recolher filtros'
+                : filterChips.length > 0
+                  ? `Filtros (${filterChips.length})`
+                  : 'Mais filtros'}
+            </Button>
+          </div>
+        </div>
+
+        {!filtersExpanded && filterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wide text-fal-muted">
+              Ativos
+            </span>
+            {filterChips.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-fal-line bg-fal-bg px-2 py-0.5 text-xs font-semibold text-fal-fg"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {filtersExpanded ? (
+          <div className="grid gap-2 border-t border-fal-line pt-2 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
               <select
-                className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-                value={createMakerId}
-                onChange={(e) => setCreateMakerId(e.target.value)}
+                className="w-full rounded-[9px] border border-fal-line px-3 py-2.5"
+                value={makerId}
+                onChange={(e) => setMakerId(e.target.value)}
               >
-                <option value="">Selecione</option>
+                <option value="">Todas</option>
                 {makers.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -550,13 +405,13 @@ export function AdminApplicationsPage() {
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
               <select
-                className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-                value={createModelId}
-                onChange={(e) => setCreateModelId(e.target.value)}
-                disabled={!createMakerId}
+                className="w-full rounded-[9px] border border-fal-line px-3 py-2.5"
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
+                disabled={!makerId}
               >
-                <option value="">Selecione</option>
-                {createModels.map((m) => (
+                <option value="">Todos</option>
+                {models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
@@ -566,16 +421,16 @@ export function AdminApplicationsPage() {
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motorização</span>
               <select
-                className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-                value={createEngine}
+                className="w-full rounded-[9px] border border-fal-line px-3 py-2.5"
+                value={engineFilter}
                 onChange={(e) => {
-                  setCreateEngine(e.target.value)
-                  setCreateVersion('')
+                  setEngineFilter(e.target.value)
+                  setVersionFilter('')
                 }}
-                disabled={!createModelId}
+                disabled={!modelId}
               >
                 <option value="">Todas</option>
-                {createEngineOptions.map((e) => (
+                {engineOptions.map((e) => (
                   <option key={e} value={e}>
                     {e}
                   </option>
@@ -585,211 +440,162 @@ export function AdminApplicationsPage() {
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
               <select
-                className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-                value={createVersion}
-                onChange={(e) => setCreateVersion(e.target.value)}
-                disabled={!createModelId}
+                className="w-full rounded-[9px] border border-fal-line px-3 py-2.5"
+                value={versionFilter}
+                onChange={(e) => setVersionFilter(e.target.value)}
+                disabled={!modelId}
               >
                 <option value="">Todas</option>
-                {createVersionOptions.map((v) => (
+                {versionOptions.map((v) => (
                   <option key={v} value={v}>
                     {v}
                   </option>
                 ))}
               </select>
             </label>
-            <Input
-              label="Ano inicial *"
-              inputMode="numeric"
-              value={createYearStart}
-              onChange={(e) => setCreateYearStart(e.target.value)}
-            />
-            <Input
-              label="Ano final"
-              inputMode="numeric"
-              value={createYearEnd}
-              onChange={(e) => setCreateYearEnd(e.target.value)}
-              hint="Em branco = vigente até o ano atual"
-            />
           </div>
-          <Button
-            type="button"
-            disabled={busy || !createModelId || matchingCreateVersions.length === 0}
-            onClick={() => void onCreate()}
-          >
-            Criar {matchingCreateVersions.length > 1 ? `(${matchingCreateVersions.length})` : ''}
-          </Button>
-        </div>
-      ) : null}
+        ) : null}
+      </form>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-        <div className="min-w-[180px] flex-1">
-          <Input
-            label="Buscar (SKU, fabricante, marca, veículo)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Ex.: Nakata, PVI1032, Fiat, Palio…"
-          />
-        </div>
-        <label className="block min-w-[140px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={makerId}
-            onChange={(e) => setMakerId(e.target.value)}
-          >
-            <option value="">Todas</option>
-            {makers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block min-w-[140px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            disabled={!makerId}
-          >
-            <option value="">Todos</option>
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block min-w-[120px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motorização</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={engineFilter}
-            onChange={(e) => {
-              setEngineFilter(e.target.value)
-              setVersionFilter('')
-            }}
-            disabled={!modelId}
-          >
-            <option value="">Todas</option>
-            {engineOptions.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block min-w-[120px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={versionFilter}
-            onChange={(e) => setVersionFilter(e.target.value)}
-            disabled={!modelId}
-          >
-            <option value="">Todas</option>
-            {versionOptions.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button
-          type="button"
-          variant="light"
-          onClick={() => {
-            setQ('')
-            setQDebounced('')
-            setMakerId('')
-            setModelId('')
-            setEngineFilter('')
-            setVersionFilter('')
-          }}
-        >
-          Limpar
-        </Button>
-      </div>
-
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {!loading && hasMore ? (
-        <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+        <p className="rounded-[10px] border border-fal-warning/40 bg-fal-warning/10 px-3 py-2 text-sm text-fal-fg">
           Exibindo {rows.length} de {total} aplicações (até {ADMIN_APPLICATIONS_PAGE_SIZE} por carga).
-          Use “Carregar mais aplicações” ao final da lista ou refine os filtros.
         </p>
       ) : null}
 
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
           <span className="font-semibold text-fal-fg">{selected.size} selecionada(s)</span>
-          <Button type="button" variant="light" disabled={busy} onClick={() => void onDeleteSelected()}>
-            Excluir seleção
+          <Button type="button" variant="light" onClick={openBulk}>
+            Excluir na guia
           </Button>
         </div>
       ) : null}
 
       {loading ? <Loading label="Carregando aplicações…" /> : null}
 
-      {!loading ? (
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-fal-line bg-fal-bg text-fal-muted">
-              <tr>
-                <th className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={rows.length > 0 && selected.size === rows.length}
-                    onChange={toggleAllVisible}
-                    aria-label="Selecionar todas"
-                  />
-                </th>
-                <th className="px-3 py-2">Produto</th>
-                <th className="px-3 py-2">Montadora</th>
-                <th className="px-3 py-2">Modelo</th>
-                <th className="px-3 py-2">Motor</th>
-                <th className="px-3 py-2">Versão</th>
-                <th className="px-3 py-2">Período</th>
-                <th className="px-3 py-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-6">
-                    <EmptyState
-                      title="Nenhuma aplicação encontrada"
-                      description="Importe uma planilha ou crie manualmente com + Nova aplicação."
-                    >
-                      <div className="mt-4 flex justify-center gap-3">
-                        <Link
-                          className="font-semibold text-fal-fg underline"
-                          to="/admin/produtos/importar-aplicacoes"
-                        >
-                          Importar
-                        </Link>
+      {!loading && rows.length === 0 ? (
+        <EmptyState
+          title="Nenhuma aplicação encontrada"
+          description="Importe uma planilha ou crie na guia."
+        >
+          <div className="mt-4 flex justify-center gap-3">
+            <Link
+              className="font-semibold text-fal-fg underline"
+              to="/admin/produtos/importar-aplicacoes"
+            >
+              Importar
+            </Link>
+            <button
+              type="button"
+              className="font-semibold text-fal-fg underline"
+              onClick={openCreate}
+            >
+              Criar
+            </button>
+          </div>
+        </EmptyState>
+      ) : null}
+
+      {!loading && rows.length > 0 ? (
+        <>
+          <div className="admin-applications-list-mobile space-y-3 md:hidden">
+            {rows.map((row) => {
+              const onGuide = splitTabs.openIds.includes(row.id)
+              const period =
+                formatVehicleAppYear({
+                  yearStart: row.yearStart,
+                  yearEnd: row.yearEnd,
+                  versionYear: row.versionYear,
+                }) ?? '—'
+              return (
+                <article
+                  key={row.id}
+                  className="rounded-[14px] border border-fal-line bg-fal-surface p-3"
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-5 w-5"
+                      checked={selected.has(row.id)}
+                      onChange={() => toggleSelect(row.id)}
+                      aria-label={`Selecionar ${row.productSku}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 font-mono text-xs text-fal-muted">{row.productSku}</p>
+                      <p className="mb-0 mt-0.5 text-sm font-extrabold text-fal-fg">
+                        {row.productName}
+                      </p>
+                      <p className="m-0 text-xs text-fal-muted">
+                        {[row.makerName, row.modelName, row.engine, row.versionName]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                      <p className="mb-0 mt-1 text-sm font-semibold text-fal-fg">{period}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
-                          className="font-semibold text-fal-fg underline"
-                          onClick={() => setCreateOpen(true)}
+                          className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-extrabold text-fal-navy-dark"
+                          onClick={() => openAppGuide(row.id)}
                         >
-                          Criar
+                          {onGuide ? 'Na guia' : splitTabs.hasOpen ? '+ Guia' : 'Abrir guia'}
                         </button>
+                        <Link
+                          className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-fg"
+                          to={`/admin/produtos/${row.productId}`}
+                        >
+                          Cadastro
+                        </Link>
                       </div>
-                    </EmptyState>
-                  </td>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+            {hasMore ? (
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                disabled={loadingMore || loading}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? 'Carregando…' : 'Carregar mais aplicações'}
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="admin-applications-list-desktop fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="sticky top-0 z-[1] border-b border-fal-line bg-fal-bg text-fal-muted">
+                <tr>
+                  <th className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={rows.length > 0 && selected.size === rows.length}
+                      onChange={toggleAllVisible}
+                      aria-label="Selecionar todas"
+                    />
+                  </th>
+                  <th className="px-3 py-2">Produto</th>
+                  <th className="px-3 py-2">Montadora</th>
+                  <th className="px-3 py-2">Modelo</th>
+                  <th className="px-3 py-2">Motor</th>
+                  <th className="px-3 py-2">Versão</th>
+                  <th className="px-3 py-2">Período</th>
+                  <th className="px-3 py-2">Ações</th>
                 </tr>
-              ) : (
-                rows.map((row) => {
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const onGuide = splitTabs.openIds.includes(row.id)
                   const period =
                     formatVehicleAppYear({
                       yearStart: row.yearStart,
                       yearEnd: row.yearEnd,
                       versionYear: row.versionYear,
                     }) ?? '—'
-                  const isEditing = editingId === row.id
-                  const isSwapping = swappingId === row.id
                   return (
                     <tr key={row.id} className="border-b border-fal-line/70">
                       <td className="px-3 py-2">
@@ -809,201 +615,119 @@ export function AdminApplicationsPage() {
                         </Link>
                         <div className="text-xs text-fal-muted">{row.productName}</div>
                       </td>
-                      {isSwapping ? (
-                        <td className="px-3 py-2" colSpan={4}>
-                          <div className="flex flex-wrap gap-2">
-                            <select
-                              className="rounded border border-fal-line px-2 py-1 text-xs"
-                              value={swapMakerId}
-                              onChange={(e) => {
-                                setSwapMakerId(e.target.value)
-                                setSwapModelId('')
-                              }}
-                              aria-label="Nova montadora"
-                            >
-                              <option value="">Montadora</option>
-                              {makers.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.name}
-                                </option>
-                              ))}
-                            </select>
-                            <select
-                              className="rounded border border-fal-line px-2 py-1 text-xs"
-                              value={swapModelId}
-                              onChange={(e) => setSwapModelId(e.target.value)}
-                              disabled={!swapMakerId}
-                              aria-label="Novo modelo"
-                            >
-                              <option value="">Modelo</option>
-                              {swapModels.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.name}
-                                </option>
-                              ))}
-                            </select>
-                            <select
-                              className="rounded border border-fal-line px-2 py-1 text-xs"
-                              value={swapEngine}
-                              onChange={(e) => {
-                                setSwapEngine(e.target.value)
-                                setSwapVersion('')
-                              }}
-                              disabled={!swapModelId}
-                              aria-label="Nova motorização"
-                            >
-                              <option value="">Motor</option>
-                              {swapEngineOptions.map((e) => (
-                                <option key={e} value={e}>
-                                  {e}
-                                </option>
-                              ))}
-                            </select>
-                            <select
-                              className="rounded border border-fal-line px-2 py-1 text-xs"
-                              value={swapVersion}
-                              onChange={(e) => setSwapVersion(e.target.value)}
-                              disabled={!swapModelId}
-                              aria-label="Nova versão"
-                            >
-                              <option value="">Versão</option>
-                              {swapVersionOptions.map((v) => (
-                                <option key={v} value={v}>
-                                  {v}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="self-center text-[11px] text-fal-muted">
-                              {matchingSwapVersions.length} config.
-                            </span>
-                          </div>
-                        </td>
-                      ) : (
-                        <>
-                          <td className="px-3 py-2">{row.makerName ?? '—'}</td>
-                          <td className="px-3 py-2">{row.modelName ?? '—'}</td>
-                          <td className="px-3 py-2">{row.engine || '—'}</td>
-                          <td className="px-3 py-2">{row.versionName || '—'}</td>
-                        </>
-                      )}
-                      <td className="px-3 py-2">
-                        {isEditing ? (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <input
-                              className="w-16 rounded border border-fal-line px-1 py-0.5 text-xs"
-                              inputMode="numeric"
-                              placeholder="Início"
-                              value={editStart}
-                              onChange={(e) => setEditStart(e.target.value)}
-                            />
-                            <span className="text-fal-muted">→</span>
-                            <input
-                              className="w-16 rounded border border-fal-line px-1 py-0.5 text-xs"
-                              inputMode="numeric"
-                              placeholder="Fim"
-                              value={editEnd}
-                              onChange={(e) => setEditEnd(e.target.value)}
-                            />
-                          </div>
-                        ) : (
-                          period
-                        )}
-                      </td>
+                      <td className="px-3 py-2">{row.makerName ?? '—'}</td>
+                      <td className="px-3 py-2">{row.modelName ?? '—'}</td>
+                      <td className="px-3 py-2">{row.engine || '—'}</td>
+                      <td className="px-3 py-2">{row.versionName || '—'}</td>
+                      <td className="px-3 py-2">{period}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
-                          {isSwapping ? (
-                            <>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-fg underline disabled:opacity-50"
-                                disabled={busy}
-                                onClick={() => void onSaveSwap(row)}
-                              >
-                                Salvar veículo
-                              </button>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-muted underline"
-                                onClick={() => setSwappingId(null)}
-                              >
-                                Cancelar
-                              </button>
-                            </>
-                          ) : isEditing ? (
-                            <>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-fg underline disabled:opacity-50"
-                                disabled={busy}
-                                onClick={() => void onSavePeriod(row)}
-                              >
-                                Salvar
-                              </button>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-muted underline"
-                                onClick={() => setEditingId(null)}
-                              >
-                                Cancelar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-fg underline"
-                                onClick={() => {
-                                  setSwappingId(null)
-                                  setEditingId(row.id)
-                                  setEditStart(row.yearStart != null ? String(row.yearStart) : '')
-                                  setEditEnd(row.yearEnd != null ? String(row.yearEnd) : '')
-                                }}
-                              >
-                                Período
-                              </button>
-                              <button
-                                type="button"
-                                className="font-semibold text-fal-fg underline"
-                                onClick={() => beginSwap(row)}
-                              >
-                                Trocar veículo
-                              </button>
-                            </>
-                          )}
                           <button
                             type="button"
-                            className="font-semibold text-red-700 underline disabled:opacity-50"
-                            disabled={busy}
-                            onClick={() => void onDeleteOne(row.id)}
+                            className="font-semibold text-fal-fg underline"
+                            onClick={() => openAppGuide(row.id)}
                           >
-                            Excluir
+                            {onGuide ? 'Na guia' : splitTabs.hasOpen ? '+ Guia' : 'Abrir guia'}
                           </button>
                         </div>
                       </td>
                     </tr>
                   )
-                })
-              )}
-            </tbody>
-          </table>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-fal-line px-3 py-2 text-xs text-fal-muted">
-            <span>
-              Exibindo {rows.length} de {total} (até {ADMIN_APPLICATIONS_PAGE_SIZE} por carga).
-              {hasMore ? ' Use “Carregar mais aplicações” ou refine os filtros.' : null}
-            </span>
-            {hasMore ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loadingMore || busy || loading}
-                onClick={() => void loadMore()}
-              >
-                {loadingMore ? 'Carregando…' : 'Carregar mais aplicações'}
-              </Button>
-            ) : null}
+                })}
+              </tbody>
+            </table>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-fal-line px-3 py-2 text-xs text-fal-muted">
+              <span>
+                Exibindo {rows.length} de {total} (até {ADMIN_APPLICATIONS_PAGE_SIZE} por carga).
+              </span>
+              {hasMore ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingMore || loading}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais aplicações'}
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="applications"
+      primary={primary}
+      contextualOpen={contextualOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) closeContextual()
+      }}
+      contextualTitle={
+        createOpen
+          ? 'Nova aplicação'
+          : bulkOpen
+            ? `Lote · ${selected.size}`
+            : splitTabs.openIds.length > 1
+              ? `${focused ? guideLabel(focused) : 'Aplicação'} · ${splitTabs.openIds.length} guias`
+              : focused
+                ? guideLabel(focused)
+                : 'Aplicação'
+      }
+      contextual={
+        contextualOpen ? (
+          createOpen || bulkOpen ? (
+            <ApplicationWorkSurface
+              mode={guideMode}
+              focused={null}
+              selectedRows={selectedRows}
+              makers={makers}
+              onClose={closeContextual}
+              onMutated={(opts) => {
+                if (opts?.focusSku) {
+                  setQ(opts.focusSku)
+                  setQDebounced(opts.focusSku)
+                }
+                void reload()
+              }}
+            />
+          ) : (
+            <OrderSplitTabPanels
+              orderIds={splitTabs.openIds}
+              meta={splitTabs.openIds.map((id) => {
+                const r = rowsById[id]
+                return {
+                  id,
+                  label: r ? guideLabel(r) : id.slice(0, 8),
+                  statusLabel: r
+                    ? formatVehicleAppYear({
+                        yearStart: r.yearStart,
+                        yearEnd: r.yearEnd,
+                        versionYear: r.versionYear,
+                      }) ?? undefined
+                    : undefined,
+                }
+              })}
+              onCloseTab={splitTabs.closeTab}
+              render={(appId) => {
+                const row = rowsById[appId] ?? null
+                return (
+                  <ApplicationWorkSurface
+                    mode="focus"
+                    focused={row}
+                    selectedRows={[]}
+                    makers={makers}
+                    onClose={() => splitTabs.closeTab(appId)}
+                    onMutated={() => void reload()}
+                  />
+                )
+              }}
+            />
+          )
+        ) : null
+      }
+    />
   )
 }

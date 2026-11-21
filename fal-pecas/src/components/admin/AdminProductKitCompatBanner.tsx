@@ -37,7 +37,7 @@ export function AdminProductKitCompatBanner({
 
   return (
     <div
-      className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+      className="rounded-[10px] border border-fal-warning/40 bg-fal-warning/15 px-3 py-2 text-sm text-fal-fg"
       role="alert"
     >
       <p className="m-0 font-bold">Revisão de compatibilidade pendente</p>

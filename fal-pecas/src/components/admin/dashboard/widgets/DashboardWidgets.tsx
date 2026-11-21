@@ -143,26 +143,26 @@ function KpiCard({
     <button
       type="button"
       onClick={onOpen}
-      className={`flex h-full min-h-0 w-full flex-col justify-between rounded-[12px] border bg-fal-surface px-2.5 py-2 text-left shadow-sm transition hover:border-fal-accent/45 hover:shadow-md ${toneCls[tone]}`}
+      className={`flex h-full min-h-0 w-full flex-col justify-between gap-0.5 overflow-hidden rounded-[12px] border bg-fal-surface px-2.5 py-1.5 text-left shadow-sm transition hover:border-fal-accent/45 hover:shadow-md ${toneCls[tone]}`}
     >
       <div className="flex items-start justify-between gap-1.5">
-        <div className="text-[10px] font-bold uppercase tracking-wide text-fal-muted">
+        <div className="text-[10px] font-bold uppercase leading-tight tracking-wide text-fal-muted">
           {label}
         </div>
         {icon ? (
           <span
-            className={`inline-flex size-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${iconCls[tone]}`}
+            className={`inline-flex size-5 shrink-0 items-center justify-center rounded-md text-[10px] font-black ${iconCls[tone]}`}
             aria-hidden
           >
             {icon}
           </span>
         ) : null}
       </div>
-      <div className="mt-1 text-xl font-extrabold tabular-nums tracking-tight text-fal-fg md:text-[1.35rem]">
+      <div className="truncate text-lg font-extrabold tabular-nums tracking-tight text-fal-fg @min-[36rem]:text-xl">
         {value}
       </div>
       {hint ? (
-        <p className="mb-0 mt-0.5 truncate text-[10px] leading-snug text-fal-muted">
+        <p className="mb-0 truncate text-[10px] leading-snug text-fal-muted">
           {hint}
         </p>
       ) : null}
@@ -206,17 +206,21 @@ export function WidgetExecSummary() {
       ? formatMoney(centralIndicators.data.financial.captured)
       : '—'
 
+  /**
+   * Grid por largura do container (primary do Adaptive / sidebar),
+   * não do viewport — evita 1 coluna empilhada com smash em ~490px.
+   */
   const cols =
     showGmv || showCash
-      ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
-      : 'grid-cols-1 sm:grid-cols-2'
+      ? 'grid-cols-1 @min-[17rem]:grid-cols-2 @min-[36rem]:grid-cols-4'
+      : 'grid-cols-1 @min-[17rem]:grid-cols-2'
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
+    <div className="@container flex h-full min-h-0 flex-col gap-1.5 overflow-hidden p-0">
       {loading ? (
         <p className="m-0 text-sm text-fal-muted">Carregando resumo…</p>
       ) : (
-        <div className={`grid min-h-0 flex-1 gap-2 ${cols}`}>
+        <div className={`grid min-h-0 flex-1 gap-1.5 overflow-hidden ${cols}`}>
           <KpiCard
             label="Pedidos no período"
             value={

@@ -6,6 +6,7 @@ import {
   validateImportGrid,
   type ImportGrid,
 } from '@/services/import'
+import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { adminSyncKitListPrices } from '@/services/admin/adminKitPricingService'
 
 export type KitCompositionPreviewRow = {
@@ -28,11 +29,12 @@ export type KitCompositionApplyResult = {
 }
 
 async function parseFile(file: File): Promise<ImportGrid> {
+  const contract = getImportContract('kit_composition')
   const name = file.name.toLowerCase()
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-    return parseXlsxToGrid(file)
+    return parseXlsxToGrid(await file.arrayBuffer(), { contract })
   }
-  return parseCsvToGrid(file)
+  return parseCsvToGrid(decodeImportCsvText(await file.arrayBuffer()), { contract })
 }
 
 async function loadProductsBySkus(skus: string[]): Promise<

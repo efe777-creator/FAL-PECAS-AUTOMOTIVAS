@@ -24,6 +24,7 @@ import {
   PriceItemPricingModal,
   type PricingEditResult,
 } from '@/pages/admin/prices/PriceItemPricingModal'
+import { PRICE_LIST_KITS_MANUAL_ID } from '@/services/admin/adminKitPricingService'
 import { adminListActiveOverrideProductIds } from '@/services/admin/adminPriceOverrideService'
 import {
   adminAdjustAllPriceListItems,
@@ -285,8 +286,15 @@ export function AdminPriceListDetailPage() {
     }
   }
 
+  // Lista exclusivade kits: edição operacional só no hub (/admin/kits/precos)
   useEffect(() => {
-    if (!id) return
+    if (id === PRICE_LIST_KITS_MANUAL_ID) {
+      navigate('/admin/kits/precos', { replace: true })
+    }
+  }, [id, navigate])
+
+  useEffect(() => {
+    if (!id || id === PRICE_LIST_KITS_MANUAL_ID) return
     setLoading(true)
     resetUiForListChange()
     void reload()

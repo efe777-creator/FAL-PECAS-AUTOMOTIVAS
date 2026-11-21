@@ -28,7 +28,7 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     id: 'dia-a-dia',
     title: 'Dia a dia',
     links: [
-      { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/pedidos', label: 'Central de pedidos' },
       { to: '/admin/avisos', label: 'Notificações' },
       { to: '/admin/estoque', label: 'Estoque' },
       { to: '/admin/logistica', label: 'Logística' },
@@ -59,7 +59,7 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
       { to: '/admin/produtos', label: 'Produtos' },
       { to: '/admin/kits', label: 'Kits' },
       { to: '/admin/categorias', label: 'Categorias' },
-      { to: '/admin/precos', label: 'Preços' },
+      { to: '/admin/precos', label: 'Listas de preço' },
       { to: '/admin/aplicacoes', label: 'Aplicações' },
       { to: '/admin/importacoes', label: 'Importações' },
     ],

@@ -124,6 +124,10 @@ export function AdminKitCompositionImportPage() {
     <div className="space-y-6">
       <div>
         <p className="m-0 text-sm">
+          <Link to="/admin/kits" className="font-semibold text-fal-fg underline">
+            Kits
+          </Link>
+          <span className="text-fal-muted"> / </span>
           <Link to="/admin/importacoes" className="font-semibold text-fal-fg underline">
             Importações
           </Link>

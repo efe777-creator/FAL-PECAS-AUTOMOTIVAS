@@ -202,7 +202,11 @@ export function OwnDeliveryProductsTab({ categories, onOk, onError }: Props) {
                       </Button>
                       <Link
                         className="text-xs font-semibold text-fal-fg"
-                        to={`/admin/produtos/${p.id}`}
+                        to={
+                          p.productKind === 'kit'
+                            ? `/admin/kits/${p.id}`
+                            : `/admin/produtos/${p.id}`
+                        }
                       >
                         Abrir cadastro
                       </Link>

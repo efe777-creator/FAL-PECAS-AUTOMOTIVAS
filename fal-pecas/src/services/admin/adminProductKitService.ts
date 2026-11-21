@@ -354,6 +354,34 @@ export async function adminUpdateKitComponentQuantity(input: {
   await syncKitAfterComposition(input.kitProductId, input.actorId)
 }
 
+/** Troca sort_order entre duas linhas adjacentes do BOM (↑/↓). */
+export async function adminSwapKitComponentSortOrder(input: {
+  kitProductId: string
+  rowId: string
+  direction: 'up' | 'down'
+}): Promise<void> {
+  const rows = await adminListKitComponents(input.kitProductId)
+  const idx = rows.findIndex((r) => r.id === input.rowId)
+  if (idx < 0) return
+  const swapIdx = input.direction === 'up' ? idx - 1 : idx + 1
+  if (swapIdx < 0 || swapIdx >= rows.length) return
+  const a = rows[idx]!
+  const b = rows[swapIdx]!
+  const now = new Date().toISOString()
+  const { error: errA } = await getSupabase()
+    .from('product_kit_components')
+    .update({ sort_order: b.sortOrder, updated_at: now })
+    .eq('id', a.id)
+    .eq('kit_product_id', input.kitProductId)
+  if (errA) throw errA
+  const { error: errB } = await getSupabase()
+    .from('product_kit_components')
+    .update({ sort_order: a.sortOrder, updated_at: now })
+    .eq('id', b.id)
+    .eq('kit_product_id', input.kitProductId)
+  if (errB) throw errB
+}
+
 export async function adminRemoveKitComponent(input: {
   kitProductId: string
   rowId: string

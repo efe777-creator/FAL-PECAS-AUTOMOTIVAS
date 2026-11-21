@@ -118,7 +118,7 @@ export function AdminHomePaymentSection({
         </p>
         <p className="mb-0 mt-2 flex flex-wrap gap-3 text-sm">
           <Link to="/admin/precos" className="font-semibold text-fal-fg">
-            Listas de preços
+            Listas de preço
           </Link>
           <Link to="/admin/home/promocoes" className="font-semibold text-fal-fg">
             Promoções

@@ -12,13 +12,14 @@ import {
 } from '@/services/admin/adminImageService'
 import {
   adminGetKitPricePreview,
-  adminSyncKitListPrices,
+  adminSetKitPriceModeAndSync,
   type KitPricePreview,
 } from '@/services/admin/adminKitPricingService'
 import {
   adminAddKitComponent,
   adminListKitComponents,
   adminRemoveKitComponent,
+  adminSwapKitComponentSortOrder,
   adminUpdateKitComponentQuantity,
   isKitCompositionPublishable,
   type AdminKitComponentRow,
@@ -32,11 +33,20 @@ import { Link } from 'react-router-dom'
 type Props = {
   kitProductId: string
   kitPriceMode: 'auto' | 'manual'
+  /** Exibe só BOM ou só bloco de preço (aba full). */
+  surfacePart?: 'all' | 'bom' | 'pricing'
+  /** Densidade compacta para guia Adaptive. */
+  compact?: boolean
 }
 
 type Candidate = Product & { imageUrl?: string }
 
-export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
+export function AdminProductKitSection({
+  kitProductId,
+  kitPriceMode,
+  surfacePart = 'all',
+  compact = false,
+}: Props) {
   const toast = useToast()
   const { user } = useAuth()
   const [rows, setRows] = useState<AdminKitComponentRow[]>([])
@@ -49,30 +59,65 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
   const [qty, setQty] = useState('1')
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [searching, setSearching] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [busyLink, setBusyLink] = useState(false)
+  const [busyRowIds, setBusyRowIds] = useState<Set<string>>(() => new Set())
+  const [busyReorderId, setBusyReorderId] = useState<string | null>(null)
+  const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const [pickedIds, setPickedIds] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState<string | null>(null)
+  const [loadingBom, setLoadingBom] = useState(true)
   const searchSeq = useRef(0)
 
+  const showBom = surfacePart === 'all' || surfacePart === 'bom'
+  const showPricing = surfacePart === 'all' || surfacePart === 'pricing'
+
+  function setRowBusy(rowId: string, on: boolean) {
+    setBusyRowIds((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(rowId)
+      else next.delete(rowId)
+      return next
+    })
+  }
+
+  const rowBusy = (rowId: string) => busyLink || busyRowIds.has(rowId) || busyReorderId === rowId
+
   const reload = useCallback(async () => {
-    const [comps, price, kitImgs] = await Promise.all([
-      adminListKitComponents(kitProductId),
-      adminGetKitPricePreview(kitProductId),
-      adminListImages(kitProductId),
-    ])
-    setRows(comps)
-    setRowQty(Object.fromEntries(comps.map((c) => [c.id, String(c.quantity)])))
-    setPreview(price)
-    setKitHasImage(kitImgs.length > 0)
-    if (price.manualListPrice != null) {
-      setManualPrice(formatMoneyInput(price.manualListPrice))
+    setLoadingBom(true)
+    setError(null)
+    try {
+      const [comps, price, kitImgs] = await Promise.all([
+        adminListKitComponents(kitProductId),
+        adminGetKitPricePreview(kitProductId),
+        adminListImages(kitProductId),
+      ])
+      setRows(comps)
+      setRowQty(Object.fromEntries(comps.map((c) => [c.id, String(c.quantity)])))
+      setPreview(price)
+      setKitHasImage(kitImgs.length > 0)
+      if (price.manualListPrice != null) {
+        setManualPrice(formatMoneyInput(price.manualListPrice))
+      }
+      const urls = await adminPrimaryImageUrlMap(comps.map((c) => c.componentProductId))
+      setRowImages(urls)
+    } finally {
+      setLoadingBom(false)
     }
-    const urls = await adminPrimaryImageUrlMap(comps.map((c) => c.componentProductId))
-    setRowImages(urls)
   }, [kitProductId])
 
   useEffect(() => {
-    void reload().catch((e) => setError(toUserMessage(e, 'Falha ao carregar composição')))
+    setRows([])
+    setLoadingBom(true)
+    void reload().catch((e) => {
+      setError(toUserMessage(e, 'Falha ao carregar composição'))
+      setLoadingBom(false)
+    })
   }, [reload])
+
+  useEffect(() => {
+    setHighlightedIndex(0)
+    setPickedIds(new Set())
+  }, [q, candidates.length])
 
   useEffect(() => {
     const term = q.trim()
@@ -106,26 +151,99 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
   }, [q, kitProductId])
 
   async function linkComponent(match: Product, quantity: number) {
-    setBusy(true)
+    setBusyLink(true)
     setError(null)
     try {
-      await adminAddKitComponent({
-        kitProductId,
-        componentProductId: match.id,
-        quantity,
-        actorId: user?.id ?? null,
-      })
+      const dup = rows.find((r) => r.componentProductId === match.id)
+      if (dup) {
+        const merged = dup.quantity + quantity
+        await adminUpdateKitComponentQuantity({
+          kitProductId,
+          rowId: dup.id,
+          componentProductId: match.id,
+          previousQuantity: dup.quantity,
+          quantity: merged,
+          actorId: user?.id ?? null,
+        })
+        await reload()
+        toast.push(
+          `Item já no kit — quantidade atualizada para ${merged}`,
+          'success',
+        )
+      } else {
+        await adminAddKitComponent({
+          kitProductId,
+          componentProductId: match.id,
+          quantity,
+          actorId: user?.id ?? null,
+        })
+        await reload()
+        toast.push(`Item linkado: ${match.commercialRef ?? match.sku}`, 'success')
+      }
       setQ('')
       setQty('1')
       setCandidates([])
-      await reload()
-      toast.push(`Item linkado: ${match.commercialRef ?? match.sku}`, 'success')
+      setPickedIds(new Set())
     } catch (e) {
       const msg = toUserMessage(e, 'Não foi possível linkar o item')
       setError(msg)
       toast.push(msg, 'error')
     } finally {
-      setBusy(false)
+      setBusyLink(false)
+    }
+  }
+
+  async function linkPickedBatch() {
+    const quantity = Number(qty.replace(',', '.')) || 1
+    if (!(quantity > 0)) {
+      toast.push('Informe uma quantidade válida', 'error')
+      return
+    }
+    const toLink = candidates.filter((c) => pickedIds.has(c.id))
+    if (toLink.length === 0) {
+      toast.push('Marque ao menos um item na lista', 'error')
+      return
+    }
+    setBusyLink(true)
+    setError(null)
+    try {
+      for (const match of toLink) {
+        const dup = rows.find((r) => r.componentProductId === match.id)
+        if (dup) {
+          const merged = dup.quantity + quantity
+          await adminUpdateKitComponentQuantity({
+            kitProductId,
+            rowId: dup.id,
+            componentProductId: match.id,
+            previousQuantity: dup.quantity,
+            quantity: merged,
+            actorId: user?.id ?? null,
+          })
+          toast.push(
+            `${match.commercialRef ?? match.sku}: quantidade ${merged}`,
+            'success',
+          )
+        } else {
+          await adminAddKitComponent({
+            kitProductId,
+            componentProductId: match.id,
+            quantity,
+            actorId: user?.id ?? null,
+          })
+          toast.push(`Item linkado: ${match.commercialRef ?? match.sku}`, 'success')
+        }
+      }
+      setQ('')
+      setQty('1')
+      setCandidates([])
+      setPickedIds(new Set())
+      await reload()
+    } catch (e) {
+      const msg = toUserMessage(e, 'Não foi possível linkar em lote')
+      setError(msg)
+      toast.push(msg, 'error')
+    } finally {
+      setBusyLink(false)
     }
   }
 
@@ -146,7 +264,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       await linkComponent(exact, quantity)
       return
     }
-    setBusy(true)
+    setBusyLink(true)
     setError(null)
     try {
       const found = await adminListProducts({ q: term, productKind: 'item', limit: 8 })
@@ -158,9 +276,17 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
             (p.commercialRef ?? '').toLowerCase() === term.toLowerCase()),
       )
       if (!match) {
+        if (candidates.length > 0) {
+          const pick =
+            candidates[highlightedIndex] ?? candidates[0]
+          if (pick) {
+            await linkComponent(pick, quantity)
+            return
+          }
+        }
         throw new Error(
           candidates.length
-            ? 'Escolha o item na lista (SKU/ref exato ou clique em Linkar)'
+            ? 'Escolha o item na lista (Enter no destaque ou clique em Linkar)'
             : 'Nenhum item do cadastro com esse SKU/ref (só tipo item)',
         )
       }
@@ -169,14 +295,20 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       const msg = toUserMessage(e, 'Não foi possível adicionar')
       setError(msg)
       toast.push(msg, 'error')
-      setBusy(false)
+    } finally {
+      setBusyLink(false)
     }
   }
 
   async function handleQty(row: AdminKitComponentRow, nextRaw: string) {
     const next = Number(nextRaw.replace(',', '.'))
-    if (!(next > 0) || next === row.quantity) return
-    setBusy(true)
+    if (!(next > 0)) {
+      toast.push('Quantidade deve ser maior que zero', 'error')
+      setRowQty((prev) => ({ ...prev, [row.id]: String(row.quantity) }))
+      return
+    }
+    if (next === row.quantity) return
+    setRowBusy(row.id, true)
     setError(null)
     try {
       await adminUpdateKitComponentQuantity({
@@ -193,13 +325,21 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       const msg = toUserMessage(e, 'Falha ao atualizar quantidade')
       setError(msg)
       toast.push(msg, 'error')
+      setRowQty((prev) => ({ ...prev, [row.id]: String(row.quantity) }))
     } finally {
-      setBusy(false)
+      setRowBusy(row.id, false)
     }
   }
 
+  function nudgeQty(row: AdminKitComponentRow, delta: number) {
+    const current = Number((rowQty[row.id] ?? String(row.quantity)).replace(',', '.'))
+    const next = Math.max(0.001, current + delta)
+    setRowQty((prev) => ({ ...prev, [row.id]: String(next) }))
+    void handleQty(row, String(next))
+  }
+
   async function handleRemove(row: AdminKitComponentRow) {
-    setBusy(true)
+    setRowBusy(row.id, true)
     setError(null)
     try {
       await adminRemoveKitComponent({
@@ -216,7 +356,19 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       setError(msg)
       toast.push(msg, 'error')
     } finally {
-      setBusy(false)
+      setRowBusy(row.id, false)
+    }
+  }
+
+  async function handleReorder(row: AdminKitComponentRow, direction: 'up' | 'down') {
+    setBusyReorderId(row.id)
+    try {
+      await adminSwapKitComponentSortOrder({ kitProductId, rowId: row.id, direction })
+      await reload()
+    } catch (e) {
+      toast.push(toUserMessage(e, 'Falha ao reordenar'), 'error')
+    } finally {
+      setBusyReorderId(null)
     }
   }
 
@@ -228,10 +380,11 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       toast.push('Informe um preço manual válido', 'error')
       return
     }
-    setBusy(true)
+    setBusyLink(true)
     setError(null)
     try {
-      await adminSyncKitListPrices({
+      // Garante kit_price_mode=manual no produto (não só nas listas)
+      await adminSetKitPriceModeAndSync({
         kitProductId,
         kitPriceMode: 'manual',
         manualPrice: parsed,
@@ -244,7 +397,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       setError(msg)
       toast.push(msg, 'error')
     } finally {
-      setBusy(false)
+      setBusyLink(false)
     }
   }
 
@@ -253,7 +406,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       toast.push('Linke ao menos um item com foto', 'error')
       return
     }
-    setBusy(true)
+    setBusyLink(true)
     setError(null)
     try {
       let ok = false
@@ -280,60 +433,86 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       setError(msg)
       toast.push(msg, 'error')
     } finally {
-      setBusy(false)
+      setBusyLink(false)
     }
   }
 
   const quantity = Number(qty.replace(',', '.')) || 1
+  const h2LineCount = rows.length
+  const h2QtyOk = rows.length === 1 && rows[0]!.quantity >= 2
+  const h2ProgressLabel =
+    publishable
+      ? 'Composição mínima (H2) atendida'
+      : h2LineCount === 0
+        ? 'H2: linkar itens (mín. 2 linhas ou 1×qty≥2)'
+        : h2LineCount === 1 && !h2QtyOk
+          ? 'H2: falta 2ª linha ou qty≥2 nesta linha'
+          : 'H2: falta ao menos mais uma linha'
+
+  const shellClass = compact
+    ? 'space-y-2 rounded-[12px] border border-fal-line bg-fal-surface p-2'
+    : 'space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4'
 
   return (
-    <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-      <div>
-        <h2 className="m-0 font-extrabold text-fal-fg">Composição do kit</h2>
-        <p className="mt-1 text-xs text-fal-muted">
-          Linke produtos já cadastrados (tipo item). Ao adicionar, se o kit ainda não tiver capa, a
-          foto principal do item é puxada automaticamente. Você também pode enviar uma foto própria
-          na seção Imagens abaixo.
-        </p>
-      </div>
+    <section className={shellClass}>
+      {showBom ? (
+        <>
+          <div>
+            <h2 className="m-0 font-extrabold text-fal-fg">Composição do kit</h2>
+            {compact ? (
+              <p className="mt-1 mb-0 text-[11px] text-fal-muted">
+                Enter no destaque · multi-seleção · qty na linha
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-fal-muted">
+                Linke produtos já cadastrados (tipo item). Enter no destaque, multi-seleção ou SKU/ref
+                exato. Capa puxa automaticamente do item quando o kit ainda não tem foto.
+              </p>
+            )}
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2">
-        <p className="m-0 flex-1 text-xs text-fal-muted">
-          Capa do kit:{' '}
-          <strong className="text-fal-fg">{kitHasImage ? 'com foto' : 'sem foto'}</strong>
-        </p>
-        <Button
-          type="button"
-          variant="light"
-          disabled={busy || rows.length === 0}
-          onClick={() => void handlePullImageFromItems(false)}
-        >
-          Puxar foto dos itens
-        </Button>
-        {kitHasImage ? (
-          <Button
-            type="button"
-            variant="light"
-            disabled={busy || rows.length === 0}
-            onClick={() => void handlePullImageFromItems(true)}
+          <p
+            className={`m-0 rounded-[10px] border px-3 py-2 text-xs ${
+              publishable
+                ? 'border-fal-success/40 bg-fal-success/10 text-fal-success'
+                : 'border-fal-warning/40 bg-fal-warning/15 text-fal-fg'
+            }`}
           >
-            Substituir pela foto do item
-          </Button>
-        ) : null}
-      </div>
+            {h2ProgressLabel}
+          </p>
 
-      {!publishable ? (
-        <p className="m-0 rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-          Composição incompleta para publicação (H2): precisa de ≥ 2 componentes ou 1 com
-          quantidade ≥ 2.
-        </p>
-      ) : (
-        <p className="m-0 text-xs text-green-800">Composição mínima atendida.</p>
-      )}
+          {!compact ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
+              <p className="m-0 flex-1 text-xs text-fal-muted">
+                Capa do kit:{' '}
+                <strong className="text-fal-fg">{kitHasImage ? 'com foto' : 'sem foto'}</strong>
+              </p>
+              <Button
+                type="button"
+                variant="light"
+                disabled={busyLink || rows.length === 0}
+                onClick={() => void handlePullImageFromItems(false)}
+              >
+                Puxar foto dos itens
+              </Button>
+              {kitHasImage ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  disabled={busyLink || rows.length === 0}
+                  onClick={() => void handlePullImageFromItems(true)}
+                >
+                  Substituir pela foto do item
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
 
-      {preview ? (
-        <div className="rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm">
-          <p className="m-0">
+      {showPricing && preview ? (
+        <div className="rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
+          <p className="m-0 text-fal-fg">
             Soma dos componentes (Lista Base):{' '}
             <strong>{formatMoney(preview.componentsSum)}</strong>
             {preview.missingComponentPrices.length > 0 ? (
@@ -350,9 +529,9 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
             · efetivo sugerido: {formatMoney(preview.effectiveHint)}
           </p>
           {preview.provisional ? (
-            <p className="mt-2 m-0 rounded-[8px] border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-950">
-              Preço provisório: kit manual sem preço na lista Preços dos kits — usando a soma até
-              cadastrar o valor manual.
+            <p className="mt-2 m-0 rounded-[8px] border border-fal-warning/40 bg-fal-warning/15 px-2 py-1 text-xs text-fal-fg">
+              Preço provisório: kit manual sem preço cadastrado — usando a soma até salvar o valor
+              manual.
             </p>
           ) : null}
           <p className="mt-2 mb-0 text-xs">
@@ -363,7 +542,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
         </div>
       ) : null}
 
-      {kitPriceMode === 'manual' ? (
+      {showPricing && kitPriceMode === 'manual' ? (
         <div className="flex flex-wrap items-end gap-2">
           <div className="w-40">
             <Input
@@ -373,7 +552,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
               hint="Grava na lista Preços dos kits e espelha na Base"
             />
           </div>
-          <Button type="button" disabled={busy} onClick={() => void handleSaveManualPrice()}>
+          <Button type="button" disabled={busyLink} onClick={() => void handleSaveManualPrice()}>
             Salvar preço manual
           </Button>
         </div>
@@ -381,128 +560,251 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
 
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}
 
-      <div className="relative space-y-2">
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="min-w-[220px] flex-1">
-            <Input
-              label="Buscar item do cadastro (SKU / ref / nome)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  void handleAddFromQuery()
-                }
-              }}
-              autoComplete="off"
-            />
-          </div>
-          <div className="w-24">
-            <Input label="Qtd" value={qty} onChange={(e) => setQty(e.target.value)} />
-          </div>
-          <Button type="button" disabled={busy || !q.trim()} onClick={() => void handleAddFromQuery()}>
-            {busy ? '…' : 'Linkar item'}
-          </Button>
-        </div>
-
-        {q.trim().length >= 2 ? (
-          <ul
-            className="m-0 max-h-56 list-none space-y-1 overflow-y-auto rounded-[10px] border border-fal-line bg-white p-2"
-            role="listbox"
-            aria-label="Itens do cadastro para linkar"
-          >
-            {searching && candidates.length === 0 ? (
-              <li className="px-2 py-1.5 text-xs text-fal-muted">Buscando…</li>
-            ) : null}
-            {!searching && candidates.length === 0 ? (
-              <li className="px-2 py-1.5 text-xs text-fal-muted">Nenhum item encontrado</li>
-            ) : null}
-            {candidates.map((c) => (
-              <li key={c.id}>
+      {showBom ? (
+        <>
+          <div className="relative space-y-2">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="min-w-[220px] flex-1">
+                <Input
+                  label="Buscar item do cadastro (SKU / ref / nome)"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown' && candidates.length) {
+                      e.preventDefault()
+                      setHighlightedIndex((i) => Math.min(i + 1, candidates.length - 1))
+                    }
+                    if (e.key === 'ArrowUp' && candidates.length) {
+                      e.preventDefault()
+                      setHighlightedIndex((i) => Math.max(i - 1, 0))
+                    }
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void handleAddFromQuery()
+                    }
+                  }}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex w-28 items-end gap-1">
                 <button
                   type="button"
-                  disabled={busy}
-                  className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-left text-sm hover:bg-fal-bg"
-                  onClick={() => void linkComponent(c, quantity > 0 ? quantity : 1)}
+                  className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
+                  disabled={busyLink}
+                  onClick={() => setQty((v) => String(Math.max(1, (Number(v.replace(',', '.')) || 1) - 1)))}
+                  aria-label="Diminuir quantidade padrão"
                 >
-                  <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[6px] border border-fal-line bg-fal-bg">
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] text-fal-muted">sem foto</span>
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold text-fal-fg">
-                      {c.commercialRef || c.sku}
-                    </span>
-                    <span className="block truncate text-xs text-fal-muted">{c.name}</span>
-                  </span>
-                  <span className="shrink-0 text-xs font-semibold text-fal-navy">Linkar</span>
+                  −
                 </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="m-0 text-sm text-fal-muted">Nenhum item linkado ainda.</p>
-      ) : (
-        <ul className="m-0 list-none space-y-2 p-0">
-          {rows.map((row) => {
-            const thumb = rowImages.get(row.componentProductId)
-            return (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+                <Input label="Qtd" value={qty} onChange={(e) => setQty(e.target.value)} />
+                <button
+                  type="button"
+                  className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
+                  disabled={busyLink}
+                  onClick={() => setQty((v) => String((Number(v.replace(',', '.')) || 1) + 1))}
+                  aria-label="Aumentar quantidade padrão"
+                >
+                  +
+                </button>
+              </div>
+              <Button
+                type="button"
+                disabled={busyLink || !q.trim()}
+                onClick={() => void handleAddFromQuery()}
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[8px] border border-fal-line bg-fal-bg">
-                    {thumb ? (
-                      <img src={thumb} alt="" className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] text-fal-muted">sem foto</span>
-                    )}
-                  </span>
-                  <div className="min-w-0">
-                    <Link
-                      to={`/admin/produtos/${row.componentProductId}`}
-                      className="font-semibold text-fal-fg underline"
-                    >
-                      {row.componentCommercialRef || row.componentSku}
-                    </Link>
-                    <span className="text-fal-muted"> — {row.componentName}</span>
-                    <span className="ml-2 text-xs text-fal-muted">
-                      ({productStatusLabel(row.componentStatus)})
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    className="w-20 rounded-[8px] border border-fal-line px-2 py-1 text-sm"
-                    value={rowQty[row.id] ?? String(row.quantity)}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setRowQty((prev) => ({ ...prev, [row.id]: e.target.value }))
-                    }
-                    onBlur={(e) => void handleQty(row, e.target.value)}
-                    aria-label={`Quantidade de ${row.componentSku}`}
-                  />
-                  <Button
-                    type="button"
-                    variant="light"
-                    disabled={busy}
-                    onClick={() => void handleRemove(row)}
+                {busyLink ? '…' : 'Linkar item'}
+              </Button>
+              {pickedIds.size > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busyLink}
+                  onClick={() => void linkPickedBatch()}
+                >
+                  Linkar {pickedIds.size} marcados
+                </Button>
+              ) : null}
+            </div>
+
+            {q.trim().length >= 2 ? (
+              <ul
+                className="m-0 max-h-56 list-none space-y-1 overflow-y-auto rounded-[10px] border border-fal-line bg-fal-surface p-2"
+                role="listbox"
+                aria-label="Itens do cadastro para linkar"
+              >
+                {searching && candidates.length === 0 ? (
+                  <li className="px-2 py-1.5 text-xs text-fal-muted">Buscando…</li>
+                ) : null}
+                {!searching && candidates.length === 0 ? (
+                  <li className="px-2 py-1.5 text-xs text-fal-muted">Nenhum item encontrado</li>
+                ) : null}
+                {candidates.map((c, index) => {
+                  const highlighted = index === highlightedIndex
+                  return (
+                    <li key={c.id}>
+                      <div
+                        className={`flex w-full items-center gap-2 rounded-[8px] px-1 py-1 ${
+                          highlighted ? 'bg-fal-accent/15 ring-1 ring-fal-accent/50' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="ml-1 h-4 w-4 shrink-0"
+                          checked={pickedIds.has(c.id)}
+                          disabled={busyLink}
+                          onChange={() => {
+                            setPickedIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(c.id)) next.delete(c.id)
+                              else next.add(c.id)
+                              return next
+                            })
+                          }}
+                          aria-label={`Marcar ${c.commercialRef || c.sku}`}
+                        />
+                        <button
+                          type="button"
+                          disabled={busyLink}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-[8px] px-1 py-1 text-left text-sm hover:bg-fal-bg"
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          onClick={() => void linkComponent(c, quantity > 0 ? quantity : 1)}
+                        >
+                          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[6px] border border-fal-line bg-fal-bg">
+                            {c.imageUrl ? (
+                              <img src={c.imageUrl} alt="" className="h-full w-full object-contain" />
+                            ) : (
+                              <span className="text-[10px] text-fal-muted">sem foto</span>
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold text-fal-fg">
+                              {c.commercialRef || c.sku}
+                            </span>
+                            <span className="block truncate text-xs text-fal-muted">{c.name}</span>
+                            {c.price <= 0 ? (
+                              <span className="text-[10px] font-semibold text-fal-warning">
+                                sem preço Base
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="shrink-0 text-xs font-semibold text-fal-navy">Linkar</span>
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : null}
+          </div>
+
+          {loadingBom ? (
+            <p className="m-0 text-sm text-fal-muted" aria-busy="true">
+              Carregando composição…
+            </p>
+          ) : rows.length === 0 ? (
+            <p className="m-0 text-sm text-fal-muted">Nenhum item linkado ainda.</p>
+          ) : (
+            <ul className="m-0 list-none space-y-2 p-0">
+              {rows.map((row, index) => {
+                const thumb = rowImages.get(row.componentProductId)
+                const busyThis = rowBusy(row.id)
+                return (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
                   >
-                    Remover
-                  </Button>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[8px] border border-fal-line bg-fal-bg">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-[10px] text-fal-muted">sem foto</span>
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <Link
+                          to={`/admin/produtos/${row.componentProductId}`}
+                          className="font-semibold text-fal-fg underline"
+                        >
+                          {row.componentCommercialRef || row.componentSku}
+                        </Link>
+                        <span className="text-fal-muted"> — {row.componentName}</span>
+                        <span className="ml-2 text-xs text-fal-muted">
+                          ({productStatusLabel(row.componentStatus)})
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="light"
+                        size="sm"
+                        disabled={busyThis || index === 0}
+                        onClick={() => void handleReorder(row, 'up')}
+                        aria-label="Subir na ordem"
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="light"
+                        size="sm"
+                        disabled={busyThis || index === rows.length - 1}
+                        onClick={() => void handleReorder(row, 'down')}
+                        aria-label="Descer na ordem"
+                      >
+                        ↓
+                      </Button>
+                      <button
+                        type="button"
+                        className="h-9 w-8 rounded-[8px] border border-fal-line text-fal-fg"
+                        disabled={busyThis}
+                        onClick={() => nudgeQty(row, -1)}
+                        aria-label="Diminuir quantidade"
+                      >
+                        −
+                      </button>
+                      <input
+                        className="w-16 rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1 text-sm text-fal-fg"
+                        value={rowQty[row.id] ?? String(row.quantity)}
+                        disabled={busyThis}
+                        onChange={(e) =>
+                          setRowQty((prev) => ({ ...prev, [row.id]: e.target.value }))
+                        }
+                        onBlur={(e) => void handleQty(row, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            void handleQty(row, (e.target as HTMLInputElement).value)
+                          }
+                        }}
+                        aria-label={`Quantidade de ${row.componentSku}`}
+                      />
+                      <button
+                        type="button"
+                        className="h-9 w-8 rounded-[8px] border border-fal-line text-fal-fg"
+                        disabled={busyThis}
+                        onClick={() => nudgeQty(row, 1)}
+                        aria-label="Aumentar quantidade"
+                      >
+                        +
+                      </button>
+                      <Button
+                        type="button"
+                        variant="light"
+                        disabled={busyThis}
+                        onClick={() => void handleRemove(row)}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
+      ) : null}
     </section>
   )
 }

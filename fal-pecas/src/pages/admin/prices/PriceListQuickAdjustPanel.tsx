@@ -47,6 +47,10 @@ type Props = {
   /** Filtro controlado pelo KPI da página */
   forceWithoutPrice?: boolean
   onRequestImport?: () => void
+  /** Guia Adaptive: lista fixada pelo pai (sessionStorage preservado). */
+  forcedListId?: string
+  /** Dentro do WorkSurface — sem card/título duplicados. */
+  embedded?: boolean
 }
 
 function readStoredFilters(): StoredFilters {
@@ -67,6 +71,8 @@ export function PriceListQuickAdjustPanel({
   onListIdChange,
   forceWithoutPrice,
   onRequestImport,
+  forcedListId,
+  embedded = false,
 }: Props) {
   const toast = useToast()
   const stored = readStoredFilters()
@@ -102,7 +108,12 @@ export function PriceListQuickAdjustPanel({
   const addSkuInputRef = useRef<HTMLInputElement>(null)
   const loadGenRef = useRef(0)
 
-  const selectedList = lists.find((l) => l.id === listId) ?? null
+  const effectiveListId = forcedListId ?? listId
+  const selectedList = lists.find((l) => l.id === effectiveListId) ?? null
+
+  useEffect(() => {
+    if (forcedListId) sessionStorage.setItem(STORAGE_KEY, forcedListId)
+  }, [forcedListId])
 
   useEffect(() => {
     if (forceWithoutPrice != null) setFilterWithoutPrice(Boolean(forceWithoutPrice))
@@ -134,8 +145,8 @@ export function PriceListQuickAdjustPanel({
   }, [lists])
 
   useEffect(() => {
-    onListIdChange?.(listId)
-  }, [listId, onListIdChange])
+    onListIdChange?.(effectiveListId)
+  }, [effectiveListId, onListIdChange])
 
   useEffect(() => {
     const t = window.setTimeout(() => setFilterQDebounced(filterQ), 200)
@@ -143,7 +154,7 @@ export function PriceListQuickAdjustPanel({
   }, [filterQ])
 
   useEffect(() => {
-    if (!listId) {
+    if (!effectiveListId) {
       setItems([])
       setLoadingItems(false)
       return
@@ -154,12 +165,12 @@ export function PriceListQuickAdjustPanel({
     setPricingItem(null)
     setError(null)
     setLoadingItems(true)
-    sessionStorage.setItem(STORAGE_KEY, listId)
+    if (!forcedListId) sessionStorage.setItem(STORAGE_KEY, effectiveListId)
 
     let cancelled = false
     void (async () => {
       try {
-        const rows = await adminListPriceListOperationalItems(listId)
+        const rows = await adminListPriceListOperationalItems(effectiveListId)
         if (cancelled || gen !== loadGenRef.current) return
         setItems(rows)
         setAddOpen(rows.filter((r) => !isVirtualPriceListItemId(r.id)).length === 0)
@@ -178,7 +189,7 @@ export function PriceListQuickAdjustPanel({
       cancelled = true
     }
     // toast omitido: evita reler lista se a identidade do contexto mudar
-  }, [listId])
+  }, [effectiveListId, forcedListId])
 
   const filteredItems = useMemo(() => {
     if (loadingItems) return []
@@ -218,11 +229,11 @@ export function PriceListQuickAdjustPanel({
   }
 
   async function reloadItems(opts?: { keepAddOpen?: boolean }) {
-    if (!listId) return
+    if (!effectiveListId) return
     const gen = ++loadGenRef.current
     setError(null)
     try {
-      const rows = await adminListPriceListOperationalItems(listId)
+      const rows = await adminListPriceListOperationalItems(effectiveListId)
       if (gen !== loadGenRef.current) return
       setItems(rows)
       if (opts?.keepAddOpen) {
@@ -247,10 +258,10 @@ export function PriceListQuickAdjustPanel({
   async function ensureItemOnList(item: PriceListItem): Promise<string> {
     if (!isVirtualPriceListItemId(item.id)) return item.id
     await adminSyncProductsOntoPriceList({
-      priceListId: listId,
+      priceListId: effectiveListId,
       productIds: [item.productId],
     })
-    const rows = await adminListPriceListOperationalItems(listId)
+    const rows = await adminListPriceListOperationalItems(effectiveListId)
     const row = rows.find((i) => i.productId === item.productId && !isVirtualPriceListItemId(i.id))
     if (!row) throw new Error('Falha ao incluir item na lista')
     return row.id
@@ -270,7 +281,7 @@ export function PriceListQuickAdjustPanel({
         })
       } else if (result.mode === 'edit_rule_percent') {
         await adminSetCalculatedListPrice({
-          priceListId: listId,
+          priceListId: effectiveListId,
           productId: pricingItem.productId,
           price: result.price,
           extraCost: result.extraCost,
@@ -295,7 +306,7 @@ export function PriceListQuickAdjustPanel({
 
   async function onAddItem(e: FormEvent) {
     e.preventDefault()
-    if (!listId || !allowed) return
+    if (!effectiveListId || !allowed) return
     setError(null)
 
     const sku = addSku.trim()
@@ -329,7 +340,7 @@ export function PriceListQuickAdjustPanel({
         return
       }
       await adminUpsertPriceListItem({
-        priceListId: listId,
+        priceListId: effectiveListId,
         productId,
         price: priceNum,
         source: 'manual',
@@ -362,21 +373,33 @@ export function PriceListQuickAdjustPanel({
   const toIdx = showingCount
 
   return (
-    <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-      <div>
-        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Consulta e ajuste de preços</h2>
-        <p className="mt-1 text-sm text-fal-muted">
-          Escolha a lista, filtre e edite custo adicional, margem/markup ou preço direto na linha.{' '}
-          {PRICE_LIST_LAYERS_HINT}
-        </p>
-      </div>
+    <div
+      className={
+        embedded
+          ? 'space-y-3'
+          : 'space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4'
+      }
+    >
+      {!embedded ? (
+        <div>
+          <h2 className="m-0 text-lg font-extrabold text-fal-fg">Consulta e ajuste de preços</h2>
+          <p className="mt-1 text-sm text-fal-muted">
+            Escolha a lista, filtre e edite custo adicional, margem/markup ou preço direto na linha.{' '}
+            {PRICE_LIST_LAYERS_HINT}
+          </p>
+        </div>
+      ) : null}
 
       <label className="block text-sm">
         <span className="mb-1 block text-xs font-extrabold text-fal-muted">Lista</span>
         <select
           className="w-full rounded-[9px] border border-fal-line px-3 py-3 font-semibold text-fal-fg"
-          value={listId}
-          onChange={(e) => setListId(e.target.value)}
+          value={effectiveListId}
+          onChange={(e) => {
+            const next = e.target.value
+            if (forcedListId != null) onListIdChange?.(next)
+            else setListId(next)
+          }}
         >
           {lists.map((l) => (
             <option key={l.id} value={l.id}>
@@ -481,7 +504,7 @@ export function PriceListQuickAdjustPanel({
                           >
                             Adicionar código
                           </button>
-                          {onRequestImport ? (
+                          {!embedded && onRequestImport ? (
                             <button
                               type="button"
                               className="font-semibold text-fal-fg underline"
@@ -490,10 +513,10 @@ export function PriceListQuickAdjustPanel({
                               Importar planilha
                             </button>
                           ) : null}
-                          {listId ? (
+                          {!embedded && effectiveListId ? (
                             <Link
                               className="font-semibold text-fal-fg underline"
-                              to={`/admin/precos/${listId}?tab=produtos`}
+                              to={`/admin/precos/${effectiveListId}?tab=produtos`}
                             >
                               Abrir lista completa
                             </Link>
@@ -564,10 +587,10 @@ export function PriceListQuickAdjustPanel({
                   : `Exibindo ${fromIdx}–${toIdx} de ${filteredCount} itens carregados`}
               {loadedCount >= 500 ? ' · limite de 500 no painel' : ''}
             </span>
-            {listId ? (
+            {!embedded && effectiveListId ? (
               <Link
                 className="font-semibold text-fal-fg underline"
-                to={`/admin/precos/${listId}?tab=produtos`}
+                to={`/admin/precos/${effectiveListId}?tab=produtos`}
               >
                 Abrir lista completa
               </Link>
@@ -606,7 +629,7 @@ export function PriceListQuickAdjustPanel({
             disabled={!allowed || addBusy || loadingItems}
           />
           <div className="flex items-end gap-2 md:col-span-2">
-            <Button type="submit" disabled={!allowed || addBusy || loadingItems || !listId}>
+            <Button type="submit" disabled={!allowed || addBusy || loadingItems || !effectiveListId}>
               Adicionar à lista
             </Button>
             <Button

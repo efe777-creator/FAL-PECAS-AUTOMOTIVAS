@@ -263,3 +263,25 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-orders-list-desktop {
   display: none;
 }
+
+/*
+ * Catálogo (Produtos / Kits): mesma lição VAL — com split aberto a tabela
+ * larga empurra “Abrir guia” sob o aside fixed. Força cards no primary.
+ */
+[data-workspace-primary='compact'] .admin-products-hub,
+[data-workspace-primary='compact'] .admin-kits-hub,
+[data-workspace-primary='compact'] .admin-applications-hub {
+  overflow-x: hidden;
+}
+
+[data-workspace-primary='compact'] .admin-products-list-mobile,
+[data-workspace-primary='compact'] .admin-kits-list-mobile,
+[data-workspace-primary='compact'] .admin-applications-list-mobile {
+  display: block;
+}
+
+[data-workspace-primary='compact'] .admin-products-list-desktop,
+[data-workspace-primary='compact'] .admin-kits-list-desktop,
+[data-workspace-primary='compact'] .admin-applications-list-desktop {
+  display: none;
+}

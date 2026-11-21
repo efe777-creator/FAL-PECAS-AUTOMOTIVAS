@@ -68,11 +68,11 @@ export function AdminProductKitUsageSection({ productId }: Props) {
           {rows.map((row) => (
             <li
               key={row.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
             >
               <div>
                 <Link
-                  to={`/admin/produtos/${row.kitProductId}`}
+                  to={`/admin/kits/${row.kitProductId}`}
                   className="font-semibold text-fal-fg underline"
                 >
                   {row.kitCommercialRef || row.kitSku}

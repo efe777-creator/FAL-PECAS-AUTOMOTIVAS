@@ -1,3 +1,4 @@
+import { AdminTabs } from '@/components/admin/AdminTabs'
 import { AdminProductApplicationsSection } from '@/components/admin/AdminProductApplicationsSection'
 import { AdminProductEquivalenceSection } from '@/components/admin/AdminProductEquivalenceSection'
 import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
@@ -63,6 +64,8 @@ import type {
   Supplier,
 } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
+
+type FormTab = 'geral' | 'precificacao' | 'midia' | 'aplicacoes' | 'logistica' | 'relacoes'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 export function AdminProductFormPage() {
@@ -73,6 +76,7 @@ export function AdminProductFormPage() {
   const toast = useToast()
 
   /** Flag simples: qualquer edição no formulário "Geral" marca como não salvo. */
+  const [formTab, setFormTab] = useState<FormTab>('geral')
   const [dirty, setDirty] = useState(false)
   useUnsavedChangesBlocker(dirty, {
     message:
@@ -488,6 +492,15 @@ export function AdminProductFormPage() {
 
   if (loading) return <Loading label="Carregando produto…" />
 
+  const tabItems = [
+    { id: 'geral', label: 'Geral', onSelect: () => setFormTab('geral') },
+    { id: 'precificacao', label: 'Precificação', onSelect: () => setFormTab('precificacao') },
+    { id: 'midia', label: 'Mídia', onSelect: () => setFormTab('midia') },
+    { id: 'aplicacoes', label: 'Aplicações', onSelect: () => setFormTab('aplicacoes') },
+    { id: 'logistica', label: 'Logística', onSelect: () => setFormTab('logistica') },
+    { id: 'relacoes', label: 'Relações', onSelect: () => setFormTab('relacoes') },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
@@ -497,11 +510,14 @@ export function AdminProductFormPage() {
       </div>
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
 
+      <AdminTabs items={tabItems} activeId={formTab} aria-label="Abas do cadastro de produto" />
+
       <form
         onSubmit={saveGeneral}
         onChange={() => setDirty(true)}
         className="space-y-4 rounded-[14px] border border-fal-line bg-fal-surface p-4"
       >
+        <div className={formTab === 'geral' ? 'space-y-4' : 'hidden'}>
         <h2 className="font-extrabold text-fal-fg">Geral</h2>
         {dirty ? (
           <p className="m-0 text-xs font-semibold text-fal-yellow-dark">
@@ -638,11 +654,14 @@ export function AdminProductFormPage() {
           </label>
         </div>
 
+        </div>
+
+        <div className={formTab === 'precificacao' ? 'space-y-4' : 'hidden'}>
         <h2 className="pt-2 font-extrabold text-fal-fg">Precificação</h2>
         <p className="m-0 text-sm text-fal-muted">
           Preços de lista são só leitura aqui. Para alterar, use{' '}
           <Link to="/admin/precos" className="font-semibold text-fal-fg underline">
-            Listas de preços
+            Listas de preço
           </Link>
           . Neste formulário você pode apenas <strong>ativar ou editar o preço avulso</strong> (exceção).
         </p>
@@ -711,7 +730,7 @@ export function AdminProductFormPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="m-0 text-sm font-extrabold text-fal-fg">Preços nas listas</h3>
             <Link to="/admin/precos" className="text-xs font-semibold text-fal-fg underline">
-              Gerenciar em Listas de preços
+              Gerenciar em Listas de preço
             </Link>
           </div>
           {!isNew && productId ? (
@@ -818,6 +837,9 @@ export function AdminProductFormPage() {
           ) : null}
         </div>
 
+        </div>
+
+        <div className={formTab === 'logistica' ? 'space-y-4' : 'hidden'}>
         <h2 className="pt-2 font-extrabold text-fal-fg">Frete próprio — capacidade e veículo</h2>
         <p className="m-0 text-xs text-fal-muted">
           Mesmo campo usado em{' '}
@@ -1021,25 +1043,38 @@ export function AdminProductFormPage() {
           </div>
         ) : null}
 
+        </div>
+
+        <div className={formTab === 'geral' ? 'space-y-4' : 'hidden'}>
         <h2 className="pt-2 font-extrabold text-fal-fg">Descrição</h2>
         <Input label="Descrição curta" value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} />
         <label className="block text-sm">
           <span className="mb-1 block font-semibold">Descrição completa</span>
           <textarea className="min-h-28 w-full rounded-[10px] border border-fal-line px-3 py-2" value={description} onChange={(e) => setDescription(e.target.value)} />
         </label>
+        </div>
 
-        <Button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar produto'}</Button>
+        {(formTab === 'geral' || formTab === 'precificacao' || formTab === 'logistica') ? (
+          <Button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar produto'}</Button>
+        ) : null}
       </form>
 
-      {productId ? (
-        <>
+      {productId && formTab === 'midia' ? (
+        <AdminProductImagesSection productId={productId} />
+      ) : null}
+      {productId && formTab === 'aplicacoes' ? (
+        <AdminProductApplicationsSection productId={productId} />
+      ) : null}
+      {productId && formTab === 'relacoes' ? (
+        <div className="space-y-4">
           <AdminProductKitUsageSection productId={productId} />
-          <AdminProductImagesSection productId={productId} />
           <AdminProductRelatedSection productId={productId} />
           <AdminProductEquivalenceSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />
-          <AdminProductApplicationsSection productId={productId} />
-        </>
+        </div>
+      ) : null}
+      {!productId && (formTab === 'midia' || formTab === 'aplicacoes' || formTab === 'relacoes') ? (
+        <p className="m-0 text-sm text-fal-muted">Salve o produto na aba Geral para liberar esta seção.</p>
       ) : null}
     </div>
   )

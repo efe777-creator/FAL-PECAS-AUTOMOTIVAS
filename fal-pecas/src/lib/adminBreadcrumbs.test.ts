@@ -30,7 +30,7 @@ describe('buildAdminBreadcrumbs', () => {
     const id = 'f6c08149-aaaa-bbbb-cccc-ddddeeeeffff'
     expect(buildAdminBreadcrumbs(`/admin/pedidos/${id}`)).toEqual([
       { to: '/admin', label: 'Painel' },
-      { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/pedidos', label: 'Central de pedidos' },
       { label: 'Detalhe' },
     ])
   })
@@ -46,8 +46,15 @@ describe('buildAdminBreadcrumbs', () => {
   it('área de pedidos', () => {
     expect(buildAdminBreadcrumbs('/admin/pedidos/separacao')).toEqual([
       { to: '/admin', label: 'Painel' },
-      { to: '/admin/pedidos', label: 'Pedidos' },
+      { to: '/admin/pedidos', label: 'Central de pedidos' },
       { label: 'Separação' },
+    ])
+  })
+
+  it('listas de preço', () => {
+    expect(buildAdminBreadcrumbs('/admin/precos')).toEqual([
+      { to: '/admin', label: 'Painel' },
+      { label: 'Listas de preço' },
     ])
   })
 })

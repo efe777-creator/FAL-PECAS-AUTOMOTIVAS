@@ -8,7 +8,6 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
-  PRICE_LIST_KITS_MANUAL_ID,
   adminGetKitPricePreview,
   adminSetKitPriceModeAndSync,
   type KitPricePreview,
@@ -23,6 +22,57 @@ type RowState = {
   preview: KitPricePreview | null
   draft: string
   busy: boolean
+}
+
+function ModePill({ mode }: { mode: 'auto' | 'manual' }) {
+  return (
+    <span
+      className={
+        mode === 'manual'
+          ? 'inline-flex rounded-md border border-fal-yellow/50 bg-fal-yellow/25 px-2 py-0.5 text-[11px] font-bold text-fal-fg'
+          : 'inline-flex rounded-md border border-fal-line bg-fal-bg px-2 py-0.5 text-[11px] font-bold text-fal-muted'
+      }
+    >
+      {mode === 'manual' ? 'Manual' : 'Automático'}
+    </span>
+  )
+}
+
+function RowActions({
+  row,
+  mode,
+  onSaveManual,
+  onRecalcAuto,
+  onSwitchManual,
+}: {
+  row: RowState
+  mode: 'auto' | 'manual'
+  onSaveManual: () => void
+  onRecalcAuto: () => void
+  onSwitchManual: () => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {mode === 'manual' ? (
+        <Button type="button" size="sm" disabled={row.busy} onClick={onSaveManual}>
+          {row.busy ? '…' : 'Salvar manual'}
+        </Button>
+      ) : (
+        <Button type="button" size="sm" variant="outline" disabled={row.busy} onClick={onRecalcAuto}>
+          {row.busy ? '…' : 'Recalcular auto'}
+        </Button>
+      )}
+      {mode === 'auto' ? (
+        <Button type="button" size="sm" variant="light" disabled={row.busy} onClick={onSwitchManual}>
+          Mudar para manual
+        </Button>
+      ) : (
+        <Button type="button" size="sm" variant="light" disabled={row.busy} onClick={onRecalcAuto}>
+          Voltar ao automático
+        </Button>
+      )}
+    </div>
+  )
 }
 
 export function AdminKitPricesPage() {
@@ -92,7 +142,7 @@ export function AdminKitPricesPage() {
         kit: { ...row.kit, kitPriceMode: 'manual', price: preview.effectiveHint },
         busy: false,
       })
-      toast.push('Preço manual salvo na lista Preços dos kits.', 'success')
+      toast.push('Preço manual salvo.', 'success')
     } catch (e) {
       patchRow(row.kit.id, { busy: false })
       toast.push(toUserMessage(e, 'Falha ao salvar'), 'error')
@@ -113,7 +163,7 @@ export function AdminKitPricesPage() {
         kit: { ...row.kit, kitPriceMode: 'auto', price: preview.effectiveHint },
         busy: false,
       })
-      toast.push('Preço automático recalculado (soma → Base).', 'success')
+      toast.push('Preço automático recalculado.', 'success')
     } catch (e) {
       patchRow(row.kit.id, { busy: false })
       toast.push(toUserMessage(e, 'Falha ao recalcular'), 'error')
@@ -150,17 +200,16 @@ export function AdminKitPricesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="m-0 text-sm">
-            <Link to="/admin/kits" className="text-fal-muted hover:underline">
+            <Link to="/admin/kits" className="font-semibold text-fal-fg hover:underline">
               ← Kits
             </Link>
           </p>
           <h1 className="mt-1 mb-0 text-2xl font-extrabold text-fal-fg">Preços dos kits</h1>
           <p className="mt-1 mb-0 max-w-3xl text-sm text-fal-muted">
-            Lista-base operacional dos kits (slug <code>preco-kits-manual</code>). Automático e
-            manual convivem aqui; a loja continua resolvendo pela Lista Base (espelho após sync).
-            Id da lista: <code className="text-xs">{PRICE_LIST_KITS_MANUAL_ID}</code>
+            Defina se cada kit usa preço automático (soma dos itens) ou manual. O valor efetivo
+            espelha na Lista Base da loja.
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => void reload()}>
@@ -180,119 +229,148 @@ export function AdminKitPricesPage() {
       ) : null}
 
       {!loading && rows.length > 0 ? (
-        <div className="fal-admin-scroll overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-fal-bg text-fal-muted">
-              <tr>
-                <th className="px-3 py-2">Kit</th>
-                <th className="px-3 py-2">Modo</th>
-                <th className="px-3 py-2">Soma itens</th>
-                <th className="px-3 py-2">Lista kits</th>
-                <th className="px-3 py-2">Base (espelho)</th>
-                <th className="px-3 py-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const mode = row.kit.kitPriceMode === 'manual' ? 'manual' : 'auto'
-                const preview = row.preview
-                return (
-                  <tr key={row.kit.id} className="border-t border-fal-line/70 align-top">
-                    <td className="px-3 py-2">
-                      <p className="m-0 font-mono text-xs text-fal-muted">
-                        {row.kit.commercialRef ?? row.kit.sku}
-                      </p>
-                      <p className="mb-0 mt-0.5 font-semibold">{row.kit.name}</p>
-                      <Link
-                        className="text-xs font-semibold underline"
-                        to={`/admin/kits/${row.kit.id}`}
-                      >
-                        Abrir kit
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={
-                          mode === 'manual'
-                            ? 'rounded-full bg-fal-yellow/30 px-2 py-0.5 text-xs font-bold'
-                            : 'rounded-full bg-fal-bg px-2 py-0.5 text-xs font-bold'
-                        }
-                      >
-                        {mode === 'manual' ? 'Manual' : 'Automático'}
-                      </span>
+        <>
+          <div className="space-y-3 md:hidden">
+            {rows.map((row) => {
+              const mode = row.kit.kitPriceMode === 'manual' ? 'manual' : 'auto'
+              const preview = row.preview
+              return (
+                <article
+                  key={row.kit.id}
+                  className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-3"
+                >
+                  <div>
+                    <p className="m-0 font-mono text-xs text-fal-muted">
+                      {row.kit.commercialRef ?? row.kit.sku}
+                    </p>
+                    <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-fg">{row.kit.name}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ModePill mode={mode} />
                       {preview?.provisional ? (
-                        <p className="mb-0 mt-1 text-xs text-amber-800">provisório</p>
+                        <span className="text-xs font-semibold text-fal-warning">provisório</span>
                       ) : null}
-                    </td>
-                    <td className="px-3 py-2 font-semibold">
-                      {preview ? formatMoney(preview.componentsSum) : '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      {mode === 'manual' ? (
-                        <div className="w-32">
-                          <Input
-                            label=""
-                            aria-label="Preço na lista kits"
-                            value={row.draft}
-                            onChange={(e) => patchRow(row.kit.id, { draft: e.target.value })}
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-fal-muted">— (modo auto)</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 font-bold">
-                      {preview?.baseListPrice != null
-                        ? formatMoney(preview.baseListPrice)
-                        : '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col gap-1">
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="m-0 text-xs text-fal-muted">Soma itens</p>
+                      <p className="m-0 font-semibold text-fal-fg">
+                        {preview ? formatMoney(preview.componentsSum) : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="m-0 text-xs text-fal-muted">Base (loja)</p>
+                      <p className="m-0 font-bold text-fal-fg">
+                        {preview?.baseListPrice != null
+                          ? formatMoney(preview.baseListPrice)
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                  {mode === 'manual' ? (
+                    <div className="max-w-[11rem]">
+                      <Input
+                        label="Preço manual"
+                        aria-label="Preço na lista kits"
+                        value={row.draft}
+                        onChange={(e) => patchRow(row.kit.id, { draft: e.target.value })}
+                      />
+                    </div>
+                  ) : null}
+                  <RowActions
+                    row={row}
+                    mode={mode}
+                    onSaveManual={() => void saveManual(row)}
+                    onRecalcAuto={() => void recalculateAuto(row)}
+                    onSwitchManual={() => void switchToManual(row)}
+                  />
+                  <Link
+                    className="inline-flex text-sm font-semibold text-fal-fg underline"
+                    to={`/admin/kits/${row.kit.id}`}
+                  >
+                    Abrir kit
+                  </Link>
+                </article>
+              )
+            })}
+          </div>
+
+          <div className="fal-admin-scroll hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-fal-bg text-fal-muted">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">Kit</th>
+                  <th className="px-3 py-2 font-semibold">Modo</th>
+                  <th className="px-3 py-2 font-semibold">Soma itens</th>
+                  <th className="px-3 py-2 font-semibold">Preço manual</th>
+                  <th className="px-3 py-2 font-semibold">Base (loja)</th>
+                  <th className="px-3 py-2 font-semibold">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const mode = row.kit.kitPriceMode === 'manual' ? 'manual' : 'auto'
+                  const preview = row.preview
+                  return (
+                    <tr key={row.kit.id} className="border-t border-fal-line/70 align-top">
+                      <td className="px-3 py-2.5">
+                        <p className="m-0 font-mono text-xs text-fal-muted">
+                          {row.kit.commercialRef ?? row.kit.sku}
+                        </p>
+                        <p className="mb-0 mt-0.5 font-semibold text-fal-fg">{row.kit.name}</p>
+                        <Link
+                          className="text-xs font-semibold text-fal-fg underline"
+                          to={`/admin/kits/${row.kit.id}`}
+                        >
+                          Abrir kit
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <ModePill mode={mode} />
+                        {preview?.provisional ? (
+                          <p className="mb-0 mt-1 text-xs font-semibold text-fal-warning">
+                            provisório
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 font-semibold text-fal-fg">
+                        {preview ? formatMoney(preview.componentsSum) : '—'}
+                      </td>
+                      <td className="px-3 py-2.5">
                         {mode === 'manual' ? (
-                          <Button
-                            type="button"
-                            disabled={row.busy}
-                            onClick={() => void saveManual(row)}
-                          >
-                            {row.busy ? '…' : 'Salvar manual'}
-                          </Button>
+                          <div className="w-32">
+                            <Input
+                              label=""
+                              aria-label="Preço na lista kits"
+                              value={row.draft}
+                              onChange={(e) => patchRow(row.kit.id, { draft: e.target.value })}
+                            />
+                          </div>
                         ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={row.busy}
-                            onClick={() => void recalculateAuto(row)}
-                          >
-                            {row.busy ? '…' : 'Recalcular auto'}
-                          </Button>
+                          <span className="text-fal-muted">—</span>
                         )}
-                        {mode === 'auto' ? (
-                          <Button
-                            type="button"
-                            variant="light"
-                            disabled={row.busy}
-                            onClick={() => void switchToManual(row)}
-                          >
-                            Mudar para manual
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="light"
-                            disabled={row.busy}
-                            onClick={() => void recalculateAuto(row)}
-                          >
-                            Voltar ao automático
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="px-3 py-2.5 font-bold text-fal-fg">
+                        {preview?.baseListPrice != null
+                          ? formatMoney(preview.baseListPrice)
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <RowActions
+                          row={row}
+                          mode={mode}
+                          onSaveManual={() => void saveManual(row)}
+                          onRecalcAuto={() => void recalculateAuto(row)}
+                          onSwitchManual={() => void switchToManual(row)}
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : null}
     </div>
   )

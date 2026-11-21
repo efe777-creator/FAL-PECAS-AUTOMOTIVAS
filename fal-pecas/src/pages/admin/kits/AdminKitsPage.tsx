@@ -1,4 +1,7 @@
-import { Button } from '@/components/common/Button'
+import { KitWorkSurface } from '@/components/admin/kits/KitWorkSurface'
+import { KITS_OPEN_GUIDE_KEY } from '@/components/admin/products/ProductWorkSurface'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { Button, buttonClassName } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
@@ -12,12 +15,14 @@ import {
   type KitPricePreview,
 } from '@/services/admin/adminKitPricingService'
 import {
+  adminGetProduct,
   adminListProductsPage,
   adminReleaseProductToStore,
   adminSetProductStatus,
 } from '@/services/admin/adminProductService'
+import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
 import type { Product } from '@/types'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const PAGE = 40
@@ -25,7 +30,11 @@ const PAGE = 40
 export function AdminKitsPage() {
   useDocumentTitle('Kits | Admin FAL')
   const toast = useToast()
+  const splitTabs = useIdSplitTabs()
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  const [kitCache, setKitCache] = useState<Record<string, Product>>({})
   const [q, setQ] = useState('')
+  const [status, setStatus] = useState('')
   const [items, setItems] = useState<Product[]>([])
   const [previews, setPreviews] = useState<Record<string, KitPricePreview | undefined>>({})
   const [hasMore, setHasMore] = useState(false)
@@ -57,10 +66,16 @@ export function AdminKitsPage() {
       const { items: rows, hasMore: more } = await adminListProductsPage({
         productKind: 'kit',
         q: q.trim() || undefined,
+        status: status || undefined,
         limit: PAGE,
         offset: 0,
       })
       setItems(rows)
+      setKitCache((prev) => {
+        const next = { ...prev }
+        for (const k of rows) next[k.id] = k
+        return next
+      })
       setHasMore(more)
       setOffset(rows.length)
       void loadPreviews(rows)
@@ -69,7 +84,7 @@ export function AdminKitsPage() {
     } finally {
       setLoading(false)
     }
-  }, [q, loadPreviews, toast])
+  }, [q, status, loadPreviews, toast])
 
   useEffect(() => {
     void reload()
@@ -81,10 +96,16 @@ export function AdminKitsPage() {
       const { items: rows, hasMore: more } = await adminListProductsPage({
         productKind: 'kit',
         q: q.trim() || undefined,
+        status: status || undefined,
         limit: PAGE,
         offset,
       })
       setItems((prev) => [...prev, ...rows])
+      setKitCache((prev) => {
+        const next = { ...prev }
+        for (const k of rows) next[k.id] = k
+        return next
+      })
       setHasMore(more)
       setOffset((n) => n + rows.length)
       void loadPreviews(rows)
@@ -118,6 +139,47 @@ export function AdminKitsPage() {
     }
   }
 
+  const kitsById = useMemo(() => {
+    const map = { ...kitCache }
+    for (const k of items) map[k.id] = k
+    return map
+  }, [items, kitCache])
+
+  const focusedKit = useMemo(() => {
+    if (!splitTabs.activeId) return null
+    return kitsById[splitTabs.activeId] ?? null
+  }, [kitsById, splitTabs.activeId])
+
+  const contextualOpen = quickCreateOpen || splitTabs.hasOpen
+
+  function openKitGuia(kitId: string) {
+    setQuickCreateOpen(false)
+    splitTabs.openTab(kitId)
+  }
+
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem(KITS_OPEN_GUIDE_KEY)?.trim()
+      if (!pending) return
+      sessionStorage.removeItem(KITS_OPEN_GUIDE_KEY)
+      openKitGuia(pending)
+      void adminGetProduct(pending)
+        .then((kit) => {
+          if (kit) setKitCache((prev) => ({ ...prev, [kit.id]: kit }))
+        })
+        .catch(() => undefined)
+    } catch {
+      /* ignore */
+    }
+    // só no mount — ponte a partir da guia Produtos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function openQuickCreate() {
+    splitTabs.closeAll()
+    setQuickCreateOpen(true)
+  }
+
   async function toggleArchive(kit: Product) {
     try {
       const next = kit.status === 'archived' ? 'draft' : 'archived'
@@ -129,8 +191,8 @@ export function AdminKitsPage() {
     }
   }
 
-  return (
-    <div className="space-y-4">
+  const primary = (
+    <div className="admin-kits-hub space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Kits</h1>
@@ -140,20 +202,20 @@ export function AdminKitsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/admin/kits/precos">
-            <Button type="button" variant="outline">
-              Preços dos kits
-            </Button>
+          <Link to="/admin/kits/precos" className={buttonClassName({ variant: 'outline' })}>
+            Preços dos kits
           </Link>
-          <Link to="/admin/produtos/importar-kits">
-            <Button type="button" variant="outline">
-              Importar composição
-            </Button>
+          <Link
+            to="/admin/produtos/importar-kits"
+            className={buttonClassName({ variant: 'outline' })}
+          >
+            Importar composição
           </Link>
-          <Link to="/admin/kits/novo">
-            <Button type="button" variant="primary">
-              Novo kit
-            </Button>
+          <Button type="button" variant="primary" onClick={openQuickCreate}>
+            Novo na guia
+          </Button>
+          <Link to="/admin/kits/novo" className={buttonClassName({ variant: 'light' })}>
+            Cadastro completo
           </Link>
         </div>
       </div>
@@ -173,6 +235,19 @@ export function AdminKitsPage() {
             placeholder="Nome, código ou SKU"
           />
         </div>
+        <label className="block min-w-[140px] text-sm">
+          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
+          <select
+            className="w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 text-fal-fg"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="">Todos</option>
+            <option value="draft">Rascunho</option>
+            <option value="published">Publicado</option>
+            <option value="archived">Arquivado</option>
+          </select>
+        </label>
         <Button type="submit" variant="outline">
           Filtrar
         </Button>
@@ -184,14 +259,14 @@ export function AdminKitsPage() {
         <EmptyState
           title="Nenhum kit"
           description="Crie o primeiro kit com código, descrição e composição."
-          actionLabel="Novo kit"
+          actionLabel="Cadastro completo"
           actionTo="/admin/kits/novo"
         />
       ) : null}
 
       {!loading && items.length > 0 ? (
         <>
-          <div className="space-y-3 md:hidden">
+          <div className="admin-kits-list-mobile space-y-3 md:hidden">
             {items.map((k) => {
               const prev = previews[k.id]
               return (
@@ -209,26 +284,49 @@ export function AdminKitsPage() {
                     {k.available ? 'Disponível' : 'Indisponível'}
                     {k.kitCompatReviewRequired ? ' · Revisar PVC' : ''}
                   </p>
-                  <p className="mb-0 mt-1 text-sm font-bold">
+                  <p className="mb-0 mt-1 text-sm font-bold text-fal-fg">
                     {prev ? formatMoney(prev.effectiveHint) : formatMoney(k.price)}
                     {prev?.provisional ? (
-                      <span className="ml-2 text-xs font-semibold text-amber-800">provisório</span>
+                      <span className="ml-2 text-xs font-semibold text-fal-warning">provisório</span>
+                    ) : null}
+                    {k.kitCompatReviewRequired ? (
+                      <span className="ml-2 text-xs font-bold text-fal-warning">PVC</span>
                     ) : null}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-extrabold text-fal-navy-dark"
+                      onClick={() => openKitGuia(k.id)}
+                    >
+                      {splitTabs.openIds.includes(k.id)
+                        ? 'Na guia'
+                        : splitTabs.hasOpen
+                          ? '+ Guia'
+                          : 'Abrir guia'}
+                    </button>
                     <Link
-                      className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
+                      className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-fg"
                       to={`/admin/kits/${k.id}`}
                     >
-                      Editar
+                      Cadastro
                     </Link>
                     <Button
                       type="button"
+                      size="sm"
                       variant="outline"
                       disabled={releasingId === k.id || k.available}
                       onClick={() => void liberar(k)}
                     >
                       {releasingId === k.id ? 'Liberando…' : 'Liberar'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="light"
+                      onClick={() => void toggleArchive(k)}
+                    >
+                      {k.status === 'archived' ? 'Desarquivar' : 'Arquivar'}
                     </Button>
                   </div>
                 </article>
@@ -236,7 +334,7 @@ export function AdminKitsPage() {
             })}
           </div>
 
-          <div className="fal-admin-scroll hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+          <div className="admin-kits-list-desktop fal-admin-scroll hidden overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-fal-bg text-fal-muted">
                 <tr>
@@ -259,7 +357,7 @@ export function AdminKitsPage() {
                       <td className="px-3 py-2 font-semibold">
                         {k.name}
                         {k.kitCompatReviewRequired ? (
-                          <span className="ml-2 text-xs font-bold text-amber-800">PVC</span>
+                          <span className="ml-2 text-xs font-bold text-fal-warning">PVC</span>
                         ) : null}
                       </td>
                       <td className="px-3 py-2">
@@ -274,11 +372,22 @@ export function AdminKitsPage() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
-                          <Link
+                          <button
+                            type="button"
                             className="font-semibold text-fal-fg underline"
+                            onClick={() => openKitGuia(k.id)}
+                          >
+                            {splitTabs.openIds.includes(k.id)
+                              ? 'Na guia'
+                              : splitTabs.hasOpen
+                                ? '+ Guia'
+                                : 'Abrir guia'}
+                          </button>
+                          <Link
+                            className="font-semibold text-fal-muted underline"
                             to={`/admin/kits/${k.id}`}
                           >
-                            Editar
+                            Cadastro
                           </Link>
                           <button
                             type="button"
@@ -317,5 +426,52 @@ export function AdminKitsPage() {
         </>
       ) : null}
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="kits"
+      primary={primary}
+      contextualOpen={contextualOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) {
+          setQuickCreateOpen(false)
+          splitTabs.closeAll()
+        }
+      }}
+      contextualTitle={
+        quickCreateOpen
+          ? 'Novo na guia'
+          : focusedKit
+            ? focusedKit.name
+            : splitTabs.openIds.length > 1
+              ? `${splitTabs.openIds.length} kits na guia`
+              : 'Kit'
+      }
+      contextual={
+        contextualOpen ? (
+          <KitWorkSurface
+            openKitIds={splitTabs.openIds}
+            kitsById={kitsById}
+            previews={previews}
+            quickCreateOpen={quickCreateOpen}
+            onQuickCreateOpenChange={setQuickCreateOpen}
+            onCloseTab={splitTabs.closeTab}
+            onCloseAll={() => {
+              setQuickCreateOpen(false)
+              splitTabs.closeAll()
+            }}
+            onKitCreated={(kit) => {
+              setKitCache((prev) => ({ ...prev, [kit.id]: kit }))
+              void reload().then(() => openKitGuia(kit.id))
+            }}
+            onKitUpdated={() => void reload()}
+            releasingId={releasingId}
+            onLiberar={(kit) => void liberar(kit)}
+            onArchiveToggle={(kit) => void toggleArchive(kit)}
+          />
+        ) : null
+      }
+    />
   )
 }

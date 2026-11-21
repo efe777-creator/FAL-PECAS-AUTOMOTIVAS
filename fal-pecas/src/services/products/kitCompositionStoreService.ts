@@ -89,7 +89,7 @@ export async function loadStoreKitComposition(
       name: l.name,
       quantity: l.quantity,
       unitPrice: unit,
-      href: productHref({ id: l.productId, slug: l.slug, sku: l.sku }),
+      href: productHref({ id: l.productId, slug: l.slug }),
       available: l.available,
     }
   })

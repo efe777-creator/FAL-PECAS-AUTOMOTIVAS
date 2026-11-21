@@ -1,3 +1,9 @@
+import {
+  isKitsManualPriceList,
+  PriceListWorkSurface,
+  priceListsForWorkspaceGuide,
+} from '@/components/admin/prices/PriceListWorkSurface'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { PricingRuleFields } from '@/components/admin/prices/PricingRuleFields'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
@@ -7,12 +13,11 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { formatDateTime } from '@/lib/datetime'
 import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
-import { PriceListQuickAdjustPanel } from '@/pages/admin/prices/PriceListQuickAdjustPanel'
-import { PRICE_LIST_KITS_MANUAL_ID } from '@/services/admin/adminKitPricingService'
 import {
   adminDeletePriceList,
   adminDuplicatePriceList,
@@ -30,7 +35,7 @@ import {
   type PriceListsOverview,
 } from '@/services/admin/adminPriceListService'
 import type { PricingMethod } from '@/services/pricing/pricingFormulas'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 type FormMode = 'closed' | 'create' | 'edit'
@@ -44,9 +49,10 @@ function canManagePricing(role: string | undefined): boolean {
 }
 
 export function AdminPriceListsPage() {
-  useDocumentTitle('Preços | Admin FAL')
+  useDocumentTitle('Listas de preço | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
+  const splitTabs = useIdSplitTabs()
   const allowed = canManagePricing(user?.role)
   const [overview, setOverview] = useState<PriceListsOverview>(emptyOverview())
   const [loading, setLoading] = useState(true)
@@ -56,7 +62,6 @@ export function AdminPriceListsPage() {
   const [editing, setEditing] = useState<PriceListOverviewRow | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardListId, setWizardListId] = useState<string | undefined>(undefined)
-  const [panelListId, setPanelListId] = useState('')
   const [forceWithoutPrice, setForceWithoutPrice] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -69,8 +74,19 @@ export function AdminPriceListsPage() {
   const [listExtraCostPercent, setListExtraCostPercent] = useState('0')
   const [formNotice, setFormNotice] = useState<string | null>(null)
 
-  const formRef = useRef<HTMLFormElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+
+  const guideLists = useMemo(
+    () => priceListsForWorkspaceGuide(overview.lists),
+    [overview.lists],
+  )
+
+  const focusedList = useMemo(() => {
+    if (!splitTabs.activeId) return null
+    return guideLists.find((l) => l.id === splitTabs.activeId) ?? null
+  }, [guideLists, splitTabs.activeId])
+
+  const contextualOpen = splitTabs.hasOpen || formMode !== 'closed'
 
   function pushError(msg: string) {
     setError(msg)
@@ -114,15 +130,16 @@ export function AdminPriceListsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function focusForm() {
+  useEffect(() => {
+    if (formMode === 'closed') return
     window.requestAnimationFrame(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       nameInputRef.current?.focus()
       nameInputRef.current?.select()
     })
-  }
+  }, [formMode])
 
   function openCreate() {
+    splitTabs.closeAll()
     setFormMode('create')
     setEditing(null)
     setName('')
@@ -133,10 +150,11 @@ export function AdminPriceListsPage() {
     setListExtraCostPercent('0')
     setFormNotice(null)
     setAdvancedOpen(false)
-    focusForm()
   }
 
   function openConfigure(list: PriceListOverviewRow) {
+    if (isKitsManualPriceList(list)) return
+    splitTabs.closeAll()
     setFormMode('edit')
     setEditing(list)
     setName(list.name)
@@ -146,9 +164,16 @@ export function AdminPriceListsPage() {
     setPricingPercent(String(list.pricingPercent ?? 0))
     setListExtraCostPercent(String(list.listExtraCostPercent ?? 0))
     setFormNotice(null)
-    setAdvancedOpen(true)
+    setAdvancedOpen(false)
     setMenuOpenId(null)
-    focusForm()
+  }
+
+  function openListGuide(list: PriceListOverviewRow) {
+    if (isKitsManualPriceList(list)) return
+    setFormMode('closed')
+    setFormNotice(null)
+    splitTabs.openTab(list.id)
+    setMenuOpenId(null)
   }
 
   function closeForm() {
@@ -156,6 +181,11 @@ export function AdminPriceListsPage() {
     setEditing(null)
     setAdvancedOpen(false)
     setFormNotice(null)
+  }
+
+  function closeContextual() {
+    closeForm()
+    splitTabs.closeAll()
   }
 
   async function onSubmit(e: FormEvent) {
@@ -286,6 +316,7 @@ export function AdminPriceListsPage() {
     try {
       await adminDeletePriceList(list.id)
       if (editing?.id === list.id) closeForm()
+      if (splitTabs.activeId === list.id) splitTabs.closeTab(list.id)
       await reloadOverviewQuiet()
       pushOk('Lista excluída.')
     } catch (err) {
@@ -301,13 +332,111 @@ export function AdminPriceListsPage() {
     setMenuOpenId(null)
   }
 
-  return (
+  const activeGuideListId = splitTabs.activeId ?? ''
+
+  const formGuide = (
+    <div className="flex h-full min-h-0 flex-col gap-3 p-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-fal-line pb-2">
+        <p className="m-0 text-xs font-semibold text-fal-muted">
+          {formMode === 'edit' ? 'Configurar lista na guia' : 'Nova lista na guia'}
+        </p>
+        <button
+          type="button"
+          className="text-xs font-semibold text-fal-muted underline"
+          onClick={closeContextual}
+        >
+          Fechar guia
+        </button>
+      </div>
+      <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2">
+        <Input
+          ref={nameInputRef}
+          label="Nome da lista"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+        <label className="block text-sm">
+          <span className="mb-1 block font-semibold text-fal-fg">Status</span>
+          <select
+            className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as PriceListStatus)}
+          >
+            <option value="draft">Rascunho</option>
+            <option value="active">Ativa</option>
+            <option value="inactive">Inativa</option>
+          </select>
+        </label>
+        <label className="block text-sm md:col-span-2">
+          <span className="mb-1 block font-semibold text-fal-fg">Descrição</span>
+          <textarea
+            className="min-h-[72px] w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+
+        <div className="md:col-span-2">
+          <button
+            type="button"
+            className="text-sm font-semibold text-fal-fg underline"
+            onClick={() => setAdvancedOpen((v) => !v)}
+          >
+            {advancedOpen ? '▾' : '▸'} Avançado — regra de formação
+          </button>
+          {advancedOpen ? (
+            <div className="mt-3 space-y-3">
+              <PricingRuleFields
+                method={pricingMethod}
+                percent={pricingPercent}
+                extraCostPercent={listExtraCostPercent}
+                hidePercentWhenFixed
+                onMethod={setPricingMethod}
+                onPercent={setPricingPercent}
+                onExtraCostPercent={setListExtraCostPercent}
+              />
+              {editing ? (
+                <p className="text-sm text-fal-muted">
+                  Preferir configuração avançada na tela completa?{' '}
+                  <Link
+                    className="font-semibold text-fal-fg underline"
+                    to={`/admin/precos/${editing.id}?tab=config`}
+                  >
+                    Abrir configuração na lista
+                  </Link>
+                  {' · '}
+                  <Link
+                    className="font-semibold text-fal-fg underline"
+                    to={`/admin/precos/${editing.id}?tab=formacao`}
+                  >
+                    Formação
+                  </Link>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex gap-2 md:col-span-2">
+          <Button type="submit" disabled={busy}>
+            {formMode === 'edit' ? 'Salvar' : 'Criar lista'}
+          </Button>
+          <Button type="button" variant="light" onClick={closeContextual} disabled={busy}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+
+  const primary = (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-fg">Listas de preços</h1>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Listas de preço</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Consulte e ajuste preços da lista selecionada. {PRICE_LIST_LAYERS_HINT} Para
+            Consulte e ajuste preços da lista selecionada na guia. {PRICE_LIST_LAYERS_HINT} Para
             classificar um produto (Categoria / Grupo / Subgrupo), abra o cadastro em{' '}
             <Link className="font-semibold text-fal-fg underline" to="/admin/produtos">
               Produtos
@@ -326,6 +455,18 @@ export function AdminPriceListsPage() {
           <Button type="button" variant="light" onClick={openCreate} disabled={busy}>
             + Nova lista
           </Button>
+          {overview.lists.some((l) => l.id === PRICE_LIST_BASE_ID) ? (
+            <Button
+              type="button"
+              onClick={() => {
+                const base = overview.lists.find((l) => l.id === PRICE_LIST_BASE_ID)
+                if (base) openListGuide(base)
+              }}
+              disabled={busy}
+            >
+              Abrir guia Base
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -359,7 +500,9 @@ export function AdminPriceListsPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {formNotice ? <p className="text-sm text-amber-800">{formNotice}</p> : null}
+      {formNotice && formMode === 'closed' ? (
+        <p className="text-sm text-amber-800">{formNotice}</p>
+      ) : null}
       {loading ? <Loading label="Carregando listas…" /> : null}
 
       <div>
@@ -395,213 +538,144 @@ export function AdminPriceListsPage() {
                   </td>
                 </tr>
               ) : null}
-              {overview.lists.map((list) => (
-                <tr
-                  key={list.id}
-                  className={`border-b border-fal-line/70 ${
-                    panelListId === list.id ? 'bg-fal-yellow/15' : ''
-                  }`}
-                >
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-fal-fg">
-                      {list.name}
-                      {list.id === PRICE_LIST_KITS_MANUAL_ID ||
-                      list.slug === 'preco-kits-manual' ? (
-                        <span className="ml-2 rounded-full bg-fal-yellow/40 px-2 py-0.5 text-xs font-bold text-fal-navy-dark">
-                          Kits
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="text-xs text-fal-muted">
-                      {list.slug}
-                      {list.isDefault ? ' · padrão' : ''}
-                    </div>
-                    {list.id === PRICE_LIST_KITS_MANUAL_ID ||
-                    list.slug === 'preco-kits-manual' ? (
-                      <Link
-                        className="mt-1 inline-block text-xs font-semibold underline"
-                        to="/admin/kits/precos"
-                      >
-                        Gerir no hub Kits
-                      </Link>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2">{priceListStatusLabel(list.status)}</td>
-                  <td className="hidden px-3 py-2 md:table-cell">
-                    {pricingMethodLabel(list.pricingMethod)}
-                  </td>
-                  <td className="hidden px-3 py-2 md:table-cell">
-                    {pricingRuleLabel(list.pricingMethod, list.pricingPercent)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{list.itemCount ?? 0}</td>
-                  <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
-                    {list.withPriceCount}
-                  </td>
-                  <td className="hidden px-3 py-2 text-xs text-fal-muted lg:table-cell">
-                    {list.updatedAt ? formatDateTime(list.updatedAt) : '—'}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="relative flex flex-wrap items-center gap-2">
-                      <Link
-                        className="text-sm font-extrabold text-fal-fg underline"
-                        to={`/admin/precos/${list.id}?tab=produtos`}
-                      >
-                        Abrir
-                      </Link>
-                      <button
-                        type="button"
-                        className="text-sm font-semibold text-fal-fg underline"
-                        disabled={busy}
-                        onClick={() => openConfigure(list)}
-                      >
-                        Configurar
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-fg"
-                        disabled={busy}
-                        aria-label="Mais ações"
-                        onClick={() =>
-                          setMenuOpenId((menuId) => (menuId === list.id ? null : list.id))
-                        }
-                      >
-                        ⋯
-                      </button>
-                      {menuOpenId === list.id ? (
-                        <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-fal-surface p-2 shadow-md">
+              {overview.lists.map((list) => {
+                const kitsManual = isKitsManualPriceList(list)
+                const onGuide = splitTabs.openIds.includes(list.id)
+                const highlighted = splitTabs.activeId === list.id && formMode === 'closed'
+                return (
+                  <tr
+                    key={list.id}
+                    className={`border-b border-fal-line/70 ${
+                      highlighted ? 'bg-fal-yellow/15' : ''
+                    }`}
+                  >
+                    <td className="px-3 py-2">
+                      <div className="font-semibold text-fal-fg">
+                        {list.name}
+                        {kitsManual ? (
+                          <span className="ml-2 rounded-full bg-fal-yellow/40 px-2 py-0.5 text-xs font-bold text-fal-navy-dark">
+                            Kits
+                          </span>
+                        ) : null}
+                        {onGuide ? (
+                          <span className="ml-2 text-xs font-semibold text-fal-muted">Na guia</span>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-fal-muted">
+                        {list.slug}
+                        {list.isDefault ? ' · padrão' : ''}
+                        {kitsManual ? ' · só hub Kits' : ''}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">{priceListStatusLabel(list.status)}</td>
+                    <td className="hidden px-3 py-2 md:table-cell">
+                      {pricingMethodLabel(list.pricingMethod)}
+                    </td>
+                    <td className="hidden px-3 py-2 md:table-cell">
+                      {pricingRuleLabel(list.pricingMethod, list.pricingPercent)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{list.itemCount ?? 0}</td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
+                      {list.withPriceCount}
+                    </td>
+                    <td className="hidden px-3 py-2 text-xs text-fal-muted lg:table-cell">
+                      {list.updatedAt ? formatDateTime(list.updatedAt) : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="relative flex flex-wrap items-center gap-2">
+                        {kitsManual ? (
+                          <Link
+                            className="text-sm font-extrabold text-fal-fg underline"
+                            to="/admin/kits/precos"
+                          >
+                            Preços dos kits
+                          </Link>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="text-sm font-extrabold text-fal-fg underline"
+                              disabled={busy}
+                              onClick={() => openListGuide(list)}
+                            >
+                              {onGuide
+                                ? 'Na guia'
+                                : splitTabs.hasOpen
+                                  ? '+ Guia'
+                                  : 'Abrir guia'}
+                            </button>
+                            <Link
+                              className="text-sm font-semibold text-fal-muted underline"
+                              to={`/admin/precos/${list.id}?tab=produtos`}
+                            >
+                              Lista completa
+                            </Link>
+                          </>
+                        )}
+                        {!kitsManual ? (
                           <button
                             type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
-                            onClick={() => openWizard(list.id)}
+                            className="text-sm font-semibold text-fal-fg underline"
+                            disabled={busy}
+                            onClick={() => openConfigure(list)}
                           >
-                            Importar
+                            Configurar
                           </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
-                            onClick={() => void onDuplicate(list)}
-                          >
-                            Duplicar
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
-                            onClick={() => void onToggleStatus(list)}
-                          >
-                            {list.status === 'active' ? 'Inativar' : 'Ativar'}
-                          </button>
-                          <button
-                            type="button"
-                            className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-red-700 hover:bg-fal-bg"
-                            onClick={() => void onDelete(list)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        ) : null}
+                        <button
+                          type="button"
+                          className="rounded border border-fal-line px-2 py-0.5 text-sm font-bold text-fal-fg"
+                          disabled={busy}
+                          aria-label="Mais ações"
+                          onClick={() =>
+                            setMenuOpenId((menuId) => (menuId === list.id ? null : list.id))
+                          }
+                        >
+                          ⋯
+                        </button>
+                        {menuOpenId === list.id ? (
+                          <div className="absolute right-0 top-8 z-10 min-w-[140px] rounded-[10px] border border-fal-line bg-fal-surface p-2 shadow-md">
+                            {!kitsManual ? (
+                              <button
+                                type="button"
+                                className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
+                                onClick={() => openWizard(list.id)}
+                              >
+                                Importar
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
+                              onClick={() => void onDuplicate(list)}
+                            >
+                              Duplicar
+                            </button>
+                            <button
+                              type="button"
+                              className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-fal-fg hover:bg-fal-bg"
+                              onClick={() => void onToggleStatus(list)}
+                            >
+                              {list.status === 'active' ? 'Inativar' : 'Ativar'}
+                            </button>
+                            <button
+                              type="button"
+                              className="block w-full px-2 py-1.5 text-left text-sm font-semibold text-red-700 hover:bg-fal-bg"
+                              onClick={() => void onDelete(list)}
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </div>
-
-      {formMode !== 'closed' ? (
-        <form
-          ref={formRef}
-          onSubmit={onSubmit}
-          className={`grid gap-3 rounded-[14px] border bg-fal-surface p-4 md:grid-cols-2 ${
-            formMode === 'edit'
-              ? 'border-fal-yellow-dark ring-2 ring-fal-yellow/40'
-              : 'border-fal-line'
-          }`}
-        >
-          <Input
-            ref={nameInputRef}
-            label={formMode === 'edit' ? 'Configurar lista' : 'Nome da lista'}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-fal-fg">Status</span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as PriceListStatus)}
-            >
-              <option value="draft">Rascunho</option>
-              <option value="active">Ativa</option>
-              <option value="inactive">Inativa</option>
-            </select>
-          </label>
-          <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block font-semibold text-fal-fg">Descrição</span>
-            <textarea
-              className="min-h-[72px] w-full rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </label>
-
-          <div className="md:col-span-2">
-            <button
-              type="button"
-              className="text-sm font-semibold text-fal-fg underline"
-              onClick={() => setAdvancedOpen((v) => !v)}
-            >
-              {advancedOpen ? '▾' : '▸'} Avançado — regra de formação
-            </button>
-            {advancedOpen ? (
-              <div className="mt-3 space-y-3">
-                <PricingRuleFields
-                  method={pricingMethod}
-                  percent={pricingPercent}
-                  extraCostPercent={listExtraCostPercent}
-                  hidePercentWhenFixed
-                  onMethod={setPricingMethod}
-                  onPercent={setPricingPercent}
-                  onExtraCostPercent={setListExtraCostPercent}
-                />
-                {editing ? (
-                  <p className="text-sm text-fal-muted">
-                    Preferir a tela completa?{' '}
-                    <Link
-                      className="font-semibold text-fal-fg underline"
-                      to={`/admin/precos/${editing.id}?tab=formacao`}
-                    >
-                      Abrir formação na lista
-                    </Link>
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex gap-2 md:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {formMode === 'edit' ? 'Salvar' : 'Criar lista'}
-            </Button>
-            <Button type="button" variant="light" onClick={closeForm} disabled={busy}>
-              Cancelar
-            </Button>
-          </div>
-        </form>
-      ) : null}
-
-      {!loading || overview.lists.length > 0 ? (
-        <PriceListQuickAdjustPanel
-          lists={overview.lists}
-          allowed={allowed}
-          changedBy={user?.id ?? null}
-          onItemsChanged={() => void withWindowScrollPreserved(() => reloadOverviewQuiet())}
-          onListIdChange={setPanelListId}
-          forceWithoutPrice={forceWithoutPrice}
-          onRequestImport={() => openWizard(panelListId || undefined)}
-        />
-      ) : null}
 
       <PriceImportWizard
         open={wizardOpen}
@@ -612,5 +686,42 @@ export function AdminPriceListsPage() {
         onApplied={() => void reloadOverviewQuiet()}
       />
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="prices"
+      primary={primary}
+      contextualOpen={contextualOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) closeContextual()
+      }}
+      contextualTitle={
+        formMode !== 'closed'
+          ? formMode === 'create'
+            ? 'Nova lista'
+            : (editing?.name ?? 'Configurar lista')
+          : (focusedList?.name ?? 'Lista de preços')
+      }
+      contextual={
+        contextualOpen ? (
+          formMode !== 'closed' ? (
+            formGuide
+          ) : splitTabs.activeId ? (
+            <PriceListWorkSurface
+              lists={guideLists}
+              listId={activeGuideListId}
+              allowed={allowed}
+              changedBy={user?.id ?? null}
+              onItemsChanged={() => void withWindowScrollPreserved(() => reloadOverviewQuiet())}
+              onListIdChange={(id) => splitTabs.selectTab(id)}
+              forceWithoutPrice={forceWithoutPrice}
+              onRequestImport={() => openWizard(activeGuideListId || undefined)}
+              onClose={closeContextual}
+            />
+          ) : null
+        ) : null
+      }
+    />
   )
 }

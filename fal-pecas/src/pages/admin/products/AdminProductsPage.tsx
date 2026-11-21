@@ -1,9 +1,13 @@
-import { Button } from '@/components/common/Button'
+import { ProductWorkSurface } from '@/components/admin/products/ProductWorkSurface'
+import { OrderSplitTabPanels } from '@/components/admin/orders/OrderSplitTabPanels'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { Button, buttonClassName } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
+import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
 import {
   CategoryCascadeSelects,
   effectiveCategoryId,
@@ -26,6 +30,7 @@ import {
   adminApplyGlobalProductMeasures,
   adminBulkSetProductCategory,
   adminEvaluateReleaseChecklistBatch,
+  adminGetProduct,
   adminListProductsPage,
   adminReleaseProductsToStore,
   adminSetProductStatus,
@@ -38,11 +43,13 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import type { Category, Manufacturer, Product, ProductKind, VehicleModel } from '@/types'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const selectCls =
   'w-full rounded-[9px] border border-fal-line bg-fal-surface px-2 py-2.5 text-fal-fg'
+
+const FILTERS_EXPANDED_KEY = 'fal.products.filtersExpanded'
 
 const EMPTY_CASCADE: CategoryCascadeValue = {
   categoriaId: '',
@@ -50,9 +57,19 @@ const EMPTY_CASCADE: CategoryCascadeValue = {
   subgrupoId: '',
 }
 
+function readFiltersExpanded(): boolean {
+  try {
+    return sessionStorage.getItem(FILTERS_EXPANDED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function AdminProductsPage() {
   useDocumentTitle('Produtos | Admin FAL')
   const toast = useToast()
+  const splitTabs = useIdSplitTabs()
+  const [loteGuiaOpen, setLoteGuiaOpen] = useState(false)
   const [items, setItems] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
@@ -85,6 +102,8 @@ export function AdminProductsPage() {
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [nextOffset, setNextOffset] = useState(0)
+  /** Compacto por padrão — menos poluição na lista; expandir sob demanda. */
+  const [filtersExpanded, setFiltersExpanded] = useState(readFiltersExpanded)
 
   function pushError(message: string) {
     setError(message)
@@ -263,6 +282,63 @@ export function AdminProductsPage() {
     setFilterCascade(EMPTY_CASCADE)
     setWithoutImage(false)
   }
+
+  function setFiltersExpandedPersist(next: boolean) {
+    setFiltersExpanded(next)
+    try {
+      sessionStorage.setItem(FILTERS_EXPANDED_KEY, next ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const filterChips = useMemo(() => {
+    const chips: string[] = []
+    if (status) {
+      chips.push(
+        status === 'draft' ? 'Rascunho' : status === 'published' ? 'Publicado' : 'Arquivado',
+      )
+    }
+    if (productKindFilter === 'item') chips.push('Itens')
+    if (productKindFilter === 'kit') chips.push('Kits')
+    if (availableFilter === 'true') chips.push('Disponível')
+    if (availableFilter === 'false') chips.push('Indisponível')
+    if (manufacturerId) {
+      const m = manufacturers.find((x) => x.id === manufacturerId)
+      chips.push(m?.name ? `Montadora: ${m.name}` : 'Montadora')
+    }
+    if (modelId) {
+      const m = models.find((x) => x.id === modelId)
+      chips.push(m?.name ? `Modelo: ${m.name}` : 'Modelo')
+    }
+    if (versionName) chips.push(`Versão: ${versionName}`)
+    if (engine) chips.push(`Motor: ${engine}`)
+    if (withoutImage) chips.push('Sem imagem')
+    if (measureGap === 'weight') chips.push('Sem peso')
+    if (measureGap === 'dims') chips.push('Sem dimensões')
+    if (measureGap === 'any') chips.push('Sem peso/dims')
+    if (measureGap === 'pol') chips.push('Sem capacidade frete')
+    const catId = effectiveCategoryId(filterCascade)
+    if (catId) {
+      const cat = categories.find((c) => c.id === catId)
+      chips.push(cat?.name ? `Categoria: ${cat.name}` : 'Categoria')
+    }
+    return chips
+  }, [
+    status,
+    productKindFilter,
+    availableFilter,
+    manufacturerId,
+    manufacturers,
+    modelId,
+    models,
+    versionName,
+    engine,
+    withoutImage,
+    measureGap,
+    filterCascade,
+    categories,
+  ])
 
   function toggleSelectAllPage() {
     if (allPageSelected) {
@@ -443,6 +519,17 @@ export function AdminProductsPage() {
     }
   }
 
+  useEffect(() => {
+    if (selected.size > 0 || releasePreflight) setLoteGuiaOpen(true)
+  }, [selected.size, releasePreflight])
+
+  const focusedProduct = useMemo(() => {
+    if (!splitTabs.activeId) return null
+    return items.find((p) => p.id === splitTabs.activeId) ?? null
+  }, [items, splitTabs.activeId])
+
+  const contextualOpen = loteGuiaOpen || splitTabs.hasOpen
+
   async function applyBulkMeasures() {
     if (selected.size === 0) {
       pushError('Selecione ao menos um produto.')
@@ -494,239 +581,8 @@ export function AdminProductsPage() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-fal-fg">Produtos</h1>
-          <p className="mt-1 text-sm text-fal-muted">
-            Arquivar remove da loja (continua no cadastro). Publicação e disponibilidade são coisas
-            diferentes.
-            {items.length > 0
-              ? ` · ${items.length} carregado${items.length === 1 ? '' : 's'}.`
-              : null}
-          </p>
-          <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-fg">
-            <Link className="hover:underline" to="/admin/produtos/importar">
-              Importar
-            </Link>
-            <Link className="hover:underline" to="/admin/aplicacoes">
-              Aplicações
-            </Link>
-            <Link className="hover:underline" to="/admin/produtos/importar-aplicacoes">
-              Importar aplicações
-            </Link>
-            <Link className="hover:underline" to="/admin/produtos/importar-hf">
-              Importar arquivo completo
-            </Link>
-            <Link className="hover:underline" to="/admin/produtos/importar-imagens">
-              Importar imagens
-            </Link>
-            <Link className="hover:underline" to="/admin/produtos/importar-kits">
-              Importar kits
-            </Link>
-            <Link className="hover:underline" to="/admin/kits">
-              Hub Kits
-            </Link>
-            <Link className="hover:underline" to="/admin/importacoes">
-              Histórico
-            </Link>
-            <Link className="hover:underline" to="/admin/home">
-              Home / Destaques
-            </Link>
-          </nav>
-        </div>
-        <Link to="/admin/produtos/novo">
-          <Button variant="primary">Novo produto</Button>
-        </Link>
-      </div>
-
-      <form
-        className="space-y-2 rounded-[14px] border border-fal-line bg-fal-surface p-3"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void reload()
-        }}
-      >
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Input
-            label="Buscar"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Nome, código referência ou código interno"
-          />
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
-            <select
-              className={selectCls}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">Todos</option>
-              <option value="draft">Rascunho</option>
-              <option value="published">Publicado</option>
-              <option value="archived">Arquivado</option>
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Natureza</span>
-            <select
-              className={selectCls}
-              value={productKindFilter}
-              onChange={(e) => {
-                const v = e.target.value
-                setProductKindFilter(v === 'kit' || v === 'item' ? v : '')
-              }}
-            >
-              <option value="">Todas</option>
-              <option value="item">Itens</option>
-              <option value="kit">Kits</option>
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Estoque</span>
-            <select
-              className={selectCls}
-              value={availableFilter}
-              onChange={(e) => setAvailableFilter(e.target.value)}
-            >
-              <option value="">Todos</option>
-              <option value="true">Disponível</option>
-              <option value="false">Indisponível</option>
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-            <select
-              className={selectCls}
-              value={manufacturerId}
-              onChange={(e) => {
-                setManufacturerId(e.target.value)
-                setModelId('')
-                setVersionName('')
-                setEngine('')
-              }}
-            >
-              <option value="">Todas</option>
-              {manufacturers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
-            <select
-              className={selectCls}
-              value={modelId}
-              onChange={(e) => {
-                setModelId(e.target.value)
-                setVersionName('')
-                setEngine('')
-              }}
-            >
-              <option value="">Todos</option>
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
-            <select
-              className={selectCls}
-              value={versionName}
-              onChange={(e) => setVersionName(e.target.value)}
-            >
-              <option value="">Todas</option>
-              {versionOptions.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motor</span>
-            <select
-              className={selectCls}
-              value={engine}
-              onChange={(e) => setEngine(e.target.value)}
-            >
-              <option value="">Todos</option>
-              {engineOptions.map((eng) => (
-                <option key={eng} value={eng}>
-                  {eng}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-h-[42px] items-center gap-2 text-sm font-semibold text-fal-fg">
-            <input
-              type="checkbox"
-              checked={withoutImage}
-              onChange={(e) => setWithoutImage(e.target.checked)}
-            />
-            Sem imagem
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="primary">
-              Buscar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                clearFilters()
-                void reload({
-                  q: '',
-                  status: '',
-                  availableFilter: '',
-                  manufacturerId: '',
-                  modelId: '',
-                  versionName: '',
-                  engine: '',
-                  withoutImage: false,
-                  measureGap: '',
-                  filterCascade: EMPTY_CASCADE,
-                })
-              }}
-            >
-              Limpar
-            </Button>
-          </div>
-        </div>
-        <label className="block max-w-xs text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Medidas (logística)</span>
-          <select
-            className={selectCls}
-            value={measureGap}
-            onChange={(e) =>
-              setMeasureGap(e.target.value as '' | AdminMeasureGapFilter)
-            }
-          >
-            <option value="">Todas</option>
-            <option value="weight">Sem peso</option>
-            <option value="dims">Sem dimensões</option>
-            <option value="any">Sem peso ou dimensões</option>
-            <option value="pol">Sem capacidade de entrega (frete FAL)</option>
-          </select>
-        </label>
-        <CategoryCascadeSelects
-          categories={categories}
-          value={filterCascade}
-          onChange={setFilterCascade}
-          idPrefix="filter-cat"
-          emptyLabel="Todas"
-          publishedOnly
-          className="grid gap-2 sm:grid-cols-3"
-        />
-      </form>
-
-      {hasSelection || releasePreflight ? (
+  const bulkPanel =
+    hasSelection || releasePreflight ? (
       <div className="space-y-4 rounded-[14px] border border-fal-navy/15 bg-fal-surface p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -940,31 +796,310 @@ export function AdminProductsPage() {
               onChange={(e) => setBulkLength(e.target.value)}
             />
           </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="block min-w-[220px] text-sm">
-              <span className="mb-1 block font-semibold text-fal-fg">Medidas deste produto</span>
-              <select
-                className="w-full rounded-[10px] border border-fal-line px-3 py-2 disabled:opacity-60"
-                value={bulkMode}
-                disabled={panelDisabled}
-                onChange={(e) => setBulkMode(e.target.value as ApplyGlobalMeasuresMode)}
-              >
-                <option value="skip_manual">Respeitar medidas deste produto</option>
-                <option value="overwrite_manual">Sobrescrever medidas deste produto também</option>
-              </select>
-            </label>
-            <Button
-              type="button"
-              variant="primary"
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modo</span>
+            <select
+              className={selectCls}
+              value={bulkMode}
               disabled={panelDisabled}
-              onClick={() => void applyBulkMeasures()}
+              onChange={(e) =>
+                setBulkMode(e.target.value as ApplyGlobalMeasuresMode)
+              }
             >
-              {busyMeasures ? 'Aplicando…' : 'Aplicar medidas'}
-            </Button>
-          </div>
+              <option value="skip_manual">Não sobrescrever medidas manuais</option>
+              <option value="overwrite_manual">Sobrescrever também manuais</option>
+            </select>
+          </label>
+          <Button
+            type="button"
+            variant="primary"
+            disabled={panelDisabled || busyMeasures}
+            onClick={() => void applyBulkMeasures()}
+          >
+            {busyMeasures ? 'Aplicando…' : 'Aplicar medidas'}
+          </Button>
         </section>
       </div>
-      ) : null}
+    ) : null
+
+  const primary = (
+    <div className="admin-products-hub space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-fal-fg">Produtos</h1>
+          <p className="mt-1 text-sm text-fal-muted">
+            Lista no hub · ações na guia (padrão Central). Arquivar remove da loja.
+            {items.length > 0
+              ? ` · ${items.length} carregado${items.length === 1 ? '' : 's'}.`
+              : null}
+          </p>
+          <nav className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm font-semibold text-fal-fg">
+            <Link className="hover:underline" to="/admin/produtos/importar">
+              Importar
+            </Link>
+            <Link className="hover:underline" to="/admin/aplicacoes">
+              Aplicações
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-aplicacoes">
+              Importar aplicações
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-hf">
+              Importar arquivo completo
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-imagens">
+              Importar imagens
+            </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-kits">
+              Importar kits
+            </Link>
+            <Link className="hover:underline" to="/admin/kits">
+              Kits
+            </Link>
+            <Link className="hover:underline" to="/admin/importacoes">
+              Histórico
+            </Link>
+            <Link className="hover:underline" to="/admin/home">
+              Home / Destaques
+            </Link>
+          </nav>
+        </div>
+        <Link to="/admin/produtos/novo" className={buttonClassName({ variant: 'primary' })}>
+          Novo produto
+        </Link>
+      </div>
+
+      <form
+        className="admin-products-filters space-y-2 rounded-[14px] border border-fal-line bg-fal-surface p-3"
+        data-filters-expanded={filtersExpanded ? 'true' : 'false'}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void reload()
+        }}
+      >
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[200px] flex-1">
+            <Input
+              label="Buscar"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nome, código referência ou código interno"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="primary">
+              Buscar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                clearFilters()
+                void reload({
+                  q: '',
+                  status: '',
+                  productKindFilter: '',
+                  availableFilter: '',
+                  manufacturerId: '',
+                  modelId: '',
+                  versionName: '',
+                  engine: '',
+                  withoutImage: false,
+                  measureGap: '',
+                  filterCascade: EMPTY_CASCADE,
+                })
+              }}
+            >
+              Limpar
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              aria-expanded={filtersExpanded}
+              onClick={() => setFiltersExpandedPersist(!filtersExpanded)}
+            >
+              {filtersExpanded
+                ? 'Recolher filtros'
+                : filterChips.length > 0
+                  ? `Filtros (${filterChips.length})`
+                  : 'Mais filtros'}
+            </Button>
+          </div>
+        </div>
+
+        {!filtersExpanded && filterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wide text-fal-muted">
+              Ativos
+            </span>
+            {filterChips.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-fal-line bg-fal-bg px-2 py-0.5 text-xs font-semibold text-fal-fg"
+              >
+                {chip}
+              </span>
+            ))}
+            <button
+              type="button"
+              className="text-xs font-semibold text-fal-muted underline"
+              onClick={() => setFiltersExpandedPersist(true)}
+            >
+              Editar
+            </button>
+          </div>
+        ) : null}
+
+        {filtersExpanded ? (
+          <div className="space-y-2 border-t border-fal-line pt-2">
+            <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
+                <select
+                  className={selectCls}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                  <option value="archived">Arquivado</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Natureza</span>
+                <select
+                  className={selectCls}
+                  value={productKindFilter}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setProductKindFilter(v === 'kit' || v === 'item' ? v : '')
+                  }}
+                >
+                  <option value="">Todas</option>
+                  <option value="item">Itens</option>
+                  <option value="kit">Kits</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Estoque</span>
+                <select
+                  className={selectCls}
+                  value={availableFilter}
+                  onChange={(e) => setAvailableFilter(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  <option value="true">Disponível</option>
+                  <option value="false">Indisponível</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
+                <select
+                  className={selectCls}
+                  value={manufacturerId}
+                  onChange={(e) => {
+                    setManufacturerId(e.target.value)
+                    setModelId('')
+                    setVersionName('')
+                    setEngine('')
+                  }}
+                >
+                  <option value="">Todas</option>
+                  {manufacturers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
+                <select
+                  className={selectCls}
+                  value={modelId}
+                  onChange={(e) => {
+                    setModelId(e.target.value)
+                    setVersionName('')
+                    setEngine('')
+                  }}
+                >
+                  <option value="">Todos</option>
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
+                <select
+                  className={selectCls}
+                  value={versionName}
+                  onChange={(e) => setVersionName(e.target.value)}
+                >
+                  <option value="">Todas</option>
+                  {versionOptions.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motor</span>
+                <select
+                  className={selectCls}
+                  value={engine}
+                  onChange={(e) => setEngine(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  {engineOptions.map((eng) => (
+                    <option key={eng} value={eng}>
+                      {eng}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-h-[42px] items-center gap-2 text-sm font-semibold text-fal-fg">
+                <input
+                  type="checkbox"
+                  checked={withoutImage}
+                  onChange={(e) => setWithoutImage(e.target.checked)}
+                />
+                Sem imagem
+              </label>
+            </div>
+            <label className="block max-w-xs text-sm">
+              <span className="mb-1 block text-xs font-extrabold text-fal-muted">
+                Medidas (logística)
+              </span>
+              <select
+                className={selectCls}
+                value={measureGap}
+                onChange={(e) =>
+                  setMeasureGap(e.target.value as '' | AdminMeasureGapFilter)
+                }
+              >
+                <option value="">Todas</option>
+                <option value="weight">Sem peso</option>
+                <option value="dims">Sem dimensões</option>
+                <option value="any">Sem peso ou dimensões</option>
+                <option value="pol">Sem capacidade de entrega (frete FAL)</option>
+              </select>
+            </label>
+            <CategoryCascadeSelects
+              categories={categories}
+              value={filterCascade}
+              onChange={setFilterCascade}
+              idPrefix="filter-cat"
+              emptyLabel="Todas"
+              publishedOnly
+              className="grid gap-2 sm:grid-cols-3"
+            />
+          </div>
+        ) : null}
+      </form>
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {hasMore ? (
@@ -989,7 +1124,7 @@ export function AdminProductsPage() {
       ) : null}
 
       {/* Mobile: cards (não só tabela encolhida) */}
-      <div className="fal-admin-scroll max-h-[min(60dvh,640px)] space-y-3 overflow-y-auto md:hidden">
+      <div className="admin-products-list-mobile fal-admin-scroll max-h-[min(60dvh,640px)] space-y-3 overflow-y-auto md:hidden">
         {items.map((p) => (
           <article
             key={p.id}
@@ -1024,15 +1159,29 @@ export function AdminProductsPage() {
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
+                  <button
+                    type="button"
                     className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
+                    onClick={() => {
+                      setLoteGuiaOpen(false)
+                      splitTabs.openTab(p.id)
+                    }}
+                  >
+                    {splitTabs.openIds.includes(p.id)
+                      ? 'Na guia'
+                      : splitTabs.hasOpen
+                        ? '+ Guia'
+                        : 'Abrir guia'}
+                  </button>
+                  <Link
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-fg"
                     to={
                       p.productKind === 'kit'
                         ? `/admin/kits/${p.id}`
                         : `/admin/produtos/${p.id}`
                     }
                   >
-                    Editar
+                    Abrir cadastro
                   </Link>
                   <button
                     type="button"
@@ -1059,7 +1208,7 @@ export function AdminProductsPage() {
         ) : null}
       </div>
 
-      <div className="fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
+      <div className="admin-products-list-desktop fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
         <table className="min-w-full text-left text-sm">
           <thead className="sticky top-0 z-[1] bg-fal-bg text-fal-muted">
             <tr>
@@ -1113,6 +1262,20 @@ export function AdminProductsPage() {
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
                 <td className="px-3 py-2 space-x-2">
+                  <button
+                    type="button"
+                    className="font-semibold text-fal-navy"
+                    onClick={() => {
+                      setLoteGuiaOpen(false)
+                      splitTabs.openTab(p.id)
+                    }}
+                  >
+                    {splitTabs.openIds.includes(p.id)
+                      ? 'Na guia'
+                      : splitTabs.hasOpen
+                        ? '+ Guia'
+                        : 'Abrir guia'}
+                  </button>
                   <Link
                     className="font-semibold text-fal-auth-link"
                     to={
@@ -1121,14 +1284,14 @@ export function AdminProductsPage() {
                         : `/admin/produtos/${p.id}`
                     }
                   >
-                    Editar
+                    Abrir cadastro
                   </Link>
                   <button
                     type="button"
                     className="font-semibold text-fal-muted"
                     onClick={() => void toggleArchive(p)}
                   >
-                    {p.status === 'archived' ? 'Publicar' : 'Arquivar (remover da loja)'}
+                    {p.status === 'archived' ? 'Publicar' : 'Arquivar'}
                   </button>
                 </td>
               </tr>
@@ -1149,5 +1312,136 @@ export function AdminProductsPage() {
         ) : null}
       </div>
     </div>
+  )
+
+  async function liberarFocused(p: Product) {
+    setBusyBulk(true)
+    setError(null)
+    try {
+      const rows = await adminEvaluateReleaseChecklistBatch([p.id], {
+        publishIfNeeded: true,
+      })
+      setLoteGuiaOpen(true)
+      setReleasePreflight(rows)
+      setSelected(new Set([p.id]))
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao verificar liberação na loja'))
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  async function setAvailableFocused(p: Product, available: boolean) {
+    setBusyBulk(true)
+    setError(null)
+    try {
+      const r = await adminSetProductsAvailability([p.id], available)
+      pushOk(
+        available
+          ? `${r.updated} produto marcado como disponível.`
+          : `${r.updated} produto marcado como indisponível.`,
+      )
+      await reload()
+    } catch (e) {
+      pushError(toUserMessage(e, 'Falha ao alterar situação'))
+    } finally {
+      setBusyBulk(false)
+    }
+  }
+
+  const showLoteGuia = loteGuiaOpen && Boolean(bulkPanel)
+
+  async function openRelatedInGuide(productId: string) {
+    setLoteGuiaOpen(false)
+    if (!items.some((p) => p.id === productId)) {
+      try {
+        const p = await adminGetProduct(productId)
+        if (p) setItems((prev) => (prev.some((x) => x.id === p.id) ? prev : [...prev, p]))
+      } catch (e) {
+        pushError(toUserMessage(e, 'Não foi possível abrir o relacionado'))
+        return
+      }
+    }
+    splitTabs.openTab(productId)
+  }
+
+  function onGuideProductUpdated(saved: Product) {
+    // Patch local — não chamar reload() (zeraria seleção/filtros da sessão de trabalho).
+    setItems((prev) => prev.map((p) => (p.id === saved.id ? { ...p, ...saved } : p)))
+  }
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="products"
+      primary={primary}
+      contextualOpen={contextualOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) {
+          setLoteGuiaOpen(false)
+          splitTabs.closeAll()
+          setReleasePreflight(null)
+        } else if (selected.size > 0 || releasePreflight) {
+          setLoteGuiaOpen(true)
+        }
+      }}
+      contextualTitle={
+        showLoteGuia
+          ? selected.size > 0
+            ? `Lote · ${selected.size} selecionado(s)`
+            : 'Checklist liberação'
+          : splitTabs.openIds.length > 1
+            ? `${focusedProduct?.name ?? 'Produto'} · ${splitTabs.openIds.length} guias`
+            : focusedProduct
+              ? focusedProduct.name
+              : 'Produto'
+      }
+      contextual={
+        contextualOpen ? (
+          showLoteGuia ? (
+            <ProductWorkSurface
+              focused={null}
+              bulkPanel={bulkPanel}
+              categories={categories}
+              onClose={() => {
+                setLoteGuiaOpen(false)
+                setReleasePreflight(null)
+              }}
+            />
+          ) : (
+            <OrderSplitTabPanels
+              orderIds={splitTabs.openIds}
+              meta={splitTabs.openIds.map((id) => {
+                const p = items.find((x) => x.id === id)
+                return {
+                  id,
+                  label: p?.name ?? id.slice(0, 8),
+                  statusLabel: p
+                    ? `${productStatusLabel(p.status)} · ${p.available ? 'Disponível' : 'Indisponível'}`
+                    : undefined,
+                }
+              })}
+              onCloseTab={splitTabs.closeTab}
+              render={(productId) => {
+                const p = items.find((x) => x.id === productId) ?? null
+                return (
+                  <ProductWorkSurface
+                    focused={p}
+                    bulkPanel={null}
+                    categories={categories}
+                    busy={busyBulk}
+                    onClose={() => splitTabs.closeTab(productId)}
+                    onLiberar={(prod) => void liberarFocused(prod)}
+                    onSetAvailable={(prod, available) => void setAvailableFocused(prod, available)}
+                    onArchiveToggle={(prod) => void toggleArchive(prod)}
+                    onProductUpdated={onGuideProductUpdated}
+                    onOpenProductGuide={(id) => void openRelatedInGuide(id)}
+                  />
+                )
+              }}
+            />
+          )
+        ) : null
+      }
+    />
   )
 }

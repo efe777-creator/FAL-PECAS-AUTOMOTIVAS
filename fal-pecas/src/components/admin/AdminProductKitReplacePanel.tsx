@@ -188,7 +188,7 @@ export function AdminProductKitReplacePanel({
           </p>
         ) : null}
         {hits.length > 0 ? (
-          <ul className="mt-1 max-h-40 list-none overflow-auto rounded-[9px] border border-fal-line bg-white p-0 text-sm">
+          <ul className="mt-1 max-h-40 list-none overflow-auto rounded-[9px] border border-fal-line bg-fal-surface p-0 text-sm">
             {hits.map((h) => (
               <li key={h.id} className="border-b border-fal-line/60 last:border-0">
                 <button
@@ -248,7 +248,7 @@ export function AdminProductKitReplacePanel({
             {preview.map((row) => (
               <li
                 key={row.id}
-                className="flex flex-wrap items-start gap-2 rounded-[10px] border border-fal-line bg-white px-3 py-2 text-sm"
+                className="flex flex-wrap items-start gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
               >
                 <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
                   <input
@@ -259,7 +259,7 @@ export function AdminProductKitReplacePanel({
                   />
                   <span className="min-w-0">
                     <Link
-                      to={`/admin/produtos/${row.kitProductId}`}
+                      to={`/admin/kits/${row.kitProductId}`}
                       className="font-semibold text-fal-fg underline"
                       onClick={(e) => e.stopPropagation()}
                     >

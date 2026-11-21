@@ -10,7 +10,22 @@ export const WORKSPACE_SPLIT_MIN = 360
 export const WORKSPACE_SPLIT_MAX = 640
 
 export type WorkspaceMode = 'split' | 'expanded' | 'fullscreen' | 'collapsed'
-export type WorkspaceModuleKey = 'orders' | 'dashboard'
+export type WorkspaceModuleKey =
+  | 'orders'
+  | 'dashboard'
+  | 'products'
+  | 'kits'
+  | 'prices'
+  | 'applications'
+
+const WORKSPACE_MODULE_KEYS: readonly WorkspaceModuleKey[] = [
+  'orders',
+  'dashboard',
+  'products',
+  'kits',
+  'prices',
+  'applications',
+] as const
 
 export type WorkspaceModulePrefs = {
   mode: WorkspaceMode
@@ -82,7 +97,7 @@ export function readWorkspaceFile(storage: StorageLike | null = defaultStorage()
     if (parsed.version !== WORKSPACE_VERSION) return empty
     const modules: WorkspaceFileV1['modules'] = {}
     if (parsed.modules && typeof parsed.modules === 'object') {
-      for (const key of ['orders', 'dashboard'] as WorkspaceModuleKey[]) {
+      for (const key of WORKSPACE_MODULE_KEYS) {
         if (parsed.modules[key]) modules[key] = sanitizeModule(parsed.modules[key])
       }
     }
