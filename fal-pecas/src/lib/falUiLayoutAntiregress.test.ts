@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.3.0 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.4.0 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -31,6 +31,7 @@ const MODULE_KEYS: WorkspaceModuleKey[] = [
   'applications',
   'categories',
   'promotions',
+  'inventory',
 ]
 
 describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
@@ -52,6 +53,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       ['pages/admin/products/AdminApplicationsPage.tsx', 'applications'],
       ['pages/admin/categories/AdminCategoriesPage.tsx', 'categories'],
       ['pages/admin/home/AdminPromotionsPage.tsx', 'promotions'],
+      ['pages/admin/inventory/AdminInventoryPage.tsx', 'inventory'],
     ]
     for (const [file, key] of hubs) {
       const body = read(file)
@@ -144,7 +146,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     }
   })
 
-  it('FL6: WorkSurfaces Product / Kit / PriceList / Application / Category / Promotion', () => {
+  it('FL6: WorkSurfaces Product / Kit / PriceList / Application / Category / Promotion / Inventory', () => {
     expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
       /export function ProductWorkSurface/,
     )
@@ -162,6 +164,9 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     )
     expect(read('components/admin/promotions/PromotionWorkSurface.tsx')).toMatch(
       /export function PromotionWorkSurface/,
+    )
+    expect(read('components/admin/inventory/InventoryWorkSurface.tsx')).toMatch(
+      /export function InventoryWorkSurface/,
     )
   })
 
@@ -216,12 +221,14 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       'pages/admin/products/AdminApplicationsPage.tsx',
       'pages/admin/categories/AdminCategoriesPage.tsx',
       'pages/admin/home/AdminPromotionsPage.tsx',
+      'pages/admin/inventory/AdminInventoryPage.tsx',
       'components/admin/products/ProductWorkSurface.tsx',
       'components/admin/kits/KitWorkSurface.tsx',
       'components/admin/prices/PriceListWorkSurface.tsx',
       'components/admin/applications/ApplicationWorkSurface.tsx',
       'components/admin/categories/CategoryWorkSurface.tsx',
       'components/admin/promotions/PromotionWorkSurface.tsx',
+      'components/admin/inventory/InventoryWorkSurface.tsx',
       'pages/admin/kits/AdminKitFormPage.tsx',
     ]
     for (const file of hubFiles) {
@@ -448,5 +455,27 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     const css = read('styles/index.css')
     expect(css).toMatch(/admin-promotions-hub/)
     expect(css).toMatch(/admin-promotions-list-mobile/)
+  })
+
+  it('FL23: Hub Estoque Adaptive — InventoryWorkSurface; sem painel mid-page', () => {
+    const page = read('pages/admin/inventory/AdminInventoryPage.tsx')
+    expect(page).toMatch(/AdaptiveWorkspace/)
+    expect(page).toContain('moduleKey="inventory"')
+    expect(page).toMatch(/InventoryWorkSurface/)
+    expect(page).toMatch(/admin-inventory-hub/)
+    expect(page).toMatch(/Abrir guia/)
+    expect(page).toMatch(/Na guia/)
+    expect(page).not.toMatch(/lg:grid-cols-2/)
+    expect(page).not.toMatch(/Selecione um produto para ver movimentos/)
+
+    const surface = read('components/admin/inventory/InventoryWorkSurface.tsx')
+    expect(surface).toMatch(/export function InventoryWorkSurface/)
+    expect(surface).toMatch(/adjustInventory/)
+    expect(surface).toMatch(/Fechar guia/)
+    expect(surface).toMatch(/\+ Entrada/)
+
+    const css = read('styles/index.css')
+    expect(css).toMatch(/admin-inventory-hub/)
+    expect(css).toMatch(/admin-inventory-list-mobile/)
   })
 })

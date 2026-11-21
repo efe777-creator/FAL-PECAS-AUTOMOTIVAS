@@ -1,23 +1,21 @@
+import { InventoryWorkSurface } from '@/components/admin/inventory/InventoryWorkSurface'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { formatDateTime } from '@/lib/datetime'
 import {
   ADMIN_INVENTORY_PAGE_SIZE,
-  adjustInventory,
   formatInventoryError,
   getStoreInventoryMode,
   INVENTORY_MODE_LABELS,
   INVENTORY_MODE_SUCCESS_MSG,
   isAdministrador,
   listInventory,
-  listInventoryMovements,
   setStoreInventoryMode,
   staffCanAdjustInventory,
   type InventoryMode,
-  type InventoryMovementRow,
   type InventoryRow,
 } from '@/services/admin/adminInventoryService'
 import { useEffect, useState } from 'react'
@@ -36,9 +34,7 @@ export function AdminInventoryPage() {
   const [canAdjust, setCanAdjust] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [selected, setSelected] = useState<InventoryRow | null>(null)
-  const [movements, setMovements] = useState<InventoryMovementRow[]>([])
-  const [delta, setDelta] = useState('1')
-  const [reason, setReason] = useState('')
+  const [guideOpen, setGuideOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -74,10 +70,8 @@ export function AdminInventoryPage() {
       if (selected) {
         const refreshed = list.find((r) => r.productId === selected.productId) ?? null
         setSelected(refreshed)
-        if (refreshed) {
-          setMovements(await listInventoryMovements(refreshed.productId))
-        } else {
-          setMovements([])
+        if (!refreshed) {
+          setGuideOpen(false)
         }
       }
     } catch (e) {
@@ -112,14 +106,14 @@ export function AdminInventoryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, [])
 
-  async function openProduct(row: InventoryRow) {
+  function openGuide(row: InventoryRow) {
     setSelected(row)
+    setGuideOpen(true)
     setError(null)
-    try {
-      setMovements(await listInventoryMovements(row.productId))
-    } catch (e) {
-      pushError(formatInventoryError(e, 'Erro ao carregar movimentos'))
-    }
+  }
+
+  function closeGuide() {
+    setGuideOpen(false)
   }
 
   function requestModeChange(next: InventoryMode) {
@@ -160,38 +154,12 @@ export function AdminInventoryPage() {
     }
   }
 
-  async function onAdjust(sign: 1 | -1) {
-    if (!selected || !allowAdjust) return
-    const n = Number(delta)
-    if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
-      pushError('Informe um delta inteiro positivo')
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      await adjustInventory(selected.productId, sign * n, reason || undefined)
-      pushOk('Ajuste registrado')
-      await reload(search)
-      const refreshed = (await listInventory(selected.sku)).find((r) => r.productId === selected.productId)
-      if (refreshed) {
-        setSelected(refreshed)
-        setMovements(await listInventoryMovements(refreshed.productId))
-      }
-    } catch (e) {
-      pushError(formatInventoryError(e, 'Falha no ajuste'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
+  const primary = (
+    <div className="admin-inventory-hub space-y-4">
       <header>
         <h1 className="text-2xl font-extrabold text-fal-fg">Estoque</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Centro operacional de estoque da loja. O modo define se a venda usa disponibilidade comercial
-          ou saldo físico.
+          Centro operacional de estoque. Ajuste e movimentos na guia.
           {rows.length > 0
             ? ` · ${rows.length} produto${rows.length === 1 ? '' : 's'} carregado${rows.length === 1 ? '' : 's'}.`
             : null}
@@ -283,49 +251,106 @@ export function AdminInventoryPage() {
       {loading ? <Loading label="Carregando estoque…" /> : null}
 
       {!loading ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
+        <>
+          <div className="admin-inventory-list-mobile fal-admin-scroll max-h-[min(60dvh,640px)] space-y-2 overflow-y-auto md:hidden">
+            {rows.map((r) => {
+              const onGuide = guideOpen && selected?.productId === r.productId
+              return (
+                <article
+                  key={r.productId}
+                  className={`rounded-[14px] border border-fal-line bg-fal-surface p-3 ${
+                    onGuide ? 'bg-fal-yellow/15' : ''
+                  }`}
+                >
+                  <p className="m-0 font-mono text-xs text-fal-muted">{r.sku}</p>
+                  <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-fg">{r.name}</p>
+                  {showPhysicalCols ? (
+                    <p className="m-0 text-xs text-fal-muted">
+                      {mode === 'estoque_ficticio' ? 'Exib.' : 'Físico'} {r.onHand} · Res. {r.reserved}{' '}
+                      · Disp. <strong className="text-fal-fg">{r.available}</strong>
+                    </p>
+                  ) : (
+                    <p className="m-0 text-xs text-fal-muted">Saldo —</p>
+                  )}
+                  <button
+                    type="button"
+                    className="mt-2 inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
+                    onClick={() => openGuide(r)}
+                  >
+                    {onGuide ? 'Na guia' : 'Abrir guia'}
+                  </button>
+                </article>
+              )
+            })}
+            {hasMore ? (
+              <div className="flex justify-center p-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingMore || busy}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais estoque'}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="admin-inventory-list-desktop fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
+              <thead className="sticky top-0 z-[1] border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
                   <th className="px-3 py-2">Código</th>
                   <th className="px-3 py-2">Produto</th>
                   {mode === 'sem_estoque' ? <th className="px-3 py-2">Saldo</th> : null}
                   {showPhysicalCols ? (
                     <>
-                      <th className="px-3 py-2">{mode === 'estoque_ficticio' ? 'Qtd (exib.)' : 'Físico'}</th>
+                      <th className="px-3 py-2">
+                        {mode === 'estoque_ficticio' ? 'Qtd (exib.)' : 'Físico'}
+                      </th>
                       <th className="px-3 py-2">Reservado</th>
                       <th className="px-3 py-2">Disponível</th>
                     </>
                   ) : null}
+                  <th className="px-3 py-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.productId}
-                    className={[
-                      'cursor-pointer border-b border-fal-line last:border-0 hover:bg-fal-bg/60',
-                      selected?.productId === r.productId ? 'bg-fal-bg/80' : '',
-                    ].join(' ')}
-                    onClick={() => void openProduct(r)}
-                  >
-                    <td className="px-3 py-2 font-mono text-xs">{r.sku}</td>
-                    <td className="px-3 py-2">{r.name}</td>
-                    {mode === 'sem_estoque' ? (
-                      <td className="px-3 py-2 text-fal-muted" title="Estoque físico não controlado">
-                        —
+                {rows.map((r) => {
+                  const onGuide = guideOpen && selected?.productId === r.productId
+                  return (
+                    <tr
+                      key={r.productId}
+                      className={`border-b border-fal-line last:border-0 ${
+                        onGuide ? 'bg-fal-yellow/15' : ''
+                      }`}
+                    >
+                      <td className="px-3 py-2 font-mono text-xs">{r.sku}</td>
+                      <td className="px-3 py-2">{r.name}</td>
+                      {mode === 'sem_estoque' ? (
+                        <td className="px-3 py-2 text-fal-muted" title="Estoque físico não controlado">
+                          —
+                        </td>
+                      ) : null}
+                      {showPhysicalCols ? (
+                        <>
+                          <td className="px-3 py-2">{r.onHand}</td>
+                          <td className="px-3 py-2">{r.reserved}</td>
+                          <td className="px-3 py-2 font-semibold">{r.available}</td>
+                        </>
+                      ) : null}
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
+                          onClick={() => openGuide(r)}
+                        >
+                          {onGuide ? 'Na guia' : 'Abrir guia'}
+                        </button>
                       </td>
-                    ) : null}
-                    {showPhysicalCols ? (
-                      <>
-                        <td className="px-3 py-2">{r.onHand}</td>
-                        <td className="px-3 py-2">{r.reserved}</td>
-                        <td className="px-3 py-2 font-semibold">{r.available}</td>
-                      </>
-                    ) : null}
-                  </tr>
-                ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
             {hasMore ? (
@@ -341,60 +366,34 @@ export function AdminInventoryPage() {
               </div>
             ) : null}
           </div>
-
-          <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-            {!selected ? (
-              <p className="text-sm text-fal-muted">Selecione um produto para ver movimentos e ajustar.</p>
-            ) : (
-              <>
-                <h2 className="m-0 text-lg font-extrabold text-fal-fg">
-                  {selected.sku} — {selected.name}
-                </h2>
-                {allowAdjust ? (
-                  <div className="flex flex-wrap items-end gap-2">
-                    <Input label="Delta" value={delta} onChange={(e) => setDelta(e.target.value)} />
-                    <Input
-                      label="Motivo"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder="ajuste_manual"
-                    />
-                    <Button type="button" disabled={busy} onClick={() => void onAdjust(1)}>
-                      + Entrada
-                    </Button>
-                    <Button type="button" variant="light" disabled={busy} onClick={() => void onAdjust(-1)}>
-                      − Saída
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-sm text-fal-muted">
-                    {mode === 'com_estoque'
-                      ? 'Sem permissão de ajuste.'
-                      : 'Ajuste físico disponível apenas no modo Com estoque (real).'}
-                  </p>
-                )}
-                <div>
-                  <h3 className="text-xs font-bold uppercase text-fal-muted">Movimentos</h3>
-                  <ul className="mt-2 space-y-1 text-sm">
-                    {movements.length === 0 ? (
-                      <li className="text-fal-muted">Nenhum movimento.</li>
-                    ) : (
-                      movements.map((m) => (
-                        <li key={m.id} className="border-b border-fal-line py-1 last:border-0">
-                          <span className="font-semibold">{m.type}</span> {m.quantity}{' '}
-                          <span className="text-fal-muted">
-                            · {m.reason ?? '—'} · {formatDateTime(m.createdAt)}
-                          </span>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        </>
       ) : null}
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="inventory"
+      primary={primary}
+      contextualOpen={guideOpen && Boolean(selected)}
+      onContextualOpenChange={(open) => {
+        if (!open) closeGuide()
+      }}
+      contextualTitle={selected ? `${selected.sku} — ${selected.name}` : 'Estoque'}
+      contextual={
+        guideOpen && selected ? (
+          <InventoryWorkSurface
+            focused={selected}
+            mode={mode}
+            allowAdjust={allowAdjust}
+            onClose={closeGuide}
+            onMutated={(refreshed) => {
+              if (refreshed) setSelected(refreshed)
+              void reload(search)
+            }}
+          />
+        ) : null
+      }
+    />
   )
 }

@@ -3,31 +3,27 @@ description: FAL-UI-LAYOUT v1 — padrão telas/layout/design + versionamento + 
 alwaysApply: true
 ---
 
-# FAL-UI-LAYOUT v1.3.0 (excelência admin)
+# FAL-UI-LAYOUT v1.4.0 (excelência admin)
 
 Normativo: `docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md`  
 Estudo UX: `docs/planejamento/FAL_ESTUDO_UX_ADAPTIVE_ORGANIZADO_2026-11-21.md`  
-VAL Promoções: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md`  
-VAL Classificação: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v120_CATEGORIAS_VAL_2026-11-21.md`  
-VAL Aplicações: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md`  
-Backlog Estoque: `docs/planejamento/FAL_BACKLOG_ADAPTIVE_ESTOQUE_2026-11-21.md`
+VAL Estoque: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md`  
+VAL Promoções: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md`
 
 ## Ao mudar UI admin / shell / tokens
 
 1. **Não inventar segundo split** — reusar `AdaptiveWorkspace` + `PanelChrome`.
-2. **Tokens** só `--fal-*` / `bg-fal-*` / `text-fal-*` (ver `src/styles/index.css`).
-3. **Vocabulário:** Abrir guia · + Guia · Na guia · Fechar guia · Abrir cadastro / Cadastro completo · Abrir lista completa · Mais filtros / Recolher · Expandir / Recolher (seções) · Central de pedidos · Listas de preço (nunca “Listas de preços” no label).
-4. **Navegação:** nunca `<Link><Button>` — usar `Link` + `buttonClassName`.
-5. **Primary compacto clicável** com guia aberta — lista não sob o aside.
-6. **Seleção → barra → guia** — nunca abrir lote só por marcar checkbox (FL21).
-7. **Prefs:** `fal-admin-workspace-v1` ortogonal ao RGL; nunca persistir selectedId.
-8. **Pontes guia↔guia:** só `adminGuideBridges`.
-9. **Domínio intocado** por layout: resolve_price, place_order, RPCs, activate/deactivate promo, PVC import.
+2. **Tokens** só `--fal-*` / `bg-fal-*` / `text-fal-*`.
+3. **Vocabulário:** Abrir guia · + Guia · Na guia · Fechar guia · Abrir cadastro · Mais filtros / Recolher · Central de pedidos · Listas de preço.
+4. **Navegação:** nunca `<Link><Button>`.
+5. **Primary compacto clicável** com guia aberta.
+6. **Seleção → barra → guia** — nunca abrir lote só por checkbox (FL21).
+7. **Prefs:** `fal-admin-workspace-v1`; nunca persistir selectedId.
+8. **Domínio intocado** por layout (preço, place_order, estoque adjust, promo activate).
 
 ## Versionamento
 
-- Changelog §9 + bump + locks FL1–FL22+ em `falUiLayoutAntiregress.test.ts`
-- Rodar: `pnpm test:ui-layout-antiregress`
+- Changelog §9 + bump + locks FL1–FL23+ ; `pnpm test:ui-layout-antiregress`
 - Branch: só `dev` até gate eFe
 
 ## WorkSurfaces
@@ -40,6 +36,7 @@ Backlog Estoque: `docs/planejamento/FAL_BACKLOG_ADAPTIVE_ESTOQUE_2026-11-21.md`
 | applications | `ApplicationWorkSurface` |
 | categories | `CategoryWorkSurface` |
 | promotions | `PromotionWorkSurface` |
+| inventory | `InventoryWorkSurface` |
 | orders | `OrderOpsSurface` |
 
 Novo hub Adaptive = **MINOR** + `WorkspaceModuleKey` + FL*.

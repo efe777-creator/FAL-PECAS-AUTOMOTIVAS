@@ -1,6 +1,6 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.3.0**`  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.4.0**`  
 **Data:** 2026-11-21 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
@@ -137,7 +137,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 
 ---
 
-## 5. Mapa de módulos (v1.3.0)
+## 5. Mapa de módulos (v1.4.0)
 
 | Módulo | `moduleKey` | Primary | Contextual | Full |
 |--------|-------------|---------|------------|------|
@@ -149,14 +149,16 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 | Aplicações | `applications` | Lista + filtros compactos | `ApplicationWorkSurface` (criar / período / veículo / bulk) | import planilha |
 | Classificação | `categories` | Árvore/lista + integridade + arquivados | `CategoryWorkSurface` (criar/editar) | — |
 | Promoções | `promotions` | Abas + lista + filtros | `PromotionWorkSurface` (incluir/ativar) | — |
+| Estoque | `inventory` | Modo + lista compacta | `InventoryWorkSurface` (ajuste + movimentos) | — |
 
 Dinâmica catálogo (v1.0.4): [FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)  
 Marcha Aplicações: [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md) · estudo [FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md](./FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md)  
 Marcha Classificação: [FAL_MARCHA_UI_LAYOUT_v120_CATEGORIAS_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v120_CATEGORIAS_VAL_2026-11-21.md)  
 Estudo UX: [FAL_ESTUDO_UX_ADAPTIVE_ORGANIZADO_2026-11-21.md](./FAL_ESTUDO_UX_ADAPTIVE_ORGANIZADO_2026-11-21.md)  
-Marcha Promoções: [FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md)
+Marcha Promoções: [FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md)  
+Marcha Estoque: [FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md)
 
-**Não é padrão zin (ainda):** Estoque, Clientes — próximos MINOR (backlog).
+**Não é padrão zin (ainda):** Clientes — próximo MINOR (backlog).
 
 ---
 
@@ -167,12 +169,12 @@ Script: `pnpm test:ui-layout-antiregress`
 
 | ID | Invariante | Tipo |
 |----|------------|------|
-| **FL1** | `AdaptiveWorkspace` + `PanelChrome` existem e hubs orders/dashboard/products/kits/prices/applications/categories/**promotions** usam `moduleKey` | fonte |
-| **FL2** | Prefs `fal-admin-workspace-v1` + keys catálogo incl. applications/categories/promotions; sem gravar selectedId | fonte + unit prefs |
+| **FL1** | `AdaptiveWorkspace` + `PanelChrome` existem e hubs orders/dashboard/products/kits/prices/applications/categories/promotions/**inventory** usam `moduleKey` | fonte |
+| **FL2** | Prefs `fal-admin-workspace-v1` + keys incl. promotions/inventory; sem gravar selectedId | fonte + unit prefs |
 | **FL3** | `data-workspace-primary` compact\|full no shell | fonte |
 | **FL4** | CSS compact primary (orders) + regra `@container` no exec-summary | fonte |
 | **FL5** | Vocabulário Abrir guia / Fechar guia / **Listas de preço** (nav + hubs + Home/fornecedor; sem “preços” plural no label) | fonte |
-| **FL6** | WorkSurfaces: Product / Kit / PriceList / Application / Category / Promotion exportados | fonte |
+| **FL6** | WorkSurfaces: Product / Kit / PriceList / Application / Category / Promotion / Inventory exportados | fonte |
 | **FL7** | Tokens `--fal-fg/bg/surface/accent` + `.dark` | fonte |
 | **FL8** | PZ: RGL key distinta de workspace (comentário/ortogonalidade em prefs) | fonte |
 | **FL9** | AdminTabs nas fichas produto e kit | fonte |
@@ -189,6 +191,7 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL20** | Hub Classificação Adaptive: `moduleKey="categories"` + `CategoryWorkSurface`; sem form mid-page; lista compact mobile; dirty ao trocar; max-h browse | fonte |
 | **FL21** | Polish P0: lote Produtos só via barra; chips Editar Apps; CTA guia amarelo unificado | fonte |
 | **FL22** | Hub Promoções Adaptive: `moduleKey="promotions"` + `PromotionWorkSurface`; sem form mid-page; filtros expansíveis | fonte |
+| **FL23** | Hub Estoque Adaptive: `moduleKey="inventory"` + `InventoryWorkSurface`; sem painel mid-page 2 colunas | fonte |
 
 Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
 
@@ -222,6 +225,15 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.4.0 — 2026-11-21 (MINOR)
+
+**Hub Estoque Adaptive:**
+- `moduleKey="inventory"` + `InventoryWorkSurface` (ajuste ± + movimentos na guia)
+- Primary: modo loja + busca + lista compacta (Abrir guia / Na guia); sem grid 2 colunas mid-page
+- Lock **FL23**
+- VAL: [FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md)
+- Domínio `adjustInventory` / modo loja intocado
 
 ### v1.3.0 — 2026-11-21 (MINOR)
 
@@ -332,7 +344,6 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 | Alvo | Bump sugerido |
 |------|----------------|
 | Novo produto guia curta | MINOR |
-| Adaptive Estoque | MINOR |
 | Adaptive Clientes | MINOR |
 | Smoke multi-guia 2 SKUs + save 1 preço Base | VAL fino |
 
@@ -352,4 +363,4 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 
 ---
 
-**Assinatura:** FAL-UI-LAYOUT v1.3.0 · excelência registrada · 2026-11-21 · eFe / Cursor
+**Assinatura:** FAL-UI-LAYOUT v1.4.0 · excelência registrada · 2026-11-21 · eFe / Cursor
