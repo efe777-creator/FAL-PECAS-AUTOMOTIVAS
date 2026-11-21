@@ -21,13 +21,12 @@ export function writeVisualViewerMode(mode: VisualViewerMode): void {
   }
 }
 
-/** Resolve modo efetivo: 3D só se WebGL ok e preferência permitir. */
+/** Resolve modo efetivo: 3D só com pref explícita `3d` + WebGL (fundação 2D-first). */
 export function resolveViewerMode(
   preferred: VisualViewerMode,
   webglOk: boolean,
 ): '2d' | '3d' {
-  if (preferred === '2d') return '2d'
   if (!webglOk) return '2d'
-  if (preferred === '3d' || preferred === 'auto') return '3d'
+  if (preferred === '3d') return '3d'
   return '2d'
 }

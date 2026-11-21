@@ -11,8 +11,9 @@ describe('resolveViewerMode', () => {
     expect(resolveViewerMode('2d', true)).toBe('2d')
   })
 
-  it('usa 3d quando WebGL ok e auto/3d', () => {
-    expect(resolveViewerMode('auto', true)).toBe('3d')
+  it('3d só com pref explícita; auto/2d → 2d (fundação)', () => {
+    expect(resolveViewerMode('auto', true)).toBe('2d')
+    expect(resolveViewerMode('2d', true)).toBe('2d')
     expect(resolveViewerMode('3d', true)).toBe('3d')
   })
 })

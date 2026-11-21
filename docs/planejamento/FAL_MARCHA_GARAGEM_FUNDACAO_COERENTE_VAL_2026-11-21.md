@@ -4,22 +4,23 @@
 **Plano:** [FAL_PLANO_GARAGEM_FUNDACAO_COERENTE_2026-11-21.md](./FAL_PLANO_GARAGEM_FUNDACAO_COERENTE_2026-11-21.md)  
 **Padrão UX:** emendado 2026-11-21 (nav sem Cuidados; Histórico = compras)
 
-## Gates automação
+## Gates automação (sessão CP)
 
-| Comando | Resultado |
-|---------|-----------|
+| Pacote | Resultado |
+|--------|-----------|
 | `pnpm exec tsc --noEmit` | **PASS** |
-| `pnpm exec vitest run src/lib/garageNav.test.ts` | **PASS** (5) |
-| `pnpm exec vitest run src/services/garage/visualizationEngine.test.ts` | **PASS** (8) |
-| `pnpm exec vitest run src/services/garage/vehiclePartEventCollapse.test.ts` | **PASS** (2) |
+| Garagem / visual / identity / layout (32 files) | **133 PASS** |
+| Placas + admin visual asset | **88 PASS** |
+| Correção: `resolveViewerMode` auto→2d | **PASS** (`visualViewerPrefs.test`) |
 
-## Entregue nesta marcha
+## Entregue
 
 - Nav: Garagem \| Histórico \| Peças \| Mais  
 - Home sem widget cuidados/km; últimas peças compradas (G7)  
 - Histórico UI = só compras colapsadas; empty + CTA Peças  
 - Checkout grava `customerVehicleId` do ativo; migration G7 COALESCE snapshot  
 - Visual 2D-first; XR oculto; smoke GLB não conta; dispose Three no unmount  
+- `resolveViewerMode('auto')` → **2d** (alinhado ao engine)  
 - Admin `/admin/imagens-stock`  
 - Docs: auditoria, plano, padrão UX, nota CarImages no Consolida UX  
 
@@ -33,7 +34,8 @@
 
 ## Resultado
 
-**Automação: PASS.**  
-**Commit:** `a6b442e` · **Push:** `origin/dev` (2026-11-21).  
+**Automação sessão CP: PASS** (tsc + 133 garagem/layout + 88 placas).  
+**Commits:** `a6b442e` (fundação) · `651b537` (VAL push) · *este* (CP testes/correção prefs).  
+**Push:** `origin/dev`.
 
-Smoke compra→histórico depende de aplicar migration `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql` no ambiente wtbp e pedido real.
+Smoke compra→histórico: aplicar migration `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql` no wtbp.
