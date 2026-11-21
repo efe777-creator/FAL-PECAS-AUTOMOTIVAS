@@ -1,5 +1,5 @@
 import { KitWorkSurface } from '@/components/admin/kits/KitWorkSurface'
-import { KITS_OPEN_GUIDE_KEY } from '@/components/admin/products/ProductWorkSurface'
+import { consumeGuideBridge, KITS_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
 import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button, buttonClassName } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -158,19 +158,14 @@ export function AdminKitsPage() {
   }
 
   useEffect(() => {
-    try {
-      const pending = sessionStorage.getItem(KITS_OPEN_GUIDE_KEY)?.trim()
-      if (!pending) return
-      sessionStorage.removeItem(KITS_OPEN_GUIDE_KEY)
-      openKitGuia(pending)
-      void adminGetProduct(pending)
-        .then((kit) => {
-          if (kit) setKitCache((prev) => ({ ...prev, [kit.id]: kit }))
-        })
-        .catch(() => undefined)
-    } catch {
-      /* ignore */
-    }
+    const pending = consumeGuideBridge(KITS_OPEN_GUIDE_KEY)
+    if (!pending) return
+    openKitGuia(pending)
+    void adminGetProduct(pending)
+      .then((kit) => {
+        if (kit) setKitCache((prev) => ({ ...prev, [kit.id]: kit }))
+      })
+      .catch(() => undefined)
     // só no mount — ponte a partir da guia Produtos
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

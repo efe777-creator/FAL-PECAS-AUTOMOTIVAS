@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
+import { consumeGuideBridge, PRODUCTS_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
 import {
   CategoryCascadeSelects,
   effectiveCategoryId,
@@ -227,6 +228,21 @@ export function AdminProductsPage() {
         pushError(toUserMessage(e, 'Erro ao carregar filtros'))
       }
     })()
+  }, [])
+
+  // Ponte guia Aplicações → guia Produto (one-shot)
+  useEffect(() => {
+    const pending = consumeGuideBridge(PRODUCTS_OPEN_GUIDE_KEY)
+    if (!pending) return
+    setLoteGuiaOpen(false)
+    splitTabs.openTab(pending)
+    void adminGetProduct(pending)
+      .then((p) => {
+        if (p) setItems((prev) => (prev.some((x) => x.id === p.id) ? prev : [...prev, p]))
+      })
+      .catch(() => undefined)
+    // só no mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

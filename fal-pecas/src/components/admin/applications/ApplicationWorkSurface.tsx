@@ -2,6 +2,7 @@ import { Button, buttonClassName } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
+import { PRODUCTS_OPEN_GUIDE_KEY, setGuideBridge } from '@/lib/adminGuideBridges'
 import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
@@ -17,7 +18,7 @@ import {
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export type ApplicationGuideMode = 'create' | 'focus' | 'bulk'
 
@@ -76,6 +77,7 @@ export function ApplicationWorkSurface({
   onMutated,
 }: Props) {
   const toast = useToast()
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
 
   const [yearStart, setYearStart] = useState('')
@@ -449,6 +451,12 @@ export function ApplicationWorkSurface({
           </section>
         ) : null}
 
+        {mode === 'focus' && !focused ? (
+          <p className="m-0 text-sm text-fal-muted">
+            Aplicação fora da lista atual. Feche a guia ou ajuste o filtro.
+          </p>
+        ) : null}
+
         {mode === 'focus' && focused ? (
           <>
             <section className="rounded-[12px] border border-fal-line bg-fal-bg/40 p-3">
@@ -469,11 +477,22 @@ export function ApplicationWorkSurface({
                 }) ?? '—'}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setGuideBridge(PRODUCTS_OPEN_GUIDE_KEY, focused.productId)
+                    navigate('/admin/produtos')
+                  }}
+                >
+                  Abrir guia
+                </Button>
                 <Link
                   to={`/admin/produtos/${focused.productId}`}
-                  className={buttonClassName({ variant: 'primary', size: 'sm' })}
+                  className={buttonClassName({ variant: 'light', size: 'sm' })}
                 >
-                  Abrir cadastro
+                  Cadastro completo
                 </Link>
                 <Button type="button" variant="danger" size="sm" disabled={busy} onClick={() => void deleteOne()}>
                   Excluir

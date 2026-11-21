@@ -8,6 +8,11 @@ import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { productStatusLabel } from '@/lib/adminLabels'
+import {
+  APPLICATIONS_OPEN_GUIDE_KEY,
+  KITS_OPEN_GUIDE_KEY,
+  setGuideBridge,
+} from '@/lib/adminGuideBridges'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminPrimaryImageUrlMap } from '@/services/admin/adminImageService'
@@ -31,7 +36,8 @@ import { Link, useNavigate } from 'react-router-dom'
 
 const SECTIONS_KEY = 'fal.products.guideSections'
 
-export const KITS_OPEN_GUIDE_KEY = 'fal.kits.openGuideId'
+/** Re-export — hubs/kits e antiregress importam daqui ou de `adminGuideBridges`. */
+export { KITS_OPEN_GUIDE_KEY }
 
 type SectionId = 'identidade' | 'preco' | 'categoria' | 'aplicacoes' | 'kits' | 'relacionados'
 
@@ -314,12 +320,18 @@ export function ProductWorkSurface({
   }
 
   function openKitInHub(kitId: string) {
-    try {
-      sessionStorage.setItem(KITS_OPEN_GUIDE_KEY, kitId)
-    } catch {
-      /* ignore */
-    }
+    setGuideBridge(KITS_OPEN_GUIDE_KEY, kitId)
     navigate('/admin/kits')
+  }
+
+  function openApplicationInHub(applicationId: string) {
+    const sku = (focused?.commercialRef || focused?.sku || '').trim()
+    setGuideBridge(APPLICATIONS_OPEN_GUIDE_KEY, applicationId)
+    navigate(
+      sku
+        ? `/admin/aplicacoes?q=${encodeURIComponent(sku)}`
+        : '/admin/aplicacoes',
+    )
   }
 
   const sectionBtn = (id: SectionId, label: string, hint?: string) => {
@@ -536,9 +548,16 @@ export function ProductWorkSurface({
                         {apps.slice(0, 12).map((a) => (
                           <li
                             key={String(a.id)}
-                            className="rounded-[8px] border border-fal-line px-2 py-1.5 text-xs text-fal-fg"
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-fal-line px-2 py-1.5 text-xs text-fal-fg"
                           >
-                            {appLabel(a)}
+                            <span className="min-w-0 flex-1">{appLabel(a)}</span>
+                            <button
+                              type="button"
+                              className="shrink-0 font-semibold text-fal-fg underline"
+                              onClick={() => openApplicationInHub(String(a.id))}
+                            >
+                              Abrir guia
+                            </button>
                           </li>
                         ))}
                       </ul>

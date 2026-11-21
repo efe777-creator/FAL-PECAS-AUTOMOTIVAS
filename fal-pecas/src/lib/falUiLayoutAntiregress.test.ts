@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.1.0 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.1.1 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -317,6 +317,8 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(surface).toMatch(/adminUpdateApplicationVehicleVersion/)
     expect(surface).toMatch(/adminAddApplicationsBulk/)
     expect(surface).toMatch(/Nova aplicação na guia|mode === 'create'/)
+    expect(surface).toMatch(/Cadastro completo/)
+    expect(surface).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
 
     const page = read('pages/admin/products/AdminApplicationsPage.tsx')
     expect(page).toMatch(/ApplicationWorkSurface/)
@@ -324,8 +326,29 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     // Criar só via guia (sem formulário permanente no primary)
     expect(page).not.toMatch(/Fechar formulário/)
     expect(page).not.toMatch(/ring-2 ring-fal-yellow/)
+    expect(page).toMatch(/Produto \(ficha\)|productIdFilter/)
+    expect(page).toMatch(/clearAllFilters|clearProductIdFilter/)
 
     const productSurface = read('components/admin/products/ProductWorkSurface.tsx')
     expect(productSurface).toMatch(/\/admin\/aplicacoes\?q=/)
+  })
+
+  it('FL18: pontes guia↔guia Produto ↔ Aplicações ↔ Kits', () => {
+    const bridges = read('lib/adminGuideBridges.ts')
+    expect(bridges).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
+    expect(bridges).toMatch(/APPLICATIONS_OPEN_GUIDE_KEY/)
+    expect(bridges).toMatch(/KITS_OPEN_GUIDE_KEY/)
+    expect(bridges).toMatch(/consumeGuideBridge/)
+
+    expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
+      /PRODUCTS_OPEN_GUIDE_KEY/,
+    )
+    expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
+      /APPLICATIONS_OPEN_GUIDE_KEY/,
+    )
+    expect(read('pages/admin/products/AdminProductsPage.tsx')).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
+    expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(
+      /APPLICATIONS_OPEN_GUIDE_KEY/,
+    )
   })
 })

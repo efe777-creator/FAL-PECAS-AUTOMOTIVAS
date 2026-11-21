@@ -4,7 +4,8 @@
 **Status:** **IMPLEMENTADO** — FAL-UI-LAYOUT **v1.1.0** (Fases 0+1+2) · VAL [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md)  
 **Âncora histórica do estudo:** partiu de v1.0.4 · [marcha dinâmica](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)  
 **Normativo vigente:** [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1…](./FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) §5 — módulo `applications` no mapa Adaptive  
-**Fora desta entrega (backlog):** Fase 3 cascata compartilhada hub↔ficha; ponte guia↔guia Produto (opção B)
+**Pontes guia↔guia:** entregues em **v1.1.1** · [VAL](./FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md)  
+**Fora desta entrega (backlog):** Fase 3 cascata compartilhada hub↔ficha
 
 ---
 

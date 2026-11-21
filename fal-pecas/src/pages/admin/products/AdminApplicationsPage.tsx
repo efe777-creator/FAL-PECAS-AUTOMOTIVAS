@@ -12,6 +12,10 @@ import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import {
+  APPLICATIONS_OPEN_GUIDE_KEY,
+  consumeGuideBridge,
+} from '@/lib/adminGuideBridges'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -68,6 +72,9 @@ export function AdminApplicationsPage() {
   const [filtersExpanded, setFiltersExpanded] = useState(readFiltersExpanded)
   const [createOpen, setCreateOpen] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [pendingGuideId, setPendingGuideId] = useState<string | null>(() =>
+    consumeGuideBridge(APPLICATIONS_OPEN_GUIDE_KEY),
+  )
 
   useEffect(() => {
     const t = window.setTimeout(() => setQDebounced(q.trim()), 250)
@@ -211,6 +218,7 @@ export function AdminApplicationsPage() {
 
   const filterChips = useMemo(() => {
     const chips: string[] = []
+    if (productIdFilter) chips.push('Produto (ficha)')
     if (makerId) {
       const m = makers.find((x) => x.id === makerId)
       chips.push(m?.name ? `Montadora: ${m.name}` : 'Montadora')
@@ -222,7 +230,28 @@ export function AdminApplicationsPage() {
     if (engineFilter) chips.push(`Motor: ${engineFilter}`)
     if (versionFilter) chips.push(`Versão: ${versionFilter}`)
     return chips
-  }, [makerId, makers, modelId, models, engineFilter, versionFilter])
+  }, [productIdFilter, makerId, makers, modelId, models, engineFilter, versionFilter])
+
+  function clearProductIdFilter() {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.delete('productId')
+        return p
+      },
+      { replace: true },
+    )
+  }
+
+  function clearAllFilters() {
+    setQ('')
+    setQDebounced('')
+    setMakerId('')
+    setModelId('')
+    setEngineFilter('')
+    setVersionFilter('')
+    clearProductIdFilter()
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -244,6 +273,7 @@ export function AdminApplicationsPage() {
   function openAppGuide(id: string) {
     setCreateOpen(false)
     setBulkOpen(false)
+    setPendingGuideId(null)
     splitTabs.openTab(id)
   }
 
@@ -271,6 +301,24 @@ export function AdminApplicationsPage() {
     for (const r of rows) map[r.id] = r
     return map
   }, [rows])
+
+  // Ponte guia Produto → guia Aplicação (após lista carregar)
+  useEffect(() => {
+    if (!pendingGuideId || loading) return
+    if (rowsById[pendingGuideId]) {
+      openAppGuide(pendingGuideId)
+    }
+  }, [pendingGuideId, loading, rowsById])
+
+  // Fecha guias órfãs quando o filtro remove a linha da lista
+  useEffect(() => {
+    if (loading || createOpen || bulkOpen) return
+    for (const id of splitTabs.openIds) {
+      if (!rowsById[id]) splitTabs.closeTab(id)
+    }
+    // openIds/closeTab estáveis o bastante; evita loop com objeto splitTabs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, createOpen, bulkOpen, rowsById, splitTabs.openIds])
 
   const focused = splitTabs.activeId ? rowsById[splitTabs.activeId] ?? null : null
   const selectedRows = useMemo(
@@ -340,18 +388,7 @@ export function AdminApplicationsPage() {
             <Button type="submit" variant="primary">
               Buscar
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setQ('')
-                setQDebounced('')
-                setMakerId('')
-                setModelId('')
-                setEngineFilter('')
-                setVersionFilter('')
-              }}
-            >
+            <Button type="button" variant="outline" onClick={clearAllFilters}>
               Limpar
             </Button>
             <Button

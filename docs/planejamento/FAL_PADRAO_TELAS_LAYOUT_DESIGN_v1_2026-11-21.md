@@ -1,6 +1,6 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.1.0**`  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.1.1**`  
 **Data:** 2026-11-21 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
@@ -137,7 +137,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 
 ---
 
-## 5. Mapa de módulos (v1.1.0)
+## 5. Mapa de módulos (v1.1.1)
 
 | Módulo | `moduleKey` | Primary | Contextual | Full |
 |--------|-------------|---------|------------|------|
@@ -178,7 +178,8 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL14** | Produtos: filtros **compactos/expansíveis** (`admin-products-filters` + chips ativos) | fonte |
 | **FL15** | Guia Produto: foto + seções expansíveis (identidade/preço/categoria/apps/kits/relacionados); **+ Guia**; ponte `fal.kits.openGuideId` | fonte |
 | **FL16** | Hub Aplicações: `AdaptiveWorkspace` `moduleKey="applications"`; lista compact; filtros expansíveis; **+ Guia** | fonte |
-| **FL17** | `ApplicationWorkSurface` (criar/editar/swap/bulk na guia); sem form criar permanente no primary; atalho guia Produto → hub `?q=` | fonte |
+| **FL17** | `ApplicationWorkSurface` (criar/editar/swap/bulk na guia); sem form criar permanente no primary; atalho guia Produto → hub `?q=`; chip `productId` | fonte |
+| **FL18** | Pontes guia↔guia: `adminGuideBridges` (`products` / `applications` / `kits`); CTAs Abrir guia + Cadastro completo | fonte |
 
 Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
 
@@ -212,6 +213,15 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.1.1 — 2026-11-21 (PATCH)
+
+**Pontes guia↔guia + higiene Aplicações:**
+- `adminGuideBridges`: `fal.products|applications|kits.openGuideId` (one-shot)
+- Guia Aplicação → **Abrir guia** (itens) + **Cadastro completo** (ficha)
+- Guia Produto → por app **Abrir guia** (hub Aplicações) + Hub filtrado `?q=`
+- Chip/Limpar para `?productId=` (ficha); fecha guia órfã se linha sumir do filtro
+- Lock **FL18**
 
 ### v1.1.0 — 2026-11-21 (MINOR)
 
@@ -304,4 +314,4 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 
 ---
 
-**Assinatura:** FAL-UI-LAYOUT v1.1.0 · excelência registrada · 2026-11-21 · eFe / Cursor
+**Assinatura:** FAL-UI-LAYOUT v1.1.1 · excelência registrada · 2026-11-21 · eFe / Cursor
