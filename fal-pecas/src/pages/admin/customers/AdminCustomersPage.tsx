@@ -1,28 +1,23 @@
+import { CustomerWorkSurface } from '@/components/admin/customers/CustomerWorkSurface'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
-import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
-import { formatMoney } from '@/lib/money'
 import { formatPhoneMask } from '@/lib/phone'
-import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
-  adminGetCustomer,
   adminListAssignedPriceLists,
   adminListCustomers,
-  adminSetCustomerAssignedPriceList,
   ADMIN_CUSTOMERS_PAGE_SIZE,
   staffCanViewCustomersF8,
   type AdminAssignedPriceListOption,
-  type AdminCustomerDetail,
   type AdminCustomerListRow,
 } from '@/services/admin/adminCustomerService'
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 function matchesQuery(row: AdminCustomerListRow, q: string): boolean {
   if (!q) return true
@@ -46,21 +41,22 @@ export function AdminCustomersPage() {
   const toast = useToast()
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [rows, setRows] = useState<AdminCustomerListRow[]>([])
-  const [detail, setDetail] = useState<AdminCustomerDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
-  const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [assignedLists, setAssignedLists] = useState<AdminAssignedPriceListOption[]>([])
-  const [savingList, setSavingList] = useState(false)
 
-  function pushError(message: string) {
-    setError(message)
-    toast.push(message, 'error')
-  }
+  const pushError = useCallback(
+    (message: string) => {
+      setError(message)
+      toast.push(message, 'error')
+    },
+    [toast],
+  )
 
   useEffect(() => {
     void (async () => {
@@ -82,8 +78,7 @@ export function AdminCustomersPage() {
         setLoading(false)
       }
     })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
-  }, [])
+  }, [pushError])
 
   const filtered = useMemo(() => rows.filter((r) => matchesQuery(r, query.trim())), [rows, query])
 
@@ -104,24 +99,14 @@ export function AdminCustomersPage() {
     }
   }
 
-  async function open(id: string) {
+  function openGuide(id: string) {
     setError(null)
     setSelectedId(id)
-    setDetailLoading(true)
-    try {
-      const d = await adminGetCustomer(id)
-      if (!d) {
-        setDetail(null)
-        pushError('Cliente não encontrado.')
-        return
-      }
-      setDetail(d)
-    } catch (e) {
-      setDetail(null)
-      pushError(toUserMessage(e, 'Erro ao abrir cliente'))
-    } finally {
-      setDetailLoading(false)
-    }
+    setGuideOpen(true)
+  }
+
+  function closeGuide() {
+    setGuideOpen(false)
   }
 
   if (loading) return <Loading label="Carregando clientes…" />
@@ -133,12 +118,14 @@ export function AdminCustomersPage() {
     )
   }
 
-  return (
-    <div className="space-y-4">
+  const selectedRow = selectedId ? rows.find((r) => r.id === selectedId) : null
+
+  const primary = (
+    <div className="admin-customers-hub space-y-4">
       <header>
         <h1 className="text-2xl font-extrabold text-fal-fg">Clientes</h1>
         <p className="mt-1 text-sm text-fal-muted">
-          Consulta de cadastros e pedidos recentes — {rows.length} cadastro
+          Consulta de cadastros e pedidos recentes na guia — {rows.length} cadastro
           {rows.length === 1 ? '' : 's'} carregado{rows.length === 1 ? '' : 's'}.
         </p>
       </header>
@@ -161,155 +148,136 @@ export function AdminCustomersPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
-          {rows.length === 0 ? (
-            <div className="p-4">
-              <EmptyState
-                title="Nenhum cliente cadastrado"
-                description="Cadastros aparecem após registro na loja."
-              />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4">
-              <EmptyState
-                title="Nenhum resultado"
-                description="Ajuste a busca ou limpe o filtro."
-              />
-            </div>
-          ) : (
+      {rows.length === 0 ? (
+        <EmptyState
+          title="Nenhum cliente cadastrado"
+          description="Cadastros aparecem após registro na loja."
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState title="Nenhum resultado" description="Ajuste a busca ou limpe o filtro." />
+      ) : (
+        <>
+          <div className="admin-customers-list-mobile fal-admin-scroll max-h-[min(60dvh,640px)] space-y-2 overflow-y-auto md:hidden">
+            {filtered.map((r) => {
+              const onGuide = guideOpen && selectedId === r.id
+              return (
+                <article
+                  key={r.id}
+                  className={`rounded-[14px] border border-fal-line bg-fal-surface p-3 ${
+                    onGuide ? 'bg-fal-yellow/15' : ''
+                  }`}
+                >
+                  <p className="m-0 text-sm font-extrabold text-fal-fg">{r.name ?? '—'}</p>
+                  <p className="mb-0 mt-0.5 text-xs text-fal-muted">
+                    {r.username ?? '—'} · {r.phone ? formatPhoneMask(r.phone) : '—'}
+                  </p>
+                  <p className="mb-0 mt-0.5 font-mono text-[11px] text-fal-muted">
+                    {r.document ?? '—'} · {formatDateTime(r.createdAt)}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-2 inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
+                    onClick={() => openGuide(r.id)}
+                  >
+                    {onGuide ? 'Na guia' : 'Abrir guia'}
+                  </button>
+                </article>
+              )
+            })}
+            {hasMore ? (
+              <div className="flex justify-center p-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingMore}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais clientes'}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="admin-customers-list-desktop fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-auto rounded-[14px] border border-fal-line bg-fal-surface md:block">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
+              <thead className="sticky top-0 z-[1] border-b border-fal-line bg-fal-bg text-xs uppercase text-fal-muted">
                 <tr>
                   <th className="px-3 py-2">Nome</th>
                   <th className="px-3 py-2">Usuário</th>
                   <th className="px-3 py-2">Telefone</th>
                   <th className="px-3 py-2">Documento</th>
                   <th className="px-3 py-2">Desde</th>
+                  <th className="px-3 py-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
-                  <tr
-                    key={r.id}
-                    className={[
-                      'cursor-pointer border-b border-fal-line last:border-0 hover:bg-fal-bg/60',
-                      selectedId === r.id ? 'bg-fal-yellow/30' : '',
-                    ].join(' ')}
-                    onClick={() => void open(r.id)}
-                  >
-                    <td className="px-3 py-2 font-semibold text-fal-fg">{r.name ?? '—'}</td>
-                    <td className="px-3 py-2">{r.username ?? '—'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {r.phone ? formatPhoneMask(r.phone) : '—'}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">{r.document ?? '—'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                  </tr>
-                ))}
+                {filtered.map((r) => {
+                  const onGuide = guideOpen && selectedId === r.id
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`border-b border-fal-line last:border-0 ${
+                        onGuide ? 'bg-fal-yellow/15' : ''
+                      }`}
+                    >
+                      <td className="px-3 py-2 font-semibold text-fal-fg">{r.name ?? '—'}</td>
+                      <td className="px-3 py-2">{r.username ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {r.phone ? formatPhoneMask(r.phone) : '—'}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs">{r.document ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
+                          onClick={() => openGuide(r.id)}
+                        >
+                          {onGuide ? 'Na guia' : 'Abrir guia'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
-          )}
-          {hasMore ? (
-            <div className="flex justify-center border-t border-fal-line p-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loadingMore}
-                onClick={() => void loadMore()}
-              >
-                {loadingMore ? 'Carregando…' : 'Carregar mais clientes'}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
-          {detailLoading ? <Loading label="Carregando detalhe…" /> : null}
-          {!detailLoading && !detail ? (
-            <p className="text-sm text-fal-muted">Selecione um cliente.</p>
-          ) : null}
-          {!detailLoading && detail ? (
-            <div className="space-y-3 text-sm">
-              <h2 className="m-0 text-lg font-extrabold text-fal-fg">{detail.name ?? 'Cliente'}</h2>
-              <p className="m-0 text-fal-muted">
-                {detail.username ?? '—'} · {detail.document ?? 'sem documento'} · tel{' '}
-                {detail.phone ? formatPhoneMask(detail.phone) : '—'}
-              </p>
-              <p className="m-0 text-xs text-fal-muted">
-                Desde {formatDateTime(detail.createdAt)} · {detail.addressCount} endereço
-                {detail.addressCount === 1 ? '' : 's'}
-              </p>
-
-              <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3">
-                <h3 className="m-0 text-xs font-bold uppercase text-fal-muted">
-                  Lista B2B (assigned)
-                </h3>
-                <p className="mt-1 mb-2 text-xs text-fal-muted">
-                  Preços de itens e kits nesta lista vencem a vitrine pública no checkout. Crie a
-                  lista em{' '}
-                  <Link to="/admin/precos" className="font-semibold underline">
-                    Preços
-                  </Link>{' '}
-                  com escopo assigned.
-                </p>
-                <Select
-                  label="Lista atribuída"
-                  value={detail.assignedPriceListId ?? ''}
-                  disabled={savingList || assignedLists.length === 0}
-                  onChange={(e) => {
-                    const next = e.target.value || null
-                    void (async () => {
-                      setSavingList(true)
-                      try {
-                        await adminSetCustomerAssignedPriceList({
-                          customerId: detail.id,
-                          priceListId: next,
-                        })
-                        const refreshed = await adminGetCustomer(detail.id)
-                        if (refreshed) setDetail(refreshed)
-                        toast.push('Lista B2B atualizada', 'success')
-                      } catch (err) {
-                        pushError(toUserMessage(err, 'Falha ao atribuir lista'))
-                      } finally {
-                        setSavingList(false)
-                      }
-                    })()
-                  }}
-                  options={[
-                    { value: '', label: assignedLists.length ? 'Nenhuma (preço público)' : 'Nenhuma lista assigned' },
-                    ...assignedLists.map((l) => ({
-                      value: l.id,
-                      label: `${l.name}${l.status !== 'active' ? ` (${l.status})` : ''}`,
-                    })),
-                  ]}
-                />
+            {hasMore ? (
+              <div className="flex justify-center border-t border-fal-line p-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loadingMore}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore ? 'Carregando…' : 'Carregar mais clientes'}
+                </Button>
               </div>
-
-              <div>
-                <h3 className="text-xs font-bold uppercase text-fal-muted">Pedidos recentes</h3>
-                <ul className="mt-2 space-y-1">
-                  {detail.recentOrders.length === 0 ? (
-                    <li className="text-fal-muted">Nenhum pedido.</li>
-                  ) : (
-                    detail.recentOrders.map((o) => (
-                      <li key={o.id}>
-                        <Link
-                          to={`/admin/pedidos/${o.id}`}
-                          className="font-semibold text-fal-fg underline-offset-2 hover:underline"
-                        >
-                          {o.id.slice(0, 8)}…
-                        </Link>{' '}
-                        · {orderStatusAdminLabel[o.status] ?? o.status} · {formatMoney(o.total)}
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+            ) : null}
+          </div>
+        </>
+      )}
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="customers"
+      primary={primary}
+      contextualOpen={guideOpen && Boolean(selectedId)}
+      onContextualOpenChange={(open) => {
+        if (!open) closeGuide()
+      }}
+      contextualTitle={selectedRow?.name ?? selectedRow?.username ?? 'Cliente'}
+      contextual={
+        guideOpen && selectedId ? (
+          <CustomerWorkSurface
+            customerId={selectedId}
+            assignedLists={assignedLists}
+            onClose={closeGuide}
+            onError={pushError}
+          />
+        ) : null
+      }
+    />
   )
 }

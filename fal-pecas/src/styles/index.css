@@ -273,7 +273,8 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-applications-hub,
 [data-workspace-primary='compact'] .admin-categories-hub,
 [data-workspace-primary='compact'] .admin-promotions-hub,
-[data-workspace-primary='compact'] .admin-inventory-hub {
+[data-workspace-primary='compact'] .admin-inventory-hub,
+[data-workspace-primary='compact'] .admin-customers-hub {
   overflow-x: hidden;
 }
 
@@ -282,7 +283,8 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-applications-list-mobile,
 [data-workspace-primary='compact'] .admin-categories-list-mobile,
 [data-workspace-primary='compact'] .admin-promotions-list-mobile,
-[data-workspace-primary='compact'] .admin-inventory-list-mobile {
+[data-workspace-primary='compact'] .admin-inventory-list-mobile,
+[data-workspace-primary='compact'] .admin-customers-list-mobile {
   display: block;
 }
 
@@ -291,6 +293,7 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-applications-list-desktop,
 [data-workspace-primary='compact'] .admin-categories-list-desktop,
 [data-workspace-primary='compact'] .admin-promotions-list-desktop,
-[data-workspace-primary='compact'] .admin-inventory-list-desktop {
+[data-workspace-primary='compact'] .admin-inventory-list-desktop,
+[data-workspace-primary='compact'] .admin-customers-list-desktop {
   display: none;
 }

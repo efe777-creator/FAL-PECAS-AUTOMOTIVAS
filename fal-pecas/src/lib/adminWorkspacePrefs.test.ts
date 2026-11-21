@@ -57,7 +57,7 @@ describe('adminWorkspacePrefs', () => {
     })
   })
 
-  it('persiste prefs de products, kits, prices, applications, categories, promotions e inventory', () => {
+  it('persiste prefs de catálogo Adaptive incl. inventory e customers', () => {
     writeModulePrefs('products', { mode: 'expanded', splitWidthPx: 400 })
     writeModulePrefs('kits', { mode: 'split', splitWidthPx: 500 })
     writeModulePrefs('prices', { mode: 'fullscreen', splitWidthPx: 420 })
@@ -65,6 +65,7 @@ describe('adminWorkspacePrefs', () => {
     writeModulePrefs('categories', { mode: 'split', splitWidthPx: 460 })
     writeModulePrefs('promotions', { mode: 'split', splitWidthPx: 480 })
     writeModulePrefs('inventory', { mode: 'split', splitWidthPx: 440 })
+    writeModulePrefs('customers', { mode: 'split', splitWidthPx: 420 })
     expect(readModulePrefs('products').mode).toBe('expanded')
     expect(readModulePrefs('kits').splitWidthPx).toBe(500)
     expect(readModulePrefs('prices').mode).toBe('fullscreen')
@@ -72,6 +73,7 @@ describe('adminWorkspacePrefs', () => {
     expect(readModulePrefs('categories').mode).toBe('split')
     expect(readModulePrefs('promotions').mode).toBe('split')
     expect(readModulePrefs('inventory').mode).toBe('split')
+    expect(readModulePrefs('customers').mode).toBe('split')
     expect(readModulePrefs('orders').mode).toBe('collapsed')
   })
 })
