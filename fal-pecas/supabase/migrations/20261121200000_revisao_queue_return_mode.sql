@@ -1,6 +1,9 @@
 -- Fila revisão: expor return_mode + tracking_code no meta para lista Adaptive.
+-- Postgres não permite CREATE OR REPLACE com OUT params diferentes → DROP primeiro.
 
-create or replace function public.admin_list_revisao_queue_rows()
+drop function if exists public.admin_list_revisao_queue_rows();
+
+create function public.admin_list_revisao_queue_rows()
 returns table (
   order_id uuid,
   source text,
@@ -62,6 +65,9 @@ begin
   where t.event_type is distinct from 'occurrence_resolved';
 end;
 $$;
+
+revoke all on function public.admin_list_revisao_queue_rows() from public;
+grant execute on function public.admin_list_revisao_queue_rows() to authenticated;
 
 comment on function public.admin_list_revisao_queue_rows() is
   'Fila revisao Adaptive: tipo/stage/return_mode/tracking_code para chips e lista.';

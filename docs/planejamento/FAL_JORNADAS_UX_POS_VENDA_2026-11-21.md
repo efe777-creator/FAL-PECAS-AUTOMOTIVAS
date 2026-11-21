@@ -162,7 +162,7 @@ T0 = confirmação de retirada (`admin_confirm_store_pickup` → `entregue`).
 |---|------|-----------|--------|------|------|
 | 1 | OrderOps expedição | Vê banner “ME: entregue — confirmar?” | `deliver_order` | 1 | FEITO |
 | 2 | Inbox | Abre notificação → **mesmo** order id em guia | deep link | 1–2 | EXISTE |
-| 3 | `revisao-logistica` | Lista casos; chips D12; **Abrir guia** / **+ Guia** | lista corrigida | 2 | FEITO |
+| 3 | Hub `?tab=logistica&fila=revisao` | Lista casos; chips D12; **Abrir guia** / **+ Guia** (visão antiga só redireciona) | lista Adaptive | 2 | FEITO |
 | 4 | OrderOps ocorrências | Start, notas, autorizar/recusar | `admin_occurrence_action` + stages | 2–3 | FEITO |
 | 5 | OrderOps | Override PAC/SEDEX | metadata caso | 3 | FEITO |
 | 6 | OrderOps | Aguardando peça → conferência | stages | 3 | FEITO |
@@ -217,7 +217,7 @@ flowchart TB
   Detalhe[Conta detalhe pedido]
   Report[Report tipado]
   Evt[order_events]
-  Rev[revisao-logistica]
+  Rev[Hub fila=revisao]
   Guia[Abrir guia OrderOps]
   Stage[Stages no caso]
   Resolve[resolve + restock + refund]

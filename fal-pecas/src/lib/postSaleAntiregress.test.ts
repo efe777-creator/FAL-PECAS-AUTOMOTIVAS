@@ -57,6 +57,35 @@ describe('pós-venda anti-regressão (fonte)', () => {
     const page = read('src/pages/Account/AccountOrderDetailPage.tsx')
     expect(page).toMatch(/PostSaleAuthorizedPanel/)
     expect(page).toMatch(/meReverseGenerate/)
+    expect(page).toMatch(/PostSaleCaseStatusPanel/)
+    expect(page).toMatch(/PostSaleHelpPanel/)
+  })
+
+  it('operador: Revisão no Hub Adaptive + CTAs sob Ida×devolução', () => {
+    const hub = read('src/pages/admin/orders/AdminOrdersHubPage.tsx')
+    expect(hub).toMatch(/REVISAO_CHIPS/)
+    expect(hub).toMatch(/columnMode=\{isRevisaoFila \? 'revisao' : 'default'\}/)
+    expect(hub).toMatch(/PostSaleCaseQuickActions|OrderOpsSurface/)
+
+    const ops = read('src/components/admin/orders/OrderOpsSurface.tsx')
+    expect(ops).toMatch(/PostSaleCaseQuickActions/)
+    expect(ops).toMatch(/PostSaleReturnLogisticsPanel/)
+
+    const view = read('src/pages/admin/orders/AdminOrdersViewPage.tsx')
+    expect(view).toMatch(/Navigate/)
+    expect(view).toMatch(/fila=revisao|fila: 'revisao'/)
+
+    const queues = read('src/lib/adminLogisticsQueues.ts')
+    expect(queues).toMatch(/tab=logistica&fila=revisao/)
+
+    expect(existsSync(resolve(root, 'scripts/smoke-pos-venda-uso-completo.mjs'))).toBe(
+      true,
+    )
+    const uso = read('scripts/smoke-pos-venda-uso-completo.mjs')
+    expect(uso).toMatch(/customer_report_delivery_issue/)
+    expect(uso).toMatch(/admin_list_revisao_queue_rows/)
+    expect(uso).toMatch(/admin_post_sale_case_action/)
+    expect(uso).toMatch(/return_mode:\s*'wa'|p_return_mode:\s*'wa'/)
   })
 
   it('stages RPC e elegibilidade ME existem', () => {

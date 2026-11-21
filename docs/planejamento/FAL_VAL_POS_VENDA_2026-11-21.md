@@ -29,7 +29,7 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 - [x] Sem auto-`deliver_order`
 - [x] Sem gerar código ME na abertura do caso (só após `autorizada` + CTA)
 - [x] Sem `/admin/pos-venda` ou módulo isolado
-- [x] Visão `problemas` ≠ RMA (`revisao-logistica` + chips)
+- [x] Visão `problemas` ≠ RMA (Hub `fila=revisao` + chips D12)
 - [x] Copy legal via `returnPolicyCopy`
 - [x] Edge reversa separada da ida
 
@@ -75,8 +75,24 @@ Migration `20261121193000_admin_occurrence_action_full_overload.sql` aplicada; s
 Consulta `shipments` provider Melhor Envio + `orders.status=entregue`: **9** pedidos; **0** com `cart_item_id` numérico ME (todos smoke UUID ou vazio).  
 → generate live **impossível** até existir etiqueta ME real no fluxo de ida.
 
+## Smoke uso completo operador + cliente (2026-11-21)
+
+Script: `scripts/smoke-pos-venda-uso-completo.mjs` · **gate PASS**
+
+| Fluxo | Resultado |
+|-------|-----------|
+| Cliente `customer_report_delivery_issue` (`quero_devolver`) | OK · `pos_venda_devolucao` |
+| Ops `admin_list_revisao_queue_rows` (com `return_mode`) | OK · pedido na fila |
+| Ops start → authorize ME → generate dry-run → peça → conf → resolve | OK · `DRY-REV-D18580EC` |
+| Pedido permanece `entregue` | OK |
+| Variante authorize `wa` | OK · permanece na fila |
+| Hub canônico | `/admin/pedidos?tab=logistica&fila=revisao` |
+
+Pedidos smoke: ME `d18580ec…` · WA `d39b2210…`.
+
 ## Gate F3 → done
 
 **PASS** código + smoke dry-run + WA D18 + `liveReady` anti-sintético (Edge + UI ops).  
 **PASS** OrderOps aba Logística: painel **Ida × devolução** (etiqueta venda + código/stage retorno).  
+**PASS** uso completo cliente→ops→cliente (report → fila Adaptive → stages → dry generate → resolve) + variante WA.  
 **HOLD humano:** 1º pedido ME real (`cart_item_id` numérico) → `status.liveReady:true` → generate sem `forceDryRun`.

@@ -40,6 +40,22 @@
 - `adminWorkspacePrefs.ts` — `WORKSPACE_SPLIT_MAX = 920`
 - Migration `20261121200000_revisao_queue_return_mode.sql` — return_mode/tracking na fila
 
+## Smoke uso completo operador + cliente (2026-11-21)
+
+Script: `fal-pecas/scripts/smoke-pos-venda-uso-completo.mjs` · **gate PASS**
+
+| Passo | Evidência |
+|-------|-----------|
+| Cliente report tipado | `pos_venda_devolucao` · occ `67d34bb6…` |
+| Ops fila Revisão | `admin_list_revisao_queue_rows` · `inQueue` + colunas `return_mode` |
+| Ops start → authorize ME | `em_analise` → `autorizada`/`me_codigo` |
+| Cliente generate dry-run | `DRY-REV-D18580EC` |
+| Ops peça → conf → resolve | stages OK; pedido permanece `entregue` |
+| Variante WA | `return_mode=wa` permanece na fila |
+| Hub canônico | `/admin/pedidos?tab=logistica&fila=revisao` |
+
+Migration `admin_list_revisao_queue_rows` (DROP+CREATE return_mode/tracking) aplicada no **wtbp**.
+
 ## Fora de escopo
 
 - Novo `moduleKey` / `/admin/pos-venda`
