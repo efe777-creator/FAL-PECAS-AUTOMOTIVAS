@@ -1,7 +1,7 @@
 # FAL — Estrutura · Widgets de produtos (Home)
 
 **Data:** 2026-11-21 · **Branch:** `dev`  
-**Status:** Estrutura criada · kinds `planned` sem fonte de dados ainda
+**Status:** Estrutura + **bestsellers ready** (RPC `store_bestseller_product_ids`)
 
 ## Objetivo
 
@@ -12,8 +12,9 @@ Registry único para trilhos de produto (destaques, ofertas, **mais vendidos**, 
 | Peça | Path |
 |------|------|
 | Registry / copy / ordem | `fal-pecas/src/lib/productWidgets.ts` |
-| Loader (ready + stubs) | `fal-pecas/src/services/home/productWidgetLoader.ts` |
-| Testes | `fal-pecas/src/lib/productWidgets.test.ts` |
+| Loader | `fal-pecas/src/services/home/productWidgetLoader.ts` |
+| Bestsellers | `bestsellerService.ts` + migration `20261121210000_store_bestseller_product_ids.sql` |
+| Testes | `productWidgets.test.ts` · `bestsellerService.test.ts` |
 
 ## Kinds
 
@@ -21,14 +22,18 @@ Registry único para trilhos de produto (destaques, ofertas, **mais vendidos**, 
 |------|--------|------------|
 | `featured` | ready | `listFeaturedProducts` + curadoria home |
 | `offers` | ready | `listPromoHighlightProducts` |
-| `bestsellers` | **planned** | stub `[]` — métricas de venda depois |
+| `bestsellers` | **ready** | RPC `store_bestseller_product_ids` + `bestsellerService` · Home rail (sem duplicar destaques/ofertas) |
 | `new_arrivals` | planned | stub — data de publicação / estoque |
 | `campaign` | planned | stub — campanhas Notes #18 |
 
+## Ops
+
+Aplicar no Supabase (wtbp): `20261121210000_store_bestseller_product_ids.sql`. Sem a RPC a Home simplesmente omite o trilho (lista vazia).
+
 ## Próximas marchas (quando pedir)
 
-1. **Bestsellers:** agregação pedidos pagos → ranking → `loadProductWidgetProducts('bestsellers')`.  
-2. **Home:** renderizar trilhos via `listReadyProductWidgets()` (+ feature flag para planned).  
-3. **Admin:** toggles por kind em `store_home_settings` (opcional).
+1. **new_arrivals** / **campaign** — fontes reais.  
+2. Home 100% via `listReadyProductWidgets()`.  
+3. Admin: toggles por kind em `store_home_settings` (opcional).
 
 Sem `main`/prod sem OK.

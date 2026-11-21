@@ -20,6 +20,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useOpenGraph } from '@/hooks/useOpenGraph'
 import { excludeProductsById, HOME_FEATURED_LIMIT_DEFAULT } from '@/lib/homeSections'
 import { getProductWidgetDef } from '@/lib/productWidgets'
+import { listBestsellerProducts } from '@/services/home/bestsellerService'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { getFeaturedDisplayLimit } from '@/services/home/homeContentService'
 import {
@@ -123,6 +124,11 @@ export function HomePage() {
   const [shelfPanel, setShelfPanel] = useState<HomeShelfPanel>('featured')
   const featured = useFeaturedProducts(featuredLimit)
   const offers = usePromoHighlightProducts(8)
+  const [bestsellers, setBestsellers] = useState<{
+    data: Product[]
+    loading: boolean
+    error: string | null
+  }>({ data: [], loading: true, error: null })
   const toggleShelf = useStableShelfToggle(setShelfPanel)
   useDocumentTitle('FAL Peças Automotivas')
   useOpenGraph({
@@ -136,6 +142,21 @@ export function HomePage() {
     void getFeaturedDisplayLimit().then((n) => {
       if (active) setFeaturedLimit(n)
     })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const limit = getProductWidgetDef('bestsellers')?.defaultLimit ?? 12
+    void listBestsellerProducts(limit)
+      .then((data) => {
+        if (active) setBestsellers({ data, loading: false, error: null })
+      })
+      .catch(() => {
+        if (active) setBestsellers({ data: [], loading: false, error: null })
+      })
     return () => {
       active = false
     }
@@ -193,6 +214,15 @@ export function HomePage() {
   )
   const featuredWidget = getProductWidgetDef('featured')
   const offersWidget = getProductWidgetDef('offers')
+  const bestsellersWidget = getProductWidgetDef('bestsellers')
+
+  const bestsellersWithoutDupes = useMemo(() => {
+    const ban = new Set([
+      ...featuredWithoutOffers.map((p) => p.id),
+      ...offers.data.map((p) => p.id),
+    ])
+    return bestsellers.data.filter((p) => !ban.has(p.id))
+  }, [bestsellers.data, featuredWithoutOffers, offers.data])
 
   /**
    * Ordem: Campanhas → Entrada → Vitrine (painéis montados, só um visível) → Ofertas → Confiança.
@@ -315,6 +345,21 @@ export function HomePage() {
           emptyTitle="Sem ofertas no momento"
           emptyDescription="Volte em breve."
           tone={offersWidget?.tone ?? 'sand'}
+        />
+      ) : null}
+
+      {!bestsellers.loading && bestsellersWithoutDupes.length > 0 ? (
+        <ProductRailSection
+          title={bestsellersWidget?.title ?? 'Mais vendidos'}
+          subtitle={bestsellersWidget?.subtitle ?? 'Os itens que mais saem na FAL'}
+          linkLabel={bestsellersWidget?.linkLabel ?? 'Ver catálogo →'}
+          linkTo={bestsellersWidget?.catalogHref ?? '/catalogo'}
+          loading={false}
+          error={null}
+          products={bestsellersWithoutDupes}
+          emptyTitle="Sem ranking ainda"
+          emptyDescription="Assim que houver vendas, listamos aqui."
+          tone={bestsellersWidget?.tone ?? 'white'}
         />
       ) : null}
 

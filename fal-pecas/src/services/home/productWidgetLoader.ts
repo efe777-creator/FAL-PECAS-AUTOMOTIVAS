@@ -2,6 +2,7 @@ import {
   getProductWidgetDef,
   type ProductWidgetKind,
 } from '@/lib/productWidgets'
+import { listBestsellerProducts } from '@/services/home/bestsellerService'
 import {
   listFeaturedProducts,
   listPromoHighlightProducts,
@@ -17,7 +18,7 @@ export type ProductWidgetLoadResult = {
 
 /**
  * Carrega produtos de um widget.
- * `bestsellers` / `new_arrivals` / `campaign` → stub vazio até métricas/campanhas.
+ * `new_arrivals` / `campaign` → stub até fontes dedicadas.
  */
 export async function loadProductWidgetProducts(
   kind: ProductWidgetKind,
@@ -40,6 +41,11 @@ export async function loadProductWidgetProducts(
         products: await listPromoHighlightProducts(cap),
       }
     case 'bestsellers':
+      return {
+        kind,
+        implemented: true,
+        products: await listBestsellerProducts(cap),
+      }
     case 'new_arrivals':
     case 'campaign':
       return { kind, implemented: false, products: [] }
