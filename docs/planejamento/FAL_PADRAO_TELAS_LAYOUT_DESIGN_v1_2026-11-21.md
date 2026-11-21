@@ -1,0 +1,302 @@
+# FAL Padrão — Telas · Layout · Design
+
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.1.0**`  
+**Data:** 2026-11-21 · Branch âncora: **`dev`**  
+**Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
+
+Este documento é a **fonte de verdade de excelência visual/operacional** da FAL.  
+Não substitui domínio (preço, BOM, place_order); define **como a tela se comporta e se apresenta**.
+
+---
+
+## 0. Como evoluir (obrigatório)
+
+```mermaid
+flowchart LR
+  Proposta --> Changelog
+  Changelog --> Antiregress
+  Antiregress --> VAL
+  VAL --> Dev
+  Dev --> Main
+```
+
+| Passo | Obrigação |
+|-------|-----------|
+| 1. Proposta | Descrever o que muda no layout/UX (não só “melhorar”) |
+| 2. Changelog | Entrada em [§9 Changelog](#9-changelog-do-padrão) com bump de versão |
+| 3. Antiregress | Atualizar ou acrescentar locks em `falUiLayoutAntiregress.test.ts` |
+| 4. VAL / uso real | Smoke + checklist §8; doc VAL se marcha |
+| 5. `dev` | Só então merge/push `dev` |
+| 6. `main` | Só com autorização expressa eFe |
+
+### Semântica de versão do padrão
+
+| Bump | Quando |
+|------|--------|
+| **PATCH** `v1.0 → v1.0.1` | Copy, densidade, polish sem mudar contratos (ex.: hint Enter no compact) |
+| **MINOR** `v1.0 → v1.1` | Novo módulo Adaptive, novo WorkSurface, novo invariante FL* |
+| **MAJOR** `v1.x → v2.0` | Quebra shell (ex.: trocar Adaptive, prefs key, vocabulário Abrir guia) — exige gate eFe + migração |
+
+**Regra:** código sem bump + antiregress atualizado = **não é evolução FAL**; é drift.
+
+---
+
+## 1. Pilares (não negociáveis)
+
+1. **Um shell de trabalho admin:** `AdaptiveWorkspace` + `PanelChrome` — não inventar segundo split.  
+2. **Tokens FAL:** `--fal-*` / `bg-fal-*` / `text-fal-*` / `border-fal-*` — sem paleta paralela (evitar purple-on-white, cream genérico, etc.).  
+3. **Vocabulário operacional único** (Central → Catálogo → futuros hubs).  
+4. **Primary compacto clicável** com guia aberta (lição VAL OrderOps 19/11 + uso real Kits 21/11).  
+5. **Container ≠ viewport** para grids densos no primary estreito (`@container`, lição Painel KPI 21/11).  
+6. **Prefs ortogonais:** workspace `fal-admin-workspace-v1` ≠ RGL `fal-admin-dashboard-layout-*`.  
+7. **Domínio intocado** por mudança de layout: RPCs, resolve_price, place_order, H2/H5/H6.
+
+Âncora Adaptive já documentada: [FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md](./FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md)
+
+---
+
+## 2. Anatomia de tela admin (padrão zin)
+
+### 2.1 Hub Adaptive (lista + guia)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Admin shell (nav + sticky header)                           │
+├──────────────────────────┬──────────────────────────────────┤
+│ PRIMARY                  │ CONTEXTUAL (PanelChrome)         │
+│ data-workspace-primary=  │ Expandir · Tela cheia · Fechar   │
+│   compact | full         │ WorkSurface de domínio           │
+│ Lista / filtros / KPIs   │ Guias empilhadas (se houver)     │
+│ SEMPRE clicável          │                                  │
+└──────────────────────────┴──────────────────────────────────┘
+```
+
+| Peça | Contrato |
+|------|----------|
+| `moduleKey` | `orders` \| `dashboard` \| `products` \| `kits` \| `prices` (+ futuras só por MINOR) |
+| Modos | `split` \| `expanded` \| `fullscreen` \| `collapsed` |
+| Desktop | ≥ `lg` (1024) split; &lt; lg contextual fullscreen |
+| Multi-guia | `OrderSplitTabPanels` / `useIdSplitTabs` — empilhar IDs, não minimizar |
+| Full page | Rota dedicada para formulário “comfortable” (abas) |
+
+### 2.2 Ficha full (produto / kit / lista F8)
+
+| Contrato | Detalhe |
+|----------|---------|
+| Abas | `AdminTabs` — uma responsabilidade por aba |
+| Produto | Geral \| Precificação \| Mídia \| Aplicações \| Logística \| Relações |
+| Kit | Geral \| Precificação \| Composição \| Mídia \| Aplicações \| Logística |
+| Lista F8 | Produtos \| Formação \| Importações \| Configuração |
+| Persistência de aba | query `?tab=` quando já existir no domínio (F8); não inventar storage paralelo |
+
+### 2.3 Painel (RGL)
+
+- Widgets em `react-grid-layout`; **ortogonal** ao Adaptive.  
+- Grids internos de KPI: **`@container`**, nunca só `sm:`/`xl:` de viewport.  
+- `rowHeight` + `minSize` devem caber o conteúdo real (evitar smash).
+
+---
+
+## 3. Design tokens e superfície
+
+| Token / classe | Uso |
+|----------------|-----|
+| `--fal-navy` / yellow | Marca, CTAs fortes |
+| `--fal-accent` | Foco, tabs ativas, links de ação |
+| `--fal-surface` + `border-fal-line` | Cards/painéis admin |
+| `rounded-[14px]` / `--fal-radius` | Cantos padrão hub |
+| `rounded-[12px]` / `[10px]` | Nested / densos |
+| `fal-admin-scroll` | Scroll interno de listas |
+| `.dark` | Espelhar tokens em `index.css` — não hardcode cinza solto |
+
+**Anti-padrões (proibidos em novas telas):**
+- Segundo design system (Inter/purple gradient/cream terracotta genérico AI)
+- Cards decorativos no hero da loja (regra produto); no admin, card só se for unidade de interação
+- Glow / multi-shadow / pill clusters sem função
+- Overlay de painel que **bloqueia** cliques do primary (regressão compact)
+
+Fonte CSS: `fal-pecas/src/styles/index.css`
+
+---
+
+## 4. Vocabulário (UI copy — travado)
+
+| Termo | Significado |
+|-------|-------------|
+| Abrir guia | Abre contextual Adaptive (1ª guia) |
+| Na guia | Já está no stack |
+| + Guia | Empilha outro registro (já há guia aberta) |
+| Expandir / Tela cheia / Restaurar | Modos PanelChrome |
+| Mais filtros / Recolher filtros | Bloco de filtros do hub Produtos |
+| Expandir / Recolher | Seções dentro da guia Produto |
+| Abrir cadastro | Full `/admin/produtos/:id` ou `/admin/kits/:id` |
+| Abrir lista completa | Full `/admin/precos/:id?tab=produtos` |
+| Fechar guia | Collapse contextual |
+| Central de pedidos | Label nav (não “Pedidos” solto) |
+| Listas de preço | Label nav (nunca “Listas de preços” no label) |
+
+---
+
+## 5. Mapa de módulos (v1.1.0)
+
+| Módulo | `moduleKey` | Primary | Contextual | Full |
+|--------|-------------|---------|------------|------|
+| Central | `orders` | Hub pedidos | `OrderOpsSurface` | `/admin/pedidos/:id` |
+| Painel | `dashboard` | RGL widgets | Pedido / attention | — |
+| Produtos | `products` | Lista + filtros compactos | `ProductWorkSurface` (foto + seções + mutações leves) | ficha abas |
+| Kits | `kits` | Lista kits | `KitWorkSurface` (BOM + Novo na guia) | ficha abas + PVC |
+| Preços | `prices` | Overview listas | `PriceListWorkSurface` (QuickAdjust embutido) | F8 |
+| Aplicações | `applications` | Lista + filtros compactos | `ApplicationWorkSurface` (criar / período / veículo / bulk) | import planilha |
+
+Dinâmica catálogo (v1.0.4): [FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)  
+Marcha Aplicações: [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md) · estudo [FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md](./FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md)
+
+**Não é padrão zin (ainda):** Promoções, Categorias — hubs clássicos até MINOR futuro.
+
+---
+
+## 6. Invariantes antiregressão (locks FL*)
+
+Código: `fal-pecas/src/lib/falUiLayoutAntiregress.test.ts`  
+Script: `pnpm test:ui-layout-antiregress`
+
+| ID | Invariante | Tipo |
+|----|------------|------|
+| **FL1** | `AdaptiveWorkspace` + `PanelChrome` existem e hubs orders/dashboard/products/kits/prices/**applications** usam `moduleKey` | fonte |
+| **FL2** | Prefs `fal-admin-workspace-v1` + keys catálogo incl. applications; sem gravar selectedId | fonte + unit prefs |
+| **FL3** | `data-workspace-primary` compact\|full no shell | fonte |
+| **FL4** | CSS compact primary (orders) + regra `@container` no exec-summary | fonte |
+| **FL5** | Vocabulário Abrir guia / Fechar guia / **Listas de preço** (nav + hubs + Home/fornecedor; sem “preços” plural no label) | fonte |
+| **FL6** | WorkSurfaces: Product / Kit / PriceList exportados | fonte |
+| **FL7** | Tokens `--fal-fg/bg/surface/accent` + `.dark` | fonte |
+| **FL8** | PZ: RGL key distinta de workspace (comentário/ortogonalidade em prefs) | fonte |
+| **FL9** | AdminTabs nas fichas produto e kit | fonte |
+| **FL10** | kits-manual fora da guia preços; **1 CTA** `Preços dos kits` → `/admin/kits/precos` | fonte |
+| **FL11** | Hubs Adaptive + WorkSurfaces **sem** `<Link><Button>`; Links de ação com `buttonClassName` | fonte |
+| **FL12** | QuickAdjust `embedded`: sem Abrir lista / Importar duplicados; kit form `showPricesLink` só em Precificação | fonte |
+| **FL13** | Kits: **Novo na guia** vs **Cadastro completo**; rotas `/admin/kits/novo` · `/kits/precos` · importar-kits | fonte |
+| **FL14** | Produtos: filtros **compactos/expansíveis** (`admin-products-filters` + chips ativos) | fonte |
+| **FL15** | Guia Produto: foto + seções expansíveis (identidade/preço/categoria/apps/kits/relacionados); **+ Guia**; ponte `fal.kits.openGuideId` | fonte |
+| **FL16** | Hub Aplicações: `AdaptiveWorkspace` `moduleKey="applications"`; lista compact; filtros expansíveis; **+ Guia** | fonte |
+| **FL17** | `ApplicationWorkSurface` (criar/editar/swap/bulk na guia); sem form criar permanente no primary; atalho guia Produto → hub `?q=` | fonte |
+
+Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
+
+---
+
+## 7. Densidade e responsivo
+
+| Contexto | Densidade |
+|----------|-----------|
+| Lista hub | Linhas compactas; badges status/INCOMPLETO; hint “Na guia” |
+| Guia | Chrome fino; ações no topo; scroll interno; BOM/QuickAdjust em 1º plano |
+| Full | Abas; formulários longos; mídia/apps |
+| Primary &lt; ~520px | Cards ou 2 col via `@container`; nunca 4 KPI empilhados smash |
+
+**Checklist compact (obrigatório em VAL de hub Adaptive):**
+- [ ] Com guia aberta, dá para Abrir guia / filtrar / selecionar na lista  
+- [ ] Nenhum `select`/form da guia cobre a coluna primary  
+- [ ] Fechar guia → `data-workspace-primary=full`
+
+---
+
+## 8. Checklist de excelência (cada marcha UI)
+
+1. Spec / changelog bump  
+2. `tsc` + `pnpm test:ui-layout-antiregress`  
+3. Smoke hub: Abrir guia → ação → Fechar → full  
+4. Regressão: Central + Painel KPI + (se catálogo) Promo itens/kits  
+5. Atualizar VAL ou doc uso real  
+6. Sem commit em `main` sem gate eFe  
+
+---
+
+## 9. Changelog do padrão
+
+### v1.1.0 — 2026-11-21 (MINOR)
+
+**Hub Aplicações Adaptive:**
+- `moduleKey="applications"` + `ApplicationWorkSurface` (criar / período / veículo / bulk na guia)
+- Primary: lista compact + filtros expansíveis (`fal.applications.filtersExpanded`) + Abrir guia / + Guia / Na guia
+- Import planilha permanece CTA fora do split; domínio PVC/import/Liberar intocado
+- Atalho guia Produto → `/admin/aplicacoes?q={sku}`
+- Locks **FL16** · **FL17**
+- VAL: [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md)
+
+### v1.0.4 — 2026-11-21 (PATCH)
+
+**Guia Produto operacional (híbrido SPEC + pedido eFe):**
+- Foto + resumo; seções Expandir/Recolher (identidade, preço Base, categoria, aplicações RO, kits com Abrir guia Kits, relacionados + Guia)
+- Vocabulário **+ Guia** na lista Produtos/Kits/Preços ao empilhar
+- Ponte sessão `fal.kits.openGuideId` → hub Kits abre a guia do kit
+- Marcha detalhada (versão + dinâmica + análise): [FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)
+- Correção: salvar na guia **não** dispara `reload()` (preserva seleção)
+- Lock **FL15**
+
+### v1.0.3 — 2026-11-21 (PATCH)
+
+**Densidade lista Produtos:**
+- Filtros compactos por padrão (Buscar + ações); **Mais filtros** / **Recolher filtros**
+- Chips dos filtros ativos quando recolhido; preferência em `sessionStorage`
+- Lock **FL14**
+
+### v1.0.2 — 2026-11-21 (PATCH)
+
+**Antiregress + dedupe caminhos/CTAs:**
+- Locks **FL11–FL13** (sem Link>Button nos hubs Adaptive; guia preços sem CTA duplicado; Kits Novo na guia / Cadastro completo)
+- FL5/FL10 reforçados (vocabulário singular; kits-manual 1 destino)
+- Copy alinhada: Home pagamento + import custos → Listas de preço
+- Título contextual Kits: Novo na guia
+
+### v1.0.1 — 2026-11-21 (PATCH)
+
+**Ajustes pós uso real:**
+- Compact catálogo: cards no primary (`admin-products/kits-list-mobile`) — Abrir guia fora do aside
+- BOM: estado `loadingBom` (“Carregando composição…”) — sem flash empty
+- Hint compact BOM: “Enter no destaque · multi-seleção · qty na linha”
+- Title hub Preços → `Listas de preço | Admin FAL`
+- Removido `data-workspace-primary` hardcoded no hub Produtos (só o shell define)
+- Locks FL4 estendido + FL4b
+
+### v1.0 — 2026-11-21
+
+**Baseline consolidado:**
+- Shell Adaptive (Central, Painel, Produtos, Kits, Preços)
+- Tokens fal-* + dark
+- Vocabulário operacional
+- Lições: compact clicável; `@container` KPI Painel
+- Locks FL1–FL10 + script antiregress
+- Relatório uso real catálogo (gaps P1 documentados, não bloqueiam v1.0)
+
+**Referências de nascimento:**
+- [FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md](./FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md)
+- [FAL_SPEC_CATALOGO_PRECOS_WORKSPACE_2026-11-21.md](./FAL_SPEC_CATALOGO_PRECOS_WORKSPACE_2026-11-21.md)
+- [FAL_MARCHA_CATALOGO_ADAPTIVE_USO_REAL_2026-11-21.md](./FAL_MARCHA_CATALOGO_ADAPTIVE_USO_REAL_2026-11-21.md)
+- [FAL_MARCHA_ORDER_OPS_SURFACE_VAL_2026-11-19.md](./FAL_MARCHA_ORDER_OPS_SURFACE_VAL_2026-11-19.md)
+
+### Próximos candidatos (não bumpam até implementados)
+
+| Alvo | Bump sugerido |
+|------|----------------|
+| Novo produto guia curta | MINOR |
+| Cascata PVC compartilhada hub↔ficha (estudo Fase 3) | PATCH / backlog |
+| Adaptive Categorias / Promoções | MINOR |
+| Smoke multi-guia 2 SKUs + save 1 preço Base | VAL fino |
+
+---
+
+## 10. Referências de código
+
+| Peça | Path |
+|------|------|
+| Shell | `fal-pecas/src/components/admin/workspace/AdaptiveWorkspace.tsx` |
+| Chrome | `fal-pecas/src/components/admin/workspace/PanelChrome.tsx` |
+| Prefs | `fal-pecas/src/lib/adminWorkspacePrefs.ts` |
+| Tabs | `fal-pecas/src/components/admin/AdminTabs.tsx` |
+| Tokens | `fal-pecas/src/styles/index.css` |
+| Antiregress | `fal-pecas/src/lib/falUiLayoutAntiregress.test.ts` |
+| Regra Cursor | `fal-pecas/.cursor/rules/fal-ui-layout-v1.mdc` |
+
+---
+
+**Assinatura:** FAL-UI-LAYOUT v1.1.0 · excelência registrada · 2026-11-21 · eFe / Cursor
