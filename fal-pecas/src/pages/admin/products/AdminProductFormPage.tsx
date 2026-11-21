@@ -675,6 +675,12 @@ export function AdminProductFormPage() {
               <option value="published">Publicado</option>
               <option value="archived">Arquivado (fora da loja)</option>
             </select>
+            {status === 'published' ? (
+              <p className="mt-1 m-0 text-xs text-fal-muted">
+                Publicar exige checklist (kit: composição + revisão PVC). Preferível:{' '}
+                <strong>Liberar na loja</strong> abaixo.
+              </p>
+            ) : null}
           </label>
         </div>
 

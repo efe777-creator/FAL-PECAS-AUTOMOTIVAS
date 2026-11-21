@@ -182,7 +182,11 @@ export function VehicleVisualizationEngine({
       fallback2d
     )
 
-  const showProvisionalBadge = renderSource === 'procedural'
+  const glbIsPlaceholder =
+    Boolean(approvedAsset) &&
+    (/smoke|placeholder|provis[oó]rio/i.test(approvedAsset!.code) ||
+      /não é modelo real|smoke|placeholder|provis[oó]rio/i.test(approvedAsset!.displayName))
+  const showProvisionalBadge = renderSource === 'procedural' || (renderSource === 'glb' && glbIsPlaceholder)
 
   return (
     <section className="space-y-2" aria-label="Visualização do veículo">

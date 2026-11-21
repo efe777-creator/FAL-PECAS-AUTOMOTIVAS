@@ -322,6 +322,21 @@ export async function adminUpsertProduct(input: {
   })
   const productKind: ProductKind = input.productKind === 'kit' ? 'kit' : 'item'
   const sb = getSupabase()
+  const wantsPublished = (input.status ?? 'draft') === 'published'
+
+  // Publish pelo formulário: mesmo gate da listagem (checklist / kit H2+H6).
+  if (wantsPublished) {
+    if (!input.id) {
+      throw new Error(
+        'Para publicar, salve primeiro como rascunho e use Liberar na loja (ou publique na listagem após completar o checklist).',
+      )
+    }
+    const checklist = await adminEvaluateReleaseChecklist(input.id, { publishIfNeeded: true })
+    if (!checklist) throw new Error('Produto não encontrado')
+    if (!checklist.canRelease) {
+      throw new Error(checklist.summary || 'Não atende o checklist de liberação na loja')
+    }
+  }
 
   let previousKind: string | null = null
   if (input.id) {
