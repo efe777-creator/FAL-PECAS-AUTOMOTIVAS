@@ -221,126 +221,141 @@ export function AccountVehicleDetailPage() {
       : 'mais'
   const inMoreBranch = (GARAGE_MORE_MODULE_KEYS as string[]).includes(modulo)
 
+  const compactStage = modulo === 'pecas'
+
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-navy/95 text-white dark:bg-fal-navy-dark">
-        <VehicleImageFrame
-          image={image}
-          colorHex={vehicle.colorHex}
-          title={vehicleDisplayName(vehicle)}
-          className="min-h-[220px] rounded-none bg-transparent sm:min-h-[320px]"
-        />
-        <div className="space-y-3 border-t border-white/10 p-4 sm:p-5">
-          <div>
-            {vehicle.isPrimary ? (
-              <span className="inline-flex rounded-full bg-fal-success/20 px-2.5 py-1 text-[11px] font-extrabold text-fal-success">
-                Veículo principal
-              </span>
-            ) : null}
-            <h2 className="mt-2 mb-1 text-xl font-extrabold text-white sm:text-2xl">
+      {compactStage ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-fal border border-fal-line bg-fal-navy px-4 py-3 text-white dark:bg-fal-navy-dark">
+          <div className="min-w-0">
+            <h2 className="m-0 truncate text-base font-extrabold sm:text-lg">
               {vehicleDisplayName(vehicle)}
             </h2>
-            <p className="mb-0 text-sm text-white/70">{vehicleTechLine(vehicle) || '—'}</p>
-            {vehicle.falCode ? (
-              <p className="mb-0 mt-1 text-xs font-bold tabular-nums tracking-wide text-white/55">
-                ID FAL · {vehicle.falCode}
-              </p>
-            ) : null}
+            <p className="mb-0 mt-0.5 truncate text-xs text-white/70">
+              {vehicleTechLine(vehicle) || '—'}
+              {plateLabel ? ` · ${plateLabel}` : ''}
+            </p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
-              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Km</p>
-              <p className="m-0 text-sm font-extrabold">
-                {latestKm != null ? latestKm.toLocaleString('pt-BR') : '—'}
-              </p>
+          <p className="m-0 shrink-0 text-xs font-bold text-fal-yellow">Peças</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-navy/95 text-white dark:bg-fal-navy-dark">
+          <VehicleImageFrame
+            image={image}
+            colorHex={vehicle.colorHex}
+            title={vehicleDisplayName(vehicle)}
+            className="min-h-[220px] rounded-none bg-transparent sm:min-h-[320px]"
+          />
+          <div className="space-y-3 border-t border-white/10 p-4 sm:p-5">
+            <div>
+              {vehicle.isPrimary ? (
+                <span className="inline-flex rounded-full bg-fal-success/20 px-2.5 py-1 text-[11px] font-extrabold text-fal-success">
+                  Veículo principal
+                </span>
+              ) : null}
+              <h2 className="mt-2 mb-1 text-xl font-extrabold text-white sm:text-2xl">
+                {vehicleDisplayName(vehicle)}
+              </h2>
+              <p className="mb-0 text-sm text-white/70">{vehicleTechLine(vehicle) || '—'}</p>
+              {vehicle.falCode ? (
+                <p className="mb-0 mt-1 text-xs font-bold tabular-nums tracking-wide text-white/55">
+                  ID FAL · {vehicle.falCode}
+                </p>
+              ) : null}
             </div>
-            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
-              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Placa</p>
-              <p className="m-0 text-sm font-extrabold tracking-wide">{plateLabel || '—'}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+                <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Km</p>
+                <p className="m-0 text-sm font-extrabold">
+                  {latestKm != null ? latestKm.toLocaleString('pt-BR') : '—'}
+                </p>
+              </div>
+              <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+                <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Placa</p>
+                <p className="m-0 text-sm font-extrabold tracking-wide">{plateLabel || '—'}</p>
+              </div>
+              <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
+                <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Status</p>
+                <p className="m-0 text-sm font-extrabold text-fal-success">Na garagem</p>
+              </div>
             </div>
-            <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
-              <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Status</p>
-              <p className="m-0 text-sm font-extrabold text-fal-success">Na garagem</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {garage.activeVehicle?.id !== vehicle.id ? (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  garage.setActiveVehicle(vehicle)
-                  toast.push('Veículo ativo na loja (não altera o principal).', 'success')
-                }}
-              >
-                Usar na loja
-              </Button>
-            ) : (
-              <span className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-yellow/50 bg-fal-yellow/15 px-3 text-xs font-extrabold text-fal-yellow">
-                Ativo na loja
-              </span>
-            )}
-            {modulo !== 'pecas' ? (
+            <div className="flex flex-wrap gap-2">
+              {garage.activeVehicle?.id !== vehicle.id ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    garage.setActiveVehicle(vehicle)
+                    toast.push('Veículo ativo na loja (não altera o principal).', 'success')
+                  }}
+                >
+                  Usar na loja
+                </Button>
+              ) : (
+                <span className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-yellow/50 bg-fal-yellow/15 px-3 text-xs font-extrabold text-fal-yellow">
+                  Ativo na loja
+                </span>
+              )}
               <ButtonLink to={vehiclePartsModuleHref(vehicle)} variant="light" size="sm">
                 Peças
               </ButtonLink>
-            ) : null}
-            <Button
-              type="button"
-              variant="light"
-              size="sm"
-              onClick={() => setEditing((v) => !v)}
-            >
-              {editing ? 'Fechar edição' : 'Editar'}
-            </Button>
-            {!vehicle.isPrimary ? (
               <Button
                 type="button"
                 variant="light"
                 size="sm"
-                onClick={() =>
-                  void setPrimaryVehicle(vehicle.id)
-                    .then(async () => {
-                      toast.push('Definido como principal.', 'success')
-                      await reload()
-                    })
-                    .catch((err) =>
-                      toast.push(toUserMessage(err, 'Falha ao definir principal'), 'error'),
-                    )
-                }
+                onClick={() => setEditing((v) => !v)}
               >
-                Definir principal
+                {editing ? 'Fechar edição' : 'Editar'}
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                void (async () => {
-                  const { confirmed } = await confirmDialog({
-                    title: 'Remover veículo?',
-                    message: 'Remover este veículo da sua garagem?',
-                    confirmLabel: 'Remover',
-                    danger: true,
-                  })
-                  if (!confirmed) return
-                  try {
-                    await removeSavedVehicle(vehicle.id)
-                    await garage.notifyVehicleRemoved(vehicle.id)
-                    toast.push('Veículo removido.', 'success')
-                    navigate('/conta/veiculos')
-                  } catch (err) {
-                    toast.push(toUserMessage(err, 'Falha ao remover'), 'error')
+              {!vehicle.isPrimary ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  onClick={() =>
+                    void setPrimaryVehicle(vehicle.id)
+                      .then(async () => {
+                        toast.push('Definido como principal.', 'success')
+                        await reload()
+                      })
+                      .catch((err) =>
+                        toast.push(toUserMessage(err, 'Falha ao definir principal'), 'error'),
+                      )
                   }
-                })()
-              }}
-            >
-              Remover
-            </Button>
+                >
+                  Definir principal
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  void (async () => {
+                    const { confirmed } = await confirmDialog({
+                      title: 'Remover veículo?',
+                      message: 'Remover este veículo da sua garagem?',
+                      confirmLabel: 'Remover',
+                      danger: true,
+                    })
+                    if (!confirmed) return
+                    try {
+                      await removeSavedVehicle(vehicle.id)
+                      await garage.notifyVehicleRemoved(vehicle.id)
+                      toast.push('Veículo removido.', 'success')
+                      navigate('/conta/veiculos')
+                    } catch (err) {
+                      toast.push(toUserMessage(err, 'Falha ao remover'), 'error')
+                    }
+                  })()
+                }}
+              >
+                Remover
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {editing ? (
         <form

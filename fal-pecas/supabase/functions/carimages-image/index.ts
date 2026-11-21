@@ -1,7 +1,8 @@
 /**
- * FAL — carimages-image
- * Resolve URL de imagem CarImages server-side (key nunca no Vite).
- * Secrets: CARIMAGES_API_KEY (obrigatório) · CARIMAGES_API_SECRET (opcional signed)
+ * FAL — carimages-image (legado / fallback local Vite)
+ * Mesmo contrato da Netlify Function: GET CarImages /api/v1/signed-url.
+ * Secrets: CARIMAGES_API_KEY (obrigatório) · CARIMAGES_API_SECRET (opcional)
+ * Canônico em produção Netlify: /api/carimages-signed-url
  */
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -23,8 +24,8 @@ Deno.serve(async (req) => {
     return json(405, { error: 'method_not_allowed' })
   }
 
-  const key = Deno.env.get('CARIMAGES_API_KEY')?.trim()
-  if (!key) {
+  const apiKey = Deno.env.get('CARIMAGES_API_KEY')?.trim()
+  if (!apiKey) {
     return json(503, { error: 'carimages_not_configured' })
   }
 
@@ -38,8 +39,10 @@ Deno.serve(async (req) => {
   const color = url.searchParams.get('color')?.trim() || ''
   const width = url.searchParams.get('width')?.trim() || '800'
   const format = url.searchParams.get('format')?.trim() || 'webp'
+  const type = url.searchParams.get('type')?.trim() || ''
 
   const q = new URLSearchParams()
+  q.set('api_key', apiKey)
   q.set('make', make)
   if (model) q.set('model', model)
   if (year) q.set('year', year)
@@ -47,29 +50,44 @@ Deno.serve(async (req) => {
   if (color) q.set('color', color)
   q.set('width', width)
   q.set('format', format)
-  q.set('key', key)
+  if (type === 'moto') q.set('type', 'moto')
+  const apiSecret = Deno.env.get('CARIMAGES_API_SECRET')?.trim()
+  if (apiSecret) q.set('api_secret', apiSecret)
 
-  const imageUrl = `https://carimagesapi.com/image?${q.toString()}`
   const t0 = Date.now()
   try {
-    const res = await fetch(imageUrl, { redirect: 'manual' })
-    const location = res.headers.get('location')
-    const finalUrl = location || imageUrl
+    const upstream = await fetch(`https://carimagesapi.com/api/v1/signed-url?${q}`, {
+      headers: { Accept: 'application/json' },
+    })
+    const body = (await upstream.json().catch(() => null)) as {
+      url?: string
+      error?: string
+      message?: string
+    } | null
+
+    if (!upstream.ok || !body?.url) {
+      return json(upstream.status >= 400 ? upstream.status : 502, {
+        error: 'carimages_upstream',
+        detail: body?.error || body?.message || `status_${upstream.status}`,
+        ms: Date.now() - t0,
+        fallback: true,
+      })
+    }
+
     return json(200, {
-      url: finalUrl,
-      status: res.status,
+      url: body.url,
       ms: Date.now() - t0,
-      view: res.headers.get('x-ci-view'),
-      color: res.headers.get('x-ci-color'),
-      fallback: false,
       source: 'carimages',
       level: 'family',
       note: 'Ilustrativo de estúdio — não é foto do veículo do cliente',
+      fallback: false,
     })
   } catch (e) {
     return json(502, {
       error: 'carimages_upstream',
       detail: e instanceof Error ? e.message : String(e),
+      ms: Date.now() - t0,
+      fallback: true,
     })
   }
 })

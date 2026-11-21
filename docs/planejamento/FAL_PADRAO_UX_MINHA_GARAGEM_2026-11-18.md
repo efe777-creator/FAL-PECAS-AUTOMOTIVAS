@@ -67,9 +67,9 @@ Entrada externa pela loja (`MobileNav` Garagem) permanece válida.
 | Tela do carro | Resumo | Visão geral, ficha, identity |
 | Lembretes | Cuidados / Próximos cuidados | Inteligência, FAL IA, Engine |
 | Linha do tempo | Histórico | Timeline, G7 |
-| Peças do veículo | **Peças compatíveis** / **Peças** | Peças no catálogo (espalhado), Ver peças, Produtos/compatibilidade |
+| Peças do veículo | **Peças** (módulo); título interno pode dizer “compatíveis” só no subtítulo | Peças no catálogo (espalhado), Ver peças, Produtos/compatibilidade |
 | Escape catálogo | **Catálogo completo** (1× no módulo Peças) | Abrir catálogo filtrado (vários lugares) |
-| Peças no 3D | **No modelo** / **Peças no visual** (só Visual/Mais) | Peças FAL no veículo (ambíguo) |
+| Peças no 3D / XR | **Peças no visual** / **No modelo** (Visual/Mais/XR) | Peças FAL no veículo, Peças (espelho) |
 | CTA hero | Ver carro | Ver detalhes do veículo |
 | Empty cuidados | Nenhum cuidado agendado. Adicione um lembrete. | Cadastre na Inteligência |
 | Empty peças | Selecione ou complete o veículo. / Nenhuma peça confirmada. | — |

@@ -1,7 +1,7 @@
 /**
  * Adapter CarImages — consulta catálogo/imagens/GLB sem acoplar UI ao fornecedor.
- * Secrets nunca ficam aqui; URLs autenticadas vêm da Netlify Function
- * `/api/carimages-signed-url` (preferencial) ou Edge `carimages-image` (fallback).
+ * Secrets nunca no Vite. Canônico: Netlify `/api/carimages-signed-url` (signed-url).
+ * Fallback local: Edge Supabase `carimages-image` (mesmo contrato signed-url).
  */
 
 import { FAL_CARIMAGES_SIGNED_URL_PATH } from '@/services/garage/adapters/carImagesSignedUrl'
@@ -65,7 +65,7 @@ export function carImagesGlbMetaUrl(
 }
 
 /**
- * URL pública de imagem (requer key). Preferir Edge em produção.
+ * URL pública de imagem (requer key). Só PoC/scripts — loja usa Function signed-url.
  * Nunca versionar a key no repositório.
  */
 export function buildCarImagesPublicImageUrl(
