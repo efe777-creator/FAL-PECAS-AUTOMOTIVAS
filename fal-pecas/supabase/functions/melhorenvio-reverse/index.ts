@@ -216,10 +216,14 @@ Deno.serve(async (req) => {
 
     if (action === 'status') {
       const hasMeToken = Boolean(meToken)
+      /** ME cart/order id real é numérico; UUID = seed/smoke sintético. */
+      const meOrderIdLooksSynthetic = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        .test(meOrderId)
       const liveBlockers: string[] = []
       if (!eligible) liveBlockers.push('not_eligible')
       if (!hasMeToken) liveBlockers.push('me_token_missing')
       if (sandbox) liveBlockers.push('sandbox_mode')
+      if (meOrderIdLooksSynthetic) liveBlockers.push('me_order_id_synthetic')
       if (returnMode && returnMode !== 'me_codigo') liveBlockers.push('return_mode_not_me')
       if (stage && stage !== 'autorizada' && stage !== 'aguardando_peca') {
         liveBlockers.push('stage_not_ready')
@@ -239,6 +243,7 @@ Deno.serve(async (req) => {
         dryRun,
         hasMeToken,
         meOrderIdPresent: Boolean(meOrderId),
+        meOrderIdLooksSynthetic,
         volumeCount: vol.count,
         provider,
         liveReady,
@@ -246,9 +251,11 @@ Deno.serve(async (req) => {
         selectedServiceHint: lastPayload.service_override ?? null,
         hint: liveReady
           ? 'Pronto para generate live (sem forceDryRun).'
-          : forceDryRun || dryRun
-            ? 'Use forceDryRun (staff) para smoke; live exige token + elegibilidade + stage.'
-            : `Bloqueios live: ${liveBlockers.join(', ') || 'desconhecido'}`,
+          : meOrderIdLooksSynthetic
+            ? 'cart_item_id parece sintético (UUID) — use forceDryRun no smoke; live exige id ME real.'
+            : forceDryRun || dryRun
+              ? 'Use forceDryRun (staff) para smoke; live exige token + elegibilidade + stage.'
+              : `Bloqueios live: ${liveBlockers.join(', ') || 'desconhecido'}`,
       })
     }
 

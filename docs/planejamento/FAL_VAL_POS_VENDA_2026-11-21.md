@@ -43,10 +43,11 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 | Edge `generate` com `forceDryRun` (staff) | **PASS** `DRY-REV-12DC7B28` |
 | Evento customer com `me_reverse.tracking_code` | **PASS** |
 | Pedido smoke | `12dc7b28-d7e8-4fd5-9210-931d793185e0` |
+| Revalidação pós-deploy `liveReady` (2026-11-21 noite) | **PASS** `4a47e196…` · `liveReady:false` + `me_order_id_synthetic` · `DRY-REV-4A47E196` |
 
 ## VAL manual restante (produção ME real)
 
-Pré-check: Edge `action:status` deve retornar `liveReady:true` (token ME + elegível + stage + não sandbox). Smoke com `cart_item_id` sintético espera `liveReady:false` + `forceDryRun`.
+Pré-check: Edge `action:status` → `liveReady:true` só com token ME + elegível + stage + não sandbox + `cart_item_id` **numérico ME** (UUID = sintético → `me_order_id_synthetic`). Smoke espera `liveReady:false` + `forceDryRun`.
 
 1. Pedido com etiqueta ME **real** (`cart_item_id` válido) → `status.liveReady` → generate **sem** `forceDryRun`.  
 2. UI conta: cliente clica Gerar código (sem flag staff).  

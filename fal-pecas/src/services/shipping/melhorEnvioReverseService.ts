@@ -21,6 +21,7 @@ export type MeReverseResponse = {
   codeValid?: boolean
   hasMeToken?: boolean
   meOrderIdPresent?: boolean
+  meOrderIdLooksSynthetic?: boolean
   volumeCount?: number
   provider?: string
   liveReady?: boolean

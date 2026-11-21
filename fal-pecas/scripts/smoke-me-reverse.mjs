@@ -320,6 +320,7 @@ async function main() {
       liveBlockers: st.json.liveBlockers,
       hasMeToken: st.json.hasMeToken,
       meOrderIdPresent: st.json.meOrderIdPresent,
+      meOrderIdLooksSynthetic: st.json.meOrderIdLooksSynthetic,
       hint: st.json.hint,
       error: st.json.error,
     }),
@@ -355,8 +356,15 @@ async function main() {
   const withCode = (events ?? []).find(
     (e) => e.payload && typeof e.payload === 'object' && e.payload.me_reverse?.tracking_code,
   )
+  const syntheticBlocked =
+    st.json.liveReady === false &&
+    Array.isArray(st.json.liveBlockers) &&
+    st.json.liveBlockers.includes('me_order_id_synthetic')
   const gate =
-    gen.json.ok === true && Boolean(gen.json.trackingCode) && Boolean(withCode)
+    gen.json.ok === true &&
+    Boolean(gen.json.trackingCode) &&
+    Boolean(withCode) &&
+    syntheticBlocked
       ? 'PASS'
       : 'FAIL'
 
@@ -369,6 +377,8 @@ async function main() {
       ownFallbackOrderId: ownId,
       trackingCode: gen.json.trackingCode ?? null,
       eventHasMeReverse: Boolean(withCode),
+      liveReady: st.json.liveReady ?? null,
+      syntheticBlocked,
     }),
   )
 

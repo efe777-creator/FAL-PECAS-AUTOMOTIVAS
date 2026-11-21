@@ -102,12 +102,12 @@ Legenda ação: **EXISTE** · **EVOLUIR** · **CRIAR**
 
 | # | Status | Tela | Copy / o que vê | CTA | Função / evento | Fase | Ação |
 |---|--------|------|-----------------|-----|-----------------|------|------|
-| 1 | `enviado` | Detalhe + lista | **Aguardando entrega** + rastreio | Acompanhar envio / link rastreio | `ship_order`, tracking | 1 | EVOLUIR label; EXISTE link |
+| 1 | `enviado` | Detalhe + lista | **Aguardando entrega** + rastreio | Acompanhar envio / link rastreio | `ship_order`, tracking | 1 | FEITO |
 | 2 | `enviado` | Detalhe | Código/URL atualizados | — | `apply_me_tracking_update`, webhook | 1 | EXISTE |
-| 3 | `entregue` | Detalhe | **Sua entrega chegou** + recebedor minimizado se houver | — | `deliver_order` / pickup confirm | 1 | EVOLUIR copy; CRIAR recebedor UI |
-| 4 | `entregue` | Detalhe | Janela aberta/fechada | Problema só se aberta (ou caso já aberto) | Helper window + RPC gate | 1 | CRIAR |
+| 3 | `entregue` | Detalhe | **Sua entrega chegou** + recebedor minimizado se houver | — | `deliver_order` / pickup confirm | 1 | FEITO |
+| 4 | `entregue` | Detalhe | Janela aberta/fechada | Problema só se aberta (ou caso já aberto) | Helper window + RPC gate | 1 | FEITO |
 | 5 | `entregue` | Detalhe | — | Confirmar recebimento | `customer_confirm_receipt` | 1 | EXISTE |
-| 6 | `enviado`/`entregue` | Detalhe | Formulário motivos; se incompat/devolução: todo/itens + política ACK | Enviar | Report tipado → `occurrence_opened` | 1 | EVOLUIR RPC/UI |
+| 6 | `enviado`/`entregue` | Detalhe | Formulário motivos; se incompat/devolução: todo/itens + política ACK | Enviar | Report tipado → `occurrence_opened` | 1 | FEITO |
 | 7 | qualquer c/ caso | Detalhe timeline | Eventos customer do caso (labels por stage) | — | `customerFacingOrderEventLabel` | 1–3 | FEITO |
 | 8a | caso `autorizada` ME | Detalhe | Instruções + Gerar código | Gerar código de devolução | Edge reversa ME (FAL paga) | 3 | FEITO |
 | 8b | caso `autorizada` fallback | Detalhe | Texto loja + WA | Falar no WhatsApp / Devolver na loja | `buildPostSaleWhatsAppMessage` + return_mode | 3 | FEITO |
@@ -160,12 +160,12 @@ T0 = confirmação de retirada (`admin_confirm_store_pickup` → `entregue`).
 
 | # | Onde | O que faz | Função | Fase | Ação |
 |---|------|-----------|--------|------|------|
-| 1 | OrderOps expedição | Vê banner “ME: entregue — confirmar?” | `deliver_order` | 1 | CRIAR banner; EXISTE RPC |
-| 2 | Inbox | Abre notificação → **mesmo** order id em guia | deep link | 1–2 | EXISTE inbox; EVOLUIR se preciso |
-| 3 | `revisao-logistica` | Lista casos; chips D12; **Abrir guia** / **+ Guia** | lista corrigida | 2 | EVOLUIR lista; CRIAR chips |
-| 4 | OrderOps ocorrências | Start, notas, autorizar/recusar | `admin_occurrence_action` + stages | 2–3 | EVOLUIR |
-| 5 | OrderOps | Override PAC/SEDEX | metadata caso | 3 | CRIAR |
-| 6 | OrderOps | Aguardando peça → conferência | stages | 3 | CRIAR |
+| 1 | OrderOps expedição | Vê banner “ME: entregue — confirmar?” | `deliver_order` | 1 | FEITO |
+| 2 | Inbox | Abre notificação → **mesmo** order id em guia | deep link | 1–2 | EXISTE |
+| 3 | `revisao-logistica` | Lista casos; chips D12; **Abrir guia** / **+ Guia** | lista corrigida | 2 | FEITO |
+| 4 | OrderOps ocorrências | Start, notas, autorizar/recusar | `admin_occurrence_action` + stages | 2–3 | FEITO |
+| 5 | OrderOps | Override PAC/SEDEX | metadata caso | 3 | FEITO |
+| 6 | OrderOps | Aguardando peça → conferência | stages | 3 | FEITO |
 | 7 | OrderOps | Resolve + **Repor estoque** + **Marcar estorno** | restock / `admin_mark_payment_refunded` | 3 | EXISTE botões |
 
 **Vocabulário obrigatório:** Abrir guia · + Guia · Na guia · Fechar · Expandir · Tela cheia.  
@@ -195,18 +195,18 @@ T0 = confirmação de retirada (`admin_confirm_store_pickup` → `entregue`).
 | `deliver_order` | Ops | Entrega | adminOrderService | 1 | EXISTE |
 | `admin_confirm_store_pickup` | Ops | Retirada | adminOrderService | 1 | EXISTE |
 | `customer_confirm_receipt` | Cliente | Pós-entregue | customerOrderActions | 1 | EXISTE |
-| Report tipado (motivo, scope, items, ack) | Cliente | Janela | EVOLUIR RPC post_delivery | 1 | EVOLUIR |
-| Gate janela 7d | Cliente/RPC | Abrir caso | helper + migration | 1 | CRIAR |
-| Banner ME delivered | Ops UI | `enviado` + sinal | OrderOps slot | 1 | CRIAR |
+| Report tipado (motivo, scope, items, ack) | Cliente | Janela | RPC post_sale tipado | 1 | FEITO |
+| Gate janela 7d | Cliente/RPC | Abrir caso | helper + migration | 1 | FEITO |
+| Banner ME delivered | Ops UI | `enviado` + sinal | OrderOps slot | 1 | FEITO |
 | `admin_occurrence_action` | Ops | Ciclo ocorrência | OrderOccurrencesPanel | 2 | EXISTE |
-| Stages autorizar/peça/conf | Ops | Devolução | orderOpsActions + RPC | 3 | CRIAR/EVOLUIR |
-| Edge logística reversa ME | System | Cliente gera código | nova ação Edge | 3 | CRIAR |
-| Cotação min PAC/SEDEX | System | Generate | Edge | 3 | CRIAR |
+| Stages autorizar/peça/conf | Ops | Devolução | orderOpsActions + RPC | 3 | FEITO |
+| Edge logística reversa ME | System | Cliente gera código | `melhorenvio-reverse` | 3 | FEITO |
+| Cotação min PAC/SEDEX | System | Generate | Edge | 3 | FEITO |
 | `restock_order_item_physical` | Ops | Resolução | OrderOps | 3 | EXISTE |
 | `admin_mark_payment_refunded` | Ops | Resolução | OrderOps | 3 | EXISTE |
-| `buildOrderWhatsAppMessage` | Cliente | Rodapé / caso | whatsapp.ts | 1/3 | EVOLUIR texto caso |
-| `returnPolicyCopy` | Conta+Legal | Formulário/legal | lib nova | 1 | CRIAR |
-| Lista `revisao` unificada | Ops | Hub | adminListLogisticsQueue | 2 | EVOLUIR |
+| `buildPostSaleWhatsAppMessage` | Cliente | Rodapé / caso | whatsapp.ts | 1/3 | FEITO |
+| `returnPolicyCopy` | Conta+Legal | Formulário/legal | lib | 1 | FEITO |
+| Lista `revisao` unificada | Ops | Hub | adminListLogisticsQueue | 2 | FEITO |
 
 ---
 
