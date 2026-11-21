@@ -216,7 +216,9 @@ Ops trabalha pós-venda só pela Central + guia, sem módulo novo.
    - [x] Frete próprio: UI força WA/loja (elegibilidade)  
    - [x] Override SEDEX no ops (authorize)  
    - [x] Conferência → restock/estorno via OrderOps (hint + botão estorno em `approved`)  
-   - [ ] Pedido ME real (prod/sandbox) → autoriza → cliente gera código → metadata ok  
+   - [x] Smoke dry-run stages→código→evento (`scripts/smoke-me-reverse.mjs`, gate PASS)  
+   - [ ] Pedido ME real (cart_item_id válido, sem forceDryRun) → generate live  
+
 
 ### Critério de saída Fase 3
 

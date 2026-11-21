@@ -204,7 +204,9 @@ Deno.serve(async (req) => {
     const provider = String(shipment?.provider ?? '')
     const meMode = meRuntimeMode()
     const sandbox = meMode === 'sandbox'
-    const dryRun = !meToken
+    /** Staff smoke/VAL: gera código DRY sem chamar ME (cart_item_id sintético). */
+    const forceDryRun = staff && body.forceDryRun === true
+    const dryRun = !meToken || forceDryRun
 
     const eligible =
       order.status === 'entregue' &&
@@ -518,11 +520,13 @@ Deno.serve(async (req) => {
       sandbox,
       dryRun,
       attach: attachData,
-      message: dryRun
-        ? 'Código dry-run gerado (sem token ME).'
-        : sandbox
-          ? 'Código gerado (sandbox — validação limitada).'
-          : 'Código de devolução Melhor Envio gerado. Leve à agência dos Correios.',
+      message: forceDryRun
+        ? 'Código dry-run gerado (forceDryRun staff/smoke).'
+        : dryRun
+          ? 'Código dry-run gerado (sem token ME).'
+          : sandbox
+            ? 'Código gerado (sandbox — validação limitada).'
+            : 'Código de devolução Melhor Envio gerado. Leve à agência dos Correios.',
     })
   } catch (e) {
     return json(500, {

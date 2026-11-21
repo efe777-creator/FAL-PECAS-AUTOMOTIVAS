@@ -20,8 +20,16 @@ describe('pós-venda anti-regressão (fonte)', () => {
     const rev = read('supabase/functions/melhorenvio-reverse/index.ts')
     expect(rev).toMatch(/\/api\/v2\/me\/cart\/reverse/)
     expect(rev).toMatch(/attach_me_return_code/)
+    expect(rev).toMatch(/forceDryRun/)
     expect(rev).not.toMatch(/ship_order/)
     expect(rev).not.toMatch(/deliver_order/)
+  })
+
+  it('smoke ME reverse existe e usa forceDryRun', () => {
+    const smoke = read('scripts/smoke-me-reverse.mjs')
+    expect(smoke).toMatch(/forceDryRun:\s*true/)
+    expect(smoke).toMatch(/admin_post_sale_case_action/)
+    expect(smoke).toMatch(/melhorenvio-reverse/)
   })
 
   it('ida Melhor Envio permanece reverse:false', () => {

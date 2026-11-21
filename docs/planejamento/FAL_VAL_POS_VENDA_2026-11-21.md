@@ -33,14 +33,25 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 - [x] Copy legal via `returnPolicyCopy`
 - [x] Edge reversa separada da ida
 
-## VAL manual restante
+## Smoke dry-run (2026-11-21 — `scripts/smoke-me-reverse.mjs`)
 
-1. Pedido ME ida → entregue → report tipado → ops autoriza `me_codigo` → cliente **Gerar código** → `me_reverse` no evento + metadata shipment.  
-2. Pedido frete próprio → autorizar só oferece `wa`/`loja`.  
-3. Override SEDEX no authorize + generate.  
-4. Conferência ok → Repor estoque + Marcar estorno (`approved` → `refunded`).
+| Passo | Resultado |
+|-------|-----------|
+| Seed ME `entregue` + packing 1 vol + `cart_item_id` | OK |
+| Seed own fallback | OK (`1035cc77…`) |
+| open → start → authorize `me_codigo` + override PAC | OK |
+| Edge `generate` com `forceDryRun` (staff) | **PASS** `DRY-REV-12DC7B28` |
+| Evento customer com `me_reverse.tracking_code` | **PASS** |
+| Pedido smoke | `12dc7b28-d7e8-4fd5-9210-931d793185e0` |
 
-## Gate F3 → done (código)
+## VAL manual restante (produção ME real)
 
-**PASS** no código/`dev` + RPCs/Edge.  
-**HOLD** no E2E ME real até item 1 da VAL manual.
+1. Pedido com etiqueta ME **real** (cart_item_id válido) → generate **sem** `forceDryRun`.  
+2. UI conta: cliente clica Gerar código (sem flag staff).  
+3. Conferência ok → Repor estoque + Marcar estorno.  
+4. Frete próprio: ops só vê WA/loja na UI (elegibilidade).
+
+## Gate F3 → done
+
+**PASS** código + smoke dry-run ponta a ponta (stages → código → evento).  
+**HOLD** só para generate ME live com order_id real da ida.
