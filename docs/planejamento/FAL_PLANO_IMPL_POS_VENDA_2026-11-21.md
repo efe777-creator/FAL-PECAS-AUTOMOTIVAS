@@ -1,7 +1,7 @@
 # FAL — Plano de implementação: Camada pós-venda
 
 **Data:** 2026-11-21  
-**Status:** F1–F3 implementadas na `dev` (2026-11-21) — VAL operacional pendente em pedido real ME  
+**Status:** F1–F3 + D18 WA + painel status caso na `dev` (2026-11-21) — HOLD só generate ME live  
 
 **Branch:** `dev` (nunca `main`/prod sem autorização)  
 **Spec:** [FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md](./FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md)  
@@ -200,8 +200,8 @@ Ops trabalha pós-venda só pela Central + guia, sem módulo novo.
    - Exibir instruções Correios + DC-e + validade  
 
 5. **Fallback D18**  
-   - CTAs WA (mensagem com nº pedido + caso)  
-   - “Devolver na loja” — texto + WA para combinar (sem agenda)
+   - [x] CTAs WA tipados (pedido + caso + período/modo) — `buildPostSaleWhatsAppMessage` + `PostSaleWhatsAppButton`  
+   - [x] “Devolver na loja” — texto + WA para combinar (sem agenda)
 
 6. **Resolução**  
    - Conferência: nota condição (sujo/usado → recusa fundamentada)  

@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-21  
 **Branch:** `dev`  
-**Commits:** `1c28e45` (F1) → `ccc92a4` (F2) → `0334ea2` (F3) → `3959967` (fechamento)
+**Commits:** `1c28e45` (F1) → `ccc92a4` (F2) → `0334ea2` (F3) → `3959967` (fechamento) → `eb7d280` (WA D18) → marcha status caso + chips stage
 
 ## Escopo
 
@@ -56,7 +56,17 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 `admin_occurrence_action` no remoto só tinha overload de **8** args; o client admin enviava **13** → `PGRST202` ao abrir ocorrência no OrderOps.  
 Migration `20261121193000_admin_occurrence_action_full_overload.sql` aplicada; smoke revalidado **PASS** (`DRY-REV-FE6C448E`).
 
+## D18 WhatsApp (2026-11-21)
+
+| Intent / período | UI | Resultado |
+|------------------|----|-----------|
+| Caso aberto | HelpPanel + rodapé | mensagem com pedido + caso |
+| Fora prazo 7d | HelpPanel | intent `fora_prazo` |
+| Modo `wa` / `loja` / `me_codigo` | AuthorizedPanel | intents tipados + código se houver |
+| Normalize `VITE_WHATSAPP_PHONE` | `whatsapp.ts` | E.164 `55…` |
+| Vitest `whatsapp.test.ts` | 9/9 | PASS |
+
 ## Gate F3 → done
 
-**PASS** código + smoke dry-run ponta a ponta (stages → código → evento).  
+**PASS** código + smoke dry-run ponta a ponta (stages → código → evento) + WA D18.  
 **HOLD** só para generate ME live com order_id real da ida.

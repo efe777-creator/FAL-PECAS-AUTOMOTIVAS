@@ -18,6 +18,30 @@ describe('postSaleRevisaoChips', () => {
     expect(revisaoChipForRow({ source: 'manual_review' })).toBe('aguardando')
   })
 
+  it('stage aguardando_peca / em_conferencia → chip aguardando', () => {
+    expect(
+      revisaoChipForRow({
+        source: 'occurrence',
+        tipo: 'pos_venda_devolucao',
+        stage: 'aguardando_peca',
+      }),
+    ).toBe('aguardando')
+    expect(
+      revisaoChipForRow({
+        source: 'occurrence',
+        tipo: 'pos_venda_devolucao',
+        stage: 'em_conferencia',
+      }),
+    ).toBe('aguardando')
+    expect(
+      revisaoChipForRow({
+        source: 'occurrence',
+        tipo: 'pos_venda_devolucao',
+        stage: 'autorizada',
+      }),
+    ).toBe('devolucao')
+  })
+
   it('filtra chips', () => {
     const row = { source: 'occurrence' as const, tipo: 'pos_venda_devolucao' }
     expect(rowMatchesRevisaoChip('todas', row)).toBe(true)

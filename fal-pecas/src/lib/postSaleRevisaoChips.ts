@@ -19,6 +19,11 @@ export type RevisaoRowMeta = {
 /** Chip primário da linha (para filtro). */
 export function revisaoChipForRow(meta: RevisaoRowMeta): Exclude<RevisaoChipId, 'todas'> {
   if (meta.source === 'manual_review') return 'aguardando'
+  // F3: peça a caminho / conferência = fila operacional (não “só suporte”).
+  const stage = String(meta.stage ?? '').toLowerCase()
+  if (stage === 'aguardando_peca' || stage === 'em_conferencia') {
+    return 'aguardando'
+  }
   const tipo = String(meta.tipo ?? '').toLowerCase()
   if (
     tipo === 'pos_venda_devolucao' ||

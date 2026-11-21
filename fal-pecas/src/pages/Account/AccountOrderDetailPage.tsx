@@ -1,4 +1,5 @@
 import { PostSaleAuthorizedPanel } from '@/components/account/PostSaleAuthorizedPanel'
+import { PostSaleCaseStatusPanel } from '@/components/account/PostSaleCaseStatusPanel'
 import { PostSaleHelpPanel } from '@/components/account/PostSaleHelpPanel'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
@@ -374,6 +375,24 @@ export function AccountOrderDetailPage() {
   }, [order?.events])
 
   const hasOpenPostSaleCase = postSaleOccurrences.some((o) => o.status !== 'resolved')
+  const openPostSaleCase = postSaleOccurrences.find((o) => o.status !== 'resolved')
+  const resolvedPostSaleCase = postSaleOccurrences.find((o) => o.status === 'resolved')
+  /** Status do caso: aberto/análise/recusa, ou resultado quando encerrado. */
+  const caseStatusPostSale = (() => {
+    if (openPostSaleCase) {
+      const st = openPostSaleCase.stage
+      if (
+        st === 'aberto' ||
+        st === 'em_analise' ||
+        st === 'recusada' ||
+        !st
+      ) {
+        return openPostSaleCase
+      }
+      return null
+    }
+    return resolvedPostSaleCase ?? null
+  })()
   /** Painel de devolução: autorizado e stages seguintes (código não some ao avançar). */
   const authorizedPostSale = postSaleOccurrences.find((o) => {
     if (o.status === 'resolved') return false
@@ -580,20 +599,19 @@ export function AccountOrderDetailPage() {
             {(() => {
               const phone = storeWhatsAppPhone()
               if (!phone) return null
-              const openCase = postSaleOccurrences.find((o) => o.status !== 'resolved')
               const orderNumber = order.id.slice(0, 8).toUpperCase()
-              const msg = openCase
+              const msg = openPostSaleCase
                 ? buildPostSaleWhatsAppMessage({
                     orderNumber,
-                    occurrenceId: openCase.occurrenceId,
-                    stage: openCase.stage,
-                    returnMode: openCase.returnMode,
-                    trackingCode: openCase.meReverse?.tracking_code,
-                    intent: openCase.returnMode === 'wa'
+                    occurrenceId: openPostSaleCase.occurrenceId,
+                    stage: openPostSaleCase.stage,
+                    returnMode: openPostSaleCase.returnMode,
+                    trackingCode: openPostSaleCase.meReverse?.tracking_code,
+                    intent: openPostSaleCase.returnMode === 'wa'
                       ? 'devolucao_wa'
-                      : openCase.returnMode === 'loja'
+                      : openPostSaleCase.returnMode === 'loja'
                         ? 'devolver_loja'
-                        : openCase.returnMode === 'me_codigo'
+                        : openPostSaleCase.returnMode === 'me_codigo'
                           ? 'duvida_codigo'
                           : 'caso_aberto',
                   })
@@ -609,7 +627,7 @@ export function AccountOrderDetailPage() {
                   rel="noreferrer"
                   className="inline-flex items-center rounded-[10px] border border-[#25D366] bg-[#25D366]/10 px-3 py-2 text-sm font-bold text-[#128C7E]"
                 >
-                  {openCase ? 'WhatsApp · pós-venda' : 'Falar sobre este pedido'}
+                  {openPostSaleCase ? 'WhatsApp · pós-venda' : 'Falar sobre este pedido'}
                 </a>
               )
             })()}
@@ -692,6 +710,13 @@ export function AccountOrderDetailPage() {
         </div>
       ) : null}
 
+      {caseStatusPostSale ? (
+        <PostSaleCaseStatusPanel
+          orderNumber={order.id.slice(0, 8).toUpperCase()}
+          occurrence={caseStatusPostSale}
+        />
+      ) : null}
+
       {authorizedPostSale && authorizedPostSale.returnMode ? (
         <PostSaleAuthorizedPanel
           orderId={order.id}
@@ -717,9 +742,7 @@ export function AccountOrderDetailPage() {
           orderStatus={order.status}
           hasOpenPostSaleCase={hasOpenPostSaleCase}
           orderNumber={order.id.slice(0, 8).toUpperCase()}
-          openOccurrenceId={
-            postSaleOccurrences.find((o) => o.status !== 'resolved')?.occurrenceId ?? null
-          }
+          openOccurrenceId={openPostSaleCase?.occurrenceId ?? null}
           items={order.items.map((i) => ({
             id: i.id,
             label: `${i.sku} — ${i.nameSnapshot}`,

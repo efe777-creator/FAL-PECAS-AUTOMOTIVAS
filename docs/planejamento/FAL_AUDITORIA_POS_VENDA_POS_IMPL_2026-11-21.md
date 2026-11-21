@@ -30,6 +30,14 @@ HOLD permanece: generate ME **live** com `cart_item_id` real.
 2. Unit: elegibilidade ME / own / multi-volume / stages derive — **PASS**  
 3. Anti-regressão: sem `/admin/pos-venda`, Edge separada, legal=`returnPolicyCopy` — **PASS**
 
+## Fechamentos pós-auditoria
+
+| Item | Status |
+|------|--------|
+| WA D18 tipado (período/modo/estágio) | Feito (`eb7d280`+) |
+| Painel cliente stage aberto/análise/recusa + resolvido | Feito (marcha seguinte) |
+| Chip Revisão: `aguardando_peca` / `em_conferencia` → Aguardando ops | Feito |
+
 ## Jornadas manuais recomendadas
 
 1. Conta: 2º “Informar problema” com caso aberto → mensagem + RPC erro  
@@ -37,6 +45,7 @@ HOLD permanece: generate ME **live** com `cart_item_id` real.
 3. Conferência sujo → recusa; ok → hint restock/estorno  
 4. Frete own → só WA/loja  
 5. Visão Revisão chips ≠ visão Problemas  
+6. Conta: caso resolvido mostra Resultado; recusa mostra motivo + WA  
 
 ## Relação de módulos (sem módulo isolado)
 
