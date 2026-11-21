@@ -1,5 +1,6 @@
 import { AdminOrderExpeditionSlot } from '@/components/admin/orders/AdminOrderExpeditionSlot'
 import { OrderAnalysisResolutionPanel } from '@/components/admin/orders/OrderAnalysisResolutionPanel'
+import { PostSaleReturnLogisticsPanel } from '@/components/admin/orders/PostSaleReturnLogisticsPanel'
 import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
 import {
   badgeClass,
@@ -53,8 +54,10 @@ import {
   readContractedShipping,
 } from '@/lib/contractedShipping'
 import { formatDateTime } from '@/lib/datetime'
+import { meLabelState, meLabelStateLabel } from '@/lib/melhorEnvioLabelState'
 import { formatMoney } from '@/lib/money'
-import { isOrderStorePickup, orderShippingKind } from '@/lib/orderShippingKind'
+import { isOrderStorePickup, orderShippingKind, orderUsesMelhorEnvio } from '@/lib/orderShippingKind'
+import { buildPostSaleReturnOpsSummary } from '@/lib/postSaleReturnOpsSummary'
 import { isStorePickupAuthorized } from '@/lib/storePickupOps'
 import {
   paymentMethodLabel,
@@ -507,6 +510,23 @@ export function OrderOpsSurface({
     )
   }, [order, listRow])
 
+  const returnLogistics = useMemo(() => {
+    if (!order) return null
+    return buildPostSaleReturnOpsSummary({
+      events: (order.events ?? []).map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        payload: e.payload,
+        visibility: e.visibility,
+        createdAt: e.createdAt,
+      })),
+      orderStatus: order.status,
+      provider: order.shipment?.provider,
+      shipmentMetadata: order.shipment?.metadata ?? null,
+      outboundTracking: order.shipment?.trackingCode ?? null,
+    })
+  }, [order])
+
   const itemHandlers = {
     onSaveItem: (itemId: string) =>
       void withBusy(async () => {
@@ -896,6 +916,16 @@ export function OrderOpsSurface({
               role="tabpanel"
               aria-label="Logística"
             >
+              {returnLogistics && order ? (
+                <PostSaleReturnLogisticsPanel
+                  summary={returnLogistics}
+                  outboundLabelState={
+                    orderUsesMelhorEnvio(order)
+                      ? meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))
+                      : order.shipment?.provider ?? null
+                  }
+                />
+              ) : null}
               <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
                   Frete e retirada

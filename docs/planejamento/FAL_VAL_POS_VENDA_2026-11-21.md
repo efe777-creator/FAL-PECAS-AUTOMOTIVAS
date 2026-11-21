@@ -78,4 +78,5 @@ Consulta `shipments` provider Melhor Envio + `orders.status=entregue`: **9** ped
 ## Gate F3 → done
 
 **PASS** código + smoke dry-run + WA D18 + `liveReady` anti-sintético (Edge + UI ops).  
+**PASS** OrderOps aba Logística: painel **Ida × devolução** (etiqueta venda + código/stage retorno).  
 **HOLD humano:** 1º pedido ME real (`cart_item_id` numérico) → `status.liveReady:true` → generate sem `forceDryRun`.
