@@ -131,5 +131,6 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 ## Trilha paralela · Guias Adaptive (estudo 2026-11-21)
 
 **Intenção:** facilitar alteração (categoria / aplicação / preços) **pela guia**, sem depender da ficha.  
-**Plano:** [FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md](./FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md) — status ESTUDO; implementação após decisões G1–G3.  
-**Não substitui** a fila Notes #4+; caminha em paralelo no admin Adaptive.
+**Plano:** [FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md](./FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md)  
+**Decisões travadas:** (1) surface Apps **completa** + ano início/fim no cadastro; (2) ver/alterar preços de **várias listas** na guia; (3) categoria com **seletores**; UX em **mini-menus** (um painel ativo).  
+**Implementação:** marchas G1→G4 no plano. Não substitui Notes #4+.

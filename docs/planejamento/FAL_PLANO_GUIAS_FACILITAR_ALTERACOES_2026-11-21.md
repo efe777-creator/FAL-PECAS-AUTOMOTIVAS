@@ -1,139 +1,140 @@
 # FAL — Plano · Facilitar alteração pelas guias Adaptive
 
 **Data:** 2026-11-21 · **Branch:** `dev`  
-**Status:** **ESTUDO / PLANEJAMENTO** (sem implementação nesta marcha)  
-**Intenção (eFe):** a guia deve ser o caminho natural para **alterar** categoria, aplicação e preços — menos saltos para ficha completa / hubs só para “ver”.  
-**REF Notes:** [FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md) (trilha paralela; #4 archive/filtro se alinha à guia Produto)  
-**VAL pontes existentes:** [FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md)
+**Status:** **DECISÕES TRAVADAS** + hierarquia mini-menus (estudo UX) — implementação em marchas G1+  
+**Intenção:** a guia do produto é o lugar para **alterar** categoria, aplicações (PVC completo) e preços das listas — com mini-menus claros.  
+**REF Notes:** [FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md)  
+**VAL pontes:** [FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md)
 
 ---
 
-## 1. O que já existe (mapa)
+## 0. Decisões eFe (2026-11-21) — TRAVADAS
 
-| Hub | WorkSurface | O que a guia já edita | O que a guia só ponteia |
-|-----|-------------|----------------------|-------------------------|
-| **Produtos** | `ProductWorkSurface` | Identidade, **Preço Lista Base**, **Categoria** (cascata) | Aplicações (lista + “Abrir guia”), Kits, Relacionados |
-| **Aplicações** | `ApplicationWorkSurface` | Criar / período / trocar veículo / bulk | Produto (bridge `PRODUCTS_OPEN_GUIDE_KEY` + ficha) |
-| **Classificação** | `CategoryWorkSurface` | Criar/editar cat/grupo/subgrupo + medidas default | — (é o destino da cascata) |
-| **Preços** | `PriceListWorkSurface` | Consulta + ajuste rápido (`PriceListQuickAdjustPanel`) | Lista completa / formação / import |
-| **Kits** | `KitWorkSurface` | Composição/preço kit | — |
-
-**Infra comum**
-
-- Shell: `AdaptiveWorkspace` (split / expanded / fullscreen + prefs por módulo).
-- Pontes one-shot: `adminGuideBridges.ts` → `products` · `applications` · `kits` (sessionStorage).
-- Seções produto: `fal.products.guideSections` (default aberto: `identidade` + `preco` — **categoria/aplicações começam fechadas**).
+| # | Decisão | Implicação técnica |
+|---|--------|-------------------|
+| **1** | **Surface completa** de Aplicações **dentro** da guia Produto | Embutir/reusar `ApplicationWorkSurface` (create/focus) no contexto do SKU focado — não só lista + ponte |
+| **1b** | Cadastro de aplicação **sempre** com **ano início** e **ano fim** | Já existe em `ApplicationWorkSurface` (`createYearStart`/`createYearEnd` + `validatePvcYearInputs`); ao embutir, **obrigar** o mesmo contrato (não omitir campos) |
+| **2** | **Ver e alterar preços das listas** direto na guia | Não só Lista Base: seletor de lista (Base / Promo / outras elegíveis) + editar valor no lugar (padrão `PriceListQuickAdjustPanel` filtrado pelo SKU) |
+| **3** | **Categoria com seletores** | Manter/aperfeiçoar `CategoryCascadeSelects` (categoria → grupo → subgrupo) na mini-seção Categoria |
+| **UX** | Tudo em **mini-menus** dentro da guia | Hierarquia abaixo; um menu = uma intenção; conteúdo só do menu ativo (ou accordion com um “foco” claro) |
 
 ---
 
-## 2. Diagnóstico de fricção (alterar pela guia)
+## 1. Hierarquia da guia Produto (estudo UX)
 
-### Alta (bate na intenção)
+### 1.1 Metáfora
 
-1. **Aplicações no produto = só leitura + salto**  
-   Na guia Produto não dá para editar ano/motor/versão nem adicionar PVC; só “Abrir guia” → hub Aplicações. Quebra o fluxo “estou no produto, ajusto aplicação”.
+```
+┌─ Guia · SKU / nome ─────────────────────────────┐
+│ [Identidade] [Categoria] [Preços] [Aplicações] … │  ← mini-menus (nav horizontal ou chips)
+│─────────────────────────────────────────────────│
+│  Painel do menu ativo (única superfície densa)  │
+│  … ações Salvar / Fechar / Cadastro completo    │
+└─────────────────────────────────────────────────┘
+```
 
-2. **Preço na guia Produto = só Lista Base**  
-   Promo / outras listas / formação ficam no hub Preços. Sem ponte `PRICES_OPEN_GUIDE_KEY` + SKU focado, o operador sai do contexto do item.
+- **Lista (primary)** continua browse/filtro.  
+- **Guia (contextual)** = edição por intenção.  
+- Evitar accordion com 6 blocos abertos ao mesmo tempo (estado atual) → **mini-menus** com **um painel ativo**.
 
-3. **Seções críticas fechadas por default**  
-   Categoria e aplicações não abrem sozinhas → descoberta fraca para a intenção “alterar classificação/PVC”.
+### 1.2 Ordem dos mini-menus (intuitividade)
 
-### Média
+Ordem sugerida = jornada mental do cadastro comercial:
 
-4. **Bridges incompletos**  
-   Falta `PRICES_OPEN_GUIDE_KEY` e `CATEGORIES_OPEN_GUIDE_KEY` (ou deep-link `?guide=` / `?focus=`). Classificação não “recebe” foco a partir do produto.
+| Ordem | Mini-menu | Intenção | Conteúdo |
+|------:|-----------|----------|----------|
+| 1 | **Identidade** | Quem é o item | Nome, SKU/ref, status rápido, liberar/disponível (já parcial) |
+| 2 | **Categoria** | Onde classifica | `CategoryCascadeSelects` + Salvar categoria |
+| 3 | **Preços** | Quanto custa | Seletor de **lista** + linha(s) do SKU editáveis (Base, Promo, …) |
+| 4 | **Aplicações** | Em quais veículos | Surface PVC completa: criar com **ano início/fim**, editar período, swap veículo; lista do SKU |
+| 5 | **Kits** | Em quais kits entra | Lista + Abrir guia Kits (ponte existente) |
+| 6 | **Relacionados** | Cross-sell | Lista + abrir outra guia produto |
 
-5. **Vocabulário misto**  
-   “Abrir guia” / “Cadastro completo” / “Gerir no cadastro” / “Hub X” — ok após v1.1.1, mas ainda exige saber qual hub edita o quê.
+Menus 5–6 ficam “secundários” (menos usados no dia a dia de preço/PVC).
 
-6. **Cascata PVC na guia Apps**  
-   Loads sequenciais maker→model→versions (já atenuado pelo cache #3 da árvore loja; admin ainda usa `adminListModels`/`adminListVersions` por passo).
+### 1.3 Regras de visualização
 
-### Baixa / fora desta onda
+1. **Um menu ativo** por vez (chip destacado + `aria-current`). Persistência: `fal.products.guideMenu` (session).  
+2. **Deep-link:** `?section=precos|categoria|aplicacoes|identidade` abre o menu certo.  
+3. **Densidade:** `data-product-ops-density="compact"`; painel scroll interno; chrome da guia fixo (título + chips + Fechar).  
+4. **Feedback:** toast curto por save (“Preço Base atualizado”, “Aplicação criada”, …).  
+5. **Escape hatch:** link “Cadastro completo” / “Hub …” no rodapé do painel — nunca no meio do fluxo principal.  
+6. **Vazio:** empty state com CTA do próprio menu (“Adicionar aplicação”, “Definir categoria”, “Incluir na lista”).
 
-7. Ficha completa (`/admin/produtos/:id`) continua necessária para imagens, status fino, kit BOM longo — **não eliminar**; só não deve ser o default para cat/app/preço Base.
+### 1.4 Mini-menu Preços (detalhe)
 
----
+```
+[ Lista: Base ▾ ]   ← Base | Promo | outras (exclui kits-manual)
+SKU focado pré-filtrado
+[ valor ] [Salvar]  · origem/badge · abrir formação (secundário)
+```
 
-## 3. Princípios (contrato de intenção)
+- Reusar lógica de `PriceListQuickAdjustPanel` com `forcedListId` + `q=SKU` / productId.  
+- Trocar lista **sem** sair da guia.  
+- Validação/autorização: respeitar `allowed` do hub Preços.
 
-1. **Guia-first para mutações curtas** — categoria, preço Base, período PVC, swap veículo: salváveis **sem** sair do Adaptive.
-2. **Hub para volume / visão** — lista, bulk massivo, import, formação de preço.
-3. **Ficha para cadastro profundo** — mídia, textos longos, flags, abas.
-4. **Uma ponte, um verbo** — “Abrir guia …” sempre com destino explícito; never dead-end.
-5. **Seção aberta = intenção** — se o operador veio para alterar cat/app/preço, a seção relevante **abre** (query ou bridge hint).
+### 1.5 Mini-menu Aplicações (detalhe)
 
----
+```
+Modo lista (vínculos do SKU)
+  → linha: label · [Editar] → surface focus (anos + swap)
+[ + Nova aplicação ]
+  → surface create pré-preenchida com SKU do produto
+     Montadora → Modelo → Motor → Versão
+     Ano início * · Ano fim *   ← obrigatórios no contrato UX
+     [Salvar aplicação]
+```
 
-## 4. Plano de implantação (fases)
+- Preferência: **compor** `ApplicationWorkSurface` com `mode` + `forcedSku` props (extensão mínima) em vez de duplicar formulário.  
+- Garantia: create path **sempre** renderiza e valida ano início/fim (`validatePvcYearInputs` — já no hub).
 
-### Fase 0 — Contrato + antiregress (docs)
+### 1.6 Mini-menu Categoria (detalhe)
 
-- Este documento como fonte.  
-- Estender `falUiLayoutAntiregress` quando houver novas keys de bridge / seções.  
-- **Gate:** `pnpm test:ui-layout-antiregress` + `tsc`.
-
-### Fase 1 — Descoberta na guia Produto (baixo risco)
-
-- Default sections: incluir `categoria` aberta (manter `identidade`+`preco`).  
-- Hint de seção: “Salvar aqui” vs “Abrir hub para…” padronizado.  
-- Query opcional `?section=categoria|preco|aplicacoes` ao abrir produto na guia.  
-- **Não** muda regras de negócio.
-
-### Fase 2 — Aplicações sem sair do produto (valor alto)
-
-Opção recomendada (incremental):
-
-- Em `ProductWorkSurface` seção aplicações:  
-  - editar **anos** inline (chamar `adminUpdateApplicationYears`);  
-  - botão “Adicionar aplicação” abre mini-fluxo (reusa cascata PVC) **ou** bridge com `APPLICATIONS_OPEN_GUIDE_KEY` + modo create pré-SKU.  
-- Manter “Abrir guia” para swap veículo / bulk.
-
-Opção alternativa (maior): embutir slice de `ApplicationWorkSurface` em modo `focus` dentro do produto — mais UI, mais risco.
-
-### Fase 3 — Preços e classificação com ponte de volta
-
-- `PRICES_OPEN_GUIDE_KEY` (+ opcional SKU em session/`?q=`) a partir da guia Produto (“Ajustar em Preços”).  
-- `CATEGORIES_OPEN_GUIDE_KEY` ou `?focusCategoryId=` a partir da cascata (“Editar nó na Classificação”).  
-- Guia Preços: ao consumir bridge, focar Lista Base/Promo + destacar linha do SKU no quick adjust.
-
-### Fase 4 — Intenção por URL / chip
-
-- Chips “Filtros / intenção”: `section`, `productId`, `q` (padrão já parcialmente em apps/produtos).  
-- Limpar zera bridges + seções extras (higiene v1.1.1).
-
-### Fase 5 — VAL + smoke
-
-- Matriz: alterar cat na guia → lista atualiza; editar ano PVC na guia produto; preço Base na guia; ponte Preços com SKU.  
-- Sem `main`/prod sem OK.
+```
+CategoryCascadeSelects (3 níveis)
+Resumo do leaf (“Categoria › Grupo › Subgrupo”)
+[Salvar categoria]
+Link discreto: “Editar nós na Classificação” (ponte futura)
+```
 
 ---
 
-## 5. Fora de escopo (agora)
+## 2. Estado atual vs alvo
 
-- Redesign visual do Adaptive shell.  
-- Unificar ficha e guia num único editor.  
-- Portal B2B / Notes #14–#18.  
-- Erro Notes #4 (ativos/inativos) — **próxima marcha de código** no hub Produtos; pode compartilhar UX de filtros da lista, não desta fase de plano.
+| Área | Hoje | Alvo |
+|------|------|------|
+| Layout seções | Accordion multi-aberto | **Mini-menus** 1 ativo |
+| Apps | Lista + Abrir guia hub | **Surface completa** no produto + anos início/fim no create |
+| Preço | Só Base, campo único | **Multi-lista** ver/editar na guia |
+| Categoria | Cascata + salvar (ok) | Manter seletores; menu próprio destacado |
+| Bridges | products/apps/kits | Opcional: Classificação; Preços pode ser interno |
 
 ---
 
-## 6. Ordem sugerida de marchas de código
+## 3. Fases de código (atualizadas)
 
 | Marcha | Entrega | Risco |
-|--------|----------|-------|
-| G1 | Fase 1 (defaults + `?section=`) | Baixo |
-| G2 | Fase 2 anos inline + add bridge create | Médio |
-| G3 | Fase 3 bridges preços/classificação | Médio |
-| G4 | Fase 4–5 VAL | Baixo |
+|--------|---------|-------|
+| **G1** | Refator visual: mini-menus + `?section=` + persistência menu; Categoria/Identidade nos menus | Médio (UI) |
+| **G2** | Menu Preços multi-lista (embed quick-adjust filtrado pelo SKU) | Médio |
+| **G3** | Menu Aplicações: embed `ApplicationWorkSurface` + SKU forçado + anos início/fim no create | Médio-alto |
+| **G4** | Antiregress FL + VAL smoke guia (cat / preço lista / app com anos) | Baixo |
+
+**Gates:** `pnpm test:ui-layout-antiregress` · `tsc` · testes de `validatePvcYearInputs` / apps se tocados.
 
 ---
 
-## 7. Decisão pedida ao eFe (antes de codar G1+)
+## 4. Fora de escopo
 
-1. **Apps na guia Produto:** só anos inline **ou** embutir surface completa?  
-2. **Preço:** manter Base-only na guia Produto + ponte Preços, ou também Promo inline?  
-3. **Default sections:** abrir `categoria` sempre, ou só quando `?section=` / bridge?
+- Redesign do shell Adaptive (split/fullscreen).  
+- Substituir ficha completa.  
+- Notes #4 (ativos/inativos) — marcha separada na **lista** primary.  
+- `main`/prod sem OK.
 
-*Nesta marcha: só estudo + plano commitados na `dev`. Implementação após OK nas decisões.*
+---
+
+## 5. Próximo passo
+
+Com decisões travadas: **G1** (esqueleto mini-menus + categoria/identidade) na próxima marcha de implementação, depois G2 preços, G3 aplicações.
+
+*Este doc substitui as “perguntas em aberto” da versão anterior.*
