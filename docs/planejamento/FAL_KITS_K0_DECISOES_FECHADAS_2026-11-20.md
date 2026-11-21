@@ -27,7 +27,7 @@
 | H5 | Uma lista pública exclusiva para preços manuais de kits na v1. |
 | H6 | Mudança de PVC em componente → alerta + bloqueio de republicação do kit até revisão. |
 | H7 | Dimensões/peso próprios do SKU kit. |
-| H8 | Admin: ficha de produto + seção composição; filtro por kind. |
+| H8 | **Supersede 2026-11-20:** hub Admin › Kits (`/admin/kits`) — listar/criar/editar; Produtos redireciona kit para o hub. |
 | H9 | Promo via `product_promotions` no `product_id` do kit; sem herança dos componentes. |
 | H10 | H12 reconciliado: PVC próprio do kit + componentes disponíveis; sem herança A∧B. |
 | H11 | Snapshot da composição = `jsonb` em `order_items` (fase K4). |
@@ -49,6 +49,16 @@
 
 **Roadmap kits (auditoria):** K0–K13 concluídos na `dev`.  
 **Loja residual:** filtro catálogo `?kind=kit|item` via `search_products.p_product_kind` (2026-11-20).  
+**Admin hub (2026-11-20):** `/admin/kits`, `/admin/kits/novo`, `/admin/kits/:id`, `/admin/kits/precos` (lista-base `preco-kits-manual` + auto). Promo só Home › Promoções › Kits (sem item de menu solto).  
+
+### Mapa de caminhos canônicos (admin)
+
+| Intenção | Caminho |
+|----------|---------|
+| Kits CRUD | `/admin/kits` |
+| Preços kits (auto+manual) | `/admin/kits/precos` |
+| Promo kit | `/admin/home/promocoes/kits` |
+| Item avulso | `/admin/produtos` |
 
 **Não fazer:** segundo catálogo, segundo resolve, inventory do kit, herança de promo/compat.
 

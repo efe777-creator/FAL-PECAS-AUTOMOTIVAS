@@ -13,9 +13,12 @@ describe('canAccessAdminPath', () => {
     expect(canAccessAdminPath('/admin/precos', 'atendimento')).toBe(false)
   })
 
-  it('estoque vê estoque/produtos, não preços', () => {
+  it('estoque vê estoque/produtos/kits, não preços', () => {
     expect(canAccessAdminPath('/admin/estoque', 'estoque')).toBe(true)
     expect(canAccessAdminPath('/admin/produtos', 'estoque')).toBe(true)
+    expect(canAccessAdminPath('/admin/kits', 'estoque')).toBe(true)
+    expect(canAccessAdminPath('/admin/kits/novo', 'estoque')).toBe(true)
+    expect(canAccessAdminPath('/admin/kits/precos', 'estoque')).toBe(true)
     expect(canAccessAdminPath('/admin/precos', 'estoque')).toBe(false)
   })
 

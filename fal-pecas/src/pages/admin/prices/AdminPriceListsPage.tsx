@@ -12,6 +12,7 @@ import { formatDateTime } from '@/lib/datetime'
 import { PRICE_LIST_LAYERS_HINT } from '@/lib/priceLabels'
 import { PriceImportWizard } from '@/pages/admin/prices/PriceImportWizard'
 import { PriceListQuickAdjustPanel } from '@/pages/admin/prices/PriceListQuickAdjustPanel'
+import { PRICE_LIST_KITS_MANUAL_ID } from '@/services/admin/adminKitPricingService'
 import {
   adminDeletePriceList,
   adminDuplicatePriceList,
@@ -402,11 +403,28 @@ export function AdminPriceListsPage() {
                   }`}
                 >
                   <td className="px-3 py-2">
-                    <div className="font-semibold text-fal-fg">{list.name}</div>
+                    <div className="font-semibold text-fal-fg">
+                      {list.name}
+                      {list.id === PRICE_LIST_KITS_MANUAL_ID ||
+                      list.slug === 'preco-kits-manual' ? (
+                        <span className="ml-2 rounded-full bg-fal-yellow/40 px-2 py-0.5 text-xs font-bold text-fal-navy-dark">
+                          Kits
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="text-xs text-fal-muted">
                       {list.slug}
                       {list.isDefault ? ' · padrão' : ''}
                     </div>
+                    {list.id === PRICE_LIST_KITS_MANUAL_ID ||
+                    list.slug === 'preco-kits-manual' ? (
+                      <Link
+                        className="mt-1 inline-block text-xs font-semibold underline"
+                        to="/admin/kits/precos"
+                      >
+                        Gerir no hub Kits
+                      </Link>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2">{priceListStatusLabel(list.status)}</td>
                   <td className="hidden px-3 py-2 md:table-cell">

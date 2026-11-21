@@ -202,6 +202,17 @@ const AdminProductFormPage = lazy(() =>
     default: m.AdminProductFormPage,
   })),
 )
+const AdminKitsPage = lazy(() =>
+  import('@/pages/admin/kits/AdminKitsPage').then((m) => ({ default: m.AdminKitsPage })),
+)
+const AdminKitFormPage = lazy(() =>
+  import('@/pages/admin/kits/AdminKitFormPage').then((m) => ({ default: m.AdminKitFormPage })),
+)
+const AdminKitPricesPage = lazy(() =>
+  import('@/pages/admin/kits/AdminKitPricesPage').then((m) => ({
+    default: m.AdminKitPricesPage,
+  })),
+)
 const AdminProductImportPage = lazy(() =>
   import('@/pages/admin/products/AdminProductImportPage').then((m) => ({
     default: m.AdminProductImportPage,
@@ -381,6 +392,10 @@ export const router = createBrowserRouter([
       },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
+      { path: 'kits', element: <AdminKitsPage /> },
+      { path: 'kits/novo', element: <AdminKitFormPage /> },
+      { path: 'kits/precos', element: <AdminKitPricesPage /> },
+      { path: 'kits/:id', element: <AdminKitFormPage /> },
       { path: 'precos', element: <AdminPriceListsPage /> },
       { path: 'precos/:id', element: <AdminPriceListDetailPage /> },
       { path: 'importacoes', element: <AdminImportsPage /> },

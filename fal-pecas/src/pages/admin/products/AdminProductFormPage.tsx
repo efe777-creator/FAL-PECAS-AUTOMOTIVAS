@@ -1,8 +1,6 @@
 import { AdminProductApplicationsSection } from '@/components/admin/AdminProductApplicationsSection'
 import { AdminProductEquivalenceSection } from '@/components/admin/AdminProductEquivalenceSection'
 import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
-import { AdminProductKitCompatBanner } from '@/components/admin/AdminProductKitCompatBanner'
-import { AdminProductKitSection } from '@/components/admin/AdminProductKitSection'
 import { AdminProductKitUsageSection } from '@/components/admin/AdminProductKitUsageSection'
 import { AdminProductReferencesSection } from '@/components/admin/AdminProductReferencesSection'
 import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
@@ -17,7 +15,6 @@ import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
-import { adminSyncKitListPrices } from '@/services/admin/adminKitPricingService'
 import {
   adminEvaluateReleaseChecklist,
   adminGetProduct,
@@ -60,11 +57,9 @@ import {
 } from '@/services/pricing/priceResolutionService'
 import type {
   Category,
-  KitPriceMode,
   MeasureOrigin,
   Product,
   ProductBrand,
-  ProductKind,
   Supplier,
 } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -120,9 +115,6 @@ export function AdminProductFormPage() {
   const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
-  const [productKind, setProductKind] = useState<ProductKind>('item')
-  const [kitPriceMode, setKitPriceMode] = useState<KitPriceMode>('auto')
-  const [kitCompatReviewRequired, setKitCompatReviewRequired] = useState(false)
   /** Hierarquia = planilha: Categoria → Grupo → Subgrupo (folha em products.category_id). */
   const [catCategoriaId, setCatCategoriaId] = useState('')
   const [catGrupoId, setCatGrupoId] = useState('')
@@ -255,14 +247,15 @@ export function AdminProductFormPage() {
       try {
         const p = await adminGetProduct(id)
         if (!p) throw new Error('Produto não encontrado')
+        if (p.productKind === 'kit') {
+          navigate(`/admin/kits/${p.id}`, { replace: true })
+          return
+        }
         setProductId(p.id)
         setName(p.name)
         setCommercialRef(p.commercialRef ?? p.sku)
         setSku(p.sku)
         setStatus(p.status ?? 'draft')
-        setProductKind(p.productKind === 'kit' ? 'kit' : 'item')
-        setKitPriceMode(p.kitPriceMode === 'manual' ? 'manual' : 'auto')
-        setKitCompatReviewRequired(p.kitCompatReviewRequired === true)
         {
           const leaf = p.categoryId ?? ''
           const path: string[] = []
@@ -424,8 +417,8 @@ export function AdminProductFormPage() {
         commercialRef: commercialRef.trim(),
         sku: sku.trim() || undefined,
         status,
-        productKind,
-        kitPriceMode: productKind === 'kit' ? kitPriceMode : 'auto',
+        productKind: 'item',
+        kitPriceMode: 'auto',
         categoryId: categoryId || null,
         brandId: brandId || null,
         supplierId: supplierId || null,
@@ -460,14 +453,6 @@ export function AdminProductFormPage() {
       setProductId(saved.id)
       setMirrorPrice(saved.price)
       setMirrorPromo(saved.promoPrice ?? null)
-
-      if (productKind === 'kit') {
-        await adminSyncKitListPrices({
-          kitProductId: saved.id,
-          kitPriceMode,
-          changedBy: user?.id ?? null,
-        })
-      }
 
       if (overrideEnabled) {
         const overrideNum = parseMoneyBr(overrideAmount)!
@@ -562,45 +547,15 @@ export function AdminProductFormPage() {
               }}
             />
           </fieldset>
-          <label className="text-sm">
-            <span className="mb-1 block font-semibold">Natureza</span>
-            <select
-              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-              value={productKind}
-              onChange={(e) => setProductKind(e.target.value === 'kit' ? 'kit' : 'item')}
-            >
-              <option value="item">Item (SKU unitário)</option>
-              <option value="kit">Kit (composição)</option>
-            </select>
-          </label>
-          {productKind === 'kit' ? (
-            <>
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold">Preço do kit</span>
-                <select
-                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                  value={kitPriceMode}
-                  onChange={(e) =>
-                    setKitPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
-                  }
-                >
-                  <option value="auto">Automático (soma na Lista Base)</option>
-                  <option value="manual">Manual (lista kits + espelho na Base)</option>
-                </select>
-              </label>
-              {!productId ? (
-                <p className="m-0 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-xs text-fal-muted">
-                  Salve o kit uma vez para liberar o link dos itens do cadastro, a capa (foto própria
-                  ou puxada dos itens) e o preço da composição.
-                </p>
-              ) : (
-                <p className="m-0 text-xs text-fal-muted">
-                  Altere natureza/modo de preço e clique em <strong>Salvar produto</strong> antes de
-                  sincronizar composição — a seção abaixo usa o modo gravado no banco.
-                </p>
-              )}
-            </>
-          ) : null}
+          <div className="text-sm md:col-span-2">
+            <p className="m-0 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-xs text-fal-muted">
+              Kits novos e edição de composição ficam em{' '}
+              <Link to="/admin/kits" className="font-semibold underline">
+                Catálogo › Kits
+              </Link>
+              . Este formulário é para itens avulsos.
+            </p>
+          </div>
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>
             <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
@@ -677,8 +632,7 @@ export function AdminProductFormPage() {
             </select>
             {status === 'published' ? (
               <p className="mt-1 m-0 text-xs text-fal-muted">
-                Publicar exige checklist (kit: composição + revisão PVC). Preferível:{' '}
-                <strong>Liberar na loja</strong> abaixo.
+                Publicar exige checklist. Preferível: <strong>Liberar na loja</strong> abaixo.
               </p>
             ) : null}
           </label>
@@ -1079,22 +1033,8 @@ export function AdminProductFormPage() {
 
       {productId ? (
         <>
-          {productKind === 'kit' ? (
-            <>
-              <AdminProductKitSection kitProductId={productId} kitPriceMode={kitPriceMode} />
-              <AdminProductImagesSection productId={productId} kitMode />
-              <AdminProductKitCompatBanner
-                kitProductId={productId}
-                reviewRequired={kitCompatReviewRequired}
-                onCleared={() => setKitCompatReviewRequired(false)}
-              />
-            </>
-          ) : (
-            <>
-              <AdminProductKitUsageSection productId={productId} />
-              <AdminProductImagesSection productId={productId} />
-            </>
-          )}
+          <AdminProductKitUsageSection productId={productId} />
+          <AdminProductImagesSection productId={productId} />
           <AdminProductRelatedSection productId={productId} />
           <AdminProductEquivalenceSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />

@@ -21,6 +21,7 @@ const SALES: UserRole[] = ['administrador', 'gerente', 'operador', 'atendimento'
 const PATH_ROLES: Record<string, UserRole[]> = {
   '/admin': STAFF,
   '/admin/produtos': STOCK,
+  '/admin/kits': STOCK,
   '/admin/aplicacoes': CATALOG_OPS,
   '/admin/precos': MGMT,
   '/admin/importacoes': MGMT,

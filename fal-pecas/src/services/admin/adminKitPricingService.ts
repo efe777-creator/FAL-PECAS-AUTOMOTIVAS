@@ -111,6 +111,24 @@ export async function adminGetKitPricePreview(kitProductId: string): Promise<Kit
  * - manual sem nenhum preço → Base = soma provisória; alerta via preview.provisional
  * Nota: resolve da loja usa Lista Base (is_default); a lista kits-manual é espelho/cadastro.
  */
+/** Grava kit_price_mode e sincroniza listas (usado na lista-base /admin/kits/precos). */
+export async function adminSetKitPriceModeAndSync(input: {
+  kitProductId: string
+  kitPriceMode: 'auto' | 'manual'
+  manualPrice?: number | null
+  changedBy?: string | null
+}): Promise<KitPricePreview> {
+  const { error } = await getSupabase()
+    .from('products')
+    .update({
+      kit_price_mode: input.kitPriceMode === 'manual' ? 'manual' : 'auto',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.kitProductId)
+  if (error) throw error
+  return adminSyncKitListPrices(input)
+}
+
 export async function adminSyncKitListPrices(input: {
   kitProductId: string
   kitPriceMode: 'auto' | 'manual'

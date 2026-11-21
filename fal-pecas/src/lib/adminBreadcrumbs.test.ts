@@ -14,6 +14,18 @@ describe('buildAdminBreadcrumbs', () => {
     ])
   })
 
+  it('kits e preços dos kits', () => {
+    expect(buildAdminBreadcrumbs('/admin/kits')).toEqual([
+      { to: '/admin', label: 'Painel' },
+      { label: 'Kits' },
+    ])
+    expect(buildAdminBreadcrumbs('/admin/kits/precos')).toEqual([
+      { to: '/admin', label: 'Painel' },
+      { to: '/admin/kits', label: 'Kits' },
+      { label: 'Preços dos kits' },
+    ])
+  })
+
   it('pedido detalhe', () => {
     const id = 'f6c08149-aaaa-bbbb-cccc-ddddeeeeffff'
     expect(buildAdminBreadcrumbs(`/admin/pedidos/${id}`)).toEqual([

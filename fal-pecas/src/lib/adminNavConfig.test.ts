@@ -26,4 +26,12 @@ describe('adminNavConfig', () => {
       'sistema',
     ])
   })
+
+  it('Catálogo tem Kits; Loja não tem Promoções de kits solto', () => {
+    const order = adminNavLinkOrder()
+    expect(order).toContain('/admin/kits')
+    expect(order.indexOf('/admin/produtos')).toBeLessThan(order.indexOf('/admin/kits'))
+    expect(order).not.toContain('/admin/home/promocoes/kits')
+    expect(order).toContain('/admin/home/promocoes')
+  })
 })

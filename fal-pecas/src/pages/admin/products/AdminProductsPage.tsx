@@ -522,6 +522,12 @@ export function AdminProductsPage() {
             <Link className="hover:underline" to="/admin/produtos/importar-imagens">
               Importar imagens
             </Link>
+            <Link className="hover:underline" to="/admin/produtos/importar-kits">
+              Importar kits
+            </Link>
+            <Link className="hover:underline" to="/admin/kits">
+              Hub Kits
+            </Link>
             <Link className="hover:underline" to="/admin/importacoes">
               Histórico
             </Link>
@@ -1020,7 +1026,11 @@ export function AdminProductsPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-bold text-fal-navy-dark"
-                    to={`/admin/produtos/${p.id}`}
+                    to={
+                      p.productKind === 'kit'
+                        ? `/admin/kits/${p.id}`
+                        : `/admin/produtos/${p.id}`
+                    }
                   >
                     Editar
                   </Link>
@@ -1103,7 +1113,14 @@ export function AdminProductsPage() {
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
                 <td className="px-3 py-2 space-x-2">
-                  <Link className="font-semibold text-fal-auth-link" to={`/admin/produtos/${p.id}`}>
+                  <Link
+                    className="font-semibold text-fal-auth-link"
+                    to={
+                      p.productKind === 'kit'
+                        ? `/admin/kits/${p.id}`
+                        : `/admin/produtos/${p.id}`
+                    }
+                  >
                     Editar
                   </Link>
                   <button

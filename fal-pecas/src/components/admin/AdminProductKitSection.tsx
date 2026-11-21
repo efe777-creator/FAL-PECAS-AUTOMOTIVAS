@@ -343,15 +343,23 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
             ) : null}
           </p>
           <p className="mt-1 m-0 text-xs text-fal-muted">
-            Modo: {kitPriceMode === 'manual' ? 'manual' : 'automático'} · efetivo sugerido:{' '}
-            {formatMoney(preview.effectiveHint)}
+            Modo:{' '}
+            {kitPriceMode === 'manual'
+              ? 'manual (lista Preços dos kits)'
+              : 'automático (soma → Lista Base)'}{' '}
+            · efetivo sugerido: {formatMoney(preview.effectiveHint)}
           </p>
           {preview.provisional ? (
             <p className="mt-2 m-0 rounded-[8px] border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-950">
-              Preço provisório: kit manual sem preço na lista exclusiva — usando a soma até
+              Preço provisório: kit manual sem preço na lista Preços dos kits — usando a soma até
               cadastrar o valor manual.
             </p>
           ) : null}
+          <p className="mt-2 mb-0 text-xs">
+            <Link to="/admin/kits/precos" className="font-semibold text-fal-fg underline">
+              Ver todos os preços de kits
+            </Link>
+          </p>
         </div>
       ) : null}
 
@@ -362,6 +370,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
               label="Preço manual do kit"
               value={manualPrice}
               onChange={(e) => setManualPrice(e.target.value)}
+              hint="Grava na lista Preços dos kits e espelha na Base"
             />
           </div>
           <Button type="button" disabled={busy} onClick={() => void handleSaveManualPrice()}>

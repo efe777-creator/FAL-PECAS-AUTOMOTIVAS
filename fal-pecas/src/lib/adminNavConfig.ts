@@ -40,7 +40,6 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     links: [
       { to: '/admin/home', label: 'Home da loja', end: true },
       { to: '/admin/home/promocoes', label: 'Promoções', end: true },
-      { to: '/admin/home/promocoes/kits', label: 'Promoções de kits' },
       { to: '/admin/busca', label: 'Busca' },
     ],
   },
@@ -58,6 +57,7 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     title: 'Catálogo',
     links: [
       { to: '/admin/produtos', label: 'Produtos' },
+      { to: '/admin/kits', label: 'Kits' },
       { to: '/admin/categorias', label: 'Categorias' },
       { to: '/admin/precos', label: 'Preços' },
       { to: '/admin/aplicacoes', label: 'Aplicações' },

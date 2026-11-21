@@ -3,6 +3,7 @@ export type AdminCrumb = { to?: string; label: string }
 /** Rótulos de hubs e segmentos estáveis do admin. */
 const SEGMENT_LABELS: Record<string, string> = {
   produtos: 'Produtos',
+  kits: 'Kits',
   aplicacoes: 'Aplicações',
   precos: 'Preços',
   importacoes: 'Importações',
@@ -59,7 +60,9 @@ function looksLikeId(seg: string): boolean {
   return false
 }
 
-function labelForSegment(seg: string): string {
+function labelForSegment(seg: string, parts: string[], index: number): string {
+  // /admin/kits/precos → “Preços dos kits” (lista-base operacional)
+  if (seg === 'precos' && parts[index - 1] === 'kits') return 'Preços dos kits'
   const known = SEGMENT_LABELS[seg]
   if (known) return known
   if (looksLikeId(seg)) return 'Detalhe'
@@ -88,7 +91,7 @@ export function buildAdminBreadcrumbs(pathname: string): AdminCrumb[] {
     const seg = parts[i]!
     acc += `/${seg}`
     const isLast = i === parts.length - 1
-    const label = labelForSegment(seg)
+    const label = labelForSegment(seg, parts, i)
     crumbs.push(isLast ? { label } : { to: acc, label })
   }
   return crumbs

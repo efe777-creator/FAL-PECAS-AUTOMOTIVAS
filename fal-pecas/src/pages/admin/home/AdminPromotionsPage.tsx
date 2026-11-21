@@ -67,7 +67,7 @@ export function AdminPromotionsPage() {
   const scope = scopeFromPath(location.pathname)
   const isKits = scope === 'kits'
   useDocumentTitle(
-    isKits ? 'Promoções de kits · Home da loja' : 'Promoções · Home da loja',
+    isKits ? 'Home da loja › Promoções › Kits' : 'Home da loja › Promoções',
   )
   const { push } = useToast()
   const [rows, setRows] = useState<AdminPromotionRow[]>([])
@@ -264,7 +264,7 @@ export function AdminPromotionsPage() {
         <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Home da loja</h1>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           {isKits
-            ? 'Promoções de kits usam o mesmo gate da loja. O kit não herda desconto dos componentes.'
+            ? 'Promo do SKU do kit — não herda desconto dos itens. Cadastro do kit fica em Catálogo › Kits.'
             : 'Promoções controlam o preço na loja. Destaques são outra aba e não mudam com isto.'}
         </p>
       </div>

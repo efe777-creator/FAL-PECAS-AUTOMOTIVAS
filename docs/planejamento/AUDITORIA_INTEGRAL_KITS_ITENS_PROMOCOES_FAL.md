@@ -738,6 +738,8 @@ Ver §25.
 | H7 | Dimensões/peso do kit (próprios vs regra) | Frete |
 | H8 | Rota admin `/admin/kits` vs filtro em produtos | UX admin |
 | H9 | % vs valor fixo em promo (mecanismo) | Promo |
+
+> **H8 supersede (2026-11-20):** hub `/admin/kits` (+ `/precos`) é o caminho canônico de cadastro/precificação; filtro em Produtos permanece só para visão unificada e redireciona edição de kit ao hub. Promo só em Home › Promoções › Kits.
 | H10 | Reconciliar H12 com PVC próprio | Publicação loja |
 | H11 | jsonb vs tabela filha no snapshot v1 | Pedidos |
 
