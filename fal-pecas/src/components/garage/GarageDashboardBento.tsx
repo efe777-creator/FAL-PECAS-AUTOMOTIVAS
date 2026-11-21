@@ -174,7 +174,7 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
                   to={vehiclePartsModuleHref(primary)}
                   className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-4 text-sm font-extrabold text-fal-fg"
                 >
-                  Peças compatíveis
+                  Peças
                 </Link>
               </div>
             </div>

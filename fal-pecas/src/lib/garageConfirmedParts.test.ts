@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { filterConfirmedCompatibleProducts } from '@/lib/garageConfirmedParts'
+import {
+  filterConfirmedCompatibleProducts,
+  mergeUniqueProductsById,
+} from '@/lib/garageConfirmedParts'
 import type { Product } from '@/types'
 
 const baseProduct = (id: string): Product =>
@@ -68,5 +71,11 @@ describe('filterConfirmedCompatibleProducts', () => {
       pvc,
     )
     expect(confirmed.map((p) => p.id)).toEqual(['ok'])
+  })
+
+  it('mergeUniqueProductsById preserva ordem e dedupe', () => {
+    const a = [baseProduct('1'), baseProduct('2')]
+    const b = [baseProduct('2'), baseProduct('3')]
+    expect(mergeUniqueProductsById(a, b).map((p) => p.id)).toEqual(['1', '2', '3'])
   })
 })

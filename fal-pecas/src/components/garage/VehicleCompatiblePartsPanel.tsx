@@ -14,7 +14,10 @@ import {
 import { vehicleCatalogHref } from '@/components/garage/garageVehicleUi'
 import { useCart } from '@/contexts/CartContext'
 import { useGarage } from '@/contexts/GarageContext'
-import { filterConfirmedCompatibleProducts } from '@/lib/garageConfirmedParts'
+import {
+  filterConfirmedCompatibleProducts,
+  mergeUniqueProductsById,
+} from '@/lib/garageConfirmedParts'
 import { toCommercialTitleCase } from '@/lib/entityNormalize'
 import {
   ADICIONAR_AO_CARRINHO_LABEL,
@@ -36,6 +39,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const PAGE_SIZE = 48
+/** Evita truncar confirmed só na 1ª página do searchCatalog. */
+const MAX_PAGES = 5
 
 const CONFIRMED_VERDICT: CompatibilityVerdict = {
   state: 'confirmed',
@@ -80,18 +85,28 @@ export function VehicleCompatiblePartsPanel({ vehicle }: Props) {
       setLoading(true)
       setError(null)
       try {
-        const result = await searchCatalog({
-          maker: filter.maker,
-          model: filter.model,
-          year: filter.year,
-          engine: filter.engine,
-          version: filter.version,
-          page: 1,
-          pageSize: PAGE_SIZE,
-          sort: 'relevance',
-        })
-        const pvc = await loadPvcEvidenceByProductIds(result.items.map((p) => p.id))
-        const confirmed = filterConfirmedCompatibleProducts(result.items, compatInput, pvc)
+        let confirmed: Product[] = []
+        for (let page = 1; page <= MAX_PAGES; page += 1) {
+          const result = await searchCatalog({
+            maker: filter.maker,
+            model: filter.model,
+            year: filter.year,
+            engine: filter.engine,
+            version: filter.version,
+            page,
+            pageSize: PAGE_SIZE,
+            sort: 'relevance',
+          })
+          if (!result.items.length) break
+          const pvc = await loadPvcEvidenceByProductIds(result.items.map((p) => p.id))
+          const pageConfirmed = filterConfirmedCompatibleProducts(
+            result.items,
+            compatInput,
+            pvc,
+          )
+          confirmed = mergeUniqueProductsById(confirmed, pageConfirmed)
+          if (!result.hasMore) break
+        }
         if (cancelled) return
         setProducts(confirmed)
         setSelectedId((prev) => {
@@ -280,7 +295,7 @@ export function VehicleCompatiblePartsPanel({ vehicle }: Props) {
           {ADICIONAR_AO_CARRINHO_LABEL}
         </Button>
         <ButtonLink to={productHref(selected)} variant="light" size="sm">
-          Ver no catálogo
+          Ver peça
         </ButtonLink>
       </div>
     </aside>

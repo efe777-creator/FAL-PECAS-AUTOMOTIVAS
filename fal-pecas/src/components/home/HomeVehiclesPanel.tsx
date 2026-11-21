@@ -133,8 +133,8 @@ export function HomeVehiclesPanel() {
                     ].join(' ')}
                   >
                     {v.versionId
-                      ? 'Ver peças compatíveis'
-                      : 'Buscar no catálogo (compatibilidade limitada)'}
+                      ? 'Filtrar catálogo'
+                      : 'Filtrar catálogo (parcial)'}
                   </span>
                 </button>
               </li>
