@@ -57,15 +57,17 @@ describe('adminWorkspacePrefs', () => {
     })
   })
 
-  it('persiste prefs de products, kits, prices e applications', () => {
+  it('persiste prefs de products, kits, prices, applications e categories', () => {
     writeModulePrefs('products', { mode: 'expanded', splitWidthPx: 400 })
     writeModulePrefs('kits', { mode: 'split', splitWidthPx: 500 })
     writeModulePrefs('prices', { mode: 'fullscreen', splitWidthPx: 420 })
     writeModulePrefs('applications', { mode: 'split', splitWidthPx: 440 })
+    writeModulePrefs('categories', { mode: 'split', splitWidthPx: 460 })
     expect(readModulePrefs('products').mode).toBe('expanded')
     expect(readModulePrefs('kits').splitWidthPx).toBe(500)
     expect(readModulePrefs('prices').mode).toBe('fullscreen')
     expect(readModulePrefs('applications').mode).toBe('split')
+    expect(readModulePrefs('categories').mode).toBe('split')
     expect(readModulePrefs('orders').mode).toBe('collapsed')
   })
 })

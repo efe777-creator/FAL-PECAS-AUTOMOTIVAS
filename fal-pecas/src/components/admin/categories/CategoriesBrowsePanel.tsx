@@ -24,6 +24,8 @@ type Props = {
   treeItems: Category[]
   counts: Record<string, number>
   editingId: string | null
+  /** Guia Adaptive aberta — vocabulário Abrir guia / Na guia. */
+  guideOpen?: boolean
   busyId: string | null
   searchQ: string
   expanded: Set<string>
@@ -48,6 +50,7 @@ export function CategoriesBrowsePanel({
   treeItems,
   counts,
   editingId,
+  guideOpen = false,
   busyId,
   searchQ,
   expanded,
@@ -140,7 +143,7 @@ export function CategoriesBrowsePanel({
               className="font-semibold text-fal-auth-link"
               onClick={() => onEdit(cat)}
             >
-              Editar
+              {guideOpen && editingId === cat.id ? 'Na guia' : 'Abrir guia'}
             </button>
             {canAddChild && cat.status !== 'archived' ? (
               <button
@@ -184,6 +187,45 @@ export function CategoriesBrowsePanel({
     )
   }
 
+  function listRowActions(cat: Category, depth: 1 | 2 | 3) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="font-semibold text-fal-auth-link"
+          onClick={() => onEdit(cat)}
+        >
+          {guideOpen && editingId === cat.id ? 'Na guia' : 'Abrir guia'}
+        </button>
+        <button
+          type="button"
+          className="font-semibold text-fal-muted"
+          disabled={busyId === cat.id}
+          onClick={() => onArchiveToggle(cat)}
+        >
+          {cat.status === 'archived' ? 'Publicar' : 'Arquivar'}
+        </button>
+        {depth < CATEGORY_MAX_DEPTH && cat.status !== 'archived' ? (
+          <button
+            type="button"
+            className="font-semibold text-fal-fg underline"
+            onClick={() => onAddChild(cat)}
+          >
+            + {categoryLevelLabel(depth + 1)}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="font-semibold text-red-700 underline disabled:opacity-50"
+          disabled={busyId === cat.id}
+          onClick={() => onDelete(cat)}
+        >
+          Excluir
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-[14px] border border-fal-line bg-fal-surface">
       <div className="flex flex-wrap gap-4 border-b border-fal-line bg-fal-bg px-3 py-2 text-xs font-extrabold text-fal-muted">
@@ -209,7 +251,45 @@ export function CategoriesBrowsePanel({
             </EmptyState>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="admin-categories-list-mobile space-y-2 p-2 md:hidden">
+              {flatRows.map(({ cat, depth, path }) => (
+                <div
+                  key={`m-${cat.id}`}
+                  className={`rounded-[10px] border border-fal-line px-3 py-2 ${
+                    editingId === cat.id
+                      ? 'bg-fal-yellow/15'
+                      : cat.status === 'archived'
+                        ? 'bg-amber-50/80'
+                        : 'bg-fal-bg'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="m-0 text-xs font-bold text-fal-muted">
+                        {categoryLevelLabel(depth)}
+                      </p>
+                      <p className="m-0 truncate text-sm font-semibold text-fal-fg">
+                        {depth === 1 ? (
+                          <span className="inline-flex items-center gap-2">
+                            <CategoryIconThumb cat={cat} />
+                            {cat.name}
+                          </span>
+                        ) : (
+                          cat.name
+                        )}
+                      </p>
+                      <p className="m-0 truncate text-[11px] text-fal-muted">{path}</p>
+                      <p className="m-0 text-[11px] text-fal-muted">
+                        {categoryStatusLabel(cat.status)} · {counts[cat.id] ?? 0} prod.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2">{listRowActions(cat, depth)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="admin-categories-list-desktop hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-fal-bg text-xs font-extrabold uppercase text-fal-muted">
                 <tr>
@@ -245,45 +325,19 @@ export function CategoriesBrowsePanel({
                     <td className="px-3 py-2 text-xs text-fal-muted">{path}</td>
                     <td className="px-3 py-2 text-xs">{categoryStatusLabel(cat.status)}</td>
                     <td className="px-3 py-2 text-xs">{counts[cat.id] ?? 0}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="font-semibold text-fal-auth-link"
-                          onClick={() => onEdit(cat)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="font-semibold text-fal-muted"
-                          disabled={busyId === cat.id}
-                          onClick={() => onArchiveToggle(cat)}
-                        >
-                          {cat.status === 'archived' ? 'Publicar' : 'Arquivar'}
-                        </button>
-                        {depth < CATEGORY_MAX_DEPTH && cat.status !== 'archived' ? (
-                          <button
-                            type="button"
-                            className="font-semibold text-fal-fg underline"
-                            onClick={() => onAddChild(cat)}
-                          >
-                            + {categoryLevelLabel(depth + 1)}
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
+                    <td className="px-3 py-2">{listRowActions(cat, depth)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )
       ) : visibleRoots.length === 0 ? (
         <div className="px-3 py-4">
           <EmptyState
-            title="Nenhuma classificação encontrada"
-            description="Limpe a busca. Arquivados ficam no link “Ver arquivados” do resumo acima."
+            title="Nenhuma classificação na árvore"
+            description="Crie a primeira categoria raiz ou limpe a busca."
           >
             <div className="mt-4 flex justify-center gap-2">
               <Button type="button" onClick={onStartCreateRoot}>
@@ -293,7 +347,9 @@ export function CategoriesBrowsePanel({
           </EmptyState>
         </div>
       ) : (
-        visibleRoots.map((root) => renderNode(root, 1))
+        <div className="space-y-1 p-2">
+          {visibleRoots.map((root) => renderNode(root, 1))}
+        </div>
       )}
     </div>
   )

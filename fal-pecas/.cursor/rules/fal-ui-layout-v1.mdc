@@ -3,12 +3,13 @@ description: FAL-UI-LAYOUT v1 — padrão telas/layout/design + versionamento + 
 alwaysApply: true
 ---
 
-# FAL-UI-LAYOUT v1.1.2 (excelência admin)
+# FAL-UI-LAYOUT v1.2.0 (excelência admin)
 
 Normativo: `docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md`  
+VAL Classificação: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v120_CATEGORIAS_VAL_2026-11-21.md`  
 VAL Aplicações: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md`  
 VAL catálogo (v1.0.4): `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md`  
-Anteriores: v101 (compact/BOM) · v102 (dedupe CTAs)
+Anteriores: v101 (compact/BOM) · v102 (dedupe CTAs) · v111 pontes · v112 PVC
 
 ## Ao mudar UI admin / shell / tokens
 
@@ -26,12 +27,13 @@ Anteriores: v101 (compact/BOM) · v102 (dedupe CTAs)
 ## Versionamento (obrigatório)
 
 - Qualquer evolução de layout → entrada no **Changelog §9** do doc padrão + bump PATCH/MINOR/MAJOR.
-- Atualizar locks em `src/lib/falUiLayoutAntiregress.test.ts` (FL1–FL19+).
+- Atualizar locks em `src/lib/falUiLayoutAntiregress.test.ts` (FL1–FL20+).
 - Hub Produtos: filtros compactos por padrão; expandir só sob demanda (FL14).
 - Guia Produto: seções expansíveis + mutações leves + empilhar (+ Guia); kit via hub Kits (FL15).
 - Hub Aplicações: Adaptive + `ApplicationWorkSurface`; criar/editar na guia (FL16–FL17).
 - Pontes guia↔guia Produto/Aplicações/Kits (FL18).
 - Cascata PVC hub↔ficha via `pvcVehicleCascade` (FL19).
+- Hub Classificação: Adaptive + `CategoryWorkSurface`; sem form mid-page (FL20).
 - Rodar: `pnpm test:ui-layout-antiregress`
 - Branch: só `dev` até gate eFe; **nunca** main/prod sem autorização.
 
@@ -43,6 +45,7 @@ Anteriores: v101 (compact/BOM) · v102 (dedupe CTAs)
 | kits | `KitWorkSurface` |
 | prices | `PriceListWorkSurface` |
 | applications | `ApplicationWorkSurface` |
+| categories | `CategoryWorkSurface` |
 | orders | `OrderOpsSurface` (não copiar para catálogo) |
 
 Novo hub Adaptive = **MINOR** do padrão + nova `WorkspaceModuleKey` + teste FL*.

@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.1.2 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.2.0 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -29,6 +29,7 @@ const MODULE_KEYS: WorkspaceModuleKey[] = [
   'kits',
   'prices',
   'applications',
+  'categories',
 ]
 
 describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
@@ -48,6 +49,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       ['pages/admin/kits/AdminKitsPage.tsx', 'kits'],
       ['pages/admin/prices/AdminPriceListsPage.tsx', 'prices'],
       ['pages/admin/products/AdminApplicationsPage.tsx', 'applications'],
+      ['pages/admin/categories/AdminCategoriesPage.tsx', 'categories'],
     ]
     for (const [file, key] of hubs) {
       const body = read(file)
@@ -140,7 +142,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     }
   })
 
-  it('FL6: WorkSurfaces Product / Kit / PriceList / Application', () => {
+  it('FL6: WorkSurfaces Product / Kit / PriceList / Application / Category', () => {
     expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
       /export function ProductWorkSurface/,
     )
@@ -152,6 +154,9 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     )
     expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
       /export function ApplicationWorkSurface/,
+    )
+    expect(read('components/admin/categories/CategoryWorkSurface.tsx')).toMatch(
+      /export function CategoryWorkSurface/,
     )
   })
 
@@ -204,10 +209,12 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       'pages/admin/kits/AdminKitsPage.tsx',
       'pages/admin/prices/AdminPriceListsPage.tsx',
       'pages/admin/products/AdminApplicationsPage.tsx',
+      'pages/admin/categories/AdminCategoriesPage.tsx',
       'components/admin/products/ProductWorkSurface.tsx',
       'components/admin/kits/KitWorkSurface.tsx',
       'components/admin/prices/PriceListWorkSurface.tsx',
       'components/admin/applications/ApplicationWorkSurface.tsx',
+      'components/admin/categories/CategoryWorkSurface.tsx',
       'pages/admin/kits/AdminKitFormPage.tsx',
     ]
     for (const file of hubFiles) {
@@ -367,5 +374,33 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     )
     expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(/pvcEngineOptions/)
     expect(read('components/admin/AdminProductApplicationsSection.tsx')).toMatch(/Hub Aplicações/)
+  })
+
+  it('FL20: Hub Classificação Adaptive — CategoryWorkSurface; sem form mid-page', () => {
+    const page = read('pages/admin/categories/AdminCategoriesPage.tsx')
+    expect(page).toMatch(/AdaptiveWorkspace/)
+    expect(page).toContain('moduleKey="categories"')
+    expect(page).toMatch(/CategoryWorkSurface/)
+    expect(page).toMatch(/admin-categories-hub/)
+    expect(page).toMatch(/guideOpen/)
+    // Form só na guia (não permanente no primary)
+    expect(page).not.toMatch(/<CategoriesEditorForm/)
+    expect(page).toMatch(/Abrir guia|startEdit|startCreate/)
+
+    const surface = read('components/admin/categories/CategoryWorkSurface.tsx')
+    expect(surface).toMatch(/export function CategoryWorkSurface/)
+    expect(surface).toMatch(/CategoriesEditorForm/)
+    expect(surface).toMatch(/Fechar guia/)
+    expect(surface).toMatch(/Nova categoria na guia|na guia/)
+
+    const browse = read('components/admin/categories/CategoriesBrowsePanel.tsx')
+    expect(browse).toMatch(/Abrir guia/)
+    expect(browse).toMatch(/Na guia/)
+    expect(browse).toMatch(/admin-categories-list-mobile/)
+    expect(browse).toMatch(/admin-categories-list-desktop/)
+
+    const css = read('styles/index.css')
+    expect(css).toMatch(/admin-categories-hub/)
+    expect(css).toMatch(/admin-categories-list-mobile/)
   })
 })

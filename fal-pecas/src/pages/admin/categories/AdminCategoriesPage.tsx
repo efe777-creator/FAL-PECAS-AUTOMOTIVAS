@@ -2,10 +2,9 @@ import { CategoriesArchivedMenu } from '@/components/admin/categories/Categories
 import { CategoriesBrowseBar } from '@/components/admin/categories/CategoriesBrowseBar'
 import { CategoriesBrowsePanel } from '@/components/admin/categories/CategoriesBrowsePanel'
 import { CategoriesIntegrityPanel } from '@/components/admin/categories/CategoriesIntegrityPanel'
-import {
-  CategoriesEditorForm,
-  type CreateLevel,
-} from '@/components/admin/categories/CategoriesEditorForm'
+import { CategoryWorkSurface } from '@/components/admin/categories/CategoryWorkSurface'
+import type { CreateLevel } from '@/components/admin/categories/CategoriesEditorForm'
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Loading } from '@/components/common/Loading'
@@ -69,6 +68,8 @@ export function AdminCategoriesPage() {
   const [defaultHeightCm, setDefaultHeightCm] = useState('')
   const [busyApplyMeasures, setBusyApplyMeasures] = useState(false)
   const [dirty, setDirty] = useState(false)
+  /** Guia Adaptive aberta (criar/editar). Form não fica permanente no primary. */
+  const [guideOpen, setGuideOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
   const measuresSectionRef = useRef<HTMLDivElement>(null)
@@ -129,11 +130,19 @@ export function AdminCategoriesPage() {
   }, [])
 
   useEffect(() => {
+    if (loading) return
+    if (window.location.hash !== '#medidas-padrao') return
+    setGuideOpen(true)
+    setCreateLevel(1)
+  }, [loading])
+
+  useEffect(() => {
+    if (loading || !guideOpen) return
     if (window.location.hash !== '#medidas-padrao') return
     window.requestAnimationFrame(() => {
       measuresSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
-  }, [loading])
+  }, [loading, guideOpen])
 
   /** Lista principal só com ativos; arquivados ficam no menu “Ver arquivados”. */
   const treeItems = useMemo(
@@ -306,14 +315,25 @@ export function AdminCategoriesPage() {
     setDefaultHeightCm('')
     setCreateLevel(1)
     setDirty(false)
+    setGuideOpen(false)
   }
 
   function focusForm() {
+    setGuideOpen(true)
     window.requestAnimationFrame(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       nameInputRef.current?.focus()
       nameInputRef.current?.select()
     })
+  }
+
+  function closeContextual() {
+    if (dirty) {
+      const ok = window.confirm(
+        'Há alterações na classificação ainda não salvas. Fechar a guia mesmo assim?',
+      )
+      if (!ok) return
+    }
+    resetForm()
   }
 
   function startCreate(level: CreateLevel) {
@@ -589,14 +609,94 @@ export function AdminCategoriesPage() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold text-fal-fg">Classificação</h1>
-      <p className="text-sm text-fal-muted">
-        Mesma árvore da planilha e do cadastro manual:{' '}
-        <strong>Categoria</strong> → <strong>Grupo</strong> → <strong>Subgrupo</strong>. Edite,
-        arquive ou exclua aqui; arquivados ficam no menu discreto abaixo.
-      </p>
+  const formHandlers = {
+    formRef,
+    nameInputRef,
+    measuresSectionRef,
+    items,
+    editing,
+    createLevel,
+    name,
+    description,
+    parentId,
+    subgrupoCategoriaId,
+    sortOrder,
+    emoji,
+    defaultWeightKg,
+    defaultLengthCm,
+    defaultWidthCm,
+    defaultHeightCm,
+    resultingDepth,
+    categoriaOptions,
+    parentOptions,
+    busyId,
+    busyApplyMeasures,
+    childrenCount: (id: string) => childrenOf(id).length,
+    onSubmit,
+    onStartCreate: startCreate,
+    onReset: resetForm,
+    onDelete: (c: Category) => void onDelete(c),
+    onApplyDefaultMeasures: () => void onApplyDefaultMeasures(),
+    onName: (v: string) => {
+      setDirty(true)
+      setName(v)
+    },
+    onDescription: (v: string) => {
+      setDirty(true)
+      setDescription(v)
+    },
+    onParentId: (v: string) => {
+      setDirty(true)
+      setParentId(v)
+    },
+    onSubgrupoCategoriaId: (v: string) => {
+      setDirty(true)
+      setSubgrupoCategoriaId(v)
+    },
+    onSortOrder: (v: string) => {
+      setDirty(true)
+      setSortOrder(v)
+    },
+    onEmoji: (v: string) => {
+      setDirty(true)
+      setEmoji(v)
+    },
+    onDefaultWeightKg: (v: string) => {
+      setDirty(true)
+      setDefaultWeightKg(v)
+    },
+    onDefaultLengthCm: (v: string) => {
+      setDirty(true)
+      setDefaultLengthCm(v)
+    },
+    onDefaultWidthCm: (v: string) => {
+      setDirty(true)
+      setDefaultWidthCm(v)
+    },
+    onDefaultHeightCm: (v: string) => {
+      setDirty(true)
+      setDefaultHeightCm(v)
+    },
+  }
+
+  const contextualTitle = editing
+    ? `Editar · ${editing.name}`
+    : createLevel === 1
+      ? 'Nova categoria'
+      : createLevel === 2
+        ? 'Novo grupo'
+        : 'Novo subgrupo'
+
+  const primary = (
+    <div className="admin-categories-hub space-y-4">
+      <div>
+        <h1 className="text-2xl font-extrabold text-fal-fg">Classificação</h1>
+        <p className="text-sm text-fal-muted">
+          Mesma árvore da planilha e do cadastro manual:{' '}
+          <strong>Categoria</strong> → <strong>Grupo</strong> → <strong>Subgrupo</strong>. Criar e
+          editar na guia; arquivados ficam no menu discreto abaixo.
+        </p>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-fal-line bg-fal-bg px-3 py-2 text-sm text-fal-fg">
         <span>
@@ -635,79 +735,9 @@ export function AdminCategoriesPage() {
           className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950"
           role="status"
         >
-          Alterações na classificação não salvas. Clique em Salvar antes de sair do admin.
+          Alterações na classificação não salvas. Clique em Salvar na guia antes de sair.
         </p>
       ) : null}
-
-      <CategoriesEditorForm
-        formRef={formRef}
-        nameInputRef={nameInputRef}
-        measuresSectionRef={measuresSectionRef}
-        items={items}
-        editing={editing}
-        createLevel={createLevel}
-        name={name}
-        description={description}
-        parentId={parentId}
-        subgrupoCategoriaId={subgrupoCategoriaId}
-        sortOrder={sortOrder}
-        emoji={emoji}
-        defaultWeightKg={defaultWeightKg}
-        defaultLengthCm={defaultLengthCm}
-        defaultWidthCm={defaultWidthCm}
-        defaultHeightCm={defaultHeightCm}
-        resultingDepth={resultingDepth}
-        categoriaOptions={categoriaOptions}
-        parentOptions={parentOptions}
-        busyId={busyId}
-        busyApplyMeasures={busyApplyMeasures}
-        childrenCount={(id) => childrenOf(id).length}
-        onSubmit={onSubmit}
-        onStartCreate={startCreate}
-        onReset={resetForm}
-        onDelete={(c) => void onDelete(c)}
-        onApplyDefaultMeasures={() => void onApplyDefaultMeasures()}
-        onName={(v) => {
-          setDirty(true)
-          setName(v)
-        }}
-        onDescription={(v) => {
-          setDirty(true)
-          setDescription(v)
-        }}
-        onParentId={(v) => {
-          setDirty(true)
-          setParentId(v)
-        }}
-        onSubgrupoCategoriaId={(v) => {
-          setDirty(true)
-          setSubgrupoCategoriaId(v)
-        }}
-        onSortOrder={(v) => {
-          setDirty(true)
-          setSortOrder(v)
-        }}
-        onEmoji={(v) => {
-          setDirty(true)
-          setEmoji(v)
-        }}
-        onDefaultWeightKg={(v) => {
-          setDirty(true)
-          setDefaultWeightKg(v)
-        }}
-        onDefaultLengthCm={(v) => {
-          setDirty(true)
-          setDefaultLengthCm(v)
-        }}
-        onDefaultWidthCm={(v) => {
-          setDirty(true)
-          setDefaultWidthCm(v)
-        }}
-        onDefaultHeightCm={(v) => {
-          setDirty(true)
-          setDefaultHeightCm(v)
-        }}
-      />
 
       <CategoriesBrowseBar
         search={search}
@@ -751,6 +781,7 @@ export function AdminCategoriesPage() {
         treeItems={treeItems}
         counts={counts}
         editingId={editing?.id ?? null}
+        guideOpen={guideOpen}
         busyId={busyId}
         searchQ={searchQ}
         expanded={expanded}
@@ -767,5 +798,22 @@ export function AdminCategoriesPage() {
         onStartCreateRoot={() => startCreate(1)}
       />
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="categories"
+      primary={primary}
+      contextualOpen={guideOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) closeContextual()
+      }}
+      contextualTitle={contextualTitle}
+      contextual={
+        guideOpen ? (
+          <CategoryWorkSurface onClose={closeContextual} {...formHandlers} />
+        ) : null
+      }
+    />
   )
 }
