@@ -236,7 +236,18 @@ async function main() {
 
   // ─── Fluxo A: ME código (cliente report → ops → generate → resolve) ───
   const me = await seedEntregueMe(admin, 'ME')
-  log('seed_me', { orderId: me.orderId })
+  const { data: shipSeed } = await admin
+    .from('shipments')
+    .select('tracking_code, provider')
+    .eq('order_id', me.orderId)
+    .maybeSingle()
+  const outboundTracking = String(shipSeed?.tracking_code ?? '').trim()
+  log('seed_me', {
+    orderId: me.orderId,
+    outboundTracking: outboundTracking || null,
+    provider: shipSeed?.provider ?? null,
+  })
+  if (!outboundTracking) throw new Error('seed sem rastreio de ida')
 
   let occurrenceId = null
   if (customer) {
@@ -336,6 +347,41 @@ async function main() {
   if (!gen.json.ok || !gen.json.trackingCode) {
     throw new Error(gen.json.error || 'generate_dry_failed')
   }
+  const returnTracking = String(gen.json.trackingCode).trim()
+  if (returnTracking === outboundTracking) {
+    throw new Error('rastreio de devolução colidiu com rastreio de ida')
+  }
+
+  const { data: queueAfterCode } = await staff.userClient.rpc('admin_list_revisao_queue_rows')
+  const metaAfterCode = (queueAfterCode ?? []).find((r) => r.order_id === me.orderId) ?? null
+  log('ops_revisao_after_code', {
+    inQueue: Boolean(metaAfterCode),
+    return_mode: metaAfterCode?.return_mode ?? null,
+    tracking_code: metaAfterCode?.tracking_code ?? null,
+  })
+  if (!metaAfterCode?.tracking_code || String(metaAfterCode.tracking_code) !== returnTracking) {
+    throw new Error('fila revisão não refletiu tracking_code da devolução')
+  }
+
+  const { data: retEvents } = await admin
+    .from('order_events')
+    .select('event_type, payload, visibility')
+    .eq('order_id', me.orderId)
+    .order('created_at', { ascending: false })
+    .limit(8)
+  const customerCodeEvt = (retEvents ?? []).find(
+    (e) =>
+      e.visibility === 'customer' &&
+      e.payload &&
+      typeof e.payload === 'object' &&
+      e.payload.me_reverse?.tracking_code === returnTracking,
+  )
+  log('rastreio_events', {
+    customerSeesReturnCode: Boolean(customerCodeEvt),
+    outboundTracking,
+    returnTracking,
+  })
+  if (!customerCodeEvt) throw new Error('cliente sem evento customer com me_reverse.tracking_code')
 
   const { data: awaiting, error: awErr } = await staff.userClient.rpc(
     'admin_post_sale_case_action',
@@ -424,8 +470,12 @@ async function main() {
 
   const gate =
     inQueue &&
+    Boolean(outboundTracking) &&
     gen.json.ok === true &&
-    Boolean(gen.json.trackingCode) &&
+    Boolean(returnTracking) &&
+    returnTracking !== outboundTracking &&
+    String(metaAfterCode?.tracking_code ?? '') === returnTracking &&
+    Boolean(customerCodeEvt) &&
     orderRow?.status === 'entregue' &&
     waAuth?.return_mode === 'wa' &&
     waInQueue &&
@@ -439,7 +489,9 @@ async function main() {
     meOccurrenceId: occurrenceId,
     waOrderId: wa.orderId,
     waOccurrenceId: waOid,
-    trackingCode: gen.json.trackingCode ?? null,
+    outboundTracking,
+    returnTracking,
+    trackingSeparated: returnTracking !== outboundTracking,
     clientReportUsed: Boolean(customer),
     hubCanonicalPath: '/admin/pedidos?tab=logistica&fila=revisao',
   })

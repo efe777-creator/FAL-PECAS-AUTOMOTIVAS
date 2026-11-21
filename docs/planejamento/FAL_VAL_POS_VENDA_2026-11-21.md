@@ -100,6 +100,21 @@ Pedidos smoke: ME `d18580ec…` · WA `d39b2210…`.
 | `smoke-me-reverse.mjs` | **PASS** `DRY-REV-9F7DAD3E` · `liveReady:false` + `me_order_id_synthetic` |
 | `dev` ↔ `origin/dev` | sincronizado (`8c1b26a` + commits desta marcha) |
 
+## Rastreio + pós-venda completo (garantias 2026-11-21)
+
+| Garantia | Como |
+|----------|------|
+| Ida: `shipments.tracking_code` + URL cliente (`buildTrackingUrl`) | unit + smoke seed |
+| Webhook ME tracking-only → `apply_me_tracking_update` (sem deliver) | antiregress fonte |
+| Devolução: `attach_me_return_code` / `me_reverse.tracking_code` | Edge + RPC + smoke |
+| Ida ≠ código devolução | smoke `trackingSeparated` |
+| Fila Adaptive reflete `tracking_code` pós-generate | smoke `ops_revisao_after_code` |
+| Cliente vê evento `customer` com código | smoke `customerSeesReturnCode` |
+| Ops Ida × devolução | `PostSaleReturnLogisticsPanel` + antiregress |
+| Pós-venda ponta a ponta | report → fila → stages → dry generate → resolve + WA |
+
+Revalidação: uso completo **PASS** `DRY-REV-58565554` (ida `SMOKE-IDA-58565554` ≠ devolução).
+
 ## Gate F3 → done
 
 **PASS** código + smoke dry-run + WA D18 + `liveReady` anti-sintético (Edge + UI ops).  

@@ -41,6 +41,34 @@ describe('pós-venda anti-regressão (fonte)', () => {
     const wh = read('supabase/functions/melhorenvio-webhook/index.ts')
     expect(wh).toMatch(/NÃO chama ship_order nem deliver_order/)
     expect(wh).not.toMatch(/\.rpc\(['"]deliver_order['"]/)
+    expect(wh).toMatch(/apply_me_tracking_update/)
+    expect(wh).toMatch(/tracking-only|trackingOnly/)
+  })
+
+  it('rastreio: ida (shipment) ≠ devolução (me_reverse) e UI exibe ambos', () => {
+    const panel = read('src/components/admin/orders/PostSaleReturnLogisticsPanel.tsx')
+    expect(panel).toMatch(/Ida × devolução/)
+    expect(panel).toMatch(/outboundTracking/)
+    expect(panel).toMatch(/summary\.trackingCode/)
+    expect(panel).toMatch(/Acompanhar postagem de devolução/)
+
+    const account = read('src/pages/Account/AccountOrderDetailPage.tsx')
+    expect(account).toMatch(/buildTrackingUrl/)
+    expect(account).toMatch(/shipment\?\.trackingCode/)
+
+    const urlLib = read('src/lib/shipmentTrackingUrl.ts')
+    expect(urlLib).toMatch(/linkcorreios|melhorrastreio/)
+
+    const attach = read('supabase/migrations/20261121194500_post_sale_report_open_case_gate.sql')
+    expect(attach).toMatch(/attach_me_return_code/)
+    expect(attach).toMatch(/me_reverse/)
+    expect(attach).toMatch(/p_tracking_code/)
+
+    const uso = read('scripts/smoke-pos-venda-uso-completo.mjs')
+    expect(uso).toMatch(/outboundTracking/)
+    expect(uso).toMatch(/returnTracking/)
+    expect(uso).toMatch(/rastreio de devolução colidiu|trackingSeparated/)
+    expect(uso).toMatch(/fila revisão não refletiu tracking_code/)
   })
 
   it('sem rota /admin/pos-venda e legal usa returnPolicyCopy', () => {

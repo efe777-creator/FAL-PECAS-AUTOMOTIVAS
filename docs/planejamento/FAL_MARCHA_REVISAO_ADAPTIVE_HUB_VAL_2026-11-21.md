@@ -62,6 +62,12 @@ Migration `admin_list_revisao_queue_rows` (DROP+CREATE return_mode/tracking) apl
 - `smoke-pos-venda-uso-completo.mjs`: **PASS** `DRY-REV-71C3C49B`
 - `smoke-me-reverse.mjs`: **PASS** `DRY-REV-9F7DAD3E` (`liveReady:false` sintético)
 
+### Rastreio garantido (pós-reforço)
+
+- Smoke exige ida ≠ devolução + fila com `tracking_code` + evento customer
+- Antiregress: webhook tracking-only, Ida×devolução UI, `buildTrackingUrl`
+- Evidência: `SMOKE-IDA-58565554` ≠ `DRY-REV-58565554` · gate PASS
+
 ## Fora de escopo
 
 - Novo `moduleKey` / `/admin/pos-venda`
