@@ -293,38 +293,41 @@ export function AdminOrdersHubPage() {
     return null
   }, [selectedOrderId, guideStageByOrder, selectedRow])
 
-  function rememberGuideStage(orderId: string, order: AdminOrderDetail | null) {
-    if (!order) {
-      setGuideStageByOrder((prev) => {
-        if (!(orderId in prev)) return prev
-        const next = { ...prev }
-        delete next[orderId]
-        return next
-      })
-      return
-    }
-    const list = deriveOccurrences(
-      (order.events ?? []).map((e) => ({
-        id: e.id,
-        eventType: e.eventType,
-        payload: e.payload,
-        visibility: e.visibility,
-        createdAt: e.createdAt,
-      })),
-    )
-    const primary = pickPrimaryPostSaleOccurrence(list)
-    const stage =
-      primary && primary.status !== 'resolved'
-        ? asPostSaleStage(primary.stage) ?? primary.stage
+  const rememberGuideStage = useCallback(
+    (orderId: string, order: AdminOrderDetail | null) => {
+      if (!order) {
+        setGuideStageByOrder((prev) => {
+          if (!(orderId in prev)) return prev
+          const next = { ...prev }
+          delete next[orderId]
+          return next
+        })
+        return
+      }
+      const list = deriveOccurrences(
+        (order.events ?? []).map((e) => ({
+          id: e.id,
+          eventType: e.eventType,
+          payload: e.payload,
+          visibility: e.visibility,
+          createdAt: e.createdAt,
+        })),
+      )
+      const primary = pickPrimaryPostSaleOccurrence(list)
+      const stage =
+        primary && primary.status !== 'resolved'
+          ? asPostSaleStage(primary.stage) ?? primary.stage
+          : null
+      const label = stage
+        ? POST_SALE_STAGE_LABEL[stage as keyof typeof POST_SALE_STAGE_LABEL] ?? String(stage)
         : null
-    const label = stage
-      ? POST_SALE_STAGE_LABEL[stage as keyof typeof POST_SALE_STAGE_LABEL] ?? String(stage)
-      : null
-    setGuideStageByOrder((prev) => {
-      if (prev[orderId] === label) return prev
-      return { ...prev, [orderId]: label }
-    })
-  }
+      setGuideStageByOrder((prev) => {
+        if (prev[orderId] === label) return prev
+        return { ...prev, [orderId]: label }
+      })
+    },
+    [],
+  )
 
   const kpiItems = useMemo(() => {
     const created =

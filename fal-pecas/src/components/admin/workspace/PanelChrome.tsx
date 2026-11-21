@@ -1,4 +1,4 @@
-import type { WorkspaceMode } from '@/lib/adminWorkspacePrefs'
+import { WORKSPACE_SPLIT_STEP, type WorkspaceMode } from '@/lib/adminWorkspacePrefs'
 import type { ReactNode } from 'react'
 
 export type PanelChromeProps = {
@@ -56,7 +56,7 @@ export function PanelChrome({
               aria-label="Diminuir largura da guia"
               title="Diminuir largura"
               disabled={splitWidthNarrowed}
-              onClick={() => onSplitWidthStep?.(-1)}
+              onClick={() => onSplitWidthStep?.(-WORKSPACE_SPLIT_STEP)}
             >
               −
             </button>
@@ -66,7 +66,7 @@ export function PanelChrome({
               aria-label="Aumentar largura da guia"
               title="Aumentar largura"
               disabled={splitWidthWidened}
-              onClick={() => onSplitWidthStep?.(1)}
+              onClick={() => onSplitWidthStep?.(WORKSPACE_SPLIT_STEP)}
             >
               +
             </button>

@@ -27,7 +27,8 @@
 - [x] Guia: arrastar ou −/+ muda largura além de 640px; prefs por moduleKey
 - [x] OrderOps Logística: Ida × devolução + CTAs do caso (`PostSaleCaseQuickActions`)
 - [x] Badge chrome com stage quando caso aberto
-- [x] Antiregress FL1 + testes URL/chips/labels/clamp MAX ≥ 800
+- [x] Antiregress FL1 + FL25 + testes URL/chips/labels/clamp MAX ≥ 800
+- [x] Ajuste: ± largura em px reais (`WORKSPACE_SPLIT_STEP`); `onOrderChange` via ref (sem reload em re-render do Hub)
 
 ## Artefatos principais
 

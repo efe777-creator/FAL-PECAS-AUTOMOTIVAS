@@ -4,7 +4,6 @@ import {
   readModulePrefs,
   WORKSPACE_SPLIT_MAX,
   WORKSPACE_SPLIT_MIN,
-  WORKSPACE_SPLIT_STEP,
   writeModulePrefs,
   type WorkspaceMode,
   type WorkspaceModuleKey,
@@ -156,8 +155,8 @@ export function AdaptiveWorkspace({
   const expanded = showContextual && effectiveMode === 'expanded'
   const splitWidth = expanded ? Math.max(prefs.splitWidthPx, 560) : prefs.splitWidthPx
 
-  function stepSplitWidth(direction: number) {
-    const next = clampSplitWidth(prefs.splitWidthPx + direction * WORKSPACE_SPLIT_STEP)
+  function stepSplitWidth(deltaPx: number) {
+    const next = clampSplitWidth(prefs.splitWidthPx + deltaPx)
     persist({ splitWidthPx: next })
   }
 

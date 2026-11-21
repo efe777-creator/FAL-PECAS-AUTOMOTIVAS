@@ -47,9 +47,11 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     const chrome = read('components/admin/workspace/PanelChrome.tsx')
     expect(chrome).toMatch(/export function PanelChrome/)
     expect(chrome).toMatch(/onSplitWidthStep/)
+    expect(chrome).toMatch(/WORKSPACE_SPLIT_STEP/)
 
     const prefsSrc = read('lib/adminWorkspacePrefs.ts')
     expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_MAX = 920/)
+    expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_STEP = 40/)
     expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_MAX = (\d+)/)
     const maxMatch = prefsSrc.match(/WORKSPACE_SPLIT_MAX = (\d+)/)
     expect(Number(maxMatch?.[1] ?? 0)).toBeGreaterThanOrEqual(800)
@@ -517,7 +519,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(css).toMatch(/admin-customers-list-mobile/)
   })
 
-  it('FL20: Revisão no Hub Adaptive (fila canônica + lista + CTAs)', () => {
+  it('FL25: Revisão no Hub Adaptive (fila canônica + lista + CTAs)', () => {
     const queues = read('lib/adminLogisticsQueues.ts')
     expect(queues).toMatch(/id: 'revisao'/)
     expect(queues).toMatch(/tab=logistica&fila=revisao/)
@@ -526,6 +528,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(hub).toMatch(/REVISAO_CHIPS/)
     expect(hub).toMatch(/columnMode=\{isRevisaoFila \? 'revisao' : 'default'\}/)
     expect(hub).toMatch(/selectedStageLabel/)
+    expect(hub).toMatch(/rememberGuideStage/)
 
     const list = read('pages/admin/orders/AdminOrdersListPanel.tsx')
     expect(list).toMatch(/columnMode\?: AdminOrdersListColumnMode/)
@@ -538,5 +541,6 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     const ops = read('components/admin/orders/OrderOpsSurface.tsx')
     expect(ops).toMatch(/PostSaleCaseQuickActions/)
     expect(ops).toMatch(/Caso pós-venda aberto/)
+    expect(ops).toMatch(/onOrderChangeRef/)
   })
 })

@@ -205,25 +205,25 @@ export function OrderOpsSurface({
     [toast],
   )
 
-  const applyOrder = useCallback(
-    (d: AdminOrderDetail | null, cancel: boolean) => {
-      setOrder(d)
-      setCanCancel(cancel)
-      onOrderChange?.(d)
-      if (d) {
-        const next: Record<string, ItemDraft> = {}
-        for (const it of d.items) {
-          next[it.id] = {
-            availability: it.availability ?? '',
-            leadDays: it.leadDays != null ? String(it.leadDays) : '',
-            staffNote: it.staffNote ?? '',
-          }
+  const onOrderChangeRef = useRef(onOrderChange)
+  onOrderChangeRef.current = onOrderChange
+
+  const applyOrder = useCallback((d: AdminOrderDetail | null, cancel: boolean) => {
+    setOrder(d)
+    setCanCancel(cancel)
+    onOrderChangeRef.current?.(d)
+    if (d) {
+      const next: Record<string, ItemDraft> = {}
+      for (const it of d.items) {
+        next[it.id] = {
+          availability: it.availability ?? '',
+          leadDays: it.leadDays != null ? String(it.leadDays) : '',
+          staffNote: it.staffNote ?? '',
         }
-        setDrafts(next)
       }
-    },
-    [onOrderChange],
-  )
+      setDrafts(next)
+    }
+  }, [])
 
   const reload = useCallback(async () => {
     const [d, cancel] = await Promise.all([
