@@ -109,9 +109,9 @@ Legenda ação: **EXISTE** · **EVOLUIR** · **CRIAR**
 | 5 | `entregue` | Detalhe | — | Confirmar recebimento | `customer_confirm_receipt` | 1 | EXISTE |
 | 6 | `enviado`/`entregue` | Detalhe | Formulário motivos; se incompat/devolução: todo/itens + política ACK | Enviar | Report tipado → `occurrence_opened` | 1 | EVOLUIR RPC/UI |
 | 7 | qualquer c/ caso | Detalhe timeline | Eventos customer do caso | — | `order_events` visibility customer | 1–3 | EVOLUIR labels stage |
-| 8a | caso `autorizada` ME | Detalhe | Instruções + Gerar código | Gerar código de devolução | Edge reversa ME (FAL paga) | 3 | CRIAR |
-| 8b | caso `autorizada` fallback | Detalhe | Texto loja + WA | Falar no WhatsApp / Devolver na loja | `buildOrderWhatsAppMessage` + return_mode | 3 | EVOLUIR texto |
-| 9 | resolvido | Detalhe | Resultado (aprovado/recusado/reembolso) | — | `occurrence_resolved` customer | 3 | EVOLUIR |
+| 8a | caso `autorizada` ME | Detalhe | Instruções + Gerar código | Gerar código de devolução | Edge reversa ME (FAL paga) | 3 | FEITO |
+| 8b | caso `autorizada` fallback | Detalhe | Texto loja + WA | Falar no WhatsApp / Devolver na loja | `buildPostSaleWhatsAppMessage` + return_mode | 3 | FEITO |
+| 9 | resolvido / aberto / recusa | Detalhe | Painel situação + Resultado | WA se aberto/recusa | `PostSaleCaseStatusPanel` | 3 | FEITO |
 
 ### Variante retirada (pickup)
 
