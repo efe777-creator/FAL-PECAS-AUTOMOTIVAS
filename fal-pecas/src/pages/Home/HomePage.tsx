@@ -150,7 +150,8 @@ export function HomePage() {
   useEffect(() => {
     let active = true
     const limit = getProductWidgetDef('bestsellers')?.defaultLimit ?? 12
-    void listBestsellerProducts(limit)
+    // Overfetch: após dedupe com destaques/ofertas ainda sobra trilho cheio.
+    void listBestsellerProducts(Math.max(limit * 2, 24))
       .then((data) => {
         if (active) setBestsellers({ data, loading: false, error: null })
       })
@@ -221,8 +222,9 @@ export function HomePage() {
       ...featuredWithoutOffers.map((p) => p.id),
       ...offers.data.map((p) => p.id),
     ])
-    return bestsellers.data.filter((p) => !ban.has(p.id))
-  }, [bestsellers.data, featuredWithoutOffers, offers.data])
+    const cap = bestsellersWidget?.defaultLimit ?? 12
+    return bestsellers.data.filter((p) => !ban.has(p.id)).slice(0, cap)
+  }, [bestsellers.data, featuredWithoutOffers, offers.data, bestsellersWidget?.defaultLimit])
 
   /**
    * Ordem: Campanhas → Entrada → Vitrine (painéis montados, só um visível) → Ofertas → Confiança.

@@ -12,6 +12,7 @@ type CacheEntry = {
 }
 
 const cache = new Map<string, CacheEntry>()
+const inflight = new Map<string, Promise<ShippingQuoteOption[]>>()
 
 export function freightCacheKey(
   req: ShippingQuoteRequest,
@@ -45,7 +46,7 @@ export function freightCacheKey(
 }
 
 /**
- * Facade F6C: cache curto sobre ShippingProvider.
+ * Facade F6C: cache curto + coalescing de inflight sobre ShippingProvider.
  * Usado pela cotação de envelope (PDP/carrinho). Nunca é verdade no place_order.
  */
 export async function quoteFreight(
@@ -62,14 +63,30 @@ export async function quoteFreight(
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
       return hit.options
     }
+    const pending = inflight.get(key)
+    if (pending) return pending
   }
-  const desc = getCarrierByEnvKey(envKey)
-  const provider = resolveCarrierProvider(desc.envKey)
-  const options = await provider.quote(req)
-  cache.set(key, { at: Date.now(), options })
-  return options
+
+  const run = (async () => {
+    const desc = getCarrierByEnvKey(envKey)
+    const provider = resolveCarrierProvider(desc.envKey)
+    const options = await provider.quote(req)
+    cache.set(key, { at: Date.now(), options })
+    return options
+  })()
+
+  if (!opts?.bypassCache) {
+    inflight.set(key, run)
+    try {
+      return await run
+    } finally {
+      inflight.delete(key)
+    }
+  }
+  return run
 }
 
 export function clearFreightCache() {
   cache.clear()
+  inflight.clear()
 }

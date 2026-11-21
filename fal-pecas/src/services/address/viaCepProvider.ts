@@ -95,12 +95,33 @@ async function lookupBrasilApi(digits: string): Promise<CepLookupResult> {
 
 const CEP_CACHE_TTL_MS = 10 * 60_000
 const cepCache = new Map<string, { at: number; value: CepLookupResult }>()
+const cepInflight = new Map<string, Promise<CepLookupResult>>()
 
 export function clearCepLookupCache() {
   cepCache.clear()
+  cepInflight.clear()
 }
 
-/** Provider CEP — ViaCEP com fallback BrasilAPI; cache curto em memória. */
+async function lookupWithFallback(digits: string): Promise<CepLookupResult> {
+  try {
+    const value = await lookupViaCep(digits)
+    cepCache.set(digits, { at: Date.now(), value })
+    return value
+  } catch (e) {
+    if (e instanceof CepNotFoundError) throw e
+    // timeout/rede/5xx → tenta fallback
+    try {
+      const value = await lookupBrasilApi(digits)
+      cepCache.set(digits, { at: Date.now(), value })
+      return value
+    } catch (e2) {
+      if (e2 instanceof CepNotFoundError || e2 instanceof CepInvalidError) throw e2
+      throw new CepUnavailableError()
+    }
+  }
+}
+
+/** Provider CEP — ViaCEP com fallback BrasilAPI; cache + coalescing de inflight. */
 export const viaCepProvider: CepProvider = {
   async lookupByCep(cep: string): Promise<CepLookupResult> {
     const digits = normalizeCep(cep)
@@ -111,21 +132,13 @@ export const viaCepProvider: CepProvider = {
       return hit.value
     }
 
-    try {
-      const value = await lookupViaCep(digits)
-      cepCache.set(digits, { at: Date.now(), value })
-      return value
-    } catch (e) {
-      if (e instanceof CepNotFoundError) throw e
-      // timeout/rede/5xx → tenta fallback
-      try {
-        const value = await lookupBrasilApi(digits)
-        cepCache.set(digits, { at: Date.now(), value })
-        return value
-      } catch (e2) {
-        if (e2 instanceof CepNotFoundError || e2 instanceof CepInvalidError) throw e2
-        throw new CepUnavailableError()
-      }
-    }
+    const pending = cepInflight.get(digits)
+    if (pending) return pending
+
+    const run = lookupWithFallback(digits).finally(() => {
+      cepInflight.delete(digits)
+    })
+    cepInflight.set(digits, run)
+    return run
   },
 }

@@ -118,17 +118,19 @@ export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
   return mergeFeaturedHybrid(curated, [...available, ...rest], cap)
 }
 
+/** Preço a pagar menor que lista (promo ou lista B2B) e disponível. */
+export function productHasActivePromo(p: Product): boolean {
+  const list = p.listPrice ?? p.price
+  const pay = p.resolvedPrice ?? p.promoPrice ?? p.price
+  return list > pay + 0.001 && p.available !== false
+}
+
 /**
- * Ofertas da home: published com preço resolvido abaixo do preço de lista (promo/lista).
+ * Ofertas da home / catálogo `?promo=1`: published com preço abaixo da lista.
  */
 export async function listPromoHighlightProducts(limit = 8): Promise<Product[]> {
   const pool = await listPublishedProducts(Math.max(limit * 4, 24))
-  const offers = pool.filter((p) => {
-    const list = p.listPrice ?? p.price
-    const pay = p.resolvedPrice ?? p.promoPrice ?? p.price
-    return list > pay + 0.001 && p.available !== false
-  })
-  return offers.slice(0, limit)
+  return pool.filter(productHasActivePromo).slice(0, limit)
 }
 
 /** Grade por categoria raiz (RPC search_products — inclui filhos). */

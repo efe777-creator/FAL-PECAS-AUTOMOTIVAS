@@ -35,6 +35,7 @@ import {
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
+import { listPromoHighlightProducts } from '@/services/products/productService'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
 import {
   catalogProductKindLabel,
@@ -115,6 +116,8 @@ export function CatalogPage() {
   const brand = params.get('brand') ?? ''
   const productKind = parseCatalogProductKind(params.get('kind'))
   const sort = parseSort(params.get('sort'))
+  /** Home Ofertas → `/catalogo?promo=1` (só itens com preço abaixo da lista). */
+  const promoOnly = params.get('promo') === '1'
   const urlPage = parsePage(params.get('page'))
 
   const [searchDraft, setSearchDraft] = useState(q)
@@ -342,8 +345,9 @@ export function CatalogPage() {
       version,
       productKind: productKind || null,
       sort,
+      promoOnly,
     }),
-    [q, cat, brand, maker, model, year, engine, version, productKind, sort],
+    [q, cat, brand, maker, model, year, engine, version, productKind, sort, promoOnly],
   )
 
   /**
@@ -370,8 +374,21 @@ export function CatalogPage() {
       if (soft) setRefreshing(true)
       else setLoading(true)
       try {
+        if (searchArgs.promoOnly) {
+          const need = PAGE_SIZE * Math.max(targetPage, 1)
+          const offers = await listPromoHighlightProducts(Math.max(need + PAGE_SIZE, 48))
+          if (id !== requestId.current) return
+          const slice = offers.slice(0, need)
+          setProducts(slice)
+          setTotal(offers.length)
+          setHasMore(offers.length > need)
+          setLoadedPage(targetPage)
+          return
+        }
+
+        const { promoOnly: _promo, ...catalogQuery } = searchArgs
         const first = await searchCatalog({
-          ...searchArgs,
+          ...catalogQuery,
           page: 1,
           pageSize: PAGE_SIZE,
         })
@@ -388,7 +405,7 @@ export function CatalogPage() {
         const rest = await Promise.all(
           Array.from({ length: targetPage - 1 }, (_, i) =>
             searchCatalog({
-              ...searchArgs,
+              ...catalogQuery,
               page: i + 2,
               pageSize: PAGE_SIZE,
             }),
@@ -642,18 +659,28 @@ export function CatalogPage() {
     setLoadingMore(true)
     setLoadMoreError(null)
     try {
-      const result = await searchCatalog({
-        ...searchArgs,
-        page: nextPage,
-        pageSize: PAGE_SIZE,
-      })
-      setProducts((prev) => {
-        const seen = new Set(prev.map((p) => p.id))
-        return [...prev, ...result.items.filter((p) => !seen.has(p.id))]
-      })
-      setTotal(result.total)
-      setHasMore(result.hasMore)
-      setLoadedPage(nextPage)
+      if (promoOnly) {
+        const need = PAGE_SIZE * nextPage
+        const offers = await listPromoHighlightProducts(Math.max(need + PAGE_SIZE, 48))
+        setProducts(offers.slice(0, need))
+        setTotal(offers.length)
+        setHasMore(offers.length > need)
+        setLoadedPage(nextPage)
+      } else {
+        const { promoOnly: _promo, ...catalogQuery } = searchArgs
+        const result = await searchCatalog({
+          ...catalogQuery,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        })
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id))
+          return [...prev, ...result.items.filter((p) => !seen.has(p.id))]
+        })
+        setTotal(result.total)
+        setHasMore(result.hasMore)
+        setLoadedPage(nextPage)
+      }
       const keepY = window.scrollY
       patchParams({ page: String(nextPage) }, false)
       requestAnimationFrame(() => {
@@ -671,6 +698,7 @@ export function CatalogPage() {
 
   const activeChips = [
     q && { key: 'q', label: `Busca: ${q}` },
+    promoOnly && { key: 'promo', label: 'Só ofertas' },
     cat && {
       key: 'cat',
       label: `Classificação: ${catPath.label || cat}`,

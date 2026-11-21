@@ -140,3 +140,20 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 Registry `productWidgets` · **bestsellers ready** (RPC + trilho Home).  
 `new_arrivals` / `campaign` ainda planned.  
 Doc: [FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md](./FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md).
+
+---
+
+## Auditoria de implantações (2026-11-21) — correções
+
+Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
+
+| Gap | Correção |
+|-----|----------|
+| CTA Ofertas `?promo=1` ignorado no catálogo | `CatalogPage` lista ofertas reais + chip “Só ofertas” |
+| Trilho bestsellers esvaziava após dedupe | Overfetch ×2 + `slice` no limite do widget |
+| Frete/CEP: double-click → 2 hits rede | Coalescing de `inflight` em `quoteFreight` e ViaCEP |
+| `?section=Aplicações` com acento falhava | Normalização NFD em `parseProductGuideSectionParam` |
+| Critério de oferta duplicado | `productHasActivePromo` compartilhado |
+
+**Evidência:** `tsc --noEmit` + 21 testes focados PASS.  
+**Ops residual (não código):** aplicar migrations G7 + `store_bestseller_product_ids` no wtbp.

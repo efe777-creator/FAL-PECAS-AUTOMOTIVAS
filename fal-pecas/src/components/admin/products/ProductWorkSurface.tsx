@@ -74,12 +74,21 @@ type Props = {
   onOpenProductGuide?: (productId: string) => void
 }
 
+/** Normaliza acentos para ?section= (ex.: Aplicações → aplicacoes). */
+function normalizeGuideSectionKey(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+}
+
 export function parseProductGuideSectionParam(
   raw: string | null | undefined,
 ): ProductGuideMenuId | null {
-  const v = (raw ?? '').trim().toLowerCase()
+  const v = normalizeGuideSectionKey(raw ?? '')
   if (!v) return null
-  if (v === 'preco' || v === 'preço' || v === 'preços') return 'precos'
+  if (v === 'preco' || v === 'precos') return 'precos'
   if (GUIDE_MENU_IDS.has(v as ProductGuideMenuId)) return v as ProductGuideMenuId
   return null
 }

@@ -75,4 +75,19 @@ describe('freightService cache', () => {
     await quoteFreight(req(), { envKey: 'melhorenvio', bypassCache: true })
     expect(quoteMock).toHaveBeenCalledTimes(2)
   })
+
+  it('cotações paralelas iguais coalescem em uma chamada ao provider', async () => {
+    let release!: (v: ShippingQuoteOption[]) => void
+    quoteMock.mockImplementationOnce(
+      () =>
+        new Promise<ShippingQuoteOption[]>((resolve) => {
+          release = resolve
+        }),
+    )
+    const a = quoteFreight(req(), { envKey: 'melhorenvio' })
+    const b = quoteFreight(req(), { envKey: 'melhorenvio' })
+    expect(quoteMock).toHaveBeenCalledTimes(1)
+    release([opt])
+    await expect(Promise.all([a, b])).resolves.toEqual([[opt], [opt]])
+  })
 })
