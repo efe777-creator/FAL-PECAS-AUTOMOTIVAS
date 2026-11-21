@@ -9,16 +9,15 @@ import { GARAGE_MOBILE_SHORTCUTS } from '@/lib/garageNav'
 import type { GarageModuleKey } from '@/lib/garageWorkspacePrefs'
 import { writeGarageWorkspacePrefs } from '@/lib/garageWorkspacePrefs'
 import {
-  listInsightsForIdentity,
-  type MaintenanceInsight,
-} from '@/services/garage/maintenanceInsightService'
-import { listIdentityTimeline, type TimelineItem } from '@/services/garage/vehicleEventService'
+  collapsePurchaseEventsForHistory,
+  listVehiclePartEvents,
+  type CollapsedPurchaseRow,
+} from '@/services/garage/vehiclePartEventService'
 import { listVehicleAssets } from '@/services/customers/vehicleAssetService'
 import {
   placeholderVehicleImage,
   resolveVehicleDisplayImage,
 } from '@/services/customers/vehicleImageResolver'
-import { getLatestOdometerKm } from '@/services/garage/odometerService'
 import type { CustomerSavedVehicle, ResolvedVehicleImage } from '@/types'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -37,10 +36,7 @@ function moduleLink(id: string, key: GarageModuleKey) {
 export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props) {
   const navigate = useNavigate()
   const [image, setImage] = useState<ResolvedVehicleImage>(placeholderVehicleImage())
-  const [km, setKm] = useState<number | null>(null)
-  const [insights, setInsights] = useState<MaintenanceInsight[]>([])
-  const [recent, setRecent] = useState<TimelineItem[]>([])
-  const [counts, setCounts] = useState({ events: 0, care: 0 })
+  const [purchases, setPurchases] = useState<CollapsedPurchaseRow[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -61,44 +57,18 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      if (!primary.vehicleIdentityId) {
-        if (!cancelled) {
-          setKm(null)
-          setInsights([])
-          setRecent([])
-          setCounts({ events: 0, care: 0 })
-        }
-        return
-      }
       try {
-        const [latest, ins, timeline] = await Promise.all([
-          getLatestOdometerKm(primary.vehicleIdentityId),
-          listInsightsForIdentity(primary.vehicleIdentityId),
-          listIdentityTimeline({
-            vehicleIdentityId: primary.vehicleIdentityId,
-            membershipId: primary.id,
-            mode: 'vida',
-          }),
-        ])
-        if (cancelled) return
-        setKm(latest)
-        setInsights(ins.slice(0, 4))
-        setRecent(timeline.slice(0, 4))
-        setCounts({
-          events: timeline.length,
-          care: ins.filter((i) => i.kind === 'reminder').length,
-        })
+        const events = await listVehiclePartEvents(primary.id)
+        const rows = collapsePurchaseEventsForHistory(events).slice(0, 4)
+        if (!cancelled) setPurchases(rows)
       } catch {
-        if (!cancelled) {
-          setInsights([])
-          setRecent([])
-        }
+        if (!cancelled) setPurchases([])
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [primary])
+  }, [primary.id])
 
   const plate = vehiclePlateLabel(primary)
   const detailHref = `/conta/veiculos/${primary.id}?modulo=visao`
@@ -109,7 +79,6 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
 
   return (
     <div className="space-y-4">
-      {/* Mobile module grid */}
       <nav
         className="grid grid-cols-3 gap-2 lg:hidden"
         aria-label="Atalhos da garagem"
@@ -130,7 +99,6 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
       </nav>
 
       <div className="grid gap-4 lg:grid-cols-12">
-        {/* Hero */}
         <article className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface lg:col-span-7">
           <div className="grid gap-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
             <VehicleImageFrame
@@ -151,16 +119,10 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
                   {vehicleTechLine(primary) || '—'}
                 </p>
               </div>
-              <dl className="m-0 grid grid-cols-2 gap-2 text-sm">
+              <dl className="m-0 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-[11px] font-semibold uppercase text-fal-muted">Placa</dt>
                   <dd className="m-0 font-extrabold tracking-wide">{plate || '—'}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase text-fal-muted">Km</dt>
-                  <dd className="m-0 font-extrabold">
-                    {km != null ? `${km.toLocaleString('pt-BR')} km` : '—'}
-                  </dd>
                 </div>
               </dl>
               <div className="mt-auto flex flex-wrap gap-2">
@@ -181,44 +143,9 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
           </div>
         </article>
 
-        {/* Próximos cuidados */}
         <section className="rounded-fal border border-fal-line bg-fal-surface p-4 lg:col-span-5">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="m-0 text-sm font-extrabold">Próximos cuidados</h3>
-            <Link
-              to={moduleLink(primary.id, 'inteligencia')}
-              className="text-xs font-bold text-fal-accent hover:underline"
-            >
-              Ver cuidados
-            </Link>
-          </div>
-          {!primary.vehicleIdentityId ? (
-            <p className="m-0 text-sm text-fal-muted">
-              Cadastro do veículo incompleto — cuidados aparecem após salvar.
-            </p>
-          ) : insights.length === 0 ? (
-            <p className="m-0 text-sm text-fal-muted">
-              Nenhum cuidado agendado. Adicione um lembrete.
-            </p>
-          ) : (
-            <ul className="m-0 list-none space-y-2 p-0">
-              {insights.map((ins) => (
-                <li
-                  key={ins.id}
-                  className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-3 py-2"
-                >
-                  <p className="m-0 text-sm font-extrabold text-fal-fg">{ins.title}</p>
-                  <p className="m-0 text-xs text-fal-muted">{ins.detail}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Histórico recente */}
-        <section className="rounded-fal border border-fal-line bg-fal-surface p-4 lg:col-span-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="m-0 text-sm font-extrabold">Histórico recente</h3>
+            <h3 className="m-0 text-sm font-extrabold">Últimas peças compradas</h3>
             <Link
               to={moduleLink(primary.id, 'historico')}
               className="text-xs font-bold text-fal-accent hover:underline"
@@ -226,18 +153,20 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               Ver histórico
             </Link>
           </div>
-          {recent.length === 0 ? (
-            <p className="m-0 text-sm text-fal-muted">Sem registros ainda.</p>
+          {purchases.length === 0 ? (
+            <p className="m-0 text-sm text-fal-muted">
+              Quando você comprar peças para este carro na FAL, elas aparecem aqui.
+            </p>
           ) : (
             <ul className="m-0 list-none space-y-2 p-0">
-              {recent.map((item) => (
+              {purchases.map((item) => (
                 <li key={item.id} className="flex gap-2 text-sm">
                   <span
                     className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-fal-success"
                     aria-hidden
                   />
                   <span>
-                    <span className="font-extrabold text-fal-fg">{item.title}</span>
+                    <span className="font-extrabold text-fal-fg">{item.productLabel}</span>
                     <span className="mt-0.5 block text-xs text-fal-muted">
                       {new Date(item.occurredAt).toLocaleDateString('pt-BR')}
                     </span>
@@ -248,7 +177,6 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
           )}
         </section>
 
-        {/* Preview visual secundário */}
         <section className="rounded-fal border border-fal-line bg-fal-navy p-4 text-white lg:col-span-4">
           <h3 className="m-0 text-sm font-extrabold text-fal-yellow">Visualização</h3>
           <p className="mt-1 text-xs text-white/70">
@@ -256,11 +184,7 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
           </p>
           <div className="mt-3 overflow-hidden rounded-[12px] bg-black/30">
             {image.url ? (
-              <img
-                src={image.url}
-                alt=""
-                className="h-36 w-full object-contain"
-              />
+              <img src={image.url} alt="" className="h-36 w-full object-contain" />
             ) : (
               <div className="flex h-36 items-center justify-center text-xs text-white/50">
                 Sem preview
@@ -268,17 +192,17 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
             )}
           </div>
           <Link
-            to={moduleLink(primary.id, 'mais')}
+            to={moduleLink(primary.id, 'visual')}
             className="mt-3 inline-flex min-h-10 items-center text-sm font-extrabold text-fal-yellow hover:underline"
           >
-            Mais opções →
+            Abrir visualização →
           </Link>
         </section>
 
-        {/* Resumo */}
         <section className="rounded-fal border border-fal-line bg-fal-surface p-4 lg:col-span-4">
           <h3 className="m-0 text-sm font-extrabold">Resumo</h3>
-          <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <p className="mt-1 mb-0 text-xs text-fal-muted">Seu carro, peças e compras.</p>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-[10px] bg-fal-bg px-2 py-3">
               <dt className="text-[10px] font-semibold uppercase text-fal-muted">Veículos</dt>
               <dd className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-yellow">
@@ -286,15 +210,9 @@ export function GarageDashboardBento({ primary, vehicleCount, onOpenAdd }: Props
               </dd>
             </div>
             <div className="rounded-[10px] bg-fal-bg px-2 py-3">
-              <dt className="text-[10px] font-semibold uppercase text-fal-muted">Histórico</dt>
+              <dt className="text-[10px] font-semibold uppercase text-fal-muted">Compras</dt>
               <dd className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-yellow">
-                {counts.events}
-              </dd>
-            </div>
-            <div className="rounded-[10px] bg-fal-bg px-2 py-3">
-              <dt className="text-[10px] font-semibold uppercase text-fal-muted">Cuidados</dt>
-              <dd className="m-0 text-lg font-extrabold text-fal-navy dark:text-fal-yellow">
-                {counts.care}
+                {purchases.length}
               </dd>
             </div>
           </dl>

@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fundação 2026-11-21: histórico oficial = VehicleIdentityTimeline (compras G7).
+ * Não montar em páginas novas; mantido só para referência / possíveis deep-links internos.
+ */
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Loading } from '@/components/common/Loading'

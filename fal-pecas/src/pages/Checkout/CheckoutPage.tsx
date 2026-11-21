@@ -1010,16 +1010,16 @@ export function CheckoutPage() {
               vehicleSnapshot = { ...base, compatDecision }
             } else if (garageMakerModel) {
               vehicleSnapshot = {
-                customerVehicleId: null,
+                customerVehicleId: garage?.activeVehicle?.id ?? null,
                 maker: garageMakerModel.maker,
                 model: garageMakerModel.model,
                 year: garageMakerModel.year,
                 version: garageMakerModel.version,
                 engine: garageMakerModel.engine,
                 versionId: garageMakerModel.versionId,
-                plate: null,
+                plate: garage?.activeVehicle?.plate ?? null,
                 associatedAt: new Date().toISOString(),
-                contextSource: 'manual',
+                contextSource: garage?.activeVehicle ? 'active' : 'manual',
                 compatDecision,
               }
             }
@@ -1028,7 +1028,10 @@ export function CheckoutPage() {
             productId: i.productId,
             quantity: i.quantity,
             customerVehicleId:
-              i.customerVehicleId ?? i.vehicleSnapshot?.customerVehicleId ?? null,
+              i.customerVehicleId ??
+              i.vehicleSnapshot?.customerVehicleId ??
+              garage?.activeVehicle?.id ??
+              null,
             vehicleSnapshot,
           }
         }),

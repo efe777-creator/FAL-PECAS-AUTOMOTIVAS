@@ -3,6 +3,8 @@
 Data: 2026-11-18 · ambiente local `5173` · Fiat Palio 2015 · `dev`  
 Escopo: Visual + hero 2D + viewer GLB (não é polish Fase 7 completo).
 
+> **2026-11-21:** CarImages **CANCELADA**. Hero 2D vigente = pessoal / `vehicle_stock_images` / placeholder. Ver [FAL_PLANO_GARAGEM_FUNDACAO_COERENTE_2026-11-21.md](./FAL_PLANO_GARAGEM_FUNDACAO_COERENTE_2026-11-21.md). Menções a CarImages abaixo = histórico.
+
 ## Veredito
 
 **Funções core: PASS.**  

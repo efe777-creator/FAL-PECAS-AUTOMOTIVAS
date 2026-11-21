@@ -1,6 +1,6 @@
 /**
  * PLANO 2B Fase B — FAL Vehicle Visualization Engine (contrato).
- * UI não escolhe tecnologia: resolve source a partir de capability + prefs + assets.
+ * Fundação 2026-11-21: 2D-first; procedural só com preferência 3d explícita; falha GLB → 2d.
  */
 
 export type VisualizationSource = '2d' | 'procedural' | 'glb' | 'xr'
@@ -8,9 +8,9 @@ export type VisualizationSource = '2d' | 'procedural' | 'glb' | 'xr'
 export type VisualizationResolveInput = {
   preferredMode: 'auto' | '2d' | '3d'
   webglOk: boolean
-  /** Asset GLB aprovado para este veículo. */
+  /** Asset GLB aprovado e não-smoke para este veículo. */
   hasApprovedGlb: boolean
-  /** Gate Fase C. */
+  /** Gate Fase C — UI cliente oculta nesta onda; engine mantém contrato. */
   xrEnabled?: boolean
   xrSupported?: boolean
   /** E5: em `auto`, reduced motion prefere 2D (perf/a11y). */
@@ -20,23 +20,32 @@ export type VisualizationResolveInput = {
 export type EffectiveRenderSource = '2d' | 'procedural' | 'glb'
 
 /**
- * Ordem: XR (gate+suporte, sem reduced-motion) → 2d forçado/sem WebGL → glb → procedural → 2d.
+ * Ordem (fundação): 2d forçado/sem WebGL/reduced-motion+auto → glb aprovado →
+ * procedural só se pref 3d sem GLB → senão 2d.
+ * XR só com gate+suporte e pref não-2d (UI não liga nesta onda).
  */
 export function resolveVisualizationSource(
   input: VisualizationResolveInput,
 ): VisualizationSource {
-  if (input.xrEnabled && input.xrSupported && !input.reducedMotion) return 'xr'
   if (input.preferredMode === '2d' || !input.webglOk) return '2d'
-  // auto + reduced motion → 2D (baseline E5); pref explícita 3d ainda permite 3D estático
   if (input.reducedMotion && input.preferredMode === 'auto') return '2d'
+  if (
+    input.xrEnabled &&
+    input.xrSupported &&
+    !input.reducedMotion &&
+    input.preferredMode === '3d'
+  ) {
+    return 'xr'
+  }
   if (input.hasApprovedGlb) return 'glb'
-  if (input.preferredMode === '3d' || input.preferredMode === 'auto') return 'procedural'
+  if (input.preferredMode === '3d') return 'procedural'
+  // auto sem GLB → 2d (não procedural)
   return '2d'
 }
 
 /**
  * Canvas real: 2d | procedural | glb.
- * XR (C1) envolve o canvas base via launcher; base = glb → procedural → 2d.
+ * Falha GLB → 2d (não procedural). XR base: glb → 2d.
  */
 export function effectiveRenderSource(
   resolved: VisualizationSource,
@@ -47,16 +56,20 @@ export function effectiveRenderSource(
     resolved === 'xr'
       ? opts?.hasApprovedGlb && !opts?.glbLoadFailed
         ? 'glb'
-        : webglOk
-          ? 'procedural'
-          : '2d'
+        : '2d'
       : resolved
 
   if (base === '2d' || !webglOk) return '2d'
   if (base === 'glb' && !opts?.glbLoadFailed) return 'glb'
-  if (base === 'glb' && opts?.glbLoadFailed) return 'procedural'
+  if (base === 'glb' && opts?.glbLoadFailed) return '2d'
   if (base === 'procedural') return 'procedural'
   return '2d'
+}
+
+/** Smoke / placeholder admin não conta como GLB “real” no cliente. */
+export function isSmokeOrPlaceholderGlb(code: string | null | undefined): boolean {
+  const c = (code ?? '').toLowerCase()
+  return c.includes('smoke') || c.includes('placeholder')
 }
 
 /** Copy humana para o cliente (sem jargão Engine/GLB/2B). */

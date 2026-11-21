@@ -9,7 +9,8 @@ export function readVisualViewerMode(): VisualViewerMode {
   } catch {
     /* ignore */
   }
-  return 'auto'
+  // Fundação: default 2d (auto legado ainda válido se gravado)
+  return '2d'
 }
 
 export function writeVisualViewerMode(mode: VisualViewerMode): void {

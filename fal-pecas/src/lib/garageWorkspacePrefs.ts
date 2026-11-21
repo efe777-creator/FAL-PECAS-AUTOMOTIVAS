@@ -25,11 +25,22 @@ const MODULES: GarageModuleKey[] = [
   'pecas',
 ]
 
-/** Módulos avançados agrupados em Mais (código permanece; fora da nav primária). */
+/**
+ * Módulos sob Mais (fora da nav primária).
+ * Ordem: Visual → Config → Compartilhar → Avançado (Cuidados, Manutenção, …).
+ */
 export const GARAGE_MORE_MODULE_KEYS: Exclude<
   GarageModuleKey,
-  'visao' | 'historico' | 'inteligencia' | 'mais' | 'pecas'
->[] = ['visual', 'manutencoes', 'profissionais', 'evidencias', 'compartilhar', 'config']
+  'visao' | 'historico' | 'mais' | 'pecas'
+>[] = [
+  'visual',
+  'config',
+  'compartilhar',
+  'inteligencia',
+  'manutencoes',
+  'profissionais',
+  'evidencias',
+]
 
 const KEY = 'fal-garage-workspace-v1'
 

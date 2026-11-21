@@ -155,6 +155,14 @@ export function adminNavIcon(to: string): ReactNode {
           <path d="M12 12v9M4 7.5 12 12l8-4.5" />
         </Svg>
       )
+    case '/admin/imagens-stock':
+      return (
+        <Svg>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <circle cx="9" cy="11" r="2" />
+          <path d="m21 16-4.5-4.5L9 19" />
+        </Svg>
+      )
     case '/admin/fabricantes':
       return (
         <Svg>

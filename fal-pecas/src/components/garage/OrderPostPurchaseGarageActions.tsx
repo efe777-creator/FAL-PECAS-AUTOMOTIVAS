@@ -5,6 +5,7 @@ import { listSavedVehicles } from '@/services/customers/customerVehicleService'
 import {
   appendVehiclePartEvent,
   declareInstalled,
+  hasSystemAssociatedForOrderItem,
   listVehiclePartEvents,
   type VehiclePartEvent,
 } from '@/services/garage/vehiclePartEventService'
@@ -27,10 +28,16 @@ export function OrderPostPurchaseGarageActions({ order }: { order: OrderDetail }
 
   const eligible = useMemo(() => {
     const paid = order.payment?.status === 'approved'
-    const done = ['entregue', 'enviado', 'pronto_para_envio', 'preparando_envio'].includes(
-      order.status,
-    )
-    return paid || done
+    const statusOk = [
+      'pagamento_aprovado',
+      'recebido',
+      'preparando_envio',
+      'pronto_para_envio',
+      'enviado',
+      'entregue',
+    ].includes(order.status)
+    // Prefer status (quando G7 dispara); payment approved ainda mostra UI com reload
+    return statusOk || paid
   }, [order.payment?.status, order.status])
 
   const reloadEvents = useCallback(async (membershipId: string) => {
@@ -124,8 +131,8 @@ export function OrderPostPurchaseGarageActions({ order }: { order: OrderDetail }
     <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
       <h3 className="mt-0 text-base font-extrabold">Garagem · pós-compra</h3>
       <p className="m-0 mb-3 text-xs text-fal-muted">
-        Associe peças ao veículo e declare instalação quando fizer sentido. Compra, recebimento e
-        instalação são acontecimentos distintos (G7 append-only).
+        Peças compradas com veículo ativo aparecem no Histórico da garagem. Associe só se a compra
+        ainda não estiver vinculada.
       </p>
 
       <label className="mb-3 block text-sm font-semibold">
@@ -159,7 +166,9 @@ export function OrderPostPurchaseGarageActions({ order }: { order: OrderDetail }
             const boughtOrAssoc = related.find(
               (e) => e.eventType === 'bought' || e.eventType === 'associated',
             )
+            const systemAssoc = hasSystemAssociatedForOrderItem(events, item.id)
             const installed = related.some((e) => e.eventType === 'installed_declared')
+            const linked = Boolean(boughtOrAssoc || systemAssoc)
             return (
               <li
                 key={item.id}
@@ -170,13 +179,13 @@ export function OrderPostPurchaseGarageActions({ order }: { order: OrderDetail }
                   <span className="block text-xs text-fal-muted">
                     {installed
                       ? 'Instalação já declarada'
-                      : boughtOrAssoc
-                        ? 'Associada / comprada — pode declarar instalação'
+                      : linked
+                        ? 'Já no histórico do veículo'
                         : 'Ainda sem vínculo na garagem'}
                   </span>
                 </span>
                 <span className="flex flex-wrap gap-2">
-                  {!boughtOrAssoc ? (
+                  {!linked ? (
                     <Button
                       type="button"
                       size="sm"

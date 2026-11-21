@@ -10,6 +10,7 @@ import type { VehicleVisualAsset } from '@/services/garage/vehicleVisualAssetTyp
 import type { VehicleVisualPayload } from '@/services/garage/vehicleVisualTypes'
 import {
   effectiveRenderSource,
+  isSmokeOrPlaceholderGlb,
   resolveVisualizationSource,
   visualizationSourceLabel,
   type VisualizationSource,
@@ -91,12 +92,18 @@ export function VehicleVisualizationEngine({
     setGlbLoadFailed(false)
   }, [assetKey])
 
+  const realGlb =
+    hasApprovedGlb &&
+    Boolean(approvedAsset) &&
+    !isSmokeOrPlaceholderGlb(approvedAsset?.code)
+
   const resolved: VisualizationSource = useMemo(
     () =>
       resolveVisualizationSource({
         preferredMode,
         webglOk,
-        hasApprovedGlb: hasApprovedGlb && Boolean(approvedAsset),
+        hasApprovedGlb: realGlb,
+        // Fundação: XR não entra pelo happy path (pref 3d + gate ainda possível)
         xrEnabled: xrGateOn && !xrUserFallback,
         xrSupported,
         reducedMotion: reduceMotion,
@@ -104,8 +111,7 @@ export function VehicleVisualizationEngine({
     [
       preferredMode,
       webglOk,
-      hasApprovedGlb,
-      approvedAsset,
+      realGlb,
       reduceMotion,
       xrGateOn,
       xrSupported,
@@ -117,9 +123,9 @@ export function VehicleVisualizationEngine({
     () =>
       effectiveRenderSource(resolved, webglOk, {
         glbLoadFailed,
-        hasApprovedGlb: hasApprovedGlb && Boolean(approvedAsset),
+        hasApprovedGlb: realGlb,
       }),
-    [resolved, webglOk, glbLoadFailed, hasApprovedGlb, approvedAsset],
+    [resolved, webglOk, glbLoadFailed, realGlb],
   )
 
   useEffect(() => {

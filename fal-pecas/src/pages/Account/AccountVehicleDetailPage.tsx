@@ -23,7 +23,12 @@ import {
   vehicleTechLine,
 } from '@/components/garage/garageVehicleUi'
 import { useGarage } from '@/contexts/GarageContext'
-import { GARAGE_MODULE_TABS, GARAGE_MORE_LABELS } from '@/lib/garageNav'
+import {
+  GARAGE_MODULE_TABS,
+  GARAGE_MORE_ADVANCED_KEYS,
+  GARAGE_MORE_LABELS,
+  GARAGE_MORE_PRIMARY_KEYS,
+} from '@/lib/garageNav'
 import {
   GARAGE_MORE_MODULE_KEYS,
   parseGarageModule,
@@ -212,11 +217,7 @@ export function AccountVehicleDetailPage() {
 
   const plateLabel = vehiclePlateLabel(vehicle)
   const tabHighlight: GarageModuleKey =
-    modulo === 'visao' ||
-    modulo === 'historico' ||
-    modulo === 'inteligencia' ||
-    modulo === 'pecas' ||
-    modulo === 'mais'
+    modulo === 'visao' || modulo === 'historico' || modulo === 'pecas' || modulo === 'mais'
       ? modulo
       : 'mais'
   const inMoreBranch = (GARAGE_MORE_MODULE_KEYS as string[]).includes(modulo)
@@ -264,13 +265,7 @@ export function AccountVehicleDetailPage() {
                 </p>
               ) : null}
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
-                <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Km</p>
-                <p className="m-0 text-sm font-extrabold">
-                  {latestKm != null ? latestKm.toLocaleString('pt-BR') : '—'}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-black/25 px-2 py-2 text-center">
                 <p className="m-0 text-[10px] font-semibold uppercase text-white/50">Placa</p>
                 <p className="m-0 text-sm font-extrabold tracking-wide">{plateLabel || '—'}</p>
@@ -451,11 +446,10 @@ export function AccountVehicleDetailPage() {
         <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
           <h3 className="mt-0 mb-1 text-base font-extrabold">Mais opções</h3>
           <p className="mt-0 mb-3 text-sm text-fal-muted">
-            Recursos avançados — use quando precisar. O dia a dia fica em Resumo, Histórico,
-            Cuidados e Peças.
+            Visualização e configurações. O dia a dia fica em Resumo, Histórico e Peças.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {GARAGE_MORE_MODULE_KEYS.map((key) => (
+            {GARAGE_MORE_PRIMARY_KEYS.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -469,6 +463,29 @@ export function AccountVehicleDetailPage() {
               </button>
             ))}
           </div>
+          <details className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg/50">
+            <summary className="cursor-pointer list-none px-3 py-3 text-sm font-extrabold marker:content-none [&::-webkit-details-marker]:hidden">
+              Avançado (em breve)
+            </summary>
+            <p className="m-0 border-t border-fal-line px-3 py-2 text-xs text-fal-muted">
+              Cuidados, manutenção e parceiros ficam aqui até a rede FAL Parceiros.
+            </p>
+            <div className="grid gap-2 border-t border-fal-line p-3 sm:grid-cols-2">
+              {GARAGE_MORE_ADVANCED_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setModulo(key)}
+                  className="flex min-h-11 items-center justify-between rounded-[10px] border border-fal-line bg-fal-surface px-3 text-left text-sm font-extrabold text-fal-fg hover:border-fal-navy/40"
+                >
+                  {GARAGE_MORE_LABELS[key] ?? key}
+                  <span aria-hidden className="text-fal-muted">
+                    →
+                  </span>
+                </button>
+              ))}
+            </div>
+          </details>
         </section>
       ) : null}
 
@@ -483,17 +500,10 @@ export function AccountVehicleDetailPage() {
       ) : null}
 
       {modulo === 'historico' ? (
-        vehicle.vehicleIdentityId ? (
-          <VehicleIdentityTimeline
-            membershipId={vehicle.id}
-            vehicleIdentityId={vehicle.vehicleIdentityId}
-          />
-        ) : (
-          <ErrorState
-            title="Histórico indisponível"
-            description="Complete o cadastro do veículo para ver o histórico."
-          />
-        )
+        <VehicleIdentityTimeline
+          membershipId={vehicle.id}
+          vehicleIdentityId={vehicle.vehicleIdentityId ?? vehicle.id}
+        />
       ) : null}
 
       {modulo === 'manutencoes' ? (
@@ -576,29 +586,29 @@ export function AccountVehicleDetailPage() {
               <div className="rounded-fal border border-fal-line bg-fal-surface p-4">
                 <p className="m-0 text-sm font-extrabold text-fal-fg">Resumo</p>
                 <p className="mt-1 mb-3 text-sm text-fal-muted">
-                  Quilometragem e atalhos para cuidados, histórico e visualização.
+                  Dados do veículo e atalhos para compras, peças e visualização.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setModulo('inteligencia')}
-                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
-                  >
-                    Ver cuidados
-                  </button>
                   <button
                     type="button"
                     onClick={() => setModulo('historico')}
                     className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
                   >
-                    Ver histórico
+                    Peças compradas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModulo('pecas')}
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
+                  >
+                    Peças que cabem
                   </button>
                   <button
                     type="button"
                     onClick={() => setModulo('visual')}
                     className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
                   >
-                    Ver visualização
+                    Visualização
                   </button>
                 </div>
               </div>

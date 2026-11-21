@@ -298,9 +298,10 @@ export function VehicleCompatiblePartsPanel({ vehicle }: Props) {
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Peças</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Peças que cabem</h2>
         <p className="m-0 text-sm text-fal-muted">
-          Compatibilidade confirmada. Toque para ver detalhes.
+          Compatibilidade confirmada neste veículo. Diferente do Histórico (peças que você
+          comprou).
         </p>
       </header>
 

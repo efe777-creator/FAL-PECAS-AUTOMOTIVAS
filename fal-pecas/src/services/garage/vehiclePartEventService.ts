@@ -176,3 +176,69 @@ export function boughtRemainsIntact(
   const bought = events.find((e) => e.id === boughtId)
   return Boolean(bought && bought.eventType === 'bought')
 }
+
+export type CollapsedPurchaseRow = {
+  /** Prefer bought id; fallback associated. */
+  id: string
+  orderId: string | null
+  orderItemId: string | null
+  productId: string | null
+  productLabel: string
+  occurredAt: string
+  hasBought: boolean
+  hasAssociated: boolean
+}
+
+/**
+ * Histórico cliente (fundação): 1 linha por order_item (ou product+order),
+ * colapsando bought + associated. Ignora install/return etc. nesta onda.
+ */
+export function collapsePurchaseEventsForHistory(
+  events: VehiclePartEvent[],
+): CollapsedPurchaseRow[] {
+  const purchaseTypes: VehiclePartEventType[] = ['bought', 'associated']
+  const relevant = events.filter((e) => purchaseTypes.includes(e.eventType))
+  const groups = new Map<string, VehiclePartEvent[]>()
+
+  for (const ev of relevant) {
+    const key =
+      ev.orderItemId != null
+        ? `oi:${ev.orderItemId}`
+        : `fallback:${ev.orderId ?? ''}:${ev.productId ?? ''}:${ev.id}`
+    const list = groups.get(key) ?? []
+    list.push(ev)
+    groups.set(key, list)
+  }
+
+  const rows: CollapsedPurchaseRow[] = []
+  for (const list of groups.values()) {
+    const bought = list.find((e) => e.eventType === 'bought')
+    const associated = list.find((e) => e.eventType === 'associated')
+    const primary = bought ?? associated ?? list[0]!
+    rows.push({
+      id: primary.id,
+      orderId: primary.orderId,
+      orderItemId: primary.orderItemId,
+      productId: primary.productId,
+      productLabel: eventProductLabel(primary),
+      occurredAt: primary.createdAt,
+      hasBought: Boolean(bought),
+      hasAssociated: Boolean(associated),
+    })
+  }
+
+  rows.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0))
+  return rows
+}
+
+export function hasSystemAssociatedForOrderItem(
+  events: VehiclePartEvent[],
+  orderItemId: string,
+): boolean {
+  return events.some(
+    (e) =>
+      e.orderItemId === orderItemId &&
+      e.eventType === 'associated' &&
+      e.provenance === 'system',
+  )
+}

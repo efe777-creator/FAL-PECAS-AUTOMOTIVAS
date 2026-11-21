@@ -38,18 +38,15 @@ import {
   readSyncInstallEnabled,
   writeSyncInstallEnabled,
 } from '@/lib/visualInstallSyncPrefs'
+import { VehicleImageFrame } from '@/components/garage/VehicleImageFrame'
 import { VehicleVisualizationEngine } from '@/components/garage/VehicleVisualizationEngine'
 import {
   readVisualViewerMode,
   writeVisualViewerMode,
   type VisualViewerMode,
 } from '@/lib/visualViewerPrefs'
-import {
-  isVisualXrEnvEnabled,
-  readVisualXrUserOptIn,
-  writeVisualXrUserOptIn,
-} from '@/lib/visualXrGate'
 import { canUseWebGL } from '@/lib/webglSupport'
+import { isSmokeOrPlaceholderGlb } from '@/services/garage/visualizationEngine'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -87,17 +84,9 @@ export function VehicleVisualPanel({
   const [stockImage, setStockImage] = useState<ResolvedVehicleImage>(() =>
     placeholderVehicleImage(),
   )
-  const [xrEnvOn] = useState(() => isVisualXrEnvEnabled())
-  const [xrOptIn, setXrOptIn] = useState(() => readVisualXrUserOptIn())
-
   useEffect(() => {
     setWebglOk(canUseWebGL())
   }, [])
-
-  function toggleXrOptIn(next: boolean) {
-    setXrOptIn(next)
-    writeVisualXrUserOptIn(next)
-  }
 
   const modelParts = useMemo(
     () => partsForModelReflection(parts, installFacts, syncInstall),
@@ -168,7 +157,10 @@ export function VehicleVisualPanel({
     }
   }
 
-  const glbPaintLocked = Boolean(approvedAsset) && viewerPref !== '2d'
+  const realGlb =
+    Boolean(approvedAsset) && !isSmokeOrPlaceholderGlb(approvedAsset?.code)
+  const glbPaintLocked = realGlb && viewerPref === '3d'
+  const show3dStage = viewerPref === '3d' && realGlb
 
   if (loading) return <Loading label="Carregando visualização…" />
 
@@ -176,38 +168,38 @@ export function VehicleVisualPanel({
     <div className="space-y-4">
       <p className="m-0 text-sm text-fal-muted">
         Visualização do veículo. A aparência <strong>não altera</strong> o histórico técnico.
-        Arraste para girar · pinça para zoom (quando houver modelo 3D).
       </p>
 
-      {!approvedAsset ? (
-        <div className="rounded-fal border border-fal-yellow/40 bg-fal-yellow/10 p-3">
-          <p className="m-0 text-sm font-extrabold text-fal-navy-dark dark:text-fal-yellow">
-            Modelo 3D ainda não disponível
-          </p>
-          <p className="mt-1 m-0 text-xs text-fal-muted">
-            Mostramos imagem ilustrativa ou silhueta — não é a foto do seu carro.
-          </p>
-          {stockImage.url ? (
-            <img
-              src={stockImage.url}
-              alt=""
-              className="mt-3 max-h-40 w-full rounded-fal object-contain"
-            />
-          ) : null}
-        </div>
+      <VehicleImageFrame
+        image={stockImage}
+        colorHex={vehicle?.colorHex ?? payload.bodyColorHex}
+        title={
+          vehicle
+            ? [vehicle.makerName, vehicle.modelName].filter(Boolean).join(' ')
+            : 'Veículo'
+        }
+        className="min-h-[220px] sm:min-h-[300px]"
+      />
+
+      {!realGlb ? (
+        <p className="m-0 text-xs text-fal-muted">
+          Modelo 3D completo ainda não disponível para este veículo — usamos a imagem
+          ilustrativa acima.
+        </p>
       ) : null}
 
-      <VehicleVisualizationEngine
-        key={`xr-${xrOptIn ? '1' : '0'}`}
-        payload={payload}
-        modelParts={modelParts}
-        orphanInstallCount={orphans.length}
-        syncEnabled={syncInstall}
-        preferredMode={viewerPref}
-        webglOk={webglOk}
-        hasApprovedGlb={Boolean(approvedAsset)}
-        approvedAsset={approvedAsset}
-      />
+      {show3dStage ? (
+        <VehicleVisualizationEngine
+          payload={payload}
+          modelParts={modelParts}
+          orphanInstallCount={orphans.length}
+          syncEnabled={syncInstall}
+          preferredMode="3d"
+          webglOk={webglOk}
+          hasApprovedGlb={realGlb}
+          approvedAsset={realGlb ? approvedAsset : null}
+        />
+      ) : null}
 
       <details className="rounded-fal border border-fal-line bg-fal-surface">
         <summary className="cursor-pointer list-none px-4 py-3 font-extrabold marker:content-none [&::-webkit-details-marker]:hidden">
@@ -227,18 +219,18 @@ export function VehicleVisualPanel({
             </span>
             {(
               [
-                { id: 'auto' as const, label: 'Automático' },
                 { id: '2d' as const, label: 'Imagem' },
-                { id: '3d' as const, label: '3D' },
+                { id: '3d' as const, label: '3D', disabled: !realGlb },
               ] as const
             ).map((mode) => (
               <button
                 key={mode.id}
                 type="button"
-                aria-pressed={viewerPref === mode.id}
+                disabled={'disabled' in mode ? Boolean(mode.disabled) : false}
+                aria-pressed={viewerPref === mode.id || (mode.id === '2d' && viewerPref === 'auto')}
                 aria-describedby="fal-visual-viewer-label"
-                className={`min-h-10 rounded-[10px] border px-3 text-sm font-bold ${
-                  viewerPref === mode.id
+                className={`min-h-10 rounded-[10px] border px-3 text-sm font-bold disabled:opacity-50 ${
+                  viewerPref === mode.id || (mode.id === '2d' && viewerPref === 'auto')
                     ? 'border-fal-accent bg-fal-accent/10 text-fal-fg'
                     : 'border-fal-line bg-fal-bg text-fal-muted'
                 }`}
@@ -247,9 +239,9 @@ export function VehicleVisualPanel({
                 {mode.label}
               </button>
             ))}
-            {!webglOk ? (
+            {!realGlb ? (
               <span className="text-xs font-semibold text-fal-muted">
-                3D indisponível neste dispositivo
+                3D disponível quando houver modelo aprovado
               </span>
             ) : null}
           </div>
@@ -271,23 +263,6 @@ export function VehicleVisualPanel({
               </span>
             </span>
           </label>
-
-          {xrEnvOn ? (
-            <label className="flex cursor-pointer items-start gap-2 rounded-fal border border-fal-accent/40 bg-fal-accent/5 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={xrOptIn}
-                onChange={(ev) => toggleXrOptIn(ev.target.checked)}
-              />
-              <span>
-                <span className="font-extrabold text-fal-fg">Realidade aumentada (experimental)</span>
-                <span className="mt-0.5 block text-xs text-fal-muted">
-                  Só neste aparelho. Requer suporte XR. Desligado por padrão.
-                </span>
-              </span>
-            </label>
-          ) : null}
 
           <form
             onSubmit={onSave}

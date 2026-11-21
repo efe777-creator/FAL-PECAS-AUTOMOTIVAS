@@ -210,6 +210,23 @@ export function VehicleGlbViewer({
       controls?.dispose()
       controlsRef.current = null
       cameraRef.current = null
+      if (scene) {
+        scene.traverse((object) => {
+          const mesh = object as THREE.Mesh
+          if (!mesh.isMesh && !(object as THREE.Line).isLine) return
+          mesh.geometry?.dispose()
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+          for (const material of mats) {
+            if (!material) continue
+            for (const value of Object.values(material)) {
+              if (value && typeof value === 'object' && 'isTexture' in value) {
+                ;(value as THREE.Texture).dispose()
+              }
+            }
+            material.dispose()
+          }
+        })
+      }
       renderer?.dispose()
       mount.replaceChildren()
     }
