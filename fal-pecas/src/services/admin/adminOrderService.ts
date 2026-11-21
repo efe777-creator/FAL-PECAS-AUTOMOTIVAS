@@ -83,6 +83,13 @@ export type AdminOrderListRow = {
   pickup?: boolean
   /** Autorização de retirada (quando pickup). */
   pickupAuthorized?: boolean
+  /** F2 pós-venda — meta da fila Revisão (chips). */
+  revisaoMeta?: {
+    source: 'occurrence' | 'manual_review'
+    tipo?: string | null
+    stage?: string | null
+    lastEventType?: string | null
+  } | null
 }
 
 export type KitCompositionSnapshotLine = {
@@ -730,20 +737,42 @@ export async function adminListLogisticsQueue(
   }
 
   if (queueId === 'revisao') {
-    const { data: reviews, error: revErr } = await getSupabase()
-      .from('own_manual_reviews')
-      .select('order_id')
-      .eq('status', 'pending')
-      .not('order_id', 'is', null)
-      .limit(500)
+    const { data: revRows, error: revErr } = await getSupabase().rpc(
+      'admin_list_revisao_queue_rows',
+    )
     if (revErr) throw revErr
-    const ids = [
-      ...new Set(
-        (reviews ?? [])
-          .map((r) => (r as { order_id?: string }).order_id)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ]
+    type RevRow = {
+      order_id: string
+      source: string
+      tipo?: string | null
+      stage?: string | null
+      last_event_type?: string | null
+    }
+    const raw = (revRows ?? []) as RevRow[]
+    /** Um meta por pedido (prioridade: devolucao > suporte > occurrence > manual). */
+    const metaByOrder = new Map<
+      string,
+      NonNullable<AdminOrderListRow['revisaoMeta']>
+    >()
+    const rank = (m: NonNullable<AdminOrderListRow['revisaoMeta']>) => {
+      const t = String(m.tipo ?? '')
+      if (t.includes('devoluc') || t.includes('incompat')) return 3
+      if (t.includes('suporte') || t === 'pos_entrega') return 2
+      if (m.source === 'occurrence') return 1
+      return 0
+    }
+    for (const r of raw) {
+      if (!r.order_id) continue
+      const next: NonNullable<AdminOrderListRow['revisaoMeta']> = {
+        source: r.source === 'manual_review' ? 'manual_review' : 'occurrence',
+        tipo: r.tipo ?? null,
+        stage: r.stage ?? null,
+        lastEventType: r.last_event_type ?? null,
+      }
+      const prev = metaByOrder.get(r.order_id)
+      if (!prev || rank(next) >= rank(prev)) metaByOrder.set(r.order_id, next)
+    }
+    const ids = [...metaByOrder.keys()]
     if (ids.length === 0) return []
     const pageIds = ids.slice(offset, offset + limit)
     const { data, error } = await getSupabase()
@@ -766,6 +795,7 @@ export async function adminListLogisticsQueue(
       return {
         ...mapped,
         logisticsNextActionLabel: ADMIN_LOGISTICS_NEXT_ACTION_LABEL.revisao_aberta,
+        revisaoMeta: metaByOrder.get(mapped.id) ?? null,
       }
     })
   }

@@ -4,6 +4,11 @@ import {
   getAdminOrderView,
   orderMatchesProblemsView,
 } from '@/lib/adminOrderOps'
+import {
+  REVISAO_CHIPS,
+  type RevisaoChipId,
+  rowMatchesRevisaoChip,
+} from '@/lib/postSaleRevisaoChips'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -27,6 +32,7 @@ export function AdminOrdersViewPage() {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [revisaoChip, setRevisaoChip] = useState<RevisaoChipId>('todas')
   const isRevisaoLogistica = viewId === 'revisao-logistica'
 
   function pushError(message: string) {
@@ -128,8 +134,13 @@ export function AdminOrdersViewPage() {
         }),
       )
     }
+    if (view.id === 'revisao-logistica') {
+      base = base.filter((o) =>
+        rowMatchesRevisaoChip(revisaoChip, o.revisaoMeta ?? null),
+      )
+    }
     return filterOrdersBySearch(base, search)
-  }, [rows, view, search])
+  }, [rows, view, search, revisaoChip])
 
   if (!view) {
     return (
@@ -148,6 +159,28 @@ export function AdminOrdersViewPage() {
         <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">{view.title}</h1>
         <p className="mt-1 text-sm text-fal-muted">{view.description}</p>
       </div>
+
+      {isRevisaoLogistica && !view.placeholder ? (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtros revisão">
+          {REVISAO_CHIPS.map((c) => {
+            const active = revisaoChip === c.id
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setRevisaoChip(c.id)}
+                className={
+                  active
+                    ? 'rounded-[10px] border border-fal-navy bg-fal-navy px-3 py-1.5 text-xs font-extrabold text-white'
+                    : 'rounded-[10px] border border-fal-line bg-fal-surface px-3 py-1.5 text-xs font-bold text-fal-fg hover:bg-fal-bg'
+                }
+              >
+                {c.label}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {view.placeholder ? (
         <div className="rounded-[14px] border border-fal-line bg-fal-surface p-5 text-sm text-fal-muted">

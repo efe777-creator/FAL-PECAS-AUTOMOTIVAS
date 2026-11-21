@@ -21,7 +21,11 @@ const TIPOS = [
   { value: 'falta', label: 'Falta física' },
   { value: 'dano', label: 'Dano' },
   { value: 'atraso', label: 'Atraso' },
-  { value: 'pos_venda', label: 'Pós-venda' },
+  { value: 'pos_venda', label: 'Pós-venda (geral)' },
+  { value: 'pos_venda_suporte', label: 'Pós-venda · suporte' },
+  { value: 'pos_venda_incompat', label: 'Pós-venda · incompatibilidade' },
+  { value: 'pos_venda_devolucao', label: 'Pós-venda · devolução' },
+  { value: 'pos_entrega', label: 'Pós-entrega (legado)' },
   { value: 'outro', label: 'Outro' },
 ] as const
 

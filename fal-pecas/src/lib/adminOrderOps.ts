@@ -557,7 +557,7 @@ export const ADMIN_ORDER_VIEWS: readonly AdminOrderView[] = [
     id: 'revisao-logistica',
     title: 'Revisão e ocorrências',
     description:
-      'Revisões manuais own e ocorrências abertas — fora das filas de etiqueta/entrega própria.',
+      'Revisões manuais own e ocorrências/pós-venda abertas (lista = contador). Use os chips para filtrar suporte, devolução ou aguardando ops.',
     path: '/admin/pedidos/visao/revisao-logistica',
     statuses: null,
   },
