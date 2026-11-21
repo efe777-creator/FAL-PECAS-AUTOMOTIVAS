@@ -71,12 +71,20 @@ type Props = {
    * `equiv`: incompatíveis com selo cinza e sem CTA de compra (spec PDP #12).
    */
   surface?: 'default' | 'equiv'
+  /** Conta/favoritos: some da grade sem toast a cada ♡. */
+  quietFavoriteToast?: boolean
 }
 
-export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }: Props) {
+export function ProductCard({
+  product,
+  pvcRows,
+  fitFilter,
+  surface = 'default',
+  quietFavoriteToast = false,
+}: Props) {
   const { user } = useAuth()
   const { items, addItem } = useCart()
-  const { isFavorite, toggle } = useFavorites()
+  const { isFavorite, toggle, loading: favoritesLoading } = useFavorites()
   const garage = useGarageOptional()
   const { push } = useToast()
   const navigate = useNavigate()
@@ -151,7 +159,9 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
     }
     try {
       const next = await toggle(product.id)
-      push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
+      if (!quietFavoriteToast) {
+        push(next ? 'Adicionado aos favoritos' : 'Removido dos favoritos', 'success')
+      }
     } catch (err) {
       push(toUserMessage(err, 'Erro ao favoritar'), 'error')
     }
@@ -222,11 +232,13 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
         type="button"
         className={[
           'absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border bg-fal-surface/95 text-base shadow-sm',
+          favoritesLoading && user ? 'opacity-60' : '',
           liked
             ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
             : 'border-fal-line text-fal-muted hover:border-fal-navy',
         ].join(' ')}
         aria-label={liked ? 'Remover dos favoritos' : 'Favoritar'}
+        aria-busy={favoritesLoading && Boolean(user)}
         onClick={(e) => void onFavoriteClick(e)}
       >
         {liked ? '♥' : '♡'}

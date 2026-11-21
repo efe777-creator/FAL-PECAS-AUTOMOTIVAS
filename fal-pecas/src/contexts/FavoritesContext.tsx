@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -28,6 +29,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [ids, setIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
+  const idsRef = useRef(ids)
+  idsRef.current = ids
+  const togglingRef = useRef(new Set<string>())
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -40,7 +44,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       const list = await listFavoriteProductIds()
       setIds(new Set(list))
     } catch {
-      setIds(new Set())
+      // Mantém IDs anteriores — falha transitória não “apaga” os corações.
     } finally {
       setLoading(false)
     }
@@ -52,9 +56,20 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   const isFavorite = useCallback((productId: string) => ids.has(productId), [ids])
 
-  const toggle = useCallback(
-    async (productId: string) => {
-      const currently = ids.has(productId)
+  const toggle = useCallback(async (productId: string) => {
+    if (togglingRef.current.has(productId)) {
+      return idsRef.current.has(productId)
+    }
+    const currently = idsRef.current.has(productId)
+    const optimistic = !currently
+    togglingRef.current.add(productId)
+    setIds((prev) => {
+      const copy = new Set(prev)
+      if (optimistic) copy.add(productId)
+      else copy.delete(productId)
+      return copy
+    })
+    try {
       const next = await toggleFavoriteRemote(productId, currently)
       setIds((prev) => {
         const copy = new Set(prev)
@@ -63,9 +78,18 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         return copy
       })
       return next
-    },
-    [ids],
-  )
+    } catch (err) {
+      setIds((prev) => {
+        const copy = new Set(prev)
+        if (currently) copy.add(productId)
+        else copy.delete(productId)
+        return copy
+      })
+      throw err
+    } finally {
+      togglingRef.current.delete(productId)
+    }
+  }, [])
 
   const value = useMemo(
     () => ({

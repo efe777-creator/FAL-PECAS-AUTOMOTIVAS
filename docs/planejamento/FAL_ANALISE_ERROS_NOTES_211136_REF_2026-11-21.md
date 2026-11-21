@@ -15,13 +15,13 @@
 | 2 | Polimento e funções da garagem | **DONE** (verificado) |
 | 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | **DONE** |
 | 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | PENDING |
-| 5 | Ajustar e melhorar favoritos | PENDING |
+| 5 | Ajustar e melhorar favoritos | **DONE** |
 | 6 | Placa consultada errada — assertividade do lookup | PENDING |
 | 7 | Cards poluídos / grandes no mobile | PENDING |
 | 8 | Header mobile muito cheio | PENDING |
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | PENDING |
 | 10 | Textos/instruções do site — copy e coerência | PENDING |
-| 11 | Corrigir tela de favoritos | PENDING |
+| 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | PENDING |
 | 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING (registry widgets criado) |
 | 14 | LGPD, segurança, políticas garantia/devolução | PENDING |
@@ -156,4 +156,18 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 | Critério de oferta duplicado | `productHasActivePromo` compartilhado |
 
 **Evidência:** `tsc --noEmit` + 21 testes focados PASS.  
-**Ops residual (não código):** aplicar migrations G7 + `store_bestseller_product_ids` no wtbp.
+**Ops residual (não código):** migration G7 COALESCE no wtbp (bestsellers + favorites RPCs **aplicadas** 2026-11-21).
+
+---
+
+### Erros #5 + #11 — Favoritos (ajustar + tela)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Lista da conta sem imagens; desfavoritar deixava card na grade; bloco “arquivados” morto (RLS `products` só published); empty state mentia; refresh com erro zerava corações; sem retry. |
+| Correção | (1) `listFavoriteProducts` hidrata preço/apps/fotos + RPC `store_list_my_favorites` (metadados mesmo arquivado). (2) Página sincroniza com `favoriteIds` + remove órfãos. (3) Contexto otimista e não zera IDs em erro. (4) Copy/empty/retry/quiet toast. |
+| Evidência | `tsc` + `favoriteService.test` PASS · RPC aplicada no wtbp |
+| Arquivos | `favoriteService.ts`, migration `20261121220000_*`, `FavoritesContext`, `AccountFavoritesPage`, `ProductCard`, este REF |
+
+**Próximo:** Erro #4 — Arquivar/inativar + filtro ativos/inativos.
