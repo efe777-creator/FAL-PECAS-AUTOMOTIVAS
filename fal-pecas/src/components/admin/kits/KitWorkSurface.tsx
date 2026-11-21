@@ -165,7 +165,7 @@ export function KitWorkSurface({
               }}
             />
           </fieldset>
-          <motionRow creating={creating} onSave={() => void saveQuickDraft()} />
+          <MotionRow creating={creating} onSave={() => void saveQuickDraft()} />
         </section>
       ) : null}
 
@@ -259,7 +259,7 @@ export function KitWorkSurface({
   )
 }
 
-function motionRow({ creating, onSave }: { creating: boolean; onSave: () => void }) {
+function MotionRow({ creating, onSave }: { creating: boolean; onSave: () => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       <Button type="button" disabled={creating} onClick={onSave}>

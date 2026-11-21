@@ -403,7 +403,7 @@ export function AdminKitFormPage() {
       ) : null}
 
       {formTab === 'precificacao' ? (
-        <motionBottom className="space-y-4">
+        <MotionBottom className="space-y-4">
           <p className="m-0 text-sm text-fal-muted">
             Hub{' '}
             <Link to="/admin/kits/precos" className="font-semibold underline">
@@ -428,7 +428,7 @@ export function AdminKitFormPage() {
                 <option value="manual">Manual (lista Preços dos kits + espelho na Base)</option>
               </select>
             </label>
-            <motionBottom className="mt-3 flex flex-wrap gap-2">
+            <MotionBottom className="mt-3 flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="primary"
@@ -437,7 +437,7 @@ export function AdminKitFormPage() {
               >
                 {syncingPriceMode ? 'Sincronizando…' : 'Aplicar modo e sincronizar listas'}
               </Button>
-            </motionBottom>
+            </MotionBottom>
           </div>
           {productId ? (
             <AdminProductKitSection
@@ -457,11 +457,11 @@ export function AdminKitFormPage() {
             showSave={false}
             showPricesLink
           />
-        </motionBottom>
+        </MotionBottom>
       ) : null}
 
       {formTab === 'composicao' && productId ? (
-        <motionBottom className="space-y-4">
+        <MotionBottom className="space-y-4">
           <AdminProductKitCompatBanner
             kitProductId={productId}
             reviewRequired={kitCompatReviewRequired}
@@ -480,14 +480,14 @@ export function AdminKitFormPage() {
             onRelease={onRelease}
             showSave={false}
           />
-        </motionBottom>
+        </MotionBottom>
       ) : null}
       {formTab === 'composicao' && !productId ? (
         <p className="text-sm text-fal-muted">Salve o kit na aba Geral para montar a composição.</p>
       ) : null}
 
       {formTab === 'midia' && productId ? (
-        <motionBottom className="space-y-4">
+        <MotionBottom className="space-y-4">
           <AdminProductImagesSection productId={productId} kitMode />
           <ActionBar
             saving={saving}
@@ -497,14 +497,14 @@ export function AdminKitFormPage() {
             onRelease={onRelease}
             showSave={false}
           />
-        </motionBottom>
+        </MotionBottom>
       ) : null}
       {formTab === 'midia' && !productId ? (
         <p className="text-sm text-fal-muted">Salve o kit na aba Geral para enviar imagens.</p>
       ) : null}
 
       {formTab === 'aplicacoes' && productId ? (
-        <motionBottom className="space-y-4">
+        <MotionBottom className="space-y-4">
           <AdminProductApplicationsSection productId={productId} />
           <ActionBar
             saving={saving}
@@ -514,7 +514,7 @@ export function AdminKitFormPage() {
             onRelease={onRelease}
             showSave={false}
           />
-        </motionBottom>
+        </MotionBottom>
       ) : null}
       {formTab === 'aplicacoes' && !productId ? (
         <p className="text-sm text-fal-muted">Salve o kit na aba Geral para vincular aplicações PVC.</p>
@@ -552,7 +552,7 @@ export function AdminKitFormPage() {
   )
 }
 
-function motionBottom({
+function MotionBottom({
   className = '',
   children,
 }: {
@@ -581,7 +581,7 @@ function ActionBar({
   showPricesLink?: boolean
 }) {
   return (
-    <motionBottom>
+    <MotionBottom>
       <div className="flex flex-wrap gap-2">
         {showSave ? (
           <Button type="submit" disabled={saving}>
@@ -609,6 +609,6 @@ function ActionBar({
       ) : productId ? (
         <p className="m-0 text-sm text-fal-muted">Indisponível na loja até Liberar</p>
       ) : null}
-    </motionBottom>
+    </MotionBottom>
   )
 }
