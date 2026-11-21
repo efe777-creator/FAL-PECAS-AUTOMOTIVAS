@@ -149,14 +149,14 @@ function buildXrCommercialHud(opts: {
 }): HTMLDivElement {
   const hud = document.createElement('div')
   hud.id = 'fal-xr-commercial-hud'
-  hud.setAttribute('aria-label', 'Peças FAL na sessão XR')
+  hud.setAttribute('aria-label', 'Peças no visual — sessão XR')
   hud.style.cssText =
     'position:fixed;left:12px;right:12px;bottom:12px;z-index:10000;max-height:42vh;overflow:auto;' +
     'background:rgba(10,18,28,.92);color:#f4f7fb;border:1px solid rgba(245,197,24,.45);' +
     'border-radius:12px;padding:10px 12px;font:600 12px/1.35 system-ui,sans-serif;'
   const title = document.createElement('p')
   title.style.cssText = 'margin:0 0 8px;font-weight:800;font-size:13px'
-  title.textContent = 'Peças (espelho visual) · C5: carrinho na web · sem pagamento na XR'
+  title.textContent = 'Peças no visual · carrinho na web · sem pagamento na XR'
   hud.appendChild(title)
 
   for (const part of opts.parts) {

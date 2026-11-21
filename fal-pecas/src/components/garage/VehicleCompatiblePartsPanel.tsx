@@ -214,12 +214,6 @@ export function VehicleCompatiblePartsPanel({ vehicle }: Props) {
                   <span className="block truncate text-xs font-semibold text-fal-muted">{ref}</span>
                 ) : null}
                 <CompatibilityStateBadge verdict={CONFIRMED_VERDICT} />
-                <CompatibilityAppsBlock
-                  groups={product.compatibilityGroups}
-                  summary={product.compatibilitySummary}
-                  variant="card"
-                  className="mt-1"
-                />
                 {price != null ? (
                   <span className="block text-sm font-extrabold text-fal-fg">
                     {formatStorePriceLabel(price)}
@@ -304,9 +298,9 @@ export function VehicleCompatiblePartsPanel({ vehicle }: Props) {
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Peças compatíveis</h2>
+        <h2 className="m-0 text-lg font-extrabold text-fal-fg">Peças</h2>
         <p className="m-0 text-sm text-fal-muted">
-          Compatibilidade confirmada para este veículo. Toque para ver detalhes.
+          Compatibilidade confirmada. Toque para ver detalhes.
         </p>
       </header>
 

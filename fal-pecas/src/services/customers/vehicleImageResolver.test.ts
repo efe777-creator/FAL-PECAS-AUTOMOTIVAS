@@ -114,5 +114,6 @@ describe('vehicleImageResolver (#14)', () => {
   it('label CarImages permanece família/ilustrativa (nunca exact por fuzzy)', () => {
     // Contrato R4: remote CarImages sempre entra como family no resolveVehicleDisplayImage
     expect('Imagem ilustrativa da família/estúdio').toMatch(/família|ilustrativa/i)
+    expect('Imagem ilustrativa indisponível — placeholder FAL').toMatch(/indisponível/i)
   })
 })

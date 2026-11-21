@@ -160,7 +160,14 @@ export async function resolveVehicleDisplayImage(input: {
         }
       }
     } catch {
-      /* fallback placeholder */
+      /* cai no placeholder honesto abaixo */
+    }
+    // Flag ligada mas proxy/key indisponível — não fingir stock silencioso.
+    return {
+      level: 'placeholder',
+      url: null,
+      label: 'Imagem ilustrativa indisponível — placeholder FAL',
+      source: 'placeholder',
     }
   }
 
