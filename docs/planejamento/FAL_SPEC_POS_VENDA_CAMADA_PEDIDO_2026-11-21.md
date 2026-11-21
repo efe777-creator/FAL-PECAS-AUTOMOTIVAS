@@ -4,6 +4,7 @@
 **Status:** SPEC CANÔNICA — decisões D1–D18 travadas  
 **Branch:** `dev`  
 **Auditoria base:** [FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md](./FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md)  
+**Jornadas / UX:** [FAL_JORNADAS_UX_POS_VENDA_2026-11-21.md](./FAL_JORNADAS_UX_POS_VENDA_2026-11-21.md)  
 **Plano de impl.:** [FAL_PLANO_IMPL_POS_VENDA_2026-11-21.md](./FAL_PLANO_IMPL_POS_VENDA_2026-11-21.md)  
 **Princípio:** camada operacional integrada ao pedido — **não** módulo isolado  
 

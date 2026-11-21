@@ -5,9 +5,45 @@
 **Branch:** `dev` (nunca `main`/prod sem autorização)  
 **Spec:** [FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md](./FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md)  
 **Auditoria:** [FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md](./FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md)  
+**Jornadas / UX:** [FAL_JORNADAS_UX_POS_VENDA_2026-11-21.md](./FAL_JORNADAS_UX_POS_VENDA_2026-11-21.md)  
 
 Ordem obrigatória: **D13** — Fase 1 → Fase 2 → Fase 3.  
-Cada fase: testes + VAL curto + commit na `dev`. Preview Netlify opcional; **sem** `--prod`.
+Cada fase: testes + VAL curto + commit na `dev`. Preview Netlify opcional; **sem** `--prod`.  
+Leitura obrigatória antes de codar: Spec §D1–D18 + Jornadas (telas, dois relógios, caminhos canônicos).
+
+---
+
+## Matriz por fase (tela × função × controle × VAL)
+
+| Fase | Telas | Funções-chave | Controle Central | Período | Critério de saída | VAL mínimo |
+|------|-------|---------------|------------------|---------|-------------------|------------|
+| **1** | Conta detalhe/lista; OrderOps banner; legal | Labels D6; tracking; gate 7d; report tipado; confirm; banner ME | Ops no pedido + inbox | T0 = `entregue` | Copy clara + ocorrência tipada usável | Rastreio; Chegou; report+ACK; bloqueio fora janela; confirm OK |
+| **2** | `revisao-logistica` + chips; OrderOps tipos | Lista unificada; chips D12; occurrence actions | **Hub Revisão** = dono da fila | Dias restantes (leitura) | Contagens = listas; Abrir guia | Badge≈lista; chip Devolução; guia abre OrderOps |
+| **3** | Conta pós-autorização; OrderOps stages | Stages; Edge reversa; min PAC/SEDEX; WA/loja; restock/refund | Revisão + OrderOps | Validade código ME | Devolução ponta a ponta | ME gera código; fallback WA/loja; restock+refund |
+
+### Gates entre fases
+
+| Gate | Condição para avançar |
+|------|------------------------|
+| F1 → F2 | T0 documentado em código (delivered_at); report tipado + ACK em produção `dev`; banner ME sugerir (ou N/A com evidência) |
+| F2 → F3 | `adminListLogisticsQueue('revisao')` lista ocorrências abertas; chips operacionais; VAL contagens=listas PASS |
+| F3 → done | Caso ME + caso fallback VAL; sem status comercial `devolucao`; sem módulo isolado |
+
+### Checklist anti-erro (impl.)
+
+- [ ] Confirm receipt ≠ T0 da janela  
+- [ ] Caso aberto não expira só por calendário  
+- [ ] Sem auto-`deliver_order`  
+- [ ] Sem gerar código ME na abertura do caso  
+- [ ] Sem `/admin/pos-venda` ou novo `moduleKey`  
+- [ ] Sem misturar visão `problemas` com RMA  
+- [ ] Copy legal via `returnPolicyCopy`  
+- [ ] Edge reversa separada da ida (`reverse: false`)  
+
+### Dependências
+
+- Aprovação humana Spec + Jornadas antes da marcha de **código** F1.  
+- Secrets ME produção: bloqueiam só **F3**, não F1–F2.
 
 ---
 
@@ -207,9 +243,10 @@ Cada commit só na **`dev`**.
 
 ## Dependências humanas antes da Fase 1 de código
 
-1. Revisar e **aprovar** esta Spec + Auditoria.  
+1. Revisar e **aprovar** Spec + Auditoria + **Jornadas/UX**.  
 2. Autorizar marcha de implementação na `dev`.  
 3. Confirmar secrets ME produção para Fase 3 (não bloquear Fase 1–2).  
+4. Respeitar **gates** F1→F2→F3 da matriz acima.  
 
 ---
 
