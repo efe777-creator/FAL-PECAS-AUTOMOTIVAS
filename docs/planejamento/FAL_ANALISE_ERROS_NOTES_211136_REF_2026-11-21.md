@@ -1,9 +1,11 @@
 # FAL — Análise de erros · Notes_211136 (referência)
 
 **Data:** 2026-11-21  
-**Branch:** `dev`  
-**Fonte:** `attachments/.../Notes_211136.pdf` (6 páginas, extração texto)  
-**Método:** um item por marcha — diagnosticar → validar estado → ajustar → testar → marcar status → só então o próximo.
+**Branch:** `dev` (somente)  
+**Auth:** eFe — marcha um erro por vez  
+**PDF:** `C:\Users\user\.cursor\projects\d-Programas-WEB-PROGRAMAS-WEB-PENDRIVE-FAL-PECAS-AUTOMOTIVAS\attachments\06569503-354e-4109-be7d-02b7c6dfc8d2\Notes_211136.pdf`  
+**Extração:** Node `pdf-parse@1.1.1` (6 páginas; Python/pypdf indisponível no host)  
+**Método:** um item por marcha — diagnosticar no código → validar estado → planejar → corrigir se preciso → testes focados + `tsc` → atualizar este REF → commit/push `origin/dev` → só então o próximo.
 
 ## Status
 
@@ -42,35 +44,59 @@ Verificar carregamentos/hierarquias; deixar mais rápidos e fluidos — lento ao
 ### #4 Ativos/inativos
 Ao arquivar/inativar um produto ele deve sumir da lista; opção de seleção ativos e inativos (duas caixinhas).
 
-### #5–#6 Favoritos + placa
-Melhorar favoritos. Placa saiu errada — validar assertividade (primeiro erro observado; regra base ok).
+### #5 Favoritos
+Vamos ajustar e melhorar os favoritos.
 
-### #7–#8 Cards + header mobile
-Cards poluídos e grandes no mobile. Header mobile muito cheio.
+### #6 Placa
+Pesquisei uma placa e saiu errado — validar e garantir assertividade (primeiro erro observado; regra base ok).
 
-### #9–#10 Auditoria + copy
-Usar o site de verdade: caminhos errados/incompletos; PDP itens relacionados; “ver no catálogo” filtrar corretamente. Analisar textos/instruções.
+### #7 Cards
+Estudar e melhorar os cards — poluídos e no mobile muito grandes.
+
+### #8 Header mobile
+Melhorar o header no mobile — está muito cheio.
+
+### #9 Auditoria jornada
+Usar o site de verdade: caminhos errados/incompletos; PDP itens relacionados; “ver no catálogo” filtrar corretamente; revisão em todas as telas.
+
+### #10 Copy
+Analisar textos/informações/instruções pelo site e estudar o melhor a se dizer.
 
 ### #11 Favoritos (tela)
 Ajustar e corrigir tela de favoritos.
 
-### #12–#13 Destaques + ofertas
-Configurações da seção de destaque não refletidas. Melhorar ofertas/promoções (nome, itens promocionais + kits, textos/CTAs).
+### #12 Destaques
+Configurações da seção de destaque não estão sendo respeitadas / refletidas.
 
-### #14–#18 Estratégia
-LGPD/normas/políticas; Meta/Google Ads/Merchant; portal B2B; funil WhatsApp; home/campanhas com deep-link de seleção.
+### #13 Ofertas / promoções
+Melhorar seção e apresentação das ofertas; colocar o nome de promoções; itens promocionais ativos + kits; textos e CTAs.
+
+### #14 LGPD / normas
+Estruturar e garantir segurança de dados (LGPD), políticas de garantia e devolução e demais normas.
+
+### #15 Ads / Merchant
+Integração Meta Ads e Google Ads; produtos na loja do Google (Merchant) — campanhas depois.
+
+### #16 Portal B2B
+Fazer portal B2B no site.
+
+### #17 Funil WhatsApp
+Fazer funil WhatsApp e sistema.
+
+### #18 Home / campanhas
+Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, grupos ou veículos — botão mostra página de produtos selecionados.
 
 ## Log de marchas
 
-### #1 · 2026-11-21 — DONE
+### Erro #1 — Kits / fotos individuais → galeria PDP
 
-**Diagnóstico:** Admin já mostrava thumbs na busca e na BOM. Sync antigo só copiava a 1ª foto se o kit estivesse vazio. PDP do kit usava só `images` do kit; composição sem foto.
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Admin **já** mostrava thumbs na busca e no BOM (`adminPrimaryImageUrlMap`). Gap: sync só puxava **1 capa** se kit vazio; PDP do kit **não** acrescentava fotos dos itens além da própria galeria. |
+| Já existia? | Parcial (thumbs admin + capa auto). Faltava galeria multi-item + reflexão na PDP. |
+| Correção | (1) `adminEnsureKitImageFromComponents` sincroniza todas as primárias dos itens na galeria do kit, com prune de espelhos fora do BOM. (2) PDP: `loadStoreKitComposition` carrega `imageUrl`; `mergeKitGalleryWithComponentImages` na `ProductPage`; thumbs em `PdpKitCompositionBlock`. |
+| Evidência testes | `pnpm exec vitest run src/services/products/productImages.test.ts` → 8/8 OK; `pnpm exec tsc --noEmit` → OK |
+| Arquivos | `adminImageService.ts`, `AdminProductKitSection.tsx`, `AdminProductImagesSection.tsx`, `productImages.ts`, `productImages.test.ts`, `kitCompositionStoreService.ts`, `PdpKitCompositionBlock.tsx`, `ProductPage.tsx`, este REF |
 
-**Ajuste:**
-- `adminEnsureKitImageFromComponents` → sincroniza **todas** as capas dos componentes na galeria do kit (sem duplicar `storage_path`).
-- PDP: `mergeKitGalleryWithComponentImages` + thumbs em `PdpKitCompositionBlock`.
-- Composição loja carrega `imageUrl` por item.
-
-**Testes:** `tsc` PASS · `kitGalleryMerge.test` + `productImages.test` PASS (8).
-
-**Próximo:** #2 Polimento e funções da garagem.
+**Próximo (não implementar nesta marcha):** Erro #2 — Polimento e funções da garagem.

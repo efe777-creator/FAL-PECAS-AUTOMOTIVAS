@@ -35,7 +35,7 @@ export function AdminProductImagesSection({ productId, kitMode = false }: Props)
       <h2 className="font-extrabold text-fal-fg">{kitMode ? 'Imagens do kit' : 'Imagens'}</h2>
       <p className="m-0 text-xs text-fal-muted">
         {kitMode
-          ? 'Envie a capa do kit aqui. Se ainda não houver foto, ao linkar itens na composição a capa é puxada automaticamente da foto do item. '
+          ? 'Envie a capa do kit aqui. Ao linkar itens, as fotos individuais entram na galeria (capa automática se ainda não houver). Na PDP do kit elas aparecem além da principal. '
           : null}
         Várias de uma vez neste produto · lote por código em{' '}
         <Link

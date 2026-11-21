@@ -161,27 +161,58 @@ export async function adminCopyPrimaryImageToProduct(input: {
 /**
  * Sincroniza fotos dos componentes no kit:
  * - se kit sem foto → primeira vira capa (primary);
- * - demais (e já com capa) entram como galeria adicional, sem duplicar storage_path.
- * @returns true se adicionou ao menos uma imagem.
+ * - demais (e já com capa) entram como galeria adicional, sem duplicar storage_path;
+ * - remove espelhos de itens que saíram do BOM (paths fora de `${kitId}/`).
+ * @returns true se adicionou ou removeu ao menos uma imagem.
  */
 export async function adminEnsureKitImageFromComponents(
   kitProductId: string,
   componentProductIds: string[],
 ): Promise<boolean> {
-  const existing = await adminListImages(kitProductId)
-  const paths = new Set(existing.map((i) => i.storagePath))
-  let nextSort =
-    existing.length > 0 ? Math.max(...existing.map((i) => i.sortOrder)) + 1 : 0
-  let makePrimary = existing.length === 0
-  let added = 0
+  const sb = getSupabase()
+  const ids = [...new Set(componentProductIds.filter((id) => id && id !== kitProductId))]
+  const desiredComponentPaths = new Set<string>()
+  const componentPrimaries: Array<{ storagePath: string; alt: string | null }> = []
 
-  for (const componentId of componentProductIds) {
-    if (!componentId || componentId === kitProductId) continue
+  for (const componentId of ids) {
     const sourceImages = await adminListImages(componentId)
     const primary = sourceImages.find((i) => i.isPrimary) ?? sourceImages[0] ?? null
-    if (!primary || paths.has(primary.storagePath)) continue
+    if (!primary) continue
+    if (desiredComponentPaths.has(primary.storagePath)) continue
+    desiredComponentPaths.add(primary.storagePath)
+    componentPrimaries.push({ storagePath: primary.storagePath, alt: primary.alt })
+  }
 
-    const { error } = await getSupabase().from('product_images').insert({
+  let existing = await adminListImages(kitProductId)
+  const kitOwnedPrefix = `${kitProductId}/`
+  let changed = false
+
+  // Remove espelhos de itens fora do BOM (não apaga uploads próprios do kit).
+  for (const img of existing) {
+    const isKitOwned = img.storagePath.startsWith(kitOwnedPrefix)
+    if (isKitOwned) continue
+    if (desiredComponentPaths.has(img.storagePath)) continue
+    const { error } = await sb.from('product_images').delete().eq('id', img.id)
+    if (error) throw error
+    changed = true
+  }
+
+  if (changed) {
+    existing = await adminListImages(kitProductId)
+    if (existing.length && !existing.some((i) => i.isPrimary)) {
+      await adminSetPrimaryImage(kitProductId, existing[0]!.id)
+      existing = await adminListImages(kitProductId)
+    }
+  }
+
+  const paths = new Set(existing.map((i) => i.storagePath))
+  let nextSort =
+    existing.length > 0 ? Math.max(...existing.map((i) => i.sortOrder), -1) + 1 : 0
+  let makePrimary = existing.length === 0
+
+  for (const primary of componentPrimaries) {
+    if (paths.has(primary.storagePath)) continue
+    const { error } = await sb.from('product_images').insert({
       product_id: kitProductId,
       storage_path: primary.storagePath,
       alt: primary.alt,
@@ -189,13 +220,12 @@ export async function adminEnsureKitImageFromComponents(
       is_primary: makePrimary,
     })
     if (error) throw error
-
     paths.add(primary.storagePath)
     nextSort += 1
     makePrimary = false
-    added += 1
+    changed = true
   }
 
-  if (added > 0) await refreshIncompleteFlag(kitProductId)
-  return added > 0
+  if (changed) await refreshIncompleteFlag(kitProductId)
+  return changed
 }
