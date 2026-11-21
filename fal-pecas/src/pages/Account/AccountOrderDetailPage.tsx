@@ -19,6 +19,7 @@ import { shipmentStatusLabel } from '@/lib/shippingLabels'
 import { meReverseGenerate } from '@/services/shipping/melhorEnvioReverseService'
 import {
   buildOrderWhatsAppMessage,
+  buildPostSaleWhatsAppMessage,
   storeWhatsAppPhone,
   whatsAppHref,
 } from '@/lib/whatsapp'
@@ -579,13 +580,28 @@ export function AccountOrderDetailPage() {
             {(() => {
               const phone = storeWhatsAppPhone()
               if (!phone) return null
-              const href = whatsAppHref(
-                phone,
-                buildOrderWhatsAppMessage({
-                  orderNumber: order.id.slice(0, 8),
-                  statusLabel,
-                }),
-              )
+              const openCase = postSaleOccurrences.find((o) => o.status !== 'resolved')
+              const orderNumber = order.id.slice(0, 8).toUpperCase()
+              const msg = openCase
+                ? buildPostSaleWhatsAppMessage({
+                    orderNumber,
+                    occurrenceId: openCase.occurrenceId,
+                    stage: openCase.stage,
+                    returnMode: openCase.returnMode,
+                    trackingCode: openCase.meReverse?.tracking_code,
+                    intent: openCase.returnMode === 'wa'
+                      ? 'devolucao_wa'
+                      : openCase.returnMode === 'loja'
+                        ? 'devolver_loja'
+                        : openCase.returnMode === 'me_codigo'
+                          ? 'duvida_codigo'
+                          : 'caso_aberto',
+                  })
+                : buildOrderWhatsAppMessage({
+                    orderNumber,
+                    statusLabel,
+                  })
+              const href = whatsAppHref(phone, msg)
               return (
                 <a
                   href={href}
@@ -593,7 +609,7 @@ export function AccountOrderDetailPage() {
                   rel="noreferrer"
                   className="inline-flex items-center rounded-[10px] border border-[#25D366] bg-[#25D366]/10 px-3 py-2 text-sm font-bold text-[#128C7E]"
                 >
-                  Falar sobre este pedido
+                  {openCase ? 'WhatsApp · pós-venda' : 'Falar sobre este pedido'}
                 </a>
               )
             })()}
@@ -682,6 +698,7 @@ export function AccountOrderDetailPage() {
           orderNumber={order.id.slice(0, 8).toUpperCase()}
           occurrenceId={authorizedPostSale.occurrenceId}
           returnMode={authorizedPostSale.returnMode}
+          stage={authorizedPostSale.stage}
           meReverse={authorizedPostSale.meReverse}
           canGenerateCode={
             authorizedPostSale.returnMode !== 'me_codigo' ||
@@ -699,6 +716,10 @@ export function AccountOrderDetailPage() {
           deliveredAt={order.shipment?.deliveredAt}
           orderStatus={order.status}
           hasOpenPostSaleCase={hasOpenPostSaleCase}
+          orderNumber={order.id.slice(0, 8).toUpperCase()}
+          openOccurrenceId={
+            postSaleOccurrences.find((o) => o.status !== 'resolved')?.occurrenceId ?? null
+          }
           items={order.items.map((i) => ({
             id: i.id,
             label: `${i.sku} — ${i.nameSnapshot}`,

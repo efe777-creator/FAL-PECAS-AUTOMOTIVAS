@@ -1,4 +1,5 @@
 import { Button } from '@/components/common/Button'
+import { PostSaleWhatsAppButton } from '@/components/account/PostSaleWhatsAppButton'
 import {
   POST_SALE_MOTIVES,
   type PostSaleMotiveCode,
@@ -19,6 +20,8 @@ type Props = {
   deliveredAt: string | null | undefined
   orderStatus: string
   hasOpenPostSaleCase: boolean
+  orderNumber: string
+  openOccurrenceId?: string | null
   items: PostSaleItemOption[]
   busy: boolean
   onSubmit: (input: {
@@ -34,6 +37,8 @@ export function PostSaleHelpPanel({
   deliveredAt,
   orderStatus,
   hasOpenPostSaleCase,
+  orderNumber,
+  openOccurrenceId,
   items,
   busy,
   onSubmit,
@@ -110,15 +115,29 @@ export function PostSaleHelpPanel({
       )}
 
       {hasOpenPostSaleCase ? (
-        <p className="mt-3 mb-0 text-sm font-semibold text-fal-fg">
-          Já existe atendimento em andamento neste pedido. Acompanhe as atualizações abaixo — não
-          é necessário abrir outro chamado.
-        </p>
+        <div className="mt-3 space-y-3">
+          <p className="m-0 text-sm font-semibold text-fal-fg">
+            Já existe atendimento em andamento neste pedido. Acompanhe as atualizações abaixo —
+            não é necessário abrir outro chamado.
+          </p>
+          <PostSaleWhatsAppButton
+            orderNumber={orderNumber}
+            occurrenceId={openOccurrenceId}
+            intent="caso_aberto"
+            label="Falar no WhatsApp sobre o atendimento"
+          />
+        </div>
       ) : !windowOpen ? (
-        <p className="mt-3 mb-0 text-sm font-semibold text-fal-fg">
-          O prazo de 7 dias para abrir um novo suporte neste pedido encerrou. Se precisar, fale
-          pelo WhatsApp do pedido.
-        </p>
+        <div className="mt-3 space-y-3">
+          <p className="m-0 text-sm font-semibold text-fal-fg">
+            O prazo de 7 dias para abrir um novo suporte neste pedido encerrou.
+          </p>
+          <PostSaleWhatsAppButton
+            orderNumber={orderNumber}
+            intent="fora_prazo"
+            label="Falar no WhatsApp mesmo assim"
+          />
+        </div>
       ) : !open ? (
         <div className="mt-4">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(true)}>

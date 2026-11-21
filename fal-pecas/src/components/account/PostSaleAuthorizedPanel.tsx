@@ -1,18 +1,20 @@
 import { Button } from '@/components/common/Button'
+import { PostSaleWhatsAppButton } from '@/components/account/PostSaleWhatsAppButton'
 import { formatDateTime } from '@/lib/datetime'
 import {
   meReverseCodeValid,
   POST_SALE_RETURN_MODE_LABEL,
   type MeReversePayload,
   type PostSaleReturnMode,
+  type PostSaleStage,
 } from '@/lib/postSaleStages'
-import { buildOrderWhatsAppMessage, storeWhatsAppPhone, whatsAppHref } from '@/lib/whatsapp'
 
 type Props = {
   orderId: string
   orderNumber: string
   occurrenceId: string
   returnMode: PostSaleReturnMode
+  stage?: PostSaleStage | string | null
   meReverse: MeReversePayload | null
   /** Se false, esconde CTA Gerar (ex.: já em conferência sem código e stage bloqueado). */
   canGenerateCode?: boolean
@@ -26,18 +28,15 @@ export function PostSaleAuthorizedPanel({
   orderNumber,
   occurrenceId,
   returnMode,
+  stage = 'autorizada',
   meReverse,
   canGenerateCode = true,
   storeAddress,
   busy,
   onGenerateCode,
 }: Props) {
-  const waPhone = storeWhatsAppPhone()
   const hasCode = meReverseCodeValid(meReverse)
-  const waMsg = buildOrderWhatsAppMessage({
-    orderNumber,
-    statusLabel: `Pós-venda · caso ${occurrenceId.slice(0, 8)} · ${POST_SALE_RETURN_MODE_LABEL[returnMode]}`,
-  })
+  const trackingCode = hasCode ? String(meReverse?.tracking_code ?? '') : null
 
   return (
     <div className="rounded-fal border border-fal-accent/40 bg-fal-accent/10 p-5">
@@ -95,52 +94,54 @@ export function PostSaleAuthorizedPanel({
               aqui.
             </p>
           )}
+          <div className="pt-1">
+            <PostSaleWhatsAppButton
+              orderNumber={orderNumber}
+              occurrenceId={occurrenceId}
+              stage={stage}
+              returnMode={returnMode}
+              trackingCode={trackingCode}
+              intent="duvida_codigo"
+              label={hasCode ? 'Dúvidas no WhatsApp' : 'Falar no WhatsApp'}
+              variant="link"
+            />
+          </div>
         </div>
       ) : null}
 
-      {returnMode === 'wa' || returnMode === 'loja' ? (
+      {returnMode === 'wa' ? (
         <div className="mt-4 space-y-3">
-          {returnMode === 'loja' ? (
-            <p className="m-0 text-sm text-fal-muted">
-              Leve a peça e o número do pedido à loja
-              {storeAddress ? `: ${storeAddress}` : ''}. Combine o horário pelo WhatsApp se
-              preferir.
-            </p>
-          ) : (
-            <p className="m-0 text-sm text-fal-muted">
-              A loja orienta a postagem pelos Correios (sem código automático). Fale no WhatsApp
-              com o número do pedido.
-            </p>
-          )}
-          {waPhone ? (
-            <a
-              className="inline-flex items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-4 py-2 text-sm font-extrabold text-fal-fg no-underline"
-              href={whatsAppHref(waPhone, waMsg)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Abrir WhatsApp
-            </a>
-          ) : (
-            <p className="m-0 text-sm font-semibold text-fal-fg">
-              WhatsApp da loja indisponível neste momento — use o telefone do site.
-            </p>
-          )}
+          <p className="m-0 text-sm text-fal-muted">
+            A loja orienta a postagem pelos Correios (sem código automático). Use o botão abaixo —
+            a mensagem já leva o número do pedido e do caso.
+          </p>
+          <PostSaleWhatsAppButton
+            orderNumber={orderNumber}
+            occurrenceId={occurrenceId}
+            stage={stage}
+            returnMode={returnMode}
+            intent="devolucao_wa"
+            label="Abrir WhatsApp — combinar postagem"
+          />
         </div>
       ) : null}
 
-      {returnMode === 'me_codigo' && waPhone ? (
-        <p className="mt-4 mb-0 text-xs text-fal-muted">
-          Dúvidas?{' '}
-          <a
-            className="font-semibold text-fal-navy underline"
-            href={whatsAppHref(waPhone, waMsg)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            WhatsApp da loja
-          </a>
-        </p>
+      {returnMode === 'loja' ? (
+        <div className="mt-4 space-y-3">
+          <p className="m-0 text-sm text-fal-muted">
+            Leve a peça e o número do pedido à loja
+            {storeAddress ? `: ${storeAddress}` : ''}. Combine o horário pelo WhatsApp se
+            preferir.
+          </p>
+          <PostSaleWhatsAppButton
+            orderNumber={orderNumber}
+            occurrenceId={occurrenceId}
+            stage={stage}
+            returnMode={returnMode}
+            intent="devolver_loja"
+            label="Abrir WhatsApp — combinar retirada na loja"
+          />
+        </div>
       ) : null}
     </div>
   )
