@@ -18,7 +18,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
       order_status_history ( id, status, note, created_at ),
       order_events ( id, event_type, payload, visibility, created_at ),
       payments ( id, provider, status, amount, external_ref, method, expires_at, pix_qr_code, pix_qr_code_base64, created_at ),
-      shipments ( id, provider, status, amount, tracking_code, metadata, carrier, service )
+      shipments ( id, provider, status, amount, tracking_code, metadata, carrier, service, delivered_at )
     `,
     )
     .eq('id', orderId)
@@ -62,6 +62,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
         metadata?: Record<string, unknown>
         carrier?: string
         service?: string
+        delivered_at?: string | null
       }
     | undefined
 
@@ -162,6 +163,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
           metadata: shipment.metadata ?? null,
           carrier: shipment.carrier ?? null,
           service: shipment.service ?? null,
+          deliveredAt: shipment.delivered_at != null ? String(shipment.delivered_at) : null,
         }
       : null,
   }

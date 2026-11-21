@@ -81,16 +81,32 @@ export async function customerConfirmReceipt(
   return data as { order_id: string; already?: boolean }
 }
 
+export type ReportDeliveryIssueInput = {
+  reason: string
+  motivoCode: string
+  scope: 'order' | 'items'
+  items?: { order_item_id: string; qty: number }[]
+  policyAck?: boolean
+}
+
 export async function customerReportDeliveryIssue(
   orderId: string,
-  reason: string,
-): Promise<{ order_id: string; occurrence_id: string }> {
-  const trimmed = reason.trim()
+  input: ReportDeliveryIssueInput | string,
+): Promise<{ order_id: string; occurrence_id: string; tipo?: string }> {
+  const normalized: ReportDeliveryIssueInput =
+    typeof input === 'string'
+      ? { reason: input, motivoCode: 'outro_suporte', scope: 'order', policyAck: false }
+      : input
+  const trimmed = normalized.reason.trim()
   if (!trimmed) throw new Error('Informe o problema')
   const { data, error } = await getSupabase().rpc('customer_report_delivery_issue', {
     p_order_id: orderId,
     p_reason: trimmed,
+    p_motivo_code: normalized.motivoCode,
+    p_scope: normalized.scope,
+    p_items: normalized.items ?? [],
+    p_policy_ack: Boolean(normalized.policyAck),
   })
   if (error) throw error
-  return data as { order_id: string; occurrence_id: string }
+  return data as { order_id: string; occurrence_id: string; tipo?: string }
 }

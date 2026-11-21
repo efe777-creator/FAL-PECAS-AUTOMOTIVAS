@@ -263,6 +263,7 @@ export interface OrderDetail {
     metadata?: Record<string, unknown> | null
     carrier?: string | null
     service?: string | null
+    deliveredAt?: string | null
   } | null
 }
 

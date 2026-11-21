@@ -42,8 +42,8 @@ const HAPPY_PATH: { id: OrderCustomerStep; label: string }[] = [
   /** Um único passo comercial — evita duplicar "Aguardando confirmação da loja". */
   { id: 'em_confirmacao', label: 'Aguardando confirmação da loja' },
   { id: 'separacao', label: 'Em separação / postagem' },
-  { id: 'enviado', label: 'Enviado' },
-  { id: 'entregue', label: 'Entregue' },
+  { id: 'enviado', label: 'Aguardando entrega' },
+  { id: 'entregue', label: 'Sua entrega chegou' },
 ]
 
 /** Mapa status interno → step cliente ativo (F6D §7.2). */
@@ -135,8 +135,8 @@ export const orderStatusLabel: Record<string, string> = {
   em_separacao: 'Em separação',
   pronto_para_envio: 'Aguardando postagem',
   preparando_envio: 'Aguardando postagem',
-  enviado: 'Enviado',
-  entregue: 'Entregue',
+  enviado: 'Aguardando entrega',
+  entregue: 'Sua entrega chegou',
   cancelado: 'Cancelado',
   expirado: 'Expirado',
 }
@@ -189,6 +189,7 @@ export function customerOrderListCta(
     return 'Pronto para retirar →'
   }
   if (status === 'enviado' && !opts?.pickup) return 'Acompanhar envio →'
+  if (status === 'entregue') return 'Ajuda com o pedido →'
   return null
 }
 

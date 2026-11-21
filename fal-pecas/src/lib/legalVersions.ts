@@ -3,7 +3,7 @@
 export const LEGAL_VERSIONS = {
   terms: '2026-11-09',
   privacy: '2026-11-16',
-  returns: '2026-11-09',
+  returns: '2026-11-21',
 } as const
 
 export type LegalDocKind = 'termos' | 'privacidade' | 'trocas-devolucoes'

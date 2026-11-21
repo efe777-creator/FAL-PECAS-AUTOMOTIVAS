@@ -1,6 +1,7 @@
 import { Container } from '@/components/layout/Container'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { type LegalDocKind, legalVersionFor } from '@/lib/legalVersions'
+import { RETURN_POLICY_BULLETS, RETURN_POLICY_LEAD } from '@/lib/returnPolicyCopy'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { Link } from 'react-router-dom'
 
@@ -31,14 +32,8 @@ const COPY: Record<
   },
   'trocas-devolucoes': {
     title: 'Trocas e devoluções',
-    lead: 'Canal oficial de pós-venda da loja online — peça com nota e número do pedido em mãos.',
-    bullets: [
-      'Direito de arrependimento (CDC): em compras online, você pode desistir em até 7 dias corridos do recebimento, com a peça sem uso e na embalagem original sempre que possível.',
-      'Para iniciar troca, devolução ou reclamação, use o WhatsApp da loja (rodapé ou “Falar sobre este pedido” na sua conta) informando o número do pedido.',
-      'Peças instaladas, danificadas por mau uso ou com identificação removida podem não ser aceitas — a loja analisa caso a caso.',
-      'Garantia legal do produto (vícios) segue o Código de Defesa do Consumidor; a loja orienta o encaminhamento após abertura pelo WhatsApp.',
-      'Reembolsos, quando devidos, seguem o mesmo meio de pagamento quando possível, após conferência da mercadoria.',
-    ],
+    lead: RETURN_POLICY_LEAD,
+    bullets: [...RETURN_POLICY_BULLETS],
   },
 }
 

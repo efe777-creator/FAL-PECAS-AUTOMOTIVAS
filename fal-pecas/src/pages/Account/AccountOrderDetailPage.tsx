@@ -1,3 +1,4 @@
+import { PostSaleHelpPanel } from '@/components/account/PostSaleHelpPanel'
 import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -6,6 +7,7 @@ import { Loading } from '@/components/common/Loading'
 import { useToast } from '@/components/common/Toast'
 import { OrderPostPurchaseGarageActions } from '@/components/garage/OrderPostPurchaseGarageActions'
 import { ResumeOrderPaymentPanel } from '@/components/payments/ResumeOrderPaymentPanel'
+import { minimizeRecipientName } from '@/lib/postSaleMotives'
 import { useCart } from '@/contexts/CartContext'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney } from '@/lib/money'
@@ -353,6 +355,21 @@ export function AccountOrderDetailPage() {
   )
   const canPostDelivery =
     order?.status === 'entregue' || order?.status === 'enviado'
+  const hasOpenPostSaleCase = Boolean(
+    order?.events?.some(
+      (e) =>
+        e.eventType === 'occurrence_opened' &&
+        String(e.payload?.tipo ?? '').startsWith('pos_venda'),
+    ),
+  )
+  const recipientMinimized = minimizeRecipientName(
+    String(
+      (order?.shipment?.metadata?.me as { recipient_name?: string } | undefined)
+        ?.recipient_name ??
+        (order?.shipment?.metadata as { recipient_name?: string } | null)?.recipient_name ??
+        '',
+    ),
+  )
 
   async function onConfirmReceipt() {
     if (!order) return
@@ -378,21 +395,23 @@ export function AccountOrderDetailPage() {
     }
   }
 
-  async function onReportDeliveryIssue() {
+  async function onReportDeliveryIssue(input: {
+    reason: string
+    motivoCode: string
+    scope: 'order' | 'items'
+    items: { order_item_id: string; qty: number }[]
+    policyAck: boolean
+  }) {
     if (!order) return
-    const { confirmed, reason } = await confirmDialog({
-      title: 'Reportar problema?',
-      message: 'Descreva o que aconteceu. A loja será notificada.',
-      confirmLabel: 'Enviar',
-      danger: true,
-      requireReason: true,
-      reasonLabel: 'Descreva o problema',
-      reasonPlaceholder: 'Ex.: embalagem danificada, item faltando…',
-    })
-    if (!confirmed || !reason?.trim()) return
     setActionBusy(true)
     try {
-      await customerReportDeliveryIssue(order.id, reason)
+      await customerReportDeliveryIssue(order.id, {
+        reason: input.reason,
+        motivoCode: input.motivoCode,
+        scope: input.scope,
+        items: input.items,
+        policyAck: input.policyAck,
+      })
       pushOk('Problema registrado. A loja vai analisar.')
       await reload()
     } catch (e) {
@@ -587,38 +606,49 @@ export function AccountOrderDetailPage() {
         </div>
       ) : null}
 
-      {canPostDelivery ? (
-        <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-          <h3 className="mt-0 text-base font-extrabold text-fal-fg">Pós-entrega</h3>
-          <p className="mt-1 text-sm text-fal-muted">
-            Confirme o recebimento ou avise se houve algum problema.
-          </p>
+      {canPostDelivery && order.status === 'entregue' ? (
+        <div className="rounded-fal border border-fal-success/40 bg-fal-success/10 p-5">
+          <h3 className="mt-0 text-base font-extrabold text-fal-fg">Sua entrega chegou</h3>
+          {recipientMinimized ? (
+            <p className="mt-1 mb-0 text-sm text-fal-muted">
+              Recebido por {recipientMinimized}
+            </p>
+          ) : (
+            <p className="mt-1 mb-0 text-sm text-fal-muted">
+              A loja registrou a entrega deste pedido.
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
-            {order.status === 'entregue' ? (
-              receiptConfirmed ? (
-                <p className="mb-0 text-sm font-semibold text-fal-fg">
-                  Você já confirmou o recebimento.
-                </p>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={actionBusy}
-                  onClick={() => void onConfirmReceipt()}
-                >
-                  Confirmar recebimento
-                </Button>
-              )
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={actionBusy}
-              onClick={() => void onReportDeliveryIssue()}
-            >
-              Tive um problema
-            </Button>
+            {receiptConfirmed ? (
+              <p className="mb-0 text-sm font-semibold text-fal-fg">
+                Você já confirmou o recebimento.
+              </p>
+            ) : (
+              <Button
+                type="button"
+                disabled={actionBusy}
+                onClick={() => void onConfirmReceipt()}
+              >
+                Confirmar recebimento
+              </Button>
+            )}
           </div>
         </div>
+      ) : null}
+
+      {canPostDelivery ? (
+        <PostSaleHelpPanel
+          deliveredAt={order.shipment?.deliveredAt}
+          orderStatus={order.status}
+          hasOpenPostSaleCase={hasOpenPostSaleCase}
+          items={order.items.map((i) => ({
+            id: i.id,
+            label: `${i.sku} — ${i.nameSnapshot}`,
+            quantity: i.quantity,
+          }))}
+          busy={actionBusy}
+          onSubmit={onReportDeliveryIssue}
+        />
       ) : null}
 
       {awaitingDecision ? (

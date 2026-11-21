@@ -23,6 +23,7 @@ import {
   adminShipOrder,
   type AdminOrderDetail,
 } from '@/services/admin/adminOrderService'
+import { meReportsDelivered } from '@/lib/meDeliveredSignal'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { useEffect, useState } from 'react'
 
@@ -290,6 +291,19 @@ export function AdminOrderExpeditionSlot({
           />
         </div>
       </details>
+
+      {!storePickup &&
+      orderUsesMelhorEnvio(order) &&
+      order.status === 'enviado' &&
+      meReportsDelivered(order.shipment?.metadata ?? null) ? (
+        <div className="rounded-[14px] border border-fal-warning/50 bg-fal-warning/10 px-4 py-3 text-sm text-fal-ink">
+          <p className="m-0 font-extrabold text-fal-fg">Melhor Envio reportou entrega</p>
+          <p className="mb-0 mt-1 text-fal-muted">
+            Confirme no sistema para atualizar o cliente e iniciar a janela de pós-venda — não é
+            automático.
+          </p>
+        </div>
+      ) : null}
 
       {!storePickup &&
       orderUsesMelhorEnvio(order) &&
