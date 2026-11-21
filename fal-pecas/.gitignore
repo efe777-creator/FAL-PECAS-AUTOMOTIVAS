@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 supabase/functions/tmp/
+/tmp/
 *.local
 .env
 .env.local

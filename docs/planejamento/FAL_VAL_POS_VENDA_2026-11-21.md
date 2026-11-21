@@ -90,6 +90,16 @@ Script: `scripts/smoke-pos-venda-uso-completo.mjs` · **gate PASS**
 
 Pedidos smoke: ME `d18580ec…` · WA `d39b2210…`.
 
+### Revalidação fechamento (noite 2026-11-21)
+
+| Check | Resultado |
+|-------|-----------|
+| Vitest antiregress pós-venda + FL* Adaptive + URL/prefs/WA/eligibility | **80/80 PASS** |
+| `tsc --noEmit` | PASS |
+| `smoke-pos-venda-uso-completo.mjs` | **PASS** `DRY-REV-71C3C49B` · ME `71c3c49b…` · WA `d18a410e…` |
+| `smoke-me-reverse.mjs` | **PASS** `DRY-REV-9F7DAD3E` · `liveReady:false` + `me_order_id_synthetic` |
+| `dev` ↔ `origin/dev` | sincronizado (`8c1b26a` + commits desta marcha) |
+
 ## Gate F3 → done
 
 **PASS** código + smoke dry-run + WA D18 + `liveReady` anti-sintético (Edge + UI ops).  

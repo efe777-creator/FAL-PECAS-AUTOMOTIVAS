@@ -56,6 +56,12 @@ Script: `fal-pecas/scripts/smoke-pos-venda-uso-completo.mjs` · **gate PASS**
 
 Migration `admin_list_revisao_queue_rows` (DROP+CREATE return_mode/tracking) aplicada no **wtbp**.
 
+### Revalidação antiregress + smokes (noite)
+
+- Vitest pós-venda/Adaptive: **80/80 PASS**
+- `smoke-pos-venda-uso-completo.mjs`: **PASS** `DRY-REV-71C3C49B`
+- `smoke-me-reverse.mjs`: **PASS** `DRY-REV-9F7DAD3E` (`liveReady:false` sintético)
+
 ## Fora de escopo
 
 - Novo `moduleKey` / `/admin/pos-venda`
