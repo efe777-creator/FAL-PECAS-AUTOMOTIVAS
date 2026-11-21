@@ -317,9 +317,16 @@ export function OrderOccurrencesPanel({
           <p className="mt-2 mb-0 text-xs text-fal-muted">
             ME reversa: {meEligible.reason} Fallback: WA ou loja.
           </p>
+        ) : meEligible.liveReady ? (
+          <p className="mt-2 mb-0 text-xs font-semibold text-fal-fg">
+            ME reversa live-ready · cart_item_id da ida ok (volume único).
+          </p>
         ) : (
           <p className="mt-2 mb-0 text-xs text-fal-muted">
-            Pedido elegível para código Melhor Envio (volume único).
+            ME reversa: {meEligible.reason}
+            {meEligible.liveBlockers.includes('me_order_id_synthetic')
+              ? ' Cliente gera com dry-run só via staff/smoke.'
+              : ''}
           </p>
         )}
       </div>

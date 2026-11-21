@@ -70,7 +70,12 @@ Migration `20261121193000_admin_occurrence_action_full_overload.sql` aplicada; s
 | Normalize `VITE_WHATSAPP_PHONE` | `whatsapp.ts` | E.164 `55…` |
 | Vitest `whatsapp.test.ts` | 9/9 | PASS |
 
+## Inventário ME entregue (2026-11-21)
+
+Consulta `shipments` provider Melhor Envio + `orders.status=entregue`: **9** pedidos; **0** com `cart_item_id` numérico ME (todos smoke UUID ou vazio).  
+→ generate live **impossível** até existir etiqueta ME real no fluxo de ida.
+
 ## Gate F3 → done
 
-**PASS** código + smoke dry-run ponta a ponta (stages → código → evento) + WA D18.  
-**HOLD** só para generate ME live com order_id real da ida.
+**PASS** código + smoke dry-run + WA D18 + `liveReady` anti-sintético (Edge + UI ops).  
+**HOLD humano:** 1º pedido ME real (`cart_item_id` numérico) → `status.liveReady:true` → generate sem `forceDryRun`.

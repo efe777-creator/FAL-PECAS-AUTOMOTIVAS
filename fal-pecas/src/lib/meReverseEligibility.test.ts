@@ -2,18 +2,34 @@ import { describe, expect, it } from 'vitest'
 import {
   countShipmentVolumes,
   evaluateMeReverseEligibility,
+  looksSyntheticMeOrderId,
   readMeCartItemId,
 } from './meReverseEligibility'
 
 describe('evaluateMeReverseEligibility', () => {
-  it('ok quando ME + 1 volume + entregue + cart id', () => {
+  it('ok + liveReady quando ME + 1 volume + entregue + id numérico', () => {
     const r = evaluateMeReverseEligibility({
       orderStatus: 'entregue',
       provider: 'melhorenvio',
       volumeCount: 1,
-      meOrderId: 'abc-123',
+      meOrderId: '987654321',
     })
     expect(r.ok).toBe(true)
+    expect(r.liveReady).toBe(true)
+  })
+
+  it('ok mas não liveReady com UUID sintético', () => {
+    const r = evaluateMeReverseEligibility({
+      orderStatus: 'entregue',
+      provider: 'melhorenvio',
+      volumeCount: 1,
+      meOrderId: '12dc7b28-d7e8-4fd5-9210-931d793185e0',
+    })
+    expect(r.ok).toBe(true)
+    expect(r.liveReady).toBe(false)
+    expect(r.liveBlockers).toContain('me_order_id_synthetic')
+    expect(looksSyntheticMeOrderId('12dc7b28-d7e8-4fd5-9210-931d793185e0')).toBe(true)
+    expect(looksSyntheticMeOrderId('987654321')).toBe(false)
   })
 
   it('bloqueia frete próprio', () => {

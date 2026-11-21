@@ -14,8 +14,11 @@ export type MeReverseEligibilityInput = {
 
 export type MeReverseEligibility = {
   ok: boolean
+  /** true só com cart_item_id com formato ME (não UUID sintético). */
+  liveReady: boolean
   reason: string
   blockers: string[]
+  liveBlockers: string[]
 }
 
 export function isMelhorEnvioProvider(provider: string | null | undefined): boolean {
@@ -49,6 +52,13 @@ export function readMeCartItemId(metadata: Record<string, unknown> | null | unde
   return id || null
 }
 
+/** ME cart/order id real costuma ser numérico; UUID = seed/smoke. */
+export function looksSyntheticMeOrderId(meOrderId: string | null | undefined): boolean {
+  const id = String(meOrderId ?? '').trim()
+  if (!id) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+}
+
 export function evaluateMeReverseEligibility(input: MeReverseEligibilityInput): MeReverseEligibility {
   const blockers: string[] = []
   if (input.orderStatus !== 'entregue') blockers.push('order_not_delivered')
@@ -56,6 +66,9 @@ export function evaluateMeReverseEligibility(input: MeReverseEligibilityInput): 
   if (input.volumeCount <= 0) blockers.push('volume_unknown')
   else if (input.volumeCount !== 1) blockers.push('multi_volume')
   if (!String(input.meOrderId ?? '').trim()) blockers.push('me_order_id_missing')
+
+  const liveBlockers = [...blockers]
+  if (looksSyntheticMeOrderId(input.meOrderId)) liveBlockers.push('me_order_id_synthetic')
 
   if (blockers.length > 0) {
     const reason =
@@ -68,7 +81,25 @@ export function evaluateMeReverseEligibility(input: MeReverseEligibilityInput): 
             : blockers[0] === 'me_order_id_missing'
               ? 'Falta referência do envio Melhor Envio original.'
               : 'Pedido precisa estar entregue para gerar código de devolução.'
-    return { ok: false, reason, blockers }
+    return { ok: false, liveReady: false, reason, blockers, liveBlockers }
   }
-  return { ok: true, reason: 'Elegível para código Melhor Envio.', blockers: [] }
+
+  if (liveBlockers.includes('me_order_id_synthetic')) {
+    return {
+      ok: true,
+      liveReady: false,
+      reason:
+        'Elegível para modo ME (dry-run/smoke). Live exige cart_item_id numérico real da ida.',
+      blockers,
+      liveBlockers,
+    }
+  }
+
+  return {
+    ok: true,
+    liveReady: true,
+    reason: 'Elegível para código Melhor Envio (live).',
+    blockers,
+    liveBlockers,
+  }
 }

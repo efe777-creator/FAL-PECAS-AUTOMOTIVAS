@@ -1,7 +1,7 @@
 # FAL — Plano de implementação: Camada pós-venda
 
 **Data:** 2026-11-21  
-**Status:** F1–F3 fechadas na `dev` (2026-11-21) — Edge `liveReady` anti-sintético deployado; HOLD só generate ME live com cart_item_id real  
+**Status:** F1–F3 **FECHADAS** na `dev` (2026-11-21). HOLD humano: nenhum pedido ME entregue com `cart_item_id` numérico no banco — generate live aguarda 1ª etiqueta real.  
 
 **Branch:** `dev` (nunca `main`/prod sem autorização)  
 **Spec:** [FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md](./FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md)  
