@@ -3,6 +3,12 @@ import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
 import { PRODUCTS_OPEN_GUIDE_KEY, setGuideBridge } from '@/lib/adminGuideBridges'
+import {
+  PVC_CASCADE_HINT,
+  pvcEngineOptions,
+  pvcMatchingVersions,
+  pvcVersionNameOptions,
+} from '@/lib/pvcVehicleCascade'
 import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
@@ -29,39 +35,6 @@ type Props = {
   makers: Manufacturer[]
   onClose: () => void
   onMutated: (opts?: { focusSku?: string }) => void
-}
-
-function engineOpts(versions: VehicleVersion[]) {
-  const set = new Set<string>()
-  for (const v of versions) {
-    const e = (v.engine ?? '').trim()
-    if (e) set.add(e)
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-}
-
-function versionOpts(versions: VehicleVersion[], engine: string) {
-  const filtered = engine
-    ? versions.filter((v) => (v.engine ?? '').trim() === engine)
-    : versions
-  const set = new Set<string>()
-  for (const v of filtered) {
-    const name = (v.versionName ?? '').trim()
-    if (name) set.add(name)
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-}
-
-function matchingVersions(
-  versions: VehicleVersion[],
-  engine: string,
-  versionName: string,
-) {
-  return versions.filter((v) => {
-    if (engine && (v.engine ?? '').trim() !== engine) return false
-    if (versionName && (v.versionName ?? '').trim() !== versionName) return false
-    return true
-  })
 }
 
 /**
@@ -148,23 +121,23 @@ export function ApplicationWorkSurface({
     void adminListVersions(createModelId).then(setCreateVersions)
   }, [createModelId])
 
-  const swapEngineOptions = useMemo(() => engineOpts(swapVersions), [swapVersions])
+  const swapEngineOptions = useMemo(() => pvcEngineOptions(swapVersions), [swapVersions])
   const swapVersionOptions = useMemo(
-    () => versionOpts(swapVersions, swapEngine),
+    () => pvcVersionNameOptions(swapVersions, swapEngine),
     [swapVersions, swapEngine],
   )
   const matchingSwap = useMemo(
-    () => matchingVersions(swapVersions, swapEngine, swapVersion),
+    () => pvcMatchingVersions(swapVersions, swapEngine, swapVersion),
     [swapVersions, swapEngine, swapVersion],
   )
 
-  const createEngineOptions = useMemo(() => engineOpts(createVersions), [createVersions])
+  const createEngineOptions = useMemo(() => pvcEngineOptions(createVersions), [createVersions])
   const createVersionOptions = useMemo(
-    () => versionOpts(createVersions, createEngine),
+    () => pvcVersionNameOptions(createVersions, createEngine),
     [createVersions, createEngine],
   )
   const matchingCreate = useMemo(
-    () => matchingVersions(createVersions, createEngine, createVersion),
+    () => pvcMatchingVersions(createVersions, createEngine, createVersion),
     [createVersions, createEngine, createVersion],
   )
 
@@ -331,7 +304,7 @@ export function ApplicationWorkSurface({
         {mode === 'create' ? (
           <section className="space-y-3 rounded-[12px] border border-fal-line bg-fal-surface p-3">
             <p className="m-0 text-xs text-fal-muted">
-              Motorização/versão vazia = todas as configs elegíveis ({matchingCreate.length}).
+              {PVC_CASCADE_HINT} Elegíveis agora: {matchingCreate.length}.
             </p>
             <Input
               label={SKU_FAL_LABEL}

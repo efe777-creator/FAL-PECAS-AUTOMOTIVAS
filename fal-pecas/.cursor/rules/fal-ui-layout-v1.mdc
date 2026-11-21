@@ -3,7 +3,7 @@ description: FAL-UI-LAYOUT v1 — padrão telas/layout/design + versionamento + 
 alwaysApply: true
 ---
 
-# FAL-UI-LAYOUT v1.1.1 (excelência admin)
+# FAL-UI-LAYOUT v1.1.2 (excelência admin)
 
 Normativo: `docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md`  
 VAL Aplicações: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md`  
@@ -26,11 +26,12 @@ Anteriores: v101 (compact/BOM) · v102 (dedupe CTAs)
 ## Versionamento (obrigatório)
 
 - Qualquer evolução de layout → entrada no **Changelog §9** do doc padrão + bump PATCH/MINOR/MAJOR.
-- Atualizar locks em `src/lib/falUiLayoutAntiregress.test.ts` (FL1–FL18+).
+- Atualizar locks em `src/lib/falUiLayoutAntiregress.test.ts` (FL1–FL19+).
 - Hub Produtos: filtros compactos por padrão; expandir só sob demanda (FL14).
 - Guia Produto: seções expansíveis + mutações leves + empilhar (+ Guia); kit via hub Kits (FL15).
 - Hub Aplicações: Adaptive + `ApplicationWorkSurface`; criar/editar na guia (FL16–FL17).
 - Pontes guia↔guia Produto/Aplicações/Kits (FL18).
+- Cascata PVC hub↔ficha via `pvcVehicleCascade` (FL19).
 - Rodar: `pnpm test:ui-layout-antiregress`
 - Branch: só `dev` até gate eFe; **nunca** main/prod sem autorização.
 

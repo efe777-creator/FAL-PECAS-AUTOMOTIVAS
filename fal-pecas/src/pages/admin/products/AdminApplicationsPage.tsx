@@ -16,6 +16,7 @@ import {
   APPLICATIONS_OPEN_GUIDE_KEY,
   consumeGuideBridge,
 } from '@/lib/adminGuideBridges'
+import { pvcEngineOptions, pvcVersionNameOptions } from '@/lib/pvcVehicleCascade'
 import { formatVehicleAppYear } from '@/lib/vehicleAppYear'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
@@ -106,26 +107,12 @@ export function AdminApplicationsPage() {
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
 
-  const engineOptions = useMemo(() => {
-    const set = new Set<string>()
-    for (const v of versions) {
-      const e = (v.engine ?? '').trim()
-      if (e) set.add(e)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions])
+  const engineOptions = useMemo(() => pvcEngineOptions(versions), [versions])
 
-  const versionOptions = useMemo(() => {
-    const filtered = engineFilter
-      ? versions.filter((v) => (v.engine ?? '').trim() === engineFilter)
-      : versions
-    const set = new Set<string>()
-    for (const v of filtered) {
-      const name = (v.versionName ?? '').trim()
-      if (name) set.add(name)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions, engineFilter])
+  const versionOptions = useMemo(
+    () => pvcVersionNameOptions(versions, engineFilter),
+    [versions, engineFilter],
+  )
 
   const productIdFilter = searchParams.get('productId') || ''
 

@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.1.1 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.1.2 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -350,5 +350,22 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(
       /APPLICATIONS_OPEN_GUIDE_KEY/,
     )
+  })
+
+  it('FL19: cascata PVC compartilhada hub↔ficha (pvcVehicleCascade)', () => {
+    const lib = read('lib/pvcVehicleCascade.ts')
+    expect(lib).toMatch(/export function pvcEngineOptions/)
+    expect(lib).toMatch(/export function pvcVersionNameOptions/)
+    expect(lib).toMatch(/export function pvcMatchingVersions/)
+    expect(lib).toMatch(/PVC_CASCADE_HINT/)
+
+    expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
+      /pvcMatchingVersions|pvcEngineOptions/,
+    )
+    expect(read('components/admin/AdminProductApplicationsSection.tsx')).toMatch(
+      /pvcMatchingVersions|PVC_CASCADE_HINT/,
+    )
+    expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(/pvcEngineOptions/)
+    expect(read('components/admin/AdminProductApplicationsSection.tsx')).toMatch(/Hub Aplicações/)
   })
 })

@@ -2,6 +2,12 @@ import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
+import {
+  PVC_CASCADE_HINT,
+  pvcEngineOptions,
+  pvcMatchingVersions,
+  pvcVersionNameOptions,
+} from '@/lib/pvcVehicleCascade'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
@@ -84,34 +90,17 @@ export function AdminProductApplicationsSection({ productId }: Props) {
     void adminListVersions(modelId).then(setVersions)
   }, [modelId])
 
-  const engineOptions = useMemo(() => {
-    const set = new Set<string>()
-    for (const v of versions) {
-      const e = (v.engine ?? '').trim()
-      if (e) set.add(e)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions])
+  const engineOptions = useMemo(() => pvcEngineOptions(versions), [versions])
 
-  const versionNameOptions = useMemo(() => {
-    const filtered = engineFilter
-      ? versions.filter((v) => (v.engine ?? '').trim() === engineFilter)
-      : versions
-    const set = new Set<string>()
-    for (const v of filtered) {
-      const name = (v.versionName ?? '').trim()
-      if (name) set.add(name)
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  }, [versions, engineFilter])
+  const versionNameOptions = useMemo(
+    () => pvcVersionNameOptions(versions, engineFilter),
+    [versions, engineFilter],
+  )
 
-  const matchingVersions = useMemo(() => {
-    return versions.filter((v) => {
-      if (engineFilter && (v.engine ?? '').trim() !== engineFilter) return false
-      if (versionNameFilter && (v.versionName ?? '').trim() !== versionNameFilter) return false
-      return true
-    })
-  }, [versions, engineFilter, versionNameFilter])
+  const matchingVersions = useMemo(
+    () => pvcMatchingVersions(versions, engineFilter, versionNameFilter),
+    [versions, engineFilter, versionNameFilter],
+  )
 
   async function onLinkApplications() {
     if (!modelId) return
@@ -156,13 +145,11 @@ export function AdminProductApplicationsSection({ productId }: Props) {
           className="text-sm font-semibold text-fal-fg underline"
           to={`/admin/aplicacoes?productId=${productId}`}
         >
-          Abrir gestão de aplicações
+          Hub Aplicações
         </Link>
       </div>
       <p className="text-xs text-fal-muted">
-        Cascata: montadora → modelo → motorização → versão → período. Na busca do cliente: motor ou
-        versão em branco na config = serve para todas; se cadastrado (ex.: Unique / 1.0) = só aquela.
-        Vincular agora: {matchingVersions.length} config elegível
+        {PVC_CASCADE_HINT} Vincular agora: {matchingVersions.length} config elegível
         {matchingVersions.length === 1 ? '' : 'is'}.
       </p>
       {error ? <p className="m-0 text-sm text-fal-danger">{error}</p> : null}

@@ -1,6 +1,6 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.1.1**`  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.1.2**`  
 **Data:** 2026-11-21 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
@@ -137,7 +137,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 
 ---
 
-## 5. Mapa de módulos (v1.1.1)
+## 5. Mapa de módulos (v1.1.2)
 
 | Módulo | `moduleKey` | Primary | Contextual | Full |
 |--------|-------------|---------|------------|------|
@@ -180,6 +180,7 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL16** | Hub Aplicações: `AdaptiveWorkspace` `moduleKey="applications"`; lista compact; filtros expansíveis; **+ Guia** | fonte |
 | **FL17** | `ApplicationWorkSurface` (criar/editar/swap/bulk na guia); sem form criar permanente no primary; atalho guia Produto → hub `?q=`; chip `productId` | fonte |
 | **FL18** | Pontes guia↔guia: `adminGuideBridges` (`products` / `applications` / `kits`); CTAs Abrir guia + Cadastro completo | fonte |
+| **FL19** | Cascata PVC compartilhada: `pvcVehicleCascade` (hub + ficha); hint coringa único; ficha → Hub Aplicações | fonte |
 
 Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
 
@@ -213,6 +214,14 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.1.2 — 2026-11-21 (PATCH)
+
+**Cascata PVC unificada (estudo Fase 3):**
+- Lib `pvcVehicleCascade` — opções motor/versão + matching + `PVC_CASCADE_HINT`
+- Consumidores: `ApplicationWorkSurface`, filtros hub Aplicações, `AdminProductApplicationsSection`
+- Ficha: CTA **Hub Aplicações** (mesmo vocabulário da guia)
+- Lock **FL19** + unit `pvcVehicleCascade.test.ts`
 
 ### v1.1.1 — 2026-11-21 (PATCH)
 
@@ -294,7 +303,6 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 | Alvo | Bump sugerido |
 |------|----------------|
 | Novo produto guia curta | MINOR |
-| Cascata PVC compartilhada hub↔ficha (estudo Fase 3) | PATCH / backlog |
 | Adaptive Categorias / Promoções | MINOR |
 | Smoke multi-guia 2 SKUs + save 1 preço Base | VAL fino |
 
@@ -314,4 +322,4 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 
 ---
 
-**Assinatura:** FAL-UI-LAYOUT v1.1.1 · excelência registrada · 2026-11-21 · eFe / Cursor
+**Assinatura:** FAL-UI-LAYOUT v1.1.2 · excelência registrada · 2026-11-21 · eFe / Cursor

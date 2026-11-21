@@ -5,7 +5,7 @@
 **Âncora histórica do estudo:** partiu de v1.0.4 · [marcha dinâmica](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)  
 **Normativo vigente:** [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1…](./FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) §5 — módulo `applications` no mapa Adaptive  
 **Pontes guia↔guia:** entregues em **v1.1.1** · [VAL](./FAL_MARCHA_UI_LAYOUT_v111_PONTES_GUIA_VAL_2026-11-21.md)  
-**Fora desta entrega (backlog):** Fase 3 cascata compartilhada hub↔ficha
+**Fase 3 cascata PVC:** entregue em **v1.1.2** (`pvcVehicleCascade` + FL19)
 
 ---
 
