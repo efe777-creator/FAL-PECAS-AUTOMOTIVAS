@@ -209,10 +209,14 @@ export function AccountVehiclesPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="lg:hidden">
           <h2 className="mt-0 mb-1 text-xl font-extrabold">Garagem</h2>
-          <p className="mb-0 text-sm text-fal-muted">Seu carro, cuidados e histórico.</p>
+          <p className="mb-0 text-sm text-fal-muted">
+            Seu carro, peças que cabem e histórico de compras na FAL.
+          </p>
         </div>
         <div className="hidden lg:block">
-          <p className="mb-0 text-sm text-fal-muted">Seu carro, cuidados e histórico.</p>
+          <p className="mb-0 text-sm text-fal-muted">
+            Seu carro, peças que cabem e histórico de compras na FAL.
+          </p>
         </div>
         <Button
           type="button"

@@ -12,7 +12,7 @@
 | # | Item | Status |
 |---|------|--------|
 | 1 | Kits: fotos individuais dos itens ao cadastrar, refletir na PDP do kit (além da principal) | **DONE** |
-| 2 | Polimento e funções da garagem | PENDING |
+| 2 | Polimento e funções da garagem | **DONE** (verificado) |
 | 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | PENDING |
 | 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | PENDING |
 | 5 | Ajustar e melhorar favoritos | PENDING |
@@ -100,3 +100,16 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 | Arquivos | `adminImageService.ts`, `AdminProductKitSection.tsx`, `AdminProductImagesSection.tsx`, `productImages.ts`, `productImages.test.ts`, `kitCompositionStoreService.ts`, `PdpKitCompositionBlock.tsx`, `ProductPage.tsx`, este REF |
 
 **Próximo (não implementar nesta marcha):** Erro #2 — Polimento e funções da garagem.
+
+### Erro #2 — Polimento e funções da garagem (análise + verificação)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** (já coberto pela fundação coerente + ajuste copy) |
+| Diagnóstico | Notes pedia “garantir polimento e funções”. Na `dev` a onda fundação **já entregou** o caminho feliz: nav sem Cuidados; histórico = compras G7; visual 2D-first; checkout→`cv_id`; chain jornada. |
+| Já existia? | **Sim, em grande parte** (`a6b442e`…`dce05af`, plano MARCHA CONCLUÍDA). Gap residual de copy: home ainda dizia “cuidados”. |
+| Verificação gates | `tsc` + 24 testes (nav, engine, collapse, prefs, chain, snapshot) **PASS** (2026-11-21). |
+| Ajuste nesta marcha | Copy home → “peças que cabem e histórico de compras na FAL”. |
+| Fora do #2 | Lentidão frete/hierarquia → **#3**. Migration G7 no wtbp + smoke compra → ops. Cuidados/manutenção ficam em Mais → Avançado (proposital). |
+
+**Próximo:** Erro #3 — Carregamentos/hierarquias / frete lento (PDP e garagem).
