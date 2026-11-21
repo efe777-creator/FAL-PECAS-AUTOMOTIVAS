@@ -39,6 +39,7 @@ import {
   ADICIONAR_AO_CARRINHO_LABEL,
   COMPRAR_AGORA_LABEL,
   FABRICANTE_LABEL,
+  KIT_APPS_EMPTY_LABEL,
   formatReferenciaFromProduct,
   formatStorePriceLabel,
 } from '@/lib/productLabels'
@@ -321,6 +322,7 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
             variant="card"
             groups={product.compatibilityGroups}
             summary={product.compatibilitySummary}
+            emptyLabel={product.productKind === 'kit' ? KIT_APPS_EMPTY_LABEL : undefined}
           />
         ) : null}
       </Link>

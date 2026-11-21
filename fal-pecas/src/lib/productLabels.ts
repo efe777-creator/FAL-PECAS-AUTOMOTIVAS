@@ -15,6 +15,8 @@ export const FABRICANTE_LABEL = 'Fabricante'
 
 /** Sem PVC — copy oficial (não “sob consulta” genérico). */
 export const APPS_EMPTY_LABEL = 'Sem aplicações cadastradas'
+/** Kit precisa de PVC próprio (não herda dos componentes). */
+export const KIT_APPS_EMPTY_LABEL = 'Kit sem aplicação própria cadastrada'
 
 export const APLICACAO_SECTION_LABEL = 'Aplicação'
 

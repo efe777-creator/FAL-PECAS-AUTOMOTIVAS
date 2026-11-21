@@ -1,7 +1,8 @@
 import { getSupabase } from '@/lib/supabase'
+import { adminEnsureKitImageFromComponents } from '@/services/admin/adminImageService'
 import { adminSyncKitListPrices } from '@/services/admin/adminKitPricingService'
 
-async function syncKitPriceAfterComposition(kitProductId: string, actorId?: string | null) {
+async function syncKitAfterComposition(kitProductId: string, actorId?: string | null) {
   const { data, error } = await getSupabase()
     .from('products')
     .select('kit_price_mode')
@@ -14,6 +15,11 @@ async function syncKitPriceAfterComposition(kitProductId: string, actorId?: stri
     kitPriceMode: mode,
     changedBy: actorId,
   })
+  const comps = await adminListKitComponents(kitProductId)
+  await adminEnsureKitImageFromComponents(
+    kitProductId,
+    comps.map((c) => c.componentProductId),
+  )
 }
 
 export type ProductKind = 'item' | 'kit'
@@ -262,7 +268,7 @@ export async function adminReplaceComponentInKits(input: {
   }))
 
   for (const kitId of updatedKitIds) {
-    await syncKitPriceAfterComposition(kitId, input.actorId)
+    await syncKitAfterComposition(kitId, input.actorId)
   }
 
   return { updatedKitIds, skipped }
@@ -304,7 +310,7 @@ export async function adminAddKitComponent(input: {
     quantity: qty,
     actorId: input.actorId,
   })
-  await syncKitPriceAfterComposition(input.kitProductId, input.actorId)
+  await syncKitAfterComposition(input.kitProductId, input.actorId)
 }
 
 export async function adminUpdateKitComponentQuantity(input: {
@@ -333,7 +339,7 @@ export async function adminUpdateKitComponentQuantity(input: {
     previousQuantity: input.previousQuantity,
     actorId: input.actorId,
   })
-  await syncKitPriceAfterComposition(input.kitProductId, input.actorId)
+  await syncKitAfterComposition(input.kitProductId, input.actorId)
 }
 
 export async function adminRemoveKitComponent(input: {
@@ -357,5 +363,5 @@ export async function adminRemoveKitComponent(input: {
     previousQuantity: input.quantity,
     actorId: input.actorId,
   })
-  await syncKitPriceAfterComposition(input.kitProductId, input.actorId)
+  await syncKitAfterComposition(input.kitProductId, input.actorId)
 }

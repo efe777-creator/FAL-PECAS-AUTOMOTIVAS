@@ -574,19 +574,27 @@ export function AdminProductFormPage() {
             </select>
           </label>
           {productKind === 'kit' ? (
-            <label className="text-sm">
-              <span className="mb-1 block font-semibold">Preço do kit</span>
-              <select
-                className="w-full rounded-[10px] border border-fal-line px-3 py-2"
-                value={kitPriceMode}
-                onChange={(e) =>
-                  setKitPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
-                }
-              >
-                <option value="auto">Automático (soma dos componentes)</option>
-                <option value="manual">Manual (lista exclusiva)</option>
-              </select>
-            </label>
+            <>
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Preço do kit</span>
+                <select
+                  className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                  value={kitPriceMode}
+                  onChange={(e) =>
+                    setKitPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
+                  }
+                >
+                  <option value="auto">Automático (soma dos componentes)</option>
+                  <option value="manual">Manual (lista exclusiva)</option>
+                </select>
+              </label>
+              {!productId ? (
+                <p className="m-0 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-xs text-fal-muted">
+                  Salve o kit uma vez para liberar o link dos itens do cadastro, a capa (foto própria
+                  ou puxada dos itens) e o preço da composição.
+                </p>
+              ) : null}
+            </>
           ) : null}
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>
@@ -1063,6 +1071,7 @@ export function AdminProductFormPage() {
           {productKind === 'kit' ? (
             <>
               <AdminProductKitSection kitProductId={productId} kitPriceMode={kitPriceMode} />
+              <AdminProductImagesSection productId={productId} kitMode />
               <AdminProductKitCompatBanner
                 kitProductId={productId}
                 reviewRequired={kitCompatReviewRequired}
@@ -1070,13 +1079,15 @@ export function AdminProductFormPage() {
               />
             </>
           ) : (
-            <AdminProductKitUsageSection productId={productId} />
+            <>
+              <AdminProductKitUsageSection productId={productId} />
+              <AdminProductImagesSection productId={productId} />
+            </>
           )}
           <AdminProductRelatedSection productId={productId} />
           <AdminProductEquivalenceSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />
           <AdminProductApplicationsSection productId={productId} />
-          <AdminProductImagesSection productId={productId} />
         </>
       ) : null}
     </div>

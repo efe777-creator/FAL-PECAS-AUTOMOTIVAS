@@ -13,9 +13,11 @@ import { Link } from 'react-router-dom'
 
 type Props = {
   productId: string
+  /** Kit: reforça upload próprio + puxar foto dos itens linkados. */
+  kitMode?: boolean
 }
 
-export function AdminProductImagesSection({ productId }: Props) {
+export function AdminProductImagesSection({ productId, kitMode = false }: Props) {
   const toast = useToast()
   const [images, setImages] = useState<ProductImage[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -30,8 +32,11 @@ export function AdminProductImagesSection({ productId }: Props) {
 
   return (
     <section className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
-      <h2 className="font-extrabold text-fal-fg">Imagens</h2>
+      <h2 className="font-extrabold text-fal-fg">{kitMode ? 'Imagens do kit' : 'Imagens'}</h2>
       <p className="m-0 text-xs text-fal-muted">
+        {kitMode
+          ? 'Envie a capa do kit aqui. Se ainda não houver foto, ao linkar itens na composição a capa é puxada automaticamente da foto do item. '
+          : null}
         Várias de uma vez neste produto · lote por código em{' '}
         <Link
           className="font-semibold text-fal-fg hover:underline"

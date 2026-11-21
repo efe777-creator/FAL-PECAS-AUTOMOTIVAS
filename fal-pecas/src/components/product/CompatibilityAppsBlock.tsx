@@ -46,11 +46,14 @@ export function CompatibilityAppsBlock({
   summary,
   className = '',
   variant = 'card',
+  emptyLabel,
 }: {
   groups?: CompatibilityAppGroup[] | null
   summary?: string | null
   className?: string
   variant?: CompatibilityAppsVariant
+  /** Override do vazio (ex.: kit sem PVC próprio). */
+  emptyLabel?: string | null
 }) {
   const [expanded, setExpanded] = useState(false)
   const limit = LINE_LIMIT[variant]
@@ -117,5 +120,9 @@ export function CompatibilityAppsBlock({
     )
   }
 
-  return <p className={`m-0 text-sm text-fal-muted ${className}`.trim()}>{APPS_EMPTY_LABEL}</p>
+  return (
+    <p className={`m-0 text-sm text-fal-muted ${className}`.trim()}>
+      {emptyLabel?.trim() || APPS_EMPTY_LABEL}
+    </p>
+  )
 }

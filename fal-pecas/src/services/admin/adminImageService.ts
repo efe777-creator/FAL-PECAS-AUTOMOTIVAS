@@ -85,3 +85,95 @@ export async function adminDeleteImage(image: ProductImage) {
   if (error) throw error
   await refreshIncompleteFlag(image.productId)
 }
+
+/** Mapa productId → URL pública da imagem principal (ou null). */
+export async function adminPrimaryImageUrlMap(
+  productIds: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  const ids = [...new Set(productIds.filter(Boolean))]
+  if (!ids.length) return map
+  const { data, error } = await getSupabase()
+    .from('product_images')
+    .select('product_id, storage_path, sort_order, is_primary')
+    .in('product_id', ids)
+  if (error) throw error
+  const byProduct = new Map<string, Row[]>()
+  for (const row of (data ?? []) as Row[]) {
+    const list = byProduct.get(row.product_id) ?? []
+    list.push(row)
+    byProduct.set(row.product_id, list)
+  }
+  for (const id of ids) {
+    const rows = byProduct.get(id) ?? []
+    const sorted = [...rows].sort((a, b) => {
+      if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1
+      return a.sort_order - b.sort_order
+    })
+    const path = sorted[0]?.storage_path
+    if (path) map.set(id, publicUrl(path))
+  }
+  return map
+}
+
+/**
+ * Copia a imagem principal de um produto para outro (reusa storage_path).
+ * @returns true se copiou; false se origem sem imagem.
+ */
+export async function adminCopyPrimaryImageToProduct(input: {
+  sourceProductId: string
+  targetProductId: string
+  /** Se true, remove imagens atuais do destino antes de copiar. */
+  replace?: boolean
+}): Promise<boolean> {
+  if (input.sourceProductId === input.targetProductId) return false
+  const sourceImages = await adminListImages(input.sourceProductId)
+  const primary =
+    sourceImages.find((i) => i.isPrimary) ?? sourceImages[0] ?? null
+  if (!primary) return false
+
+  const targetImages = await adminListImages(input.targetProductId)
+  if (input.replace && targetImages.length) {
+    for (const img of targetImages) {
+      // Só remove metadado — path pode ser compartilhado com o item fonte.
+      const { error } = await getSupabase()
+        .from('product_images')
+        .delete()
+        .eq('id', img.id)
+      if (error) throw error
+    }
+  } else if (targetImages.length && !input.replace) {
+    return false
+  }
+
+  const { error } = await getSupabase().from('product_images').insert({
+    product_id: input.targetProductId,
+    storage_path: primary.storagePath,
+    alt: primary.alt,
+    sort_order: 0,
+    is_primary: true,
+  })
+  if (error) throw error
+  await refreshIncompleteFlag(input.targetProductId)
+  return true
+}
+
+/**
+ * Se o kit não tem imagem, usa a principal do primeiro componente que tiver foto.
+ */
+export async function adminEnsureKitImageFromComponents(
+  kitProductId: string,
+  componentProductIds: string[],
+): Promise<boolean> {
+  const existing = await adminListImages(kitProductId)
+  if (existing.length > 0) return false
+  for (const componentId of componentProductIds) {
+    const ok = await adminCopyPrimaryImageToProduct({
+      sourceProductId: componentId,
+      targetProductId: kitProductId,
+      replace: false,
+    })
+    if (ok) return true
+  }
+  return false
+}
