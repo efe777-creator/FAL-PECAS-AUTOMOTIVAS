@@ -1,9 +1,11 @@
+import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
+import { PromotionWorkSurface } from '@/components/admin/promotions/PromotionWorkSurface'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import { formatDiscountPercentLabel, resolvePromoOffer } from '@/lib/promoPresentation'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { AdminHomeSectionTabs } from '@/pages/admin/home/AdminHomeSectionTabs'
@@ -11,7 +13,6 @@ import {
   AdminPromotionsScopeTabs,
   type PromotionsScope,
 } from '@/pages/admin/home/AdminPromotionsScopeTabs'
-import { adminListProducts } from '@/services/admin/adminProductService'
 import {
   adminActivatePromotion,
   adminDeactivatePromotion,
@@ -25,6 +26,8 @@ import {
 } from '@/services/admin/adminProductPromotionService'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+
+const FILTERS_KEY = 'fal.promotions.filtersExpanded'
 
 const statusLabel: Record<AdminPromotionDisplayStatus, string> = {
   active: 'Ativa',
@@ -63,6 +66,14 @@ function scopeFromPath(pathname: string): PromotionsScope {
   return pathname.includes('/promocoes/kits') ? 'kits' : 'items'
 }
 
+function readFiltersExpanded(): boolean {
+  try {
+    return sessionStorage.getItem(FILTERS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function AdminPromotionsPage() {
   const location = useLocation()
   const scope = scopeFromPath(location.pathname)
@@ -78,30 +89,23 @@ export function AdminPromotionsPage() {
   >([])
   const [loading, setLoading] = useState(true)
   const [listQ, setListQ] = useState('')
-  const [situationFilter, setSituationFilter] = useState<
-    'all' | AdminPromotionDisplayStatus
-  >('all')
-  const [productQ, setProductQ] = useState('')
-  const [hits, setHits] = useState<
-    Array<{
-      id: string
-      name: string
-      sku: string
-      productKind: 'item' | 'kit'
-      price: number | null
-    }>
-  >([])
-  const [selectedProductId, setSelectedProductId] = useState('')
-  const [selectedProductLabel, setSelectedProductLabel] = useState('')
-  const [selectedListId, setSelectedListId] = useState('')
-  const [endsAt, setEndsAt] = useState('')
-  const [promoPriceDraft, setPromoPriceDraft] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [situationFilter, setSituationFilter] = useState<'all' | AdminPromotionDisplayStatus>(
+    'all',
+  )
+  const [filtersExpanded, setFiltersExpanded] = useState(readFiltersExpanded)
   const [rowBusyKey, setRowBusyKey] = useState<string | null>(null)
-
-  const canActivate = lists.length > 0 && Boolean(selectedProductId) && Boolean(selectedListId)
-
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [guideSeed, setGuideSeed] = useState<AdminPromotionRow | null>(null)
   const [scopeTabCounts, setScopeTabCounts] = useState({ items: 0, kits: 0 })
+
+  function setFiltersExpandedPersist(next: boolean) {
+    setFiltersExpanded(next)
+    try {
+      sessionStorage.setItem(FILTERS_KEY, next ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }
 
   const filteredRows = useMemo(() => {
     const q = listQ.trim().toLowerCase()
@@ -125,10 +129,15 @@ export function AdminPromotionsPage() {
     return c
   }, [rows])
 
+  const filterChips = useMemo(() => {
+    const chips: string[] = []
+    if (situationFilter !== 'all') chips.push(`Situação: ${statusLabel[situationFilter]}`)
+    return chips
+  }, [situationFilter])
+
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      // Cada aba só materializa o próprio tipo (itens ≠ kits).
       const [promo, other, pl, inactive] = await Promise.all([
         adminListProductPromotions({ productKind: isKits ? 'kit' : 'item' }),
         adminListProductPromotions({ productKind: isKits ? 'item' : 'kit' }),
@@ -143,10 +152,6 @@ export function AdminPromotionsPage() {
       )
       setLists(pl)
       setInactiveLists(inactive)
-      setSelectedListId((prev) => {
-        if (prev && pl.some((l) => l.id === prev)) return prev
-        return pl[0]?.id ?? ''
-      })
     } catch (e) {
       push(toUserMessage(e, 'Erro ao carregar promoções'), 'error')
     } finally {
@@ -159,106 +164,25 @@ export function AdminPromotionsPage() {
   }, [reload])
 
   useEffect(() => {
-    setSelectedProductId('')
-    setSelectedProductLabel('')
-    setProductQ('')
-    setHits([])
     setListQ('')
     setSituationFilter('all')
+    setGuideOpen(false)
+    setGuideSeed(null)
   }, [scope])
 
-  useEffect(() => {
-    if (selectedProductId && productQ === selectedProductLabel) {
-      setHits([])
-      return
-    }
-    const term = productQ.trim()
-    if (term.length < 2) {
-      setHits([])
-      return
-    }
-    let cancelled = false
-    const t = window.setTimeout(() => {
-      void adminListProducts({
-        q: term,
-        limit: 8,
-        productKind: isKits ? 'kit' : 'item',
-      })
-        .then((found) => {
-          if (cancelled) return
-          setHits(
-            found.map((p) => ({
-              id: p.id,
-              name: p.name,
-              sku: p.sku,
-              productKind: p.productKind === 'kit' ? 'kit' : 'item',
-              price: typeof p.price === 'number' && Number.isFinite(p.price) ? p.price : null,
-            })),
-          )
-        })
-        .catch(() => {
-          if (!cancelled) setHits([])
-        })
-    }, 220)
-    return () => {
-      cancelled = true
-      window.clearTimeout(t)
-    }
-  }, [productQ, selectedProductId, selectedProductLabel, isKits])
-
-  function clearProductSelection() {
-    setSelectedProductId('')
-    setSelectedProductLabel('')
-    setProductQ('')
-    setHits([])
-    setPromoPriceDraft('')
+  function openCreateGuide() {
+    setGuideSeed(null)
+    setGuideOpen(true)
   }
 
-  async function onActivate() {
-    if (!selectedProductId || !selectedListId) {
-      push(isKits ? 'Selecione kit e lista promocional' : 'Selecione produto e lista promocional', 'error')
-      return
-    }
-    if (!lists.length) {
-      push('Ative a Lista Promocional em Preços antes de ativar SKUs', 'error')
-      return
-    }
-    const parsedPromo = parseMoneyBr(promoPriceDraft)
-    const alreadyOnList = rows.some(
-      (r) => r.productId === selectedProductId && r.priceListId === selectedListId,
-    )
-    if (!alreadyOnList && (parsedPromo == null || parsedPromo < 0)) {
-      push(
-        isKits
-          ? 'Informe o preço promocional do kit para incluí-lo na lista.'
-          : 'Informe o preço promocional para incluir o item na lista.',
-        'error',
-      )
-      return
-    }
-    setBusy(true)
-    try {
-      await adminActivatePromotion({
-        productId: selectedProductId,
-        priceListId: selectedListId,
-        endsAt: endsAt.trim() ? new Date(endsAt).toISOString() : null,
-        promoPrice: parsedPromo,
-      })
-      push(
-        alreadyOnList
-          ? 'Promoção ativada — preço da loja passa a usar a lista promocional'
-          : 'SKU incluído na lista e promoção ativada',
-        'success',
-      )
-      clearProductSelection()
-      setEndsAt('')
-      setSituationFilter('all')
-      await reload()
-    } catch (e) {
-      push(toUserMessage(e, 'Falha ao ativar'), 'error')
-    } finally {
-      setBusy(false)
-    }
+  function openRowGuide(row: AdminPromotionRow) {
+    setGuideSeed(row)
+    setGuideOpen(true)
+  }
+
+  function closeGuide() {
+    setGuideOpen(false)
+    setGuideSeed(null)
   }
 
   async function onActivateRow(row: AdminPromotionRow) {
@@ -293,14 +217,56 @@ export function AdminPromotionsPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
+  function rowActions(r: AdminPromotionRow) {
+    const st = adminPromotionDisplayStatus(r)
+    const key = adminPromotionRowKey(r)
+    const rowBusy = rowBusyKey === key
+    const onGuide = guideOpen && guideSeed?.productId === r.productId
+    return (
+      <div className="flex flex-wrap gap-2">
+        {st === 'active' || st === 'scheduled' ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={rowBusy || !r.id}
+            onClick={() => void onDeactivate(r)}
+          >
+            {rowBusy ? '…' : 'Desativar'}
+          </Button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
+              onClick={() => openRowGuide(r)}
+            >
+              {onGuide ? 'Na guia' : 'Abrir guia'}
+            </button>
+            <Button
+              type="button"
+              size="sm"
+              variant="light"
+              disabled={rowBusy || lists.length === 0}
+              onClick={() => void onActivateRow(r)}
+              title="Ativa sem alterar término/preço"
+            >
+              {rowBusy ? '…' : 'Ativar rápido'}
+            </Button>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  const primary = (
+    <div className="admin-promotions-hub space-y-4">
       <div>
-        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Home da loja</h1>
+        <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Promoções</h1>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           {isKits
-            ? 'Promo do SKU do kit — não herda desconto dos itens. Cadastro do kit fica em Catálogo › Kits.'
-            : 'Promoções controlam o preço na loja. Destaques são outra aba e não mudam com isto.'}
+            ? 'Promo do SKU do kit — não herda desconto dos itens. Incluir/ativar na guia.'
+            : 'Controlam o preço na loja. Incluir/ativar na guia; Destaques são outra aba.'}
         </p>
       </div>
 
@@ -311,7 +277,6 @@ export function AdminPromotionsPage() {
         kitsCount={scopeTabCounts.kits}
       />
 
-      {/* 1) Pré-requisito operacional */}
       {inactiveLists.length > 0 || lists.length === 0 ? (
         <div
           className="rounded-fal border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
@@ -332,164 +297,30 @@ export function AdminPromotionsPage() {
                 : ''}
               .
             </li>
-            <li>
-              Cadastre o preço promocional do {isKits ? 'kit' : 'SKU'} nessa lista.
-            </li>
-            <li>
-              Volte aqui e ative o {isKits ? 'kit' : 'produto'} — só então a loja baixa o preço.
-            </li>
+            <li>Abra a guia para incluir o {isKits ? 'kit' : 'SKU'} com preço promo.</li>
           </ol>
         </div>
       ) : (
         <p className="m-0 rounded-fal border border-fal-success/30 bg-fal-success/10 px-4 py-2 text-sm text-fal-fg">
-          Lista promocional ativa. Busque o {isKits ? 'kit cadastrado' : 'produto'}, informe o preço
-          promo se ainda não estiver na lista e ative.
+          Lista promocional ativa. Use <strong>Incluir na guia</strong> para cadastrar / ativar.
         </p>
       )}
 
-      {/* 2) Ação principal */}
-      <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
-        <h2 className="m-0 text-lg font-bold text-fal-fg">
-          {isKits ? '1. Incluir / ativar kit' : '1. Incluir / ativar produto'}
-        </h2>
-        <p className="mt-1 mb-0 text-sm text-fal-muted">
-          {isKits
-            ? 'Kit cadastrado em Catálogo › Kits pode entrar na Lista Promocional com preço próprio (não herda desconto dos itens).'
-            : 'Inclui o SKU na Lista Promocional (se ainda não estiver) e ativa o gate na loja.'}
-        </p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="primary" onClick={openCreateGuide} disabled={lists.length === 0}>
+          Incluir na guia
+        </Button>
+        <Button type="button" variant="outline" onClick={() => void reload()} disabled={loading}>
+          Atualizar
+        </Button>
+      </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <div className="sm:col-span-2">
-            <Input
-              label={isKits ? 'Kit' : 'Produto'}
-              value={productQ}
-              onChange={(e) => {
-                const v = e.target.value
-                setProductQ(v)
-                if (selectedProductId && v !== selectedProductLabel) {
-                  setSelectedProductId('')
-                  setSelectedProductLabel('')
-                }
-              }}
-              placeholder={
-                isKits
-                  ? 'Digite nome ou SKU do kit (mín. 2 letras)'
-                  : 'Digite nome ou SKU (mín. 2 letras)'
-              }
-              disabled={lists.length === 0}
-            />
-            {selectedProductId ? (
-              <p className="mt-1 mb-0 flex flex-wrap items-center gap-2 text-xs text-fal-success">
-                Selecionado: <strong>{selectedProductLabel}</strong>
-                <button
-                  type="button"
-                  className="font-semibold text-fal-fg underline"
-                  onClick={clearProductSelection}
-                >
-                  Limpar
-                </button>
-              </p>
-            ) : null}
-            {hits.length > 0 ? (
-              <ul className="mt-1 max-h-44 list-none overflow-auto rounded-[9px] border border-fal-line bg-fal-surface p-0 text-sm">
-                {hits.map((h) => (
-                  <li key={h.id} className="border-b border-fal-line/60 last:border-0">
-                    <button
-                      type="button"
-                      className="block w-full px-3 py-2 text-left hover:bg-fal-bg"
-                      onClick={() => {
-                        const label = `${h.sku} — ${h.name}`
-                        setSelectedProductId(h.id)
-                        setSelectedProductLabel(label)
-                        setProductQ(label)
-                        const existing = rows.find(
-                          (r) => r.productId === h.id && r.priceListId === selectedListId,
-                        )
-                        const hint = existing?.promoPrice ?? h.price
-                        setPromoPriceDraft(
-                          hint != null ? formatMoneyInput(hint) : '',
-                        )
-                        setHits([])
-                      }}
-                    >
-                      <span className="font-mono text-xs text-fal-muted">
-                        {h.sku}
-                        {h.productKind === 'kit' ? ' · Kit' : ''}
-                      </span>
-                      <span className="mt-0.5 block font-semibold text-fal-fg">{h.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-
-          <Select
-            label="Lista"
-            value={selectedListId}
-            onChange={(e) => setSelectedListId(e.target.value)}
-            options={
-              lists.length
-                ? lists.map((l) => ({ value: l.id, label: l.name }))
-                : [{ value: '', label: 'Nenhuma lista ativa' }]
-            }
-            disabled={lists.length === 0}
-          />
-
-          <Input
-            label="Preço promocional"
-            value={promoPriceDraft}
-            onChange={(e) => setPromoPriceDraft(e.target.value)}
-            placeholder="0,00"
-            hint={isKits ? 'Obrigatório se o kit ainda não está na lista' : 'Obrigatório se o SKU ainda não está na lista'}
-            disabled={lists.length === 0}
-          />
-
-          <Input
-            label="Término (opcional)"
-            type="datetime-local"
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-            disabled={lists.length === 0}
-          />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="primary"
-            disabled={busy || !canActivate}
-            onClick={() => void onActivate()}
-          >
-            {busy ? 'Ativando…' : 'Incluir e ativar'}
-          </Button>
-          <p className="m-0 text-xs text-fal-muted">
-            {isKits
-              ? 'Kits cadastrados entram na mesma Lista Promocional dos itens.'
-              : 'Independente de o produto estar ou não em Destaques.'}
-          </p>
-        </div>
-      </section>
-
-      {/* 3) Lista / gestão */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="m-0 text-lg font-bold text-fal-fg">
-              {isKits ? '2. Kits na lista promocional' : '2. Itens na lista promocional'}
-            </h2>
-            <p className="mt-1 mb-0 text-sm text-fal-muted">
-              {loading
-                ? 'Carregando…'
-                : `${filteredRows.length} exibido${filteredRows.length === 1 ? '' : 's'} de ${rows.length} · ${counts.active} ativa${counts.active === 1 ? '' : 's'}`}
-            </p>
-          </div>
-          <Button type="button" variant="outline" onClick={() => void reload()} disabled={loading}>
-            Atualizar
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3 rounded-fal border border-fal-line bg-fal-surface p-3">
+      <form
+        className="admin-promotions-filters space-y-2 rounded-[14px] border border-fal-line bg-fal-surface p-3"
+        data-filters-expanded={filtersExpanded ? 'true' : 'false'}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[12rem] flex-1">
             <Input
               label="Buscar na lista"
@@ -498,137 +329,102 @@ export function AdminPromotionsPage() {
               placeholder="Nome, SKU ou lista"
             />
           </div>
-          <Select
-            label="Situação"
-            value={situationFilter}
-            onChange={(e) =>
-              setSituationFilter(e.target.value as 'all' | AdminPromotionDisplayStatus)
-            }
-            options={[
-              { value: 'all', label: `Todas (${rows.length})` },
-              { value: 'active', label: `Ativas (${counts.active})` },
-              { value: 'scheduled', label: `Agendadas (${counts.scheduled})` },
-              { value: 'expired', label: `Expiradas (${counts.expired})` },
-              { value: 'inactive', label: `Inativas (${counts.inactive})` },
-            ]}
-          />
+          <Button
+            type="button"
+            variant="light"
+            aria-expanded={filtersExpanded}
+            onClick={() => setFiltersExpandedPersist(!filtersExpanded)}
+          >
+            {filtersExpanded
+              ? 'Recolher filtros'
+              : filterChips.length > 0
+                ? `Filtros (${filterChips.length})`
+                : 'Mais filtros'}
+          </Button>
         </div>
 
-        {!loading && rows.length === 0 ? (
-          <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
-            Nenhum {isKits ? 'kit' : 'item'} na lista promocional. Use a busca acima, informe o preço
-            promo e clique em Incluir e ativar.
-          </p>
-        ) : null}
-        {!loading && rows.length > 0 && filteredRows.length === 0 ? (
-          <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
-            Nenhum {isKits ? 'kit' : 'item'} com esse filtro.
-          </p>
+        {!filtersExpanded && filterChips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wide text-fal-muted">
+              Ativos
+            </span>
+            {filterChips.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-fal-line bg-fal-bg px-2 py-0.5 text-xs font-semibold text-fal-fg"
+              >
+                {chip}
+              </span>
+            ))}
+            <button
+              type="button"
+              className="text-xs font-semibold text-fal-muted underline"
+              onClick={() => setFiltersExpandedPersist(true)}
+            >
+              Editar
+            </button>
+          </div>
         ) : null}
 
-        <div className="hidden max-h-[min(28rem,55vh)] overflow-auto rounded-fal border border-fal-line bg-fal-surface md:block">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead className="sticky top-0 z-[1] bg-fal-bg text-fal-muted shadow-[0_1px_0_var(--fal-line)]">
-              <tr>
-                <th className="px-3 py-2 font-semibold">{isKits ? 'Kit' : 'Produto'}</th>
-                <th className="px-3 py-2 font-semibold">Preços</th>
-                <th className="px-3 py-2 font-semibold">%</th>
-                <th className="px-3 py-2 font-semibold">Situação</th>
-                <th className="px-3 py-2 font-semibold">Término</th>
-                <th className="px-3 py-2 font-semibold">Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((r) => {
-                const st = adminPromotionDisplayStatus(r)
-                const offer = resolvePromoOffer(r.listPrice, r.promoPrice)
-                const key = adminPromotionRowKey(r)
-                const rowBusy = rowBusyKey === key
-                return (
-                  <tr key={key} className="border-t border-fal-line/70">
-                    <td className="px-3 py-2.5">
-                      <Link
-                        className="font-semibold text-fal-fg hover:underline"
-                        to={
-                          r.productKind === 'kit'
-                            ? `/admin/kits/${r.productId}`
-                            : `/admin/produtos/${r.productId}`
-                        }
-                      >
-                        {r.name}
-                      </Link>
-                      <div className="font-mono text-xs text-fal-muted">
-                        {r.sku}
-                        {r.productKind === 'kit' ? ' · Kit' : ''}
-                      </div>
-                      <div className="text-xs text-fal-muted">{r.priceListName}</div>
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <div className="text-xs text-fal-muted line-through">
-                        {r.listPrice != null ? formatMoney(r.listPrice) : '—'}
-                      </div>
-                      <div className="font-semibold text-fal-success">
-                        {r.promoPrice != null ? formatMoney(r.promoPrice) : '—'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {offer.discountPercent != null
-                        ? formatDiscountPercentLabel(offer.discountPercent)
-                        : '—'}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span
-                        className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusPillClass(st)}`}
-                      >
-                        {statusLabel[st]}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-fal-muted">
-                      {formatEndsLocal(r.endsAt)}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {st === 'active' || st === 'scheduled' ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={rowBusy || !r.id}
-                          onClick={() => void onDeactivate(r)}
-                        >
-                          {rowBusy ? '…' : 'Desativar'}
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="primary"
-                          disabled={rowBusy || lists.length === 0}
-                          onClick={() => void onActivateRow(r)}
-                        >
-                          {rowBusy ? '…' : 'Ativar'}
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        {filtersExpanded ? (
+          <div className="border-t border-fal-line pt-2">
+            <Select
+              label="Situação"
+              value={situationFilter}
+              onChange={(e) =>
+                setSituationFilter(e.target.value as 'all' | AdminPromotionDisplayStatus)
+              }
+              options={[
+                { value: 'all', label: `Todas (${rows.length})` },
+                { value: 'active', label: `Ativas (${counts.active})` },
+                { value: 'scheduled', label: `Agendadas (${counts.scheduled})` },
+                { value: 'expired', label: `Expiradas (${counts.expired})` },
+                { value: 'inactive', label: `Inativas (${counts.inactive})` },
+              ]}
+            />
+          </div>
+        ) : null}
+      </form>
 
-        <div className="max-h-[min(28rem,55vh)] space-y-3 overflow-y-auto pr-1 md:hidden">
-          {filteredRows.map((r) => {
-            const st = adminPromotionDisplayStatus(r)
-            const offer = resolvePromoOffer(r.listPrice, r.promoPrice)
-            const key = adminPromotionRowKey(r)
-            const rowBusy = rowBusyKey === key
-            return (
-              <article key={key} className="rounded-[14px] border border-fal-line bg-fal-surface p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="m-0 font-mono text-xs text-fal-muted">{r.sku}</p>
+      <p className="m-0 text-sm text-fal-muted">
+        {loading
+          ? 'Carregando…'
+          : `${filteredRows.length} exibido${filteredRows.length === 1 ? '' : 's'} de ${rows.length} · ${counts.active} ativa${counts.active === 1 ? '' : 's'}`}
+      </p>
+
+      {!loading && rows.length === 0 ? (
+        <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
+          Nenhum {isKits ? 'kit' : 'item'} na lista promocional. Use <strong>Incluir na guia</strong>.
+        </p>
+      ) : null}
+      {!loading && rows.length > 0 && filteredRows.length === 0 ? (
+        <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
+          Nenhum {isKits ? 'kit' : 'item'} com esse filtro.
+        </p>
+      ) : null}
+
+      <div className="admin-promotions-list-desktop fal-admin-scroll hidden max-h-[min(60dvh,640px)] overflow-auto rounded-fal border border-fal-line bg-fal-surface md:block">
+        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+          <thead className="sticky top-0 z-[1] bg-fal-bg text-fal-muted shadow-[0_1px_0_var(--fal-line)]">
+            <tr>
+              <th className="px-3 py-2 font-semibold">{isKits ? 'Kit' : 'Produto'}</th>
+              <th className="px-3 py-2 font-semibold">Preços</th>
+              <th className="px-3 py-2 font-semibold">%</th>
+              <th className="px-3 py-2 font-semibold">Situação</th>
+              <th className="px-3 py-2 font-semibold">Término</th>
+              <th className="px-3 py-2 font-semibold">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((r) => {
+              const st = adminPromotionDisplayStatus(r)
+              const offer = resolvePromoOffer(r.listPrice, r.promoPrice)
+              const key = adminPromotionRowKey(r)
+              return (
+                <tr key={key} className="border-t border-fal-line/70">
+                  <td className="px-3 py-2.5">
                     <Link
-                      className="font-extrabold text-fal-fg"
+                      className="font-semibold text-fal-fg hover:underline"
                       to={
                         r.productKind === 'kit'
                           ? `/admin/kits/${r.productId}`
@@ -637,55 +433,117 @@ export function AdminPromotionsPage() {
                     >
                       {r.name}
                     </Link>
-                    <p className="mb-0 mt-1 text-xs text-fal-muted">{r.priceListName}</p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusPillClass(st)}`}
+                    <div className="font-mono text-xs text-fal-muted">
+                      {r.sku}
+                      {r.productKind === 'kit' ? ' · Kit' : ''}
+                    </div>
+                    <div className="text-xs text-fal-muted">{r.priceListName}</div>
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    <div className="text-xs text-fal-muted line-through">
+                      {r.listPrice != null ? formatMoney(r.listPrice) : '—'}
+                    </div>
+                    <div className="font-semibold text-fal-success">
+                      {r.promoPrice != null ? formatMoney(r.promoPrice) : '—'}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {offer.discountPercent != null
+                      ? formatDiscountPercentLabel(offer.discountPercent)
+                      : '—'}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusPillClass(st)}`}
+                    >
+                      {statusLabel[st]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-fal-muted">{formatEndsLocal(r.endsAt)}</td>
+                  <td className="px-3 py-2.5">{rowActions(r)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-promotions-list-mobile fal-admin-scroll max-h-[min(60dvh,640px)] space-y-3 overflow-y-auto pr-1 md:hidden">
+        {filteredRows.map((r) => {
+          const st = adminPromotionDisplayStatus(r)
+          const offer = resolvePromoOffer(r.listPrice, r.promoPrice)
+          const key = adminPromotionRowKey(r)
+          return (
+            <article key={key} className="rounded-[14px] border border-fal-line bg-fal-surface p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="m-0 font-mono text-xs text-fal-muted">{r.sku}</p>
+                  <Link
+                    className="font-extrabold text-fal-fg"
+                    to={
+                      r.productKind === 'kit'
+                        ? `/admin/kits/${r.productId}`
+                        : `/admin/produtos/${r.productId}`
+                    }
                   >
-                    {statusLabel[st]}
-                  </span>
+                    {r.name}
+                  </Link>
+                  <p className="mb-0 mt-1 text-xs text-fal-muted">{r.priceListName}</p>
                 </div>
-                <p className="mt-2 mb-0 text-sm">
-                  <span className="text-fal-muted line-through">
-                    {r.listPrice != null ? formatMoney(r.listPrice) : '—'}
-                  </span>
-                  {' → '}
-                  <strong className="text-fal-success">
-                    {r.promoPrice != null ? formatMoney(r.promoPrice) : '—'}
-                  </strong>
-                  {offer.discountPercent != null
-                    ? ` (${formatDiscountPercentLabel(offer.discountPercent)})`
-                    : ''}
-                </p>
-                <p className="mt-1 mb-0 text-xs text-fal-muted">{formatEndsLocal(r.endsAt)}</p>
-                {st === 'active' || st === 'scheduled' ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    disabled={rowBusy || !r.id}
-                    onClick={() => void onDeactivate(r)}
-                  >
-                    {rowBusy ? '…' : 'Desativar'}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    className="mt-2"
-                    disabled={rowBusy || lists.length === 0}
-                    onClick={() => void onActivateRow(r)}
-                  >
-                    {rowBusy ? '…' : 'Ativar'}
-                  </Button>
-                )}
-              </article>
-            )
-          })}
-        </div>
-      </section>
+                <span
+                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-bold ${statusPillClass(st)}`}
+                >
+                  {statusLabel[st]}
+                </span>
+              </div>
+              <p className="mt-2 mb-0 text-sm">
+                <span className="text-fal-muted line-through">
+                  {r.listPrice != null ? formatMoney(r.listPrice) : '—'}
+                </span>
+                {' → '}
+                <strong className="text-fal-success">
+                  {r.promoPrice != null ? formatMoney(r.promoPrice) : '—'}
+                </strong>
+                {offer.discountPercent != null
+                  ? ` (${formatDiscountPercentLabel(offer.discountPercent)})`
+                  : ''}
+              </p>
+              <p className="mt-1 mb-0 text-xs text-fal-muted">{formatEndsLocal(r.endsAt)}</p>
+              <div className="mt-2">{rowActions(r)}</div>
+            </article>
+          )
+        })}
+      </div>
     </div>
+  )
+
+  return (
+    <AdaptiveWorkspace
+      moduleKey="promotions"
+      primary={primary}
+      contextualOpen={guideOpen}
+      onContextualOpenChange={(open) => {
+        if (!open) closeGuide()
+      }}
+      contextualTitle={
+        guideSeed
+          ? `Reativar · ${guideSeed.sku}`
+          : isKits
+            ? 'Incluir kit'
+            : 'Incluir produto'
+      }
+      contextual={
+        guideOpen ? (
+          <PromotionWorkSurface
+            isKits={isKits}
+            lists={lists}
+            rows={rows}
+            seed={guideSeed}
+            onClose={closeGuide}
+            onMutated={() => void reload()}
+          />
+        ) : null
+      }
+    />
   )
 }

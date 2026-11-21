@@ -406,6 +406,13 @@ export function AdminApplicationsPage() {
                 {chip}
               </span>
             ))}
+            <button
+              type="button"
+              className="text-xs font-semibold text-fal-muted underline"
+              onClick={() => setFiltersExpandedPersist(true)}
+            >
+              Editar
+            </button>
           </div>
         ) : null}
 
@@ -648,11 +655,17 @@ export function AdminApplicationsPage() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="font-semibold text-fal-fg underline"
+                            className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
                             onClick={() => openAppGuide(row.id)}
                           >
                             {onGuide ? 'Na guia' : splitTabs.hasOpen ? '+ Guia' : 'Abrir guia'}
                           </button>
+                          <Link
+                            className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-line px-2.5 text-xs font-semibold text-fal-fg"
+                            to={`/admin/produtos/${row.productId}`}
+                          >
+                            Abrir cadastro
+                          </Link>
                         </div>
                       </td>
                     </tr>

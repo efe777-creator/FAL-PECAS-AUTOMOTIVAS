@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.2.0 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.3.0 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -30,6 +30,7 @@ const MODULE_KEYS: WorkspaceModuleKey[] = [
   'prices',
   'applications',
   'categories',
+  'promotions',
 ]
 
 describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
@@ -50,6 +51,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       ['pages/admin/prices/AdminPriceListsPage.tsx', 'prices'],
       ['pages/admin/products/AdminApplicationsPage.tsx', 'applications'],
       ['pages/admin/categories/AdminCategoriesPage.tsx', 'categories'],
+      ['pages/admin/home/AdminPromotionsPage.tsx', 'promotions'],
     ]
     for (const [file, key] of hubs) {
       const body = read(file)
@@ -142,7 +144,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     }
   })
 
-  it('FL6: WorkSurfaces Product / Kit / PriceList / Application / Category', () => {
+  it('FL6: WorkSurfaces Product / Kit / PriceList / Application / Category / Promotion', () => {
     expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
       /export function ProductWorkSurface/,
     )
@@ -157,6 +159,9 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     )
     expect(read('components/admin/categories/CategoryWorkSurface.tsx')).toMatch(
       /export function CategoryWorkSurface/,
+    )
+    expect(read('components/admin/promotions/PromotionWorkSurface.tsx')).toMatch(
+      /export function PromotionWorkSurface/,
     )
   })
 
@@ -210,11 +215,13 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       'pages/admin/prices/AdminPriceListsPage.tsx',
       'pages/admin/products/AdminApplicationsPage.tsx',
       'pages/admin/categories/AdminCategoriesPage.tsx',
+      'pages/admin/home/AdminPromotionsPage.tsx',
       'components/admin/products/ProductWorkSurface.tsx',
       'components/admin/kits/KitWorkSurface.tsx',
       'components/admin/prices/PriceListWorkSurface.tsx',
       'components/admin/applications/ApplicationWorkSurface.tsx',
       'components/admin/categories/CategoryWorkSurface.tsx',
+      'components/admin/promotions/PromotionWorkSurface.tsx',
       'pages/admin/kits/AdminKitFormPage.tsx',
     ]
     for (const file of hubFiles) {
@@ -386,6 +393,8 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     // Form só na guia (não permanente no primary)
     expect(page).not.toMatch(/<CategoriesEditorForm/)
     expect(page).toMatch(/Abrir guia|startEdit|startCreate/)
+    expect(page).toMatch(/confirmLeaveDirtyGuide/)
+    expect(page).toMatch(/max-h-\[min\(60dvh,640px\)\]/)
 
     const surface = read('components/admin/categories/CategoryWorkSurface.tsx')
     expect(surface).toMatch(/export function CategoryWorkSurface/)
@@ -398,9 +407,46 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(browse).toMatch(/Na guia/)
     expect(browse).toMatch(/admin-categories-list-mobile/)
     expect(browse).toMatch(/admin-categories-list-desktop/)
+    expect(browse).toMatch(/bg-fal-yellow/)
 
     const css = read('styles/index.css')
     expect(css).toMatch(/admin-categories-hub/)
     expect(css).toMatch(/admin-categories-list-mobile/)
+  })
+
+  it('FL21: polish P0 — lote Produtos via barra; chips Editar Apps; CTA guia', () => {
+    const products = read('pages/admin/products/AdminProductsPage.tsx')
+    expect(products).toMatch(/Alterações em lote na guia/)
+    expect(products).not.toMatch(
+      /if \(selected\.size > 0 \|\| releasePreflight\) setLoteGuiaOpen\(true\)/,
+    )
+    expect(products).toMatch(/bg-fal-yellow/)
+
+    const apps = read('pages/admin/products/AdminApplicationsPage.tsx')
+    expect(apps).toMatch(/Editar/)
+    expect(apps).toMatch(/Abrir cadastro/)
+    expect(apps).toMatch(/bg-fal-yellow/)
+  })
+
+  it('FL22: Hub Promoções Adaptive — PromotionWorkSurface; sem form mid-page', () => {
+    const page = read('pages/admin/home/AdminPromotionsPage.tsx')
+    expect(page).toMatch(/AdaptiveWorkspace/)
+    expect(page).toContain('moduleKey="promotions"')
+    expect(page).toMatch(/PromotionWorkSurface/)
+    expect(page).toMatch(/admin-promotions-hub/)
+    expect(page).toMatch(/Incluir na guia/)
+    expect(page).not.toMatch(/1\. Incluir \/ ativar/)
+    expect(page).toMatch(/fal\.promotions\.filtersExpanded/)
+    expect(page).toMatch(/Mais filtros|Recolher filtros/)
+
+    const surface = read('components/admin/promotions/PromotionWorkSurface.tsx')
+    expect(surface).toMatch(/export function PromotionWorkSurface/)
+    expect(surface).toMatch(/adminActivatePromotion/)
+    expect(surface).toMatch(/Fechar guia/)
+    expect(surface).toMatch(/Incluir e ativar/)
+
+    const css = read('styles/index.css')
+    expect(css).toMatch(/admin-promotions-hub/)
+    expect(css).toMatch(/admin-promotions-list-mobile/)
   })
 })

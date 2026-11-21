@@ -535,9 +535,7 @@ export function AdminProductsPage() {
     }
   }
 
-  useEffect(() => {
-    if (selected.size > 0 || releasePreflight) setLoteGuiaOpen(true)
-  }, [selected.size, releasePreflight])
+  // Lote na guia só via barra "Alterações em lote" (ou Liberar) — não hijack ao marcar checkbox.
 
   const focusedProduct = useMemo(() => {
     if (!splitTabs.activeId) return null
@@ -1128,6 +1126,23 @@ export function AdminProductsPage() {
           .
         </p>
       ) : null}
+
+      {hasSelection ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
+          <span className="font-semibold text-fal-fg">{selected.size} selecionado(s)</span>
+          <Button type="button" variant="light" onClick={() => setLoteGuiaOpen(true)}>
+            Alterações em lote na guia
+          </Button>
+          <button
+            type="button"
+            className="text-sm font-semibold text-fal-muted underline"
+            onClick={() => setSelected(new Set())}
+          >
+            Limpar seleção
+          </button>
+        </div>
+      ) : null}
+
       {loading ? <Loading /> : null}
 
       {items.length === 0 && !loading ? (
@@ -1277,10 +1292,11 @@ export function AdminProductsPage() {
                 <td className="px-3 py-2 text-fal-fg">
                   {p.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
-                <td className="px-3 py-2 space-x-2">
+                <td className="px-3 py-2">
+                  <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="font-semibold text-fal-navy"
+                    className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
                     onClick={() => {
                       setLoteGuiaOpen(false)
                       splitTabs.openTab(p.id)
@@ -1293,7 +1309,7 @@ export function AdminProductsPage() {
                         : 'Abrir guia'}
                   </button>
                   <Link
-                    className="font-semibold text-fal-auth-link"
+                    className="inline-flex min-h-9 items-center rounded-[10px] border border-fal-line px-2.5 text-xs font-semibold text-fal-fg"
                     to={
                       p.productKind === 'kit'
                         ? `/admin/kits/${p.id}`
@@ -1304,11 +1320,12 @@ export function AdminProductsPage() {
                   </Link>
                   <button
                     type="button"
-                    className="font-semibold text-fal-muted"
+                    className="text-xs font-semibold text-fal-muted underline"
                     onClick={() => void toggleArchive(p)}
                   >
                     {p.status === 'archived' ? 'Publicar' : 'Arquivar'}
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1396,8 +1413,6 @@ export function AdminProductsPage() {
           setLoteGuiaOpen(false)
           splitTabs.closeAll()
           setReleasePreflight(null)
-        } else if (selected.size > 0 || releasePreflight) {
-          setLoteGuiaOpen(true)
         }
       }}
       contextualTitle={

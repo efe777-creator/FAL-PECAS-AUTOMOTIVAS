@@ -271,20 +271,23 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-products-hub,
 [data-workspace-primary='compact'] .admin-kits-hub,
 [data-workspace-primary='compact'] .admin-applications-hub,
-[data-workspace-primary='compact'] .admin-categories-hub {
+[data-workspace-primary='compact'] .admin-categories-hub,
+[data-workspace-primary='compact'] .admin-promotions-hub {
   overflow-x: hidden;
 }
 
 [data-workspace-primary='compact'] .admin-products-list-mobile,
 [data-workspace-primary='compact'] .admin-kits-list-mobile,
 [data-workspace-primary='compact'] .admin-applications-list-mobile,
-[data-workspace-primary='compact'] .admin-categories-list-mobile {
+[data-workspace-primary='compact'] .admin-categories-list-mobile,
+[data-workspace-primary='compact'] .admin-promotions-list-mobile {
   display: block;
 }
 
 [data-workspace-primary='compact'] .admin-products-list-desktop,
 [data-workspace-primary='compact'] .admin-kits-list-desktop,
 [data-workspace-primary='compact'] .admin-applications-list-desktop,
-[data-workspace-primary='compact'] .admin-categories-list-desktop {
+[data-workspace-primary='compact'] .admin-categories-list-desktop,
+[data-workspace-primary='compact'] .admin-promotions-list-desktop {
   display: none;
 }

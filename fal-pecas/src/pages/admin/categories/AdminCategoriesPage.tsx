@@ -336,7 +336,16 @@ export function AdminCategoriesPage() {
     resetForm()
   }
 
+  /** Trocar de nó/criar com guia dirty exige confirmação (não perde edição silenciosa). */
+  function confirmLeaveDirtyGuide(): boolean {
+    if (!dirty || !guideOpen) return true
+    return window.confirm(
+      'Há alterações na classificação ainda não salvas. Trocar de registro mesmo assim?',
+    )
+  }
+
   function startCreate(level: CreateLevel) {
+    if (!confirmLeaveDirtyGuide()) return
     setEditing(null)
     setName('')
     setDescription('')
@@ -390,6 +399,7 @@ export function AdminCategoriesPage() {
   }
 
   function startEdit(cat: Category) {
+    if (editing?.id !== cat.id && !confirmLeaveDirtyGuide()) return
     const depth = Math.min(3, Math.max(1, categoryDepth(items, cat.id))) as CreateLevel
     setEditing(cat)
     setName(cat.name)
@@ -415,6 +425,7 @@ export function AdminCategoriesPage() {
   }
 
   function startAddChild(parent: Category) {
+    if (!confirmLeaveDirtyGuide()) return
     const depth = categoryDepth(items, parent.id)
     if (depth >= CATEGORY_MAX_DEPTH) {
       pushError('Subgrupo não pode ter filhos (máx. 3 níveis).')
@@ -774,29 +785,31 @@ export function AdminCategoriesPage() {
       {info ? <p className="text-sm text-green-700">{info}</p> : null}
       {loading ? <Loading /> : null}
 
-      <CategoriesBrowsePanel
-        viewMode={viewMode}
-        flatRows={flatRows}
-        visibleRoots={visibleRoots}
-        treeItems={treeItems}
-        counts={counts}
-        editingId={editing?.id ?? null}
-        guideOpen={guideOpen}
-        busyId={busyId}
-        searchQ={searchQ}
-        expanded={expanded}
-        childrenOf={childrenOf}
-        siblingsOf={siblingsOf}
-        matchesSearch={matchesSearch}
-        nodeOrDescendantMatches={nodeOrDescendantMatches}
-        onToggleExpanded={toggleExpanded}
-        onReorder={(cat, dir) => void onReorder(cat, dir)}
-        onEdit={startEdit}
-        onAddChild={startAddChild}
-        onArchiveToggle={(cat) => void onArchiveToggle(cat)}
-        onDelete={(cat) => void onDelete(cat)}
-        onStartCreateRoot={() => startCreate(1)}
-      />
+      <div className="fal-admin-scroll max-h-[min(60dvh,640px)] overflow-y-auto">
+        <CategoriesBrowsePanel
+          viewMode={viewMode}
+          flatRows={flatRows}
+          visibleRoots={visibleRoots}
+          treeItems={treeItems}
+          counts={counts}
+          editingId={editing?.id ?? null}
+          guideOpen={guideOpen}
+          busyId={busyId}
+          searchQ={searchQ}
+          expanded={expanded}
+          childrenOf={childrenOf}
+          siblingsOf={siblingsOf}
+          matchesSearch={matchesSearch}
+          nodeOrDescendantMatches={nodeOrDescendantMatches}
+          onToggleExpanded={toggleExpanded}
+          onReorder={(cat, dir) => void onReorder(cat, dir)}
+          onEdit={startEdit}
+          onAddChild={startAddChild}
+          onArchiveToggle={(cat) => void onArchiveToggle(cat)}
+          onDelete={(cat) => void onDelete(cat)}
+          onStartCreateRoot={() => startCreate(1)}
+        />
+      </div>
     </div>
   )
 

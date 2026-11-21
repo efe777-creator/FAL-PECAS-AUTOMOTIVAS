@@ -140,7 +140,7 @@ export function CategoriesBrowsePanel({
             </button>
             <button
               type="button"
-              className="font-semibold text-fal-auth-link"
+              className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
               onClick={() => onEdit(cat)}
             >
               {guideOpen && editingId === cat.id ? 'Na guia' : 'Abrir guia'}
@@ -192,7 +192,7 @@ export function CategoriesBrowsePanel({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="font-semibold text-fal-auth-link"
+          className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
           onClick={() => onEdit(cat)}
         >
           {guideOpen && editingId === cat.id ? 'Na guia' : 'Abrir guia'}
