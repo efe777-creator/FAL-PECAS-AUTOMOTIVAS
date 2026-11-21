@@ -3,7 +3,7 @@
 **Data:** 2026-11-21 · **Marcha estudo** (sem código)  
 **Premissa eFe:** não inventar shell novo — **reusar** o que Central de Pedidos e Painel já validaram.
 
-> **Padrão mestre (versionado):** [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md](./FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) — FAL-UI-LAYOUT **v1.0** + changelog + antiregress `pnpm test:ui-layout-antiregress`.
+> **Padrão mestre (versionado):** [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md](./FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) — FAL-UI-LAYOUT **v1.1.0** (vigente) · nascimento deste doc = v1.0 · antiregress `pnpm test:ui-layout-antiregress`.
 
 ## 1. O que já é padrão de produção em `dev`
 

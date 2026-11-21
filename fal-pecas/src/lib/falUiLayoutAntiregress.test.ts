@@ -140,7 +140,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     }
   })
 
-  it('FL6: WorkSurfaces Product / Kit / PriceList', () => {
+  it('FL6: WorkSurfaces Product / Kit / PriceList / Application', () => {
     expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
       /export function ProductWorkSurface/,
     )
@@ -149,6 +149,9 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     )
     expect(read('components/admin/prices/PriceListWorkSurface.tsx')).toMatch(
       /export function PriceListWorkSurface/,
+    )
+    expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
+      /export function ApplicationWorkSurface/,
     )
   })
 

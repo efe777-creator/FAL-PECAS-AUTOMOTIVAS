@@ -73,7 +73,7 @@ flowchart LR
 
 | Peça | Contrato |
 |------|----------|
-| `moduleKey` | `orders` \| `dashboard` \| `products` \| `kits` \| `prices` (+ futuras só por MINOR) |
+| `moduleKey` | `orders` \| `dashboard` \| `products` \| `kits` \| `prices` \| `applications` (+ futuras só por MINOR) |
 | Modos | `split` \| `expanded` \| `fullscreen` \| `collapsed` |
 | Desktop | ≥ `lg` (1024) split; &lt; lg contextual fullscreen |
 | Multi-guia | `OrderSplitTabPanels` / `useIdSplitTabs` — empilhar IDs, não minimizar |
@@ -167,7 +167,7 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL3** | `data-workspace-primary` compact\|full no shell | fonte |
 | **FL4** | CSS compact primary (orders) + regra `@container` no exec-summary | fonte |
 | **FL5** | Vocabulário Abrir guia / Fechar guia / **Listas de preço** (nav + hubs + Home/fornecedor; sem “preços” plural no label) | fonte |
-| **FL6** | WorkSurfaces: Product / Kit / PriceList exportados | fonte |
+| **FL6** | WorkSurfaces: Product / Kit / PriceList / Application exportados | fonte |
 | **FL7** | Tokens `--fal-fg/bg/surface/accent` + `.dark` | fonte |
 | **FL8** | PZ: RGL key distinta de workspace (comentário/ortogonalidade em prefs) | fonte |
 | **FL9** | AdminTabs nas fichas produto e kit | fonte |
@@ -220,8 +220,13 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 - Primary: lista compact + filtros expansíveis (`fal.applications.filtersExpanded`) + Abrir guia / + Guia / Na guia
 - Import planilha permanece CTA fora do split; domínio PVC/import/Liberar intocado
 - Atalho guia Produto → `/admin/aplicacoes?q={sku}`
-- Locks **FL16** · **FL17**
+- Locks **FL16** · **FL17** (FL6 inclui ApplicationWorkSurface)
 - VAL: [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md)
+
+**Ortogonalidade de versões (não confundir):**
+- **FAL-UI-LAYOUT** `v1.1.0` = padrão telas/layout (este doc)
+- **`WORKSPACE_VERSION = 1`** / key `fal-admin-workspace-v1` = schema de prefs do shell (só bumpa se mudar formato do JSON)
+- **`package.json` `0.0.0`** = versão npm do app — **não** espelha FAL-UI-LAYOUT
 
 ### v1.0.4 — 2026-11-21 (PATCH)
 
