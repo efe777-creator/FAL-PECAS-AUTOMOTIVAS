@@ -233,11 +233,14 @@ Deno.serve(async (req) => {
     if (last.event_type === 'occurrence_resolved') {
       return json(409, { ok: false, error: 'occurrence_resolved', message: 'Caso já resolvido.' })
     }
-    if (stage !== 'autorizada' || returnMode !== 'me_codigo') {
+    if (
+      (stage !== 'autorizada' && stage !== 'aguardando_peca') ||
+      returnMode !== 'me_codigo'
+    ) {
       return json(409, {
         ok: false,
         error: 'not_authorized_me',
-        message: 'Caso precisa estar autorizado com return_mode me_codigo.',
+        message: 'Caso precisa estar autorizado (ou aguardando peça) com return_mode me_codigo.',
       })
     }
     if (codeValid) {

@@ -96,6 +96,7 @@ describe('deriveOccurrences (Marcha 7 ciclo de vida)', () => {
     expect(list[0]?.stage).toBe('autorizada')
     expect(list[0]?.returnMode).toBe('me_codigo')
     expect(list[0]?.meReverse?.tracking_code).toBe('AA123')
+    expect(list[0]?.status).toBe('in_progress')
   })
 
   it('reabertura com motivo volta para fila (último ≠ resolved)', () => {

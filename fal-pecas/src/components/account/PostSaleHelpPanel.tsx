@@ -109,10 +109,15 @@ export function PostSaleHelpPanel({
         </p>
       )}
 
-      {!windowOpen ? (
+      {hasOpenPostSaleCase ? (
         <p className="mt-3 mb-0 text-sm font-semibold text-fal-fg">
-          Não é possível abrir um novo problema agora. Se já houver atendimento, acompanhe as
-          atualizações abaixo ou fale pelo WhatsApp do pedido.
+          Já existe atendimento em andamento neste pedido. Acompanhe as atualizações abaixo — não
+          é necessário abrir outro chamado.
+        </p>
+      ) : !windowOpen ? (
+        <p className="mt-3 mb-0 text-sm font-semibold text-fal-fg">
+          O prazo de 7 dias para abrir um novo suporte neste pedido encerrou. Se precisar, fale
+          pelo WhatsApp do pedido.
         </p>
       ) : !open ? (
         <div className="mt-4">

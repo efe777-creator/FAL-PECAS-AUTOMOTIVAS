@@ -53,18 +53,21 @@ export function evaluateMeReverseEligibility(input: MeReverseEligibilityInput): 
   const blockers: string[] = []
   if (input.orderStatus !== 'entregue') blockers.push('order_not_delivered')
   if (!isMelhorEnvioProvider(input.provider)) blockers.push('provider_not_me')
-  if (input.volumeCount !== 1) blockers.push('multi_volume_or_unknown')
+  if (input.volumeCount <= 0) blockers.push('volume_unknown')
+  else if (input.volumeCount !== 1) blockers.push('multi_volume')
   if (!String(input.meOrderId ?? '').trim()) blockers.push('me_order_id_missing')
 
   if (blockers.length > 0) {
     const reason =
       blockers[0] === 'provider_not_me'
         ? 'Envio original não foi Melhor Envio — use WhatsApp ou devolução na loja.'
-        : blockers[0] === 'multi_volume_or_unknown'
+        : blockers[0] === 'multi_volume'
           ? 'Logística reversa ME só para volume único.'
-          : blockers[0] === 'me_order_id_missing'
-            ? 'Falta referência do envio Melhor Envio original.'
-            : 'Pedido precisa estar entregue para gerar código de devolução.'
+          : blockers[0] === 'volume_unknown'
+            ? 'Volumes do envio não encontrados — use WhatsApp ou devolução na loja.'
+            : blockers[0] === 'me_order_id_missing'
+              ? 'Falta referência do envio Melhor Envio original.'
+              : 'Pedido precisa estar entregue para gerar código de devolução.'
     return { ok: false, reason, blockers }
   }
   return { ok: true, reason: 'Elegível para código Melhor Envio.', blockers: [] }

@@ -65,7 +65,7 @@ describe('pós-venda anti-regressão (fonte)', () => {
     expect(mig).toMatch(/attach_me_return_code/)
     const elig = read('src/lib/meReverseEligibility.ts')
     expect(elig).toMatch(/provider_not_me/)
-    expect(elig).toMatch(/multi_volume_or_unknown/)
+    expect(elig).toMatch(/multi_volume/)
   })
 
   it('overload 13-arg admin_occurrence_action versionado', () => {

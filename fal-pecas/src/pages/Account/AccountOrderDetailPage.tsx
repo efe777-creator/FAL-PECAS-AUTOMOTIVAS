@@ -373,12 +373,17 @@ export function AccountOrderDetailPage() {
   }, [order?.events])
 
   const hasOpenPostSaleCase = postSaleOccurrences.some((o) => o.status !== 'resolved')
-  const authorizedPostSale = postSaleOccurrences.find(
-    (o) =>
-      o.status !== 'resolved' &&
-      o.stage === 'autorizada' &&
-      (o.returnMode === 'me_codigo' || o.returnMode === 'wa' || o.returnMode === 'loja'),
-  )
+  /** Painel de devolução: autorizado e stages seguintes (código não some ao avançar). */
+  const authorizedPostSale = postSaleOccurrences.find((o) => {
+    if (o.status === 'resolved') return false
+    if (!o.returnMode) return false
+    const stageOk =
+      o.stage === 'autorizada' ||
+      o.stage === 'aguardando_peca' ||
+      o.stage === 'em_conferencia' ||
+      Boolean(o.meReverse?.tracking_code)
+    return stageOk
+  })
   const recipientMinimized = minimizeRecipientName(
     String(
       (order?.shipment?.metadata?.me as { recipient_name?: string } | undefined)
@@ -678,6 +683,11 @@ export function AccountOrderDetailPage() {
           occurrenceId={authorizedPostSale.occurrenceId}
           returnMode={authorizedPostSale.returnMode}
           meReverse={authorizedPostSale.meReverse}
+          canGenerateCode={
+            authorizedPostSale.returnMode !== 'me_codigo' ||
+            authorizedPostSale.stage === 'autorizada' ||
+            authorizedPostSale.stage === 'aguardando_peca'
+          }
           storeAddress={storeOrigin ? formatStoreOriginAddress(storeOrigin) : null}
           busy={actionBusy}
           onGenerateCode={onGenerateReturnCode}

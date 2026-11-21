@@ -35,7 +35,18 @@ describe('evaluateMeReverseEligibility', () => {
       meOrderId: 'abc',
     })
     expect(r.ok).toBe(false)
-    expect(r.blockers).toContain('multi_volume_or_unknown')
+    expect(r.blockers).toContain('multi_volume')
+  })
+
+  it('bloqueia volume desconhecido', () => {
+    const r = evaluateMeReverseEligibility({
+      orderStatus: 'entregue',
+      provider: 'melhorenvio',
+      volumeCount: 0,
+      meOrderId: 'abc',
+    })
+    expect(r.ok).toBe(false)
+    expect(r.blockers).toContain('volume_unknown')
   })
 })
 

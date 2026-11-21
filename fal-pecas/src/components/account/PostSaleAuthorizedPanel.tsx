@@ -14,6 +14,8 @@ type Props = {
   occurrenceId: string
   returnMode: PostSaleReturnMode
   meReverse: MeReversePayload | null
+  /** Se false, esconde CTA Gerar (ex.: já em conferência sem código e stage bloqueado). */
+  canGenerateCode?: boolean
   storeAddress?: string | null
   busy: boolean
   onGenerateCode: () => Promise<void>
@@ -25,6 +27,7 @@ export function PostSaleAuthorizedPanel({
   occurrenceId,
   returnMode,
   meReverse,
+  canGenerateCode = true,
   storeAddress,
   busy,
   onGenerateCode,
@@ -77,7 +80,7 @@ export function PostSaleAuthorizedPanel({
                 disponível; leve a peça na embalagem original.
               </p>
             </>
-          ) : (
+          ) : canGenerateCode ? (
             <>
               <p className="m-0 text-sm text-fal-muted">
                 Gere o código quando for postar — ele vale cerca de 7 dias.
@@ -86,6 +89,11 @@ export function PostSaleAuthorizedPanel({
                 Gerar código de devolução
               </Button>
             </>
+          ) : (
+            <p className="m-0 text-sm text-fal-muted">
+              Aguardando orientação da loja sobre a postagem. Se já gerou o código, ele aparece
+              aqui.
+            </p>
           )}
         </div>
       ) : null}

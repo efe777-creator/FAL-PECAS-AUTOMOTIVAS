@@ -50,6 +50,9 @@ export type OccurrenceCurrent = {
   returnMode: PostSaleReturnMode | null
   serviceOverride: string | null
   meReverse: MeReversePayload | null
+  motivoCode: string | null
+  scope: 'order' | 'items' | null
+  items: unknown
 }
 
 export const OCCURRENCE_EVENTS = new Set([
@@ -78,7 +81,10 @@ function asSeverity(v: unknown): OccurrenceSeverity | null {
   return null
 }
 
-function statusFromLastEvent(eventType: string): OccurrenceStatus {
+function statusFromLastEvent(
+  eventType: string,
+  stage?: string | null,
+): OccurrenceStatus {
   switch (eventType) {
     case 'occurrence_resolved':
       return 'resolved'
@@ -87,6 +93,17 @@ function statusFromLastEvent(eventType: string): OccurrenceStatus {
     case 'occurrence_started':
     case 'occurrence_assigned':
       return 'in_progress'
+    case 'occurrence_updated':
+      // Pós-venda: updates de stage continuam "em andamento", não "aberta".
+      if (
+        stage === 'em_analise' ||
+        stage === 'autorizada' ||
+        stage === 'aguardando_peca' ||
+        stage === 'em_conferencia'
+      ) {
+        return 'in_progress'
+      }
+      return 'open'
     default:
       return 'open'
   }
@@ -126,6 +143,9 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
     let returnMode: PostSaleReturnMode | null = null
     let serviceOverride: string | null = null
     let meReverse: MeReversePayload | null = null
+    let motivoCode: string | null = null
+    let scope: 'order' | 'items' | null = null
+    let items: unknown = null
     for (const e of sorted) {
       const p = e.payload
       if (p.tipo != null && String(p.tipo)) tipo = String(p.tipo)
@@ -146,6 +166,9 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
       }
       if (p.responsavel_id != null) responsavelId = String(p.responsavel_id)
       if (p.assignee_id != null) assigneeId = String(p.assignee_id)
+      if (p.motivo_code != null && String(p.motivo_code)) motivoCode = String(p.motivo_code)
+      if (p.scope === 'order' || p.scope === 'items') scope = p.scope
+      if (p.items != null) items = p.items
       const st = asPostSaleStage(p.stage)
       if (st) stage = st
       const rm = asPostSaleReturnMode(p.return_mode)
@@ -166,7 +189,7 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
     }
     out.push({
       occurrenceId,
-      status: statusFromLastEvent(last.eventType),
+      status: statusFromLastEvent(last.eventType, stage),
       tipo,
       gravidade,
       prioridade,
@@ -185,6 +208,9 @@ export function deriveOccurrences(events: OccurrenceEventLite[]): OccurrenceCurr
       returnMode,
       serviceOverride,
       meReverse,
+      motivoCode,
+      scope,
+      items,
     })
   }
 

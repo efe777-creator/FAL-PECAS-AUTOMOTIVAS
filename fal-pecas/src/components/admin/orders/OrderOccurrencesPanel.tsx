@@ -431,10 +431,18 @@ export function OrderOccurrencesPanel({
                           : ''}
                       </p>
                     ) : null}
-                    {o.acaoNecessaria ? (
-                      <p className="mb-0 mt-1 text-sm">Ação: {o.acaoNecessaria}</p>
-                    ) : null}
-                    {o.note ? <p className="mb-0 mt-1 text-sm">{o.note}</p> : null}
+                  {o.motivoCode ? (
+                    <p className="mb-0 mt-1 text-xs text-fal-muted">Motivo: {o.motivoCode}</p>
+                  ) : null}
+                  {o.scope ? (
+                    <p className="mb-0 mt-1 text-xs text-fal-muted">
+                      Escopo: {o.scope === 'items' ? 'itens selecionados' : 'pedido inteiro'}
+                    </p>
+                  ) : null}
+                  {o.acaoNecessaria ? (
+                    <p className="mb-0 mt-1 text-sm">Ação: {o.acaoNecessaria}</p>
+                  ) : null}
+                  {o.note ? <p className="mb-0 mt-1 text-sm">{o.note}</p> : null}
                     {o.solucao ? (
                       <p className="mb-0 mt-1 text-sm text-fal-muted">Solução: {o.solucao}</p>
                     ) : null}
