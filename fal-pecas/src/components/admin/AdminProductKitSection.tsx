@@ -40,6 +40,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
   const toast = useToast()
   const { user } = useAuth()
   const [rows, setRows] = useState<AdminKitComponentRow[]>([])
+  const [rowQty, setRowQty] = useState<Record<string, string>>({})
   const [rowImages, setRowImages] = useState<Map<string, string>>(() => new Map())
   const [kitHasImage, setKitHasImage] = useState(false)
   const [preview, setPreview] = useState<KitPricePreview | null>(null)
@@ -59,6 +60,7 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       adminListImages(kitProductId),
     ])
     setRows(comps)
+    setRowQty(Object.fromEntries(comps.map((c) => [c.id, String(c.quantity)])))
     setPreview(price)
     setKitHasImage(kitImgs.length > 0)
     if (price.manualListPrice != null) {
@@ -470,8 +472,11 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
                 <div className="flex items-center gap-2">
                   <input
                     className="w-20 rounded-[8px] border border-fal-line px-2 py-1 text-sm"
-                    defaultValue={String(row.quantity)}
+                    value={rowQty[row.id] ?? String(row.quantity)}
                     disabled={busy}
+                    onChange={(e) =>
+                      setRowQty((prev) => ({ ...prev, [row.id]: e.target.value }))
+                    }
                     onBlur={(e) => void handleQty(row, e.target.value)}
                     aria-label={`Quantidade de ${row.componentSku}`}
                   />

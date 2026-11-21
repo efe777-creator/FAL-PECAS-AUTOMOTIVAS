@@ -19,14 +19,8 @@ export function AdminProductKitCompatBanner({
   const toast = useToast()
   const [busy, setBusy] = useState(false)
 
-  if (!reviewRequired) {
-    return (
-      <p className="m-0 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-xs text-fal-muted">
-        Compatibilidade do kit é própria (não herda A∧B dos componentes). Cadastre aplicações
-        na seção abaixo.
-      </p>
-    )
-  }
+  // Idle: sem banner — a seção de aplicações já deixa claro o PVC próprio.
+  if (!reviewRequired) return null
 
   async function clearReview() {
     setBusy(true)

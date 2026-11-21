@@ -1,6 +1,7 @@
 import { getSupabase } from '@/lib/supabase'
 import { adminEnsureKitImageFromComponents } from '@/services/admin/adminImageService'
 import { adminSyncKitListPrices } from '@/services/admin/adminKitPricingService'
+import type { KitPriceMode, ProductKind } from '@/types'
 
 async function syncKitAfterComposition(kitProductId: string, actorId?: string | null) {
   const { data, error } = await getSupabase()
@@ -21,9 +22,6 @@ async function syncKitAfterComposition(kitProductId: string, actorId?: string | 
     comps.map((c) => c.componentProductId),
   )
 }
-
-export type ProductKind = 'item' | 'kit'
-export type KitPriceMode = 'auto' | 'manual'
 
 export type AdminKitComponentRow = {
   id: string

@@ -593,7 +593,12 @@ export function AdminProductFormPage() {
                   Salve o kit uma vez para liberar o link dos itens do cadastro, a capa (foto própria
                   ou puxada dos itens) e o preço da composição.
                 </p>
-              ) : null}
+              ) : (
+                <p className="m-0 text-xs text-fal-muted">
+                  Altere natureza/modo de preço e clique em <strong>Salvar produto</strong> antes de
+                  sincronizar composição — a seção abaixo usa o modo gravado no banco.
+                </p>
+              )}
             </>
           ) : null}
           <label className="text-sm">

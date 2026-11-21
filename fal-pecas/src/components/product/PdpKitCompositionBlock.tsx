@@ -50,7 +50,8 @@ export function PdpKitCompositionBlock({ composition, kitPrice }: Props) {
       </ul>
       {componentsSum != null ? (
         <p className="m-0 text-xs text-fal-muted">
-          Soma dos itens: <strong className="text-fal-fg">{formatMoney(componentsSum)}</strong>
+          Soma na loja (itens avulsos):{' '}
+          <strong className="text-fal-fg">{formatMoney(componentsSum)}</strong>
           {savings != null && savings > 0 ? (
             <>
               {' '}
