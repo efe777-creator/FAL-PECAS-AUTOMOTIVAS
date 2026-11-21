@@ -293,6 +293,20 @@ export async function adminAddKitComponent(input: {
   }
 
   const existing = await adminListKitComponents(input.kitProductId)
+  const dup = existing.find((r) => r.componentProductId === input.componentProductId)
+  if (dup) {
+    // Merge qty (mesmo comportamento do replace K8) em vez de erro de unique.
+    await adminUpdateKitComponentQuantity({
+      kitProductId: input.kitProductId,
+      rowId: dup.id,
+      componentProductId: input.componentProductId,
+      previousQuantity: dup.quantity,
+      quantity: dup.quantity + qty,
+      actorId: input.actorId,
+    })
+    return
+  }
+
   const sortOrder = existing.length === 0 ? 0 : Math.max(...existing.map((r) => r.sortOrder)) + 1
 
   const { error } = await getSupabase().from('product_kit_components').insert({

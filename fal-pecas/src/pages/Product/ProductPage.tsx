@@ -1031,27 +1031,12 @@ export function ProductPage() {
         >
           <PdpAccordion
             items={[
-              ...(current.productKind === 'kit' && kitComposition
-                ? [
-                    {
-                      id: 'kit',
-                      title: 'Composição do kit',
-                      icon: 'K',
-                      defaultOpen: true,
-                      children: (
-                        <PdpKitCompositionBlock
-                          composition={kitComposition}
-                          kitPrice={storefrontPrice}
-                        />
-                      ),
-                    },
-                  ]
-                : []),
+              // Composição do kit fica só no buy-box (“Este kit inclui”) — evita duplicar.
               {
                 id: 'apps',
                 title: 'Aplicação e compatibilidade',
                 icon: 'A',
-                defaultOpen: current.productKind !== 'kit',
+                defaultOpen: true,
                 children: (
                   <>
                     <CompatibilityAppsBlock

@@ -135,12 +135,11 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
       toast.push('Informe uma quantidade válida', 'error')
       return
     }
-    const exact =
-      candidates.find(
-        (p) =>
-          p.sku.toLowerCase() === term.toLowerCase() ||
-          (p.commercialRef ?? '').toLowerCase() === term.toLowerCase(),
-      ) ?? candidates[0]
+    const exact = candidates.find(
+      (p) =>
+        p.sku.toLowerCase() === term.toLowerCase() ||
+        (p.commercialRef ?? '').toLowerCase() === term.toLowerCase(),
+    )
     if (exact) {
       await linkComponent(exact, quantity)
       return
@@ -149,15 +148,20 @@ export function AdminProductKitSection({ kitProductId, kitPriceMode }: Props) {
     setError(null)
     try {
       const found = await adminListProducts({ q: term, productKind: 'item', limit: 8 })
-      const match =
-        found.find(
-          (p) =>
-            p.id !== kitProductId &&
-            p.productKind !== 'kit' &&
-            (p.sku.toLowerCase() === term.toLowerCase() ||
-              (p.commercialRef ?? '').toLowerCase() === term.toLowerCase()),
-        ) ?? found.find((p) => p.id !== kitProductId && p.productKind !== 'kit')
-      if (!match) throw new Error('Nenhum item do cadastro encontrado (só produtos tipo item)')
+      const match = found.find(
+        (p) =>
+          p.id !== kitProductId &&
+          p.productKind !== 'kit' &&
+          (p.sku.toLowerCase() === term.toLowerCase() ||
+            (p.commercialRef ?? '').toLowerCase() === term.toLowerCase()),
+      )
+      if (!match) {
+        throw new Error(
+          candidates.length
+            ? 'Escolha o item na lista (SKU/ref exato ou clique em Linkar)'
+            : 'Nenhum item do cadastro com esse SKU/ref (só tipo item)',
+        )
+      }
       await linkComponent(match, quantity)
     } catch (e) {
       const msg = toUserMessage(e, 'Não foi possível adicionar')

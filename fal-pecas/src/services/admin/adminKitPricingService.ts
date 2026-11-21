@@ -107,7 +107,9 @@ export async function adminGetKitPricePreview(kitProductId: string): Promise<Kit
  * Materializa preço do kit no motor 6B:
  * - auto → Base = soma; remove linha da lista manual
  * - manual com preço → lista kits-manual; Base espelha o mesmo valor (fallback)
- * - manual sem preço → Base = soma provisória; alerta via preview.provisional
+ * - manual sem preço novo, mas já existe na lista kits-manual → preserva e espelha na Base
+ * - manual sem nenhum preço → Base = soma provisória; alerta via preview.provisional
+ * Nota: resolve da loja usa Lista Base (is_default); a lista kits-manual é espelho/cadastro.
  */
 export async function adminSyncKitListPrices(input: {
   kitProductId: string
@@ -133,8 +135,27 @@ export async function adminSyncKitListPrices(input: {
       .eq('product_id', input.kitProductId)
     await sb.from('products').update({ price: sum }).eq('id', input.kitProductId)
   } else {
-    const manual = input.manualPrice
-    if (manual != null && !Number.isNaN(manual) && manual >= 0) {
+    // Manual: preservar preço já cadastrado quando sync vem sem manualPrice
+    // (ex.: alteração de BOM). Senão a Base (fonte do resolve) era sobrescrita
+    // com a soma e a vitrine perdia o preço manual.
+    let manual =
+      input.manualPrice != null && !Number.isNaN(input.manualPrice) && input.manualPrice >= 0
+        ? input.manualPrice
+        : null
+    if (manual == null) {
+      const { data: existingManualRows, error: existingErr } = await sb
+        .from('price_list_items')
+        .select('price')
+        .eq('price_list_id', PRICE_LIST_KITS_MANUAL_ID)
+        .eq('product_id', input.kitProductId)
+        .maybeSingle()
+      if (existingErr) throw existingErr
+      if (existingManualRows?.price != null && !Number.isNaN(Number(existingManualRows.price))) {
+        manual = Number(existingManualRows.price)
+      }
+    }
+
+    if (manual != null) {
       await adminUpsertPriceListItem({
         priceListId: PRICE_LIST_KITS_MANUAL_ID,
         productId: input.kitProductId,
@@ -151,7 +172,7 @@ export async function adminSyncKitListPrices(input: {
       })
       await sb.from('products').update({ price: manual }).eq('id', input.kitProductId)
     } else {
-      // Provisório: soma na Base; não cria/atualiza manual
+      // Provisório: ainda sem preço manual — Base = soma (preview.provisional)
       await adminUpsertPriceListItem({
         priceListId: PRICE_LIST_BASE_ID,
         productId: input.kitProductId,

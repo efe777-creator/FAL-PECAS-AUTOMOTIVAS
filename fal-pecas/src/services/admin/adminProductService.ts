@@ -321,6 +321,19 @@ export async function adminUpsertProduct(input: {
     sku: input.sku,
   })
   const productKind: ProductKind = input.productKind === 'kit' ? 'kit' : 'item'
+  const sb = getSupabase()
+
+  let previousKind: string | null = null
+  if (input.id) {
+    const { data: prevRow, error: prevErr } = await sb
+      .from('products')
+      .select('product_kind')
+      .eq('id', input.id)
+      .maybeSingle()
+    if (prevErr) throw prevErr
+    previousKind = prevRow?.product_kind ?? null
+  }
+
   const payload = {
     name: input.name.trim(),
     sku: identity.sku,
@@ -362,7 +375,7 @@ export async function adminUpsertProduct(input: {
       .toLowerCase(),
   }
 
-  const q = getSupabase().from('products')
+  const q = sb.from('products')
   const { data, error } = input.id
     ? await q
         .update({ ...payload, measure_audit_source: 'manual' })
@@ -373,6 +386,15 @@ export async function adminUpsertProduct(input: {
   if (error) throw error
 
   const product = mapProduct(data as ProductRow)
+
+  // Kit → item: limpa BOM órfã (estoque/pedido tratariam como item unitário).
+  if (input.id && previousKind === 'kit' && productKind === 'item') {
+    const { error: bomErr } = await sb
+      .from('product_kit_components')
+      .delete()
+      .eq('kit_product_id', input.id)
+    if (bomErr) throw bomErr
+  }
   try {
     await getSupabase().rpc('rebuild_product_search_documents', { p_ids: [product.id] })
   } catch {
@@ -553,9 +575,11 @@ export async function adminEvaluateReleaseChecklist(
 
   let kitCompositionOk: boolean | undefined
   if (product.productKind === 'kit') {
+    const { isKitCompositionPublishable } = await import(
+      '@/services/admin/adminProductKitService'
+    )
     const rows = (kitComps.data ?? []).map((r) => ({ quantity: Number(r.quantity) }))
-    kitCompositionOk =
-      rows.length >= 2 || (rows.length === 1 && (rows[0]?.quantity ?? 0) >= 2)
+    kitCompositionOk = isKitCompositionPublishable(rows)
   }
 
   const sku = product.sku ?? ''
