@@ -32,14 +32,16 @@ Leitura obrigatória antes de codar: Spec §D1–D18 + Jornadas (telas, dois rel
 
 ### Checklist anti-erro (impl.)
 
-- [ ] Confirm receipt ≠ T0 da janela  
-- [ ] Caso aberto não expira só por calendário  
-- [ ] Sem auto-`deliver_order`  
-- [ ] Sem gerar código ME na abertura do caso  
-- [ ] Sem `/admin/pos-venda` ou novo `moduleKey`  
-- [ ] Sem misturar visão `problemas` com RMA  
-- [ ] Copy legal via `returnPolicyCopy`  
-- [ ] Edge reversa separada da ida (`reverse: false`)  
+- [x] Confirm receipt ≠ T0 da janela  
+- [x] Caso aberto não expira só por calendário  
+- [x] Sem auto-`deliver_order`  
+- [x] Sem gerar código ME na abertura do caso  
+- [x] Sem `/admin/pos-venda` ou novo `moduleKey`  
+- [x] Sem misturar visão `problemas` com RMA  
+- [x] Copy legal via `returnPolicyCopy`  
+- [x] Edge reversa separada da ida (`reverse: false`)  
+
+Evidência: [FAL_VAL_POS_VENDA_2026-11-21.md](./FAL_VAL_POS_VENDA_2026-11-21.md)
 
 ### Dependências
 
