@@ -852,7 +852,8 @@ export function OrderOpsSurface({
                     manualmente.
                   </p>
                 ) : null}
-                {order?.payment?.status === 'refund_pending' ||
+                {order?.payment?.status === 'approved' ||
+                order?.payment?.status === 'refund_pending' ||
                 order?.payment?.status === 'pending_manual_refund' ? (
                   <div className="mt-2">
                     <Button
@@ -864,7 +865,7 @@ export function OrderOpsSurface({
                           const { confirmed } = await confirmDialog({
                             title: 'Estorno concluído no Mercado Pago?',
                             message:
-                              'Marque apenas após estornar no painel do provedor.',
+                              'Marque apenas após estornar no painel do provedor (pós-venda / cancelamento). O pedido permanece no status comercial atual.',
                             confirmLabel: 'Marcar estorno feito',
                           })
                           if (!confirmed) return

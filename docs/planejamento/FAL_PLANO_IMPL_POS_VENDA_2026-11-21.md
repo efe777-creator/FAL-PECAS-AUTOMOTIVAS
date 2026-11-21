@@ -1,7 +1,8 @@
 # FAL — Plano de implementação: Camada pós-venda
 
 **Data:** 2026-11-21  
-**Status:** PLANO — executar só após revisão da Spec e autorização de marcha  
+**Status:** F1–F3 implementadas na `dev` (2026-11-21) — VAL operacional pendente em pedido real ME  
+
 **Branch:** `dev` (nunca `main`/prod sem autorização)  
 **Spec:** [FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md](./FAL_SPEC_POS_VENDA_CAMADA_PEDIDO_2026-11-21.md)  
 **Auditoria:** [FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md](./FAL_AUDITORIA_INTEGRAL_POS_VENDA_2026-11-21.md)  
@@ -209,14 +210,16 @@ Ops trabalha pós-venda só pela Central + guia, sem módulo novo.
    - Atualizar copy: frete retorno por conta FAL quando autorizado; canal no pedido
 
 8. **VAL Fase 3**  
-   - [ ] Pedido ME ida → autoriza → cliente gera código → metadata ok  
-   - [ ] Frete próprio → só WA/loja  
-   - [ ] Override SEDEX no ops  
-   - [ ] Restock + marcar refund após approve  
+   - [x] Código: stages + Edge `melhorenvio-reverse` + CTA cliente + fallback WA/loja (commit F3)  
+   - [x] Frete próprio: UI força WA/loja (elegibilidade)  
+   - [x] Override SEDEX no ops (authorize)  
+   - [x] Conferência → restock/estorno via OrderOps (hint + botão estorno em `approved`)  
+   - [ ] Pedido ME real (prod/sandbox) → autoriza → cliente gera código → metadata ok  
 
 ### Critério de saída Fase 3
 
-Devolução rastreável ponta a ponta sem status comercial `devolucao` e sem app admin isolado.
+Devolução rastreável ponta a ponta sem status comercial `devolucao` e sem app admin isolado.  
+**Código F3:** entregue na `dev`. **VAL E2E ME:** depende de secrets produção + pedido real.
 
 ---
 

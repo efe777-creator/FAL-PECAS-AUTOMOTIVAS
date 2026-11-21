@@ -96,6 +96,7 @@ export function OrderOccurrencesPanel({
   const [returnMode, setReturnMode] = useState<PostSaleReturnMode>('wa')
   const [serviceOverride, setServiceOverride] = useState<'pac' | 'sedex' | ''>('')
   const [solucao, setSolucao] = useState('')
+  const [conferenceCondition, setConferenceCondition] = useState<'ok' | 'sujo_usado'>('ok')
   const [reopenReason, setReopenReason] = useState('')
   const [authNote, setAuthNote] = useState('')
 
@@ -223,9 +224,31 @@ export function OrderOccurrencesPanel({
     }
     const target = resolveFor
     if (isPostSaleTipo(target.tipo)) {
-      await runPostSale(target, 'resolve', { solucao: solucao.trim() })
+      if (
+        (target.stage === 'em_conferencia' || target.stage === 'aguardando_peca') &&
+        conferenceCondition === 'sujo_usado'
+      ) {
+        const note =
+          solucao.trim() ||
+          'Peça suja/usada/danificada — devolução recusada na conferência.'
+        await runPostSale(target, 'refuse', {
+          solucao: note,
+          note: `conferencia_condicao=sujo_usado · ${note}`,
+        })
+        setResolveFor(null)
+        setSolucao('')
+        setConferenceCondition('ok')
+        return
+      }
+      const suffix =
+        conferenceCondition === 'ok' &&
+        (target.stage === 'em_conferencia' || target.stage === 'aguardando_peca')
+          ? ' · conferencia_condicao=ok · seguir Repor estoque + Marcar estorno no OrderOps'
+          : ''
+      await runPostSale(target, 'resolve', { solucao: `${solucao.trim()}${suffix}` })
       setResolveFor(null)
       setSolucao('')
+      setConferenceCondition('ok')
       return
     }
     onBusy(true)
@@ -591,12 +614,44 @@ export function OrderOccurrencesPanel({
           <p className="m-0 text-sm font-bold text-fal-fg">
             Resolver {resolveFor.occurrenceId.slice(0, 8)}…
           </p>
+          {isPostSaleTipo(resolveFor.tipo) &&
+          (resolveFor.stage === 'em_conferencia' ||
+            resolveFor.stage === 'aguardando_peca' ||
+            resolveFor.stage === 'autorizada') ? (
+            <div className="mt-2 space-y-2">
+              <label className="block text-sm font-semibold text-fal-muted">
+                Condição na conferência
+                <select
+                  className="mt-1 block w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-normal text-fal-fg"
+                  value={conferenceCondition}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setConferenceCondition(e.target.value as 'ok' | 'sujo_usado')
+                  }
+                >
+                  <option value="ok">Peça ok (sem uso / embalagem)</option>
+                  <option value="sujo_usado">Suja / usada / danificada → recusar</option>
+                </select>
+              </label>
+              {conferenceCondition === 'ok' ? (
+                <p className="m-0 text-xs text-fal-muted">
+                  Após resolver: aba Itens → <strong>Repor estoque</strong>; aba Pagamento →{' '}
+                  <strong>Marcar estorno feito</strong> (só depois do estorno no provedor).
+                </p>
+              ) : (
+                <p className="m-0 text-xs text-amber-800">
+                  Recusa fundamentada: o caso será encerrado como recusado (sem restock/estorno
+                  automático).
+                </p>
+              )}
+            </div>
+          ) : null}
           <Input
             label="Solução / motivo de encerramento (obrigatório)"
             value={solucao}
             disabled={busy}
             onChange={(e) => setSolucao(e.target.value)}
-            placeholder="Como foi tratado (ex.: restock + estorno pendente)"
+            placeholder="Como foi tratado (ex.: restock + estorno no provedor)"
           />
           <div className="mt-2 flex flex-wrap gap-2">
             <Button
@@ -604,9 +659,19 @@ export function OrderOccurrencesPanel({
               disabled={busy || !solucao.trim()}
               onClick={() => void resolveOccurrence()}
             >
-              Confirmar resolução
+              {conferenceCondition === 'sujo_usado' && isPostSaleTipo(resolveFor.tipo)
+                ? 'Recusar na conferência'
+                : 'Confirmar resolução'}
             </Button>
-            <Button type="button" variant="light" disabled={busy} onClick={() => setResolveFor(null)}>
+            <Button
+              type="button"
+              variant="light"
+              disabled={busy}
+              onClick={() => {
+                setResolveFor(null)
+                setConferenceCondition('ok')
+              }}
+            >
               Voltar
             </Button>
           </div>
