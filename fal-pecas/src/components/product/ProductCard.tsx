@@ -204,13 +204,16 @@ export function ProductCard({ product, pvcRows, fitFilter, surface = 'default' }
 
   return (
     <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2.5 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3.5">
-      {offer.isOffer && presentation.showOfertaBadge ? (
-        <div className="absolute top-3.5 left-3.5 z-[1]">
-          <Badge>
-            {formatOfertaBadgeLabel(offer, {
-              showDiscountPercent: presentation.showDiscountPercent,
-            })}
-          </Badge>
+      {(offer.isOffer && presentation.showOfertaBadge) || product.productKind === 'kit' ? (
+        <div className="absolute top-3.5 left-3.5 z-[1] flex flex-col items-start gap-1">
+          {product.productKind === 'kit' ? <Badge>Kit</Badge> : null}
+          {offer.isOffer && presentation.showOfertaBadge ? (
+            <Badge>
+              {formatOfertaBadgeLabel(offer, {
+                showDiscountPercent: presentation.showDiscountPercent,
+              })}
+            </Badge>
+          ) : null}
         </div>
       ) : null}
 

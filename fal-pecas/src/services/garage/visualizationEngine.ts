@@ -59,16 +59,17 @@ export function effectiveRenderSource(
   return '2d'
 }
 
+/** Copy humana para o cliente (sem jargão Engine/GLB/2B). */
 export function visualizationSourceLabel(source: VisualizationSource): string {
   switch (source) {
     case '2d':
-      return '2D'
+      return 'Imagem ilustrativa'
     case 'procedural':
-      return '3D procedural (não é modelo realista)'
+      return 'Modelo 3D provisório'
     case 'glb':
-      return '3D GLB (asset aprovado)'
+      return 'Modelo 3D'
     case 'xr':
-      return 'XR (experimental)'
+      return 'Realidade aumentada (experimental)'
     default:
       return source
   }

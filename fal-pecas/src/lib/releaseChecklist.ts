@@ -16,6 +16,12 @@ export type ReleaseChecklistInput = {
   hasImage: boolean
   /** Se false e status ≠ published, hard fail. */
   publishIfNeeded?: boolean
+  /** K1: natureza comercial. */
+  productKind?: 'item' | 'kit'
+  /** K5: kit com revisão de compat pendente (H6). */
+  kitCompatReviewRequired?: boolean
+  /** K1/H2: composição mínima do kit. */
+  kitCompositionOk?: boolean
 }
 
 export type ReleaseCheckItem = {
@@ -98,13 +104,43 @@ export function evaluateReleaseChecklist(
       : 'Produto ainda não publicado (marque publicar neste passo)',
   })
 
+  const isKit = input.productKind === 'kit'
+
   checks.push({
     code: 'application',
-    label: 'Aplicação veículo',
-    level: 'soft',
+    label: isKit ? 'Compatibilidade do kit' : 'Aplicação veículo',
+    level: isKit ? 'hard' : 'soft',
     ok: input.hasApplication,
-    detail: input.hasApplication ? undefined : 'Sem aplicação em veículo (aviso)',
+    detail: input.hasApplication
+      ? undefined
+      : isKit
+        ? 'Kit precisa de aplicação própria (não herda dos componentes)'
+        : 'Sem aplicação em veículo (aviso)',
   })
+
+  if (isKit) {
+    const compositionOk = input.kitCompositionOk !== false
+    checks.push({
+      code: 'kit_composition',
+      label: 'Composição do kit',
+      level: 'hard',
+      ok: compositionOk,
+      detail: compositionOk
+        ? undefined
+        : 'Composição incompleta (≥ 2 componentes ou 1 com quantidade ≥ 2)',
+    })
+
+    const reviewOk = input.kitCompatReviewRequired !== true
+    checks.push({
+      code: 'kit_compat_review',
+      label: 'Revisão de compatibilidade',
+      level: 'hard',
+      ok: reviewOk,
+      detail: reviewOk
+        ? undefined
+        : 'Há alteração de aplicação em componente — revise o PVC do kit e confirme',
+    })
+  }
 
   checks.push({
     code: 'image',

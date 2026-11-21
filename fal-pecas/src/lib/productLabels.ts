@@ -51,6 +51,8 @@ export const FILTRAR_NO_CATALOGO_LABEL = 'Filtrar no catálogo'
 export const RELACIONADOS_SECTION_LABEL = 'Produtos relacionados'
 /** Bloco PDP: equivalentes técnicos (E.6) — distinto de relacionados comerciais. */
 export const EQUIVALENTES_SECTION_LABEL = 'Equivalentes técnicos'
+/** Bloco PDP K12: kits publicados que incluem este item (query invertida do BOM). */
+export const KITS_COM_ESTA_PECA_SECTION_LABEL = 'Kits com esta peça'
 export const VER_MAIS_CATALOGO_LABEL = 'Ver mais no catálogo'
 
 /** @deprecated Prefira passar o produto; mantido para callers que só têm string. */

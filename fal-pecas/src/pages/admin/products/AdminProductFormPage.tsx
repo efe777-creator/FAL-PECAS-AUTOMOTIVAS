@@ -1,6 +1,9 @@
 import { AdminProductApplicationsSection } from '@/components/admin/AdminProductApplicationsSection'
 import { AdminProductEquivalenceSection } from '@/components/admin/AdminProductEquivalenceSection'
 import { AdminProductImagesSection } from '@/components/admin/AdminProductImagesSection'
+import { AdminProductKitCompatBanner } from '@/components/admin/AdminProductKitCompatBanner'
+import { AdminProductKitSection } from '@/components/admin/AdminProductKitSection'
+import { AdminProductKitUsageSection } from '@/components/admin/AdminProductKitUsageSection'
 import { AdminProductReferencesSection } from '@/components/admin/AdminProductReferencesSection'
 import { AdminProductRelatedSection } from '@/components/admin/AdminProductRelatedSection'
 import { CategoryCascadeSelects } from '@/components/admin/CategoryCascadeSelects'
@@ -14,6 +17,7 @@ import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListBrands } from '@/services/admin/adminBrandService'
 import { adminListCategories } from '@/services/admin/adminCategoryService'
+import { adminSyncKitListPrices } from '@/services/admin/adminKitPricingService'
 import {
   adminEvaluateReleaseChecklist,
   adminGetProduct,
@@ -56,9 +60,11 @@ import {
 } from '@/services/pricing/priceResolutionService'
 import type {
   Category,
+  KitPriceMode,
   MeasureOrigin,
   Product,
   ProductBrand,
+  ProductKind,
   Supplier,
 } from '@/types'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -114,6 +120,9 @@ export function AdminProductFormPage() {
   const [commercialRef, setCommercialRef] = useState('')
   const [sku, setSku] = useState('')
   const [status, setStatus] = useState<NonNullable<Product['status']>>('draft')
+  const [productKind, setProductKind] = useState<ProductKind>('item')
+  const [kitPriceMode, setKitPriceMode] = useState<KitPriceMode>('auto')
+  const [kitCompatReviewRequired, setKitCompatReviewRequired] = useState(false)
   /** Hierarquia = planilha: Categoria → Grupo → Subgrupo (folha em products.category_id). */
   const [catCategoriaId, setCatCategoriaId] = useState('')
   const [catGrupoId, setCatGrupoId] = useState('')
@@ -251,6 +260,9 @@ export function AdminProductFormPage() {
         setCommercialRef(p.commercialRef ?? p.sku)
         setSku(p.sku)
         setStatus(p.status ?? 'draft')
+        setProductKind(p.productKind === 'kit' ? 'kit' : 'item')
+        setKitPriceMode(p.kitPriceMode === 'manual' ? 'manual' : 'auto')
+        setKitCompatReviewRequired(p.kitCompatReviewRequired === true)
         {
           const leaf = p.categoryId ?? ''
           const path: string[] = []
@@ -412,6 +424,8 @@ export function AdminProductFormPage() {
         commercialRef: commercialRef.trim(),
         sku: sku.trim() || undefined,
         status,
+        productKind,
+        kitPriceMode: productKind === 'kit' ? kitPriceMode : 'auto',
         categoryId: categoryId || null,
         brandId: brandId || null,
         supplierId: supplierId || null,
@@ -446,6 +460,14 @@ export function AdminProductFormPage() {
       setProductId(saved.id)
       setMirrorPrice(saved.price)
       setMirrorPromo(saved.promoPrice ?? null)
+
+      if (productKind === 'kit') {
+        await adminSyncKitListPrices({
+          kitProductId: saved.id,
+          kitPriceMode,
+          changedBy: user?.id ?? null,
+        })
+      }
 
       if (overrideEnabled) {
         const overrideNum = parseMoneyBr(overrideAmount)!
@@ -540,6 +562,32 @@ export function AdminProductFormPage() {
               }}
             />
           </fieldset>
+          <label className="text-sm">
+            <span className="mb-1 block font-semibold">Natureza</span>
+            <select
+              className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+              value={productKind}
+              onChange={(e) => setProductKind(e.target.value === 'kit' ? 'kit' : 'item')}
+            >
+              <option value="item">Item (SKU unitário)</option>
+              <option value="kit">Kit (composição)</option>
+            </select>
+          </label>
+          {productKind === 'kit' ? (
+            <label className="text-sm">
+              <span className="mb-1 block font-semibold">Preço do kit</span>
+              <select
+                className="w-full rounded-[10px] border border-fal-line px-3 py-2"
+                value={kitPriceMode}
+                onChange={(e) =>
+                  setKitPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
+                }
+              >
+                <option value="auto">Automático (soma dos componentes)</option>
+                <option value="manual">Manual (lista exclusiva)</option>
+              </select>
+            </label>
+          ) : null}
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Fabricante</span>
             <select className="w-full rounded-[10px] border border-fal-line px-3 py-2" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
@@ -1012,6 +1060,18 @@ export function AdminProductFormPage() {
 
       {productId ? (
         <>
+          {productKind === 'kit' ? (
+            <>
+              <AdminProductKitSection kitProductId={productId} kitPriceMode={kitPriceMode} />
+              <AdminProductKitCompatBanner
+                kitProductId={productId}
+                reviewRequired={kitCompatReviewRequired}
+                onCleared={() => setKitCompatReviewRequired(false)}
+              />
+            </>
+          ) : (
+            <AdminProductKitUsageSection productId={productId} />
+          )}
           <AdminProductRelatedSection productId={productId} />
           <AdminProductEquivalenceSection productId={productId} />
           <AdminProductReferencesSection productId={productId} />

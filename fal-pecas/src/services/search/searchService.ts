@@ -75,7 +75,7 @@ async function enrichPageProductMeta(products: Product[]): Promise<Product[]> {
   const ids = products.map((p) => p.id)
   const { data, error } = await supabase
     .from('products')
-    .select('id, posicao, lado, manufacturer_code, commercial_ref, sku')
+    .select('id, posicao, lado, manufacturer_code, commercial_ref, sku, product_kind')
     .in('id', ids)
   if (error) throw error
   const meta = new Map(
@@ -84,6 +84,7 @@ async function enrichPageProductMeta(products: Product[]): Promise<Product[]> {
       {
         posicao: (r.posicao as Product['posicao']) ?? null,
         lado: (r.lado as Product['lado']) ?? null,
+        productKind: (r.product_kind === 'kit' ? 'kit' : 'item') as Product['productKind'],
         manufacturerCode: (r.manufacturer_code as string | null) ?? undefined,
         commercialRef: String(r.commercial_ref ?? r.sku ?? ''),
         sku: String(r.sku ?? ''),
@@ -97,6 +98,7 @@ async function enrichPageProductMeta(products: Product[]): Promise<Product[]> {
       ...p,
       posicao: p.posicao ?? m.posicao,
       lado: p.lado ?? m.lado,
+      productKind: p.productKind ?? m.productKind,
       manufacturerCode: p.manufacturerCode ?? m.manufacturerCode,
       commercialRef: p.commercialRef ?? m.commercialRef,
       sku: p.sku || m.sku,

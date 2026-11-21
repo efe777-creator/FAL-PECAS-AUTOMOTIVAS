@@ -83,10 +83,11 @@ Escopo: Visual + hero 2D + viewer GLB (não é polish Fase 7 completo).
 
 ## Recomendações (ordem sugerida — sem abrir Fase 7 inteira)
 
-1. **Quick wins (1–2h):** copy humana; ocultar/desabilitar pintura no modo GLB; hint “arraste/gire”; `min-h-10` nos presets/viewer; badge “3D provisório” no smoke.  
-2. **Layout Visual:** promover canvas ao topo do módulo.  
-3. **Conteúdo:** trocar smoke box por GLB real curado (bloqueia percepção de “quebrado”).  
-4. **Fase 7:** reorganizar abas da Garagem + chrome da conta.
+1. **Quick wins (1–2h):** copy humana; ocultar/desabilitar pintura no modo GLB; hint “arraste/gire”; `min-h-10` nos presets/viewer; badge “3D provisório” no smoke. → **feito em `dev` (2026-11-20)**  
+2. **Layout Visual:** promover canvas ao topo do módulo. → **feito**  
+3. **P2 polish:** preset ativo; hint mobile no canvas; aspect 16:9 / min-h desktop. → **feito**  
+4. **Conteúdo:** trocar smoke box por GLB real curado (bloqueia percepção de “quebrado”). → **aberto**  
+5. **Fase 7:** reorganizar abas da Garagem + chrome da conta. → **aberto**
 
 ## Conclusão
 

@@ -182,23 +182,16 @@ export function VehicleVisualizationEngine({
       fallback2d
     )
 
+  const showProvisionalBadge = renderSource === 'procedural'
+
   return (
     <section className="space-y-2" aria-label="Visualização do veículo">
-      <p className="m-0 text-[11px] font-semibold text-fal-muted" id="fal-visual-engine-status">
-        Engine · resolvido: {visualizationSourceLabel(resolved)}
-        {renderSource !== resolved ? ` · render: ${renderSource}` : ''}
-        {glbLoadFailed ? ' · GLB falhou → procedural/2D' : ''}
-        {!hasApprovedGlb ? ' · sem GLB aprovado' : ''}
-        {reduceMotion ? ' · prefers-reduced-motion' : ''}
-        {xrUserFallback ? ' · XR desligado nesta sessão' : ''}
-      </p>
-      {glbLoadFailed ? (
-        <p className="m-0 text-xs font-semibold text-amber-800">
-          Falha ao carregar o modelo 3D. Usando fallback. Você pode tentar de novo recarregando a
-          página.
-        </p>
-      ) : null}
-      <div aria-describedby="fal-visual-engine-status">
+      <div className="relative" aria-describedby="fal-visual-engine-status">
+        {showProvisionalBadge ? (
+          <p className="pointer-events-none absolute left-2 top-2 z-10 m-0 rounded-[8px] border border-fal-yellow/50 bg-fal-yellow/95 px-2 py-1 text-[11px] font-extrabold text-fal-navy-dark shadow-sm">
+            Modelo 3D provisório
+          </p>
+        ) : null}
         {resolved === 'xr' && xrMode ? (
           <VehicleXrLauncher
             mode={xrMode}
@@ -224,6 +217,17 @@ export function VehicleVisualizationEngine({
           canvas
         )}
       </div>
+      <p className="m-0 text-xs text-fal-muted" id="fal-visual-engine-status">
+        {visualizationSourceLabel(renderSource)}
+        {glbLoadFailed ? ' · não foi possível carregar o modelo completo' : ''}
+        {reduceMotion ? ' · movimento reduzido ativo' : ''}
+        {xrUserFallback ? ' · AR desligada nesta sessão' : ''}
+      </p>
+      {glbLoadFailed ? (
+        <p className="m-0 text-xs font-semibold text-amber-800">
+          Não carregamos o modelo 3D completo. Mostramos uma prévia. Recarregue a página para tentar
+          de novo.
+        </p>
+      ) : null}
     </section>
   )
-}

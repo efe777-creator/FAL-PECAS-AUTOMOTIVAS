@@ -45,6 +45,8 @@ export function VehicleGlbViewer({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [activePreset, setActivePreset] = useState<GlbCameraPreset>('front34')
+  const [showOrbitHint, setShowOrbitHint] = useState(true)
 
   const applyPreset = useCallback((preset: GlbCameraPreset) => {
     const camera = cameraRef.current
@@ -55,7 +57,15 @@ export function VehicleGlbViewer({
     camera.position.set(pos[0], pos[1], pos[2])
     controls.target.set(0, 0.5, 0)
     controls.update()
+    setActivePreset(preset === 'reset' ? 'front34' : preset)
   }, [])
+
+  const canvasSize = (mount: HTMLElement) => {
+    const w = mount.clientWidth || 480
+    const hFromCss = mount.clientHeight
+    const h = hFromCss > 40 ? hFromCss : Math.max(280, Math.round(w * (9 / 16)))
+    return { w, h }
+  }
 
   useEffect(() => {
     const mount = mountRef.current
@@ -70,8 +80,7 @@ export function VehicleGlbViewer({
     let root: THREE.Object3D | null = null
     let controls: OrbitControls | null = null
 
-    const width = mount.clientWidth || 480
-    const height = Math.max(280, Math.round(width * 0.55))
+    const { w: width, h: height } = canvasSize(mount)
 
     void (async () => {
       try {
@@ -187,8 +196,7 @@ export function VehicleGlbViewer({
 
     const onResize = () => {
       if (!mount || !renderer || !camera) return
-      const w = mount.clientWidth || width
-      const h = Math.max(280, Math.round(w * 0.55))
+      const { w, h } = canvasSize(mount)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
@@ -224,33 +232,51 @@ export function VehicleGlbViewer({
       aria-label={`Modelo 3D ${asset.displayName}. Arraste para girar, role para zoom. Não é registro técnico.`}
       aria-busy={status === 'loading'}
     >
-      <div
-        ref={mountRef}
-        className="min-h-[280px] w-full touch-none"
-        style={{ touchAction: 'none' }}
-      />
+      <div className="relative">
+        <div
+          ref={mountRef}
+          className="aspect-video min-h-[280px] w-full touch-none md:min-h-[360px]"
+          style={{ touchAction: 'none' }}
+          onPointerDown={() => setShowOrbitHint(false)}
+        />
+        {status === 'ready' && showOrbitHint ? (
+          <p className="pointer-events-none absolute bottom-2 left-1/2 z-10 m-0 max-w-[90%] -translate-x-1/2 rounded-[8px] border border-fal-line bg-fal-surface/95 px-3 py-1.5 text-center text-[11px] font-semibold text-fal-fg shadow-sm md:hidden">
+            Arraste para girar · pinça para zoom
+          </p>
+        ) : null}
+      </div>
       {status === 'ready' ? (
         <div
           className="flex flex-wrap gap-1 border-t border-fal-line px-2 py-2"
           role="group"
           aria-label="Ângulos predefinidos"
         >
-          {presets.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1 text-[11px] font-bold text-fal-fg hover:border-fal-accent"
-              onClick={() => applyPreset(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+          {presets.map((p) => {
+            const isActive = p.id !== 'reset' && activePreset === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={p.id === 'reset' ? undefined : isActive}
+                className={`min-h-10 rounded-[8px] border px-3 py-2 text-xs font-bold hover:border-fal-accent ${
+                  isActive
+                    ? 'border-fal-accent bg-fal-accent/15 text-fal-navy'
+                    : 'border-fal-line bg-fal-surface text-fal-fg'
+                }`}
+                onClick={() => applyPreset(p.id)}
+              >
+                {p.label}
+              </button>
+            )
+          })}
         </div>
       ) : null}
-      <p className="m-0 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-        GLB · {asset.displayName} · {asset.code} · {status}
-        {status === 'loading' ? ' · carregando modelo 3D…' : ''}
-        {status === 'ready' ? ' · órbita · zoom' : ''}
+      <p className="m-0 px-3 py-2 text-center text-xs text-fal-muted">
+        {status === 'loading'
+          ? 'Carregando modelo 3D…'
+          : status === 'ready'
+            ? `Modelo 3D · ${asset.displayName} · arraste para girar`
+            : `Modelo 3D · ${asset.displayName}`}
         {' · não é registro técnico'}
       </p>
     </div>

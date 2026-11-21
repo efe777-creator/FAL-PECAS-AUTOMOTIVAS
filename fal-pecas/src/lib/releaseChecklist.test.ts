@@ -86,4 +86,27 @@ describe('evaluateReleaseChecklist (D-LIBERAR / IMP-10)', () => {
     )
     expect(missingRef.summary).not.toMatch(/\bSKU\b|published|PVC|override/i)
   })
+
+  it('kit exige aplicação própria e composição', () => {
+    const r = evaluateReleaseChecklist({
+      ...base,
+      productKind: 'kit',
+      hasApplication: false,
+      kitCompositionOk: false,
+    })
+    expect(r.canRelease).toBe(false)
+    expect(r.hardFails.some((f) => f.code === 'application')).toBe(true)
+    expect(r.hardFails.some((f) => f.code === 'kit_composition')).toBe(true)
+  })
+
+  it('kit com revisão de compat pendente bloqueia', () => {
+    const r = evaluateReleaseChecklist({
+      ...base,
+      productKind: 'kit',
+      kitCompositionOk: true,
+      kitCompatReviewRequired: true,
+    })
+    expect(r.canRelease).toBe(false)
+    expect(r.hardFails.find((f) => f.code === 'kit_compat_review')?.detail).toMatch(/revis/i)
+  })
 })

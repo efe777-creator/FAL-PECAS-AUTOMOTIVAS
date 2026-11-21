@@ -30,7 +30,10 @@ export function VehicleViewer3D({
     const t0 = performance.now()
 
     const width = mount.clientWidth || 480
-    const height = Math.max(220, Math.round(width * 0.45))
+    const height =
+      mount.clientHeight > 40
+        ? mount.clientHeight
+        : Math.max(280, Math.round(width * (9 / 16)))
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color('#eef2f6')
@@ -148,7 +151,10 @@ export function VehicleViewer3D({
     const onResize = () => {
       if (!mount) return
       const w = mount.clientWidth || width
-      const h = Math.max(220, Math.round(w * 0.45))
+      const h =
+        mount.clientHeight > 40
+          ? mount.clientHeight
+          : Math.max(280, Math.round(w * (9 / 16)))
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
@@ -177,15 +183,19 @@ export function VehicleViewer3D({
       role="img"
       aria-label="Visualização 3D procedural do veículo. Não é registro técnico."
     >
-      <div ref={mountRef} className="w-full" />
-      <p className="m-0 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-fal-muted">
-        Visual 3D leve · progressive enhancement · não é registro técnico
+      <div
+        ref={mountRef}
+        className="aspect-video min-h-[280px] w-full touch-none md:min-h-[360px]"
+        style={{ touchAction: 'none' }}
+      />
+      <p className="m-0 px-3 py-2 text-center text-xs text-fal-muted">
+        Prévia 3D provisória · não é o modelo final nem registro técnico
         {reduceMotion ? ' · movimento reduzido' : ''}
         {syncEnabled
           ? mirroredCount
-            ? ` · sync 2A · ${mirroredCount} no modelo`
-            : ' · sync 2A ligado'
-          : ' · sync 2A desligado'}
+            ? ` · ${mirroredCount} peça(s) espelhada(s)`
+            : ' · espelhamento ligado'
+          : ''}
       </p>
     </div>
   )

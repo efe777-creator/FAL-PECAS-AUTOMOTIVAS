@@ -14,6 +14,7 @@ import {
 import { VehiclePlateSearch } from '@/components/vehicle/VehiclePlateSearch'
 import { ProductCard } from '@/components/product/ProductCard'
 import { PdpAccordion } from '@/components/product/PdpAccordion'
+import { PdpKitCompositionBlock } from '@/components/product/PdpKitCompositionBlock'
 import { PdpPaymentIcons } from '@/components/product/PdpPaymentIcons'
 import { PdpPurchaseBar } from '@/components/product/PdpPurchaseBar'
 import { ProductGallery } from '@/components/product/ProductGallery'
@@ -23,6 +24,12 @@ import {
   getProductBySlugOrId,
   listEquivalentProductsForPdp,
 } from '@/services/products/productService'
+import {
+  listPublishedKitsIncludingComponent,
+  loadStoreKitComposition,
+  type StoreKitComposition,
+  type StoreKitContainingComponent,
+} from '@/services/products/kitCompositionStoreService'
 import { listIntelligentRelatedForPdp } from '@/services/products/relatedProductsIntelligence'
 import type { PvcCompatRow } from '@/services/compatibility/compatibilityEngine'
 import {
@@ -74,6 +81,7 @@ import {
   ESPECIFICACOES_SECTION_LABEL,
   FILTRAR_NO_CATALOGO_LABEL,
   EQUIVALENTES_SECTION_LABEL,
+  KITS_COM_ESTA_PECA_SECTION_LABEL,
   RELACIONADOS_SECTION_LABEL,
   VER_DESCRICAO_COMPLETA_LABEL,
   VER_MAIS_CATALOGO_LABEL,
@@ -112,6 +120,8 @@ export function ProductPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [backendDown, setBackendDown] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [kitComposition, setKitComposition] = useState<StoreKitComposition | null>(null)
+  const [kitsContaining, setKitsContaining] = useState<StoreKitContainingComponent[]>([])
   const [related, setRelated] = useState<Product[]>([])
   const [relatedPvcById, setRelatedPvcById] = useState<Map<string, PvcCompatRow[]>>(
     () => new Map(),
@@ -302,6 +312,7 @@ export function ProductPage() {
       setLoadError(null)
       setBackendDown(false)
       setProduct(null)
+      setKitComposition(null)
       setDescExpanded(false)
       setQty(1)
       try {
@@ -324,6 +335,43 @@ export function ProductPage() {
       active = false
     }
   }, [slugOrId])
+
+  useEffect(() => {
+    if (!product?.id || product.productKind !== 'kit') {
+      setKitComposition(null)
+      return
+    }
+    let active = true
+    void loadStoreKitComposition(product.id)
+      .then((comp) => {
+        if (active) setKitComposition(comp)
+      })
+      .catch(() => {
+        if (active) setKitComposition({ lines: [], componentsSum: null })
+      })
+    return () => {
+      active = false
+    }
+  }, [product?.id, product?.productKind])
+
+  /** K12: kits publicados que incluem este item. */
+  useEffect(() => {
+    if (!product?.id || product.productKind === 'kit') {
+      setKitsContaining([])
+      return
+    }
+    let active = true
+    void listPublishedKitsIncludingComponent(product.id, 8)
+      .then((rows) => {
+        if (active) setKitsContaining(rows)
+      })
+      .catch(() => {
+        if (active) setKitsContaining([])
+      })
+    return () => {
+      active = false
+    }
+  }, [product?.id, product?.productKind])
 
   useEffect(() => {
     const currentProduct = product
@@ -681,15 +729,22 @@ export function ProductPage() {
         </div>
 
         <div className="relative order-2 min-w-0 bg-transparent p-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-20 lg:self-start lg:pb-1">
-          {brandName ? (
-            <span className="inline-flex rounded-fal border border-fal-navy/15 bg-fal-navy/5 px-2.5 py-1 text-xs font-bold text-fal-navy dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg">
-              Marca: {brandName}
-            </span>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {current.productKind === 'kit' ? (
+              <span className="inline-flex rounded-fal border border-fal-navy/20 bg-fal-navy px-2.5 py-1 text-xs font-bold text-white">
+                Kit
+              </span>
+            ) : null}
+            {brandName ? (
+              <span className="inline-flex rounded-fal border border-fal-navy/15 bg-fal-navy/5 px-2.5 py-1 text-xs font-bold text-fal-navy dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg">
+                Marca: {brandName}
+              </span>
+            ) : null}
+          </div>
           <h1
             className={[
               'text-[22px] font-extrabold leading-snug tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]',
-              brandName ? 'mt-1.5' : 'mt-0',
+              brandName || current.productKind === 'kit' ? 'mt-1.5' : 'mt-0',
             ].join(' ')}
           >
             {displayName}
@@ -704,6 +759,17 @@ export function ProductPage() {
                   showDiscountPercent: presentation.showDiscountPercent,
                 })}
               </Badge>
+            </div>
+          ) : null}
+
+          {current.productKind === 'kit' && kitComposition ? (
+            <div className="mt-3 rounded-fal border border-fal-line bg-fal-bg/50 px-3 py-2">
+              <p className="m-0 text-xs font-bold uppercase tracking-wide text-fal-muted">
+                Este kit inclui
+              </p>
+              <div className="mt-1.5">
+                <PdpKitCompositionBlock composition={kitComposition} kitPrice={storefrontPrice} />
+              </div>
             </div>
           ) : null}
 
@@ -965,11 +1031,27 @@ export function ProductPage() {
         >
           <PdpAccordion
             items={[
+              ...(current.productKind === 'kit' && kitComposition
+                ? [
+                    {
+                      id: 'kit',
+                      title: 'Composição do kit',
+                      icon: 'K',
+                      defaultOpen: true,
+                      children: (
+                        <PdpKitCompositionBlock
+                          composition={kitComposition}
+                          kitPrice={storefrontPrice}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
               {
                 id: 'apps',
                 title: 'Aplicação e compatibilidade',
                 icon: 'A',
-                defaultOpen: true,
+                defaultOpen: current.productKind !== 'kit',
                 children: (
                   <>
                     <CompatibilityAppsBlock
@@ -1145,6 +1227,32 @@ export function ProductPage() {
           </label>
         </div>
       </Modal>
+
+      {kitsContaining.length ? (
+        <section className="mt-10 min-w-0" aria-labelledby="pdp-kits-heading">
+          <h2
+            id="pdp-kits-heading"
+            className="m-0 mb-1 text-lg font-extrabold text-fal-navy dark:text-fal-fg sm:text-xl"
+          >
+            {KITS_COM_ESTA_PECA_SECTION_LABEL}
+          </h2>
+          <p className="mb-3 mt-0 text-sm text-fal-muted">
+            Leve o conjunto completo — esta peça entra nestes kits.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {kitsContaining.map(({ product: kit, quantityInKit }) => (
+              <div key={kit.id} className="min-w-0">
+                <ProductCard product={kit} fitFilter={effectiveVehicleFilter} />
+                {quantityInKit > 1 ? (
+                  <p className="mb-0 mt-1 text-center text-[11px] text-fal-muted">
+                    Inclui {quantityInKit}× desta peça
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {equivalents.length ? (
         <section className="mt-10 min-w-0" aria-labelledby="pdp-equiv-heading">

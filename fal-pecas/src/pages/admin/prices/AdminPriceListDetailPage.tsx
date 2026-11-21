@@ -12,6 +12,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { datetimeLocalToIso, isoToDatetimeLocal } from '@/lib/datetime'
 import {
+  PRICE_LIST_ASSIGNED_KITS_HINT,
   PRICE_LIST_LAYERS_HINT,
   PRICE_ORIGIN_VS_METHOD_HINT,
   priceOriginLabel,
@@ -881,6 +882,16 @@ export function AdminPriceListDetailPage() {
           </Button>
         </div>
       </div>
+
+      {list.scope === 'assigned' ? (
+        <p className="m-0 rounded-[10px] border border-fal-accent/30 bg-fal-bg px-3 py-2 text-sm text-fal-fg">
+          {PRICE_LIST_ASSIGNED_KITS_HINT}{' '}
+          <Link to="/admin/clientes" className="font-semibold underline">
+            Atribuir em Clientes
+          </Link>
+          .
+        </p>
+      ) : null}
 
       {stats ? (
         <div className="grid gap-2 rounded-[14px] border border-fal-line bg-fal-surface p-3 sm:grid-cols-3 lg:grid-cols-6">

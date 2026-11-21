@@ -5,6 +5,7 @@ export type ImportKind =
   | 'supplier_conversion'
   | 'supplier_cost'
   | 'price_list'
+  | 'kit_composition'
 
 export type CsvDelimiter = ';' | ',' | '\t'
 

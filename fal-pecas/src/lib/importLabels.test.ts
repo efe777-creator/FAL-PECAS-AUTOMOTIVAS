@@ -13,7 +13,8 @@ describe('importLabels (IMP-06)', () => {
     expect(importKindLabel('catalog_applications')).toBe('Aplicações')
     expect(importKindLabel('supplier_cost')).toContain('Custos')
     expect(importKindLabel('price_list')).toContain('Lista')
-    expect(IMPORT_KINDS).toHaveLength(5)
+    expect(importKindLabel('kit_composition')).toContain('kits')
+    expect(IMPORT_KINDS).toHaveLength(6)
   })
 
   it('status operacional', () => {
@@ -35,6 +36,7 @@ describe('importLabels (IMP-06)', () => {
     expect(importWizardPath('catalog')).toBe('/admin/produtos/importar')
     expect(importWizardPath('supplier_cost')).toBe('/admin/fornecedores/importar-custos')
     expect(importWizardPath('price_list')).toBe('/admin/precos')
+    expect(importWizardPath('kit_composition')).toBe('/admin/produtos/importar-kits')
     expect(importWizardPath('unknown')).toBeNull()
   })
 })

@@ -83,7 +83,10 @@ export async function resolveProductPrices(
 const BASE_LIST_ID = 'a1111111-1111-1111-1111-111111111101'
 
 /** Anexa resolvedPrice / listPrice / resolvedPriceListId aos produtos. */
-export async function attachResolvedPrices(products: Product[]): Promise<Product[]> {
+export async function attachResolvedPrices(
+  products: Product[],
+  customerId?: string | null,
+): Promise<Product[]> {
   if (!products.length) return products
   if (!isSupabaseConfigured || !supabase) {
     return products.map((p) => ({
@@ -95,7 +98,20 @@ export async function attachResolvedPrices(products: Product[]): Promise<Product
     }))
   }
 
-  const resolved = await resolveProductPrices(products.map((p) => p.id))
+  let effectiveCustomerId: string | null | undefined = customerId
+  if (customerId === undefined) {
+    try {
+      const { getCurrentCustomerId } = await import('@/services/customers/customerService')
+      effectiveCustomerId = await getCurrentCustomerId()
+    } catch {
+      effectiveCustomerId = null
+    }
+  }
+
+  const resolved = await resolveProductPrices(
+    products.map((p) => p.id),
+    effectiveCustomerId ?? null,
+  )
 
   const { data: baseItems } = await supabase
     .from('price_list_items')

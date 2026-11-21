@@ -64,12 +64,14 @@ import {
   adminGetOrderDetail,
   adminMarkPaymentRefunded,
   adminResolveOrderCancellation,
+  adminRestockOrderItemPhysical,
   staffCanCancel,
   type AdminOrderDetail,
   type AdminOrderListRow,
   type OrderItemAvailability,
   type StaffDecisionReasonKind,
 } from '@/services/admin/adminOrderService'
+import { toUserMessage } from '@/lib/toUserMessage'
 import {
   useCallback,
   useEffect,
@@ -757,6 +759,38 @@ export function OrderOpsSurface({
                   separation={isInSeparation(order.status)}
                   onSaveItem={itemHandlers.onSaveItem}
                   onToggleSeparated={itemHandlers.onToggleSeparated}
+                  onRestockPhysical={(itemId) =>
+                    void withBusy(async () => {
+                      const item = order.items.find((i) => i.id === itemId)
+                      if (!item) return false
+                      const remaining =
+                        item.quantity - (item.quantityRestocked ?? 0)
+                      if (remaining <= 0) {
+                        pushError('Item já totalmente reposto')
+                        return false
+                      }
+                      const { confirmed } = await confirmDialog({
+                        title: 'Repor estoque físico?',
+                        message: item.kitCompositionSnapshot?.length
+                          ? `Reposição do kit "${item.nameSnapshot}" usa o snapshot do pedido (${remaining} un.). Componentes voltam ao estoque.`
+                          : `Repor ${remaining} un. de "${item.nameSnapshot}" no estoque físico?`,
+                        confirmLabel: 'Repor',
+                      })
+                      if (!confirmed) return false
+                      try {
+                        const r = await adminRestockOrderItemPhysical({
+                          orderItemId: itemId,
+                        })
+                        pushOk(
+                          `Reposto: ${r.qtyRestocked} un. · ${r.stockLines} linha(s) de estoque`,
+                        )
+                        return true
+                      } catch (e) {
+                        pushError(toUserMessage(e, 'Falha na reposição'))
+                        return false
+                      }
+                    })
+                  }
                 />
               ) : (
                 <p className="m-0 text-sm text-fal-muted">Carregando itens…</p>
@@ -1087,6 +1121,7 @@ function ItemsBlock({
   separation,
   onSaveItem,
   onToggleSeparated,
+  onRestockPhysical,
 }: {
   order: AdminOrderDetail
   drafts: Record<string, ItemDraft>
@@ -1096,7 +1131,10 @@ function ItemsBlock({
   separation: boolean
   onSaveItem: (itemId: string) => void
   onToggleSeparated: (itemId: string, separated: boolean) => void
+  onRestockPhysical?: (itemId: string) => void
 }) {
+  const canPhysicalRestock =
+    order.status === 'enviado' || order.status === 'entregue'
   return (
     <ul className="m-0 list-none space-y-1.5 p-0">
       {order.items.map((it) => {
@@ -1135,6 +1173,24 @@ function ItemsBlock({
                 <span className="text-fal-muted"> · </span>
                 <span className="font-semibold text-fal-fg">{formatMoney(lineTotal)}</span>
               </p>
+              {it.kitCompositionSnapshot?.length ? (
+                <div className="mb-0 mt-1 rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1 text-[11px] text-fal-muted">
+                  <p className="m-0 font-semibold text-fal-fg">Separar kit (snapshot):</p>
+                  <ul className="mb-0 mt-0.5 list-disc pl-4">
+                    {it.kitCompositionSnapshot.map((c) => (
+                      <li key={`${it.id}-${c.productId}`}>
+                        {c.sku || c.productId} — {c.name} × {c.quantity * it.quantity}
+                        {it.quantity > 1 ? (
+                          <span className="text-fal-muted">
+                            {' '}
+                            ({c.quantity}/kit × {it.quantity})
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {it.availability ? (
                 <p className="mb-0 mt-0.5 text-[11px] text-fal-muted">
                   Disp.: {it.availability}
@@ -1213,6 +1269,28 @@ function ItemsBlock({
                 <p className="mb-0 mt-1.5 text-xs text-red-800">
                   Indisponível — fora do envio
                 </p>
+              ) : null}
+              {canPhysicalRestock && onRestockPhysical ? (
+                <div className="mt-1.5">
+                  {(it.quantityRestocked ?? 0) >= it.quantity ? (
+                    <p className="mb-0 text-[11px] font-semibold text-emerald-800">
+                      Estoque físico já reposto
+                    </p>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => onRestockPhysical(it.id)}
+                    >
+                      Repor estoque
+                      {(it.quantityRestocked ?? 0) > 0
+                        ? ` (${it.quantityRestocked}/${it.quantity})`
+                        : ''}
+                    </Button>
+                  )}
+                </div>
               ) : null}
             </div>
           </li>

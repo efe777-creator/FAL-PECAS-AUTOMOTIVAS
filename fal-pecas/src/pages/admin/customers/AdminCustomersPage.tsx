@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatDateTime } from '@/lib/datetime'
@@ -11,9 +12,12 @@ import { orderStatusAdminLabel } from '@/lib/orderLifecycle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminGetCustomer,
+  adminListAssignedPriceLists,
   adminListCustomers,
+  adminSetCustomerAssignedPriceList,
   ADMIN_CUSTOMERS_PAGE_SIZE,
   staffCanViewCustomersF8,
+  type AdminAssignedPriceListOption,
   type AdminCustomerDetail,
   type AdminCustomerListRow,
 } from '@/services/admin/adminCustomerService'
@@ -50,6 +54,8 @@ export function AdminCustomersPage() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [assignedLists, setAssignedLists] = useState<AdminAssignedPriceListOption[]>([])
+  const [savingList, setSavingList] = useState(false)
 
   function pushError(message: string) {
     setError(message)
@@ -63,8 +69,12 @@ export function AdminCustomersPage() {
         const ok = await staffCanViewCustomersF8()
         setAllowed(ok)
         if (!ok) return
-        const list = await adminListCustomers()
+        const [list, assigned] = await Promise.all([
+          adminListCustomers(),
+          adminListAssignedPriceLists(),
+        ])
         setRows(list)
+        setAssignedLists(assigned)
         setHasMore(list.length >= ADMIN_CUSTOMERS_PAGE_SIZE)
       } catch (e) {
         pushError(toUserMessage(e, 'Erro ao carregar clientes'))
@@ -230,6 +240,52 @@ export function AdminCustomersPage() {
                 Desde {formatDateTime(detail.createdAt)} · {detail.addressCount} endereço
                 {detail.addressCount === 1 ? '' : 's'}
               </p>
+
+              <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3">
+                <h3 className="m-0 text-xs font-bold uppercase text-fal-muted">
+                  Lista B2B (assigned)
+                </h3>
+                <p className="mt-1 mb-2 text-xs text-fal-muted">
+                  Preços de itens e kits nesta lista vencem a vitrine pública no checkout. Crie a
+                  lista em{' '}
+                  <Link to="/admin/precos" className="font-semibold underline">
+                    Preços
+                  </Link>{' '}
+                  com escopo assigned.
+                </p>
+                <Select
+                  label="Lista atribuída"
+                  value={detail.assignedPriceListId ?? ''}
+                  disabled={savingList || assignedLists.length === 0}
+                  onChange={(e) => {
+                    const next = e.target.value || null
+                    void (async () => {
+                      setSavingList(true)
+                      try {
+                        await adminSetCustomerAssignedPriceList({
+                          customerId: detail.id,
+                          priceListId: next,
+                        })
+                        const refreshed = await adminGetCustomer(detail.id)
+                        if (refreshed) setDetail(refreshed)
+                        toast.push('Lista B2B atualizada', 'success')
+                      } catch (err) {
+                        pushError(toUserMessage(err, 'Falha ao atribuir lista'))
+                      } finally {
+                        setSavingList(false)
+                      }
+                    })()
+                  }}
+                  options={[
+                    { value: '', label: assignedLists.length ? 'Nenhuma (preço público)' : 'Nenhuma lista assigned' },
+                    ...assignedLists.map((l) => ({
+                      value: l.id,
+                      label: `${l.name}${l.status !== 'active' ? ` (${l.status})` : ''}`,
+                    })),
+                  ]}
+                />
+              </div>
+
               <div>
                 <h3 className="text-xs font-bold uppercase text-fal-muted">Pedidos recentes</h3>
                 <ul className="mt-2 space-y-1">

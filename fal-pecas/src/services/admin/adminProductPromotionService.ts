@@ -9,6 +9,7 @@ export type AdminPromotionRow = {
   productId: string
   name: string
   sku: string
+  productKind: 'item' | 'kit'
   priceListId: string
   priceListName: string
   status: 'active' | 'inactive'
@@ -46,7 +47,7 @@ export async function adminListProductPromotions(opts?: {
   let query = sb
     .from('product_promotions')
     .select(
-      'id, product_id, price_list_id, status, starts_at, ends_at, products!inner(id, name, sku), price_lists!inner(id, name)',
+      'id, product_id, price_list_id, status, starts_at, ends_at, products!inner(id, name, sku, product_kind), price_lists!inner(id, name)',
     )
     .order('updated_at', { ascending: false })
     .limit(200)
@@ -63,7 +64,9 @@ export async function adminListProductPromotions(opts?: {
     status: 'active' | 'inactive'
     starts_at: string | null
     ends_at: string | null
-    products: { id: string; name: string; sku: string } | { id: string; name: string; sku: string }[]
+    products:
+      | { id: string; name: string; sku: string; product_kind?: string }
+      | { id: string; name: string; sku: string; product_kind?: string }[]
     price_lists: { id: string; name: string } | { id: string; name: string }[]
   }>
 
@@ -91,6 +94,7 @@ export async function adminListProductPromotions(opts?: {
       productId: r.product_id,
       name: p.name,
       sku: p.sku,
+      productKind: p.product_kind === 'kit' ? 'kit' : 'item',
       priceListId: r.price_list_id,
       priceListName: pl.name,
       status: r.status,

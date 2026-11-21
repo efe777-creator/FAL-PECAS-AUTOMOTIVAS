@@ -443,6 +443,12 @@ export interface CompatibilityAppGroup {
 /** Origem de medida logística (analogia price_origin Manual × formação). */
 export type MeasureOrigin = 'manual' | 'global'
 
+/** Natureza comercial (K1 kits). */
+export type ProductKind = 'item' | 'kit'
+
+/** Modalidade de preço do kit (K2). */
+export type KitPriceMode = 'auto' | 'manual'
+
 export interface Product {
   id: string
   /** SKU FAL técnico (import / matching). */
@@ -459,6 +465,12 @@ export interface Product {
   categoryId?: string
   categoryName?: string
   categorySlug?: string
+  /** item = SKU unitário; kit = composição BOM. */
+  productKind?: ProductKind
+  /** Só para kit: auto = soma; manual = lista exclusiva. */
+  kitPriceMode?: KitPriceMode
+  /** Kit: revisão de PVC pendente após mudança em componente. */
+  kitCompatReviewRequired?: boolean
   price: number
   promoPrice?: number | null
   /** Preço resolvido pela lista comercial (F6B). */

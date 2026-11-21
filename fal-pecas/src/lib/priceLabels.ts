@@ -25,7 +25,10 @@ export function priceOriginLabel(origin: PriceOriginCode | string): string {
 
 /** Separação de camadas — copy curto para admin. */
 export const PRICE_LIST_LAYERS_HINT =
-  'Lista Ativa/Inativa não é o mesmo que item Com preço/Sem preço, nem que produto disponível na loja.'
+  'Lista Ativa/Inativa não é o mesmo que item Com preço/Sem preço, nem que produto disponível na loja. Listas assigned (B2B) aceitam itens e kits; vincule o cliente em Clientes.'
+
+export const PRICE_LIST_ASSIGNED_KITS_HINT =
+  'Lista B2B (assigned): cadastre preços de itens e kits aqui. No checkout, o resolve usa esta lista antes da vitrine pública.'
 
 /** Prioridade da lista: desempate real em resolve_product_price (não remover). */
 export const PRICE_LIST_PRIORITY_HINT =

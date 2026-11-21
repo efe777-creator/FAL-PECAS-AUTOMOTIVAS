@@ -39,7 +39,8 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     title: 'Loja',
     links: [
       { to: '/admin/home', label: 'Home da loja', end: true },
-      { to: '/admin/home/promocoes', label: 'Promoções' },
+      { to: '/admin/home/promocoes', label: 'Promoções', end: true },
+      { to: '/admin/home/promocoes/kits', label: 'Promoções de kits' },
       { to: '/admin/busca', label: 'Busca' },
     ],
   },

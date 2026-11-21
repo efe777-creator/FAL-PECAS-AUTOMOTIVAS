@@ -4,7 +4,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
 import { StaffRoute } from '@/app/StaffRoute'
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom'
 import { Loading } from '@/components/common/Loading'
 import { RouteErrorPage } from '@/components/common/ErrorBoundary'
 
@@ -227,6 +227,11 @@ const AdminImageSkuImportPage = lazy(() =>
     default: m.AdminImageSkuImportPage,
   })),
 )
+const AdminKitCompositionImportPage = lazy(() =>
+  import('@/pages/admin/products/AdminKitCompositionImportPage').then((m) => ({
+    default: m.AdminKitCompositionImportPage,
+  })),
+)
 const AdminImportsPage = lazy(() =>
   import('@/pages/admin/imports/AdminImportsPage').then((m) => ({
     default: m.AdminImportsPage,
@@ -328,6 +333,12 @@ function Suspend({ children }: { children: ReactNode }) {
   return <Suspense fallback={<Loading />}>{children}</Suspense>
 }
 
+/** Deep link legado `/busca?q=` → `/catalogo?q=` (preserva query). */
+function RedirectBuscaToCatalog() {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/catalogo', search }} replace />
+}
+
 function AdminSuspend({ children }: { children: ReactNode }) {
   return (
     <StaffRoute>
@@ -364,6 +375,10 @@ export const router = createBrowserRouter([
         path: 'produtos/importar-imagens',
         element: <AdminImageSkuImportPage />,
       },
+      {
+        path: 'produtos/importar-kits',
+        element: <AdminKitCompositionImportPage />,
+      },
       { path: 'produtos/novo', element: <AdminProductFormPage /> },
       { path: 'produtos/:id', element: <AdminProductFormPage /> },
       { path: 'precos', element: <AdminPriceListsPage /> },
@@ -372,6 +387,7 @@ export const router = createBrowserRouter([
       { path: 'categorias', element: <AdminCategoriesPage /> },
       { path: 'home', element: <AdminHomeContentPage /> },
       { path: 'home/promocoes', element: <AdminPromotionsPage /> },
+      { path: 'home/promocoes/kits', element: <AdminPromotionsPage /> },
       { path: 'busca', element: <AdminSearchPrepPage /> },
       { path: 'montadoras', element: <AdminManufacturersPage /> },
       { path: 'veiculos', element: <AdminVehiclesPage /> },
@@ -459,6 +475,8 @@ export const router = createBrowserRouter([
           </Suspend>
         ),
       },
+      /** Legado: deep links /busca?q= → catálogo (busca canônica). */
+      { path: 'busca', element: <RedirectBuscaToCatalog /> },
       {
         path: 'produto/:slugOrId',
         element: (

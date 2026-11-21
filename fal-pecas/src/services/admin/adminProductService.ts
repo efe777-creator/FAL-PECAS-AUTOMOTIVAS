@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { adminEnsureBaseAndPromoPrices } from '@/services/admin/adminPriceListService'
 import { resolveProductPrice } from '@/services/pricing/priceResolutionService'
-import type { MeasureOrigin, Product, ProductReference } from '@/types'
+import type { KitPriceMode, MeasureOrigin, Product, ProductKind, ProductReference } from '@/types'
 
 type ProductRow = {
   id: string
@@ -20,6 +20,9 @@ type ProductRow = {
   brand_id: string | null
   supplier_id: string | null
   category_id: string | null
+  product_kind?: string | null
+  kit_price_mode?: string | null
+  kit_compat_review_required?: boolean | null
   price: number
   promo_price: number | null
   status: string
@@ -74,6 +77,9 @@ function mapProduct(row: ProductRow): Product {
     supplierId: row.supplier_id,
     categoryId: category?.id ?? row.category_id ?? undefined,
     categoryName: category?.name,
+    productKind: (row.product_kind === 'kit' ? 'kit' : 'item') as ProductKind,
+    kitPriceMode: (row.kit_price_mode === 'manual' ? 'manual' : 'auto') as KitPriceMode,
+    kitCompatReviewRequired: row.kit_compat_review_required === true,
     price: Number(row.price),
     promoPrice: row.promo_price == null ? null : Number(row.promo_price),
     status: row.status as Product['status'],
@@ -106,7 +112,7 @@ function mapProduct(row: ProductRow): Product {
 
 const SELECT = `
   id, sku, commercial_ref, name, slug, description, short_description, brand_id, supplier_id,
-  category_id, price, promo_price, status, manufacturer_code, is_incomplete,
+  category_id, product_kind, kit_price_mode, kit_compat_review_required, price, promo_price, status, manufacturer_code, is_incomplete,
   is_available, posicao, lado, attrs, weight_kg, height_cm, width_cm, length_cm,
   weight_origin, height_origin, width_origin, length_origin,
   pol_unit, logistic_porte, vehicle_min_code, compatible_vehicle_codes, logistic_restrictions,
@@ -159,6 +165,8 @@ export type AdminProductListParams = {
   measureGap?: AdminMeasureGapFilter
   /** category_id IN (nó + descendentes). */
   categoryIds?: string[]
+  /** Natureza comercial (item | kit). */
+  productKind?: ProductKind
   /** Montadora: produtos com aplicação em vehicle_versions dessa manufacturer. */
   manufacturerId?: string
   modelId?: string
@@ -222,6 +230,7 @@ export async function adminListProductsPage(
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
   if (params?.status) q = q.eq('status', params.status)
   if (typeof params?.available === 'boolean') q = q.eq('is_available', params.available)
+  if (params?.productKind) q = q.eq('product_kind', params.productKind)
   if (params?.categoryIds && params.categoryIds.length > 0) {
     q = q.in('category_id', params.categoryIds)
   }
@@ -278,6 +287,8 @@ export async function adminUpsertProduct(input: {
   categoryId?: string | null
   brandId?: string | null
   supplierId?: string | null
+  productKind?: ProductKind
+  kitPriceMode?: KitPriceMode
   price: number
   promoPrice?: number | null
   status?: Product['status']
@@ -309,6 +320,7 @@ export async function adminUpsertProduct(input: {
     commercialRef: input.commercialRef,
     sku: input.sku,
   })
+  const productKind: ProductKind = input.productKind === 'kit' ? 'kit' : 'item'
   const payload = {
     name: input.name.trim(),
     sku: identity.sku,
@@ -317,6 +329,8 @@ export async function adminUpsertProduct(input: {
     category_id: input.categoryId || null,
     brand_id: input.brandId || null,
     supplier_id: input.supplierId || null,
+    product_kind: productKind,
+    kit_price_mode: productKind === 'kit' ? (input.kitPriceMode === 'manual' ? 'manual' : 'auto') : 'auto',
     price: input.price,
     promo_price: input.promoPrice ?? null,
     status: input.status ?? 'draft',
@@ -520,7 +534,7 @@ export async function adminEvaluateReleaseChecklist(
   }
 
   const sb = getSupabase()
-  const [{ count: appCount }, { count: imgCount }] = await Promise.all([
+  const [{ count: appCount }, { count: imgCount }, kitComps] = await Promise.all([
     sb
       .from('product_vehicle_compatibility')
       .select('id', { count: 'exact', head: true })
@@ -529,7 +543,20 @@ export async function adminEvaluateReleaseChecklist(
       .from('product_images')
       .select('id', { count: 'exact', head: true })
       .eq('product_id', productId),
+    product.productKind === 'kit'
+      ? sb
+          .from('product_kit_components')
+          .select('quantity')
+          .eq('kit_product_id', productId)
+      : Promise.resolve({ data: null as { quantity: number }[] | null }),
   ])
+
+  let kitCompositionOk: boolean | undefined
+  if (product.productKind === 'kit') {
+    const rows = (kitComps.data ?? []).map((r) => ({ quantity: Number(r.quantity) }))
+    kitCompositionOk =
+      rows.length >= 2 || (rows.length === 1 && (rows[0]?.quantity ?? 0) >= 2)
+  }
 
   const sku = product.sku ?? ''
   const name = product.name ?? ''
@@ -545,6 +572,9 @@ export async function adminEvaluateReleaseChecklist(
     hasApplication: (appCount ?? 0) > 0,
     hasImage: (imgCount ?? 0) > 0,
     publishIfNeeded: opts?.publishIfNeeded ?? false,
+    productKind: product.productKind === 'kit' ? 'kit' : 'item',
+    kitCompatReviewRequired: product.kitCompatReviewRequired === true,
+    kitCompositionOk,
   })
 
   return {
@@ -599,13 +629,34 @@ export async function adminReleaseProductToStore(input: {
     publishedNow = true
   }
 
+  const product = await adminGetProduct(input.productId)
+  let nextAvailable = true
+  if (product?.productKind === 'kit') {
+    const { data: avail, error: availErr } = await getSupabase().rpc(
+      'compute_kit_is_available',
+      { p_kit_product_id: input.productId },
+    )
+    if (availErr) throw availErr
+    nextAvailable = avail === true
+  }
+
   const { error } = await getSupabase()
     .from('products')
-    .update({ is_available: true, status: 'published' })
+    .update({ is_available: nextAvailable, status: 'published' })
     .eq('id', input.productId)
   if (error) throw error
 
   return { ok: true, productId: input.productId, publishedNow, checklist: preflight }
+}
+
+/** K5: admin confirma revisão do PVC próprio do kit após alerta. */
+export async function adminClearKitCompatReview(kitProductId: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from('products')
+    .update({ kit_compat_review_required: false, updated_at: new Date().toISOString() })
+    .eq('id', kitProductId)
+    .eq('product_kind', 'kit')
+  if (error) throw error
 }
 
 export async function adminReleaseProductsToStore(input: {

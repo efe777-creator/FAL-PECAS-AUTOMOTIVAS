@@ -196,12 +196,43 @@ const catalogHfBundleContract: ImportContract = {
   ],
 }
 
+/** K10 — composição de kits (kit_sku + component_sku + qty). Não cria produtos. */
+const kitCompositionContract: ImportContract = {
+  kind: 'kit_composition',
+  maxRows: IMPORT_MAX_ROWS,
+  fields: [
+    {
+      key: 'kit_sku',
+      aliases: ['kit_sku', 'sku_kit', 'codigo_kit', 'kit', 'kit_codigo'],
+      required: true,
+    },
+    {
+      key: 'component_sku',
+      aliases: [
+        'component_sku',
+        'sku_componente',
+        'sku_item',
+        'codigo_componente',
+        'componente',
+        'item_sku',
+      ],
+      required: true,
+    },
+    {
+      key: 'quantity',
+      aliases: ['quantity', 'qty', 'quantidade', 'qtd', 'qtde'],
+      required: true,
+    },
+  ],
+}
+
 const CONTRACTS: Record<ImportKind, ImportContract> = {
   catalog: catalogContract,
   catalog_applications: catalogApplicationsContract,
   supplier_conversion: supplierConversionContract,
   supplier_cost: supplierCostContract,
   price_list: priceListContract,
+  kit_composition: kitCompositionContract,
 }
 
 export function getImportContract(kind: ImportKind): ImportContract {

@@ -27,6 +27,7 @@ const PATH_ROLES: Record<string, UserRole[]> = {
   '/admin/categorias': CATALOG_OPS,
   '/admin/home': MGMT,
   '/admin/home/promocoes': MGMT,
+  '/admin/home/promocoes/kits': MGMT,
   '/admin/busca': MGMT,
   '/admin/montadoras': CATALOG_OPS,
   '/admin/veiculos': CATALOG_OPS,

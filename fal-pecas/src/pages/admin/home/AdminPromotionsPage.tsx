@@ -7,6 +7,10 @@ import { formatMoney } from '@/lib/money'
 import { formatDiscountPercentLabel, resolvePromoOffer } from '@/lib/promoPresentation'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { AdminHomeSectionTabs } from '@/pages/admin/home/AdminHomeSectionTabs'
+import {
+  AdminPromotionsScopeTabs,
+  type PromotionsScope,
+} from '@/pages/admin/home/AdminPromotionsScopeTabs'
 import { adminListProducts } from '@/services/admin/adminProductService'
 import {
   adminActivatePromotion,
@@ -19,7 +23,7 @@ import {
   type AdminPromotionRow,
 } from '@/services/admin/adminProductPromotionService'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const statusLabel: Record<AdminPromotionDisplayStatus, string> = {
   active: 'Ativa',
@@ -54,8 +58,17 @@ function formatEndsLocal(iso: string | null): string {
   })
 }
 
+function scopeFromPath(pathname: string): PromotionsScope {
+  return pathname.includes('/promocoes/kits') ? 'kits' : 'items'
+}
+
 export function AdminPromotionsPage() {
-  useDocumentTitle('Promoções · Home da loja')
+  const location = useLocation()
+  const scope = scopeFromPath(location.pathname)
+  const isKits = scope === 'kits'
+  useDocumentTitle(
+    isKits ? 'Promoções de kits · Home da loja' : 'Promoções · Home da loja',
+  )
   const { push } = useToast()
   const [rows, setRows] = useState<AdminPromotionRow[]>([])
   const [lists, setLists] = useState<Array<{ id: string; name: string; slug: string }>>([])
@@ -70,7 +83,9 @@ export function AdminPromotionsPage() {
     'all' | AdminPromotionDisplayStatus
   >('all')
   const [productQ, setProductQ] = useState('')
-  const [hits, setHits] = useState<Array<{ id: string; name: string; sku: string }>>([])
+  const [hits, setHits] = useState<
+    Array<{ id: string; name: string; sku: string; productKind: 'item' | 'kit' }>
+  >([])
   const [selectedProductId, setSelectedProductId] = useState('')
   const [selectedProductLabel, setSelectedProductLabel] = useState('')
   const [selectedListId, setSelectedListId] = useState('')
@@ -80,9 +95,28 @@ export function AdminPromotionsPage() {
 
   const canActivate = lists.length > 0 && Boolean(selectedProductId) && Boolean(selectedListId)
 
+  const scopedRows = useMemo(
+    () =>
+      rows.filter((r) =>
+        isKits ? r.productKind === 'kit' : r.productKind !== 'kit',
+      ),
+    [rows, isKits],
+  )
+
+  const scopeTabCounts = useMemo(() => {
+    let items = 0
+    let kits = 0
+    for (const r of rows) {
+      if (r.status !== 'active') continue
+      if (r.productKind === 'kit') kits += 1
+      else items += 1
+    }
+    return { items, kits }
+  }, [rows])
+
   const filteredRows = useMemo(() => {
     const q = listQ.trim().toLowerCase()
-    return rows.filter((r) => {
+    return scopedRows.filter((r) => {
       const st = adminPromotionDisplayStatus(r)
       if (situationFilter !== 'all' && st !== situationFilter) return false
       if (!q) return true
@@ -92,15 +126,15 @@ export function AdminPromotionsPage() {
         r.priceListName.toLowerCase().includes(q)
       )
     })
-  }, [rows, listQ, situationFilter])
+  }, [scopedRows, listQ, situationFilter])
 
   const counts = useMemo(() => {
     const c = { active: 0, scheduled: 0, expired: 0, inactive: 0 }
-    for (const r of rows) {
+    for (const r of scopedRows) {
       c[adminPromotionDisplayStatus(r)] += 1
     }
     return c
-  }, [rows])
+  }, [scopedRows])
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -129,6 +163,15 @@ export function AdminPromotionsPage() {
   }, [reload])
 
   useEffect(() => {
+    setSelectedProductId('')
+    setSelectedProductLabel('')
+    setProductQ('')
+    setHits([])
+    setListQ('')
+    setSituationFilter('all')
+  }, [scope])
+
+  useEffect(() => {
     if (selectedProductId && productQ === selectedProductLabel) {
       setHits([])
       return
@@ -140,10 +183,21 @@ export function AdminPromotionsPage() {
     }
     let cancelled = false
     const t = window.setTimeout(() => {
-      void adminListProducts({ q: term, limit: 8 })
+      void adminListProducts({
+        q: term,
+        limit: 8,
+        productKind: isKits ? 'kit' : 'item',
+      })
         .then((found) => {
           if (cancelled) return
-          setHits(found.map((p) => ({ id: p.id, name: p.name, sku: p.sku })))
+          setHits(
+            found.map((p) => ({
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              productKind: p.productKind === 'kit' ? 'kit' : 'item',
+            })),
+          )
         })
         .catch(() => {
           if (!cancelled) setHits([])
@@ -153,7 +207,7 @@ export function AdminPromotionsPage() {
       cancelled = true
       window.clearTimeout(t)
     }
-  }, [productQ, selectedProductId, selectedProductLabel])
+  }, [productQ, selectedProductId, selectedProductLabel, isKits])
 
   function clearProductSelection() {
     setSelectedProductId('')
@@ -164,7 +218,7 @@ export function AdminPromotionsPage() {
 
   async function onActivate() {
     if (!selectedProductId || !selectedListId) {
-      push('Selecione produto e lista promocional', 'error')
+      push(isKits ? 'Selecione kit e lista promocional' : 'Selecione produto e lista promocional', 'error')
       return
     }
     if (!lists.length) {
@@ -209,11 +263,18 @@ export function AdminPromotionsPage() {
       <div>
         <h1 className="m-0 text-2xl font-extrabold text-fal-fg">Home da loja</h1>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Promoções controlam o preço na loja. Destaques são outra aba e não mudam com isto.
+          {isKits
+            ? 'Promoções de kits usam o mesmo gate da loja. O kit não herda desconto dos componentes.'
+            : 'Promoções controlam o preço na loja. Destaques são outra aba e não mudam com isto.'}
         </p>
       </div>
 
       <AdminHomeSectionTabs active="promotions" />
+      <AdminPromotionsScopeTabs
+        active={scope}
+        itemsCount={scopeTabCounts.items}
+        kitsCount={scopeTabCounts.kits}
+      />
 
       {/* 1) Pré-requisito operacional */}
       {inactiveLists.length > 0 || lists.length === 0 ? (
@@ -221,7 +282,9 @@ export function AdminPromotionsPage() {
           className="rounded-fal border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
           role="status"
         >
-          <p className="m-0 font-bold">Antes de ativar produtos</p>
+          <p className="m-0 font-bold">
+            {isKits ? 'Antes de ativar kits' : 'Antes de ativar produtos'}
+          </p>
           <ol className="mb-0 mt-2 list-decimal space-y-1 pl-5">
             <li>
               Em{' '}
@@ -234,28 +297,36 @@ export function AdminPromotionsPage() {
                 : ''}
               .
             </li>
-            <li>Cadastre o preço promocional do SKU nessa lista.</li>
-            <li>Volte aqui e ative o produto — só então a loja baixa o preço.</li>
+            <li>
+              Cadastre o preço promocional do {isKits ? 'kit' : 'SKU'} nessa lista.
+            </li>
+            <li>
+              Volte aqui e ative o {isKits ? 'kit' : 'produto'} — só então a loja baixa o preço.
+            </li>
           </ol>
         </div>
       ) : (
         <p className="m-0 rounded-fal border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-950">
-          Lista promocional ativa. Busque o produto e ative para entrar em promoção na loja.
+          Lista promocional ativa. Busque o {isKits ? 'kit' : 'produto'} e ative para entrar em
+          promoção na loja.
         </p>
       )}
 
       {/* 2) Ação principal */}
       <section className="rounded-fal border border-fal-line bg-fal-surface p-4">
-        <h2 className="m-0 text-lg font-bold text-fal-fg">1. Ativar produto</h2>
+        <h2 className="m-0 text-lg font-bold text-fal-fg">
+          {isKits ? '1. Ativar kit' : '1. Ativar produto'}
+        </h2>
         <p className="mt-1 mb-0 text-sm text-fal-muted">
-          Lista cadastrada ≠ promoção ativa. Sem ativação aqui, o item na lista não altera a
-          vitrine.
+          {isKits
+            ? 'Lista cadastrada ≠ promoção ativa. Promo de kit é própria do SKU do kit (não herda desconto dos componentes).'
+            : 'Lista cadastrada ≠ promoção ativa. Sem ativação aqui, o SKU na lista não altera a vitrine.'}
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2">
             <Input
-              label="Produto"
+              label={isKits ? 'Kit' : 'Produto'}
               value={productQ}
               onChange={(e) => {
                 const v = e.target.value
@@ -265,7 +336,11 @@ export function AdminPromotionsPage() {
                   setSelectedProductLabel('')
                 }
               }}
-              placeholder="Digite nome ou SKU (mín. 2 letras)"
+              placeholder={
+                isKits
+                  ? 'Digite nome ou SKU do kit (mín. 2 letras)'
+                  : 'Digite nome ou SKU (mín. 2 letras)'
+              }
               disabled={lists.length === 0}
             />
             {selectedProductId ? (
@@ -295,7 +370,10 @@ export function AdminPromotionsPage() {
                         setHits([])
                       }}
                     >
-                      <span className="font-mono text-xs text-fal-muted">{h.sku}</span>
+                      <span className="font-mono text-xs text-fal-muted">
+                        {h.sku}
+                        {h.productKind === 'kit' ? ' · Kit' : ''}
+                      </span>
                       <span className="mt-0.5 block font-semibold text-fal-ink">{h.name}</span>
                     </button>
                   </li>
@@ -335,7 +413,9 @@ export function AdminPromotionsPage() {
             {busy ? 'Ativando…' : 'Ativar promoção'}
           </Button>
           <p className="m-0 text-xs text-fal-muted">
-            Independente de o produto estar ou não em Destaques.
+            {isKits
+              ? 'Independente de o kit estar ou não em Destaques.'
+              : 'Independente de o produto estar ou não em Destaques.'}
           </p>
         </div>
       </section>
@@ -344,7 +424,9 @@ export function AdminPromotionsPage() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="m-0 text-lg font-bold text-fal-fg">2. Produtos em promoção</h2>
+            <h2 className="m-0 text-lg font-bold text-fal-fg">
+              {isKits ? '2. Kits em promoção' : '2. Produtos em promoção'}
+            </h2>
             <p className="mt-1 mb-0 text-sm text-fal-muted">
               {loading
                 ? 'Carregando…'
@@ -394,15 +476,16 @@ export function AdminPromotionsPage() {
           </label>
         </div>
 
-        {!loading && rows.length === 0 ? (
+        {!loading && scopedRows.length === 0 ? (
           <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
-            Nenhuma promoção {includeHistory ? 'no histórico' : 'ativa'}. Ative um produto acima
+            Nenhuma promoção de {isKits ? 'kit' : 'produto'}{' '}
+            {includeHistory ? 'no histórico' : 'ativa'}. Ative um {isKits ? 'kit' : 'produto'} acima
             {!includeHistory ? ' ou marque “Incluir histórico”' : ''}.
           </p>
         ) : null}
-        {!loading && rows.length > 0 && filteredRows.length === 0 ? (
+        {!loading && scopedRows.length > 0 && filteredRows.length === 0 ? (
           <p className="rounded-fal border border-dashed border-fal-line bg-fal-bg p-4 text-sm text-fal-muted">
-            Nenhum item com esse filtro.
+            Nenhum {isKits ? 'kit' : 'item'} com esse filtro.
             {!includeHistory && (situationFilter === 'inactive' || situationFilter === 'expired')
               ? ' Marque “Incluir histórico”.'
               : ''}
@@ -413,7 +496,7 @@ export function AdminPromotionsPage() {
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead className="bg-fal-bg text-fal-muted">
               <tr>
-                <th className="px-3 py-2 font-semibold">Produto</th>
+                <th className="px-3 py-2 font-semibold">{isKits ? 'Kit' : 'Produto'}</th>
                 <th className="px-3 py-2 font-semibold">Preços</th>
                 <th className="px-3 py-2 font-semibold">%</th>
                 <th className="px-3 py-2 font-semibold">Situação</th>
@@ -434,7 +517,10 @@ export function AdminPromotionsPage() {
                       >
                         {r.name}
                       </Link>
-                      <div className="font-mono text-xs text-fal-muted">{r.sku}</div>
+                      <div className="font-mono text-xs text-fal-muted">
+                        {r.sku}
+                        {r.productKind === 'kit' ? ' · Kit' : ''}
+                      </div>
                       <div className="text-xs text-fal-muted">{r.priceListName}</div>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap">

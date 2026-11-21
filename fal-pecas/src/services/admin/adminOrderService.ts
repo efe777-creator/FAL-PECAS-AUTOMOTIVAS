@@ -85,6 +85,13 @@ export type AdminOrderListRow = {
   pickupAuthorized?: boolean
 }
 
+export type KitCompositionSnapshotLine = {
+  productId: string
+  sku: string
+  name: string
+  quantity: number
+}
+
 export type AdminOrderItem = {
   id: string
   productId: string | null
@@ -103,6 +110,10 @@ export type AdminOrderItem = {
   imageUrl?: string | null
   /** G6 + E.5 lite: veículo/fit congelados no item. */
   vehicleSnapshot?: CartVehicleSnapshot | null
+  /** K4: BOM do kit congelada no place_order. */
+  kitCompositionSnapshot?: KitCompositionSnapshotLine[] | null
+  /** K13: unidades já repostas ao estoque após envio. */
+  quantityRestocked?: number
 }
 
 export type AdminOrderDetail = {
@@ -230,6 +241,24 @@ export async function adminListOrders(
   return (data ?? []).map((row) => mapLogisticsListRow(row as Record<string, unknown>))
 }
 
+function parseKitCompositionSnapshot(raw: unknown): KitCompositionSnapshotLine[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const lines: KitCompositionSnapshotLine[] = []
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue
+    const r = row as Record<string, unknown>
+    const productId = r.product_id != null ? String(r.product_id) : ''
+    if (!productId) continue
+    lines.push({
+      productId,
+      sku: r.sku != null ? String(r.sku) : '',
+      name: r.name != null ? String(r.name) : '',
+      quantity: Number(r.quantity ?? 0),
+    })
+  }
+  return lines.length ? lines : null
+}
+
 async function mapAdminOrderItemsWithImages(
   items: Record<string, unknown>[],
 ): Promise<AdminOrderItem[]> {
@@ -253,6 +282,8 @@ async function mapAdminOrderItemsWithImages(
       quantityReserved: inv?.quantity_reserved != null ? Number(inv.quantity_reserved) : null,
       imageUrl: null,
       vehicleSnapshot: parseVehicleSnapshot(i.vehicle_snapshot),
+      kitCompositionSnapshot: parseKitCompositionSnapshot(i.kit_composition_snapshot),
+      quantityRestocked: Number(i.quantity_restocked ?? 0),
     }
   })
 
@@ -299,7 +330,7 @@ export async function adminGetOrderDetail(orderId: string): Promise<AdminOrderDe
       cancellation_request, cancellation_reason, cancellation_resolve_note, inventory_mode_at_order,
       customers ( cpf, cnpj, profiles ( full_name, username ) ),
       order_items (
-        id, product_id, sku, name_snapshot, unit_price, quantity, availability, lead_days, staff_note, separated, vehicle_snapshot,
+        id, product_id, sku, name_snapshot, unit_price, quantity, quantity_restocked, availability, lead_days, staff_note, separated, vehicle_snapshot, kit_composition_snapshot,
         products ( inventory ( quantity_on_hand, quantity_reserved ) )
       ),
       order_events ( id, event_type, payload, visibility, created_at ),
@@ -892,6 +923,30 @@ export async function adminSetItemAvailability(input: {
     p_staff_note: input.staffNote ?? null,
   })
   if (error) throw error
+}
+
+/** K13: reposição física pós-envio (kits via snapshot). */
+export async function adminRestockOrderItemPhysical(input: {
+  orderItemId: string
+  qty?: number | null
+  note?: string | null
+}): Promise<{ qtyRestocked: number; qtyRestockedTotal: number; stockLines: number }> {
+  const { data, error } = await getSupabase().rpc('restock_order_item_physical', {
+    p_order_item_id: input.orderItemId,
+    p_qty: input.qty ?? null,
+    p_note: input.note ?? null,
+  })
+  if (error) throw error
+  const row = (data ?? {}) as {
+    qty_restocked?: number
+    qty_restocked_total?: number
+    stock_lines?: number
+  }
+  return {
+    qtyRestocked: Number(row.qty_restocked ?? 0),
+    qtyRestockedTotal: Number(row.qty_restocked_total ?? 0),
+    stockLines: Number(row.stock_lines ?? 0),
+  }
 }
 
 export async function adminFinalizeConfirmation(orderId: string): Promise<{

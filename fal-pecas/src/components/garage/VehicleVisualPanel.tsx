@@ -212,7 +212,7 @@ export function VehicleVisualPanel({
       <details className="rounded-fal border border-fal-line bg-fal-surface">
         <summary className="cursor-pointer list-none px-4 py-3 font-extrabold marker:content-none [&::-webkit-details-marker]:hidden">
           <span className="flex min-h-10 items-center justify-between gap-2">
-            Opções avançadas
+            Opções e aparência
             <span className="text-xs font-semibold text-fal-muted">abrir</span>
           </span>
         </summary>
@@ -288,6 +288,81 @@ export function VehicleVisualPanel({
               </span>
             </label>
           ) : null}
+
+          <form
+            onSubmit={onSave}
+            className="grid gap-2 rounded-fal border border-fal-line bg-fal-bg/40 p-3 sm:grid-cols-2"
+          >
+            {glbPaintLocked ? (
+              <p className="m-0 sm:col-span-2 text-xs text-fal-muted">
+                Com modelo 3D, a pintura personalizada vale só na imagem/silhueta. O modelo 3D da
+                biblioteca não muda de cor nesta versão — use o modo Imagem para ajustar cores.
+              </p>
+            ) : null}
+            <fieldset disabled={glbPaintLocked} className="contents disabled:opacity-50">
+              <label className="block text-sm font-semibold">
+                Cor da carroceria
+                <input
+                  type="color"
+                  className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
+                  value={payload.bodyColorHex}
+                  onChange={(ev) => patch({ bodyColorHex: ev.target.value })}
+                />
+              </label>
+              <label className="block text-sm font-semibold">
+                Cor de destaque
+                <input
+                  type="color"
+                  className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
+                  value={payload.accentHex}
+                  onChange={(ev) => patch({ accentHex: ev.target.value })}
+                />
+              </label>
+              <label className="block text-sm font-semibold">
+                Rodas
+                <select
+                  className="mt-1 min-h-10 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
+                  value={payload.wheelStyle}
+                  onChange={(ev) => patch({ wheelStyle: ev.target.value as VisualWheelStyle })}
+                >
+                  {(Object.keys(WHEEL_STYLE_LABEL) as VisualWheelStyle[]).map((k) => (
+                    <option key={k} value={k}>
+                      {WHEEL_STYLE_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-semibold">
+                Acabamento
+                <select
+                  className="mt-1 min-h-10 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
+                  value={payload.finish}
+                  onChange={(ev) => patch({ finish: ev.target.value as VisualFinish })}
+                >
+                  {(Object.keys(FINISH_LABEL) as VisualFinish[]).map((k) => (
+                    <option key={k} value={k}>
+                      {FINISH_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </fieldset>
+            <Input
+              label="Apelido visual (opcional)"
+              value={payload.label}
+              onChange={(ev) => patch({ label: ev.target.value })}
+            />
+            <Input
+              label="Notas visuais"
+              value={payload.notes}
+              onChange={(ev) => patch({ notes: ev.target.value })}
+            />
+            <div className="sm:col-span-2">
+              <Button type="submit" size="sm" disabled={saving}>
+                Salvar aparência
+              </Button>
+            </div>
+          </form>
         </div>
       </details>
 
@@ -339,7 +414,7 @@ export function VehicleVisualPanel({
                   <p className="m-0 text-xs font-semibold text-fal-muted">
                     {VISUAL_PART_STATE_LABEL[p.state]}
                     {p.sku ? ` · ${p.sku}` : ''}
-                    {syncInstall && mirroredKeys.has(p.key) ? ' · no modelo' : ''}
+                    {syncInstall && mirroredKeys.has(p.key) ? ' · no visual' : ''}
                   </p>
                   {p.orderId ? (
                     <Link
@@ -356,83 +431,6 @@ export function VehicleVisualPanel({
         )}
       </section>
 
-      <form
-        onSubmit={onSave}
-        className="grid gap-2 rounded-fal border border-fal-line bg-fal-surface p-3 sm:grid-cols-2"
-      >
-        {glbPaintLocked ? (
-          <p className="m-0 sm:col-span-2 text-xs text-fal-muted">
-            Com modelo 3D aprovado, a pintura personalizada aplica só na silhueta/imagem. O modelo
-            3D da biblioteca FAL não muda de cor nesta versão. Use o modo Imagem para ajustar cores.
-          </p>
-        ) : null}
-        <fieldset
-          disabled={glbPaintLocked}
-          className="contents disabled:opacity-50"
-        >
-          <label className="block text-sm font-semibold">
-            Cor da carroceria
-            <input
-              type="color"
-              className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
-              value={payload.bodyColorHex}
-              onChange={(ev) => patch({ bodyColorHex: ev.target.value })}
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Cor de destaque
-            <input
-              type="color"
-              className="mt-1 h-10 w-full cursor-pointer rounded-[10px] border border-fal-line bg-fal-bg disabled:cursor-not-allowed"
-              value={payload.accentHex}
-              onChange={(ev) => patch({ accentHex: ev.target.value })}
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Rodas
-            <select
-              className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
-              value={payload.wheelStyle}
-              onChange={(ev) => patch({ wheelStyle: ev.target.value as VisualWheelStyle })}
-            >
-              {(Object.keys(WHEEL_STYLE_LABEL) as VisualWheelStyle[]).map((k) => (
-                <option key={k} value={k}>
-                  {WHEEL_STYLE_LABEL[k]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-semibold">
-            Acabamento
-            <select
-              className="mt-1 w-full rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm disabled:cursor-not-allowed"
-              value={payload.finish}
-              onChange={(ev) => patch({ finish: ev.target.value as VisualFinish })}
-            >
-              {(Object.keys(FINISH_LABEL) as VisualFinish[]).map((k) => (
-                <option key={k} value={k}>
-                  {FINISH_LABEL[k]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </fieldset>
-        <Input
-          label="Apelido visual (opcional)"
-          value={payload.label}
-          onChange={(ev) => patch({ label: ev.target.value })}
-        />
-        <Input
-          label="Notas visuais"
-          value={payload.notes}
-          onChange={(ev) => patch({ notes: ev.target.value })}
-        />
-        <div className="sm:col-span-2">
-          <Button type="submit" size="sm" disabled={saving}>
-            Salvar aparência
-          </Button>
-        </div>
-      </form>
     </div>
   )
 }

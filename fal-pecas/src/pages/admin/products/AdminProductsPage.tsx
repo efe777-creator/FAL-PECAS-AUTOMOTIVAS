@@ -37,7 +37,7 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
-import type { Category, Manufacturer, Product, VehicleModel } from '@/types'
+import type { Category, Manufacturer, Product, ProductKind, VehicleModel } from '@/types'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -58,6 +58,7 @@ export function AdminProductsPage() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
+  const [productKindFilter, setProductKindFilter] = useState<'' | ProductKind>('')
   const [availableFilter, setAvailableFilter] = useState('')
   const [manufacturerId, setManufacturerId] = useState('')
   const [modelId, setModelId] = useState('')
@@ -103,6 +104,7 @@ export function AdminProductsPage() {
   function listParams(overrides?: {
     q?: string
     status?: string
+    productKindFilter?: '' | ProductKind
     availableFilter?: string
     manufacturerId?: string
     modelId?: string
@@ -115,6 +117,7 @@ export function AdminProductsPage() {
   }) {
     const nextQ = overrides?.q ?? q
     const nextStatus = overrides?.status ?? status
+    const nextKind = overrides?.productKindFilter ?? productKindFilter
     const nextAvailable = overrides?.availableFilter ?? availableFilter
     const nextMaker = overrides?.manufacturerId ?? manufacturerId
     const nextModel = overrides?.modelId ?? modelId
@@ -132,6 +135,7 @@ export function AdminProductsPage() {
     return {
       q: nextQ,
       status: nextStatus || undefined,
+      productKind: nextKind || undefined,
       available,
       withoutImage: nextNoImage,
       measureGap: nextGap || undefined,
@@ -148,6 +152,7 @@ export function AdminProductsPage() {
   async function reload(overrides?: {
     q?: string
     status?: string
+    productKindFilter?: '' | ProductKind
     availableFilter?: string
     manufacturerId?: string
     modelId?: string
@@ -248,6 +253,7 @@ export function AdminProductsPage() {
   function clearFilters() {
     setQ('')
     setStatus('')
+    setProductKindFilter('')
     setAvailableFilter('')
     setManufacturerId('')
     setModelId('')
@@ -554,6 +560,21 @@ export function AdminProductsPage() {
               <option value="draft">Rascunho</option>
               <option value="published">Publicado</option>
               <option value="archived">Arquivado</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Natureza</span>
+            <select
+              className={selectCls}
+              value={productKindFilter}
+              onChange={(e) => {
+                const v = e.target.value
+                setProductKindFilter(v === 'kit' || v === 'item' ? v : '')
+              }}
+            >
+              <option value="">Todas</option>
+              <option value="item">Itens</option>
+              <option value="kit">Kits</option>
             </select>
           </label>
           <label className="block text-sm">
@@ -985,6 +1006,7 @@ export function AdminProductsPage() {
                   ) : null}
                 </p>
                 <p className="m-0 text-xs text-fal-muted">
+                  {p.productKind === 'kit' ? 'Kit · ' : ''}
                   {productStatusLabel(p.status)} ·{' '}
                   {p.available ? (
                     <span className="font-semibold text-fal-success">Disponível</span>

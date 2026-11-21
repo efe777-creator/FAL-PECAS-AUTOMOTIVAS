@@ -43,6 +43,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     categoryId: category?.id ?? (row.category_id as string | undefined),
     categoryName: category?.name,
     categorySlug: category?.slug,
+    productKind: row.product_kind === 'kit' ? 'kit' : 'item',
     price: Number(row.price),
     promoPrice: row.promo_price == null ? null : Number(row.promo_price),
     status: row.status as Product['status'],
@@ -66,7 +67,7 @@ function mapProduct(row: Record<string, unknown>): Product {
 const PRODUCT_SELECT = `
   id, sku, commercial_ref, name, slug, description, short_description, price, promo_price, status,
   manufacturer_code, is_available, is_incomplete, category_id, brand_id, supplier_id,
-  posicao, lado, attrs,
+  product_kind, posicao, lado, attrs,
   weight_kg, height_cm, width_cm, length_cm,
   pol_unit, own_delivery_allowed,
   product_brands ( name ),

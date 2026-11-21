@@ -8,6 +8,7 @@ export const IMPORT_KINDS = [
   'supplier_conversion',
   'supplier_cost',
   'price_list',
+  'kit_composition',
 ] as const
 
 export type ImportKind = (typeof IMPORT_KINDS)[number]
@@ -18,6 +19,7 @@ export function importKindLabel(kind: string): string {
   if (kind === 'supplier_conversion') return 'Conversões de fornecedor'
   if (kind === 'supplier_cost') return 'Custos de fornecedor'
   if (kind === 'price_list') return 'Lista de preços'
+  if (kind === 'kit_composition') return 'Composição de kits'
   return kind
 }
 
@@ -52,5 +54,6 @@ export function importWizardPath(kind: string): string | null {
   if (kind === 'supplier_conversion') return '/admin/fornecedores/importar-conversoes'
   if (kind === 'supplier_cost') return '/admin/fornecedores/importar-custos'
   if (kind === 'price_list') return '/admin/precos'
+  if (kind === 'kit_composition') return '/admin/produtos/importar-kits'
   return null
 }
