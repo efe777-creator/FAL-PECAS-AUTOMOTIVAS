@@ -5,6 +5,10 @@ import {
 } from '@/lib/releaseChecklist'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
+import {
+  type ProductListLifecycle,
+  resolveProductStatusQuery,
+} from '@/services/admin/adminProductLifecycle'
 import { adminEnsureBaseAndPromoPrices } from '@/services/admin/adminPriceListService'
 import { resolveProductPrice } from '@/services/pricing/priceResolutionService'
 import type { KitPriceMode, MeasureOrigin, Product, ProductKind, ProductReference } from '@/types'
@@ -157,7 +161,16 @@ export function hasAdminProductVehicleFilter(f: AdminProductVehicleFilter): bool
 
 export type AdminProductListParams = {
   q?: string
+  /**
+   * Status explícito (draft|published|archived) — pickers / select fino.
+   * Quando omitido, vale `lifecycle` (padrão: só ativos).
+   */
   status?: string
+  /**
+   * Ciclo de vida Notes #4. Padrão: ativos (≠ archived).
+   * Ignorado se `status` vier preenchido.
+   */
+  lifecycle?: ProductListLifecycle
   /** Filtro Situação na listagem admin. */
   available?: boolean
   withoutImage?: boolean
@@ -227,8 +240,17 @@ export async function adminListProductsPage(
     if (productIdsByVehicle.length === 0) return { items: [], hasMore: false }
   }
 
+  const statusQuery = resolveProductStatusQuery({
+    status: params?.status,
+    lifecycle: params?.lifecycle,
+  })
+  if (statusQuery.kind === 'empty') {
+    return { items: [], hasMore: false }
+  }
+
   let q = getSupabase().from('products').select(SELECT).order('updated_at', { ascending: false })
-  if (params?.status) q = q.eq('status', params.status)
+  if (statusQuery.kind === 'eq') q = q.eq('status', statusQuery.status)
+  else if (statusQuery.kind === 'neq') q = q.neq('status', statusQuery.status)
   if (typeof params?.available === 'boolean') q = q.eq('is_available', params.available)
   if (params?.productKind) q = q.eq('product_kind', params.productKind)
   if (params?.categoryIds && params.categoryIds.length > 0) {

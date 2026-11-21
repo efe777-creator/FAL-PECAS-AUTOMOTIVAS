@@ -40,6 +40,11 @@ import {
   type ApplyGlobalMeasuresMode,
   type ReleasePreflightRow,
 } from '@/services/admin/adminProductService'
+import {
+  DEFAULT_PRODUCT_LIST_LIFECYCLE,
+  productLifecycleChipLabel,
+  type ProductListLifecycle,
+} from '@/services/admin/adminProductLifecycle'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
@@ -75,6 +80,9 @@ export function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [q, setQ] = useState('')
+  /** Ciclo de vida (Notes #4) — padrão só ativos; arquivar some da lista. */
+  const [lifecycle, setLifecycle] = useState<ProductListLifecycle>(DEFAULT_PRODUCT_LIST_LIFECYCLE)
+  /** Ajuste fino só entre ativos: draft | published. */
   const [status, setStatus] = useState('')
   const [productKindFilter, setProductKindFilter] = useState<'' | ProductKind>('')
   const [availableFilter, setAvailableFilter] = useState('')
@@ -124,6 +132,7 @@ export function AdminProductsPage() {
   function listParams(overrides?: {
     q?: string
     status?: string
+    lifecycle?: ProductListLifecycle
     productKindFilter?: '' | ProductKind
     availableFilter?: string
     manufacturerId?: string
@@ -136,6 +145,7 @@ export function AdminProductsPage() {
     offset?: number
   }) {
     const nextQ = overrides?.q ?? q
+    const nextLife = overrides?.lifecycle ?? lifecycle
     const nextStatus = overrides?.status ?? status
     const nextKind = overrides?.productKindFilter ?? productKindFilter
     const nextAvailable = overrides?.availableFilter ?? availableFilter
@@ -152,9 +162,15 @@ export function AdminProductsPage() {
       : undefined
     const available =
       nextAvailable === 'true' ? true : nextAvailable === 'false' ? false : undefined
+    // Ajuste fino draft/published só quando a lista inclui ativos.
+    const fineStatus =
+      nextLife.showActive && (nextStatus === 'draft' || nextStatus === 'published')
+        ? nextStatus
+        : undefined
     return {
       q: nextQ,
-      status: nextStatus || undefined,
+      status: fineStatus,
+      lifecycle: nextLife,
       productKind: nextKind || undefined,
       available,
       withoutImage: nextNoImage,
@@ -172,6 +188,7 @@ export function AdminProductsPage() {
   async function reload(overrides?: {
     q?: string
     status?: string
+    lifecycle?: ProductListLifecycle
     productKindFilter?: '' | ProductKind
     availableFilter?: string
     manufacturerId?: string
@@ -287,6 +304,7 @@ export function AdminProductsPage() {
 
   function clearFilters() {
     setQ('')
+    setLifecycle(DEFAULT_PRODUCT_LIST_LIFECYCLE)
     setStatus('')
     setProductKindFilter('')
     setAvailableFilter('')
@@ -297,6 +315,19 @@ export function AdminProductsPage() {
     setMeasureGap('')
     setFilterCascade(EMPTY_CASCADE)
     setWithoutImage(false)
+  }
+
+  function patchLifecycle(next: ProductListLifecycle) {
+    // Evita “nenhum marcado”: se desmarcar o último, mantém o outro.
+    let life = next
+    if (!life.showActive && !life.showInactive) {
+      life = lifecycle.showActive
+        ? { showActive: false, showInactive: true }
+        : { showActive: true, showInactive: false }
+    }
+    setLifecycle(life)
+    if (!life.showActive) setStatus('')
+    void reload({ lifecycle: life, status: life.showActive ? status : '' })
   }
 
   function setFiltersExpandedPersist(next: boolean) {
@@ -310,11 +341,10 @@ export function AdminProductsPage() {
 
   const filterChips = useMemo(() => {
     const chips: string[] = []
-    if (status) {
-      chips.push(
-        status === 'draft' ? 'Rascunho' : status === 'published' ? 'Publicado' : 'Arquivado',
-      )
-    }
+    const lifeChip = productLifecycleChipLabel(lifecycle)
+    if (lifeChip) chips.push(lifeChip)
+    if (status === 'draft') chips.push('Rascunho')
+    if (status === 'published') chips.push('Publicado')
     if (productKindFilter === 'item') chips.push('Itens')
     if (productKindFilter === 'kit') chips.push('Kits')
     if (availableFilter === 'true') chips.push('Disponível')
@@ -341,6 +371,7 @@ export function AdminProductsPage() {
     }
     return chips
   }, [
+    lifecycle,
     status,
     productKindFilter,
     availableFilter,
@@ -387,8 +418,22 @@ export function AdminProductsPage() {
     setError(null)
     try {
       await adminSetProductStatus(p.id, next)
-      pushOk(next === 'archived' ? 'Produto arquivado e removido da loja.' : 'Produto publicado novamente.')
-      await reload()
+      pushOk(
+        next === 'archived'
+          ? 'Produto arquivado — fora da loja e da lista de ativos.'
+          : 'Produto publicado novamente.',
+      )
+      // Some na hora se a vista atual não inclui inativos (padrão categorias).
+      if (next === 'archived' && !lifecycle.showInactive) {
+        setItems((prev) => prev.filter((x) => x.id !== p.id))
+        setSelected((prev) => {
+          const copy = new Set(prev)
+          copy.delete(p.id)
+          return copy
+        })
+      } else {
+        await reload()
+      }
     } catch (e) {
       pushError(toUserMessage(e, 'Falha ao alterar status'))
     }
@@ -400,7 +445,7 @@ export function AdminProductsPage() {
     if (next === 'archived') {
       const { confirmed } = await confirmDialog({
         title: 'Arquivar produtos?',
-        message: `Arquivar ${ids.length} produto(s)?\n\nRemoção comercial da loja (permanecem no banco).`,
+        message: `Arquivar ${ids.length} produto(s)?\n\nRemoção da loja; somem da lista de ativos (permanecem no banco).`,
         confirmLabel: 'Arquivar',
         danger: true,
       })
@@ -412,7 +457,7 @@ export function AdminProductsPage() {
       await Promise.all(ids.map((id) => adminSetProductStatus(id, next)))
       pushOk(
         next === 'archived'
-          ? `${ids.length} produto(s) arquivado(s).`
+          ? `${ids.length} produto(s) arquivado(s) e fora da lista de ativos.`
           : `${ids.length} produto(s) ativado(s) (publicado).`,
       )
       await reload()
@@ -899,6 +944,37 @@ export function AdminProductsPage() {
               placeholder="Nome, código referência ou código interno"
             />
           </div>
+          <fieldset className="m-0 flex flex-wrap items-center gap-3 border-0 p-0">
+            <legend className="sr-only">Ciclo de vida na lista</legend>
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-fal-fg">
+              <input
+                type="checkbox"
+                className="size-4 accent-fal-navy"
+                checked={lifecycle.showActive}
+                onChange={(e) =>
+                  patchLifecycle({
+                    showActive: e.target.checked,
+                    showInactive: lifecycle.showInactive,
+                  })
+                }
+              />
+              Ativos
+            </label>
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-fal-fg">
+              <input
+                type="checkbox"
+                className="size-4 accent-fal-navy"
+                checked={lifecycle.showInactive}
+                onChange={(e) =>
+                  patchLifecycle({
+                    showActive: lifecycle.showActive,
+                    showInactive: e.target.checked,
+                  })
+                }
+              />
+              Inativos
+            </label>
+          </fieldset>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="primary">
               Buscar
@@ -911,6 +987,7 @@ export function AdminProductsPage() {
                 void reload({
                   q: '',
                   status: '',
+                  lifecycle: DEFAULT_PRODUCT_LIST_LIFECYCLE,
                   productKindFilter: '',
                   availableFilter: '',
                   manufacturerId: '',
@@ -943,7 +1020,7 @@ export function AdminProductsPage() {
         {!filtersExpanded && filterChips.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] font-extrabold uppercase tracking-wide text-fal-muted">
-              Ativos
+              Filtros
             </span>
             {filterChips.map((chip) => (
               <span
@@ -967,16 +1044,18 @@ export function AdminProductsPage() {
           <div className="space-y-2 border-t border-fal-line pt-2">
             <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
+                <span className="mb-1 block text-xs font-extrabold text-fal-muted">
+                  Situação (ativos)
+                </span>
                 <select
                   className={selectCls}
-                  value={status}
+                  value={lifecycle.showActive ? status : ''}
+                  disabled={!lifecycle.showActive}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <option value="">Todos</option>
+                  <option value="">Todos os ativos</option>
                   <option value="draft">Rascunho</option>
                   <option value="published">Publicado</option>
-                  <option value="archived">Arquivado</option>
                 </select>
               </label>
               <label className="block text-sm">

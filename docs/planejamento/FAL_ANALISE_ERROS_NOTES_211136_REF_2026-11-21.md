@@ -14,7 +14,7 @@
 | 1 | Kits: fotos individuais dos itens ao cadastrar, refletir na PDP do kit (além da principal) | **DONE** |
 | 2 | Polimento e funções da garagem | **DONE** (verificado) |
 | 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | **DONE** |
-| 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | PENDING |
+| 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | **DONE** |
 | 5 | Ajustar e melhorar favoritos | **DONE** |
 | 6 | Placa consultada errada — assertividade do lookup | PENDING |
 | 7 | Cards poluídos / grandes no mobile | PENDING |
@@ -170,4 +170,14 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 | Evidência | `tsc` + `favoriteService.test` PASS · RPC aplicada no wtbp |
 | Arquivos | `favoriteService.ts`, migration `20261121220000_*`, `FavoritesContext`, `AccountFavoritesPage`, `ProductCard`, este REF |
 
-**Próximo:** Erro #4 — Arquivar/inativar + filtro ativos/inativos.
+### Erro #4 — Arquivar/inativar + Ativos/Inativos
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Lista default sem excluir `archived`; select Status misturava ciclo de vida; chip “Ativos” era só rótulo. |
+| Estrutura | `adminProductLifecycle` (padrão Categorias). Query: ativos por default; checkboxes Ativos/Inativos na barra; select fino só draft/published. Arquivar some da lista na hora. |
+| Evidência | `tsc` + `adminProductLifecycle.test` 7 PASS |
+| Arquivos | `adminProductLifecycle.ts`, `adminProductService.ts`, `AdminProductsPage.tsx`, este REF |
+
+**Próximo:** Erro #6 — Placa consultada errada (assertividade).
