@@ -53,8 +53,8 @@ describe('garageNav anti-regressão padrão UX', () => {
 
   it('Mais agrupa módulos avançados (sem Peças)', () => {
     expect(GARAGE_MORE_MODULE_KEYS).toEqual([
-      'manutencoes',
       'visual',
+      'manutencoes',
       'profissionais',
       'evidencias',
       'compartilhar',

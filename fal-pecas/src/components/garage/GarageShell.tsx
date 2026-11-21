@@ -1,6 +1,5 @@
 import { GarageBackButton } from '@/components/garage/GarageBackButton'
 import { vehiclePlateLabel } from '@/components/garage/garageVehicleUi'
-import { useAuth } from '@/contexts/AuthContext'
 import { useGarage } from '@/contexts/GarageContext'
 import { GARAGE_SIDEBAR_ITEMS } from '@/lib/garageNav'
 import type { GarageModuleKey } from '@/lib/garageWorkspacePrefs'
@@ -33,7 +32,6 @@ function isSidebarItemActive(
 }
 
 export function GarageShell() {
-  const { user } = useAuth()
   const garage = useGarage()
   const navigate = useNavigate()
   const location = useLocation()
@@ -130,7 +128,7 @@ export function GarageShell() {
       </aside>
 
       <div className="min-w-0 flex-1 space-y-4 lg:pl-5">
-        <header className="flex flex-wrap items-center gap-3 rounded-fal border border-fal-line bg-fal-surface px-3 py-2.5 sm:px-4">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-fal border border-fal-line bg-fal-surface/95 px-3 py-2 backdrop-blur-sm sm:gap-3 sm:px-4 sm:py-2.5">
           <GarageBackButton />
           <div className="min-w-0 flex-1">
             <label className="sr-only" htmlFor="garage-vehicle-switcher">
@@ -167,13 +165,10 @@ export function GarageShell() {
             </select>
           </div>
           {focusVehicle && vehiclePlateLabel(focusVehicle) ? (
-            <span className="rounded-[8px] border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold tracking-wide">
+            <span className="hidden rounded-[8px] border border-fal-line bg-fal-bg px-2.5 py-1 text-xs font-bold tracking-wide sm:inline">
               {vehiclePlateLabel(focusVehicle)}
             </span>
           ) : null}
-          <p className="m-0 hidden text-xs text-fal-muted sm:block">
-            {(user?.fullName ?? user?.email ?? '').split(' ')[0]}
-          </p>
         </header>
 
         <Outlet />

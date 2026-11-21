@@ -50,7 +50,8 @@ Escopo: Visual + hero 2D + viewer GLB (não é polish Fase 7 completo).
 
 5. **9 abas de módulo**  
    Scroll horizontal em 390px; Visual fica escondido à direita.  
-   *Fix (Fase 7):* agrupar (ex. “Veículo / Histórico / Visual / Mais”) ou chip sticky “Visual”.
+   *Fix (Fase 7):* agrupar (ex. “Veículo / Histórico / Visual / Mais”) ou chip sticky “Visual”.  
+   → **feito 2026-11-20:** abas Resumo|Histórico|Cuidados|Peças|Mais + chip sticky **Visual**; Visual 1º em Mais.
 
 6. **Rodapé técnico do GLB em uppercase**  
    Dense, código do asset, status machine-readable. OK para ADM; ruído para cliente.
@@ -64,7 +65,8 @@ Escopo: Visual + hero 2D + viewer GLB (não é polish Fase 7 completo).
 8. Canvas altura fixa ~280 em mobile — ok para v1; em desktop poderia ser maior (aspect 16:9).  
 9. Presets wrap OK no mobile; sem estado visual “ativo” no ângulo atual.  
 10. Sem hint explícito “Arraste para girar · pinça para zoom” no mobile (só aria-label).  
-11. Sidebar conta + bottom nav + header = muita chrome; conteúdo útil compete por espaço (sistema legado da conta — Fase 7).
+11. Sidebar conta + bottom nav + header = muita chrome; conteúdo útil compete por espaço (sistema legado da conta — Fase 7).  
+    → **parcial 2026-11-20:** rota Garagem sem sidebar/título da Conta; header shell sticky/compacto; MobileNav loja permanece (decisão produto).
 
 ---
 
@@ -87,7 +89,7 @@ Escopo: Visual + hero 2D + viewer GLB (não é polish Fase 7 completo).
 2. **Layout Visual:** promover canvas ao topo do módulo. → **feito**  
 3. **P2 polish:** preset ativo; hint mobile no canvas; aspect 16:9 / min-h desktop. → **feito**  
 4. **Conteúdo:** trocar smoke box por GLB real curado (bloqueia percepção de “quebrado”). → **aberto** (inventário 2026-11-20: só `fal-smoke-palio-box` approved; badge provisório também no GLB smoke)  
-5. **Fase 7:** reorganizar abas da Garagem + chrome da conta. → **aberto**
+5. **Fase 7 (lite):** abas agrupadas + chip Visual + chrome Conta fora da Garagem. → **feito** (MobileNav loja / shell dedicado total = decisão produto)
 
 ## Conclusão
 

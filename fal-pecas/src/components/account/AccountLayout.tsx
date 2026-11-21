@@ -34,8 +34,9 @@ export function AccountLayout() {
   const isGarage = location.pathname.startsWith('/conta/veiculos')
 
   if (isGarage) {
+    // Shell próprio da Garagem — sem sidebar/título da Conta (chrome G14).
     return (
-      <Container className="py-4 sm:py-6">
+      <Container className="py-2 sm:py-3">
         <GarageShell />
       </Container>
     )

@@ -29,7 +29,7 @@ const MODULES: GarageModuleKey[] = [
 export const GARAGE_MORE_MODULE_KEYS: Exclude<
   GarageModuleKey,
   'visao' | 'historico' | 'inteligencia' | 'mais' | 'pecas'
->[] = ['manutencoes', 'visual', 'profissionais', 'evidencias', 'compartilhar', 'config']
+>[] = ['visual', 'manutencoes', 'profissionais', 'evidencias', 'compartilhar', 'config']
 
 const KEY = 'fal-garage-workspace-v1'
 

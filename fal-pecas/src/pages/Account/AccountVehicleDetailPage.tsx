@@ -221,7 +221,8 @@ export function AccountVehicleDetailPage() {
       : 'mais'
   const inMoreBranch = (GARAGE_MORE_MODULE_KEYS as string[]).includes(modulo)
 
-  const compactStage = modulo === 'pecas'
+  const compactStage = modulo === 'pecas' || modulo === 'visual'
+  const compactLabel = modulo === 'visual' ? 'Visualização' : 'Peças'
 
   return (
     <div className="space-y-4">
@@ -236,7 +237,7 @@ export function AccountVehicleDetailPage() {
               {plateLabel ? ` · ${plateLabel}` : ''}
             </p>
           </div>
-          <p className="m-0 shrink-0 text-xs font-bold text-fal-yellow">Peças</p>
+          <p className="m-0 shrink-0 text-xs font-bold text-fal-yellow">{compactLabel}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-navy/95 text-white dark:bg-fal-navy-dark">
@@ -416,7 +417,7 @@ export function AccountVehicleDetailPage() {
       ) : null}
 
       <nav
-        className="flex gap-2 overflow-x-auto pb-1"
+        className="sticky top-[3.25rem] z-10 -mx-1 flex gap-2 overflow-x-auto bg-fal-bg/95 px-1 py-2 backdrop-blur-sm lg:top-0"
         aria-label="Seções do veículo"
       >
         {GARAGE_MODULE_TABS.map((tab) => (
@@ -434,6 +435,16 @@ export function AccountVehicleDetailPage() {
             {tab.label}
           </button>
         ))}
+        {modulo !== 'visual' ? (
+          <button
+            type="button"
+            onClick={() => setModulo('visual')}
+            className="min-h-11 shrink-0 rounded-[10px] border border-fal-yellow/70 bg-fal-yellow/15 px-3 text-sm font-extrabold text-fal-navy dark:text-fal-yellow"
+            title="Abrir visualização 3D / foto"
+          >
+            Visual
+          </button>
+        ) : null}
       </nav>
 
       {modulo === 'mais' ? (
@@ -565,7 +576,7 @@ export function AccountVehicleDetailPage() {
               <div className="rounded-fal border border-fal-line bg-fal-surface p-4">
                 <p className="m-0 text-sm font-extrabold text-fal-fg">Resumo</p>
                 <p className="mt-1 mb-3 text-sm text-fal-muted">
-                  Quilometragem e acesso rápido aos cuidados do veículo.
+                  Quilometragem e atalhos para cuidados, histórico e visualização.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -581,6 +592,13 @@ export function AccountVehicleDetailPage() {
                     className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
                   >
                     Ver histórico
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModulo('visual')}
+                    className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-bg px-3 text-sm font-extrabold"
+                  >
+                    Ver visualização
                   </button>
                 </div>
               </div>

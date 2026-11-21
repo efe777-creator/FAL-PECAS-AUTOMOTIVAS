@@ -52,7 +52,7 @@ Ficha “parceiros” completa **não** é a jornada principal agora. Código do
 | Lembretes / óleo | Nav/aba **Cuidados** |
 | Peças que cabem no carro | Nav/aba/CTA **Peças** → `?modulo=pecas` |
 | Catálogo completo (escape) | Só no rodapé do módulo Peças → **Catálogo completo** |
-| Avançado | **Mais** → Visual, Profissionais, Evidências, Compartilhar, Config, Manutenção |
+| Avançado | **Mais** → Visualização (1º), Manutenção, Profissionais, Evidências, Compartilhar, Config · chip **Visual** sticky no detalhe |
 | Sair da garagem | Botão **Voltar** (origem real) |
 
 Entrada externa pela loja (`MobileNav` Garagem) permanece válida.
