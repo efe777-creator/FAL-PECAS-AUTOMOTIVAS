@@ -1,8 +1,8 @@
 import {
   commercialShippingDisclaimer,
   getCarrierByEnvKey,
-  resolveCarrierProvider,
 } from '@/services/shipping/carrierRegistry'
+import { quoteFreight } from '@/services/shipping/freightService'
 import {
   buildErrorEnvelope,
   buildOkEnvelope,
@@ -50,8 +50,8 @@ export async function quoteShippingEnvelope(
     desc.mode === 'live' || desc.envKey === 'melhorenvio' ? logisticsGaps(req) : []
 
   try {
-    const provider = resolveCarrierProvider(desc.envKey)
-    const options = await provider.quote(req)
+    // Cache curto (FreightService) — evita re-bater Melhor Envio/Edge na mesma PDP/CEP.
+    const options = await quoteFreight(req, { envKey: desc.envKey })
     if (!options.length) {
       return buildErrorEnvelope({
         providerId: desc.id,

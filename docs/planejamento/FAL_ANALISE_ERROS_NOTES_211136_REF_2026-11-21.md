@@ -13,7 +13,7 @@
 |---|------|--------|
 | 1 | Kits: fotos individuais dos itens ao cadastrar, refletir na PDP do kit (além da principal) | **DONE** |
 | 2 | Polimento e funções da garagem | **DONE** (verificado) |
-| 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | PENDING |
+| 3 | Carregamentos/hierarquias mais rápidos (frete PDP/garagem lento) | **DONE** |
 | 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | PENDING |
 | 5 | Ajustar e melhorar favoritos | PENDING |
 | 6 | Placa consultada errada — assertividade do lookup | PENDING |
@@ -113,3 +113,15 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 | Fora do #2 | Lentidão frete/hierarquia → **#3**. Migration G7 no wtbp + smoke compra → ops. Cuidados/manutenção ficam em Mais → Avançado (proposital). |
 
 **Próximo:** Erro #3 — Carregamentos/hierarquias / frete lento (PDP e garagem).
+
+### Erro #3 — Carregamentos / frete lento
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Cotação PDP ia direto em `provider.quote` **sem** o cache de `quoteFreight` (90s). ViaCEP sem cache. Árvore PVC (`getVehicleOptions`) re-buscava 4 queries a cada mount do seletor (garagem/catálogo). UI zerava envelope a cada consulta (pisca). |
+| Correção | (1) Envelope usa `quoteFreight` com cache+envKey. (2) Cache ViaCEP 10 min. (3) Cache+inflight `getVehicleOptions` 5 min. (4) PDP: seq anti-stale + mantém resultado anterior enquanto carrega. |
+| Evidência | `tsc` PASS · `freightService.test` + storefront/smoke/pvc **16 PASS** |
+| Residual | Latência 1ª cotação ME/Edge ainda depende da rede; Edge própria fora deste escopo. |
+
+**Próximo:** Erro #4 — Arquivar/inativar + filtro ativos/inativos.

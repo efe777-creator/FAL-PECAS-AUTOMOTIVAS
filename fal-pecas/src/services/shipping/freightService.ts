@@ -1,4 +1,7 @@
-import { quoteShipping as quoteViaActiveProvider } from '@/services/shipping/shippingService'
+import {
+  getCarrierByEnvKey,
+  resolveCarrierProvider,
+} from '@/services/shipping/carrierRegistry'
 import type { ShippingQuoteOption, ShippingQuoteRequest } from '@/types'
 
 const CACHE_TTL_MS = 90_000
@@ -10,7 +13,10 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>()
 
-function stableKey(req: ShippingQuoteRequest): string {
+export function freightCacheKey(
+  req: ShippingQuoteRequest,
+  envKey?: string | null,
+): string {
   const items = (req.items ?? [])
     .map((i) =>
       [
@@ -25,10 +31,12 @@ function stableKey(req: ShippingQuoteRequest): string {
     .sort()
     .join('|')
   return [
+    envKey ?? 'active',
     req.originPostalCode ?? '',
     req.postalCode.replace(/\D/g, ''),
     req.state,
     req.city,
+    (req.number ?? '').trim(),
     req.subtotal.toFixed(2),
     req.itemCount,
     req.totalWeightKg ?? '',
@@ -36,19 +44,28 @@ function stableKey(req: ShippingQuoteRequest): string {
   ].join('::')
 }
 
-/** Facade F6C: cache curto sobre ShippingProvider. Nunca é verdade no place_order. */
+/**
+ * Facade F6C: cache curto sobre ShippingProvider.
+ * Usado pela cotação de envelope (PDP/carrinho). Nunca é verdade no place_order.
+ */
 export async function quoteFreight(
   req: ShippingQuoteRequest,
-  opts?: { bypassCache?: boolean },
+  opts?: { bypassCache?: boolean; envKey?: string | null },
 ): Promise<ShippingQuoteOption[]> {
-  const key = stableKey(req)
+  const envKey =
+    opts?.envKey ??
+    (import.meta.env.VITE_SHIPPING_PROVIDER as string | undefined) ??
+    null
+  const key = freightCacheKey(req, envKey)
   if (!opts?.bypassCache) {
     const hit = cache.get(key)
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
       return hit.options
     }
   }
-  const options = await quoteViaActiveProvider(req)
+  const desc = getCarrierByEnvKey(envKey)
+  const provider = resolveCarrierProvider(desc.envKey)
+  const options = await provider.quote(req)
   cache.set(key, { at: Date.now(), options })
   return options
 }

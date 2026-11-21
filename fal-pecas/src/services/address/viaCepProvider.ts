@@ -93,19 +93,35 @@ async function lookupBrasilApi(digits: string): Promise<CepLookupResult> {
   }
 }
 
-/** Provider CEP — ViaCEP com fallback BrasilAPI; trocável via setCepProvider. */
+const CEP_CACHE_TTL_MS = 10 * 60_000
+const cepCache = new Map<string, { at: number; value: CepLookupResult }>()
+
+export function clearCepLookupCache() {
+  cepCache.clear()
+}
+
+/** Provider CEP — ViaCEP com fallback BrasilAPI; cache curto em memória. */
 export const viaCepProvider: CepProvider = {
   async lookupByCep(cep: string): Promise<CepLookupResult> {
     const digits = normalizeCep(cep)
     if (digits.length !== 8) throw new CepInvalidError()
 
+    const hit = cepCache.get(digits)
+    if (hit && Date.now() - hit.at < CEP_CACHE_TTL_MS) {
+      return hit.value
+    }
+
     try {
-      return await lookupViaCep(digits)
+      const value = await lookupViaCep(digits)
+      cepCache.set(digits, { at: Date.now(), value })
+      return value
     } catch (e) {
       if (e instanceof CepNotFoundError) throw e
       // timeout/rede/5xx → tenta fallback
       try {
-        return await lookupBrasilApi(digits)
+        const value = await lookupBrasilApi(digits)
+        cepCache.set(digits, { at: Date.now(), value })
+        return value
       } catch (e2) {
         if (e2 instanceof CepNotFoundError || e2 instanceof CepInvalidError) throw e2
         throw new CepUnavailableError()

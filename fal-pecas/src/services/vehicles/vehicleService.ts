@@ -15,11 +15,21 @@ function relationName(value: unknown): string | undefined {
   return (value as { name?: string }).name
 }
 
+const VEHICLE_OPTIONS_TTL_MS = 5 * 60_000
+let vehicleOptionsCache: { at: number; tree: VehicleOptionTree } | null = null
+let vehicleOptionsInflight: Promise<VehicleOptionTree> | null = null
+
+export function clearVehicleOptionsCache() {
+  vehicleOptionsCache = null
+  vehicleOptionsInflight = null
+}
+
 /**
  * Opções de veículo a partir de manufacturers / models / vehicle_versions.
  * Anos/motores/versões vêm de **vehicle_versions active** (cadastro mestre).
  * PVC só enriquece anos de aplicação — não limita o seletor.
  * Mock só com VITE_ALLOW_CATALOG_MOCKS=true em DEV (IMP-19 U1).
+ * Cache em memória + coalescing de inflight (cascata PVC / garagem).
  */
 export async function getVehicleOptions(): Promise<VehicleOptionTree> {
   assertStoreBackendConfigured()
@@ -35,6 +45,32 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
       }
     }
     return mockVehicleTree
+  }
+
+  if (
+    vehicleOptionsCache &&
+    Date.now() - vehicleOptionsCache.at < VEHICLE_OPTIONS_TTL_MS
+  ) {
+    return vehicleOptionsCache.tree
+  }
+  if (vehicleOptionsInflight) return vehicleOptionsInflight
+
+  vehicleOptionsInflight = loadVehicleOptionsFromSupabase().finally(() => {
+    vehicleOptionsInflight = null
+  })
+  return vehicleOptionsInflight
+}
+
+async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
+  if (!supabase) {
+    return {
+      makers: [],
+      modelsByMaker: {},
+      yearsByModel: {},
+      enginesByModel: {},
+      enginesByModelYear: {},
+      versionsByModel: {},
+    }
   }
 
   const [
@@ -148,7 +184,7 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
       .map(String)
   }
 
-  return {
+  const tree: VehicleOptionTree = {
     makers: makerNames,
     modelsByMaker,
     yearsByModel,
@@ -156,6 +192,8 @@ export async function getVehicleOptions(): Promise<VehicleOptionTree> {
     enginesByModel,
     versionsByModel,
   }
+  vehicleOptionsCache = { at: Date.now(), tree }
+  return tree
 }
 
 let vehicleCatalogCache: { at: number; entries: VehicleCatalogEntry[] } | null = null

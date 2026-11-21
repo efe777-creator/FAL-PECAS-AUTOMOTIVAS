@@ -24,7 +24,7 @@ import {
   STORE_PICKUP_OPTION_ID,
 } from '@/services/shipping/storePickupOption'
 import type { CustomerAddress, Product, ShippingQuoteOption, StoreShippingOrigin } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type QuoteAddrHint = {
   state?: string
@@ -84,6 +84,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [origin, setOrigin] = useState<StoreShippingOrigin | null>(null)
   const [quoted, setQuoted] = useState(false)
+  const quoteSeq = useRef(0)
 
   const ready = useMemo(() => productQuoteReady(product), [product])
   const qty = Math.max(1, Math.floor(quantity) || 1)
@@ -148,13 +149,15 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
 
   async function runQuoteFor(postalDigits: string, addrHint?: QuoteAddrHint) {
     if (!ready) return
+    const seq = ++quoteSeq.current
     setLoading(true)
-    setEnvelope(null)
+    // Mantém envelope anterior enquanto carrega (menos “pisca” / sensação de lentidão).
     setQuoted(true)
     const keepPickup = selectedId === STORE_PICKUP_OPTION_ID
     if (!keepPickup) setSelectedId(null)
     try {
       if (postalDigits.length !== 8) {
+        if (seq !== quoteSeq.current) return
         setEnvelope({
           status: 'invalid_cep',
           providerId: 'melhorenvio',
@@ -178,6 +181,8 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
             district: addrHint.district ?? undefined,
           }
         : await viaCepProvider.lookupByCep(postalDigits)
+
+      if (seq !== quoteSeq.current) return
 
       const unitPrice = displayPrice(product)
       const subtotal = unitPrice * qty
@@ -207,6 +212,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
         },
         { cepOnlyQuickQuote: !number },
       )
+      if (seq !== quoteSeq.current) return
       setEnvelope(env)
       if (keepPickup) {
         setSelectedId(STORE_PICKUP_OPTION_ID)
@@ -221,6 +227,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
         setSelectedId(null)
       }
     } catch (e) {
+      if (seq !== quoteSeq.current) return
       setEnvelope({
         status: 'provider_error',
         providerId: 'melhorenvio',
@@ -232,7 +239,7 @@ export function ProductShippingQuoteBlock({ product, quantity = 1 }: Props) {
       })
       if (!keepPickup) setSelectedId(null)
     } finally {
-      setLoading(false)
+      if (seq === quoteSeq.current) setLoading(false)
     }
   }
 
