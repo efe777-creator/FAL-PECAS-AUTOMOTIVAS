@@ -51,7 +51,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           <div className="lg:hidden">
             <StoreThemeToggle theme={theme} onToggle={onThemeToggle} />
           </div>
-          <div className="max-w-[148px] sm:max-w-[180px] lg:hidden">
+          <div className="min-w-0 max-w-[112px] flex-1 sm:max-w-[168px] lg:hidden">
             <GarageActiveSwitcher compact />
           </div>
           {user ? (

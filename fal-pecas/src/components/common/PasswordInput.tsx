@@ -26,7 +26,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type={visible ? 'text' : 'password'}
             disabled={disabled}
             className={[
-              'fal-field w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 pr-24 text-fal-fg outline-none',
+              'fal-field w-full rounded-[9px] border border-fal-line bg-fal-surface px-3 py-3 pr-[4.5rem] text-fal-fg outline-none sm:pr-24',
               'placeholder:text-fal-muted disabled:cursor-not-allowed disabled:opacity-60',
               'focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]',
               error ? 'border-fal-danger' : '',
@@ -38,13 +38,14 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           />
           <button
             type="button"
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md px-2 py-1 text-[12px] font-extrabold text-fal-muted hover:bg-fal-surface-2 hover:text-fal-fg disabled:opacity-50"
+            className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md px-1.5 py-1 text-[11px] font-extrabold text-fal-muted hover:bg-fal-surface-2 hover:text-fal-fg disabled:opacity-50 sm:right-2 sm:px-2 sm:text-[12px]"
             onClick={() => setVisible((v) => !v)}
             aria-pressed={visible}
             aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
             disabled={disabled}
           >
-            {visible ? 'Ocultar' : 'Mostrar'}
+            <span className="sm:hidden">{visible ? 'Ocultar' : 'Ver'}</span>
+            <span className="hidden sm:inline">{visible ? 'Ocultar' : 'Mostrar'}</span>
           </button>
         </div>
         {hint && !error ? <p className="text-[13px] text-fal-muted">{hint}</p> : null}

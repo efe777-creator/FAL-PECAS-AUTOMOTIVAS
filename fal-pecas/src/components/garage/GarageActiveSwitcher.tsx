@@ -118,21 +118,26 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
   }
 
   const triggerClass = [
-    'inline-flex max-w-[220px] items-center gap-1.5 rounded-[10px] border px-2 py-1 text-left transition',
-    compact ? 'text-[11px]' : 'text-xs',
+    'inline-flex w-full max-w-full items-center gap-1 rounded-[10px] border px-1.5 py-1 text-left transition sm:gap-1.5 sm:px-2',
+    compact ? 'min-h-9 text-[10px] leading-tight sm:text-[11px]' : 'text-xs',
     hasActive
       ? 'border-fal-accent/40 bg-fal-accent/10'
       : 'border-fal-navy/25 bg-fal-surface-2 text-fal-navy dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg',
   ].join(' ')
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0">
       <button
         type="button"
         className={triggerClass}
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="dialog"
+        aria-label={
+          hasActive
+            ? `Veículo ativo: ${label}`
+            : 'Confirmar compatibilidade do veículo'
+        }
         title={
           hasActive
             ? 'Veículo ativo na loja (contexto de busca). Diferente do principal da garagem.'
@@ -142,15 +147,36 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
       >
         {hasActive ? (
           <>
-            <span className="truncate font-extrabold text-fal-navy dark:text-fal-fg">
-              Ativo: {label}
-              {garage.activeVehicle?.isPrimary ? ' ★' : ''}
-              {garage.isSessionActive ? ' · sessão' : ''}
+            <span className="min-w-0 truncate font-extrabold text-fal-navy dark:text-fal-fg">
+              {compact ? (
+                <>
+                  <span className="sm:hidden">Ativo</span>
+                  <span className="hidden truncate sm:inline">
+                    Ativo: {label}
+                    {garage.activeVehicle?.isPrimary ? ' ★' : ''}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Ativo: {label}
+                  {garage.activeVehicle?.isPrimary ? ' ★' : ''}
+                  {garage.isSessionActive ? ' · sessão' : ''}
+                </>
+              )}
             </span>
             <span className="shrink-0 font-semibold text-fal-auth-link">Trocar</span>
           </>
         ) : (
-          <span className="font-extrabold">Confirmar compatibilidade</span>
+          <span className="truncate font-extrabold">
+            {compact ? (
+              <>
+                <span className="sm:hidden">Compatibilidade</span>
+                <span className="hidden sm:inline">Confirmar compatibilidade</span>
+              </>
+            ) : (
+              'Confirmar compatibilidade'
+            )}
+          </span>
         )}
       </button>
 

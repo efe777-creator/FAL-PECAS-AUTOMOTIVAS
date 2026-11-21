@@ -110,8 +110,8 @@ export function AccountVerifyPage() {
   }
 
   return (
-    <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-      <h2 className="mt-0 text-xl font-extrabold">Confirmar sua conta</h2>
+    <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
+      <h2 className="mt-0 text-lg font-extrabold sm:text-xl">Confirmar sua conta</h2>
       {fromFirstOrder ? (
         <p className="text-sm text-fal-muted">
           Para pagar o <strong>1º pedido</strong>, confirme a conta. Preferimos código no{' '}
@@ -147,30 +147,38 @@ export function AccountVerifyPage() {
         </p>
       ) : null}
 
-      <section className="mt-5 rounded-[10px] border border-fal-line bg-fal-bg p-4">
+      <section className="mt-5 rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
         <h3 className="m-0 text-base font-extrabold">
           E-mail{!hasWhatsAppPhone ? ' (canal principal)' : ''}
         </h3>
-        <p className="mt-1 text-sm text-fal-muted">
+        <p className="mt-1 break-words text-sm text-fal-muted">
           Enviamos (ou reenviamos) um link para{' '}
           <strong className="text-fal-fg">{user?.email ?? 'seu e-mail'}</strong>.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             type="button"
             variant="primary"
+            fullWidth
+            className="sm:w-auto"
             disabled={resending}
             onClick={() => void onResendEmail()}
           >
             {resending ? 'Enviando…' : 'Reenviar e-mail'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => void onRefresh()}>
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            className="sm:w-auto"
+            onClick={() => void onRefresh()}
+          >
             Já confirmei — atualizar
           </Button>
         </div>
       </section>
 
-      <section className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-4">
+      <section className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
         <h3 className="m-0 text-base font-extrabold">WhatsApp</h3>
         {hasWhatsAppPhone ? (
           <>
@@ -178,10 +186,11 @@ export function AccountVerifyPage() {
               Código de 6 dígitos no celular{' '}
               <strong className="text-fal-fg">{phoneLabel}</strong>.
             </p>
-            <div className="mt-3 grid max-w-md gap-2">
+            <div className="mt-3 grid w-full max-w-md gap-2">
               <Button
                 type="button"
                 variant="outline"
+                fullWidth
                 disabled={whatsBusy}
                 onClick={() => void onSendWhatsCode()}
               >
@@ -198,6 +207,7 @@ export function AccountVerifyPage() {
               <Button
                 type="button"
                 variant="primary"
+                fullWidth
                 disabled={whatsBusy || otp.replace(/\D/g, '').length !== 6}
                 onClick={() => void onConfirmWhatsOtp()}
               >

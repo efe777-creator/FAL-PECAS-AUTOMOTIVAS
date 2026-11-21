@@ -54,13 +54,13 @@ export function LoginPage() {
   }
 
   return (
-    <Container className="py-8">
-      <div className="mx-auto grid max-w-[1050px] grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
-        <div className="py-4 lg:py-10">
-          <h1 className="mt-0 text-[36px] leading-tight font-black lg:text-[44px]">
+    <Container className="py-5 sm:py-8">
+      <div className="mx-auto grid max-w-[1050px] grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
+        <div className="py-2 sm:py-4 lg:py-10">
+          <h1 className="mt-0 text-[28px] leading-tight font-black sm:text-[36px] lg:text-[44px]">
             {fromCheckout ? 'Entre para finalizar' : 'Bem-vindo à FAL'}
           </h1>
-          <p className="text-[17px] text-fal-muted">
+          <p className="text-[15px] text-fal-muted sm:text-[17px]">
             {fromCheckout
               ? 'Seu carrinho está salvo. Entre na conta ou abra a aba Criar conta grátis para continuar o checkout.'
               : 'Acesse sua conta para acompanhar pedidos, endereços e favoritos.'}
@@ -72,21 +72,21 @@ export function LoginPage() {
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
-          <div className="grid grid-cols-2 border-b border-fal-line">
-            <span className="bg-fal-surface-2 px-4 py-4 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)]">
+        <div className="min-w-0 overflow-hidden rounded-fal border border-fal-line bg-fal-surface">
+          <div className="grid grid-cols-2 border-b border-fal-line text-[13px] sm:text-base">
+            <span className="bg-fal-surface-2 px-2 py-3 text-center font-extrabold shadow-[inset_0_-3px_var(--fal-yellow)] sm:px-4 sm:py-4">
               Entrar
             </span>
             <Link
               to="/cadastro"
               state={fromState ? { from: fromState } : undefined}
-              className="px-4 py-4 text-center font-extrabold hover:bg-fal-surface-2"
+              className="px-2 py-3 text-center font-extrabold hover:bg-fal-surface-2 sm:px-4 sm:py-4"
             >
               Criar conta grátis
             </Link>
           </div>
-          <form className="p-5 sm:p-7" onSubmit={onSubmit}>
-            <h2 className="mt-0 text-xl font-extrabold">Entrar na conta</h2>
+          <form className="p-4 sm:p-7" onSubmit={onSubmit}>
+            <h2 className="mt-0 text-lg font-extrabold sm:text-xl">Entrar na conta</h2>
             <div className="mt-3 space-y-3">
               <Input
                 label="E-mail ou usuário"

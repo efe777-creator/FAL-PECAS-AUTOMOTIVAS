@@ -84,10 +84,10 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <Container className="py-8">
-      <div className="mx-auto max-w-md rounded-fal border border-fal-line bg-fal-surface p-6">
-        <h1 className="mt-0 text-[28px] font-extrabold">Redefinir senha</h1>
-        <p className="text-fal-muted">
+    <Container className="py-5 sm:py-8">
+      <div className="mx-auto max-w-md rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-6">
+        <h1 className="mt-0 text-[24px] font-extrabold sm:text-[28px]">Redefinir senha</h1>
+        <p className="text-[15px] text-fal-muted sm:text-base">
           Escolha uma nova senha para acessar sua conta.
         </p>
         {!isConfigured ? (

@@ -54,7 +54,7 @@ export function AccountLayout() {
       </div>
 
       <nav
-        className="-mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1 lg:hidden"
+        className="-mx-1 mb-4 flex gap-1 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] lg:hidden"
         aria-label="Menu da conta"
       >
         {links.map((item) => (

@@ -202,9 +202,9 @@ export function AccountProfilePage() {
   const busy = saving || deleting || emailSaving || passwordSaving
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-        <h2 className="mt-0 text-xl font-extrabold">Dados pessoais</h2>
+    <div className="space-y-4 sm:space-y-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
+        <h2 className="mt-0 text-lg font-extrabold sm:text-xl">Dados pessoais</h2>
         <p className="text-sm text-fal-muted">Nome, usuário e documentos da conta.</p>
         {error ? (
           <p className="mt-2 text-sm text-fal-danger" role="alert">
@@ -249,14 +249,14 @@ export function AccountProfilePage() {
             value={cnpj}
             onChange={(e) => setCnpj(formatCnpjMask(e.target.value))}
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" fullWidth className="sm:w-auto" disabled={busy}>
             {saving ? 'Salvando…' : 'Salvar dados'}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-        <h2 className="mt-0 text-xl font-extrabold">E-mail</h2>
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
+        <h2 className="mt-0 text-lg font-extrabold sm:text-xl">E-mail</h2>
         <p className="text-sm text-fal-muted">
           E-mail atual: <strong className="text-fal-fg">{currentEmail || '—'}</strong>
         </p>
@@ -284,14 +284,14 @@ export function AccountProfilePage() {
             onChange={(e) => setEmailPassword(e.target.value)}
             required
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" fullWidth className="sm:w-auto" disabled={busy}>
             {emailSaving ? 'Enviando…' : 'Trocar e-mail'}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-        <h2 className="mt-0 text-xl font-extrabold">Senha</h2>
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
+        <h2 className="mt-0 text-lg font-extrabold sm:text-xl">Senha</h2>
         <p className="text-sm text-fal-muted">Altere a senha da conta.</p>
         <form onSubmit={onSubmitPassword} className="mt-4 grid max-w-xl gap-3">
           <PasswordInput
@@ -321,13 +321,13 @@ export function AccountProfilePage() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" fullWidth className="sm:w-auto" disabled={busy}>
             {passwordSaving ? 'Alterando…' : 'Alterar senha'}
           </Button>
         </form>
       </div>
 
-      <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-5">
         <h3 className="m-0 text-base font-extrabold text-fal-fg">Encerrar conta</h3>
         <p className="mt-1 text-sm text-fal-muted">
           Seus pedidos e histórico comercial são preservados. Dados pessoais de cadastro são
@@ -336,7 +336,7 @@ export function AccountProfilePage() {
         <button
           type="button"
           disabled={busy}
-          className="mt-3 rounded-[10px] border border-fal-danger px-4 py-2 text-sm font-bold text-fal-danger hover:bg-red-50 disabled:opacity-50"
+          className="mt-3 min-h-11 w-full rounded-[10px] border border-fal-danger px-4 py-2 text-sm font-bold text-fal-danger hover:bg-red-50 disabled:opacity-50 sm:w-auto"
           onClick={() => {
             void (async () => {
               const { confirmed } = await confirmDialog({

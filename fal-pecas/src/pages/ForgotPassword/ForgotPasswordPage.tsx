@@ -172,11 +172,11 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <Container className="py-8">
-      <div className="mx-auto max-w-md space-y-4">
-        <div className="rounded-fal border border-fal-line bg-fal-surface p-6">
-          <h1 className="mt-0 text-[28px] font-extrabold">Recuperar senha</h1>
-          <p className="text-fal-muted">
+    <Container className="py-5 sm:py-8">
+      <div className="mx-auto max-w-md space-y-3 sm:space-y-4">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-6">
+          <h1 className="mt-0 text-[24px] font-extrabold sm:text-[28px]">Recuperar senha</h1>
+          <p className="text-[15px] text-fal-muted sm:text-base">
             Preferimos código no <strong>WhatsApp</strong> do celular cadastrado. Link por e-mail
             só com o domínio da loja linkado no Auth.
           </p>
@@ -192,7 +192,7 @@ export function ForgotPasswordPage() {
             </p>
           ) : null}
 
-          <section className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-4">
+          <section className="mt-4 rounded-[10px] border border-fal-line bg-fal-bg p-3 sm:p-4">
             <h2 className="m-0 text-base font-extrabold">WhatsApp (código)</h2>
             <p className="mt-1 text-sm text-fal-muted">
               {whatsReady
@@ -273,7 +273,7 @@ export function ForgotPasswordPage() {
           </section>
         </div>
 
-        <div className="rounded-fal border border-fal-line bg-fal-surface p-6">
+        <div className="rounded-fal border border-fal-line bg-fal-surface p-4 sm:p-6">
           <h2 className="mt-0 text-base font-extrabold">E-mail (link)</h2>
           {emailRecoveryOn ? (
             <>
