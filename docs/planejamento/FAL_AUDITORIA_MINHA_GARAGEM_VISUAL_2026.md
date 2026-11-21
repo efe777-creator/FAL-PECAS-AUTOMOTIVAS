@@ -15,7 +15,9 @@
 
 ## 1. Resumo executivo
 
-A Minha Garagem hoje é uma **área da Conta** (`AccountLayout` + `/conta/veiculos`), não um produto “garagem-first” como o mockup. O núcleo 2A (identity, timeline, manutenções, profissionais, evidências, shares, transferência, inteligência) está **exposto na UI** via 9 abas horizontais. O Visual (2B/Consolida) tem **engine + GLB + XR gated + CarImages 2D** no código e na ficha; a experiência ainda é técnica (jargão, canvas abaixo da dobra, asset placeholder vs foto).
+> **Atualização 2026-11-20:** API **CarImages cancelada** — stock 2D = pessoal / `vehicle_stock_images` / placeholder FAL.
+
+A Minha Garagem hoje é uma **área da Conta** (`AccountLayout` + `/conta/veiculos`), não um produto “garagem-first” como o mockup. O núcleo 2A (identity, timeline, manutenções, profissionais, evidências, shares, transferência, inteligência) está **exposto na UI**. O Visual (2B/Consolida) tem **engine + GLB + XR gated**; a experiência ainda é técnica (jargão, canvas abaixo da dobra, asset placeholder vs foto).
 
 **Não existe** shell cliente A1/A2/A3 (`GarageWorkspace.tsx`); `AdaptiveWorkspace` é **só admin**. Tripo API e Pan Raven/360° **não localizados** nos termos pesquisados. Runtime nesta sessão: lista `/conta/veiculos` autenticada (Fernando, Palio + Classic + HB20 + Q3); detalhe/`?modulo=visual` **não reobservado** aqui (redirect login) — complementar com UX audit Consolida 2026-11-18.
 

@@ -391,9 +391,8 @@ export function AdminVisualAssetsPage() {
           <div className="rounded-fal border border-dashed border-fal-line bg-fal-bg/40 p-3">
             <p className="m-0 text-xs font-extrabold text-fal-fg">Importar candidato externo</p>
             <p className="mt-1 m-0 text-[11px] text-fal-muted">
-              CarImages / Tripo / outro: registre a origem nas notas, faça upload do GLB como draft e
-              envie para review. Não publica automaticamente. Key CarImages só via Edge (nunca no
-              browser).
+              Fonte externa (Tripo / outro): registre a origem nas notas, faça upload do GLB como
+              draft e envie para review. Não publica automaticamente.
             </p>
             <Input
               label="Nota de importação (candidato)"
@@ -414,7 +413,7 @@ export function AdminVisualAssetsPage() {
                   [prev, `IMPORT_CANDIDATE: ${importNote.trim()}`].filter(Boolean).join('\n'),
                 )
                 setSource('acquired')
-                setVendor((v) => v || 'carimages')
+                setVendor((v) => v || 'external')
                 toast.push('Nota de candidato aplicada ao formulário de draft — faça o upload', 'success')
               }}
             >

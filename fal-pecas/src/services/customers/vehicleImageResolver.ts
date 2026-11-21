@@ -1,9 +1,4 @@
 import { getSupabase } from '@/lib/supabase'
-import {
-  isCarImagesClientEnabled,
-  nearestCarImagesPaint,
-  resolveCarImagesStockViaEdge,
-} from '@/services/garage/adapters/carImagesAdapter'
 import type {
   CustomerSavedVehicle,
   CustomerVehicleAsset,
@@ -109,6 +104,7 @@ export function pickBestStockImage(
   }
 }
 
+/** R4: personal → stock local (`vehicle_stock_images`) → placeholder. Sem API externa. */
 export async function resolveVehicleDisplayImage(input: {
   vehicle: CustomerSavedVehicle
   assets?: CustomerVehicleAsset[]
@@ -128,48 +124,5 @@ export async function resolveVehicleDisplayImage(input: {
     .ilike('maker', maker)
   if (error) throw error
 
-  const local = pickBestStockImage((data as StockRow[]) ?? [], input.vehicle)
-  if (local.source === 'stock' && local.url) return local
-
-  if (isCarImagesClientEnabled() && input.vehicle.modelName?.trim()) {
-    try {
-      const sb = getSupabase()
-      const session = (await sb.auth.getSession()).data.session
-      const paint = nearestCarImagesPaint(input.vehicle.colorHex)
-      const remote = await resolveCarImagesStockViaEdge(
-        {
-          make: maker,
-          model: input.vehicle.modelName,
-          year: input.vehicle.year ?? null,
-          view: 'front34',
-          color: paint,
-          width: 800,
-          format: 'webp',
-        },
-        {
-          accessToken: session?.access_token ?? null,
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL as string | undefined,
-        },
-      )
-      if (remote?.url) {
-        return {
-          level: 'family',
-          url: remote.url,
-          label: 'Imagem ilustrativa da família/estúdio',
-          source: 'carimages',
-        }
-      }
-    } catch {
-      /* cai no placeholder honesto abaixo */
-    }
-    // Flag ligada mas proxy/key indisponível — não fingir stock silencioso.
-    return {
-      level: 'placeholder',
-      url: null,
-      label: 'Imagem ilustrativa indisponível — placeholder FAL',
-      source: 'placeholder',
-    }
-  }
-
-  return local
+  return pickBestStockImage((data as StockRow[]) ?? [], input.vehicle)
 }

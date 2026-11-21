@@ -1,5 +1,7 @@
 # Consolida 3D — Fase 5 (segurança / perf / testes)
 
+> **2026-11-20:** CarImages **CANCELADO** (adapter/Edge/flag removidos). Itens CarImages abaixo = histórico.
+
 Data: 2026-11-18 · projeto Supabase `wtbpwuiayednvlhvuhbh` · branch `feature/consolida-3d-automotivo`
 
 ## Segurança

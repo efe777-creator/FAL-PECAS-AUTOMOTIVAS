@@ -1,5 +1,7 @@
 # Consolida 3D — MARCHA (2026-11-18)
 
+> **2026-11-20:** CarImages **CANCELADO** — ver `FAL_PLANO_G3_CARIMAGES_2026.md`. Linhas abaixo sobre CarImages são histórico.
+
 Branch: `feature/consolida-3d-automotivo` → integrar em `dev`  
 Sem `main` / sem deploy Netlify neste MARCHA.
 
