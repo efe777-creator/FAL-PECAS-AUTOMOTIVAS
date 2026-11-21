@@ -19,6 +19,7 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useOpenGraph } from '@/hooks/useOpenGraph'
 import { excludeProductsById, HOME_FEATURED_LIMIT_DEFAULT } from '@/lib/homeSections'
+import { getProductWidgetDef } from '@/lib/productWidgets'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { getFeaturedDisplayLimit } from '@/services/home/homeContentService'
 import {
@@ -190,6 +191,8 @@ export function HomePage() {
     () => excludeProductsById(featured.data, offers.data),
     [featured.data, offers.data],
   )
+  const featuredWidget = getProductWidgetDef('featured')
+  const offersWidget = getProductWidgetDef('offers')
 
   /**
    * Ordem: Campanhas → Entrada → Vitrine (painéis montados, só um visível) → Ofertas → Confiança.
@@ -219,15 +222,17 @@ export function HomePage() {
                   Vitrine
                 </p>
                 <h2 className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
-                  Destaques
+                  {featuredWidget?.title ?? 'Destaques'}
                 </h2>
-                <p className="mt-1 text-sm text-fal-muted">Seleção da loja — deslize para ver mais</p>
+                <p className="mt-1 text-sm text-fal-muted">
+                  {featuredWidget?.subtitle ?? 'Seleção da loja — deslize para ver mais'}
+                </p>
               </div>
               <Link
-                to="/catalogo"
+                to={featuredWidget?.catalogHref ?? '/catalogo'}
                 className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
               >
-                Ver catálogo →
+                {featuredWidget?.linkLabel ?? 'Ver catálogo →'}
               </Link>
             </div>
             {featured.loading && featuredWithoutOffers.length === 0 ? <Loading /> : null}
@@ -243,7 +248,10 @@ export function HomePage() {
               />
             ) : null}
             {featuredWithoutOffers.length > 0 ? (
-              <ProductCarousel products={featuredWithoutOffers} label="Destaques" />
+              <ProductCarousel
+                products={featuredWithoutOffers}
+                label={featuredWidget?.title ?? 'Destaques'}
+              />
             ) : null}
           </div>
 
@@ -297,16 +305,16 @@ export function HomePage() {
 
       {!offers.loading && !offers.error && offers.data.length > 0 ? (
         <ProductRailSection
-          title="Ofertas"
-          subtitle="Peças com preço promocional (automático)"
-          linkLabel="Ver catálogo →"
-          linkTo="/catalogo?sort=price_asc"
+          title={offersWidget?.title ?? 'Ofertas'}
+          subtitle={offersWidget?.subtitle ?? 'Peças com preço promocional (automático)'}
+          linkLabel={offersWidget?.linkLabel ?? 'Ver catálogo →'}
+          linkTo={offersWidget?.catalogHref ?? '/catalogo?sort=price_asc'}
           loading={false}
           error={null}
           products={offers.data}
           emptyTitle="Sem ofertas no momento"
           emptyDescription="Volte em breve."
-          tone="sand"
+          tone={offersWidget?.tone ?? 'sand'}
         />
       ) : null}
 

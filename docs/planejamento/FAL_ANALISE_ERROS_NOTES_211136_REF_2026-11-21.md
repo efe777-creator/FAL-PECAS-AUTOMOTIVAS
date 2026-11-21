@@ -23,7 +23,7 @@
 | 10 | Textos/instruções do site — copy e coerência | PENDING |
 | 11 | Corrigir tela de favoritos | PENDING |
 | 12 | Seção destaques: configs não respeitadas | PENDING |
-| 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING |
+| 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING (registry widgets criado) |
 | 14 | LGPD, segurança, políticas garantia/devolução | PENDING |
 | 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
 | 16 | Portal B2B | PENDING |
@@ -134,3 +134,8 @@ Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, gr
 **Plano:** [FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md](./FAL_PLANO_GUIAS_FACILITAR_ALTERACOES_2026-11-21.md)  
 **Decisões travadas:** (1) surface Apps **completa** + ano início/fim no cadastro; (2) ver/alterar preços de **várias listas** na guia; (3) categoria com **seletores**; UX em **mini-menus** (um painel ativo).  
 **Implementação:** marchas G1→G4 no plano. Não substitui Notes #4+.
+
+### Estrutura widgets Home (2026-11-21)
+
+Registry `productWidgets` + loader stub (`bestsellers`/`new_arrivals`/`campaign` planned).  
+Doc: [FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md](./FAL_ESTRUTURA_PRODUCT_WIDGETS_HOME_2026-11-21.md).
