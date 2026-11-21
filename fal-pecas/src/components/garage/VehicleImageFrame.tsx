@@ -7,7 +7,7 @@ type Props = {
   className?: string
 }
 
-/** Moldura de imagem do veículo: pessoal/stock/placeholder + chip de nível. */
+/** Moldura de imagem do veículo: pessoal/stock/carimages/placeholder + chip de nível. */
 export function VehicleImageFrame({ image, colorHex, title, className = '' }: Props) {
   const showDisclaimer =
     image.source === 'carimages' ||

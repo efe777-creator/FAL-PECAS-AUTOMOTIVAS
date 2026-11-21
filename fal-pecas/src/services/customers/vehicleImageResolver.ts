@@ -155,7 +155,7 @@ export async function resolveVehicleDisplayImage(input: {
         return {
           level: 'family',
           url: remote.url,
-          label: 'Imagem ilustrativa (estúdio · CarImages)',
+          label: 'Imagem ilustrativa da família/estúdio',
           source: 'carimages',
         }
       }

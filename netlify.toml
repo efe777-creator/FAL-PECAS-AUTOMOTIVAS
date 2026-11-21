@@ -36,3 +36,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Functions em fal-pecas/netlify/functions (relativo ao base).
+# Env obrigatória (server-only, NÃO VITE_): CARIMAGES_API_KEY
+# Opcional: CARIMAGES_API_SECRET
+# Flag cliente: VITE_FAL_CARIMAGES=1
+# Path canônico: /api/carimages-signed-url (config.path na function; tem prioridade sobre SPA).
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
