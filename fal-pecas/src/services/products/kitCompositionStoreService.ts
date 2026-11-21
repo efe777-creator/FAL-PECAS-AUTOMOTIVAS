@@ -1,6 +1,7 @@
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { productHref } from '@/lib/productHref'
 import { resolveProductPrices } from '@/services/pricing/priceResolutionService'
+import { primaryProductImageUrlMap } from '@/services/products/productImages'
 import { listPublishedProductsByIds } from '@/services/products/productService'
 import type { Product } from '@/types'
 
@@ -13,6 +14,8 @@ export type StoreKitComponentLine = {
   unitPrice: number | null
   href: string
   available: boolean
+  /** Foto principal do item (para galeria/composição da PDP do kit). */
+  imageUrl: string | null
 }
 
 export type StoreKitComposition = {
@@ -75,7 +78,10 @@ export async function loadStoreKitComposition(
 
   if (!rawLines.length) return { lines: [], componentsSum: null }
 
-  const priceMap = await resolveProductPrices(rawLines.map((l) => l.productId))
+  const [priceMap, imageMap] = await Promise.all([
+    resolveProductPrices(rawLines.map((l) => l.productId)),
+    primaryProductImageUrlMap(rawLines.map((l) => l.productId)),
+  ])
   let sum = 0
   let allPriced = true
   const lines: StoreKitComponentLine[] = rawLines.map((l) => {
@@ -91,6 +97,7 @@ export async function loadStoreKitComposition(
       unitPrice: unit,
       href: productHref({ id: l.productId, slug: l.slug }),
       available: l.available,
+      imageUrl: imageMap.get(l.productId) ?? null,
     }
   })
 

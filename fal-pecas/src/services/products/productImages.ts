@@ -93,3 +93,48 @@ export async function attachProductImageGallery<T extends Product>(product: T): 
     imageUrl: urls[0],
   }
 }
+
+/** Mapa productId → URL pública da imagem principal (loja). */
+export async function primaryProductImageUrlMap(
+  productIds: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  const ids = [...new Set(productIds.filter(Boolean))]
+  if (!ids.length || !isSupabaseConfigured || !supabase) return map
+  const { data, error } = await supabase
+    .from('product_images')
+    .select('product_id, storage_path, sort_order, is_primary')
+    .in('product_id', ids)
+  if (error) throw error
+  const byProduct = new Map<string, ImageRow[]>()
+  for (const row of (data ?? []) as ImageRow[]) {
+    const list = byProduct.get(row.product_id) ?? []
+    list.push(row)
+    byProduct.set(row.product_id, list)
+  }
+  for (const id of ids) {
+    const path = pickPrimaryStoragePath(byProduct.get(id) ?? [])
+    if (!path) continue
+    const url = publicUrl(path)
+    if (url) map.set(id, url)
+  }
+  return map
+}
+
+/**
+ * Galeria PDP de kit: capa/kit primeiro; fotos dos componentes em seguida (sem duplicar URL).
+ */
+export function mergeKitGalleryWithComponentImages(
+  kitGallery: string[],
+  componentImageUrls: Array<string | null | undefined>,
+): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const url of [...kitGallery, ...componentImageUrls]) {
+    const u = (url ?? '').trim()
+    if (!u || seen.has(u)) continue
+    seen.add(u)
+    out.push(u)
+  }
+  return out
+}

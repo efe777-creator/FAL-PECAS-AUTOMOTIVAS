@@ -30,6 +30,7 @@ import {
   type StoreKitComposition,
   type StoreKitContainingComponent,
 } from '@/services/products/kitCompositionStoreService'
+import { mergeKitGalleryWithComponentImages } from '@/services/products/productImages'
 import { listIntelligentRelatedForPdp } from '@/services/products/relatedProductsIntelligence'
 import type { PvcCompatRow } from '@/services/compatibility/compatibilityEngine'
 import {
@@ -579,12 +580,19 @@ export function ProductPage() {
   const categoryHref = categorySlugForMore
     ? `/catalogo?cat=${encodeURIComponent(categorySlugForMore)}`
     : null
-  const galleryImages =
+  const kitOwnGallery =
     current.images?.length
       ? current.images
       : current.imageUrl
         ? [current.imageUrl]
         : []
+  const galleryImages =
+    current.productKind === 'kit' && kitComposition?.lines.length
+      ? mergeKitGalleryWithComponentImages(
+          kitOwnGallery,
+          kitComposition.lines.map((l) => l.imageUrl),
+        )
+      : kitOwnGallery
 
   async function onFavoriteClick() {
     if (!user) {

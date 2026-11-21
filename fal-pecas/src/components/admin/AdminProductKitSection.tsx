@@ -426,8 +426,8 @@ export function AdminProductKitSection({
         )
       }
       await reload()
-      if (ok) toast.push('Foto do item aplicada na capa do kit', 'success')
-      else toast.push('Nenhum item da composição tem foto para puxar', 'error')
+      if (ok) toast.push('Fotos dos itens sincronizadas na galeria do kit', 'success')
+      else toast.push('Nenhum item da composição tem foto nova para puxar', 'error')
     } catch (e) {
       const msg = toUserMessage(e, 'Falha ao puxar foto dos itens')
       setError(msg)
@@ -466,7 +466,7 @@ export function AdminProductKitSection({
             ) : (
               <p className="mt-1 text-xs text-fal-muted">
                 Linke produtos já cadastrados (tipo item). Enter no destaque, multi-seleção ou SKU/ref
-                exato. Capa puxa automaticamente do item quando o kit ainda não tem foto.
+                exato. Fotos de cada item entram na galeria do kit (capa se ainda não houver).
               </p>
             )}
           </div>
@@ -493,7 +493,7 @@ export function AdminProductKitSection({
                 disabled={busyLink || rows.length === 0}
                 onClick={() => void handlePullImageFromItems(false)}
               >
-                Puxar foto dos itens
+                Puxar fotos dos itens
               </Button>
               {kitHasImage ? (
                 <Button

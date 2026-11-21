@@ -159,21 +159,43 @@ export async function adminCopyPrimaryImageToProduct(input: {
 }
 
 /**
- * Se o kit não tem imagem, usa a principal do primeiro componente que tiver foto.
+ * Sincroniza fotos dos componentes no kit:
+ * - se kit sem foto → primeira vira capa (primary);
+ * - demais (e já com capa) entram como galeria adicional, sem duplicar storage_path.
+ * @returns true se adicionou ao menos uma imagem.
  */
 export async function adminEnsureKitImageFromComponents(
   kitProductId: string,
   componentProductIds: string[],
 ): Promise<boolean> {
   const existing = await adminListImages(kitProductId)
-  if (existing.length > 0) return false
+  const paths = new Set(existing.map((i) => i.storagePath))
+  let nextSort =
+    existing.length > 0 ? Math.max(...existing.map((i) => i.sortOrder)) + 1 : 0
+  let makePrimary = existing.length === 0
+  let added = 0
+
   for (const componentId of componentProductIds) {
-    const ok = await adminCopyPrimaryImageToProduct({
-      sourceProductId: componentId,
-      targetProductId: kitProductId,
-      replace: false,
+    if (!componentId || componentId === kitProductId) continue
+    const sourceImages = await adminListImages(componentId)
+    const primary = sourceImages.find((i) => i.isPrimary) ?? sourceImages[0] ?? null
+    if (!primary || paths.has(primary.storagePath)) continue
+
+    const { error } = await getSupabase().from('product_images').insert({
+      product_id: kitProductId,
+      storage_path: primary.storagePath,
+      alt: primary.alt,
+      sort_order: nextSort,
+      is_primary: makePrimary,
     })
-    if (ok) return true
+    if (error) throw error
+
+    paths.add(primary.storagePath)
+    nextSort += 1
+    makePrimary = false
+    added += 1
   }
-  return false
+
+  if (added > 0) await refreshIncompleteFlag(kitProductId)
+  return added > 0
 }
