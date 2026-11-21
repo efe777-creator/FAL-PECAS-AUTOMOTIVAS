@@ -584,8 +584,8 @@ export function AdminProductFormPage() {
                     setKitPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
                   }
                 >
-                  <option value="auto">Automático (soma dos componentes)</option>
-                  <option value="manual">Manual (lista exclusiva)</option>
+                  <option value="auto">Automático (soma na Lista Base)</option>
+                  <option value="manual">Manual (lista kits + espelho na Base)</option>
                 </select>
               </label>
               {!productId ? (

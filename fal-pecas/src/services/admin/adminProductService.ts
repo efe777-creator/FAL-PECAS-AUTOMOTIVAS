@@ -488,6 +488,13 @@ export async function adminListProductMeasureHistory(
 }
 
 export async function adminSetProductStatus(id: string, status: NonNullable<Product['status']>) {
+  if (status === 'published') {
+    const checklist = await adminEvaluateReleaseChecklist(id, { publishIfNeeded: true })
+    if (!checklist) throw new Error('Produto não encontrado')
+    if (!checklist.canRelease) {
+      throw new Error(checklist.summary || 'Não atende o checklist de liberação na loja')
+    }
+  }
   const { error } = await getSupabase().from('products').update({ status }).eq('id', id)
   if (error) throw error
 }
