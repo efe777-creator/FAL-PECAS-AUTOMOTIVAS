@@ -33,4 +33,7 @@
 
 ## Resultado
 
-**Automação: PASS.** Smoke compra→histórico depende de aplicar migration `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql` no ambiente wtbp e pedido real.
+**Automação: PASS.**  
+**Commit:** `a6b442e` · **Push:** `origin/dev` (2026-11-21).  
+
+Smoke compra→histórico depende de aplicar migration `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql` no ambiente wtbp e pedido real.
