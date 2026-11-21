@@ -1,7 +1,10 @@
 /**
  * Adapter CarImages — consulta catálogo/imagens/GLB sem acoplar UI ao fornecedor.
- * Secrets nunca ficam aqui; URLs autenticadas vêm da Edge `carimages-image`.
+ * Secrets nunca ficam aqui; URLs autenticadas vêm da Netlify Function
+ * `/api/carimages-signed-url` (preferencial) ou Edge `carimages-image` (fallback).
  */
+
+import { FAL_CARIMAGES_SIGNED_URL_PATH } from '@/services/garage/adapters/carImagesSignedUrl'
 
 export type CarImagesPaint =
   | 'silver'
@@ -115,17 +118,7 @@ export function isCarImagesClientEnabled(): boolean {
   }
 }
 
-/**
- * Resolve imagem via Edge FAL (secret server-side).
- * Retorna null se flag off ou falha — caller cai no placeholder.
- */
-export async function resolveCarImagesStockViaEdge(
-  lookup: CarImagesLookup,
-  opts?: { accessToken?: string | null; supabaseUrl?: string | null },
-): Promise<{ url: string; level: 'family' } | null> {
-  if (!isCarImagesClientEnabled()) return null
-  const base = opts?.supabaseUrl?.replace(/\/$/, '')
-  if (!base) return null
+function buildLookupQuery(lookup: CarImagesLookup): URLSearchParams {
   const q = new URLSearchParams()
   q.set('make', lookup.make.trim())
   if (lookup.model?.trim()) q.set('model', lookup.model.trim())
@@ -134,15 +127,46 @@ export async function resolveCarImagesStockViaEdge(
   if (lookup.color) q.set('color', lookup.color)
   q.set('width', String(lookup.width ?? 800))
   q.set('format', lookup.format ?? 'webp')
+  return q
+}
 
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  }
-  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`
-
-  const res = await fetch(`${base}/functions/v1/carimages-image?${q}`, { headers })
+async function fetchCarImagesJson(
+  url: string,
+  headers?: Record<string, string>,
+): Promise<{ url: string; level: 'family' } | null> {
+  const res = await fetch(url, { headers: { Accept: 'application/json', ...headers } })
   if (!res.ok) return null
   const body = (await res.json()) as { url?: string; fallback?: boolean }
   if (!body.url || body.fallback) return null
   return { url: body.url, level: 'family' }
+}
+
+/**
+ * Resolve imagem 2D via Netlify Function (preferencial) ou Edge Supabase (fallback).
+ * Retorna null se flag off ou falha — caller cai no placeholder.
+ * Nível sempre `family` (ilustrativa) — nunca promove fuzzy a exact.
+ */
+export async function resolveCarImagesStockViaEdge(
+  lookup: CarImagesLookup,
+  opts?: { accessToken?: string | null; supabaseUrl?: string | null },
+): Promise<{ url: string; level: 'family' } | null> {
+  if (!isCarImagesClientEnabled()) return null
+  const q = buildLookupQuery(lookup)
+
+  try {
+    const viaNetlify = await fetchCarImagesJson(`${FAL_CARIMAGES_SIGNED_URL_PATH}?${q}`)
+    if (viaNetlify) return viaNetlify
+  } catch {
+    /* vite-only / function down → Edge */
+  }
+
+  const base = opts?.supabaseUrl?.replace(/\/$/, '')
+  if (!base) return null
+  const headers: Record<string, string> = {}
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`
+  try {
+    return await fetchCarImagesJson(`${base}/functions/v1/carimages-image?${q}`, headers)
+  } catch {
+    return null
+  }
 }
