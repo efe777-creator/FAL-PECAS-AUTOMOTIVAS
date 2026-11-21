@@ -5,6 +5,7 @@ import {
   formatVehicleSnapshotLabel,
   maskPlate,
   parseVehicleSnapshot,
+  resolveOrderItemCustomerVehicleId,
 } from './vehicleSnapshot'
 
 describe('vehicleSnapshot (#17/#18)', () => {
@@ -45,5 +46,36 @@ describe('vehicleSnapshot (#17/#18)', () => {
     expect(frozen?.model).toBe('Argo')
     expect(parseVehicleSnapshot(null)).toBeNull()
     expect(parseVehicleSnapshot({ maker: 'X' })).toBeNull()
+  })
+
+  it('resolveOrderItemCustomerVehicleId: item > snapshot > ativo', () => {
+    expect(
+      resolveOrderItemCustomerVehicleId({
+        itemCustomerVehicleId: 'a',
+        snapshotCustomerVehicleId: 'b',
+        activeVehicleId: 'c',
+      }),
+    ).toBe('a')
+    expect(
+      resolveOrderItemCustomerVehicleId({
+        itemCustomerVehicleId: null,
+        snapshotCustomerVehicleId: 'b',
+        activeVehicleId: 'c',
+      }),
+    ).toBe('b')
+    expect(
+      resolveOrderItemCustomerVehicleId({
+        itemCustomerVehicleId: '  ',
+        snapshotCustomerVehicleId: null,
+        activeVehicleId: 'c',
+      }),
+    ).toBe('c')
+    expect(
+      resolveOrderItemCustomerVehicleId({
+        itemCustomerVehicleId: null,
+        snapshotCustomerVehicleId: null,
+        activeVehicleId: null,
+      }),
+    ).toBeNull()
   })
 })

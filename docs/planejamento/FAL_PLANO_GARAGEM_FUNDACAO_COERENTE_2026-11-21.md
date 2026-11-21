@@ -45,10 +45,16 @@ pnpm exec vitest run src/lib/visualViewerPrefs.test.ts
 | `651b537` | docs VAL push |
 | `2cb7f1b` | test CP + `resolveViewerMode` 2D-first |
 
+## Marcha testes jornada cliente (2026-11-21)
+
+**VAL:** [FAL_MARCHA_JORNADA_CLIENTE_COMPLETA_VAL_2026-11-21.md](./FAL_MARCHA_JORNADA_CLIENTE_COMPLETA_VAL_2026-11-21.md)  
+Chain vitest + 262 path cliente + antiregress compat/UI — **PASS**. Playwright R5 sem creds neste ambiente.
+
 ## Residual ops (fora do código)
 
 1. Aplicar no Supabase (wtbp) `20261121200000_g7_coalesce_vehicle_id_from_snapshot.sql`.
 2. Smoke compra com veículo ativo → Histórico.
 3. Seed conteúdo stock 2D no admin (opcional).
+4. E2E Playwright R5 com `E2E_USER_EMAIL` / `E2E_USER_PASSWORD`.
 
 **Não incluir:** merge `main`, deploy produção.

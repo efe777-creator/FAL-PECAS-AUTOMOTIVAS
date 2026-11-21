@@ -36,6 +36,23 @@ export function buildVehicleSnapshotFromActive(input: {
   }
 }
 
+/**
+ * Vínculo compra → veículo da garagem (checkout).
+ * Prioridade: item explícito → snapshot → veículo ativo.
+ */
+export function resolveOrderItemCustomerVehicleId(input: {
+  itemCustomerVehicleId?: string | null
+  snapshotCustomerVehicleId?: string | null
+  activeVehicleId?: string | null
+}): string | null {
+  const fromItem = input.itemCustomerVehicleId?.trim()
+  if (fromItem) return fromItem
+  const fromSnap = input.snapshotCustomerVehicleId?.trim()
+  if (fromSnap) return fromSnap
+  const fromActive = input.activeVehicleId?.trim()
+  return fromActive || null
+}
+
 export function buildVehicleSnapshotFromFilter(
   filter: VehicleFilter,
   opts?: { customerVehicleId?: string | null; contextSource?: VehicleSnapshot['contextSource'] },

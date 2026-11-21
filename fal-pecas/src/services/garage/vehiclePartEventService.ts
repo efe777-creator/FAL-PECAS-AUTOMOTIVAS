@@ -180,6 +180,7 @@ export function boughtRemainsIntact(
 export type CollapsedPurchaseRow = {
   /** Prefer bought id; fallback associated. */
   id: string
+  customerVehicleId: string | null
   orderId: string | null
   orderItemId: string | null
   productId: string | null
@@ -217,6 +218,7 @@ export function collapsePurchaseEventsForHistory(
     const primary = bought ?? associated ?? list[0]!
     rows.push({
       id: primary.id,
+      customerVehicleId: primary.customerVehicleId,
       orderId: primary.orderId,
       orderItemId: primary.orderItemId,
       productId: primary.productId,

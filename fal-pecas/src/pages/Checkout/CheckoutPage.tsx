@@ -119,6 +119,7 @@ import {
 } from '@/services/compatibility/compatDecisionSession'
 import { resolveCardSeal } from '@/services/compatibility/compatibilityEngine'
 import type { CartCompatDecision, CartVehicleSnapshot } from '@/types'
+import { resolveOrderItemCustomerVehicleId } from '@/services/garage/vehicleSnapshot'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -1027,11 +1028,11 @@ export function CheckoutPage() {
           return {
             productId: i.productId,
             quantity: i.quantity,
-            customerVehicleId:
-              i.customerVehicleId ??
-              i.vehicleSnapshot?.customerVehicleId ??
-              garage?.activeVehicle?.id ??
-              null,
+            customerVehicleId: resolveOrderItemCustomerVehicleId({
+              itemCustomerVehicleId: i.customerVehicleId,
+              snapshotCustomerVehicleId: i.vehicleSnapshot?.customerVehicleId,
+              activeVehicleId: garage?.activeVehicle?.id,
+            }),
             vehicleSnapshot,
           }
         }),
