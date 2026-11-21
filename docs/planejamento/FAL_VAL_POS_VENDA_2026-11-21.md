@@ -51,6 +51,11 @@ E2E Melhor Envio com código real de devolução exige pedido ME + secrets produ
 3. Conferência ok → Repor estoque + Marcar estorno.  
 4. Frete próprio: ops só vê WA/loja na UI (elegibilidade).
 
+## Hotfix (2026-11-21)
+
+`admin_occurrence_action` no remoto só tinha overload de **8** args; o client admin enviava **13** → `PGRST202` ao abrir ocorrência no OrderOps.  
+Migration `20261121193000_admin_occurrence_action_full_overload.sql` aplicada; smoke revalidado **PASS** (`DRY-REV-FE6C448E`).
+
 ## Gate F3 → done
 
 **PASS** código + smoke dry-run ponta a ponta (stages → código → evento).  

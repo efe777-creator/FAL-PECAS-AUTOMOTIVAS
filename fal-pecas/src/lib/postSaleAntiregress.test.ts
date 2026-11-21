@@ -67,6 +67,15 @@ describe('pós-venda anti-regressão (fonte)', () => {
     expect(elig).toMatch(/provider_not_me/)
     expect(elig).toMatch(/multi_volume_or_unknown/)
   })
+
+  it('overload 13-arg admin_occurrence_action versionado', () => {
+    const mig = read(
+      'supabase/migrations/20261121193000_admin_occurrence_action_full_overload.sql',
+    )
+    expect(mig).toMatch(/p_acao_necessaria/)
+    expect(mig).toMatch(/p_motivo_reabertura/)
+    expect(mig).toMatch(/p_prioridade/)
+  })
 })
 
 describe('pós-venda docs VAL', () => {

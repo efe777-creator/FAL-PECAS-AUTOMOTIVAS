@@ -256,16 +256,20 @@ async function main() {
   const { token, userClient } = await staffAccessToken(service, anon)
   console.log(JSON.stringify({ step: 'auth', staff: STAFF_EMAIL, ok: true }))
 
-  // Overload remoto exposto: (action, gravidade, note, occurrence_id, order_id, solucao, tipo, visibility)
   const { data: opened, error: openErr } = await userClient.rpc('admin_occurrence_action', {
     p_order_id: orderId,
     p_action: 'open',
     p_occurrence_id: null,
     p_tipo: 'pos_venda_devolucao',
     p_gravidade: 'media',
-    p_note: 'Smoke ME reverse — solicitação devolução · analisar_pos_venda',
+    p_note: 'Smoke ME reverse — solicitação devolução',
     p_solucao: null,
     p_visibility: 'customer',
+    p_prioridade: 'media',
+    p_acao_necessaria: 'analisar_pos_venda',
+    p_assignee_id: null,
+    p_motivo_reabertura: null,
+    p_motivo_encerramento: null,
   })
   if (openErr) {
     console.log(JSON.stringify({ step: 'open_error', error: openErr.message, details: openErr }))
