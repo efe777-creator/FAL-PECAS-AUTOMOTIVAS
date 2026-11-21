@@ -1,14 +1,23 @@
 import { Button } from '@/components/common/Button'
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Input } from '@/components/common/Input'
+import { PasswordInput } from '@/components/common/PasswordInput'
 import { Container } from '@/components/layout/Container'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCpfMask, isValidCpf, onlyDigits } from '@/lib/document'
-import { formatPhoneMask, isValidPhone, normalizePhone } from '@/lib/phone'
+import { parseOptionalUsername, usernameFieldHint } from '@/lib/accountUsername'
+import {
+  formatPhoneMask,
+  isValidWhatsAppPhone,
+  normalizePhone,
+  whatsappPhoneFieldHint,
+  whatsappPhoneInvalidMessage,
+} from '@/lib/phone'
 import {
   MIN_PASSWORD_LENGTH,
+  passwordMismatchMessage,
   passwordRuleHint,
   passwordTooShortMessage,
 } from '@/lib/authPassword'
@@ -57,7 +66,7 @@ export function RegisterPage() {
       return
     }
     if (password !== password2) {
-      pushError('As senhas não coincidem.')
+      pushError(passwordMismatchMessage())
       return
     }
     if (!terms) {
@@ -70,8 +79,15 @@ export function RegisterPage() {
       return
     }
     const phoneDigits = phone.trim() ? normalizePhone(phone) : ''
-    if (phoneDigits && !isValidPhone(phoneDigits)) {
-      pushError('Telefone inválido. Use DDD + número (10 ou 11 dígitos).')
+    if (phoneDigits && !isValidWhatsAppPhone(phoneDigits)) {
+      pushError(whatsappPhoneInvalidMessage())
+      return
+    }
+    let usernameClean: string | undefined
+    try {
+      usernameClean = parseOptionalUsername(username) ?? undefined
+    } catch (err) {
+      pushError(err instanceof Error ? err.message : 'Usuário inválido.')
       return
     }
     setSubmitting(true)
@@ -81,7 +97,7 @@ export function RegisterPage() {
         password,
         firstName,
         lastName,
-        username: username || undefined,
+        username: usernameClean,
         phone: phoneDigits || undefined,
         cpf: cpfDigits || undefined,
       })
@@ -89,8 +105,10 @@ export function RegisterPage() {
         setNeedsEmailConfirm(true)
         toast.push(
           fromCheckout
-            ? 'Conta criada. Confirme o e-mail e entre para finalizar a compra.'
-            : 'Conta criada. Confirme seu e-mail para entrar.',
+            ? 'Conta criada. Confirme o e-mail (ou o WhatsApp, se cadastrou) e entre para finalizar.'
+            : phoneDigits
+              ? 'Conta criada. Confirme por e-mail agora; WhatsApp entrará quando o envio estiver ativo.'
+              : 'Conta criada. Sem WhatsApp no cadastro — confirme pelo e-mail para entrar.',
           'info',
         )
         return
@@ -130,8 +148,8 @@ export function RegisterPage() {
           </h1>
           <p className="text-[17px] text-fal-muted">
             {fromCheckout
-              ? 'Nome, e-mail e senha bastam para continuar. CPF/CNPJ você informa no checkout, na hora do pagamento.'
-              : 'Nome, e-mail e senha bastam. CPF e telefone são opcionais agora — o checkout pede o documento na compra.'}
+              ? 'Nome, e-mail e senha bastam. WhatsApp celular ajuda na confirmação; sem ele, validamos por e-mail.'
+              : 'Nome, e-mail e senha bastam. Informe um celular WhatsApp válido para confirmação por mensagem — ou use só o e-mail.'}
           </p>
           {!isConfigured ? (
             <p className="mt-4 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/30 p-3 text-sm">
@@ -198,13 +216,14 @@ export function RegisterPage() {
                 }
               />
               <Input
-                label="Telefone / WhatsApp (opcional)"
+                label="WhatsApp (celular)"
                 name="phone"
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="(11) 99999-9999"
                 value={phone}
                 onChange={(e) => setPhone(formatPhoneMask(e.target.value))}
+                hint={whatsappPhoneFieldHint()}
               />
               <Input
                 label="Usuário (opcional)"
@@ -212,12 +231,11 @@ export function RegisterPage() {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                hint="Opcional. Você também pode entrar com o e-mail."
+                hint={usernameFieldHint()}
               />
-              <Input
+              <PasswordInput
                 label="Senha"
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 minLength={MIN_PASSWORD_LENGTH}
                 value={password}
@@ -225,10 +243,9 @@ export function RegisterPage() {
                 hint={passwordRuleHint()}
                 required
               />
-              <Input
+              <PasswordInput
                 label="Confirmar senha"
                 name="password2"
-                type="password"
                 autoComplete="new-password"
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}

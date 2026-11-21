@@ -1,4 +1,4 @@
-/** Regra única de senha (login / cadastro / redefinir). */
+/** Regra única de senha (login / cadastro / redefinir / perfil). */
 export const MIN_PASSWORD_LENGTH = 6
 
 export function passwordRuleHint(): string {
@@ -7,4 +7,8 @@ export function passwordRuleHint(): string {
 
 export function passwordTooShortMessage(): string {
   return `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`
+}
+
+export function passwordMismatchMessage(): string {
+  return 'As senhas não coincidem.'
 }

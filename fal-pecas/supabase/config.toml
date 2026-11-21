@@ -22,3 +22,10 @@ verify_jwt = true
 # Webhook MP não envia JWT do Supabase — validamos x-signature internamente.
 [functions.mercado-pago-webhook]
 verify_jwt = false
+
+# OTP: password_reset é público (anon); account_verify valida JWT dentro da function.
+[functions.send-auth-otp]
+verify_jwt = false
+
+[functions.verify-auth-otp]
+verify_jwt = false

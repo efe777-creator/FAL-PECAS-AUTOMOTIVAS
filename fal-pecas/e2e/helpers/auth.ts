@@ -15,8 +15,8 @@ export async function loginAsE2EUser(page: Page): Promise<void> {
   }
 
   await page.goto('/login')
-  await page.getByLabel('E-mail').fill(creds.email)
-  await page.getByLabel('Senha').fill(creds.password)
+  await page.getByLabel(/E-mail ou usuário|E-mail/).fill(creds.email)
+  await page.getByLabel(/^Senha$/).fill(creds.password)
   await page.getByRole('button', { name: 'Entrar', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 })
 }

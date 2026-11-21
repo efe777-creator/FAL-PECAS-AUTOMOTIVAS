@@ -8,6 +8,18 @@ import { getSupabase } from '@/lib/supabase'
 import { getCurrentCustomerId } from '@/services/customers/customerService'
 import type { CustomerOrderSummary } from '@/types'
 
+/** Quantidade de pedidos do cliente (1º pedido = 0). */
+export async function countMyOrders(): Promise<number> {
+  const customerId = await getCurrentCustomerId()
+  if (!customerId) return 0
+  const { count, error } = await getSupabase()
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('customer_id', customerId)
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function listMyOrders(): Promise<CustomerOrderSummary[]> {
   const customerId = await getCurrentCustomerId()
   if (!customerId) return []

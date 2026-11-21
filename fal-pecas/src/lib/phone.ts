@@ -20,3 +20,21 @@ export function isValidPhone(value: string): boolean {
   const d = normalizePhone(value)
   return d.length === 10 || d.length === 11
 }
+
+/** Celular BR apto a WhatsApp: 11 dígitos e 3º dígito = 9 (ex.: 11987654321). */
+export function isValidWhatsAppPhone(value: string): boolean {
+  const d = normalizePhone(value)
+  return d.length === 11 && d[2] === '9'
+}
+
+export function phoneInvalidMessage(): string {
+  return 'Telefone inválido. Use DDD + número (10 ou 11 dígitos).'
+}
+
+export function whatsappPhoneInvalidMessage(): string {
+  return 'WhatsApp inválido. Use celular com DDD (11 dígitos, ex.: 11 9xxxx-xxxx).'
+}
+
+export function whatsappPhoneFieldHint(): string {
+  return 'Celular com WhatsApp (DDD + 9). Se não informar, a confirmação da conta será por e-mail.'
+}

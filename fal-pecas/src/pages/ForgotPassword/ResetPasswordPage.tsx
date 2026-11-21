@@ -1,11 +1,12 @@
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
+import { PasswordInput } from '@/components/common/PasswordInput'
 import { Container } from '@/components/layout/Container'
 import { useToast } from '@/components/common/Toast'
 import { AuthNotConfiguredError, useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   MIN_PASSWORD_LENGTH,
+  passwordMismatchMessage,
   passwordRuleHint,
   passwordTooShortMessage,
 } from '@/lib/authPassword'
@@ -65,7 +66,7 @@ export function ResetPasswordPage() {
       return
     }
     if (password !== confirm) {
-      pushError('As senhas não coincidem.')
+      pushError(passwordMismatchMessage())
       return
     }
     setSubmitting(true)
@@ -105,10 +106,9 @@ export function ResetPasswordPage() {
         ) : null}
         {ready ? (
           <form className="mt-4 space-y-3" onSubmit={onSubmit}>
-            <Input
+            <PasswordInput
               label="Nova senha"
               name="password"
-              type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -116,10 +116,9 @@ export function ResetPasswordPage() {
               minLength={MIN_PASSWORD_LENGTH}
               hint={passwordRuleHint()}
             />
-            <Input
+            <PasswordInput
               label="Confirmar senha"
               name="confirm"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

@@ -19,6 +19,13 @@ export interface UserProfile {
   cnpj?: string | null
   /** Conta ativa com e-mail ainda não confirmado (navegação liberada). */
   emailConfirmed?: boolean
+  /** Quando e-mail ou telefone foi verificado (política 48h). */
+  accountVerifiedAt?: string | null
+  phoneVerifiedAt?: string | null
+  /** Fim da graça de 48h pós-cadastro; após isso, confirmação vira obrigatória. */
+  verificationGraceEndsAt?: string | null
+  /** Novo e-mail pendente de confirmação (Supabase updateUser). */
+  emailChangePending?: string | null
 }
 
 export interface CustomerAddress {

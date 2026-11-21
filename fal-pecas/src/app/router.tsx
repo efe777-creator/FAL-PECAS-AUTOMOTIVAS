@@ -2,6 +2,7 @@ import { AppChrome } from '@/app/App'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
+import { VerificationGate } from '@/app/VerificationGate'
 import { StaffRoute } from '@/app/StaffRoute'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom'
@@ -34,6 +35,9 @@ const AccountHomePage = lazy(() =>
 )
 const AccountProfilePage = lazy(() =>
   import('@/pages/Account/AccountProfilePage').then((m) => ({ default: m.AccountProfilePage })),
+)
+const AccountVerifyPage = lazy(() =>
+  import('@/pages/Account/AccountVerifyPage').then((m) => ({ default: m.AccountVerifyPage })),
 )
 const AccountAddressesPage = lazy(() =>
   import('@/pages/Account/AccountAddressesPage').then((m) => ({ default: m.AccountAddressesPage })),
@@ -545,7 +549,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspend>
             <ProtectedRoute>
-              <CheckoutPage />
+              <VerificationGate mode="checkout">
+                <CheckoutPage />
+              </VerificationGate>
             </ProtectedRoute>
           </Suspend>
         ),
@@ -555,12 +561,15 @@ export const router = createBrowserRouter([
         element: (
           <Suspend>
             <ProtectedRoute>
-              <AccountLayout />
+              <VerificationGate mode="account">
+                <AccountLayout />
+              </VerificationGate>
             </ProtectedRoute>
           </Suspend>
         ),
         children: [
           { index: true, element: <AccountHomePage /> },
+          { path: 'verificar', element: <AccountVerifyPage /> },
           { path: 'perfil', element: <AccountProfilePage /> },
           { path: 'enderecos', element: <AccountAddressesPage /> },
           { path: 'veiculos', element: <AccountVehiclesPage /> },

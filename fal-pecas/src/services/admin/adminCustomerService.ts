@@ -14,6 +14,11 @@ export interface AdminCustomerDetail extends AdminCustomerListRow {
   addressCount: number
   assignedPriceListName: string | null
   recentOrders: { id: string; status: string; total: number; createdAt: string }[]
+  /** Flags de verificação (somente leitura — suporte). */
+  accountVerifiedAt: string | null
+  phoneVerifiedAt: string | null
+  verificationGraceEndsAt: string | null
+  profileId: string | null
 }
 
 export type AdminAssignedPriceListOption = {
@@ -90,17 +95,39 @@ export async function adminSetCustomerAssignedPriceList(input: {
 
 export async function adminGetCustomer(id: string): Promise<AdminCustomerDetail | null> {
   const sb = getSupabase()
-  const { data, error } = await sb
-    .from('customers')
-    .select(
-      'id, cpf, cnpj, created_at, assigned_price_list_id, profiles(full_name, username, phone)',
-    )
-    .eq('id', id)
-    .maybeSingle()
-  if (error) throw error
+  let data: Record<string, unknown> | null = null
+  {
+    const full = await sb
+      .from('customers')
+      .select(
+        'id, cpf, cnpj, created_at, assigned_price_list_id, profiles(id, full_name, username, phone, account_verified_at, phone_verified_at, verification_grace_ends_at)',
+      )
+      .eq('id', id)
+      .maybeSingle()
+    if (
+      full.error &&
+      /account_verified_at|verification_grace|phone_verified/i.test(full.error.message)
+    ) {
+      const legacy = await sb
+        .from('customers')
+        .select(
+          'id, cpf, cnpj, created_at, assigned_price_list_id, profiles(id, full_name, username, phone)',
+        )
+        .eq('id', id)
+        .maybeSingle()
+      if (legacy.error) throw legacy.error
+      data = legacy.data as Record<string, unknown> | null
+    } else {
+      if (full.error) throw full.error
+      data = full.data as Record<string, unknown> | null
+    }
+  }
   if (!data) return null
 
-  const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
+  const rawProfiles = data.profiles
+  const profile = (
+    Array.isArray(rawProfiles) ? rawProfiles[0] : rawProfiles
+  ) as Record<string, unknown> | null
   const doc = (data.cpf as string | null) || (data.cnpj as string | null)
   const assignedId = (data.assigned_price_list_id as string | null) ?? null
 
@@ -140,5 +167,9 @@ export async function adminGetCustomer(id: string): Promise<AdminCustomerDetail 
       total: Number(o.total),
       createdAt: String(o.created_at),
     })),
+    accountVerifiedAt: (profile?.account_verified_at as string | null) ?? null,
+    phoneVerifiedAt: (profile?.phone_verified_at as string | null) ?? null,
+    verificationGraceEndsAt: (profile?.verification_grace_ends_at as string | null) ?? null,
+    profileId: profile?.id ? String(profile.id) : null,
   }
 }

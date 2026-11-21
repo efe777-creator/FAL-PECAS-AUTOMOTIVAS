@@ -98,6 +98,30 @@ export function CustomerWorkSurface({
             </p>
 
             <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3">
+              <h3 className="m-0 text-xs font-bold uppercase text-fal-muted">Verificação (somente leitura)</h3>
+              <ul className="mb-0 mt-2 list-none space-y-1 p-0 text-xs text-fal-fg">
+                <li>
+                  Conta verificada:{' '}
+                  {detail.accountVerifiedAt
+                    ? formatDateTime(detail.accountVerifiedAt)
+                    : 'não'}
+                </li>
+                <li>
+                  Telefone/WhatsApp:{' '}
+                  {detail.phoneVerifiedAt
+                    ? formatDateTime(detail.phoneVerifiedAt)
+                    : 'não'}
+                </li>
+                <li>
+                  Fim da graça 48h:{' '}
+                  {detail.verificationGraceEndsAt
+                    ? formatDateTime(detail.verificationGraceEndsAt)
+                    : '—'}
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-[10px] border border-fal-line bg-fal-bg p-3">
               <h3 className="m-0 text-xs font-bold uppercase text-fal-muted">Lista B2B (assigned)</h3>
               <p className="mt-1 mb-2 text-xs text-fal-muted">
                 Preços de itens e kits nesta lista vencem a vitrine pública no checkout. Crie a lista

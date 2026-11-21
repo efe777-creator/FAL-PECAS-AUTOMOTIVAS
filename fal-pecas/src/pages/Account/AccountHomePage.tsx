@@ -1,5 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import {
+  accountInVerificationGrace,
+  accountPastVerificationGrace,
+  isAccountVerified,
+  verificationGraceRemainingLabel,
+} from '@/lib/accountVerification'
 import { customerOrderListCta } from '@/lib/orderLifecycle'
 import { isStaffRole } from '@/services/admin/staffService'
 import { listAddresses } from '@/services/customers/addressService'
@@ -76,13 +82,32 @@ export function AccountHomePage() {
             <strong>{stats.vehicles}</strong> veículo{stats.vehicles === 1 ? '' : 's'}
           </p>
         ) : null}
-        {user && user.emailConfirmed === false ? (
-          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 p-3 text-sm text-fal-navy dark:text-fal-fg">
-            <strong>Confirme seu e-mail</strong> — sua conta já está ativa e você pode navegar na
-            loja. Verifique a caixa de entrada (e o spam) e clique no link de confirmação.
+        {user && isAccountVerified(user) ? (
+          <p className="mt-3 text-sm text-fal-success">✓ Conta confirmada</p>
+        ) : user && accountPastVerificationGrace(user) ? (
+          <p className="mt-3 rounded-[10px] border border-fal-danger/40 bg-red-50 p-3 text-sm text-fal-fg dark:bg-red-950/30">
+            <strong>Confirmação pendente</strong> — após 48h a validação é obrigatória no próximo
+            login e no pagamento. Preferimos código no WhatsApp.{' '}
+            <Link to="/conta/verificar" className="font-bold underline">
+              Validar agora
+            </Link>
           </p>
-        ) : user?.emailConfirmed ? (
-          <p className="mt-3 text-sm text-fal-success">✓ E-mail confirmado</p>
+        ) : user && accountInVerificationGrace(user) ? (
+          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 p-3 text-sm text-fal-navy dark:text-fal-fg">
+            <strong>Confirme quando puder</strong> — restam{' '}
+            {verificationGraceRemainingLabel(user.verificationGraceEndsAt) ?? 'poucas horas'}.
+            Depois das 48h (ou no 1º pagamento) pediremos validação.{' '}
+            <Link to="/conta/verificar" className="font-bold underline">
+              Ver opções
+            </Link>
+          </p>
+        ) : user && !user.accountVerifiedAt ? (
+          <p className="mt-3 rounded-[10px] border border-fal-yellow-dark/40 bg-fal-yellow/15 p-3 text-sm text-fal-navy dark:text-fal-fg">
+            <strong>Confirme a conta</strong> — e-mail ou WhatsApp (celular válido).{' '}
+            <Link to="/conta/verificar" className="font-bold underline">
+              Abrir confirmação
+            </Link>
+          </p>
         ) : null}
         {isStaff ? (
           <p className="mt-3">

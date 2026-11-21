@@ -1,11 +1,13 @@
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
+import { PasswordInput } from '@/components/common/PasswordInput'
 import { Container } from '@/components/layout/Container'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { MIN_PASSWORD_LENGTH, passwordRuleHint } from '@/lib/authPassword'
+import { MIN_PASSWORD_LENGTH } from '@/lib/authPassword'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { accountPastVerificationGrace } from '@/lib/accountVerification'
 import { resolveAuthReturnPath } from '@/services/plates/authReturnPath'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -20,7 +22,7 @@ export function LoginPage() {
   const from = resolveAuthReturnPath(fromState, '/conta')
   const fromCheckout = Boolean(from.includes('/checkout'))
 
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -30,15 +32,20 @@ export function LoginPage() {
     toast.push(message, 'error')
   }
 
-  if (!loading && user) return <Navigate to={from} replace />
+  if (!loading && user) {
+    // Após 48h sem confirmar: próximo login pede validação (WhatsApp/e-mail).
+    const dest = accountPastVerificationGrace(user) ? '/conta/verificar' : from
+    return <Navigate to={dest} replace />
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await signIn(email, password)
-      navigate(from, { replace: true })
+      const profile = await signIn(identifier, password)
+      const dest = accountPastVerificationGrace(profile) ? '/conta/verificar' : from
+      navigate(dest, { replace: true })
     } catch (err) {
       pushError(toUserMessage(err, 'Não foi possível entrar. Tente novamente.'))
     } finally {
@@ -82,23 +89,22 @@ export function LoginPage() {
             <h2 className="mt-0 text-xl font-extrabold">Entrar na conta</h2>
             <div className="mt-3 space-y-3">
               <Input
-                label="E-mail"
+                label="E-mail ou usuário"
                 name="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                hint="Entre com o e-mail da conta ou o nome de usuário."
                 required
               />
-              <Input
+              <PasswordInput
                 label="Senha"
                 name="password"
-                type="password"
                 autoComplete="current-password"
                 minLength={MIN_PASSWORD_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                hint={passwordRuleHint()}
                 required
               />
             </div>
