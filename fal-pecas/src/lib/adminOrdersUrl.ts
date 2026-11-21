@@ -114,12 +114,13 @@ export function legacyAreaPathToHub(pathname: string, search: string): string | 
     return buildOrdersHubPath({ tab: 'pedidos', area: 'separacao' })
   }
   if (path === '/admin/pedidos/expedicao') {
-    // Bug legado: ?fila=revisao não é fila válida — canônico é visão.
-    if (fila === 'revisao') return '/admin/pedidos/visao/revisao-logistica'
     return buildOrdersHubPath({
       tab: 'logistica',
       fila: fila || null,
     })
+  }
+  if (path === '/admin/pedidos/visao/revisao-logistica') {
+    return buildOrdersHubPath({ tab: 'logistica', fila: 'revisao' })
   }
   return null
 }

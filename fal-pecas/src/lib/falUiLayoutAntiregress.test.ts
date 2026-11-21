@@ -41,9 +41,18 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(shell).toMatch(/export function AdaptiveWorkspace/)
     expect(shell).toMatch(/PanelChrome/)
     expect(shell).toMatch(/data-workspace-primary/)
+    expect(shell).toMatch(/WORKSPACE_SPLIT_MAX/)
+    expect(shell).not.toMatch(/640px/)
 
     const chrome = read('components/admin/workspace/PanelChrome.tsx')
     expect(chrome).toMatch(/export function PanelChrome/)
+    expect(chrome).toMatch(/onSplitWidthStep/)
+
+    const prefsSrc = read('lib/adminWorkspacePrefs.ts')
+    expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_MAX = 920/)
+    expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_MAX = (\d+)/)
+    const maxMatch = prefsSrc.match(/WORKSPACE_SPLIT_MAX = (\d+)/)
+    expect(Number(maxMatch?.[1] ?? 0)).toBeGreaterThanOrEqual(800)
 
     const hubs: Array<[string, WorkspaceModuleKey]> = [
       ['pages/admin/orders/AdminOrdersHubPage.tsx', 'orders'],
@@ -506,5 +515,28 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     const css = read('styles/index.css')
     expect(css).toMatch(/admin-customers-hub/)
     expect(css).toMatch(/admin-customers-list-mobile/)
+  })
+
+  it('FL20: Revisão no Hub Adaptive (fila canônica + lista + CTAs)', () => {
+    const queues = read('lib/adminLogisticsQueues.ts')
+    expect(queues).toMatch(/id: 'revisao'/)
+    expect(queues).toMatch(/tab=logistica&fila=revisao/)
+
+    const hub = read('pages/admin/orders/AdminOrdersHubPage.tsx')
+    expect(hub).toMatch(/REVISAO_CHIPS/)
+    expect(hub).toMatch(/columnMode=\{isRevisaoFila \? 'revisao' : 'default'\}/)
+    expect(hub).toMatch(/selectedStageLabel/)
+
+    const list = read('pages/admin/orders/AdminOrdersListPanel.tsx')
+    expect(list).toMatch(/columnMode\?: AdminOrdersListColumnMode/)
+    expect(list).toMatch(/Modo \/ código/)
+
+    const view = read('pages/admin/orders/AdminOrdersViewPage.tsx')
+    expect(view).toMatch(/Navigate/)
+    expect(view).toMatch(/revisao-logistica/)
+
+    const ops = read('components/admin/orders/OrderOpsSurface.tsx')
+    expect(ops).toMatch(/PostSaleCaseQuickActions/)
+    expect(ops).toMatch(/Caso pós-venda aberto/)
   })
 })

@@ -7,7 +7,9 @@ export const ADMIN_WORKSPACE_KEY = 'fal-admin-workspace-v1'
 export const WORKSPACE_VERSION = 1 as const
 export const WORKSPACE_SPLIT_DEFAULT = 420
 export const WORKSPACE_SPLIT_MIN = 360
-export const WORKSPACE_SPLIT_MAX = 640
+/** Teto da guia contextual (PATCH layout — antes 640, pouco útil). */
+export const WORKSPACE_SPLIT_MAX = 920
+export const WORKSPACE_SPLIT_STEP = 40
 
 export type WorkspaceMode = 'split' | 'expanded' | 'fullscreen' | 'collapsed'
 export type WorkspaceModuleKey =

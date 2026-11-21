@@ -46,6 +46,15 @@ import {
   type OrdersHubTab,
 } from '@/lib/adminOrdersUrl'
 import {
+  REVISAO_CHIPS,
+  revisaoStageLabel,
+  rowMatchesRevisaoChip,
+  type RevisaoChipId,
+} from '@/lib/postSaleRevisaoChips'
+import { POST_SALE_STAGE_LABEL, asPostSaleStage } from '@/lib/postSaleStages'
+import { pickPrimaryPostSaleOccurrence } from '@/lib/postSaleReturnOpsSummary'
+import { deriveOccurrences } from '@/lib/orderOccurrences'
+import {
   ADMIN_LIST_PAGE_SIZE,
   adminCentralIndicators,
   adminListLogisticsQueue,
@@ -53,6 +62,7 @@ import {
   adminLogisticsQueueCounts,
   adminOrderStatusCounts,
   type AdminCentralIndicators,
+  type AdminOrderDetail,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
 import type { LogisticsQueueCounts } from '@/lib/adminLogisticsQueues'
@@ -72,6 +82,7 @@ const EXPEDICAO_FILAS: AdminLogisticsQueueId[] = [
   'volumes',
   'etiquetas-me',
   'entregas-proprias',
+  'revisao',
   'transito',
   'entregues',
 ]
@@ -144,9 +155,16 @@ export function AdminOrdersHubPage() {
     hasOpen: hasOpenOrderTabs,
   } = useOrderSplitTabs()
   const [overviewChip, setOverviewChip] = useState<OverviewChip>('todos')
+  const [revisaoChip, setRevisaoChip] = useState<RevisaoChipId>('todas')
+  const [guideStageByOrder, setGuideStageByOrder] = useState<Record<string, string | null>>(
+    {},
+  )
   const [customerModalOpen, setCustomerModalOpen] = useState(false)
   const workspaceModeApiRef = useRef<AdaptiveWorkspaceModeApi | null>(null)
   const [tableEpoch, setTableEpoch] = useState(0)
+
+  const logisticsFila = parseFila(hub.fila)
+  const isRevisaoFila = hub.tab === 'logistica' && logisticsFila === 'revisao'
 
   const setHubParams = useCallback(
     (next: { tab?: OrdersHubTab; area?: OrdersHubArea; fila?: string | null }) => {
@@ -251,17 +269,62 @@ export function AdminOrdersHubPage() {
   }, [hub.tab, hub.area, hub.fila, tableEpoch])
 
   const filteredTable = useMemo(() => {
-    const base =
+    let base =
       hub.tab === 'visao-geral'
         ? tableRows.filter((r) => matchesOverviewChip(r, overviewChip))
         : tableRows
+    if (isRevisaoFila) {
+      base = base.filter((r) => rowMatchesRevisaoChip(revisaoChip, r.revisaoMeta ?? null))
+    }
     return filterOrdersBySearch(base, search)
-  }, [tableRows, search, hub.tab, overviewChip])
+  }, [tableRows, search, hub.tab, overviewChip, isRevisaoFila, revisaoChip])
 
   const selectedRow = useMemo(
     () => tableRows.find((r) => r.id === selectedOrderId) ?? null,
     [tableRows, selectedOrderId],
   )
+
+  const selectedStageLabel = useMemo(() => {
+    if (!selectedOrderId) return null
+    const fromGuide = guideStageByOrder[selectedOrderId]
+    if (fromGuide) return fromGuide
+    const st = selectedRow?.revisaoMeta?.stage
+    if (st) return revisaoStageLabel(st)
+    return null
+  }, [selectedOrderId, guideStageByOrder, selectedRow])
+
+  function rememberGuideStage(orderId: string, order: AdminOrderDetail | null) {
+    if (!order) {
+      setGuideStageByOrder((prev) => {
+        if (!(orderId in prev)) return prev
+        const next = { ...prev }
+        delete next[orderId]
+        return next
+      })
+      return
+    }
+    const list = deriveOccurrences(
+      (order.events ?? []).map((e) => ({
+        id: e.id,
+        eventType: e.eventType,
+        payload: e.payload,
+        visibility: e.visibility,
+        createdAt: e.createdAt,
+      })),
+    )
+    const primary = pickPrimaryPostSaleOccurrence(list)
+    const stage =
+      primary && primary.status !== 'resolved'
+        ? asPostSaleStage(primary.stage) ?? primary.stage
+        : null
+    const label = stage
+      ? POST_SALE_STAGE_LABEL[stage as keyof typeof POST_SALE_STAGE_LABEL] ?? String(stage)
+      : null
+    setGuideStageByOrder((prev) => {
+      if (prev[orderId] === label) return prev
+      return { ...prev, [orderId]: label }
+    })
+  }
 
   const kpiItems = useMemo(() => {
     const created =
@@ -611,10 +674,36 @@ export function AdminOrdersHubPage() {
         <section className="space-y-3">
           {ordersToolbar}
           <OrdersLogisticsQueuesBar
-            activeFila={parseFila(hub.fila)}
+            activeFila={logisticsFila}
             counts={logisticsCounts}
-            onSelectFila={(fila) => setHubParams({ tab: 'logistica', area: null, fila })}
+            onSelectFila={(fila) => {
+              setRevisaoChip('todas')
+              setHubParams({ tab: 'logistica', area: null, fila })
+            }}
           />
+          {isRevisaoFila ? (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtros revisão D12">
+              {REVISAO_CHIPS.map((c) => {
+                const active = revisaoChip === c.id
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={active}
+                    className={[
+                      'min-h-9 rounded-[10px] border px-3 text-xs font-bold',
+                      active
+                        ? 'border-fal-accent bg-fal-accent/15 text-fal-fg'
+                        : 'border-fal-line bg-fal-surface text-fal-fg',
+                    ].join(' ')}
+                    onClick={() => setRevisaoChip(c.id)}
+                  >
+                    {c.label}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
           <AdminOrdersListPanel
             rows={filteredTable}
             loading={tableLoading}
@@ -625,6 +714,15 @@ export function AdminOrdersHubPage() {
             openOrderIds={openOrderIds}
             onSelectOrder={openOrderInSplit}
             hideSearch
+            columnMode={isRevisaoFila ? 'revisao' : 'default'}
+            emptyTitle={
+              isRevisaoFila ? 'Nenhum caso nesta revisão' : 'Nenhum pedido nesta fila'
+            }
+            emptyDescription={
+              isRevisaoFila
+                ? 'Altere o chip D12 ou a busca.'
+                : 'Altere a busca ou volte ao hub.'
+            }
           />
         </section>
       ) : null}
@@ -659,8 +757,15 @@ export function AdminOrdersHubPage() {
         }
         contextualStatusBadge={
           selectedRow ? (
-            <span className={badgeClass(toneForOrderStatus(selectedRow.status))}>
-              {listStatusLabel(selectedRow)}
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <span className={badgeClass(toneForOrderStatus(selectedRow.status))}>
+                {listStatusLabel(selectedRow)}
+              </span>
+              {selectedStageLabel ? (
+                <span className="rounded-md border border-fal-navy/30 bg-fal-navy/10 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
+                  {selectedStageLabel}
+                </span>
+              ) : null}
             </span>
           ) : null
         }
@@ -691,6 +796,7 @@ export function AdminOrdersHubPage() {
                     onRequestWideMode={(mode) =>
                       workspaceModeApiRef.current?.requestWideMode(mode)
                     }
+                    onOrderChange={(ord) => rememberGuideStage(orderId, ord)}
                     onOrderMutated={() => {
                       setTableEpoch((n) => n + 1)
                       void reloadHub()

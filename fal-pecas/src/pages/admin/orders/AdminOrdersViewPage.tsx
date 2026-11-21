@@ -4,25 +4,33 @@ import {
   getAdminOrderView,
   orderMatchesProblemsView,
 } from '@/lib/adminOrderOps'
-import {
-  REVISAO_CHIPS,
-  type RevisaoChipId,
-  rowMatchesRevisaoChip,
-} from '@/lib/postSaleRevisaoChips'
+import { buildOrdersHubPath } from '@/lib/adminOrdersUrl'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   ADMIN_LIST_PAGE_SIZE,
-  adminListLogisticsQueue,
   adminListOrders,
   type AdminOrderListRow,
 } from '@/services/admin/adminOrderService'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { AdminOrdersListPanel, filterOrdersBySearch } from './AdminOrdersListPanel'
 
 export function AdminOrdersViewPage() {
   const { viewId = '' } = useParams()
+  /** Revisão canônica no Hub Adaptive — visão solta só redireciona. */
+  if (viewId === 'revisao-logistica') {
+    return (
+      <Navigate
+        to={buildOrdersHubPath({ tab: 'logistica', fila: 'revisao' })}
+        replace
+      />
+    )
+  }
+  return <AdminOrdersViewPageBody viewId={viewId} />
+}
+
+function AdminOrdersViewPageBody({ viewId }: { viewId: string }) {
   const view = getAdminOrderView(viewId)
   useDocumentTitle(view ? `${view.title} | Admin FAL` : 'Pedidos | Admin FAL')
   const toast = useToast()
@@ -32,8 +40,6 @@ export function AdminOrdersViewPage() {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [revisaoChip, setRevisaoChip] = useState<RevisaoChipId>('todas')
-  const isRevisaoLogistica = viewId === 'revisao-logistica'
 
   function pushError(message: string) {
     setError(message)
@@ -42,7 +48,6 @@ export function AdminOrdersViewPage() {
 
   const listOpts = useMemo(() => {
     if (!view || view.placeholder) return null
-    if (view.id === 'revisao-logistica') return null
     if (view.id === 'solicitacoes-cancelamento') {
       return { cancellationRequest: 'pending' as const }
     }
@@ -56,13 +61,7 @@ export function AdminOrdersViewPage() {
   }, [view])
 
   async function reload() {
-    if (!view || view.placeholder) {
-      setRows([])
-      setHasMore(false)
-      setLoading(false)
-      return
-    }
-    if (!isRevisaoLogistica && listOpts == null) {
+    if (!view || view.placeholder || listOpts == null) {
       setRows([])
       setHasMore(false)
       setLoading(false)
@@ -71,16 +70,11 @@ export function AdminOrdersViewPage() {
     setLoading(true)
     setError(null)
     try {
-      const list = isRevisaoLogistica
-        ? await adminListLogisticsQueue('revisao', {
-            offset: 0,
-            limit: ADMIN_LIST_PAGE_SIZE,
-          })
-        : await adminListOrders(null, {
-            offset: 0,
-            limit: ADMIN_LIST_PAGE_SIZE,
-            ...listOpts!,
-          })
+      const list = await adminListOrders(null, {
+        offset: 0,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        ...listOpts,
+      })
       setRows(list)
       setHasMore(list.length >= ADMIN_LIST_PAGE_SIZE)
     } catch (e) {
@@ -91,20 +85,15 @@ export function AdminOrdersViewPage() {
   }
 
   async function loadMore() {
-    if (!isRevisaoLogistica && listOpts == null) return
+    if (listOpts == null) return
     setLoadingMore(true)
     setError(null)
     try {
-      const next = isRevisaoLogistica
-        ? await adminListLogisticsQueue('revisao', {
-            offset: rows.length,
-            limit: ADMIN_LIST_PAGE_SIZE,
-          })
-        : await adminListOrders(null, {
-            offset: rows.length,
-            limit: ADMIN_LIST_PAGE_SIZE,
-            ...listOpts!,
-          })
+      const next = await adminListOrders(null, {
+        offset: rows.length,
+        limit: ADMIN_LIST_PAGE_SIZE,
+        ...listOpts,
+      })
       setRows((prev) => {
         const seen = new Set(prev.map((r) => r.id))
         return [...prev, ...next.filter((r) => !seen.has(r.id))]
@@ -134,13 +123,8 @@ export function AdminOrdersViewPage() {
         }),
       )
     }
-    if (view.id === 'revisao-logistica') {
-      base = base.filter((o) =>
-        rowMatchesRevisaoChip(revisaoChip, o.revisaoMeta ?? null),
-      )
-    }
     return filterOrdersBySearch(base, search)
-  }, [rows, view, search, revisaoChip])
+  }, [rows, view, search])
 
   if (!view) {
     return (
@@ -159,28 +143,6 @@ export function AdminOrdersViewPage() {
         <h1 className="mt-0 text-2xl font-extrabold text-fal-fg">{view.title}</h1>
         <p className="mt-1 text-sm text-fal-muted">{view.description}</p>
       </div>
-
-      {isRevisaoLogistica && !view.placeholder ? (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtros revisão">
-          {REVISAO_CHIPS.map((c) => {
-            const active = revisaoChip === c.id
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setRevisaoChip(c.id)}
-                className={
-                  active
-                    ? 'rounded-[10px] border border-fal-navy bg-fal-navy px-3 py-1.5 text-xs font-extrabold text-white'
-                    : 'rounded-[10px] border border-fal-line bg-fal-surface px-3 py-1.5 text-xs font-bold text-fal-fg hover:bg-fal-bg'
-                }
-              >
-                {c.label}
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
 
       {view.placeholder ? (
         <div className="rounded-[14px] border border-fal-line bg-fal-surface p-5 text-sm text-fal-muted">

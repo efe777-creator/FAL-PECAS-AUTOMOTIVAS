@@ -46,7 +46,8 @@ describe('adminWorkspacePrefs', () => {
 
   it('clamp de largura', () => {
     expect(clampSplitWidth(100)).toBe(360)
-    expect(clampSplitWidth(9999)).toBe(640)
+    expect(clampSplitWidth(9999)).toBe(920)
+    expect(clampSplitWidth(800)).toBe(800)
     expect(clampSplitWidth(Number.NaN)).toBe(WORKSPACE_SPLIT_DEFAULT)
   })
 

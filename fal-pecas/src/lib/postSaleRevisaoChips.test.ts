@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { revisaoChipForRow, rowMatchesRevisaoChip } from './postSaleRevisaoChips'
+import {
+  revisaoChipForRow,
+  revisaoModeCodeLabel,
+  revisaoNextActionLabel,
+  revisaoStageLabel,
+  revisaoTipoLabel,
+  rowMatchesRevisaoChip,
+} from './postSaleRevisaoChips'
 
 describe('postSaleRevisaoChips', () => {
   it('mapeia tipos pos_venda', () => {
@@ -47,5 +54,24 @@ describe('postSaleRevisaoChips', () => {
     expect(rowMatchesRevisaoChip('todas', row)).toBe(true)
     expect(rowMatchesRevisaoChip('devolucao', row)).toBe(true)
     expect(rowMatchesRevisaoChip('suporte', row)).toBe(false)
+  })
+
+  it('labels lista Adaptive (Tipo / Stage / Modo-código / Faça agora)', () => {
+    expect(revisaoTipoLabel('pos_venda_devolucao')).toBe('Devolução')
+    expect(revisaoStageLabel('em_analise')).toBe('Em análise')
+    expect(
+      revisaoModeCodeLabel({
+        source: 'occurrence',
+        returnMode: 'me_codigo',
+        trackingCode: 'ME123',
+      }),
+    ).toBe('Código Melhor Envio · ME123')
+    expect(
+      revisaoNextActionLabel({
+        source: 'occurrence',
+        tipo: 'pos_venda_devolucao',
+        stage: 'em_analise',
+      }),
+    ).toBe('Autorizar ou recusar')
   })
 })

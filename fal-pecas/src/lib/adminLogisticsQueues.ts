@@ -75,7 +75,7 @@ export const ADMIN_LOGISTICS_QUEUES: readonly AdminLogisticsQueue[] = [
     id: 'revisao',
     title: 'Revisão e ocorrências',
     description: 'Exceções ME/Own e revisões manuais — fora das filas de despacho.',
-    path: '/admin/pedidos/visao/revisao-logistica',
+    path: '/admin/pedidos?tab=logistica&fila=revisao',
     primaryCta: 'Resolver ocorrência',
   },
   {

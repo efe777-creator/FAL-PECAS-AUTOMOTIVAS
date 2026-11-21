@@ -83,12 +83,14 @@ export type AdminOrderListRow = {
   pickup?: boolean
   /** Autorização de retirada (quando pickup). */
   pickupAuthorized?: boolean
-  /** F2 pós-venda — meta da fila Revisão (chips). */
+  /** F2 pós-venda — meta da fila Revisão (chips + lista Adaptive). */
   revisaoMeta?: {
     source: 'occurrence' | 'manual_review'
     tipo?: string | null
     stage?: string | null
     lastEventType?: string | null
+    returnMode?: string | null
+    trackingCode?: string | null
   } | null
 }
 
@@ -747,6 +749,8 @@ export async function adminListLogisticsQueue(
       tipo?: string | null
       stage?: string | null
       last_event_type?: string | null
+      return_mode?: string | null
+      tracking_code?: string | null
     }
     const raw = (revRows ?? []) as RevRow[]
     /** Um meta por pedido (prioridade: devolucao > suporte > occurrence > manual). */
@@ -768,6 +772,8 @@ export async function adminListLogisticsQueue(
         tipo: r.tipo ?? null,
         stage: r.stage ?? null,
         lastEventType: r.last_event_type ?? null,
+        returnMode: r.return_mode ?? null,
+        trackingCode: r.tracking_code ?? null,
       }
       const prev = metaByOrder.get(r.order_id)
       if (!prev || rank(next) >= rank(prev)) metaByOrder.set(r.order_id, next)

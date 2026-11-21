@@ -1,5 +1,6 @@
 import { AdminOrderExpeditionSlot } from '@/components/admin/orders/AdminOrderExpeditionSlot'
 import { OrderAnalysisResolutionPanel } from '@/components/admin/orders/OrderAnalysisResolutionPanel'
+import { PostSaleCaseQuickActions } from '@/components/admin/orders/PostSaleCaseQuickActions'
 import { PostSaleReturnLogisticsPanel } from '@/components/admin/orders/PostSaleReturnLogisticsPanel'
 import { OrderOpsWizardNav } from '@/components/admin/orders/OrderOpsWizardNav'
 import {
@@ -639,6 +640,13 @@ export function OrderOpsSurface({
             onClick={() => setTab(t.id)}
           >
             {t.label}
+            {t.id === 'logistica' && returnLogistics ? (
+              <span
+                className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-fal-accent align-middle"
+                title="Caso pós-venda aberto"
+                aria-label="Caso pós-venda aberto"
+              />
+            ) : null}
           </button>
         ))}
       </div>
@@ -917,14 +925,25 @@ export function OrderOpsSurface({
               aria-label="Logística"
             >
               {returnLogistics && order ? (
-                <PostSaleReturnLogisticsPanel
-                  summary={returnLogistics}
-                  outboundLabelState={
-                    orderUsesMelhorEnvio(order)
-                      ? meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))
-                      : order.shipment?.provider ?? null
-                  }
-                />
+                <>
+                  <PostSaleReturnLogisticsPanel
+                    summary={returnLogistics}
+                    outboundLabelState={
+                      orderUsesMelhorEnvio(order)
+                        ? meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))
+                        : order.shipment?.provider ?? null
+                    }
+                  />
+                  <PostSaleCaseQuickActions
+                    order={order}
+                    busy={busy}
+                    runner={runnerRef.current}
+                    pushOk={pushOk}
+                    pushError={pushError}
+                    onBusy={setBusy}
+                    reload={reload}
+                  />
+                </>
               ) : null}
               <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">

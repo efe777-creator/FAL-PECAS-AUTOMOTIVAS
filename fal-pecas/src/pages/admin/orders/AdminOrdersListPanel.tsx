@@ -12,9 +12,17 @@ import { adminNextActionLabel, orderStatusOperatorLabel } from '@/lib/adminOrder
 import { rememberOrdersReturnPath } from '@/lib/adminOrdersNav'
 import { formatDateTime } from '@/lib/datetime'
 import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import {
+  revisaoModeCodeLabel,
+  revisaoNextActionLabel,
+  revisaoStageLabel,
+  revisaoTipoLabel,
+} from '@/lib/postSaleRevisaoChips'
 import type { AdminOrderListRow } from '@/services/admin/adminOrderService'
 import { useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+
+export type AdminOrdersListColumnMode = 'default' | 'revisao'
 
 function paymentLabel(o: AdminOrderListRow): string {
   if (!o.paymentStatus) return '—'
@@ -46,7 +54,10 @@ export function listStatusLabel(o: AdminOrderListRow): string {
   return orderStatusOperatorLabel[o.status] ?? o.status
 }
 
-function nextActionLabel(o: AdminOrderListRow): string {
+function nextActionLabel(o: AdminOrderListRow, columnMode: AdminOrdersListColumnMode = 'default'): string {
+  if (columnMode === 'revisao') {
+    return revisaoNextActionLabel(o.revisaoMeta ?? null)
+  }
   return o.logisticsNextActionLabel ?? adminNextActionLabel(o.status, o.customerDecision)
 }
 
@@ -75,6 +86,8 @@ type Props = {
   openOrderIds?: string[]
   /** Busca já no header do hub. */
   hideSearch?: boolean
+  /** Fila Revisão Adaptive: Tipo / Stage / Modo-código (sem competir com badge comercial). */
+  columnMode?: AdminOrdersListColumnMode
 }
 
 export function AdminOrdersListPanel({
@@ -93,7 +106,9 @@ export function AdminOrdersListPanel({
   onSelectOrder,
   openOrderIds,
   hideSearch,
+  columnMode = 'default',
 }: Props) {
+  const isRevisao = columnMode === 'revisao'
   const location = useLocation()
   const navigate = useNavigate()
   const openSet = useMemo(
@@ -137,7 +152,7 @@ export function AdminOrdersListPanel({
         <div className="admin-orders-list-scroll fal-admin-scroll max-h-[min(60dvh,640px)] overflow-y-auto overflow-x-auto rounded-[14px] border border-fal-line bg-fal-surface">
           <div className="admin-orders-list-mobile space-y-3 p-3 md:hidden">
             {rows.map((o) => {
-              const next = nextActionLabel(o)
+              const next = nextActionLabel(o, columnMode)
               const selected = selectedOrderId === o.id
               return (
                 <article
@@ -156,8 +171,24 @@ export function AdminOrdersListPanel({
                         {o.customerName ?? 'Cliente'}
                       </p>
                     </div>
-                    <p className="m-0 shrink-0 text-sm font-bold">{formatMoney(o.total)}</p>
+                    {!isRevisao ? (
+                      <p className="m-0 shrink-0 text-sm font-bold">{formatMoney(o.total)}</p>
+                    ) : null}
                   </div>
+
+                  {isRevisao ? (
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-md border border-fal-line bg-fal-bg px-2 py-0.5 font-bold">
+                        {revisaoTipoLabel(o.revisaoMeta?.tipo)}
+                      </span>
+                      <span className="rounded-md border border-fal-navy/30 bg-fal-navy/10 px-2 py-0.5 font-bold text-fal-fg">
+                        {revisaoStageLabel(o.revisaoMeta?.stage)}
+                      </span>
+                      <span className="text-fal-muted">
+                        {revisaoModeCodeLabel(o.revisaoMeta ?? null)}
+                      </span>
+                    </div>
+                  ) : null}
 
                   {!guideOpen(o.id) ? (
                     <div className="mt-2 rounded-[10px] border border-fal-yellow-dark/50 bg-fal-yellow/25 px-2.5 py-2 text-fal-fg">
@@ -170,24 +201,30 @@ export function AdminOrdersListPanel({
                     <p className="mb-0 mt-2 text-xs text-fal-muted">Aberto na guia · ações no painel</p>
                   )}
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className={badgeClass(toneForOrderStatus(o.status))}>
-                      {listStatusLabel(o)}
-                    </span>
-                    {o.shippingChoiceLabel ? (
-                      <span className="rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
-                        {o.shippingChoiceLabel}
+                  {!isRevisao ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={badgeClass(toneForOrderStatus(o.status))}>
+                        {listStatusLabel(o)}
                       </span>
-                    ) : null}
-                  </div>
+                      {o.shippingChoiceLabel ? (
+                        <span className="rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
+                          {o.shippingChoiceLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
-                  <p className="mb-0 mt-2 text-xs text-fal-muted">
-                    {formatDateTime(o.createdAt)} ·{' '}
-                    <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
-                      {paymentLabel(o)}
-                    </span>
-                    {showWaitingTime ? ` · Aguardando ${waitingPaymentHours(o.createdAt)}` : ''}
-                  </p>
+                  {!isRevisao ? (
+                    <p className="mb-0 mt-2 text-xs text-fal-muted">
+                      {formatDateTime(o.createdAt)} ·{' '}
+                      <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
+                        {paymentLabel(o)}
+                      </span>
+                      {showWaitingTime ? ` · Aguardando ${waitingPaymentHours(o.createdAt)}` : ''}
+                    </p>
+                  ) : (
+                    <p className="mb-0 mt-2 text-xs text-fal-muted">{formatDateTime(o.createdAt)}</p>
+                  )}
                   {showItemPreview ? (
                     <p className="mb-0 mt-1 text-xs text-fal-muted">
                       {itemPreviewByOrderId?.[o.id] ?? `${o.itemCount} item(ns)`}
@@ -234,14 +271,25 @@ export function AdminOrdersListPanel({
                 <tr>
                   <th className="px-3 py-2">Pedido</th>
                   <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2">Faça agora</th>
-                  <th className="px-3 py-2">Situação</th>
-                  <th className="px-3 py-2">Frete / prazo</th>
-                  {showWaitingTime ? <th className="px-3 py-2">Tempo aguardando</th> : null}
-                  {showItemPreview ? <th className="px-3 py-2">Produtos</th> : null}
-                  {showItemCount ? <th className="px-3 py-2">Itens</th> : null}
-                  <th className="px-3 py-2">Pagamento</th>
-                  <th className="px-3 py-2">Total</th>
+                  {isRevisao ? (
+                    <>
+                      <th className="px-3 py-2">Tipo</th>
+                      <th className="px-3 py-2">Stage</th>
+                      <th className="px-3 py-2">Modo / código</th>
+                      <th className="px-3 py-2">Faça agora</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-3 py-2">Faça agora</th>
+                      <th className="px-3 py-2">Situação</th>
+                      <th className="px-3 py-2">Frete / prazo</th>
+                      {showWaitingTime ? <th className="px-3 py-2">Tempo aguardando</th> : null}
+                      {showItemPreview ? <th className="px-3 py-2">Produtos</th> : null}
+                      {showItemCount ? <th className="px-3 py-2">Itens</th> : null}
+                      <th className="px-3 py-2">Pagamento</th>
+                      <th className="px-3 py-2">Total</th>
+                    </>
+                  )}
                   <th className="px-3 py-2">Ações</th>
                 </tr>
               </thead>
@@ -265,46 +313,73 @@ export function AdminOrdersListPanel({
                         </span>
                       </td>
                       <td className="px-3 py-2">{o.customerName ?? '—'}</td>
-                      <td className="px-3 py-2">
-                        {guideOpen(o.id) ? (
-                          <span className="text-xs text-fal-muted">Na guia</span>
-                        ) : (
-                          <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-fg">
-                            {nextActionLabel(o)}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className={badgeClass(toneForOrderStatus(o.status))}>
-                          {listStatusLabel(o)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        {o.shippingChoiceLabel ? (
-                          <span className="inline-block rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
-                            {o.shippingChoiceLabel}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-fal-muted">—</span>
-                        )}
-                      </td>
-                      {showWaitingTime ? (
-                        <td className="px-3 py-2 text-xs">{waitingPaymentHours(o.createdAt)}</td>
-                      ) : null}
-                      {showItemPreview ? (
-                        <td className="max-w-[220px] px-3 py-2 text-xs text-fal-muted">
-                          {itemPreviewByOrderId?.[o.id] ?? `${o.itemCount} item(ns)`}
-                        </td>
-                      ) : null}
-                      {showItemCount ? (
-                        <td className="px-3 py-2">{o.itemCount}</td>
-                      ) : null}
-                      <td className="px-3 py-2">
-                        <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
-                          {paymentLabel(o)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
+                      {isRevisao ? (
+                        <>
+                          <td className="px-3 py-2 text-xs font-semibold">
+                            {revisaoTipoLabel(o.revisaoMeta?.tipo)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="inline-block rounded-md border border-fal-navy/30 bg-fal-navy/10 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
+                              {revisaoStageLabel(o.revisaoMeta?.stage)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-fal-fg">
+                            {revisaoModeCodeLabel(o.revisaoMeta ?? null)}
+                          </td>
+                          <td className="px-3 py-2">
+                            {guideOpen(o.id) ? (
+                              <span className="text-xs text-fal-muted">Na guia</span>
+                            ) : (
+                              <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-fg">
+                                {nextActionLabel(o, columnMode)}
+                              </span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-3 py-2">
+                            {guideOpen(o.id) ? (
+                              <span className="text-xs text-fal-muted">Na guia</span>
+                            ) : (
+                              <span className="inline-block rounded-[8px] border border-fal-yellow-dark/60 bg-fal-yellow/40 px-2 py-1 text-xs font-extrabold text-fal-fg">
+                                {nextActionLabel(o, columnMode)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={badgeClass(toneForOrderStatus(o.status))}>
+                              {listStatusLabel(o)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {o.shippingChoiceLabel ? (
+                              <span className="inline-block rounded-md border border-fal-success/40 bg-fal-success/15 px-2 py-0.5 text-[11px] font-bold text-fal-fg">
+                                {o.shippingChoiceLabel}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-fal-muted">—</span>
+                            )}
+                          </td>
+                          {showWaitingTime ? (
+                            <td className="px-3 py-2 text-xs">{waitingPaymentHours(o.createdAt)}</td>
+                          ) : null}
+                          {showItemPreview ? (
+                            <td className="max-w-[220px] px-3 py-2 text-xs text-fal-muted">
+                              {itemPreviewByOrderId?.[o.id] ?? `${o.itemCount} item(ns)`}
+                            </td>
+                          ) : null}
+                          {showItemCount ? (
+                            <td className="px-3 py-2">{o.itemCount}</td>
+                          ) : null}
+                          <td className="px-3 py-2">
+                            <span className={badgeClass(toneForPaymentStatus(o.paymentStatus))}>
+                              {paymentLabel(o)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 font-semibold">{formatMoney(o.total)}</td>
+                        </>
+                      )}
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
                           {onSelectOrder ? (
@@ -375,6 +450,9 @@ export function filterOrdersBySearch(rows: AdminOrderListRow[], raw: string): Ad
       (o.paymentStatus?.toLowerCase().includes(q) ?? false) ||
       (o.shippingChoiceLabel?.toLowerCase().includes(q) ?? false) ||
       listStatusLabel(o).toLowerCase().includes(q) ||
-      nextActionLabel(o).toLowerCase().includes(q),
+      nextActionLabel(o).toLowerCase().includes(q) ||
+      revisaoTipoLabel(o.revisaoMeta?.tipo).toLowerCase().includes(q) ||
+      revisaoStageLabel(o.revisaoMeta?.stage).toLowerCase().includes(q) ||
+      revisaoModeCodeLabel(o.revisaoMeta ?? null).toLowerCase().includes(q),
   )
 }

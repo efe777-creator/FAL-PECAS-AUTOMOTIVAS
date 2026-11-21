@@ -1,6 +1,10 @@
 import { PanelChrome } from '@/components/admin/workspace/PanelChrome'
 import {
+  clampSplitWidth,
   readModulePrefs,
+  WORKSPACE_SPLIT_MAX,
+  WORKSPACE_SPLIT_MIN,
+  WORKSPACE_SPLIT_STEP,
   writeModulePrefs,
   type WorkspaceMode,
   type WorkspaceModuleKey,
@@ -152,6 +156,11 @@ export function AdaptiveWorkspace({
   const expanded = showContextual && effectiveMode === 'expanded'
   const splitWidth = expanded ? Math.max(prefs.splitWidthPx, 560) : prefs.splitWidthPx
 
+  function stepSplitWidth(direction: number) {
+    const next = clampSplitWidth(prefs.splitWidthPx + direction * WORKSPACE_SPLIT_STEP)
+    persist({ splitWidthPx: next })
+  }
+
   // Painel desktop fica fixed na viewport — clique no meio/fim da página sempre vê o split.
   useEffect(() => {
     if (!showContextual || !isDesktop || fullscreen) return
@@ -172,7 +181,7 @@ export function AdaptiveWorkspace({
         isDesktop && !fullscreen
           ? {
               width: splitWidth,
-              maxWidth: 'min(100vw - 1.5rem, 640px)',
+              maxWidth: `min(100vw - 1.5rem, ${WORKSPACE_SPLIT_MAX}px)`,
               top: DESKTOP_PANEL_TOP,
               right: '0.75rem',
               bottom: '0.75rem',
@@ -188,6 +197,9 @@ export function AdaptiveWorkspace({
         onClose={handleClose}
         extraActions={contextualExtraActions}
         statusBadge={contextualStatusBadge}
+        onSplitWidthStep={isDesktop ? stepSplitWidth : undefined}
+        splitWidthNarrowed={prefs.splitWidthPx <= WORKSPACE_SPLIT_MIN}
+        splitWidthWidened={prefs.splitWidthPx >= WORKSPACE_SPLIT_MAX}
       />
       <div
         className={[
@@ -240,11 +252,17 @@ export function AdaptiveWorkspace({
           <div
             role="separator"
             aria-orientation="vertical"
-            aria-label="Redimensionar painel"
+            aria-label="Arrastar para largura da guia"
+            title="Arrastar para largura da guia"
             tabIndex={0}
-            className="mx-1 hidden w-1.5 shrink-0 cursor-col-resize rounded-full bg-fal-line hover:bg-fal-accent lg:block"
+            className="relative mx-0.5 hidden w-3 shrink-0 cursor-col-resize lg:block"
             onPointerDown={onSplitterPointerDown}
-          />
+          >
+            <span
+              className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-fal-line hover:bg-fal-accent"
+              aria-hidden
+            />
+          </div>
           {/* Reserva = largura do painel + margem right (0.75rem) do fixed */}
           <div
             className="hidden shrink-0 lg:block"

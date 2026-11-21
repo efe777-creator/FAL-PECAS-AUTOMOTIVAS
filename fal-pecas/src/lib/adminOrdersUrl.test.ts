@@ -34,10 +34,21 @@ describe('adminOrdersUrl', () => {
     )
   })
 
-  it('fila=revisao redireciona para visão canônica', () => {
+  it('fila=revisao é canônica no Hub Adaptive', () => {
     expect(legacyAreaPathToHub('/admin/pedidos/expedicao', '?fila=revisao')).toBe(
-      '/admin/pedidos/visao/revisao-logistica',
+      '/admin/pedidos?tab=logistica&fila=revisao',
     )
+    expect(legacyAreaPathToHub('/admin/pedidos/visao/revisao-logistica', '')).toBe(
+      '/admin/pedidos?tab=logistica&fila=revisao',
+    )
+    expect(buildOrdersHubPath({ tab: 'logistica', fila: 'revisao' })).toBe(
+      '/admin/pedidos?tab=logistica&fila=revisao',
+    )
+    expect(parseOrdersHubSearch('?tab=logistica&fila=revisao')).toEqual({
+      tab: 'logistica',
+      area: null,
+      fila: 'revisao',
+    })
   })
 
   it('parse e build são estáveis', () => {
