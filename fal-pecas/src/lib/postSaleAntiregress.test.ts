@@ -74,9 +74,11 @@ describe('pós-venda anti-regressão (fonte)', () => {
   it('sem rota /admin/pos-venda e legal usa returnPolicyCopy', () => {
     const router = read('src/app/router.tsx')
     expect(router).not.toMatch(/pos-venda|pos_venda/)
-    const legal = read('src/pages/Legal/LegalDocumentPage.tsx')
-    expect(legal).toMatch(/returnPolicyCopy/)
-    expect(legal).toMatch(/RETURN_POLICY_BULLETS/)
+    const legalCopy = read('src/lib/legalCopy.ts')
+    expect(legalCopy).toMatch(/returnPolicyCopy/)
+    expect(legalCopy).toMatch(/RETURN_POLICY_BULLETS/)
+    const legalPage = read('src/pages/Legal/LegalDocumentPage.tsx')
+    expect(legalPage).toMatch(/LEGAL_COPY/)
   })
 
   it('cliente só gera código após autorizada (painel dedicado)', () => {

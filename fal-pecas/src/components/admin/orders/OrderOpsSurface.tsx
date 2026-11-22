@@ -1,4 +1,5 @@
 import { AdminOrderExpeditionSlot } from '@/components/admin/orders/AdminOrderExpeditionSlot'
+import { AdminOrderFiscalPanel } from '@/components/admin/orders/AdminOrderFiscalPanel'
 import { OrderAnalysisResolutionPanel } from '@/components/admin/orders/OrderAnalysisResolutionPanel'
 import { PostSaleCaseQuickActions } from '@/components/admin/orders/PostSaleCaseQuickActions'
 import { PostSaleReturnLogisticsPanel } from '@/components/admin/orders/PostSaleReturnLogisticsPanel'
@@ -654,6 +655,12 @@ export function OrderOpsSurface({
       <div className="flex flex-col gap-2">
           {tab === 'geral' ? (
             <div className="flex flex-col gap-2" role="tabpanel" aria-label="Geral">
+              <AdminOrderFiscalPanel
+                orderId={orderId}
+                busy={busy || pending != null}
+                onAttached={() => void reload()}
+              />
+
               <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
                   Situação

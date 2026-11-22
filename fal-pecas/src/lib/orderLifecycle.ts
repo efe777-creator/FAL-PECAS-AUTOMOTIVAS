@@ -189,7 +189,7 @@ export function customerOrderListCta(
     return 'Pronto para retirar →'
   }
   if (status === 'enviado' && !opts?.pickup) return 'Acompanhar envio →'
-  if (status === 'entregue') return 'Ajuda com o pedido →'
+  if (status === 'entregue') return 'Problema com meu pedido →'
   return null
 }
 

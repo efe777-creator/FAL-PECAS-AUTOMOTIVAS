@@ -1,3 +1,4 @@
+import { OrderFiscalBlock } from '@/components/account/OrderFiscalBlock'
 import { PostSaleAuthorizedPanel } from '@/components/account/PostSaleAuthorizedPanel'
 import { PostSaleCaseStatusPanel } from '@/components/account/PostSaleCaseStatusPanel'
 import { PostSaleHelpPanel } from '@/components/account/PostSaleHelpPanel'
@@ -454,7 +455,12 @@ export function AccountOrderDetailPage() {
         items: input.items,
         policyAck: input.policyAck,
       })
-      pushOk('Problema registrado. A loja vai analisar.')
+      // Dec. 7962 / CDC 49: confirmação imediata do recebimento da solicitação.
+      pushOk(
+        input.motivoCode === 'arrependimento'
+          ? 'Pedido de desistência recebido. A loja vai analisar e orientar a devolução.'
+          : 'Problema registrado. A loja vai analisar.',
+      )
       await reload()
     } catch (e) {
       pushError(toUserMessage(e, 'Falha ao reportar problema'))
@@ -632,10 +638,10 @@ export function AccountOrderDetailPage() {
               )
             })()}
             <Link
-              to="/trocas-devolucoes"
+              to="/suporte"
               className="inline-flex items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-bold text-fal-fg hover:bg-fal-bg"
             >
-              Trocas e devoluções
+              Central de Suporte
             </Link>
           </div>
         </div>
@@ -733,23 +739,6 @@ export function AccountOrderDetailPage() {
           storeAddress={storeOrigin ? formatStoreOriginAddress(storeOrigin) : null}
           busy={actionBusy}
           onGenerateCode={onGenerateReturnCode}
-        />
-      ) : null}
-
-      {canPostDelivery ? (
-        <PostSaleHelpPanel
-          deliveredAt={order.shipment?.deliveredAt}
-          orderStatus={order.status}
-          hasOpenPostSaleCase={hasOpenPostSaleCase}
-          orderNumber={order.id.slice(0, 8).toUpperCase()}
-          openOccurrenceId={openPostSaleCase?.occurrenceId ?? null}
-          items={order.items.map((i) => ({
-            id: i.id,
-            label: `${i.sku} — ${i.nameSnapshot}`,
-            quantity: i.quantity,
-          }))}
-          busy={actionBusy}
-          onSubmit={onReportDeliveryIssue}
         />
       ) : null}
 
@@ -1051,6 +1040,27 @@ export function AccountOrderDetailPage() {
         </div>
       </div>
 
+      <OrderFiscalBlock orderId={order.id} />
+
+      {canPostDelivery ? (
+        <div id="problema-pedido" className="scroll-mt-28">
+          <PostSaleHelpPanel
+            deliveredAt={order.shipment?.deliveredAt}
+            orderStatus={order.status}
+            hasOpenPostSaleCase={hasOpenPostSaleCase}
+            orderNumber={order.id.slice(0, 8).toUpperCase()}
+            openOccurrenceId={openPostSaleCase?.occurrenceId ?? null}
+            items={order.items.map((i) => ({
+              id: i.id,
+              label: `${i.sku} — ${i.nameSnapshot}`,
+              quantity: i.quantity,
+            }))}
+            busy={actionBusy}
+            onSubmit={onReportDeliveryIssue}
+          />
+        </div>
+      ) : null}
+
       <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
         <h3 className="mt-0 text-base font-extrabold">Atualizações do pedido</h3>
         <ol className="m-0 list-none space-y-2 p-0">
@@ -1073,6 +1083,44 @@ export function AccountOrderDetailPage() {
             )
           })}
         </ol>
+      </div>
+
+      <div className="rounded-fal border border-fal-line bg-fal-surface p-5 text-sm">
+        <h3 className="mt-0 text-base font-extrabold">Ajuda e políticas</h3>
+        <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-2 p-0">
+          <li>
+            <Link
+              to="/suporte"
+              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            >
+              Central de Suporte
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/trocas-devolucoes"
+              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            >
+              Trocas e devoluções
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/garantia"
+              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            >
+              Garantia
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/frete-entrega"
+              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            >
+              Frete e entrega
+            </Link>
+          </li>
+        </ul>
       </div>
     </div>
   )

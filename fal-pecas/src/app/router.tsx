@@ -85,11 +85,29 @@ const ResetPasswordPage = lazy(() =>
 const TermsPage = lazy(() =>
   import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.TermsPage })),
 )
+const CommercialTermsPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.CommercialTermsPage })),
+)
 const PrivacyPage = lazy(() =>
   import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.PrivacyPage })),
 )
+const CookiesPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.CookiesPage })),
+)
+const ShippingPolicyPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.ShippingPolicyPage })),
+)
 const ReturnsPage = lazy(() =>
   import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.ReturnsPage })),
+)
+const WarrantyPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.WarrantyPage })),
+)
+const CompatibilityPolicyPage = lazy(() =>
+  import('@/pages/Legal/LegalDocumentPage').then((m) => ({ default: m.CompatibilityPolicyPage })),
+)
+const SupportPage = lazy(() =>
+  import('@/pages/Support/SupportPage').then((m) => ({ default: m.SupportPage })),
 )
 
 const AdminDashboardPage = lazy(() =>
@@ -530,10 +548,26 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'suporte',
+        element: (
+          <Suspend>
+            <SupportPage />
+          </Suspend>
+        ),
+      },
+      {
         path: 'termos',
         element: (
           <Suspend>
             <TermsPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'termos-comerciais',
+        element: (
+          <Suspend>
+            <CommercialTermsPage />
           </Suspend>
         ),
       },
@@ -546,10 +580,42 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'cookies',
+        element: (
+          <Suspend>
+            <CookiesPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'frete-entrega',
+        element: (
+          <Suspend>
+            <ShippingPolicyPage />
+          </Suspend>
+        ),
+      },
+      {
         path: 'trocas-devolucoes',
         element: (
           <Suspend>
             <ReturnsPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'garantia',
+        element: (
+          <Suspend>
+            <WarrantyPage />
+          </Suspend>
+        ),
+      },
+      {
+        path: 'compatibilidade',
+        element: (
+          <Suspend>
+            <CompatibilityPolicyPage />
           </Suspend>
         ),
       },

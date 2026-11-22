@@ -104,6 +104,7 @@ import type {
 } from '@/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useProductCompatVerdicts } from '@/hooks/useProductCompatVerdicts'
+import { buildLegalAcceptancePayload } from '@/lib/legalVersions'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   compatSealDisplayLabel,
@@ -995,6 +996,7 @@ export function CheckoutPage() {
         paymentMethod: payMethod,
         documentKind: docKind,
         documentValue: onlyDigits(docValue),
+        legalAcceptance: buildLegalAcceptancePayload(),
         items: items.map((i) => {
           const entry = decisionByProduct.get(i.productId)
           const base = i.vehicleSnapshot ?? null
@@ -2219,6 +2221,13 @@ export function CheckoutPage() {
                       Li e aceito os{' '}
                       <Link to="/termos" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                         termos de uso
+                      </Link>
+                      , os{' '}
+                      <Link
+                        to="/termos-comerciais"
+                        className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+                      >
+                        termos comerciais
                       </Link>
                       , a{' '}
                       <Link

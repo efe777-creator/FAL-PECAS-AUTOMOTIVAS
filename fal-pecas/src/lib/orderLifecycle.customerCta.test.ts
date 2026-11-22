@@ -24,6 +24,6 @@ describe('customerOrderListCta', () => {
   })
 
   it('entregue aponta ajuda no detalhe', () => {
-    expect(customerOrderListCta('entregue')).toBe('Ajuda com o pedido →')
+    expect(customerOrderListCta('entregue')).toBe('Problema com meu pedido →')
   })
 })

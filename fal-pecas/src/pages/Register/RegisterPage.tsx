@@ -263,6 +263,13 @@ export function RegisterPage() {
                 <Link to="/termos" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   termos de uso
                 </Link>
+                , os{' '}
+                <Link
+                  to="/termos-comerciais"
+                  className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+                >
+                  termos comerciais
+                </Link>
                 , a{' '}
                 <Link to="/privacidade" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   política de privacidade

@@ -39,7 +39,7 @@ export function CookieConsentBanner() {
           loja. Com seu consentimento, também poderemos usar cookies de analytics/marketing (Google
           Ads, Meta) quando estiverem configurados — você pode escolher só o essencial.{' '}
           <Link
-            to="/privacidade"
+            to="/cookies"
             className="font-semibold text-fal-yellow underline-offset-2 hover:underline"
           >
             Saber mais

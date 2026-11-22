@@ -11,8 +11,14 @@ Disallow: /login
 Disallow: /cadastro
 Disallow: /redefinir-senha
 
+Allow: /suporte
 Allow: /termos
+Allow: /termos-comerciais
 Allow: /privacidade
+Allow: /cookies
+Allow: /frete-entrega
 Allow: /trocas-devolucoes
+Allow: /garantia
+Allow: /compatibilidade
 
 Sitemap: https://fal-pecas-automotivas.netlify.app/sitemap.xml

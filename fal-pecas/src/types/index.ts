@@ -390,6 +390,14 @@ export interface PlaceOrderInput {
   clearCart?: boolean
   /** Prep Ads — opcional; gravado em orders.attribution. */
   attribution?: OrderAttributionInput | null
+  /** Aceite contratual apresentado no checkout (versões + timestamp). */
+  legalAcceptance?: {
+    terms_version: string
+    commercial_version: string
+    privacy_version: string
+    returns_version: string
+    accepted_at: string
+  } | null
 }
 
 export interface PlaceOrderResult {

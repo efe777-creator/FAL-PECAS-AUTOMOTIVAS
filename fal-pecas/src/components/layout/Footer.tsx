@@ -106,20 +106,47 @@ export function Footer() {
           <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/">
             Início
           </Link>
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/suporte">
+            Central de Suporte
+          </Link>
           <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/termos">
             Termos de uso
           </Link>
           <Link
             className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/termos-comerciais"
+          >
+            Termos comerciais
+          </Link>
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
             to="/privacidade"
           >
-            Política de privacidade
+            Privacidade
+          </Link>
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/cookies">
+            Cookies
+          </Link>
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/frete-entrega"
+          >
+            Frete e entrega
           </Link>
           <Link
             className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
             to="/trocas-devolucoes"
           >
             Trocas e devoluções
+          </Link>
+          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/garantia">
+            Garantia
+          </Link>
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to="/compatibilidade"
+          >
+            Compatibilidade
           </Link>
           <button
             type="button"

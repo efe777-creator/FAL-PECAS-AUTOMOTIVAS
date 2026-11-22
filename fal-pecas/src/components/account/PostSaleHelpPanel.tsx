@@ -99,7 +99,7 @@ export function PostSaleHelpPanel({
 
   return (
     <div className="rounded-fal border border-fal-line bg-fal-surface p-5">
-      <h3 className="mt-0 text-base font-extrabold text-fal-fg">Ajuda com este pedido</h3>
+      <h3 className="mt-0 text-base font-extrabold text-fal-fg">Problema com meu pedido</h3>
       {orderStatus === 'entregue' && daysLeft != null ? (
         <p className="mt-1 mb-0 text-sm text-fal-muted">
           {windowOpen

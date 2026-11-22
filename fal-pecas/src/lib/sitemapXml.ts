@@ -44,9 +44,15 @@ export function buildStoreSitemapEntries(opts: {
     { loc: `${origin}/`, changefreq: 'daily', priority: 1 },
     { loc: `${origin}/catalogo`, changefreq: 'daily', priority: 0.9 },
     { loc: `${origin}/veiculo`, changefreq: 'weekly', priority: 0.7 },
+    { loc: `${origin}/suporte`, changefreq: 'monthly', priority: 0.5 },
     { loc: `${origin}/termos`, changefreq: 'yearly', priority: 0.3 },
+    { loc: `${origin}/termos-comerciais`, changefreq: 'yearly', priority: 0.3 },
     { loc: `${origin}/privacidade`, changefreq: 'yearly', priority: 0.3 },
+    { loc: `${origin}/cookies`, changefreq: 'yearly', priority: 0.3 },
+    { loc: `${origin}/frete-entrega`, changefreq: 'yearly', priority: 0.3 },
     { loc: `${origin}/trocas-devolucoes`, changefreq: 'yearly', priority: 0.3 },
+    { loc: `${origin}/garantia`, changefreq: 'yearly', priority: 0.3 },
+    { loc: `${origin}/compatibilidade`, changefreq: 'yearly', priority: 0.3 },
   ]
 
   const seen = new Set<string>()

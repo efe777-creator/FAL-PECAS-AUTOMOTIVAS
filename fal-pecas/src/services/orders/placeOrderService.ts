@@ -23,6 +23,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     clear_cart: input.clearCart !== false,
   }
   if (attribution) payload.attribution = attribution
+  if (input.legalAcceptance) payload.legal_acceptance = input.legalAcceptance
 
   const { data, error } = await getSupabase().rpc('place_order', { p_payload: payload })
   if (error) throw error
