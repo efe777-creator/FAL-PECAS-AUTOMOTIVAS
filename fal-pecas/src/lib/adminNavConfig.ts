@@ -70,6 +70,7 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     links: [
       { to: '/admin/montadoras', label: 'Montadoras' },
       { to: '/admin/veiculos', label: 'Veículos' },
+      { to: '/admin/veiculos/integracoes', label: 'Integrações' },
       { to: '/admin/modelos-3d', label: 'Modelos 3D' },
       { to: '/admin/imagens-stock', label: 'Imagens stock 2D' },
       { to: '/admin/fabricantes', label: 'Fabricantes' },

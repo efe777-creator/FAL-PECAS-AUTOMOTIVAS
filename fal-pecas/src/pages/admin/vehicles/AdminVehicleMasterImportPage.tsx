@@ -96,12 +96,20 @@ export function AdminVehicleMasterImportPage() {
             aplicações (PVC).
           </p>
         </div>
-        <Link
-          className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
-          to="/admin/veiculos"
-        >
-          Voltar a veículos
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/veiculos/integracoes"
+          >
+            Integrações
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/veiculos"
+          >
+            Voltar a veículos
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">

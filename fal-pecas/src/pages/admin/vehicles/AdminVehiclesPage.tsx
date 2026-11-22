@@ -251,6 +251,12 @@ export function AdminVehiclesPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/veiculos/integracoes"
+          >
+            Integrações
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/veiculos/importar-mestre"
           >
             Importar mestre

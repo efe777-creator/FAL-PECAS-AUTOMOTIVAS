@@ -183,6 +183,11 @@ const AdminVehicleMasterImportPage = lazy(() =>
     default: m.AdminVehicleMasterImportPage,
   })),
 )
+const AdminVehicleIntegrationsHubPage = lazy(() =>
+  import('@/pages/admin/vehicles/AdminVehicleIntegrationsHubPage').then((m) => ({
+    default: m.AdminVehicleIntegrationsHubPage,
+  })),
+)
 const AdminBrandsPage = lazy(() =>
   import('@/pages/admin/brands/AdminBrandsPage').then((m) => ({ default: m.AdminBrandsPage })),
 )
@@ -415,6 +420,10 @@ export const router = createBrowserRouter([
       { path: 'busca', element: <AdminSearchPrepPage /> },
       { path: 'montadoras', element: <AdminManufacturersPage /> },
       { path: 'veiculos', element: <AdminVehiclesPage /> },
+      {
+        path: 'veiculos/integracoes',
+        element: <AdminVehicleIntegrationsHubPage />,
+      },
       {
         path: 'veiculos/importar-mestre',
         element: <AdminVehicleMasterImportPage />,

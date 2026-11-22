@@ -34,4 +34,15 @@ describe('adminNavConfig', () => {
     expect(order).not.toContain('/admin/home/promocoes/kits')
     expect(order).toContain('/admin/home/promocoes')
   })
+
+  it('Veículos tem Integrações após CRUD e antes de Modelos 3D', () => {
+    const order = adminNavLinkOrder()
+    expect(order).toContain('/admin/veiculos/integracoes')
+    expect(order.indexOf('/admin/veiculos')).toBeLessThan(
+      order.indexOf('/admin/veiculos/integracoes'),
+    )
+    expect(order.indexOf('/admin/veiculos/integracoes')).toBeLessThan(
+      order.indexOf('/admin/modelos-3d'),
+    )
+  })
 })

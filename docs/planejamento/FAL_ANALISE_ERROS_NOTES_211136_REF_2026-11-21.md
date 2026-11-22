@@ -190,4 +190,8 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 | Evidência | `tsc` + `plateIdentityAssert.test` 5 PASS |
 | Ops | Redeploy Edge `plate-lookup` para expor `confidenceBand` (client já deriva se ausente). |
 
-**Próximo:** Erro #7 — Cards poluídos / mobile.
+### Trilha paralela — mestre / Integrações (não reabre #6)
+
+Hub Admin Veículos → Integrações + seed fipeX via CSV no import existente. Spec: [FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md](./FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md). Loja híbrida e assert #6 permanecem DONE.
+
+**Próximo Notes:** Erro #7 — Cards poluídos / mobile.
