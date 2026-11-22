@@ -83,4 +83,64 @@ describe('interpretSearchQuery', () => {
     expect(i.vehicle.maker).toBe('Fiat')
     expect(i.vehicle.year).toBe('2010')
   })
+
+  describe('Corolla vs Corolla Cross (linhas distintas)', () => {
+    const both = [
+      { maker: 'Toyota', model: 'Corolla' },
+      { maker: 'Toyota', model: 'Corolla Cross' },
+      { maker: 'Volkswagen', model: 'Fox' },
+      { maker: 'Volkswagen', model: 'Cross Fox' },
+      { maker: 'Ford', model: 'Fiesta' },
+    ]
+    const onlyParent = [{ maker: 'Toyota', model: 'Corolla' }]
+
+    it('catálogo com ambos: "corolla cross" → Corolla Cross', () => {
+      const i = interpretSearchQuery('corolla cross 2023', both)
+      expect(i.vehicle.model).toBe('Corolla Cross')
+      expect(i.vehicle.year).toBe('2023')
+    })
+
+    it('catálogo com ambos: "corolla" → Corolla', () => {
+      const i = interpretSearchQuery('corolla 2018', both)
+      expect(i.vehicle.model).toBe('Corolla')
+      expect(i.vehicle.year).toBe('2018')
+    })
+
+    it('catálogo com ambos: "Toyota Corolla Cross" → Corolla Cross', () => {
+      const i = interpretSearchQuery('Toyota Corolla Cross', both)
+      expect(i.vehicle.model).toBe('Corolla Cross')
+    })
+
+    it('catálogo só com Corolla: "corolla cross" NÃO vira Corolla', () => {
+      const i = interpretSearchQuery('corolla cross', onlyParent)
+      expect(i.vehicle.model).toBeUndefined()
+      expect(i.productQuery?.toLowerCase()).toContain('cross')
+    })
+
+    it('catálogo só com Corolla: "Toyota Corolla Cross 2023" NÃO vira Corolla', () => {
+      const i = interpretSearchQuery('Toyota Corolla Cross 2023', onlyParent)
+      expect(i.vehicle.model).toBeUndefined()
+      expect(i.vehicle.year).toBeUndefined()
+    })
+
+    it('catálogo só com Corolla: "corolla" → Corolla', () => {
+      const i = interpretSearchQuery('corolla 2018', onlyParent)
+      expect(i.vehicle.model).toBe('Corolla')
+    })
+
+    it('Cross Fox ≠ Fox quando Cross Fox ausente do catálogo', () => {
+      const i = interpretSearchQuery('cross fox 2008', [{ maker: 'Volkswagen', model: 'Fox' }])
+      expect(i.vehicle.model).toBeUndefined()
+    })
+
+    it('New Fiesta ≠ Fiesta quando New Fiesta ausente', () => {
+      const i = interpretSearchQuery('new fiesta 2014', [{ maker: 'Ford', model: 'Fiesta' }])
+      expect(i.vehicle.model).toBeUndefined()
+    })
+
+    it('sufixo comum (versão) continua casando o pai: "HB20 Unique"', () => {
+      const i = interpretSearchQuery('HB20 Unique 2015', catalog)
+      expect(i.vehicle.model).toBe('HB20')
+    })
+  })
 })

@@ -2,7 +2,11 @@ import { Button } from '@/components/common/Button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
-import { adminFetchVehicleMasterStats } from '@/services/admin/adminVehicleMasterStats'
+import {
+  adminFetchVehicleMasterStats,
+  listReviewQueue,
+  type VehicleReviewQueueItem,
+} from '@/services/admin/adminVehicleMasterStats'
 import {
   applyVehicleMasterIntelligence,
   prepareVehicleMasterIntelligence,
@@ -41,6 +45,14 @@ export function AdminVehicleIntegrationsHubPage() {
   const [models, setModels] = useState<number | null>(null)
   const [versions, setVersions] = useState<number | null>(null)
   const [withLife, setWithLife] = useState<number | null>(null)
+  const [quality, setQuality] = useState<{
+    verified: number
+    review: number
+    quarantined: number
+    superseded: number
+  } | null>(null)
+  const [queue, setQueue] = useState<VehicleReviewQueueItem[]>([])
+  const [queueError, setQueueError] = useState<string | null>(null)
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -56,8 +68,20 @@ export function AdminVehicleIntegrationsHubPage() {
       setModels(s.modelsActive)
       setVersions(s.versionsActive)
       setWithLife(s.modelsWithProductionYears)
+      setQuality({
+        verified: s.qualityVerified,
+        review: s.qualityReview,
+        quarantined: s.qualityQuarantined,
+        superseded: s.qualitySuperseded,
+      })
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
+    }
+    setQueueError(null)
+    try {
+      setQueue(await listReviewQueue())
+    } catch (err) {
+      setQueueError(toUserMessage(err, 'Falha ao carregar fila de revisão'))
     }
   }, [])
 
@@ -146,6 +170,22 @@ export function AdminVehicleIntegrationsHubPage() {
               Vida de linha: {withLife}/{models}
             </span>
           ) : null}
+          {quality ? (
+            <>
+              <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900">
+                Verificados: {quality.verified}
+              </span>
+              <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
+                Em revisão: {quality.review}
+              </span>
+              <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-bold text-red-900">
+                Quarentena: {quality.quarantined}
+              </span>
+              <span className="rounded-md bg-fal-line/60 px-2 py-1 text-xs font-bold text-fal-muted">
+                Substituídos: {quality.superseded}
+              </span>
+            </>
+          ) : null}
           <StatusChip label="Lookup read-only" on />
           <StatusChip label="FIPE assist (flag)" on={false} />
           {lastSync ? (
@@ -212,6 +252,52 @@ export function AdminVehicleIntegrationsHubPage() {
             CRUD com vida de linha (desde/até). Período de peça continua no PVC.
           </p>
         </Link>
+      </div>
+
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">
+          Fila de revisão ({queue.length})
+        </p>
+        <p className="mb-2 mt-1 text-sm text-fal-muted">
+          Só modelos <strong>verificados</strong> aparecem no seletor público. Revisão e quarentena
+          ficam visíveis apenas no admin.
+        </p>
+        {queueError ? <p className="m-0 text-sm text-fal-danger">{queueError}</p> : null}
+        {!queueError && queue.length === 0 ? (
+          <p className="m-0 text-sm text-fal-muted">Nenhum modelo pendente.</p>
+        ) : null}
+        {queue.length > 0 ? (
+          <ul className="m-0 max-h-80 list-none space-y-1 overflow-y-auto p-0">
+            {queue.map((q) => (
+              <li
+                key={q.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-fal-line/60 py-1 text-sm"
+              >
+                <span
+                  className={`rounded-md px-2 py-0.5 text-xs font-bold ${
+                    q.qualityStatus === 'quarantined'
+                      ? 'bg-red-100 text-red-900'
+                      : 'bg-amber-100 text-amber-900'
+                  }`}
+                >
+                  {q.qualityStatus === 'quarantined' ? 'Quarentena' : 'Revisão'}
+                </span>
+                <span className="font-semibold text-fal-fg">
+                  {q.makerName} {q.name}
+                </span>
+                <span className="text-xs text-fal-muted">
+                  {q.vehicleClass}
+                  {q.evidenceKind ? ` · ${q.evidenceKind}` : ''}
+                  {q.pvcCount != null ? ` · PVC ${q.pvcCount}` : ''}
+                  {q.customerVehicleCount != null ? ` · clientes ${q.customerVehicleCount}` : ''}
+                </span>
+                {q.reviewNote ? (
+                  <span className="w-full text-xs text-fal-muted">{q.reviewNote}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div className="rounded-[14px] border border-dashed border-fal-line bg-fal-bg/40 p-4">

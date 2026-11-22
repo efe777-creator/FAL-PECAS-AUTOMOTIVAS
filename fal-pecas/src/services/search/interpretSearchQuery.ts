@@ -148,6 +148,61 @@ function isLikelyProductWord(token: string): boolean {
 
 type Hit = { maker: string; model: string; start: number; len: number }
 
+/**
+ * 2º token que forma linha DISTINTA do modelo-pai (Corolla ≠ Corolla Cross).
+ * Se "pai + token" não existe no catálogo, o pai NÃO pode casar sozinho.
+ */
+const PROTECTED_CHILD_SUFFIX = new Set(
+  [
+    'cross', 'fox', 'plus', 'up', 'beetle', 'ecosport', 'fiesta', 'ka', 'fit', 'pallas',
+    'sedan', 'variant',
+  ].map((w) => normalizeEntityMatchKey(w)),
+)
+
+/** 1º token que só faz sentido com o seguinte (New Fiesta, Cross Fox, T Cross). */
+const PROTECTED_PARENT_PREFIX = new Set(
+  ['new', 'cross', 't'].map((w) => normalizeEntityMatchKey(w)),
+)
+
+/**
+ * Bloqueia hit de modelo de 1 token quando o contexto indica família composta
+ * ausente do catálogo (nunca colapsa filho → pai via prefixo).
+ */
+function isProtectedCompoundBlocked(
+  tokens: string[],
+  modelStart: number,
+  modelEnd: number, // índice do último token do modelo
+  modelKey: string,
+  catalogModelKeys: string[],
+): boolean {
+  const keySet = new Set(catalogModelKeys)
+  const next = tokens[modelEnd + 1]
+  if (next) {
+    const nextKey = normalizeEntityMatchKey(next)
+    const compound = `${modelKey} ${nextKey}`
+    if (!keySet.has(compound)) {
+      if (PROTECTED_CHILD_SUFFIX.has(nextKey)) return true
+      // "sport" só é protegido se o catálogo tem linha "<modelo> sport ..." (Discovery Sport).
+      if (
+        nextKey === 'SPORT' &&
+        catalogModelKeys.some((k) => k.startsWith(`${compound} `))
+      ) {
+        return true
+      }
+    }
+  }
+  const prev = tokens[modelStart - 1]
+  if (prev) {
+    const prevKey = normalizeEntityMatchKey(prev)
+    if (PROTECTED_PARENT_PREFIX.has(prevKey)) {
+      const compound = `${prevKey} ${modelKey}`
+      const compoundTight = `${prevKey}-${modelKey}`
+      if (!keySet.has(compound) && !keySet.has(compoundTight)) return true
+    }
+  }
+  return false
+}
+
 function findModelHit(
   tokens: string[],
   catalog: VehicleCatalogEntry[],
@@ -159,6 +214,7 @@ function findModelHit(
     modelKey: normalizeEntityMatchKey(c.model),
     makerKey: normalizeEntityMatchKey(c.maker),
   }))
+  const catalogModelKeys = catalogNorm.map((c) => c.modelKey)
 
   for (let len = Math.min(3, tokens.length); len >= 1; len -= 1) {
     for (let start = 0; start <= tokens.length - len; start += 1) {
@@ -177,14 +233,32 @@ function findModelHit(
         const makerHit = catalogNorm.find(
           (c) => c.makerKey === makerTok && c.modelKey === modelTok,
         )
-        if (makerHit) {
+        if (
+          makerHit &&
+          !(
+            !modelTok.includes(' ') &&
+            isProtectedCompoundBlocked(
+              tokens,
+              start + 1,
+              start + len - 1,
+              modelTok,
+              catalogModelKeys,
+            )
+          )
+        ) {
           return { maker: makerHit.maker, model: makerHit.model, start, len }
         }
       }
 
       const key = normalizeEntityMatchKey(slice.join(' '))
       const modelHits = catalogNorm.filter((c) => c.modelKey === key)
-      if (modelHits.length >= 1) {
+      if (
+        modelHits.length >= 1 &&
+        !(
+          len === 1 &&
+          isProtectedCompoundBlocked(tokens, start, start, key, catalogModelKeys)
+        )
+      ) {
         return {
           maker: modelHits[0]!.maker,
           model: modelHits[0]!.model,

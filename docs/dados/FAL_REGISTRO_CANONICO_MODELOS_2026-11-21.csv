@@ -1,0 +1,143 @@
+maker,canonical_model,source_model,model_id,vehicle_class,status,evidence_url,evidence_kind,review_note,vv_active,vv_plate,pvc_rows,customer_refs,db_status
+Audi,A1,A1,059f9cba-c4ce-4aaf-8c07-b76f4aa2be89,car,verified,https://www.audi.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,0,16,0,active
+Audi,A3,A3,67c9ef00-7746-4e71-a806-6133a9eab317,car,verified,https://www.audi.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Audi,A4,A4,665086c4-d55a-4078-be7a-8609a25a5e0c,car,verified,https://www.audi.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Audi,Q3,Q3,deeccd31-b40a-4b69-b0d0-603275e9d615,car,verified,https://www.audi.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,0,10,1,active
+Audi,QQ,QQ,4bbdfc88-4257-4eae-a5bb-8dde237be243,unknown,quarantined,,inactive,Modelo inactive no baseline,0,0,0,0,inactive
+Audi,S3,S3,d8abedf2-15b3-4f17-a152-50ac4476dac8,car,verified,https://www.audi.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+BMW,X1,X1,0ab9b997-4b68-45b0-b7f2-fe94d5778630,car,verified,https://www.bmw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,1,active
+BMW,X2,X2,49e5bdf4-1317-49a5-be1a-ad5ccf6c0b94,car,verified,https://www.bmw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+BMW,X3,X3,4a37beb9-e5a9-4e7e-9d12-c067303c60d4,car,verified,https://www.bmw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+BYD,Dolphin,Dolphin,afdc359a-aa75-41ae-9436-c7bb94147030,car,verified,https://www.byd.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+CAOA Chery,Tiggo 5,Tiggo 5,ebee8e1e-8014-4b9f-b8f5-0b491a60398a,car,verified,https://www.caoachery.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+CAOA Chery,Tiggo 5X,Tiggo 5X,9faf0100-454d-46aa-b923-630e5b4409d8,car,verified,https://www.caoachery.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,0,0,active
+CAOA Chery,Tiggo 8,Tiggo 8,1c818383-3dbe-4a66-ac84-8627b74545a7,car,verified,https://www.caoachery.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Chevrolet,Agile,Agile,9088006a-fcb6-41d4-9db4-130d464b44c5,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,0,4,0,active
+Chevrolet,Astra,Astra,ef0d1a5b-dd5d-411c-8a36-c8ca9f17361d,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),7,0,9,0,active
+Chevrolet,Celta,Celta,ffd195d8-dca7-442e-be52-2a9323f7846f,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,0,13,0,active
+Chevrolet,Classic,Classic,d64b371c-5ba1-4328-a5e8-e4ee17057389,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,4,1,active
+Chevrolet,Classic,Classic LS,c3820018-9737-4b0e-a70f-6fe2509f4dda,car,superseded,https://www.chevrolet.com.br/,oem_a1,VV ativo em modelo inactive; LS=trim; versão→LS,1,1,0,0,inactive
+Chevrolet,Cobalt,Cobalt,fbc98297-f239-4e4e-b4c9-bf3a69a57a20,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,11,0,active
+Chevrolet,Corsa,Corsa,935a3475-eba0-4d52-872b-177b8801947e,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),15,0,40,0,active
+Chevrolet,Meriva,Meriva,bcb383e8-133c-422f-83ef-3d6b08415030,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),6,0,6,0,active
+Chevrolet,Montana,Montana,41020566-5a44-4604-ac28-26e94d29ed8e,light_utility,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,0,8,0,active
+Chevrolet,Onix,Onix,44444444-4444-4444-4444-444444444002,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,2,11,1,active
+Chevrolet,Prisma,Prisma,45fde28a-4c7c-49d0-ab11-208bf485c587,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,1,22,0,active
+Chevrolet,Sonic,Sonic,96ac97fa-eb97-4fa9-994b-fd62c2df4b91,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,7,0,active
+Chevrolet,Spin,Spin,e5fba8c7-1c2a-494b-92d2-1a843f137233,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,11,0,active
+Chevrolet,Tigra,Tigra,8bb8b5a0-65d7-4eb8-a073-7c68d5c77634,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,7,0,active
+Chevrolet,Tracker,Tracker,3d916003-1cca-43f7-87c3-065fb7a45a64,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,1,active
+Chevrolet,Vectra,Vectra,0dedf540-4ba3-4d0d-bea5-179743a87d29,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),9,0,11,0,active
+Chevrolet,Zafira,Zafira,64dcdb92-e82c-46bb-84ae-6e984c720aa6,car,verified,https://www.chevrolet.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,0,7,0,active
+Citroën,C3,C3,35ed9908-f309-401d-89c8-eda5a067bed3,car,verified,https://www.citroen.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,0,0,active
+Citroën,C4,C4,61f94040-95b1-4e78-bb68-1d48f4084829,car,verified,https://www.citroen.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Citroën,C4 Pallas,C4 Pallas,cebdb8f3-af2f-44f5-816f-de64e089b299,car,verified,https://www.citroen.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Fiat,500,500,bd1b3ecf-70d2-4dcd-866f-e207995e09a9,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Fiat,Argo,Argo,484eb07e-bbe2-447a-8a31-01306c15fe31,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),8,0,13,0,active
+Fiat,Bravo,Bravo,ac42bbd5-d48d-4cec-84d9-9ddcd58acdaf,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Fiat,Cronos,Cronos,9d7c0b2e-cda2-4c3a-acab-56e5e6344c1f,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),6,0,10,0,active
+Fiat,Doblo,Doblo,77605ae9-2f94-46a6-86ae-007f1b869aa9,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,5,0,active
+Fiat,Elba,Elba,fd4cc0ef-0f44-4279-9b09-4cf298b48926,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,2,0,active
+Fiat,Fiorino,Fiorino,aadb8cac-f09a-4012-a952-d3300449f700,light_utility,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,5,0,active
+Fiat,Idea,Idea,dcd3f592-a3e4-4f97-9098-566ded89e41e,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,5,0,active
+Fiat,Linea,Linea,9519e20d-74b8-4c08-bc20-83c1aac12739,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Fiat,Mobi,Mobi,02e8cc61-c56c-4362-bd30-6f667ed8b222,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,4,0,active
+Fiat,Palio,Palio,44444444-4444-4444-4444-444444444001,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),8,1,73,1,active
+Fiat,Palio,Palio Sporting,95752899-d415-4343-b4d1-21225c7546f7,car,superseded,https://www.fiat.com.br/,oem_a1,Sporting = trim do Palio; versão→Sporting,1,1,0,0,active
+Fiat,Premio,Premio,0894414a-1c2c-499d-a7d5-3553474424f2,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,2,0,active
+Fiat,Pulse,Pulse,c15e40e0-9775-4972-abab-5fbb7fcb7a7a,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),6,0,6,0,active
+Fiat,Punto,Punto,c0c2a03a-6de7-41d9-8ad4-162e286872b9,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,0,3,0,active
+Fiat,Siena,Siena,dbcecfdd-02d7-4ffb-be20-fe4e8320dad8,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,1,12,0,active
+Fiat,Stilo,Stilo,7a8a0477-34ef-4683-ad90-2174e30b80fb,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,0,4,0,active
+Fiat,Strada,Strada,408b6abc-1345-4dd6-9d94-2ddcee5ba0cb,light_utility,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),8,0,17,0,active
+Fiat,Strada,Strada Volcano,cadcdb5f-81cb-412b-bc0a-b9b21a3a34c5,car,superseded,https://www.fiat.com.br/picapes/strada.html,oem_a1,Volcano = trim da Strada; versão→Volcano,1,1,0,0,active
+Fiat,Tempra,Tempra,dfb0563d-8f4a-41d3-8502-623bc7abb658,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Fiat,Toro,Toro,756b3a67-0b0e-46ca-aa4e-64528cc7e91f,light_utility,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,5,0,active
+Fiat,Uno,Uno,e32abfda-71d0-438d-a663-2b42eb85226a,car,verified,https://www.fiat.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,0,8,0,active
+Ford,Ecosport,Ecosport,341b3eea-b5a1-463c-95a0-a284c620235e,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,1,10,0,active
+Ford,Escort,Escort,efc76926-713f-4e55-ba97-8fa26190021c,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,0,3,0,active
+Ford,Fiesta,Fiesta,744e1d29-b444-495f-8be7-755cb53720df,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),7,0,15,0,active
+Ford,Fusion,Fusion,86a4eb74-7f14-4f8c-aef7-65c1313ca9bb,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,0,4,0,active
+Ford,Ka,Ka,162d123a-c39f-429e-a89a-f79f96382dc0,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,1,6,0,active
+Ford,New Ecosport,New Ecosport,7acc863b-0826-4eee-a20f-22a9d3eaa993,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Ford,New Fiesta,New Fiesta,9ad9c417-3b5e-4a83-ba01-41fb2b2dff06,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Ford,New Ka,New Ka,b8c93ccf-3d61-4e9e-9ea2-4f94de0ed0c0,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Ford,Verona,Verona,7d1bd086-99a0-4be0-92be-6bb96b94eee1,car,verified,https://www.ford.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+GWM,Haval H6,Haval H6,805ecd69-a893-4dee-9dbb-a6667b4e94a7,car,verified,https://www.gwm.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Honda,City,City,a5f6e42d-2b0e-4510-b1c0-37e2307ab874,car,verified,https://www.honda.com.br/automoveis,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,1,3,0,active
+Honda,CR-V,CR-V,4e96bb11-44d0-4de5-b268-1d6eb3be9167,car,verified,https://www.honda.com.br/automoveis,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Honda,Fit,Fit,d028042a-5ed9-4a7b-8f6d-45744dff4440,car,verified,https://www.honda.com.br/automoveis,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,1,2,0,active
+Honda,HR-V,HR-V EX Cvt,0c7df6e2-5d11-46d4-bb88-c48ca9747eb8,car,superseded,https://www.honda.com.br/automoveis/hr-v,oem_a1,A1 Honda: HR-V modelo; EX=versão; CVT=transmissão; versão→EX CVT,1,1,0,1,active
+Honda,New Fit,New Fit,61b4d5db-a4ca-4871-a2cf-e6c0dff63610,car,verified,https://www.honda.com.br/automoveis,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Honda,Pop 110I,Pop 110I,2eb67dc2-a9d4-4681-be01-e03e19164d48,motorcycle,quarantined,,scope_out,Fora do escopo carro/utilitário leve,1,1,0,0,active
+Hyundai,Azera,Azera,62ef5051-fdf1-4bb1-a726-b45d66fa83a9,car,review,https://www.hyundai.com.br/,plate_only,Somente fonte plate sem PVC — exige revisão humana,1,1,0,0,active
+Hyundai,Creta,Creta,bff29493-c481-4ee1-ae17-2f7614987f2b,car,verified,https://www.hyundai.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,0,0,0,active
+Hyundai,HB20,HB20,7283f0f2-26dc-4e65-a6bd-4d9cf080197d,car,verified,https://www.hyundai.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,2,6,1,active
+Hyundai,Tucson,Tucson,b92eb32b-d92f-4ebc-b914-ba9f612b983e,car,verified,https://www.hyundai.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+JAC,T40,T40,2c1fb153-7af2-4a77-b05a-456829403ced,car,review,https://www.jacmotors.com.br/,plate_only,Somente fonte plate sem PVC — exige revisão humana,1,1,0,0,active
+Jaguar,E-Pace,E-Pace,d57c902a-fb76-4d46-99f2-de7c0af5faf2,car,verified,https://www.jaguar.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Jeep,Compass,Compass,6b7c4503-a5e1-4100-b2f7-f611f341cf2f,car,verified,https://www.jeep.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,5,0,active
+Jeep,Compass,Compass Blackhawk,a83ffabd-bccc-442c-b34b-3fbf3d066d2b,car,superseded,https://www.jeep.com.br/compass.html,oem_a1,Blackhawk = trim do Compass; versão→Blackhawk,1,1,0,0,active
+Jeep,Renegade,Renegade,1ddac745-2631-490c-bf1b-2e98eb7a393a,car,verified,https://www.jeep.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,5,0,active
+Land Rover,Discovery Sport,Discovery Sport,c6bf9d55-7b00-46bc-b172-6c119e40877c,car,verified,https://www.landrover.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Mercedes-Benz,Classe A,Classe A,bf5e74c2-8e3e-4f56-86ce-9ae7fc8c9b4e,car,verified,https://www.mercedes-benz.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Mitsubishi,L200,L200,ee8cd3f7-8fc3-4e25-aa97-56fbabd96e47,light_utility,verified,https://www.mitsubishimotors.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Nissan,Sentra,Sentra 20SV Cvt,d8e69ba9-a9c4-4be6-9e30-8496846322b5,car,superseded,https://www.nissan.com.br/veiculos/modelos/sentra.html,oem_a1,A1 Nissan: Sentra modelo; 2.0 SV=versão; CVT=transmissão; versão→2.0 SV CVT,1,1,0,0,active
+Peugeot,208,208,874fe14f-d008-49be-a714-0092028396df,car,verified,https://www.peugeot.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+RAM,1500,1500,c9d985e1-ebd1-49f5-8ca0-f59012deacc0,light_utility,verified,https://www.ram.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Renault,Captur,Captur,164e84be-13cc-4ff1-900b-84198eae07c7,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Renault,Clio,Clio,aab23858-a410-4226-a373-7cdc53fb582d,car,review,https://www.renault.com.br/,plate_only,Somente fonte plate sem PVC — exige revisão humana,2,2,0,0,active
+Renault,Duster,Duster,0399bdee-4e94-4029-b799-a70ec1834ed0,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Renault,Kwid,Kwid,d782f5d0-6dd1-4960-98c7-ab29451359a9,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,2,1,0,active
+Renault,Logan,Logan,415a2c6f-6787-4daa-be5f-40348e1895e3,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,5,0,active
+Renault,Megane,Megane,13082196-01a8-49d8-ba6e-a05d7d0cce88,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Renault,Sandero,Sandero,e6625273-2144-4989-9f96-fa34b117bb5b,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,5,0,active
+Renault,Scenic,Scenic,15bcbfb8-e946-4eee-bf09-9d79041349f5,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Renault,Symbol,Symbol,17120df0-4632-4e4b-93ce-b556fbed5f80,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,1,2,0,active
+Renault,Twingo,Twingo,83b72828-dc9b-4fda-bba8-c9b9ce97b286,car,verified,https://www.renault.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+SEAT,Cordoba,Cordoba,6ca9e039-f56f-4f47-9236-2760f7578ca4,car,verified,https://www.seat.com/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+SEAT,Ibiza,Ibiza,d138b949-079f-4e78-850c-9965f29af3ee,car,verified,https://www.seat.com/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+SR,Noma Srbf 3E Srcf,Noma Srbf 3E Srcf,44ecd498-8876-4844-aa96-b5f107ba0e33,trailer,quarantined,,scope_out,Trailer/reboque — fora do escopo,1,1,0,0,active
+Suzuki,Jimny,Jimny,c6780318-c6d2-45b6-a6de-64b7e10ddd5a,car,verified,https://www.suzuki.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,0,0,active
+Toyota,Corolla,Corolla Apremiumh,ce6ec6ce-b4ce-45a7-8908-8a7b3f82b538,car,superseded,https://www.toyota.com.br/modelos/corolla,oem_a1,A1 Toyota: Corolla linha; Altis Premium Hybrid = versão; versão→Altis Premium Hybrid,1,1,0,0,active
+Toyota,Etios,Etios,f9a8a1bd-eb06-4a6b-b3ee-0c1650ff1b99,car,verified,https://www.toyota.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Toyota,Hilux,Hilux CD4X2 SR,83159d14-71b1-4e45-a843-f3ceeb35ae08,car,superseded,https://www.toyota.com.br/modelos/hilux,oem_a1,A1 Toyota: Hilux modelo; CD/4x2/SR = config/versão; versão→CD 4x2 SR,1,1,0,0,active
+Toyota,Yaris,Yaris,fa15d1b3-7268-4fd2-8ae3-e56f22456e26,car,verified,https://www.toyota.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Volkswagen,Arteon,Arteon,bf118dc6-f873-4cc6-82ed-9b9295e3c8cd,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Bora,Bora,6e64dd0f-912c-4aac-98ee-55f07ca8b265,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Volkswagen,Cross Fox,Cross Fox,522cdb6b-0f7e-4b24-be00-3c3f62befa23,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,2,10,0,active
+Volkswagen,Cross Up!,Cross Up!,061b7dba-6248-40dc-8da6-32496c51ac38,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,5,0,active
+Volkswagen,Crossfox,Crossfox,026dd2ab-660b-4f14-8163-f749e075fab1,unknown,quarantined,,inactive,Modelo inactive no baseline,0,0,0,0,inactive
+Volkswagen,Eos,Eos,d6f30d79-a809-452a-92ae-7f7f0a9f5932,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Fox,Fox,77167a8a-880d-4509-828c-25218d372a6c,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,2,11,0,active
+Volkswagen,Fusca,Fusca,e7c42f49-f0b5-4448-9976-1456b7fbd651,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Gol,Gol,44444444-4444-4444-4444-444444444003,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),11,1,33,0,active
+Volkswagen,Jetta,Jetta,c5957baa-0b95-422f-af9c-245abf3dcb2f,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,New Beetle,New Beetle,009ee1ca-d566-4d61-97dc-8923e533cbea,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Volkswagen,Nivus,Nivus,f29e6cba-f460-47a1-9f67-6920c9443a84,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,4,0,active
+Volkswagen,Parati,Parati,855971a4-91ce-4c7d-a18f-838f5ccf752c,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),4,0,5,0,active
+Volkswagen,Parati,Parati CL,42d8d8a7-809f-4e40-99d8-2431b7eedd1b,car,superseded,https://www.vw.com.br/,oem_a1,CL = trim histórico da Parati; versão→CL,1,1,0,0,active
+Volkswagen,Passat,Passat,9e0ba89b-23e8-4056-b2b4-cb485c44a19c,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Passat CC,Passat CC,cac2512e-26f6-40bb-ada0-4deababb82ac,car,review,https://www.vw.com.br/,name_suspect,Nome suspeito de trim/config no modelo,1,0,2,0,active
+Volkswagen,Passat,Passat TS,841e714e-9541-4e35-857e-88f238effbce,car,superseded,https://www.vw.com.br/,oem_a1,TS = trim histórico; manter Passat como modelo; versão→TS,1,1,0,0,active
+Volkswagen,Passat Variant,Passat Variant,1d268d2d-2434-4261-9efe-d5a137035efa,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Polo,Polo,09b2decd-cac3-4382-ac88-a375d5791238,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),8,1,34,0,active
+Volkswagen,Polo Sedan,Polo Sedan,53bce09c-5d0c-40b0-8994-7a8884423701,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),2,0,4,0,active
+Volkswagen,Saveiro,Saveira,386fb1e0-bc55-43d5-a4d4-435f7cdac865,car,superseded,https://www.vw.com.br/pt/carros/saveiro.html,oem_a1,Typo Saveira → Saveiro,1,0,1,0,active
+Volkswagen,Saveiro,Saveiro,819efac6-da2c-44c1-b954-0b7be46196e1,light_utility,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),12,0,34,0,active
+Volkswagen,Scirocco,Scirocco,f462cf2e-0a8a-4eb6-8924-7a675d9d3d0c,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Spacecross,Spacecross,cd63881e-24f2-4e22-a5a6-b9067949e450,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,1,0,active
+Volkswagen,Spacefox,Spacefox,3ef4fc57-6aa0-4040-899a-2716f1546ee3,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),5,0,26,0,active
+Volkswagen,T-Cross,T-Cross,f5495bb2-374d-4bdb-b41d-c25af1450470,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),3,0,6,0,active
+Volkswagen,T-Roc,T-Roc,dc6ddcf1-681b-4029-b8de-2e5fabeccfa8,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Tiguan,Tiguan,b17803ea-555d-4f12-9e0a-4aaef8335cdb,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Up,Up,925e0480-8521-4b2f-86ca-111d30967110,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),6,0,27,0,active
+Volkswagen,Vento,Vento,707b124d-c28c-496b-b341-100f9fe9d100,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,2,0,active
+Volkswagen,Virtus,Virtus,d138beb8-c6ba-440e-b7ab-6aaed12caa14,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),1,0,4,0,active
+Volkswagen,Voyage,Voyage,aa8b2a1e-832a-4c45-9cb9-1dc89c293d31,car,verified,https://www.vw.com.br/,oem_a1,Nome de linha limpo + página OEM da marca (A1),8,0,27,0,active
+Yamaha,XTZ150,XTZ150,8a4da198-8078-4bb9-912b-d365f68be5c3,motorcycle,quarantined,,scope_out,Fora do escopo carro/utilitário leve,1,1,0,0,active
+Toyota,Corolla,,,car,verified,https://www.toyota.com.br/modelos/corolla,oem_a1,CRIAR: Linha Corolla distinta de Corolla Cross,0,0,0,0,missing
+Toyota,Corolla Cross,,,car,verified,https://www.toyota.com.br/modelos/corolla-cross,oem_a1,CRIAR: Linha SUV distinta do Corolla sedã — NUNCA colapsar,0,0,0,0,missing
+Toyota,Hilux,,,light_utility,verified,https://www.toyota.com.br/modelos/hilux,oem_a1,CRIAR: Hilux pickup; CD/SR/4x2 são config,0,0,0,0,missing
+Honda,HR-V,,,car,verified,https://www.honda.com.br/automoveis/hr-v,oem_a1,CRIAR: HR-V modelo; EX/CVT = versão/câmbio,0,0,0,0,missing
+Nissan,Sentra,,,car,verified,https://www.nissan.com.br/veiculos/modelos/sentra.html,oem_a1,CRIAR: Sentra modelo; 2.0 SV CVT = versão/config,0,0,0,0,missing

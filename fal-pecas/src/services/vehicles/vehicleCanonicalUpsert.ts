@@ -1,14 +1,5 @@
 import { getSupabase } from '@/lib/supabase'
-import {
-  formatManufacturerDisplayName,
-  formatModelDisplayName,
-} from '@/lib/entityNormalize'
-import { toSlug } from '@/lib/slug'
-import {
-  assertModelClean,
-  normalizeVersionLabel,
-  sanitizeEngine,
-} from '@/services/plates/splitApiModelo'
+import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
 
 export type VehicleCanonicalSource = 'import' | 'plate' | 'admin'
 
@@ -46,27 +37,30 @@ function blankToNull(v: string | null | undefined): string | null {
 
 /**
  * Find-or-create montadora/modelo/versão canônicos (anti-duplicidade).
- * Prefere RPC `upsert_vehicle_canonical`; fallback client-side se a migration ainda não estiver aplicada.
+ * Normaliza via normalizeVehicleMasterInput e grava só via RPC `upsert_vehicle_canonical` (fail closed: erro de RPC lança).
  */
 export async function vehicleCanonicalUpsert(
   input: VehicleCanonicalInput,
 ): Promise<VehicleCanonicalResult> {
-  const maker = formatManufacturerDisplayName(input.maker)
-  const cleaned = assertModelClean(input.model, {
+  const normalized = normalizeVehicleMasterInput({
+    maker: input.maker,
+    model: input.model,
     engine: input.engine,
     version: input.version,
   })
-  const model = formatModelDisplayName(cleaned.model)
-  if (!maker || !model) {
+  if (normalized.outcome === 'reject') {
     throw new Error('maker_and_model_required')
   }
+  // review: ainda grava, mas sempre com o modelo já limpo (nunca o texto bruto).
+  const maker = normalized.maker
+  const model = normalized.model
   const year = parseYear(input.year)
   // R2: ano obrigatório (paridade Edge) — evita VV aberta.
   if (year == null) {
     throw new Error('year_required_for_canonical_upsert')
   }
-  const engine = blankToNull(sanitizeEngine(cleaned.engine) ?? undefined)
-  const version = blankToNull(normalizeVersionLabel(cleaned.version) ?? undefined)
+  const engine = blankToNull(normalized.engine)
+  const version = blankToNull(normalized.version)
   const source = input.source ?? 'admin'
 
   const sb = getSupabase()
@@ -79,138 +73,19 @@ export async function vehicleCanonicalUpsert(
     p_source: source,
   })
 
-  if (!error && data && typeof data === 'object') {
-    const row = data as Record<string, unknown>
-    return {
-      manufacturerId: String(row.manufacturerId),
-      modelId: String(row.modelId),
-      versionId: String(row.versionId),
-      maker: String(row.maker ?? maker),
-      model: String(row.model ?? model),
-      year: row.year == null || row.year === '' ? null : String(row.year),
-      engine: row.engine == null || row.engine === '' ? null : String(row.engine),
-      version: row.version == null || row.version === '' ? null : String(row.version),
-    }
+  if (error) throw error
+  if (!data || typeof data !== 'object') {
+    throw new Error('upsert_vehicle_canonical_empty_response')
   }
-
-  // Fallback sem RPC (ambientes sem migration)
-  return vehicleCanonicalUpsertClient({ maker, model, year, engine, version, source })
-}
-
-async function vehicleCanonicalUpsertClient(input: {
-  maker: string
-  model: string
-  year: number | null
-  engine: string | null
-  version: string | null
-  source: VehicleCanonicalSource
-}): Promise<VehicleCanonicalResult> {
-  if (input.year == null) {
-    throw new Error('year_required_for_canonical_upsert')
-  }
-  const sb = getSupabase()
-  const makerSlug = toSlug(input.maker) || `maker-${Date.now()}`
-
-  let { data: makerRow } = await sb
-    .from('manufacturers')
-    .select('id, name')
-    .or(`slug.eq.${makerSlug},name.ilike.${input.maker}`)
-    .limit(1)
-    .maybeSingle()
-
-  if (!makerRow) {
-    const ins = await sb
-      .from('manufacturers')
-      .insert({ name: input.maker, slug: makerSlug, status: 'active' })
-      .select('id, name')
-      .single()
-    if (ins.error) throw ins.error
-    makerRow = ins.data
-  }
-
-  const modelSlug = toSlug(input.model) || `model-${Date.now()}`
-  let { data: modelRow } = await sb
-    .from('models')
-    .select('id, name')
-    .eq('manufacturer_id', makerRow.id)
-    .or(`slug.eq.${modelSlug},name.ilike.${input.model}`)
-    .limit(1)
-    .maybeSingle()
-
-  if (!modelRow) {
-    const ins = await sb
-      .from('models')
-      .insert({
-        manufacturer_id: makerRow.id,
-        name: input.model,
-        slug: modelSlug,
-        status: 'active',
-      })
-      .select('id, name')
-      .single()
-    if (ins.error) throw ins.error
-    modelRow = ins.data
-  }
-
-  let q = sb
-    .from('vehicle_versions')
-    .select('id, year, engine, version_name')
-    .eq('manufacturer_id', makerRow.id)
-    .eq('model_id', modelRow.id)
-  q = input.year == null ? q.is('year', null) : q.eq('year', input.year)
-  q = input.engine == null ? q.is('engine', null) : q.ilike('engine', input.engine)
-  q =
-    input.version == null
-      ? q.is('version_name', null)
-      : q.ilike('version_name', input.version)
-
-  const { data: existing } = await q.limit(1).maybeSingle()
-
-  if (existing) {
-    await sb
-      .from('vehicle_versions')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .eq('id', existing.id)
-    const existingVersion =
-      existing.version_name == null || String(existing.version_name).trim() === ''
-        ? null
-        : String(existing.version_name)
-    return {
-      manufacturerId: makerRow.id,
-      modelId: modelRow.id,
-      versionId: existing.id,
-      maker: makerRow.name,
-      model: modelRow.name,
-      year: input.year == null ? null : String(input.year),
-      engine: existing.engine ?? input.engine,
-      version: existingVersion ?? input.version,
-    }
-  }
-
-  const ins = await sb
-    .from('vehicle_versions')
-    .insert({
-      manufacturer_id: makerRow.id,
-      model_id: modelRow.id,
-      year: input.year,
-      engine: input.engine,
-      version_name: input.version,
-      status: 'active',
-      source: input.source,
-      updated_at: new Date().toISOString(),
-    })
-    .select('id')
-    .single()
-  if (ins.error) throw ins.error
-
+  const row = data as Record<string, unknown>
   return {
-    manufacturerId: makerRow.id,
-    modelId: modelRow.id,
-    versionId: ins.data.id,
-    maker: makerRow.name,
-    model: modelRow.name,
-    year: input.year == null ? null : String(input.year),
-    engine: input.engine,
-    version: input.version,
+    manufacturerId: String(row.manufacturerId),
+    modelId: String(row.modelId),
+    versionId: String(row.versionId),
+    maker: String(row.maker ?? maker),
+    model: String(row.model ?? model),
+    year: row.year == null || row.year === '' ? null : String(row.year),
+    engine: row.engine == null || row.engine === '' ? null : String(row.engine),
+    version: row.version == null || row.version === '' ? null : String(row.version),
   }
 }

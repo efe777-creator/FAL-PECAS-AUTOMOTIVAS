@@ -1,0 +1,26 @@
+{
+  "frozen_at": "2026-11-21",
+  "project": "wtbpwuiayednvlhvuhbh",
+  "models_total": 137,
+  "models_active": 134,
+  "vv_note": "ver SQL separado",
+  "by_quality": {
+    "verified": 117,
+    "quarantined": 5,
+    "superseded": 11,
+    "review": 4
+  },
+  "create_canonical": [
+    "Toyota|Corolla",
+    "Toyota|Corolla Cross",
+    "Toyota|Hilux",
+    "Honda|HR-V",
+    "Nissan|Sentra"
+  ],
+  "invariants": [
+    "Corolla ≠ Corolla Cross (linhas distintas OEM Toyota)",
+    "Cross Fox ≠ Fox",
+    "T-Cross ≠ Cross Fox",
+    "New Fiesta ≠ Fiesta (colapso proibido por prefixo)"
+  ]
+}

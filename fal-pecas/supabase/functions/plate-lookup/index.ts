@@ -21,6 +21,7 @@ import {
   isInvResolverEnabled,
   resolveVehicleIdentity,
 } from '../_shared/resolveVehicleIdentity.ts'
+import { loadVehicleAliases } from '../_shared/loadVehicleAliases.ts'
 
 /** Corrige modelo composto em cache antigo / feeds que misturam motor+versão no modelo. */
 function enrichFromCompositeModelo(input: {
@@ -280,9 +281,11 @@ Deno.serve(async (req) => {
       })
 
       const invOn = isInvResolverEnabled()
+      const invAliases = invOn ? await loadVehicleAliases(sb) : undefined
       const inv = invOn
         ? resolveVehicleIdentity({
             source: 'plate',
+            aliases: invAliases,
             raw: [raw.maker, raw.model, raw.year, raw.engine, raw.version]
               .filter(Boolean)
               .join(' '),

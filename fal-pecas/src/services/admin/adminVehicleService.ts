@@ -1,6 +1,7 @@
 import { formatModelDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
+import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
 import type { VehicleModel, VehicleVersion } from '@/types'
 
 type ModelRow = {
@@ -11,7 +12,16 @@ type ModelRow = {
   status: string
   production_year_start?: number | null
   production_year_end?: number | null
+  quality_status?: string | null
+  vehicle_class?: string | null
+  canonical_model_id?: string | null
+  evidence_kind?: string | null
+  evidence_url?: string | null
+  review_note?: string | null
 }
+
+const MODEL_SELECT =
+  'id, manufacturer_id, name, slug, status, production_year_start, production_year_end, quality_status, vehicle_class, canonical_model_id, evidence_kind, evidence_url, review_note'
 
 type VersionRow = {
   id: string
@@ -32,6 +42,12 @@ function mapModel(row: ModelRow): VehicleModel {
     status: row.status as VehicleModel['status'],
     productionYearStart: row.production_year_start ?? null,
     productionYearEnd: row.production_year_end ?? null,
+    qualityStatus: (row.quality_status ?? undefined) as VehicleModel['qualityStatus'],
+    vehicleClass: row.vehicle_class ?? undefined,
+    canonicalModelId: row.canonical_model_id ?? null,
+    evidenceKind: row.evidence_kind ?? null,
+    evidenceUrl: row.evidence_url ?? null,
+    reviewNote: row.review_note ?? null,
   }
 }
 
@@ -50,9 +66,7 @@ function mapVersion(row: VersionRow): VehicleVersion {
 export async function adminListModels(manufacturerId?: string): Promise<VehicleModel[]> {
   let q = getSupabase()
     .from('models')
-    .select(
-      'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
-    )
+    .select(MODEL_SELECT)
     .order('name')
   if (manufacturerId) q = q.eq('manufacturer_id', manufacturerId)
   const { data, error } = await q
@@ -69,8 +83,27 @@ export async function adminUpsertModel(input: {
   productionYearStart?: number | null
   productionYearEnd?: number | null
 }): Promise<VehicleModel> {
-  const name = formatModelDisplayName(input.name)
-  if (!name) throw new Error('Informe o nome do modelo.')
+  const rawName = formatModelDisplayName(input.name)
+  if (!rawName) throw new Error('Informe o nome do modelo.')
+
+  const { data: makerRow, error: makerErr } = await getSupabase()
+    .from('manufacturers')
+    .select('name')
+    .eq('id', input.manufacturerId)
+    .maybeSingle()
+  if (makerErr) throw makerErr
+  const makerName = String((makerRow as { name?: string } | null)?.name ?? '').trim()
+  if (!makerName) throw new Error('Montadora não encontrada.')
+
+  const normalized = normalizeVehicleMasterInput({ maker: makerName, model: rawName })
+  if (normalized.outcome === 'reject' || !normalized.model) {
+    throw new Error('Nome de modelo inválido para o mestre de veículos.')
+  }
+  // Nome canônico (typo/trim/motor removidos; Corolla Cross ≠ Corolla).
+  const name = normalized.model
+  // Modelo novo NUNCA nasce verified; outcome=review mantém/rebaixa para review.
+  // Fica active (admin enxerga); a árvore pública filtra quality_status=verified.
+  const keepReview = normalized.outcome === 'review'
 
   if (!input.id) {
     const siblings = await adminListModels(input.manufacturerId)
@@ -102,20 +135,26 @@ export async function adminUpsertModel(input: {
     production_year_start: start,
     production_year_end: end,
   }
+  // Update preserva quality_status (não promove) salvo outcome=review (rebaixa).
+  const updatePayload = keepReview ? { ...payload, quality_status: 'review' } : payload
+  const insertPayload = {
+    ...payload,
+    quality_status: 'review',
+    vehicle_class: 'unknown',
+    review_note: keepReview
+      ? 'Criado via admin; nome com resíduo — revisar antes de verificar'
+      : 'Criado via admin; aguarda evidência A1 ou A2+A2',
+  }
   const q = getSupabase().from('models')
   const { data, error } = input.id
     ? await q
-        .update(payload)
+        .update(updatePayload)
         .eq('id', input.id)
-        .select(
-          'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
-        )
+        .select(MODEL_SELECT)
         .single()
     : await q
-        .insert(payload)
-        .select(
-          'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
-        )
+        .insert(insertPayload)
+        .select(MODEL_SELECT)
         .single()
   if (error) throw error
   return mapModel(data as ModelRow)

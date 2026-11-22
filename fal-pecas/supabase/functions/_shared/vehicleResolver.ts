@@ -94,11 +94,8 @@ export async function resolveVehicleAgainstCatalog(
   const modelNorm = normToken(modelQ)
   const model =
     (models ?? []).find((m) => String(m.name).toLowerCase() === modelQ.toLowerCase()) ??
-    (models ?? []).find((m) => normToken(String(m.name)) === modelNorm) ??
-    (models ?? []).find((m) => {
-      const n = normToken(String(m.name))
-      return n.startsWith(modelNorm) || modelNorm.startsWith(n)
-    })
+    (models ?? []).find((m) => normToken(String(m.name)) === modelNorm)
+  // Sem match por prefixo: Corolla ≠ Corolla Cross (linhas distintas).
 
   if (!model) {
     return {

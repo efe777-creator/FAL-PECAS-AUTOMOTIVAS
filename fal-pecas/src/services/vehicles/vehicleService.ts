@@ -81,9 +81,11 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     supabase
       .from('models')
       .select(
-        'id, name, manufacturer_id, production_year_start, production_year_end, manufacturers(name)',
+        'id, name, manufacturer_id, production_year_start, production_year_end, quality_status, manufacturers(name)',
       )
       .eq('status', 'active')
+      // Árvore pública: apenas mestre verificado (review/quarantined/superseded ficam só no admin).
+      .eq('quality_status', 'verified')
       .order('name'),
     supabase
       .from('vehicle_versions')
@@ -223,8 +225,9 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
   const [modelsRes, versionsRes] = await Promise.all([
     supabase
       .from('models')
-      .select('name, status, manufacturers!inner(name, status)')
+      .select('name, status, quality_status, manufacturers!inner(name, status)')
       .eq('status', 'active')
+      .eq('quality_status', 'verified')
       .order('name'),
     supabase
       .from('vehicle_versions')

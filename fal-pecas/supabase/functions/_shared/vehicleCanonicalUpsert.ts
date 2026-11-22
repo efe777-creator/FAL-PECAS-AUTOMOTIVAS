@@ -1,7 +1,7 @@
 /**
  * Upsert canônico de veículo via RPC (Edge / service_role).
  */
-import { assertModelClean } from './splitApiModelo.ts'
+import { normalizeVehicleMasterInput } from './normalizeVehicleMasterInput.ts'
 
 export type CanonicalUpsertResult = {
   manufacturerId: string
@@ -28,28 +28,6 @@ function parseYear(year: string | number | null | undefined): number | null {
   return Math.trunc(n)
 }
 
-/** Re-split modelo composto antes de gravar no mestre. */
-function cleanPlateFields(input: {
-  maker: string
-  model: string
-  year?: string | number | null
-  engine?: string | null
-  version?: string | null
-}) {
-  const maker = String(input.maker ?? '').trim()
-  const cleaned = assertModelClean(input.model, {
-    engine: input.engine,
-    version: input.version,
-  })
-  return {
-    maker,
-    model: cleaned.model,
-    year: input.year,
-    engine: cleaned.engine,
-    version: cleaned.version,
-  }
-}
-
 export async function vehicleCanonicalUpsert(
   sb: Sb,
   input: {
@@ -61,20 +39,26 @@ export async function vehicleCanonicalUpsert(
     source?: 'import' | 'plate' | 'admin'
   },
 ): Promise<CanonicalUpsertResult> {
-  const cleaned = cleanPlateFields(input)
-  const maker = cleaned.maker
-  const model = cleaned.model
-  if (!maker || !model) throw new Error('maker_and_model_required')
+  const normalized = normalizeVehicleMasterInput({
+    maker: input.maker,
+    model: input.model,
+    engine: input.engine,
+    version: input.version,
+  })
+  if (normalized.outcome === 'reject') throw new Error('maker_and_model_required')
+  // review: ainda grava, sempre com o modelo já limpo.
+  const maker = normalized.maker
+  const model = normalized.model
   // R2: não criar VV “aberta” sem ano no mestre.
-  const yearNum = parseYear(cleaned.year)
+  const yearNum = parseYear(input.year)
   if (yearNum == null) throw new Error('year_required_for_canonical_upsert')
 
   const { data, error } = await sb.rpc('upsert_vehicle_canonical', {
     p_maker: maker,
     p_model: model,
     p_year: yearNum,
-    p_engine: cleaned.engine,
-    p_version: cleaned.version,
+    p_engine: normalized.engine,
+    p_version: normalized.version,
     p_source: input.source ?? 'plate',
   })
 

@@ -102,6 +102,22 @@ export const INV_BUILTIN_ALIASES: InvAlias[] = [
     toCanonical: 'Opening Edition',
     status: 'validated',
   },
+  // Modelos (bootstrap com escopo de montadora). Nunca filho→pai (Corolla Cross ≠ Corolla).
+  {
+    kind: 'model',
+    makerScope: 'Toyota',
+    fromNorm: 'corollacross',
+    toCanonical: 'Corolla Cross',
+    status: 'validated',
+  },
+  {
+    kind: 'model',
+    makerScope: 'Volkswagen',
+    fromNorm: 'saveira',
+    toCanonical: 'Saveiro',
+    status: 'validated',
+  },
+  { kind: 'model', makerScope: 'Honda', fromNorm: 'hrv', toCanonical: 'HR-V', status: 'validated' },
   { kind: 'version', fromNorm: 'intens', toCanonical: 'Intense', status: 'validated' },
   { kind: 'version', fromNorm: 'joye', toCanonical: 'Joy', status: 'validated' },
   { kind: 'version', fromNorm: 'joy', toCanonical: 'Joy', status: 'validated' },
@@ -118,6 +134,19 @@ function normKey(value: string): string {
   return normalizeVehicleToken(value)
 }
 
+/**
+ * Guard filho→pai: alias de modelo cujo destino é prefixo estrito da origem
+ * (ex.: "corollacross" → "Corolla") colapsaria linha distinta no pai. Sempre ignorado.
+ */
+export function isChildToParentModelAlias(
+  alias: Pick<InvAlias, 'kind' | 'fromNorm' | 'toCanonical'>,
+): boolean {
+  if (alias.kind !== 'model' || !alias.toCanonical) return false
+  const from = normKey(alias.fromNorm)
+  const to = normKey(alias.toCanonical)
+  return Boolean(to) && from.length > to.length && from.startsWith(to)
+}
+
 function lookupAlias(
   aliases: InvAlias[],
   kind: InvAlias['kind'],
@@ -126,7 +155,9 @@ function lookupAlias(
 ): InvAlias | undefined {
   if (!raw?.trim()) return undefined
   const key = normKey(raw)
-  const validated = aliases.filter((a) => a.kind === kind && a.status === 'validated')
+  const validated = aliases.filter(
+    (a) => a.kind === kind && a.status === 'validated' && !isChildToParentModelAlias(a),
+  )
   const scoped = makerScope
     ? validated.find(
         (a) =>
@@ -239,6 +270,15 @@ export function resolveVehicleIdentity(
   if (makerAlias?.toCanonical) {
     evidence.push({ ruleId: 'alias_maker', detail: makerAlias.toCanonical })
     maker = makerAlias.toCanonical
+  }
+
+  // Alias de modelo exige escopo de montadora conhecido (sem maker não aplica).
+  if (model && maker) {
+    const modelAlias = lookupAlias(aliases, 'model', model, maker)
+    if (modelAlias?.toCanonical && modelAlias.toCanonical !== model) {
+      evidence.push({ ruleId: 'alias_model', detail: `${model}→${modelAlias.toCanonical}` })
+      model = modelAlias.toCanonical
+    }
   }
 
   const versionAlias = lookupAlias(aliases, 'version', version, maker)

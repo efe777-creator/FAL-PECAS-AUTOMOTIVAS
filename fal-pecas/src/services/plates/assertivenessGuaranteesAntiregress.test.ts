@@ -54,6 +54,33 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(edgeConfirm).toMatch(/vehicleCanonicalUpsert/)
   })
 
+  it('vehicleCanonicalUpsert client é fail-closed (sem fallback client-side em models/VV)', () => {
+    const src = read('src/services/vehicles/vehicleCanonicalUpsert.ts')
+    expect(src).toMatch(/if \(error\) throw error/)
+    expect(src).not.toMatch(/\.from\(['"](models|manufacturers|vehicle_versions)['"]\)/)
+    expect(src).not.toMatch(/\.insert\(/)
+  })
+
+  it('árvore pública só lê modelos verified; admin permanece sem filtro', () => {
+    const pub = read('src/services/vehicles/vehicleService.ts')
+    expect(pub).toMatch(/\.eq\('quality_status', 'verified'\)/)
+    const admin = read('src/services/admin/adminVehicleService.ts')
+    expect(admin).not.toMatch(/\.eq\('quality_status'/)
+    expect(admin).toMatch(/quality_status: 'review'/)
+  })
+
+  it('vehicleEvidence é somente leitura (sem writers em models/VV/PVC)', () => {
+    const src = read('src/services/vehicles/vehicleEvidence.ts')
+    expect(src).not.toMatch(/supabase|\.insert\(|\.update\(|\.upsert\(|\.rpc\(/)
+  })
+
+  it('apps-import cria modelos só em review', () => {
+    const sql = read('supabase/migrations/20261122122000_apps_import_models_review_only.sql')
+    expect(sql).toMatch(/quality_status, vehicle_class, review_note/)
+    expect(sql).toMatch(/'active', 'review', 'unknown'/)
+    expect(sql).not.toMatch(/'active', 'verified'/)
+  })
+
   it('plateResultToFilter propaga yearModel/yearFabrication no snapshot', () => {
     const src = read('src/services/plates/plateTypes.ts')
     expect(src).toMatch(/yearModel/)

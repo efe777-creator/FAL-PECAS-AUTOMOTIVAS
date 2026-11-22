@@ -554,6 +554,13 @@ export interface VehicleModel {
   /** Vida de linha (mestre). Não é PVC nem ano da placa. */
   productionYearStart?: number | null
   productionYearEnd?: number | null
+  /** Qualidade do mestre: só `verified` aparece na árvore pública. */
+  qualityStatus?: 'review' | 'verified' | 'quarantined' | 'superseded'
+  vehicleClass?: string
+  canonicalModelId?: string | null
+  evidenceKind?: string | null
+  evidenceUrl?: string | null
+  reviewNote?: string | null
 }
 
 export interface VehicleVersion {

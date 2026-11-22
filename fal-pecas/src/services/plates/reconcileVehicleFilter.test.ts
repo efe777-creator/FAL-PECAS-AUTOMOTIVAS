@@ -174,6 +174,56 @@ describe('reconcileVehicleFilter', () => {
     expect(r.engine).toBe('')
     expect(r.version).toBe('')
   })
+
+  it('Corolla Cross NÃO colapsa para Corolla quando Cross ausente do mestre', () => {
+    const corollaOnly: VehicleOptionTree = {
+      ...tree,
+      makers: ['Toyota'],
+      modelsByMaker: { Toyota: ['Corolla'] },
+      yearsByModel: {},
+      enginesByModel: {},
+      versionsByModel: {},
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Toyota', model: 'Corolla Cross', year: '2023' },
+      corollaOnly,
+    )
+    expect(r.model).toBe('Corolla Cross')
+  })
+
+  it('Corolla Cross com ambos no mestre: exact win', () => {
+    const both: VehicleOptionTree = {
+      ...tree,
+      makers: ['Toyota'],
+      modelsByMaker: { Toyota: ['Corolla', 'Corolla Cross'] },
+      yearsByModel: {},
+      enginesByModel: {},
+      versionsByModel: {},
+    }
+    expect(
+      reconcileVehicleFilter({ maker: 'Toyota', model: 'Corolla Cross', year: '2023' }, both).model,
+    ).toBe('Corolla Cross')
+    expect(
+      reconcileVehicleFilter({ maker: 'Toyota', model: 'Corolla', year: '2018' }, both).model,
+    ).toBe('Corolla')
+  })
+
+  it('família protegida: Fox/T-Cross não encolhem; trim conhecido (Sporting) encolhe', () => {
+    const t: VehicleOptionTree = {
+      ...tree,
+      makers: ['Volkswagen', 'Toyota'],
+      modelsByMaker: { Volkswagen: ['Fox', 'Cross'], Toyota: ['Corolla'] },
+      yearsByModel: {},
+      enginesByModel: {},
+      versionsByModel: {},
+    }
+    expect(
+      reconcileVehicleFilter({ maker: 'Volkswagen', model: 'FoxPlus', year: '2010' }, t).model,
+    ).not.toBe('Fox')
+    expect(
+      reconcileVehicleFilter({ maker: 'Toyota', model: 'Corolla Sporting', year: '2010' }, t).model,
+    ).toBe('Corolla')
+  })
 })
 
 describe('selectOptionsWithValue', () => {
