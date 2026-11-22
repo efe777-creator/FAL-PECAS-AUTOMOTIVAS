@@ -16,6 +16,8 @@ export type VehicleMasterStats = {
    * Não é review: nome ok, riqueza insuficiente.
    */
   verifiedThinShells: number
+  /** Verified com start=end (vida pontual residual — seletor pobre). */
+  verifiedPointLife: number
 }
 
 export type VehicleModelQualityStatus = 'review' | 'verified' | 'quarantined' | 'superseded'
@@ -64,6 +66,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityQuarantined,
     qualitySuperseded,
     thinShells,
+    pointLife,
   ] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
@@ -78,6 +81,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     countQuality('quarantined'),
     countQuality('superseded'),
     countVerifiedThinShells(),
+    countVerifiedPointLife(),
   ])
   if (withLife.error) throw withLife.error
   return {
@@ -90,6 +94,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityQuarantined,
     qualitySuperseded,
     verifiedThinShells: thinShells,
+    verifiedPointLife: pointLife,
   }
 }
 
@@ -112,6 +117,24 @@ async function countVerifiedThinShells(): Promise<number> {
   if (e2) throw e2
   const withVv = new Set((vvs ?? []).map((v) => String(v.model_id)))
   return ids.filter((id) => !withVv.has(id)).length
+}
+
+/** Verified ativos com vida pontual (start=end) — seletor não abre faixa. */
+async function countVerifiedPointLife(): Promise<number> {
+  const { data, error } = await getSupabase()
+    .from('models')
+    .select('id, production_year_start, production_year_end')
+    .eq('status', 'active')
+    .eq('quality_status', 'verified')
+    .not('production_year_start', 'is', null)
+    .not('production_year_end', 'is', null)
+  if (error) throw error
+  return (data ?? []).filter(
+    (r) =>
+      r.production_year_start != null &&
+      r.production_year_end != null &&
+      Number(r.production_year_start) === Number(r.production_year_end),
+  ).length
 }
 
 type QueueRow = {

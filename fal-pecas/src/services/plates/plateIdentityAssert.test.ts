@@ -85,6 +85,27 @@ describe('assertPlateAgainstCatalog', () => {
     expect(out.yearFabrication).toBe('2020')
     expect(out.confidenceBand).toBe('B')
   })
+
+  it('vida em linha (end null): ano corrente ok; absurdo futuro rebaixa', () => {
+    const now = new Date().getFullYear()
+    const withLife: VehicleOptionTree = {
+      ...tree,
+      productionByModel: {
+        'Renault|Kwid': { start: 2017, end: null },
+      },
+    }
+    const ok = assertPlateAgainstCatalog(
+      base({ year: String(now), confidence: 0.95, confidenceBand: 'A' }),
+      withLife,
+    )
+    expect(ok.confidenceBand).toBe('A')
+    const future = assertPlateAgainstCatalog(
+      base({ year: String(now + 5), confidence: 0.95, confidenceBand: 'A' }),
+      withLife,
+    )
+    expect(future.confidenceBand).not.toBe('A')
+    expect(future.message ?? '').toMatch(/em linha|fora da vida/i)
+  })
 })
 
 describe('derivePlateConfidenceBand', () => {

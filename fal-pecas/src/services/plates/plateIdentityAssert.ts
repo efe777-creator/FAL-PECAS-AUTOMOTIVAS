@@ -143,16 +143,21 @@ export function assertPlateAgainstCatalog(
     const prod = tree.productionByModel[vehicleModelKey(maker, model)]
     if (prod && (prod.start != null || prod.end != null)) {
       const lo = prod.start
-      const hi = prod.end
+      // end null = em linha: teto soft = ano corrente+1 (bloqueia absurdo futuro)
+      const hi =
+        prod.end != null
+          ? prod.end
+          : new Date().getFullYear() + 1
       const outside =
-        (lo != null && yearNum < lo) || (hi != null && yearNum > hi)
+        (lo != null && yearNum < lo) || yearNum > hi
       if (outside) {
         if (confidenceBand === 'A') confidenceBand = 'B'
         else if (confidenceBand === 'B') confidenceBand = 'C'
         else confidenceBand = 'D'
+        const endLabel = prod.end != null ? String(prod.end) : 'em linha'
         message =
           message ??
-          `Ano ${yearNum} fora da vida de linha cadastrada do modelo (${lo ?? '…'}–${hi ?? '…'}). Confira antes de buscar.`
+          `Ano ${yearNum} fora da vida de linha cadastrada do modelo (${lo ?? '…'}–${endLabel}). Confira antes de buscar.`
       }
     }
   }
