@@ -44,6 +44,9 @@ function ProductRailSection({
   products,
   emptyTitle,
   emptyDescription,
+  emptyActionLabel = 'Ver catálogo',
+  emptyActionTo = '/catalogo',
+  eyebrow = 'FAL',
   tone = 'white',
 }: {
   title: string
@@ -55,6 +58,9 @@ function ProductRailSection({
   products: Product[]
   emptyTitle: string
   emptyDescription: string
+  emptyActionLabel?: string
+  emptyActionTo?: string
+  eyebrow?: string
   tone?: 'white' | 'sand'
 }) {
   return (
@@ -69,7 +75,7 @@ function ProductRailSection({
         <div className="mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
-              FAL
+              {eyebrow}
             </p>
             <h2 className="m-0 mt-1 text-[22px] font-black tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]">
               {title}
@@ -89,8 +95,8 @@ function ProductRailSection({
           <EmptyState
             title={emptyTitle}
             description={emptyDescription}
-            actionLabel="Ver catálogo"
-            actionTo="/catalogo"
+            actionLabel={emptyActionLabel}
+            actionTo={emptyActionTo}
           />
         ) : null}
         {!loading && !error && products.length > 0 ? (
@@ -122,11 +128,12 @@ export function HomePage() {
   const categories = useCategories()
   const presentation = useHomePresentation()
   const featuredLimit = presentation.featuredDisplayLimit || HOME_FEATURED_LIMIT_DEFAULT
-  /** Overfetch: após dedupe com Ofertas ainda dá para completar o limite da Config. */
+  /** Overfetch: após dedupe com Promoções ainda dá para completar o limite da Config. */
   const featuredFetchLimit = Math.max(featuredLimit * 2, featuredLimit + 8)
   const [shelfPanel, setShelfPanel] = useState<HomeShelfPanel>('featured')
   const featured = useFeaturedProducts(featuredFetchLimit)
-  const offers = usePromoHighlightProducts(8)
+  const offersLimit = getProductWidgetDef('offers')?.defaultLimit ?? 8
+  const offers = usePromoHighlightProducts(offersLimit)
   const [bestsellers, setBestsellers] = useState<{
     data: Product[]
     loading: boolean
@@ -221,7 +228,7 @@ export function HomePage() {
   }, [bestsellers.data, featuredWithoutOffers, offers.data, bestsellersWidget?.defaultLimit])
 
   /**
-   * Ordem: Campanhas → Entrada → Vitrine (painéis montados, só um visível) → Ofertas → Confiança.
+   * Ordem: Campanhas → Entrada → Vitrine → Promoções → Mais vendidos → Confiança.
    * Painéis ficam montados para não “recarregar” nem colapsar altura a cada clique.
    */
   return (
@@ -331,15 +338,20 @@ export function HomePage() {
 
       {!offers.loading && !offers.error && offers.data.length > 0 ? (
         <ProductRailSection
-          title={offersWidget?.title ?? 'Ofertas'}
-          subtitle={offersWidget?.subtitle ?? 'Peças com preço promocional (automático)'}
-          linkLabel={offersWidget?.linkLabel ?? 'Ver catálogo →'}
-          linkTo={offersWidget?.catalogHref ?? '/catalogo?sort=price_asc'}
+          eyebrow="Promoções"
+          title={offersWidget?.title ?? 'Promoções'}
+          subtitle={
+            offersWidget?.subtitle ?? 'Peças e kits com preço promocional ativo'
+          }
+          linkLabel={offersWidget?.linkLabel ?? 'Ver promoções →'}
+          linkTo={offersWidget?.catalogHref ?? '/catalogo?promo=1'}
           loading={false}
           error={null}
           products={offers.data}
-          emptyTitle="Sem ofertas no momento"
-          emptyDescription="Quando houver ofertas, elas aparecem aqui. Enquanto isso, busque pela placa ou no catálogo."
+          emptyTitle="Sem promoções no momento"
+          emptyDescription="Quando houver promoções ativas (itens e kits), elas aparecem aqui. Enquanto isso, busque pela placa ou no catálogo."
+          emptyActionLabel="Ver promoções"
+          emptyActionTo="/catalogo?promo=1"
           tone={offersWidget?.tone ?? 'sand'}
         />
       ) : null}

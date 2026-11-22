@@ -100,7 +100,7 @@ async function hydratePublishedByIds(ids: string[]): Promise<Product[]> {
  * - Com fila em `store_home_featured_products` (ativos): só esses, na ordem, até `limit`
  *   (sem backfill — desligar no admin some da loja).
  * - Sem curadoria: fallback publicado (disponíveis primeiro).
- * Dedupe com Ofertas fica na Home (`excludeProductsById` + slice no limite).
+ * Dedupe com Promoções fica na Home (`excludeProductsById` + slice no limite).
  */
 export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
   const { resolveFeaturedShelf } = await import('@/lib/homeSections')
@@ -130,11 +130,57 @@ export function productHasActivePromo(p: Product): boolean {
 }
 
 /**
- * Ofertas da home / catálogo `?promo=1`: published com preço abaixo da lista.
+ * IDs com gate `product_promotions` ativo e vigente (itens + kits).
+ * RLS: select público. Falha → [].
+ */
+export async function listActivePromotionProductIds(limit = 48): Promise<string[]> {
+  const cap = Math.min(Math.max(1, Math.floor(limit)), 80)
+  assertStoreBackendConfigured()
+  if (!isSupabaseConfigured || !supabase) {
+    if (!allowCatalogMocks()) return []
+    return []
+  }
+  const nowIso = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('product_promotions')
+    .select('product_id, starts_at, ends_at, updated_at')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(cap * 2)
+  if (error || !data?.length) return []
+
+  const now = Date.parse(nowIso)
+  const ids: string[] = []
+  const seen = new Set<string>()
+  for (const row of data as Array<{
+    product_id: string
+    starts_at: string | null
+    ends_at: string | null
+  }>) {
+    const id = row.product_id
+    if (!id || seen.has(id)) continue
+    if (row.starts_at && Date.parse(row.starts_at) > now) continue
+    if (row.ends_at && Date.parse(row.ends_at) < now) continue
+    seen.add(id)
+    ids.push(id)
+    if (ids.length >= cap) break
+  }
+  return ids
+}
+
+/**
+ * Promoções da Home / catálogo `?promo=1` (Notes #13):
+ * 1) gate ativo (itens + kits) hidratados
+ * 2) fallback heurístico com mix de kinds
  */
 export async function listPromoHighlightProducts(limit = 8): Promise<Product[]> {
-  const pool = await listPublishedProducts(Math.max(limit * 4, 24))
-  return pool.filter(productHasActivePromo).slice(0, limit)
+  const { pickPromoHighlightShelf } = await import('@/lib/promoShelf')
+  const cap = Math.max(1, limit)
+  const gateIds = await listActivePromotionProductIds(Math.max(cap * 3, 24))
+  const fromGate = gateIds.length ? await listPublishedProductsByIds(gateIds) : []
+
+  const pool = await listPublishedProducts(Math.max(cap * 4, 24))
+  return pickPromoHighlightShelf(fromGate, pool, cap, productHasActivePromo)
 }
 
 /** Grade por categoria raiz (RPC search_products — inclui filhos). */

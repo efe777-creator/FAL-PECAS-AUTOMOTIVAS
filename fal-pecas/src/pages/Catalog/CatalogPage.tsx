@@ -125,7 +125,7 @@ export function CatalogPage() {
   const brand = params.get('brand') ?? ''
   const productKind = parseCatalogProductKind(params.get('kind'))
   const sort = parseSort(params.get('sort'))
-  /** Home Ofertas → `/catalogo?promo=1` (só itens com preço abaixo da lista). */
+  /** Home Promoções → `/catalogo?promo=1` (peças/kits com preço abaixo da lista). */
   const promoOnly = params.get('promo') === '1'
   /** Campanha Home Notes #18 → `/catalogo?ids=uuid,uuid` (seleção curada). */
   const curatedIds = useMemo(
@@ -754,7 +754,7 @@ export function CatalogPage() {
   /** `ids` XOR filtro vivo — chips de cat/YMM só quando não há seleção curada. */
   const activeChips = [
     q && { key: 'q', label: `Busca: ${q}` },
-    promoOnly && { key: 'promo', label: 'Só ofertas' },
+    promoOnly && { key: 'promo', label: 'Só promoções' },
     curatedIds.length > 0 && {
       key: 'ids',
       label: `Seleção da campanha (${curatedIds.length})`,

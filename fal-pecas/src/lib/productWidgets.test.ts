@@ -16,6 +16,13 @@ describe('productWidgets registry', () => {
     expect(getProductWidgetDef('new_arrivals')?.status).toBe('planned')
   })
 
+  it('offers (Notes #13) = Promoções + CTA ?promo=1', () => {
+    const offers = getProductWidgetDef('offers')
+    expect(offers?.title).toBe('Promoções')
+    expect(offers?.linkLabel.toLowerCase()).toContain('promoções')
+    expect(offers?.catalogHref).toBe('/catalogo?promo=1')
+  })
+
   it('listReady exclui planned; listAll inclui todos ordenados', () => {
     const ready = listReadyProductWidgets()
     expect(ready.every((w) => w.status === 'ready')).toBe(true)

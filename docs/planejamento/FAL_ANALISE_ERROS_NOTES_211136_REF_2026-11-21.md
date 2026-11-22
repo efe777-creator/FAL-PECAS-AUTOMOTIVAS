@@ -23,7 +23,7 @@
 | 10 | Textos/instruções do site — copy e coerência | **DONE** (fatia coerência) |
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | **DONE** |
-| 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING (registry widgets criado) |
+| 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | **DONE** |
 | 14 | LGPD, segurança, políticas garantia/devolução | PENDING |
 | 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
 | 16 | Portal B2B | PENDING |
@@ -68,8 +68,8 @@ Ajustar e corrigir tela de favoritos.
 ### #12 Destaques — **DONE** (2026-11-22)
 Configurações da seção de destaque não estão sendo respeitadas / refletidas. → ver log Erro #12.
 
-### #13 Ofertas / promoções
-Melhorar seção e apresentação das ofertas; colocar o nome de promoções; itens promocionais ativos + kits; textos e CTAs.
+### #13 Ofertas / promoções — **DONE** (2026-11-22)
+Melhorar seção e apresentação das ofertas; colocar o nome de promoções; itens promocionais ativos + kits; textos e CTAs. → ver log Erro #13.
 
 ### #14 LGPD / normas
 Estruturar e garantir segurança de dados (LGPD), políticas de garantia e devolução e demais normas.
@@ -294,4 +294,15 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Arquivos | `homeSections.ts` (+test), `productService.ts`, `HomePage.tsx`, VAL, este REF |
 | Fora | Notes #13 ofertas/promo naming |
 
-**Próximo Notes:** Erro #13 — Ofertas / promoções (nome, kits, CTAs).
+### Erro #13 — Promoções (rename + itens/kits + CTAs)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Vitrine “Ofertas” desalinhada do hub; CTAs fallback errados; rail por `created_at` omitia kits com gate. |
+| Estrutura | (1) Copy **Promoções** / selo **Promoção**. (2) `listActivePromotionProductIds` + `pickPromoHighlightShelf` (gate + mix item/kit). (3) Home CTAs `?promo=1`. |
+| Evidência | `promoShelf` / `promoPresentation` / `productWidgets` · `tsc` OK |
+| Arquivos | `promoPresentation.ts`, `productWidgets.ts`, `promoShelf.ts`, `productService.ts`, `HomePage.tsx`, VAL, este REF |
+| Fora | Nome da lista no título Home; widget campaign |
+
+**Próximo Notes:** Erro #14 — LGPD / políticas.

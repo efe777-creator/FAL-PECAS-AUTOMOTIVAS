@@ -106,7 +106,7 @@ function FeaturedPriceCell({ row }: { row: AdminFeaturedRow }) {
       </p>
       {promo ? (
         <span className="inline-flex">
-          <Badge>{offer.isOffer ? formatOfertaBadgeLabel(offer) : 'Oferta'}</Badge>
+          <Badge>{offer.isOffer ? formatOfertaBadgeLabel(offer) : 'Promoção'}</Badge>
         </span>
       ) : null}
     </div>
@@ -670,12 +670,12 @@ export function AdminHomeContentPage() {
             (independente de promoção).
           </li>
           <li>
-            <strong className="text-fal-ink">Promoções</strong> = ativar/desativar preço promocional
-            por produto (não altera destaques).
+            <strong className="text-fal-ink">Promoções</strong> (hub) = ativar/desativar preço
+            promocional por item ou kit (não altera destaques).
           </li>
           <li>
-            <strong className="text-fal-ink">Ofertas</strong> (vitrine) = faixa automática com preço
-            promocional já resolvido.
+            <strong className="text-fal-ink">Promoções</strong> (vitrine) = faixa automática na Home
+            com gate ativo e preço já resolvido (`/catalogo?promo=1`).
           </li>
           <li>
             <strong className="text-fal-ink">Pagamento</strong> = o que o cliente pode usar (Pix,
@@ -1289,7 +1289,7 @@ export function AdminHomeContentPage() {
                 }))
               }}
             />
-            Exibir selo Oferta no card e na PDP
+            Exibir selo Promoção no card e na PDP
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -1430,7 +1430,7 @@ export function AdminHomeContentPage() {
               <div>
                 <h3 className="m-0 text-sm font-bold text-fal-fg">Prévia da faixa Destaques</h3>
                 <p className="m-0 mt-0.5 text-xs text-fal-muted">
-                  Dados reais (imagem, preço resolvido, selo Oferta). Até{' '}
+                  Dados reais (imagem, preço resolvido, selo Promoção). Até{' '}
                   {homeSettings.featuredDisplayLimit} itens ligados — não altera a curadoria.
                 </p>
               </div>

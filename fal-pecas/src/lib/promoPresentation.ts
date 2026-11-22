@@ -1,6 +1,10 @@
-/** HOME-05 — apresentação comercial unificada de oferta (card / PDP / admin). */
+/** HOME-05 / Notes #13 — apresentação comercial unificada (card / PDP / admin). */
 
-export const OFERTA_SELO_LABEL = 'Oferta'
+/** Selo na vitrine (Notes #13: Promoções). */
+export const OFERTA_SELO_LABEL = 'Promoção'
+
+/** Alias explícito do mesmo selo. */
+export const PROMOCAO_SELO_LABEL = OFERTA_SELO_LABEL
 
 export type PromoOfferPresentation = {
   isOffer: boolean
@@ -46,13 +50,13 @@ export function formatDiscountPercentLabel(discountPercent: number): string {
   return `-${Math.floor(discountPercent)}%`
 }
 
-/** Texto do selo: "Oferta" ou "Oferta · -12%" (HOME-07 pode ocultar %). */
+/** Texto do selo: "Promoção" ou "Promoção · -12%" (HOME-07 pode ocultar %). */
 export function formatOfertaBadgeLabel(
   offer: PromoOfferPresentation,
   opts?: { showDiscountPercent?: boolean },
 ): string {
-  if (!offer.isOffer) return OFERTA_SELO_LABEL
-  if (opts?.showDiscountPercent === false) return OFERTA_SELO_LABEL
-  if (offer.discountPercent == null) return OFERTA_SELO_LABEL
-  return `${OFERTA_SELO_LABEL} · ${formatDiscountPercentLabel(offer.discountPercent)}`
+  if (!offer.isOffer) return PROMOCAO_SELO_LABEL
+  if (opts?.showDiscountPercent === false) return PROMOCAO_SELO_LABEL
+  if (offer.discountPercent == null) return PROMOCAO_SELO_LABEL
+  return `${PROMOCAO_SELO_LABEL} · ${formatDiscountPercentLabel(offer.discountPercent)}`
 }

@@ -13,7 +13,7 @@ export const ADMIN_FEATURED_MAX = 24
 export const FEATURED_DISPLAY_LIMIT_MIN = 1
 export const FEATURED_DISPLAY_LIMIT_MAX = 48
 
-/** Ofertas têm prioridade: remove da lista de destaques o que já aparece em ofertas. */
+/** Promoções têm prioridade: remove da lista de destaques o que já aparece no rail promo. */
 export function excludeProductsById<T extends { id: string }>(
   source: T[],
   exclude: Array<{ id: string }>,
