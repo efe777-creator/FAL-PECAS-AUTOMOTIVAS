@@ -63,7 +63,7 @@ export function SavedVehiclesQuickPick({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold text-fal-muted">Garagem:</span>
+      <span className="text-xs font-semibold text-fal-muted">Minha Garagem:</span>
       {items.map((v) => {
         const label = vehicleDisplayName(v)
         const limited = !v.versionId
@@ -110,8 +110,8 @@ export function SavedVehiclesQuickPick({
         to="/conta/veiculos"
         className="text-xs font-semibold text-fal-muted underline-offset-2 hover:underline"
       >
-        Gerenciar
-      </Link>
+          Gerenciar →
+        </Link>
     </div>
   )
 }

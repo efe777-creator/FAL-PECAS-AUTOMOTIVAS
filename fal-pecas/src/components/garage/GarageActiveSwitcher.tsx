@@ -85,7 +85,7 @@ export function GarageActiveSwitcher({ compact = false }: { compact?: boolean })
     toast.push(`Compatibilidade confirmada: ${name}`, 'success', {
       durationMs: 8000,
       action: {
-        label: loggedIn ? 'Salvar na garagem' : 'Entrar ou criar conta para salvar',
+        label: loggedIn ? 'Salvar na Minha Garagem' : 'Entrar ou criar conta para salvar',
         onClick: () => {
           void saveToGarage(filter)
         },

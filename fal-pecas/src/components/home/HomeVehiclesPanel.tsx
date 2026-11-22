@@ -68,7 +68,7 @@ export function HomeVehiclesPanel() {
             to="/conta/veiculos"
             className="text-sm font-semibold text-fal-accent underline-offset-2 hover:underline"
           >
-            Gerenciar na conta →
+            Minha Garagem →
           </Link>
         ) : null}
       </div>
@@ -76,7 +76,7 @@ export function HomeVehiclesPanel() {
       {!user ? (
         <div className="rounded-[12px] border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
           <p className="m-0 text-sm text-fal-muted">
-            Entre na conta para ver e usar os veículos salvos na garagem.
+            Entre na conta para ver e usar os veículos salvos na Minha Garagem.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <ButtonLink to="/login" state={{ from: '/' }} variant="primary">
@@ -98,11 +98,11 @@ export function HomeVehiclesPanel() {
         <div className="rounded-[12px] border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
           <p className="m-0 text-sm text-fal-muted">
             Você ainda não salvou nenhum veículo. Identifique pela placa acima e confirme para
-            guardar na garagem.
+            guardar na Minha Garagem.
           </p>
           <div className="mt-4">
             <ButtonLink to="/conta/veiculos" variant="outline">
-              Abrir garagem na conta
+              Abrir Minha Garagem
             </ButtonLink>
           </div>
         </div>

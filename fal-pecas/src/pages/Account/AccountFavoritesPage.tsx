@@ -89,7 +89,7 @@ export function AccountFavoritesPage() {
         <p className="text-sm text-fal-muted">
           Peças que você salvou na loja
           {hasAny
-            ? ` · ${items.length + unavailable.length} item(ns)`
+            ? ` · ${items.length + unavailable.length} peça(s)`
             : ''}
           .
         </p>

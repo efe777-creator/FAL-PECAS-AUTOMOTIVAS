@@ -44,7 +44,7 @@ export function Header({ theme, onThemeToggle }: Props) {
           <b className="block text-xl leading-none" aria-hidden>
             🚗
           </b>
-          Garagem
+          Minha Garagem
         </Link>
         <SearchBar />
         <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">

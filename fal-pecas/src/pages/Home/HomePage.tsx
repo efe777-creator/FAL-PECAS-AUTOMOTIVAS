@@ -345,7 +345,7 @@ export function HomePage() {
           error={null}
           products={offers.data}
           emptyTitle="Sem ofertas no momento"
-          emptyDescription="Volte em breve."
+          emptyDescription="Quando houver ofertas, elas aparecem aqui. Enquanto isso, busque pela placa ou no catálogo."
           tone={offersWidget?.tone ?? 'sand'}
         />
       ) : null}
@@ -353,7 +353,7 @@ export function HomePage() {
       {!bestsellers.loading && bestsellersWithoutDupes.length > 0 ? (
         <ProductRailSection
           title={bestsellersWidget?.title ?? 'Mais vendidos'}
-          subtitle={bestsellersWidget?.subtitle ?? 'Os itens que mais saem na FAL'}
+          subtitle={bestsellersWidget?.subtitle ?? 'As peças que mais saem na FAL'}
           linkLabel={bestsellersWidget?.linkLabel ?? 'Ver catálogo →'}
           linkTo={bestsellersWidget?.catalogHref ?? '/catalogo'}
           loading={false}

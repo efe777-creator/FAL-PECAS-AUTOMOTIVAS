@@ -208,7 +208,7 @@ export function AccountVehiclesPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="lg:hidden">
-          <h2 className="mt-0 mb-1 text-xl font-extrabold">Garagem</h2>
+          <h2 className="mt-0 mb-1 text-xl font-extrabold">Minha Garagem</h2>
           <p className="mb-0 text-sm text-fal-muted">
             Seu carro, peças que cabem e histórico de compras na FAL.
           </p>
@@ -348,7 +348,7 @@ export function AccountVehiclesPage() {
                   Definir como veículo principal
                 </label>
                 <div className="sm:col-span-2">
-                  <Button type="submit">Salvar na garagem</Button>
+                  <Button type="submit">Salvar na Minha Garagem</Button>
                 </div>
               </form>
             )}
@@ -358,7 +358,7 @@ export function AccountVehiclesPage() {
 
       {items.length === 0 && !showAdd ? (
         <EmptyState
-          title="Sua garagem está vazia."
+          title="Você ainda não salvou veículos."
           description="Adicione pela placa ou escolha montadora e modelo manualmente."
           actionLabel="Adicionar veículo"
           onAction={() => openAdd('placa')}

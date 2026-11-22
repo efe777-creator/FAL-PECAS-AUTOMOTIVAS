@@ -548,8 +548,8 @@ export function ProductPage() {
     return (
       <Container maxWidth="pdp" className="py-8">
         <EmptyState
-          title="Produto não encontrado"
-          description="O item solicitado não está disponível no catálogo."
+          title="Peça não encontrada"
+          description="A peça solicitada não está disponível no catálogo."
           actionLabel="Ver catálogo"
           actionTo="/catalogo"
         />

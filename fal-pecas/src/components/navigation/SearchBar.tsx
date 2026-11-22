@@ -2,7 +2,7 @@ import { useProductSearch } from '@/hooks/useCatalog'
 import { productHref } from '@/lib/productHref'
 import { formatMoney } from '@/lib/money'
 import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
-import { SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
+import { SEARCH_ARIA_LABEL, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { displayPrice } from '@/services/pricing/priceResolutionService'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
 import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
@@ -151,7 +151,7 @@ export function SearchBar() {
         onKeyDown={onKeyDown}
         placeholder={SEARCH_INPUT_PLACEHOLDER}
         className="min-h-11 w-full rounded-xl border border-fal-navy/20 bg-fal-surface py-2.5 pr-10 pl-3 text-sm text-fal-navy outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.28)] dark:border-fal-line dark:bg-fal-surface-2 dark:text-fal-fg sm:min-h-[46px] sm:py-[13px] sm:pr-11 sm:pl-4 lg:py-[15px] lg:pl-[18px]"
-        aria-label="Busca de produtos e veículos"
+        aria-label={SEARCH_ARIA_LABEL}
         role="combobox"
         aria-expanded={showPanel}
         aria-controls={listId}

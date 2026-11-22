@@ -58,7 +58,7 @@ export const PRODUCT_WIDGET_DEFS: readonly ProductWidgetDef[] = [
     sortOrder: 30,
     status: 'ready',
     title: 'Mais vendidos',
-    subtitle: 'Os itens que mais saem na FAL',
+    subtitle: 'As peças que mais saem na FAL',
     linkLabel: 'Ver catálogo →',
     catalogHref: '/catalogo',
     defaultLimit: 12,

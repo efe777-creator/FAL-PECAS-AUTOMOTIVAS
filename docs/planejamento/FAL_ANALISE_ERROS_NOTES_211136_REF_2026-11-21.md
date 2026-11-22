@@ -20,7 +20,7 @@
 | 7 | Cards poluídos / grandes no mobile | **DONE** |
 | 8 | Header mobile muito cheio | **DONE** |
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | **DONE** |
-| 10 | Textos/instruções do site — copy e coerência | PENDING |
+| 10 | Textos/instruções do site — copy e coerência | **DONE** (fatia coerência) |
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | PENDING |
 | 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING (registry widgets criado) |
@@ -28,7 +28,7 @@
 | 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
 | 16 | Portal B2B | PENDING |
 | 17 | Funil WhatsApp e sistema | PENDING |
-| 18 | Home/campanhas: linkar produtos, categorias, grupos, veículos → página filtrada | PENDING |
+| 18 | Home/campanhas: linkar produtos, categorias, grupos, veículos → página filtrada | **DONE** |
 
 ## Texto extraído (PDF)
 
@@ -59,8 +59,8 @@ Melhorar o header no mobile — está muito cheio.
 ### #9 Auditoria jornada
 Usar o site de verdade: caminhos errados/incompletos; PDP itens relacionados; “ver no catálogo” filtrar corretamente; revisão em todas as telas.
 
-### #10 Copy
-Analisar textos/informações/instruções pelo site e estudar o melhor a se dizer.
+### #10 Copy — **DONE** (2026-11-22, fatia coerência)
+Analisar textos/informações/instruções pelo site e estudar o melhor a se dizer. → ver log Erro #10.
 
 ### #11 Favoritos (tela)
 Ajustar e corrigir tela de favoritos.
@@ -272,4 +272,15 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Arquivos | `catalogHref.ts`, `homeCampaignLink.ts`, `AdminHomeContentPage.tsx`, `CatalogPage.tsx`, `HomeBannerCarousel.tsx`, mapa §3.4, VAL |
 | Fora | Trilho widget `campaign`; multi-maker misturado; smoke E2E |
 
-**Próximo Notes:** Erro #10 — Copy / textos e instruções do site.
+### Erro #10 — Copy / textos e instruções (coerência)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** (fatia objetiva) |
+| Diagnóstico | Marca **Minha Garagem** vs “Garagem” solto; busca sem placa; empty catálogo com jargão SKU/sessão; “produto/item” onde a jornada fala **peça**. |
+| Estrutura | (1) Header + conta + Home/quick pick unificam **Minha Garagem**. (2) `searchCopy` prioriza placa/peça. (3) Catálogo: empty + contagem + “Limpar veículo ativo”. (4) Widgets/Home/favoritos/PDP: peça. |
+| Evidência | `searchCopy` + Header mobile + widgets + garageNav **10 PASS** · `tsc` OK |
+| Fora | Rename módulo “Cuidados”; reescrita marketing ampla; Notes #12/#13 |
+| Arquivos | `searchCopy.ts`, `Header.tsx`, `CatalogPage.tsx`, `HomeVehiclesPanel.tsx`, `AccountVehiclesPage.tsx`, VAL, este REF |
+
+**Próximo Notes:** Erro #12 — Destaques (configs não respeitadas).

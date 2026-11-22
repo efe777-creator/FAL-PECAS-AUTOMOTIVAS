@@ -251,17 +251,17 @@ export function CatalogPage() {
     displayProducts.length === 0
 
   const visibleCountLabel = (() => {
-    if (products.length === 0) return 'Nenhum produto neste filtro'
+    if (products.length === 0) return 'Nenhuma peça neste filtro'
     if (fitInput && pvcReady) {
       const hidden = products.length - displayProducts.length
       if (displayProducts.length === 0) {
-        return `${products.length} encontrado${products.length === 1 ? '' : 's'} · nenhum compatível com o veículo`
+        return `${products.length} encontrado${products.length === 1 ? '' : 's'} · nenhuma compatível com o veículo`
       }
-      return `${displayProducts.length} produto${displayProducts.length === 1 ? '' : 's'}${
-        hidden > 0 ? ` · ${hidden} oculto${hidden === 1 ? '' : 's'} (incompatível)` : ''
+      return `${displayProducts.length} peça${displayProducts.length === 1 ? '' : 's'}${
+        hidden > 0 ? ` · ${hidden} oculta${hidden === 1 ? '' : 's'} (incompatível)` : ''
       }`
     }
-    return `${total} produto${total === 1 ? '' : 's'}${
+    return `${total} peça${total === 1 ? '' : 's'}${
       products.length < total ? ` · mostrando ${products.length}` : ''
     }`
   })()
@@ -271,9 +271,9 @@ export function CatalogPage() {
     const chipScore = fitSpecificityScore(garage?.activeFilter)
     const pageScore = fitSpecificityScore(pageVehicleFilter)
     if (chipScore > 0 && chipScore >= pageScore) {
-      return garage?.isSessionActive ? 'sessão' : 'garagem'
+      return garage?.isSessionActive ? 'nesta sessão' : 'Minha Garagem'
     }
-    return 'filtros'
+    return 'filtros da página'
   }, [fitFilter, garage?.activeFilter, garage?.isSessionActive, pageVehicleFilter])
 
   function clearFitContext() {
@@ -1257,7 +1257,7 @@ export function CatalogPage() {
               className="shrink-0 rounded-[8px] border border-fal-line bg-fal-surface px-2.5 py-1.5 text-xs font-bold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
               onClick={clearFitContext}
             >
-              Limpar
+              Limpar veículo ativo
             </button>
           </div>
         ) : null}
@@ -1278,17 +1278,17 @@ export function CatalogPage() {
           <EmptyState
             title={
               allHitsHiddenByFit || vehicleFiltersActive || fitFilter
-                ? 'Veículo ativo — sem peças compatíveis neste resultado'
-                : 'Nenhum produto encontrado'
+                ? 'Nenhuma peça compatível com o veículo ativo'
+                : 'Nenhuma peça encontrada'
             }
             description={
               allHitsHiddenByFit
-                ? 'A busca encontrou SKU(s), mas nenhum combina com o veículo da garagem/sessão. Limpe a compatibilidade para ver o resultado sem filtro de veículo.'
+                ? 'Encontramos peças para a busca, mas nenhuma serve para o veículo ativo (Minha Garagem ou esta sessão). Limpe o veículo para ver todos os resultados.'
                 : emptyDescription
             }
             actionLabel={
               allHitsHiddenByFit || fitFilter
-                ? 'Limpar veículo'
+                ? 'Limpar veículo ativo'
                 : cat.trim() && parentCategorySlug
                   ? 'Ver classificação superior'
                   : activeChips.length
