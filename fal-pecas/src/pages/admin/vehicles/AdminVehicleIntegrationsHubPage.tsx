@@ -253,20 +253,28 @@ export function AdminVehicleIntegrationsHubPage() {
               <span className="rounded-md bg-fal-line/60 px-2 py-1 text-xs font-bold text-fal-muted">
                 Substituídos: {quality.superseded}
               </span>
-              {quality.thinShells > 0 ? (
-                <span className="rounded-md bg-orange-100 px-2 py-1 text-xs font-bold text-orange-950">
-                  Cascas (0 VV): {quality.thinShells}
-                </span>
-              ) : null}
-              {quality.pointLife > 0 ? (
-                <span className="rounded-md bg-orange-50 px-2 py-1 text-xs font-bold text-orange-900">
-                  Vida pontual: {quality.pointLife}
-                </span>
-              ) : null}
+              <span
+                className={`rounded-md px-2 py-1 text-xs font-bold ${
+                  quality.thinShells > 0
+                    ? 'bg-orange-100 text-orange-950'
+                    : 'bg-fal-line/40 text-fal-fg'
+                }`}
+              >
+                Cascas (0 VV): {quality.thinShells}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 text-xs font-bold ${
+                  quality.pointLife > 0
+                    ? 'bg-orange-50 text-orange-900'
+                    : 'bg-fal-line/40 text-fal-fg'
+                }`}
+              >
+                Vida pontual: {quality.pointLife}
+              </span>
             </>
           ) : null}
           <StatusChip label="Lookup read-only" on />
-          <StatusChip label="FIPE assist (flag)" on={false} />
+          <StatusChip label="Fonte B não promove" on />
           {lastSync ? (
             <span className="rounded-md bg-fal-line/40 px-2 py-1 text-xs font-bold text-fal-fg">
               Última sync: {new Date(lastSync.at).toLocaleString('pt-BR')} ·{' '}
