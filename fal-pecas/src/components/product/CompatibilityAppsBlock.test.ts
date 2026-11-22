@@ -19,7 +19,16 @@ describe('sliceCompatibilityGroups (MARCHA UI)', () => {
     expect(countCompatibilityLines(sample)).toBe(6)
   })
 
-  it('limiar 4 (card): primeiras 4 linhas; maker só se tiver linha visível', () => {
+  it('limiar 2 (card Notes #7): primeiras 2 linhas; maker só se tiver linha visível', () => {
+    const sliced = sliceCompatibilityGroups(sample, 2)
+    expect(sliced).toHaveLength(1)
+    expect(sliced[0]).toEqual({
+      maker: 'Fiat',
+      lines: [line('Uno'), line('Palio')],
+    })
+  })
+
+  it('limiar 4: primeiras 4 linhas; maker só se tiver linha visível', () => {
     const sliced = sliceCompatibilityGroups(sample, 4)
     expect(sliced).toHaveLength(2)
     expect(sliced[0]).toEqual({
@@ -29,6 +38,12 @@ describe('sliceCompatibilityGroups (MARCHA UI)', () => {
     expect(sliced[1].maker).toBe('Ford')
     expect(sliced[1].lines).toHaveLength(1)
     expect(sliced[1].lines[0].model).toBe('Ka')
+  })
+
+  it('exporta limiar card=2 e pdp=8', async () => {
+    const { COMPAT_APPS_LINE_LIMIT } = await import('@/components/product/CompatibilityAppsBlock')
+    expect(COMPAT_APPS_LINE_LIMIT.card).toBe(2)
+    expect(COMPAT_APPS_LINE_LIMIT.pdp).toBe(8)
   })
 
   it('limiar 8 (pdp): retorna tudo quando total ≤ 8', () => {

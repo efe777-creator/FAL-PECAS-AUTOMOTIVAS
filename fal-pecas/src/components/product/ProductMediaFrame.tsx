@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 type Variant = 'card' | 'gallery' | 'thumb'
 
 const shell: Record<Variant, string> = {
-  /** Cards do catálogo / carrosséis — área um pouco maior, foto preenche melhor */
-  card: 'flex h-[132px] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2 sm:h-[176px]',
+  /** Cards — mobile compacto (Notes #7); desktop mantém presença */
+  card: 'flex h-[104px] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface-2 sm:h-[176px]',
   /** Área principal da PDP — 4:3, foto mais presente (referência visual). */
   gallery:
     'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-fal bg-fal-surface dark:bg-fal-surface-2',

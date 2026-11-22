@@ -17,7 +17,7 @@
 | 4 | Arquivar/inativar: sumir da lista; filtro ativos/inativos (2 checkboxes) | **DONE** |
 | 5 | Ajustar e melhorar favoritos | **DONE** |
 | 6 | Placa consultada errada — assertividade do lookup | **DONE** |
-| 7 | Cards poluídos / grandes no mobile | PENDING |
+| 7 | Cards poluídos / grandes no mobile | **DONE** |
 | 8 | Header mobile muito cheio | PENDING |
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | PENDING |
 | 10 | Textos/instruções do site — copy e coerência | PENDING |
@@ -194,4 +194,14 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 
 Hub Admin Veículos → Integrações + seed fipeX via CSV no import existente. Spec: [FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md](./FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md). Loja híbrida e assert #6 permanecem DONE.
 
-**Próximo Notes:** Erro #7 — Cards poluídos / mobile.
+### Erro #7 — Cards poluídos / mobile
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | `ProductCard` único empilhava meta (cat/fab/lado) + apps até 4 + Pix/parcelas + 2 CTAs full-width em grade `grid-cols-2` com foto 132px — altura e ruído no mobile. |
+| Estrutura | (1) Foto card `104px` mobile. (2) Meta extra só `sm+`; ref permanece. (3) Apps card: 2 linhas, sem “Mais”. (4) Condições pagamento só `sm+`. (5) Mobile: 1 CTA Adicionar + link Comprar; `sm+` dois botões. (6) Favorito menor no mobile. |
+| Evidência | `tsc` + `CompatibilityAppsBlock` 6 PASS + `compatUiAntiregress` 20 PASS (M15 selo após título intacto) |
+| Arquivos | `ProductCard.tsx`, `ProductMediaFrame.tsx`, `CompatibilityAppsBlock.tsx` (+test), este REF |
+
+**Próximo Notes:** Erro #8 — Header mobile muito cheio.

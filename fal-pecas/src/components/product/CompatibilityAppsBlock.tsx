@@ -10,8 +10,9 @@ import type { CompatibilityAppGroup } from '@/types'
 
 export type CompatibilityAppsVariant = 'card' | 'pdp'
 
-const LINE_LIMIT: Record<CompatibilityAppsVariant, number> = {
-  card: 4,
+/** Card: 2 linhas (Notes #7 densidade mobile). PDP: 8. */
+export const COMPAT_APPS_LINE_LIMIT: Record<CompatibilityAppsVariant, number> = {
+  card: 2,
   pdp: 8,
 }
 
@@ -56,15 +57,21 @@ export function CompatibilityAppsBlock({
   emptyLabel?: string | null
 }) {
   const [expanded, setExpanded] = useState(false)
-  const limit = LINE_LIMIT[variant]
+  const limit = COMPAT_APPS_LINE_LIMIT[variant]
+  const textSize = variant === 'card' ? 'text-xs' : 'text-sm'
+  /** No card: truncar sem botão “Mais” (altura); detalhe na PDP. */
+  const allowExpand = variant === 'pdp'
 
   if (groups?.length) {
     const totalLines = countCompatibilityLines(groups)
     const hasMore = totalLines > limit
-    const visible = expanded || !hasMore ? groups : sliceCompatibilityGroups(groups, limit)
+    const visible =
+      (allowExpand && expanded) || !hasMore
+        ? groups
+        : sliceCompatibilityGroups(groups, limit)
 
     return (
-      <div className={`space-y-1.5 text-sm text-fal-ink ${className}`.trim()}>
+      <div className={`space-y-1 text-fal-ink ${textSize} ${className}`.trim()}>
         <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">{APLICACAO_SECTION_LABEL}</p>
         {visible.map((g, gi) => (
           <div key={`${gi}-${g.maker}`}>
@@ -87,7 +94,7 @@ export function CompatibilityAppsBlock({
             </ul>
           </div>
         ))}
-        {hasMore ? (
+        {allowExpand && hasMore ? (
           <Button
             type="button"
             variant="light"
@@ -108,12 +115,17 @@ export function CompatibilityAppsBlock({
   }
 
   if (summary) {
+    const summaryLines = summary.split(' · ')
+    const shown =
+      variant === 'card' ? summaryLines.slice(0, COMPAT_APPS_LINE_LIMIT.card) : summaryLines
     return (
-      <div className={`text-sm ${className}`.trim()}>
+      <div className={`${textSize} ${className}`.trim()}>
         <p className="m-0 font-semibold text-fal-navy dark:text-fal-fg">{APLICACAO_SECTION_LABEL}</p>
         <ul className="mb-0 mt-1 list-none space-y-0.5 p-0 text-fal-ink">
-          {summary.split(' · ').map((line, i) => (
-            <li key={`${i}-${line}`}>{line}</li>
+          {shown.map((line, i) => (
+            <li key={`${i}-${line}`} className="truncate">
+              {line}
+            </li>
           ))}
         </ul>
       </div>
@@ -121,7 +133,7 @@ export function CompatibilityAppsBlock({
   }
 
   return (
-    <p className={`m-0 text-sm text-fal-muted ${className}`.trim()}>
+    <p className={`m-0 text-fal-muted ${textSize} ${className}`.trim()}>
       {emptyLabel?.trim() || APPS_EMPTY_LABEL}
     </p>
   )

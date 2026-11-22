@@ -214,7 +214,7 @@ export function ProductCard({
   }
 
   return (
-    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2.5 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3.5">
+    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3.5">
       {(offer.isOffer && presentation.showOfertaBadge) || product.productKind === 'kit' ? (
         <div className="absolute top-3.5 left-3.5 z-[1] flex flex-col items-start gap-1">
           {product.productKind === 'kit' ? <Badge>Kit</Badge> : null}
@@ -231,7 +231,7 @@ export function ProductCard({
       <button
         type="button"
         className={[
-          'absolute top-3.5 right-3.5 z-[2] grid h-11 w-11 place-items-center rounded-full border bg-fal-surface/95 text-base shadow-sm',
+          'absolute top-2 right-2 z-[2] grid h-9 w-9 place-items-center rounded-full border bg-fal-surface/95 text-sm shadow-sm sm:top-3.5 sm:right-3.5 sm:h-11 sm:w-11 sm:text-base',
           favoritesLoading && user ? 'opacity-60' : '',
           liked
             ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
@@ -244,7 +244,7 @@ export function ProductCard({
         {liked ? '♥' : '♡'}
       </button>
 
-      <div className="relative mb-1 shrink-0">
+      <div className="relative mb-0.5 shrink-0 sm:mb-1">
         <ProductMediaFrame variant="card">
           {product.imageUrl ? (
             <Link
@@ -268,13 +268,13 @@ export function ProductCard({
 
       <Link to={productHref} state={pdpLinkState} className="flex min-h-0 min-w-0 flex-1 flex-col">
         <h3
-          className="mt-2 mb-1 line-clamp-2 min-h-9 break-words text-xs font-bold leading-snug sm:min-h-[2.7rem] sm:text-[15px]"
+          className="mt-1.5 mb-0.5 line-clamp-2 min-h-8 break-words text-xs font-bold leading-snug sm:mt-2 sm:mb-1 sm:min-h-[2.7rem] sm:text-[15px]"
           title={displayName}
         >
           {displayName}
         </h3>
         {showSeal && compatVerdict ? (
-          <div className="mb-1.5">
+          <div className="mb-1">
             <CompatibilityStateBadge
               verdict={compatVerdict}
               variant="card"
@@ -286,8 +286,9 @@ export function ProductCard({
         <p className="m-0 truncate text-[11px] text-fal-muted">
           {formatReferenciaFromProduct(product)}
         </p>
+        {/* Meta extra só a partir de sm — no mobile polui e estica o card (Notes #7). */}
         {product.categoryName ? (
-          <p className="m-0 truncate text-[11px] text-fal-muted">
+          <p className="m-0 hidden truncate text-[11px] text-fal-muted sm:block">
             {product.categorySlug ? (
               <button
                 type="button"
@@ -306,7 +307,7 @@ export function ProductCard({
           </p>
         ) : null}
         {brandName || product.manufacturerCode ? (
-          <p className="m-0 truncate text-[11px] text-fal-muted">
+          <p className="m-0 hidden truncate text-[11px] text-fal-muted sm:block">
             {brandName ? (
               <span>
                 {FABRICANTE_LABEL}: {brandName}
@@ -319,7 +320,7 @@ export function ProductCard({
           </p>
         ) : null}
         {product.posicao || product.lado ? (
-          <p className="m-0 truncate text-[11px] text-fal-ink">
+          <p className="m-0 hidden truncate text-[11px] text-fal-ink sm:block">
             {[
               product.posicao ? formatPosicaoLabel(product.posicao) : null,
               product.lado ? formatLadoLabel(product.lado) : null,
@@ -330,7 +331,7 @@ export function ProductCard({
         ) : null}
         {showApps ? (
           <CompatibilityAppsBlock
-            className="my-2 text-xs"
+            className="my-1.5 sm:my-2"
             variant="card"
             groups={product.compatibilityGroups}
             summary={product.compatibilitySummary}
@@ -339,12 +340,12 @@ export function ProductCard({
         ) : null}
       </Link>
 
-      <div className="mt-auto flex shrink-0 flex-col gap-2 pt-2">
+      <div className="mt-auto flex shrink-0 flex-col gap-1.5 pt-1.5 sm:gap-2 sm:pt-2">
         {!available ? (
           <p className="m-0 text-sm font-bold text-fal-danger">Indisponível</p>
         ) : (
           <>
-            <p className="m-0 truncate text-lg font-black sm:text-[22px]">
+            <p className="m-0 truncate text-base font-black sm:text-[22px]">
               {formatStorePriceLabel(storefrontPrice, listPrice)}
             </p>
             {offer.isOffer ? (
@@ -352,13 +353,15 @@ export function ProductCard({
                 {formatMoney(offer.listPrice)}
               </p>
             ) : null}
-            <PaymentConditionHint amount={price} surface="card" />
+            <div className="hidden sm:block">
+              <PaymentConditionHint amount={price} surface="card" />
+            </div>
           </>
         )}
 
         {available && inCart ? (
           <p
-            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2.5 py-1 text-xs font-bold text-fal-navy-dark dark:bg-fal-yellow/25 dark:text-fal-yellow"
+            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark sm:px-2.5 sm:py-1 sm:text-xs dark:bg-fal-yellow/25 dark:text-fal-yellow"
             aria-live="polite"
           >
             No carrinho: {cartQty}
@@ -367,10 +370,39 @@ export function ProductCard({
 
         {showPurchaseCtas ? (
           <>
-            <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
+            {/* Mobile: 1 CTA + link; sm+: dois botões (densidade Notes #7). */}
+            <Button
+              variant="primary"
+              size="sm"
+              fullWidth
+              className="sm:hidden"
+              onClick={(e) => void onAddToCart(e)}
+            >
+              {ADICIONAR_AO_CARRINHO_LABEL}
+            </Button>
+            <button
+              type="button"
+              className="m-0 border-0 bg-transparent p-0 text-center text-[11px] font-semibold text-fal-navy underline sm:hidden dark:text-fal-fg"
+              onClick={(e) => void onBuyNow(e)}
+            >
+              {COMPRAR_AGORA_LABEL}
+            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              fullWidth
+              className="hidden sm:inline-flex"
+              onClick={onBuyNow}
+            >
               {COMPRAR_AGORA_LABEL}
             </Button>
-            <Button variant="light" size="sm" fullWidth onClick={(e) => void onAddToCart(e)}>
+            <Button
+              variant="light"
+              size="sm"
+              fullWidth
+              className="hidden sm:inline-flex"
+              onClick={(e) => void onAddToCart(e)}
+            >
               {ADICIONAR_AO_CARRINHO_LABEL}
             </Button>
           </>
