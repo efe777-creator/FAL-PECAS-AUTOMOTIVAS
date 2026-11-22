@@ -22,7 +22,7 @@
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | **DONE** |
 | 10 | Textos/instruções do site — copy e coerência | **DONE** (fatia coerência) |
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
-| 12 | Seção destaques: configs não respeitadas | PENDING |
+| 12 | Seção destaques: configs não respeitadas | **DONE** |
 | 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | PENDING (registry widgets criado) |
 | 14 | LGPD, segurança, políticas garantia/devolução | PENDING |
 | 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
@@ -65,8 +65,8 @@ Analisar textos/informações/instruções pelo site e estudar o melhor a se diz
 ### #11 Favoritos (tela)
 Ajustar e corrigir tela de favoritos.
 
-### #12 Destaques
-Configurações da seção de destaque não estão sendo respeitadas / refletidas.
+### #12 Destaques — **DONE** (2026-11-22)
+Configurações da seção de destaque não estão sendo respeitadas / refletidas. → ver log Erro #12.
 
 ### #13 Ofertas / promoções
 Melhorar seção e apresentação das ofertas; colocar o nome de promoções; itens promocionais ativos + kits; textos e CTAs.
@@ -283,4 +283,15 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Fora | Rename módulo “Cuidados”; reescrita marketing ampla; Notes #12/#13 |
 | Arquivos | `searchCopy.ts`, `Header.tsx`, `CatalogPage.tsx`, `HomeVehiclesPanel.tsx`, `AccountVehiclesPage.tsx`, VAL, este REF |
 
-**Próximo Notes:** Erro #12 — Destaques (configs não respeitadas).
+### Erro #12 — Destaques / configs não respeitadas
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | (1) `listFeaturedProducts` fazia **backfill** de catálogo quando curadoria &lt; limite — “desligar” no admin não sumia. (2) Home lia limite só no mount e após dedupe com Ofertas o trilho ficava curto. |
+| Estrutura | (1) Com fila curada: só ativos na ordem (`resolveFeaturedShelf`). (2) Home: `useHomePresentation().featuredDisplayLimit` + overfetch + `.slice` pós-dedupe. Selo/% já vinham do presentation. |
+| Evidência | `homeSections` **8 PASS** · `tsc` OK |
+| Arquivos | `homeSections.ts` (+test), `productService.ts`, `HomePage.tsx`, VAL, este REF |
+| Fora | Notes #13 ofertas/promo naming |
+
+**Próximo Notes:** Erro #13 — Ofertas / promoções (nome, kits, CTAs).

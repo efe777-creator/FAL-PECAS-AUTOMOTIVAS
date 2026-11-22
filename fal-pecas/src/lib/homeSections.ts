@@ -24,7 +24,7 @@ export function excludeProductsById<T extends { id: string }>(
 }
 
 /**
- * Ordenação híbrida de destaques:
+ * Ordenação híbrida de destaques (só quando **não** há fila curada):
  * 1) curados na ordem manual
  * 2) completa vagas com automáticos
  * 3) sem duplicar
@@ -51,4 +51,32 @@ export function mergeFeaturedHybrid<T extends { id: string }>(
     out.push(item)
   }
   return out
+}
+
+/**
+ * Notes #12 — vitrine Destaques:
+ * - Com IDs na curadoria (`store_home_featured_products` ativos): **só** esses,
+ *   na ordem, até `limit` (sem backfill de catálogo — “desligar” some de verdade).
+ * - Sem curadoria: fallback híbrido só com automáticos.
+ */
+export function resolveFeaturedShelf<T extends { id: string }>(
+  curated: T[],
+  automatic: T[],
+  limit: number,
+  hasCuratedQueue: boolean,
+): T[] {
+  const cap = Math.max(0, Math.floor(limit))
+  if (cap === 0) return []
+  if (hasCuratedQueue) {
+    const out: T[] = []
+    const seen = new Set<string>()
+    for (const item of curated) {
+      if (out.length >= cap) break
+      if (!item?.id || seen.has(item.id)) continue
+      seen.add(item.id)
+      out.push(item)
+    }
+    return out
+  }
+  return mergeFeaturedHybrid([], automatic, cap)
 }

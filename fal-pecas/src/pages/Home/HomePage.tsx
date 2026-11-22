@@ -18,11 +18,11 @@ import {
 } from '@/hooks/useCatalog'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useOpenGraph } from '@/hooks/useOpenGraph'
+import { useHomePresentation } from '@/hooks/useHomePresentation'
 import { excludeProductsById, HOME_FEATURED_LIMIT_DEFAULT } from '@/lib/homeSections'
 import { getProductWidgetDef } from '@/lib/productWidgets'
 import { listBestsellerProducts } from '@/services/home/bestsellerService'
 import { getStoreIdentity } from '@/lib/storeIdentity'
-import { getFeaturedDisplayLimit } from '@/services/home/homeContentService'
 import {
   useCallback,
   useEffect,
@@ -120,9 +120,12 @@ function useStableShelfToggle(setShelfPanel: Dispatch<SetStateAction<HomeShelfPa
 
 export function HomePage() {
   const categories = useCategories()
-  const [featuredLimit, setFeaturedLimit] = useState(HOME_FEATURED_LIMIT_DEFAULT)
+  const presentation = useHomePresentation()
+  const featuredLimit = presentation.featuredDisplayLimit || HOME_FEATURED_LIMIT_DEFAULT
+  /** Overfetch: após dedupe com Ofertas ainda dá para completar o limite da Config. */
+  const featuredFetchLimit = Math.max(featuredLimit * 2, featuredLimit + 8)
   const [shelfPanel, setShelfPanel] = useState<HomeShelfPanel>('featured')
-  const featured = useFeaturedProducts(featuredLimit)
+  const featured = useFeaturedProducts(featuredFetchLimit)
   const offers = usePromoHighlightProducts(8)
   const [bestsellers, setBestsellers] = useState<{
     data: Product[]
@@ -136,16 +139,6 @@ export function HomePage() {
     description: 'Encontre a peça certa para o seu veículo.',
     type: 'website',
   })
-
-  useEffect(() => {
-    let active = true
-    void getFeaturedDisplayLimit().then((n) => {
-      if (active) setFeaturedLimit(n)
-    })
-    return () => {
-      active = false
-    }
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -210,8 +203,9 @@ export function HomePage() {
   }, [])
 
   const featuredWithoutOffers = useMemo(
-    () => excludeProductsById(featured.data, offers.data),
-    [featured.data, offers.data],
+    () =>
+      excludeProductsById(featured.data, offers.data).slice(0, featuredLimit),
+    [featured.data, offers.data, featuredLimit],
   )
   const featuredWidget = getProductWidgetDef('featured')
   const offersWidget = getProductWidgetDef('offers')

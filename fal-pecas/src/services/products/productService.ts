@@ -96,26 +96,30 @@ async function hydratePublishedByIds(ids: string[]): Promise<Product[]> {
 }
 
 /**
- * Destaques da home (MVP / AJUSTE-021+022):
- * 1) curadoria store_home_featured_products na ordem manual
- * 2) completa vagas com published elegíveis (disponíveis primeiro)
- * 3) sem duplicar — promoção não remove curadoria
+ * Destaques da Home (Notes #12):
+ * - Com fila em `store_home_featured_products` (ativos): só esses, na ordem, até `limit`
+ *   (sem backfill — desligar no admin some da loja).
+ * - Sem curadoria: fallback publicado (disponíveis primeiro).
+ * Dedupe com Ofertas fica na Home (`excludeProductsById` + slice no limite).
  */
 export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
-  const { mergeFeaturedHybrid } = await import('@/lib/homeSections')
+  const { resolveFeaturedShelf } = await import('@/lib/homeSections')
   const { listCuratedFeaturedProductIds } = await import('@/services/home/homeContentService')
   const cap = Math.max(1, limit)
   const curatedIds = await listCuratedFeaturedProductIds()
-  const curated = curatedIds.length
+  const hasCuratedQueue = curatedIds.length > 0
+  const curated = hasCuratedQueue
     ? await hydratePublishedByIds(curatedIds.slice(0, Math.max(cap * 2, cap)))
     : []
 
-  if (curated.length >= cap) return curated.slice(0, cap)
+  if (hasCuratedQueue) {
+    return resolveFeaturedShelf(curated, [], cap, true)
+  }
 
   const pool = await listPublishedProducts(Math.max(cap * 3, 24))
   const available = pool.filter((p) => p.available !== false)
   const rest = pool.filter((p) => p.available === false)
-  return mergeFeaturedHybrid(curated, [...available, ...rest], cap)
+  return resolveFeaturedShelf([], [...available, ...rest], cap, false)
 }
 
 /** Preço a pagar menor que lista (promo ou lista B2B) e disponível. */

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { excludeProductsById, mergeFeaturedHybrid } from './homeSections'
+import {
+  excludeProductsById,
+  mergeFeaturedHybrid,
+  resolveFeaturedShelf,
+} from './homeSections'
 
 describe('excludeProductsById', () => {
   it('remove ids presentes em ofertas', () => {
@@ -37,5 +41,34 @@ describe('mergeFeaturedHybrid', () => {
       'a1',
       'a2',
     ])
+  })
+})
+
+describe('resolveFeaturedShelf (Notes #12)', () => {
+  it('com fila curada, não completa com catálogo automático', () => {
+    const curated = [{ id: 'c1' }]
+    const automatic = [{ id: 'a1' }, { id: 'a2' }]
+    expect(
+      resolveFeaturedShelf(curated, automatic, 4, true).map((p) => p.id),
+    ).toEqual(['c1'])
+  })
+
+  it('sem fila curada, usa automáticos até o limite', () => {
+    expect(
+      resolveFeaturedShelf([], [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }], 2, false).map(
+        (p) => p.id,
+      ),
+    ).toEqual(['a1', 'a2'])
+  })
+
+  it('respeita limite sobre curados', () => {
+    expect(
+      resolveFeaturedShelf(
+        [{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }],
+        [{ id: 'a1' }],
+        2,
+        true,
+      ).map((p) => p.id),
+    ).toEqual(['c1', 'c2'])
   })
 })
