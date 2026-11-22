@@ -157,9 +157,14 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(hub).toMatch(/Vida pontual:/)
     expect(hub).toMatch(/Vida pontual verified/)
     expect(hub).toMatch(/verifiedPointLifeItems/)
+    expect(hub).toMatch(/Sem motor:/)
+    expect(hub).toMatch(/VV verified sem motor/)
+    expect(hub).toMatch(/verifiedNoEngineItems/)
     const stats = read('src/services/admin/adminVehicleMasterStats.ts')
     expect(stats).toMatch(/verifiedThinShellItems/)
     expect(stats).toMatch(/verifiedPointLifeItems/)
+    expect(stats).toMatch(/verifiedNoEngineItems/)
+    expect(stats).toMatch(/loadVerifiedNoEngineRows/)
     const qqFix = read(
       'supabase/migrations/20261122230000_qq_maker_to_caoa_chery.sql',
     )

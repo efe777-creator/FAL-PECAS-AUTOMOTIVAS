@@ -7,6 +7,7 @@ import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
   listVerifiedThinShells,
+  type VehicleNoEngineItem,
   type VehiclePointLifeItem,
   type VehicleReviewQueueItem,
   type VehicleThinShellItem,
@@ -56,12 +57,14 @@ export function AdminVehicleIntegrationsHubPage() {
     superseded: number
     thinShells: number
     pointLife: number
+    noEngine: number
   } | null>(null)
   const [queue, setQueue] = useState<VehicleReviewQueueItem[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
   const [thinShells, setThinShells] = useState<VehicleThinShellItem[]>([])
   const [thinShellsError, setThinShellsError] = useState<string | null>(null)
   const [pointLifeItems, setPointLifeItems] = useState<VehiclePointLifeItem[]>([])
+  const [noEngineItems, setNoEngineItems] = useState<VehicleNoEngineItem[]>([])
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -154,14 +157,17 @@ export function AdminVehicleIntegrationsHubPage() {
         superseded: s.qualitySuperseded,
         thinShells: s.verifiedThinShells,
         pointLife: s.verifiedPointLife,
+        noEngine: s.verifiedNoEngine,
       })
       setThinShells(s.verifiedThinShellItems)
       setThinShellsError(null)
       setPointLifeItems(s.verifiedPointLifeItems)
+      setNoEngineItems(s.verifiedNoEngineItems)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
       setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
       setPointLifeItems([])
+      setNoEngineItems([])
     }
     setQueueError(null)
     try {
@@ -287,6 +293,15 @@ export function AdminVehicleIntegrationsHubPage() {
                 }`}
               >
                 Vida pontual: {quality.pointLife}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 text-xs font-bold ${
+                  quality.noEngine > 0
+                    ? 'bg-orange-50 text-orange-900'
+                    : 'bg-fal-line/40 text-fal-fg'
+                }`}
+              >
+                Sem motor: {quality.noEngine}
               </span>
             </>
           ) : null}
@@ -424,6 +439,42 @@ export function AdminVehicleIntegrationsHubPage() {
                 {p.reviewNote ? <span className="text-fal-muted">{p.reviewNote}</span> : null}
                 <Link
                   to={`/admin/veiculos?model=${encodeURIComponent(p.id)}`}
+                  className="text-xs font-semibold text-fal-fg"
+                >
+                  Abrir
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">
+          VV verified sem motor ({noEngineItems.length})
+        </p>
+        <p className="mb-2 mt-1 text-sm text-fal-muted">
+          Config ativa sem campo engine — abrir no cadastro do modelo e preencher só com evidência
+          (sem inventar motorização).
+        </p>
+        {noEngineItems.length === 0 ? (
+          <p className="m-0 text-sm text-fal-muted">Nenhuma VV verified sem motor.</p>
+        ) : (
+          <ul className="m-0 max-h-48 list-none space-y-1 overflow-y-auto p-0">
+            {noEngineItems.map((v) => (
+              <li
+                key={v.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-fal-line/60 py-1 text-sm"
+              >
+                <span className="rounded-md bg-orange-50 px-2 py-0.5 text-xs font-bold text-orange-900">
+                  Sem motor
+                </span>
+                <span className="font-semibold text-fal-fg">
+                  {v.makerName} {v.modelName}
+                  {v.versionName ? ` · ${v.versionName}` : ''}
+                </span>
+                <Link
+                  to={`/admin/veiculos?model=${encodeURIComponent(v.modelId)}`}
                   className="text-xs font-semibold text-fal-fg"
                 >
                   Abrir

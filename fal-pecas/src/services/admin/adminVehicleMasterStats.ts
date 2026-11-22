@@ -15,6 +15,15 @@ export type VehiclePointLifeItem = {
   reviewNote: string | null
 }
 
+/** VV ativo sob modelo verified sem `engine` — riqueza residual, sem inventar motor. */
+export type VehicleNoEngineItem = {
+  id: string
+  modelId: string
+  makerName: string
+  modelName: string
+  versionName: string | null
+}
+
 export type VehicleMasterStats = {
   manufacturersActive: number
   modelsActive: number
@@ -37,6 +46,10 @@ export type VehicleMasterStats = {
   verifiedPointLife: number
   /** Lista vida pontual (mesma fonte do contador). */
   verifiedPointLifeItems: VehiclePointLifeItem[]
+  /** VV active sob verified sem motor preenchido. */
+  verifiedNoEngine: number
+  /** Lista VV sem motor (mesma fonte do contador). */
+  verifiedNoEngineItems: VehicleNoEngineItem[]
 }
 
 export type VehicleModelQualityStatus = 'review' | 'verified' | 'quarantined' | 'superseded'
@@ -86,6 +99,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualitySuperseded,
     thinShellItems,
     pointLifeItems,
+    noEngineItems,
   ] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
@@ -101,6 +115,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     countQuality('superseded'),
     loadVerifiedThinShellRows(),
     loadVerifiedPointLifeRows(),
+    loadVerifiedNoEngineRows(),
   ])
   if (withLife.error) throw withLife.error
   return {
@@ -116,6 +131,8 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     verifiedThinShellItems: thinShellItems,
     verifiedPointLife: pointLifeItems.length,
     verifiedPointLifeItems: pointLifeItems,
+    verifiedNoEngine: noEngineItems.length,
+    verifiedNoEngineItems: noEngineItems,
   }
 }
 
@@ -190,6 +207,47 @@ async function loadVerifiedPointLifeRows(): Promise<VehiclePointLifeItem[]> {
 
 export async function listVerifiedPointLife(): Promise<VehiclePointLifeItem[]> {
   return loadVerifiedPointLifeRows()
+}
+
+/** VV active sob modelo verified+active com engine null/vazio. */
+async function loadVerifiedNoEngineRows(): Promise<VehicleNoEngineItem[]> {
+  const { data, error } = await getSupabase()
+    .from('vehicle_versions')
+    .select(
+      'id, version_name, engine, model_id, models!inner(id, name, status, quality_status, manufacturers(name))',
+    )
+    .eq('status', 'active')
+    .eq('models.status', 'active')
+    .eq('models.quality_status', 'verified')
+    .order('version_name')
+  if (error) throw error
+  return (data ?? [])
+    .filter((r) => !String(r.engine ?? '').trim())
+    .map((r) => {
+      const mod = r.models
+      const model = Array.isArray(mod) ? mod[0] : mod
+      const mk = model?.manufacturers
+      const first = Array.isArray(mk) ? mk[0] : mk
+      return {
+        id: String(r.id),
+        modelId: String(r.model_id),
+        makerName: String(first?.name ?? '—'),
+        modelName: String(model?.name ?? '—'),
+        versionName: r.version_name ? String(r.version_name) : null,
+      }
+    })
+    .sort((a, b) => {
+      const ma = `${a.makerName} ${a.modelName}`.localeCompare(
+        `${b.makerName} ${b.modelName}`,
+        'pt-BR',
+      )
+      if (ma !== 0) return ma
+      return String(a.versionName ?? '').localeCompare(String(b.versionName ?? ''), 'pt-BR')
+    })
+}
+
+export async function listVerifiedNoEngine(): Promise<VehicleNoEngineItem[]> {
+  return loadVerifiedNoEngineRows()
 }
 
 type QueueRow = {
