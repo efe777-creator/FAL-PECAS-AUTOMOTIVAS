@@ -2,6 +2,7 @@ import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { detectCsvDelimiter } from '@/services/import/delimiter'
 import { splitCsvLine, splitCsvRecords } from '@/services/import/csvSplit'
 import { normalizeHeader } from '@/services/import/headers'
+import { mergeModelProductionYears } from '@/services/admin/adminVehicleService'
 import { vehicleCanonicalUpsert } from '@/services/vehicles/vehicleCanonicalUpsert'
 
 export type VehicleMasterRow = {
@@ -125,6 +126,7 @@ export async function adminApplyVehicleMasterImport(
   }
 
   const seen = new Set<string>()
+  const mergedLife = new Set<string>()
 
   for (const row of rows) {
     if (row.action === 'skip' || !row.montadora || !row.modelo) {
@@ -156,6 +158,11 @@ export async function adminApplyVehicleMasterImport(
       result.versionIds.push(upserted.versionId)
       // Heurística: se já existia, RPC ainda retorna id — contamos create na 1ª vez do batch
       result.created += 1
+      // Vida de linha expansiva (min/max), como sync inteligente — sem criar VV/PVC.
+      if (row.ano && !mergedLife.has(upserted.modelId)) {
+        await mergeModelProductionYears(upserted.modelId, row.ano, row.ano)
+        mergedLife.add(upserted.modelId)
+      }
     } catch (err) {
       result.errors += 1
       row.action = 'error'

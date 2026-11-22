@@ -64,9 +64,44 @@ describe('assertividade · writers e duplicidade de escrita', () => {
   it('árvore pública só lê modelos verified; admin permanece sem filtro', () => {
     const pub = read('src/services/vehicles/vehicleService.ts')
     expect(pub).toMatch(/\.eq\('quality_status', 'verified'\)/)
+    expect(pub).toMatch(/models!inner\(name, status, quality_status\)/)
+    expect(pub).toMatch(/\.eq\('models\.quality_status', 'verified'\)/)
     const admin = read('src/services/admin/adminVehicleService.ts')
     expect(admin).not.toMatch(/\.eq\('quality_status'/)
     expect(admin).toMatch(/quality_status: 'review'/)
+  })
+
+  it('RLS público e RPC set_model_quality_status fecham a loja', () => {
+    const sql = read(
+      'supabase/migrations/20261122170000_mestre_public_rls_and_quality_rpc.sql',
+    )
+    expect(sql).toMatch(/quality_status = 'verified'/)
+    expect(sql).toMatch(/set_model_quality_status/)
+    expect(sql).toMatch(/oem_a1/)
+    expect(sql).toMatch(/a2_concordant/)
+  })
+
+  it('plate resolver só aceita modelo verified (superseded→canonical)', () => {
+    const src = read('supabase/functions/_shared/vehicleResolver.ts')
+    expect(src).toMatch(/quality_status/)
+    expect(src).toMatch(/canonical_model_id/)
+    expect(src).toMatch(/verified/)
+  })
+
+  it('import CSV clássico merge vida de linha após upsert', () => {
+    const src = read('src/services/admin/adminVehicleMasterImportService.ts')
+    expect(src).toMatch(/vehicleCanonicalUpsert/)
+    expect(src).toMatch(/mergeModelProductionYears/)
+  })
+
+  it('hub e admin usam setModelQualityStatus / badge qualidade', () => {
+    const hub = read('src/pages/admin/vehicles/AdminVehicleIntegrationsHubPage.tsx')
+    expect(hub).toMatch(/setModelQualityStatus/)
+    expect(hub).toMatch(/Verificar \(A1\)/)
+    expect(hub).toMatch(/\?model=/)
+    const page = read('src/pages/admin/vehicles/AdminVehiclesPage.tsx')
+    expect(page).toMatch(/qualityBadge/)
+    expect(page).toMatch(/searchParams\.get\('model'\)/)
   })
 
   it('vehicleEvidence é somente leitura (sem writers em models/VV/PVC)', () => {

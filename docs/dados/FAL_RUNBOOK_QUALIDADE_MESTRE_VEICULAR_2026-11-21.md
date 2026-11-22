@@ -13,29 +13,34 @@
 | Schema qualidade | `fal-pecas/supabase/migrations/20261122120000_models_quality_provenance.sql` |
 | Remap | `fal-pecas/supabase/migrations/20261122121000_vehicle_master_quality_remap.sql` |
 | Apps-import review | `fal-pecas/supabase/migrations/20261122122000_apps_import_models_review_only.sql` |
+| RLS público + RPC qualidade | `fal-pecas/supabase/migrations/20261122170000_mestre_public_rls_and_quality_rpc.sql` |
+| Extração engine←version | `fal-pecas/supabase/migrations/20261122160000_extract_engine_from_version_name.sql` |
 
 ## Política rápida
 
-- `verified` exige A1 OEM ou duas A2 concordantes.
+- `verified` exige A1 OEM (`oem_a1`) ou par A2 (`a2_concordant`) + URL — via RPC `set_model_quality_status`.
 - Fonte B (fipeX) / placa / LLM **nunca** promove sozinha.
-- Seletor público: `status=active AND quality_status=verified`.
+- Seletor público + **RLS anon**: `status=active AND quality_status=verified` (VV só com pai verified).
 - Novos modelos (upsert/apps-import/CRUD) nascem `review`.
-- Writer único: `normalizeVehicleMasterInput` → `upsert_vehicle_canonical` (fail closed, sem insert client).
+- Writer canônico: `normalizeVehicleMasterInput` → `upsert_vehicle_canonical` (fail closed, sem insert client).
+- **Exceção controlada:** `adminUpsertModel` / `adminUpsertVersion` gravam direto no PostgREST (staff), sempre `review` no insert e sem promover `verified`. Promoção só pela RPC/hub.
+- RPC SQL `upsert_vehicle_canonical_internal` recebe nome **já normalizado** pelo TS/Edge; não replica a matriz pai/filho.
 
 ## Mapa de writers (real)
 
 | Writer | Caminho | Normaliza? |
 |--------|---------|------------|
-| Import CSV mestre | `adminVehicleMasterImportService` → `vehicleCanonicalUpsert` | sim |
-| Sync intelligence | `vehicleMasterIntelligence` → `vehicleCanonicalUpsert` | sim |
+| Import CSV mestre | `adminVehicleMasterImportService` → `vehicleCanonicalUpsert` + `mergeModelProductionYears` | sim |
+| Sync intelligence | `vehicleMasterIntelligence` → `vehicleCanonicalUpsert` + vida | sim |
 | Confirm placa | Edge `vehicle-confirm-upsert` → RPC | sim (Edge mirror) |
-| Admin CRUD modelo | `adminVehicleService.adminUpsertModel` | sim |
+| Admin CRUD modelo | `adminVehicleService.adminUpsertModel` | sim (exceção: sem RPC canônico) |
+| Qualidade staff | `setModelQualityStatus` → RPC `set_model_quality_status` | n/a |
 | Apps-import PVC | RPC `apply_catalog_applications_import` | cria modelo só como `review` |
 | Seeds/migrations | SQL direto | ops; não é runtime loja |
 
 ## Operação — fila no hub
 
-Admin → Integrações · Veículos: chips `verified` / `review` / `quarantined` / `superseded` + fila com `review_note`.
+Admin → Integrações · Veículos: chips `verified` / `review` / `quarantined` / `superseded` + fila com ações Verificar (A1) / Quarentena + deep link `?model=` no cadastro.
 
 ## Remap seguro
 

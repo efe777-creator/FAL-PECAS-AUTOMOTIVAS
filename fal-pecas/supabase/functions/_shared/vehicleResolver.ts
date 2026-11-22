@@ -85,17 +85,32 @@ export async function resolveVehicleAgainstCatalog(
 
   const { data: models, error: e2 } = await sb
     .from('models')
-    .select('id, name, manufacturer_id')
+    .select('id, name, manufacturer_id, quality_status, canonical_model_id')
     .eq('status', 'active')
     .eq('manufacturer_id', maker.id)
     .limit(500)
   if (e2) throw e2
 
   const modelNorm = normToken(modelQ)
-  const model =
+  let model =
     (models ?? []).find((m) => String(m.name).toLowerCase() === modelQ.toLowerCase()) ??
     (models ?? []).find((m) => normToken(String(m.name)) === modelNorm)
   // Sem match por prefixo: Corolla ≠ Corolla Cross (linhas distintas).
+
+  // superseded → canônico verified; review/quarantined não entram na loja.
+  if (model && String(model.quality_status) === 'superseded' && model.canonical_model_id) {
+    const { data: canon, error: eCanon } = await sb
+      .from('models')
+      .select('id, name, manufacturer_id, quality_status, canonical_model_id')
+      .eq('id', model.canonical_model_id)
+      .eq('status', 'active')
+      .eq('quality_status', 'verified')
+      .maybeSingle()
+    if (eCanon) throw eCanon
+    model = canon ?? null
+  } else if (model && String(model.quality_status) !== 'verified') {
+    model = null
+  }
 
   if (!model) {
     return {

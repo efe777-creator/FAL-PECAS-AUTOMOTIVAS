@@ -17,7 +17,21 @@ import {
 } from '@/services/admin/adminVehicleService'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+
+function qualityBadge(status: VehicleModel['qualityStatus']): { label: string; className: string } {
+  switch (status) {
+    case 'verified':
+      return { label: 'Verificado', className: 'bg-emerald-100 text-emerald-900' }
+    case 'quarantined':
+      return { label: 'Quarentena', className: 'bg-red-100 text-red-900' }
+    case 'superseded':
+      return { label: 'Substituído', className: 'bg-fal-line/60 text-fal-muted' }
+    case 'review':
+    default:
+      return { label: 'Revisão', className: 'bg-amber-100 text-amber-900' }
+  }
+}
 
 const MODELS_PAGE_SIZE = 40
 
@@ -26,6 +40,7 @@ type ModelSort = 'maker_model' | 'model' | 'maker'
 export function AdminVehiclesPage() {
   useDocumentTitle('Veículos | Admin FAL')
   const toast = useToast()
+  const [searchParams] = useSearchParams()
   const [makers, setMakers] = useState<Manufacturer[]>([])
   const [models, setModels] = useState<VehicleModel[]>([])
   const [versions, setVersions] = useState<VehicleVersion[]>([])
@@ -72,8 +87,21 @@ export function AdminVehiclesPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [makerList] = await Promise.all([adminListManufacturers(), reloadModels()])
+        const [makerList, modelList] = await Promise.all([
+          adminListManufacturers(),
+          adminListModels(),
+        ])
         setMakers(makerList)
+        setModels(modelList)
+        const deepModel = searchParams.get('model')?.trim()
+        if (deepModel) {
+          const found = modelList.find((m) => m.id === deepModel)
+          if (found) {
+            setModelId(found.id)
+            setMakerId(found.manufacturerId)
+            setFilterMakerId(found.manufacturerId)
+          }
+        }
       } catch (e) {
         const msg = toUserMessage(e, 'Erro ao carregar veículos')
         setError(msg)
@@ -82,7 +110,7 @@ export function AdminVehiclesPage() {
         setLoading(false)
       }
     })()
-  }, [toast])
+  }, [toast, searchParams])
 
   useEffect(() => {
     if (!filterYear.trim()) {
@@ -447,7 +475,14 @@ export function AdminVehiclesPage() {
           >
             <p className="m-0 text-xs text-fal-muted">{makerNameById.get(m.manufacturerId) ?? '—'}</p>
             <p className="mb-1 mt-0.5 text-sm font-extrabold text-fal-fg">{m.name}</p>
-            <p className="m-0 text-xs text-fal-muted">{entityStatusLabel(m.status)}</p>
+            <p className="m-0 flex flex-wrap items-center gap-2 text-xs text-fal-muted">
+              <span>{entityStatusLabel(m.status)}</span>
+              <span
+                className={`rounded-md px-2 py-0.5 text-xs font-bold ${qualityBadge(m.qualityStatus).className}`}
+              >
+                {qualityBadge(m.qualityStatus).label}
+              </span>
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -492,6 +527,7 @@ export function AdminVehiclesPage() {
               <th className="px-3 py-2">Montadora</th>
               <th className="px-3 py-2">Modelo</th>
               <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">Qualidade</th>
               <th className="px-3 py-2">Ações</th>
             </tr>
           </thead>
@@ -507,6 +543,13 @@ export function AdminVehiclesPage() {
                 <td className="px-3 py-2">{makerNameById.get(m.manufacturerId) ?? '—'}</td>
                 <td className="px-3 py-2 font-semibold">{m.name}</td>
                 <td className="px-3 py-2">{entityStatusLabel(m.status)}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-xs font-bold ${qualityBadge(m.qualityStatus).className}`}
+                  >
+                    {qualityBadge(m.qualityStatus).label}
+                  </span>
+                </td>
                 <td className="px-3 py-2 space-x-2">
                   <button
                     type="button"

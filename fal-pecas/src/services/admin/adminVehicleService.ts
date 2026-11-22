@@ -160,6 +160,38 @@ export async function adminUpsertModel(input: {
   return mapModel(data as ModelRow)
 }
 
+export type SetModelQualityInput = {
+  modelId: string
+  qualityStatus: 'review' | 'verified' | 'quarantined' | 'superseded'
+  evidenceKind?: string | null
+  evidenceUrl?: string | null
+  reviewNote?: string | null
+  canonicalModelId?: string | null
+}
+
+/**
+ * Staff: promove/rebaixa qualidade via RPC (evidência obrigatória para verified).
+ * Não inventa VV/PVC.
+ */
+export async function setModelQualityStatus(
+  input: SetModelQualityInput,
+): Promise<{ qualityStatus: string; evidenceKind: string | null }> {
+  const { data, error } = await getSupabase().rpc('set_model_quality_status', {
+    p_model_id: input.modelId,
+    p_quality_status: input.qualityStatus,
+    p_evidence_kind: input.evidenceKind ?? null,
+    p_evidence_url: input.evidenceUrl ?? null,
+    p_review_note: input.reviewNote ?? null,
+    p_canonical_model_id: input.canonicalModelId ?? null,
+  })
+  if (error) throw error
+  const row = (data ?? {}) as Record<string, unknown>
+  return {
+    qualityStatus: String(row.qualityStatus ?? input.qualityStatus),
+    evidenceKind: row.evidenceKind == null ? null : String(row.evidenceKind),
+  }
+}
+
 /** Expande vida de linha do modelo (min start / max end). Sem PVC. */
 export async function mergeModelProductionYears(
   modelId: string,

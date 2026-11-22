@@ -2,6 +2,7 @@ import { Button } from '@/components/common/Button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { setModelQualityStatus } from '@/services/admin/adminVehicleService'
 import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
@@ -61,6 +62,70 @@ export function AdminVehicleIntegrationsHubPage() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<VehicleMasterSyncMeta | null>(null)
+  const [queueBusyId, setQueueBusyId] = useState<string | null>(null)
+  const [queueActionError, setQueueActionError] = useState<string | null>(null)
+  const [queueActionMsg, setQueueActionMsg] = useState<string | null>(null)
+
+  async function onQueueVerify(item: VehicleReviewQueueItem) {
+    if (!allowed) {
+      setQueueActionError('Sem permissão para alterar qualidade.')
+      return
+    }
+    const url = window.prompt(
+      `URL de evidência A1 (OEM) para verificar ${item.makerName} ${item.name}:`,
+      '',
+    )
+    if (url == null) return
+    const trimmed = url.trim()
+    if (!trimmed) {
+      setQueueActionError('URL de evidência obrigatória para verified.')
+      return
+    }
+    setQueueBusyId(item.id)
+    setQueueActionError(null)
+    setQueueActionMsg(null)
+    try {
+      await setModelQualityStatus({
+        modelId: item.id,
+        qualityStatus: 'verified',
+        evidenceKind: 'oem_a1',
+        evidenceUrl: trimmed,
+        reviewNote: `Verificado via hub · ${new Date().toISOString().slice(0, 10)}`,
+      })
+      setQueueActionMsg(`${item.makerName} ${item.name} → verified`)
+      await loadStats()
+    } catch (err) {
+      setQueueActionError(toUserMessage(err, 'Falha ao verificar modelo'))
+    } finally {
+      setQueueBusyId(null)
+    }
+  }
+
+  async function onQueueQuarantine(item: VehicleReviewQueueItem) {
+    if (!allowed) {
+      setQueueActionError('Sem permissão para alterar qualidade.')
+      return
+    }
+    const note =
+      window.prompt(`Motivo da quarentena (${item.makerName} ${item.name}):`, item.reviewNote ?? '') ??
+      ''
+    setQueueBusyId(item.id)
+    setQueueActionError(null)
+    setQueueActionMsg(null)
+    try {
+      await setModelQualityStatus({
+        modelId: item.id,
+        qualityStatus: 'quarantined',
+        reviewNote: note.trim() || 'Quarentena via hub',
+      })
+      setQueueActionMsg(`${item.makerName} ${item.name} → quarantined`)
+      await loadStats()
+    } catch (err) {
+      setQueueActionError(toUserMessage(err, 'Falha ao quarentenar modelo'))
+    } finally {
+      setQueueBusyId(null)
+    }
+  }
 
   const loadStats = useCallback(async () => {
     setStatsError(null)
@@ -277,6 +342,8 @@ export function AdminVehicleIntegrationsHubPage() {
           ficam visíveis apenas no admin.
         </p>
         {queueError ? <p className="m-0 text-sm text-fal-danger">{queueError}</p> : null}
+        {queueActionError ? <p className="m-0 text-sm text-fal-danger">{queueActionError}</p> : null}
+        {queueActionMsg ? <p className="m-0 text-sm text-emerald-800">{queueActionMsg}</p> : null}
         {!queueError && queue.length === 0 ? (
           <p className="m-0 text-sm text-fal-muted">Nenhum modelo pendente.</p>
         ) : null}
@@ -296,9 +363,12 @@ export function AdminVehicleIntegrationsHubPage() {
                 >
                   {q.qualityStatus === 'quarantined' ? 'Quarentena' : 'Revisão'}
                 </span>
-                <span className="font-semibold text-fal-fg">
+                <Link
+                  to={`/admin/veiculos?model=${encodeURIComponent(q.id)}`}
+                  className="font-semibold text-fal-fg no-underline hover:underline"
+                >
                   {q.makerName} {q.name}
-                </span>
+                </Link>
                 <span className="text-xs text-fal-muted">
                   {q.vehicleClass}
                   {q.evidenceKind ? ` · ${q.evidenceKind}` : ''}
@@ -308,6 +378,28 @@ export function AdminVehicleIntegrationsHubPage() {
                 {q.reviewNote ? (
                   <span className="w-full text-xs text-fal-muted">{q.reviewNote}</span>
                 ) : null}
+                <span className="flex w-full flex-wrap gap-2 pt-1">
+                  {q.qualityStatus === 'review' ? (
+                    <button
+                      type="button"
+                      className="rounded-md bg-emerald-700 px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
+                      disabled={queueBusyId === q.id || !allowed}
+                      onClick={() => void onQueueVerify(q)}
+                    >
+                      Verificar (A1)
+                    </button>
+                  ) : null}
+                  {q.qualityStatus !== 'quarantined' ? (
+                    <button
+                      type="button"
+                      className="rounded-md border border-red-300 px-2 py-1 text-xs font-bold text-red-900 disabled:opacity-50"
+                      disabled={queueBusyId === q.id || !allowed}
+                      onClick={() => void onQueueQuarantine(q)}
+                    >
+                      Quarentena
+                    </button>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>

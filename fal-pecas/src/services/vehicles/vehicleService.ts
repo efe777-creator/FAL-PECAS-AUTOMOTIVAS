@@ -90,8 +90,12 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
       .order('name'),
     supabase
       .from('vehicle_versions')
-      .select('year, engine, version_name, model_id, manufacturers(name), models(name)')
-      .eq('status', 'active'),
+      .select(
+        'year, engine, version_name, model_id, manufacturers(name), models!inner(name, status, quality_status)',
+      )
+      .eq('status', 'active')
+      .eq('models.status', 'active')
+      .eq('models.quality_status', 'verified'),
   ])
 
   if (e1) throw e1
@@ -226,8 +230,12 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
       .order('name'),
     supabase
       .from('vehicle_versions')
-      .select('version_name, status, models!inner(name), manufacturers!inner(name)')
+      .select(
+        'version_name, status, models!inner(name, status, quality_status), manufacturers!inner(name)',
+      )
       .eq('status', 'active')
+      .eq('models.status', 'active')
+      .eq('models.quality_status', 'verified')
       .not('version_name', 'is', null),
   ])
   if (modelsRes.error) throw modelsRes.error
