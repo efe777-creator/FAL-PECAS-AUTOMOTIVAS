@@ -199,8 +199,22 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(accordionSlice).not.toMatch(/Veículo:/)
     expect(accordionSlice).not.toMatch(/to="\/garagem"/)
 
+    // Notes #9: PDP não usa rota morta /garagem; Ver mais preserva veículo.
+    expect(page).not.toMatch(/to="\/garagem"/)
+    expect(page).toMatch(/to="\/conta\/veiculos"/)
+    expect(page).toMatch(/buildCatalogBrowseHref/)
+    expect(page).toMatch(/filter:\s*effectiveVehicleFilter/)
+
     const acc = readFileSync(src('components/product/PdpAccordion.tsx'), 'utf8')
     expect(acc).toMatch(/aria-expanded/)
+
+    const cart = readFileSync(src('pages/Cart/CartPage.tsx'), 'utf8')
+    expect(cart).not.toMatch(/navigate\('\/garagem'/)
+    expect(cart).toMatch(/navigate\('\/conta\/veiculos'/)
+
+    const router = readFileSync(src('app/router.tsx'), 'utf8')
+    expect(router).toMatch(/path:\s*'garagem'/)
+    expect(router).toMatch(/Navigate to="\/conta\/veiculos"/)
   })
 
   it('PDP M5: frete compacto CEP + Consultar; handoff preservado', () => {

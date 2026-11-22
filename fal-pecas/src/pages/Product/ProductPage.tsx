@@ -96,6 +96,7 @@ import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
 import { saveCheckoutReturnTo } from '@/services/checkout/checkoutReturnTo'
 import { buildVehicleSnapshotFromActive } from '@/services/garage/vehicleSnapshot'
 import {
+  buildCatalogBrowseHref,
   buildPdpCatalogFilterLink,
   joinProductDescription,
   needsDescriptionCollapse,
@@ -578,8 +579,13 @@ export function ProductPage() {
   const categorySlugForMore =
     categoryPath[categoryPath.length - 1]?.slug || current.categorySlug || null
   const categoryHref = categorySlugForMore
-    ? `/catalogo?cat=${encodeURIComponent(categorySlugForMore)}`
-    : null
+    ? buildCatalogBrowseHref({
+        categorySlug: categorySlugForMore,
+        filter: effectiveVehicleFilter,
+      })
+    : effectiveVehicleFilter
+      ? buildCatalogBrowseHref({ filter: effectiveVehicleFilter })
+      : null
   const kitOwnGallery =
     current.images?.length
       ? current.images
@@ -793,7 +799,10 @@ export function ProductPage() {
             }
             vehicleAction={
               garage?.activeFilter ? (
-                <Link to="/garagem" className="text-fal-navy hover:underline dark:text-fal-fg">
+                <Link
+                  to="/conta/veiculos"
+                  className="text-fal-navy hover:underline dark:text-fal-fg"
+                >
                   Alterar veículo
                 </Link>
               ) : localVehicleFilter ? (

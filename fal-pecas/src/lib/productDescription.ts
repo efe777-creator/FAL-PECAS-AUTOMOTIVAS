@@ -1,5 +1,37 @@
+import type { VehicleFilter } from '@/types'
+
 /** Limiar para “Ver descrição completa” na PDP (MARCHA PDP-C). */
 export const DESC_COLLAPSE_CHARS = 320
+
+/**
+ * PDP / home → catálogo: preserva categoria + veículo ativo (Notes #9).
+ * Sem inventar filtro — só repassa o que já está no contexto.
+ */
+export function buildCatalogBrowseHref(opts: {
+  categorySlug?: string | null
+  filter?: Pick<VehicleFilter, 'maker' | 'model' | 'year' | 'engine' | 'version'> | null
+}): string {
+  const q = new URLSearchParams()
+  const cat = opts.categorySlug?.trim()
+  if (cat) q.set('cat', cat)
+  const f = opts.filter
+  if (f?.maker?.trim()) q.set('maker', f.maker.trim())
+  if (f?.model?.trim()) q.set('model', f.model.trim())
+  if (f?.year != null && String(f.year).trim()) q.set('year', String(f.year).trim())
+  if (f?.engine?.trim()) q.set('engine', f.engine.trim())
+  if (f?.version?.trim()) q.set('version', f.version.trim())
+  if (
+    f?.maker?.trim() ||
+    f?.model?.trim() ||
+    (f?.year != null && String(f.year).trim()) ||
+    f?.engine?.trim() ||
+    f?.version?.trim()
+  ) {
+    q.set('vehicle', '1')
+  }
+  const qs = q.toString()
+  return qs ? `/catalogo?${qs}` : '/catalogo'
+}
 
 export function needsDescriptionCollapse(
   text: string,

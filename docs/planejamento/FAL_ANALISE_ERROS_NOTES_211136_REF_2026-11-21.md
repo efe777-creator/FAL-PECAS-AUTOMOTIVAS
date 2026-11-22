@@ -19,7 +19,7 @@
 | 6 | Placa consultada errada — assertividade do lookup | **DONE** |
 | 7 | Cards poluídos / grandes no mobile | **DONE** |
 | 8 | Header mobile muito cheio | **DONE** |
-| 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | PENDING |
+| 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | **DONE** |
 | 10 | Textos/instruções do site — copy e coerência | PENDING |
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | PENDING |
@@ -250,4 +250,15 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Evidência | `Header.mobileAntiregress` 2 PASS · `tsc --noEmit` OK |
 | Arquivos | `Header.tsx`, `Header.mobileAntiregress.test.ts`, este REF |
 
-**Próximo Notes:** Erro #9 — Auditoria jornada real (caminhos / PDP relacionados / “ver no catálogo”).
+### Erro #9 — Auditoria jornada / Ver no catálogo
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** (fatia objetiva) |
+| Diagnóstico | (1) PDP/Carrinho apontavam `/garagem` (rota inexistente). (2) “Ver mais” nos relacionados só usava `cat=` e **descartava** o veículo ativo. |
+| Estrutura | (1) Links → `/conta/veiculos` + redirect legado `/garagem`. (2) `buildCatalogBrowseHref` junta `cat` + maker/model/year/engine/version + `vehicle=1`. Relacionados já usavam `fitFilter`; link de seção agora coerente. |
+| Evidência | `productDescription` + `compatUiAntiregress` **26 PASS** |
+| Arquivos | `productDescription.ts`, `ProductPage.tsx`, `CartPage.tsx`, `router.tsx`, este REF |
+| Fora desta fatia | Smoke E2E manual em todas as telas; copy (#10); destaques (#12) |
+
+**Próximo Notes:** Erro #10 — Copy / textos e instruções do site.

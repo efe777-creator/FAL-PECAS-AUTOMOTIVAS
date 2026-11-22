@@ -511,6 +511,8 @@ export const router = createBrowserRouter([
       },
       /** Legado: deep links /busca?q= → catálogo (busca canônica). */
       { path: 'busca', element: <RedirectBuscaToCatalog /> },
+      /** Legado / Notes #9 — caminho errado `/garagem` → conta. */
+      { path: 'garagem', element: <Navigate to="/conta/veiculos" replace /> },
       {
         path: 'produto/:slugOrId',
         element: (

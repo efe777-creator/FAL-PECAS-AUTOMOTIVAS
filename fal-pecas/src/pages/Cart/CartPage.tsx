@@ -109,7 +109,7 @@ export function CartPage() {
             } else {
               trackCompatGateCompleteVehicle(counts)
               // E.4: Completar dados → garagem (não muda o carrinho)
-              navigate('/garagem', { state: { from: '/carrinho' } })
+              navigate('/conta/veiculos', { state: { from: '/carrinho' } })
             }
             return
           }

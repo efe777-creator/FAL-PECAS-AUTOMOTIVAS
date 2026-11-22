@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DESC_COLLAPSE_CHARS,
+  buildCatalogBrowseHref,
   buildCatalogMakerFilterHref,
   buildPdpCatalogFilterLink,
   joinProductDescription,
@@ -44,5 +45,19 @@ describe('productDescription (MARCHA PDP-C)', () => {
       ' — outras peças no catálogo',
     )
     expect(buildPdpCatalogFilterLink([]).href).toBe('/catalogo')
+  })
+
+  it('Notes #9: Ver mais catálogo preserva cat + veículo', () => {
+    expect(buildCatalogBrowseHref({})).toBe('/catalogo')
+    expect(buildCatalogBrowseHref({ categorySlug: 'freios' })).toBe('/catalogo?cat=freios')
+    const href = buildCatalogBrowseHref({
+      categorySlug: 'freios',
+      filter: { maker: 'Toyota', model: 'Corolla', year: '2020' },
+    })
+    expect(href).toContain('cat=freios')
+    expect(href).toContain('maker=Toyota')
+    expect(href).toContain('model=Corolla')
+    expect(href).toContain('year=2020')
+    expect(href).toContain('vehicle=1')
   })
 })
