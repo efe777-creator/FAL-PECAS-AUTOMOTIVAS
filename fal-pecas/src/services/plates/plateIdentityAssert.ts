@@ -181,6 +181,15 @@ export function assertPlateAgainstCatalog(
     if (status === 'found') status = 'incomplete'
   }
 
+  const fullyIdentified = status === 'found'
+  const makerInTree =
+    !!maker &&
+    !!model &&
+    Array.isArray(tree.modelsByMaker?.[maker]) &&
+    tree.modelsByMaker[maker]!.some((m) => m.toLowerCase() === model.toLowerCase())
+  // FKs só sobrevivem se o par está na árvore verified e o status é identificação plena.
+  const keepFks = fullyIdentified && makerInTree
+
   return {
     ...result,
     status,
@@ -189,6 +198,9 @@ export function assertPlateAgainstCatalog(
     year: yModel ?? result.year,
     yearModel: yModel ?? result.yearModel ?? null,
     yearFabrication: fab ?? result.yearFabrication ?? null,
+    manufacturerId: keepFks ? result.manufacturerId : null,
+    modelId: keepFks ? result.modelId : null,
+    versionId: keepFks ? result.versionId : null,
     candidates,
     message,
     confidenceBand,

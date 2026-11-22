@@ -140,9 +140,11 @@ export async function resolveVersionId(input: {
   let q = sb
     .from('vehicle_versions')
     .select(
-      'id, manufacturer_id, model_id, year, engine, version_name, manufacturers!inner(name), models!inner(name)',
+      'id, manufacturer_id, model_id, year, engine, version_name, manufacturers!inner(name), models!inner(name, status, quality_status)',
     )
     .eq('status', 'active')
+    .eq('models.status', 'active')
+    .eq('models.quality_status', 'verified')
 
   if (input.year?.trim()) q = q.eq('year', Number(input.year))
   if (input.engine?.trim()) q = q.eq('engine', input.engine.trim())
@@ -227,15 +229,110 @@ async function resolveManufacturerModelIds(
 
   const { data: models, error: moErr } = await sb
     .from('models')
-    .select('id, name')
+    .select('id, name, quality_status, canonical_model_id')
     .eq('manufacturer_id', makerRow.id)
     .eq('status', 'active')
     .ilike('name', model.trim())
     .limit(5)
   if (moErr) throw moErr
-  const modelRow = (models ?? []).find((m) => m.name?.toLowerCase() === model.trim().toLowerCase())
+  let modelRow = (models ?? []).find((m) => m.name?.toLowerCase() === model.trim().toLowerCase())
   if (!modelRow?.id) return null
+  // superseded → canônico verified; review/quarantined não entram.
+  if (String(modelRow.quality_status) === 'superseded' && modelRow.canonical_model_id) {
+    const { data: canon, error: cErr } = await sb
+      .from('models')
+      .select('id, manufacturer_id, quality_status')
+      .eq('id', modelRow.canonical_model_id)
+      .eq('status', 'active')
+      .eq('quality_status', 'verified')
+      .maybeSingle()
+    if (cErr) throw cErr
+    if (!canon?.id) return null
+    return {
+      manufacturerId: String(canon.manufacturer_id ?? makerRow.id),
+      modelId: String(canon.id),
+    }
+  }
+  if (String(modelRow.quality_status) !== 'verified') return null
   return { manufacturerId: String(makerRow.id), modelId: String(modelRow.id) }
+}
+
+/** Confirma que FKs apontam para mestre verified (staff também). */
+async function assertVerifiedGarageFks(input: {
+  manufacturerId: string | null
+  modelId: string | null
+  versionId: string | null
+}): Promise<{
+  manufacturerId: string | null
+  modelId: string | null
+  versionId: string | null
+}> {
+  const sb = getSupabase()
+  let manufacturerId = input.manufacturerId
+  let modelId = input.modelId
+  let versionId = input.versionId
+
+  if (modelId) {
+    const { data: mo, error } = await sb
+      .from('models')
+      .select('id, manufacturer_id, status, quality_status, canonical_model_id')
+      .eq('id', modelId)
+      .maybeSingle()
+    if (error) throw error
+    if (!mo) {
+      modelId = null
+      versionId = null
+    } else if (String(mo.quality_status) === 'superseded' && mo.canonical_model_id) {
+      const { data: canon, error: cErr } = await sb
+        .from('models')
+        .select('id, manufacturer_id')
+        .eq('id', mo.canonical_model_id)
+        .eq('status', 'active')
+        .eq('quality_status', 'verified')
+        .maybeSingle()
+      if (cErr) throw cErr
+      if (canon?.id) {
+        modelId = String(canon.id)
+        manufacturerId = String(canon.manufacturer_id)
+        versionId = null
+      } else {
+        modelId = null
+        versionId = null
+      }
+    } else if (mo.status !== 'active' || String(mo.quality_status) !== 'verified') {
+      modelId = null
+      versionId = null
+    } else {
+      manufacturerId = String(mo.manufacturer_id)
+    }
+  }
+
+  if (versionId && modelId) {
+    const { data: vv, error: vErr } = await sb
+      .from('vehicle_versions')
+      .select('id, model_id, status')
+      .eq('id', versionId)
+      .eq('model_id', modelId)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (vErr) throw vErr
+    if (!vv) versionId = null
+  } else if (versionId && !modelId) {
+    versionId = null
+  }
+
+  if (manufacturerId) {
+    const { data: mk, error: mErr } = await sb
+      .from('manufacturers')
+      .select('id')
+      .eq('id', manufacturerId)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (mErr) throw mErr
+    if (!mk) manufacturerId = null
+  }
+
+  return { manufacturerId, modelId, versionId }
 }
 
 export async function addSavedVehicle(input: {
@@ -445,9 +542,7 @@ export async function ensureSavedVehicleFromFilter(
   let year = Number.isFinite(yearNum as number) ? yearNum : null
   let resolvedEngine = engine
 
-  if (versionId && manufacturerId && modelId) {
-    // IDs da placa consistentes — usar direto
-  } else {
+  if (!(versionId && manufacturerId && modelId)) {
     const resolved = await resolveVersionId({
       maker,
       model,
@@ -462,6 +557,18 @@ export async function ensureSavedVehicleFromFilter(
       year = resolved.year ?? year
       resolvedEngine = resolved.engine ?? resolvedEngine
     }
+  }
+
+  // Sempre revalida FKs (placa/cache/staff podem trazer review/quarantined).
+  {
+    const ok = await assertVerifiedGarageFks({
+      manufacturerId,
+      modelId,
+      versionId,
+    })
+    manufacturerId = ok.manufacturerId
+    modelId = ok.modelId
+    versionId = ok.versionId
   }
 
   const existing = await listSavedVehicles()

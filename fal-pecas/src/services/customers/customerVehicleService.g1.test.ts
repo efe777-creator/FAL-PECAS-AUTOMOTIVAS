@@ -125,13 +125,45 @@ describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
     })
     const insertFn = vi.fn()
 
-    fromMock.mockReturnValue({
-      select: listThenable.select,
-      eq: listThenable.eq,
-      order: listThenable.order,
-      then: listThenable.then.bind(listThenable),
-      update: updateFn,
-      insert: insertFn,
+    function verifiedFkChain(data: unknown) {
+      const chain: {
+        select: ReturnType<typeof vi.fn>
+        eq: ReturnType<typeof vi.fn>
+        maybeSingle: ReturnType<typeof vi.fn>
+      } = {
+        select: vi.fn(),
+        eq: vi.fn(),
+        maybeSingle: vi.fn(async () => ({ data, error: null })),
+      }
+      chain.select.mockReturnValue(chain)
+      chain.eq.mockReturnValue(chain)
+      return chain
+    }
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'models') {
+        return verifiedFkChain({
+          id: 'mo1',
+          manufacturer_id: 'm1',
+          status: 'active',
+          quality_status: 'verified',
+          canonical_model_id: null,
+        })
+      }
+      if (table === 'vehicle_versions') {
+        return verifiedFkChain({ id: 'skip-resolve', model_id: 'mo1', status: 'active' })
+      }
+      if (table === 'manufacturers') {
+        return verifiedFkChain({ id: 'm1' })
+      }
+      return {
+        select: listThenable.select,
+        eq: listThenable.eq,
+        order: listThenable.order,
+        then: listThenable.then.bind(listThenable),
+        update: updateFn,
+        insert: insertFn,
+      }
     })
 
     const { ensureSavedVehicleFromFilter } = await import('./customerVehicleService')

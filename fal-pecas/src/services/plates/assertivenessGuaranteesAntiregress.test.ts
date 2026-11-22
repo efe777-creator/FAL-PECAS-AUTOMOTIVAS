@@ -94,6 +94,24 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/mergeModelProductionYears/)
   })
 
+  it('garagem resolve só verified e revalida FKs antes de salvar', () => {
+    const src = read('src/services/customers/customerVehicleService.ts')
+    expect(src).toMatch(/models\.quality_status/)
+    expect(src).toMatch(/assertVerifiedGarageFks/)
+    expect(src).toMatch(/canonical_model_id/)
+    const rpc = read(
+      'supabase/migrations/20261122190000_garage_verified_fk_and_vv_hygiene.sql',
+    )
+    expect(rpc).toMatch(/quality_status = 'verified'/)
+    expect(rpc).toMatch(/create_customer_vehicle_with_identity/)
+  })
+
+  it('assert de placa zera FKs quando identificação não é plena', () => {
+    const src = read('src/services/plates/plateIdentityAssert.ts')
+    expect(src).toMatch(/keepFks/)
+    expect(src).toMatch(/manufacturerId: keepFks \? result\.manufacturerId : null/)
+  })
+
   it('hub e admin usam setModelQualityStatus / badge qualidade', () => {
     const hub = read('src/pages/admin/vehicles/AdminVehicleIntegrationsHubPage.tsx')
     expect(hub).toMatch(/setModelQualityStatus/)

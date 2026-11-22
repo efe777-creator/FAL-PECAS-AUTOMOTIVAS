@@ -70,6 +70,23 @@ describe('assertPlateAgainstCatalog', () => {
     expect(out.maker).toBe('Renault')
   })
 
+  it('zera FKs quando status não é found (ex. ambiguous)', () => {
+    const out = assertPlateAgainstCatalog(
+      base({
+        model: 'Kwid Intens',
+        confidence: 0.6,
+        manufacturerId: 'mk-1',
+        modelId: 'mo-1',
+        versionId: 'vv-1',
+      }),
+      tree,
+    )
+    expect(out.status).toBe('ambiguous')
+    expect(out.manufacturerId).toBeNull()
+    expect(out.modelId).toBeNull()
+    expect(out.versionId).toBeNull()
+  })
+
   it('dual year: preferência ano-modelo e rebaixa faixa A', () => {
     const out = assertPlateAgainstCatalog(
       base({
