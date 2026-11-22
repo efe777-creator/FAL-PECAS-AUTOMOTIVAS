@@ -26,5 +26,7 @@
 
 ## Nota
 
-**Nota declarada: 9/10** nos gates de produto/código/DB do mestre.  
-Gate 12 parcial (snapshots SENATRAN/PBEV não baixados nesta marcha) — residual ops, não reabre colapso Corolla/Cross nem writers.
+**Nota higiene/gates nome: 9/10.**  
+**Riqueza cadastro (pós-marcha vida):** ~6–6,5/10 — Cross ainda 0 VV (sem thin-seed); anos Cross via vida 2021→agora.  
+**Assertividade operacional:** ~8/10 — bug `end null` corrigido; telemetria ainda fina.  
+Gate 12 parcial (snapshots SENATRAN/PBEV) — residual ops.
