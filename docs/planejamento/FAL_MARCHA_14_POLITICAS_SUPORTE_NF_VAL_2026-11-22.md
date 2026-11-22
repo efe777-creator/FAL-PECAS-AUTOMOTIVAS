@@ -59,4 +59,5 @@ Verificado via SQL: `legal_acceptance`, tabela OFD, RPCs e bucket presentes.
 
 ## Status
 
-Implementação M0–M6 na `dev` local. Sem merge MAIN / sem deploy.
+Implantado na `dev` + Supabase `wtbp`.  
+**Commit:** `c0e011f` · **Push:** `origin/dev` ✓ · MAIN/produção: não.
