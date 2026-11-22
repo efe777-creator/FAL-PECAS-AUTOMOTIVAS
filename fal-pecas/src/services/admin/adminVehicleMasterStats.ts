@@ -4,6 +4,8 @@ export type VehicleMasterStats = {
   manufacturersActive: number
   modelsActive: number
   versionsActive: number
+  /** Modelos com production_year_start preenchido (vida de linha). */
+  modelsWithProductionYears: number
 }
 
 async function countActive(table: string): Promise<number> {
@@ -17,10 +19,21 @@ async function countActive(table: string): Promise<number> {
 
 /** Contagens ativas do mestre (montadoras / modelos / vehicle_versions). */
 export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats> {
-  const [manufacturersActive, modelsActive, versionsActive] = await Promise.all([
+  const [manufacturersActive, modelsActive, versionsActive, withLife] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
     countActive('vehicle_versions'),
+    getSupabase()
+      .from('models')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .not('production_year_start', 'is', null),
   ])
-  return { manufacturersActive, modelsActive, versionsActive }
+  if (withLife.error) throw withLife.error
+  return {
+    manufacturersActive,
+    modelsActive,
+    versionsActive,
+    modelsWithProductionYears: withLife.count ?? 0,
+  }
 }

@@ -61,4 +61,20 @@ describe('mergeSearchIntent', () => {
     expect(merged.vehicle.year).toBe('2010')
     expect(merged.vehicle.version).toBeUndefined()
   })
+
+  it('mosca branca: LLM inventando Troller T4 é descartado (só productQuery)', () => {
+    const merged = mergeSearchIntent(
+      base({ productQuery: 'filtro ar', confidence: 'low' }),
+      {
+        productQuery: 'filtro ar',
+        vehicle: { maker: 'Troller', model: 'T4', year: '2012' },
+        confidence: 'high',
+      },
+      catalog,
+    )
+    expect(merged.productQuery).toBe('filtro ar')
+    expect(merged.vehicle.model).toBeUndefined()
+    expect(merged.vehicle.maker).toBeUndefined()
+    expect(merged.vehicle.year).toBeUndefined()
+  })
 })

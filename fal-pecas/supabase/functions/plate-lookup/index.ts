@@ -16,7 +16,6 @@ import {
 import { mockPlateProvider } from '../_shared/mockPlateProvider.ts'
 import { createApiPlacasPlateProvider } from '../_shared/apiPlacasPlateProvider.ts'
 import { resolveVehicleAgainstCatalog } from '../_shared/vehicleResolver.ts'
-import { vehicleCanonicalUpsert } from '../_shared/vehicleCanonicalUpsert.ts'
 import { assertModelClean } from '../_shared/splitApiModelo.ts'
 import {
   isInvResolverEnabled,
@@ -201,7 +200,7 @@ Deno.serve(async (req) => {
         payload.status === 'found' ||
         payload.status === 'incomplete' ||
         payload.status === 'not_in_catalog'
-      // Sempre re-canonicaliza cache identificável (corrige payloads pré-upsert / status velho).
+      // Read-only: enriquece modelo composto + SELECT IDs se VV já existir (nunca INSERT).
       if (cacheOk && payload.maker && payload.model) {
         try {
           const enriched = enrichFromCompositeModelo({
@@ -211,55 +210,43 @@ Deno.serve(async (req) => {
             engine: (payload.engine as string | null) ?? null,
             version: (payload.version as string | null) ?? null,
           })
-          // R2: cache sem ano → não re-upserta VV incompleta.
-          const cacheYear =
-            enriched.year != null && String(enriched.year).trim() !== ''
-              ? enriched.year
-              : null
-          if (!cacheYear) {
-            return json(
-              200,
-              attachSourceSnapshot(payload as unknown as NormalizedPlateLookupResult),
-            )
-          }
-          const upserted = await vehicleCanonicalUpsert(sb, {
-            ...enriched,
-            year: cacheYear,
-            source: 'plate',
+          const resolved = await resolveVehicleAgainstCatalog(sb, {
+            maker: enriched.maker,
+            model: enriched.model,
+            year: enriched.year != null ? String(enriched.year) : null,
+            engine: enriched.engine,
+            version: enriched.version,
+            status: String(payload.status ?? 'found') as NormalizedPlateLookupResult['status'],
+            message: (payload.message as string | null) ?? null,
+            confidence: (payload.confidence as number | null) ?? null,
+            fuel: (payload.fuel as string | null) ?? null,
+            transmission: (payload.transmission as string | null) ?? null,
+            vehicleGroup: (payload.vehicleGroup as string | null) ?? null,
           })
-          const missingMv = !upserted.engine && !upserted.version
+          const statusOut = resolved.notInCatalog
+            ? 'not_in_catalog'
+            : ((payload.status as NormalizedPlateLookupResult['status']) ?? 'incomplete')
           const refreshed = attachSourceSnapshot({
             ...(payload as unknown as NormalizedPlateLookupResult),
-            maker: upserted.maker,
-            model: upserted.model,
-            year: upserted.year ?? (payload.year as string | null) ?? null,
-            engine: upserted.engine,
-            version: upserted.version,
-            manufacturerId: upserted.manufacturerId,
-            modelId: upserted.modelId,
-            versionId: upserted.versionId,
-            // Com VV canônico, filtros podem preencher — não trava como incomplete por ano/PVC.
-            status: 'found',
-            message: missingMv
-              ? 'Veículo identificado. Motor/versão não informados pela consulta — confira antes de buscar.'
-              : null,
+            maker: resolved.makerName ?? enriched.maker,
+            model: resolved.modelName ?? enriched.model,
+            year:
+              resolved.catalogYear ??
+              (enriched.year != null ? String(enriched.year) : null) ??
+              (payload.year as string | null) ??
+              null,
+            engine: resolved.catalogEngine ?? enriched.engine,
+            version: resolved.catalogVersion ?? enriched.version,
+            manufacturerId: resolved.manufacturerId,
+            modelId: resolved.modelId,
+            versionId: resolved.versionId,
+            status: statusOut === 'found' ? 'found' : statusOut,
             queriedAt: new Date().toISOString(),
             sourceSnapshot: null,
           })
-          await sb.from('cached_plates').upsert(
-            {
-              plate,
-              provider: activeProvider,
-              status: 'found',
-              payload: refreshed,
-              expires_at: cached!.expires_at,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'plate' },
-          )
           return json(200, refreshed)
         } catch (err) {
-          console.error('[plate-lookup] cache re-upsert error', err)
+          console.error('[plate-lookup] cache resolve error', err)
         }
       }
       return json(
@@ -322,10 +309,14 @@ Deno.serve(async (req) => {
         confidenceBandOut = inv.confidenceBand
         raw.message = inv.message
         if (inv.status === 'not_in_catalog') status = 'not_in_catalog'
-        else if (inv.status === 'pending_validation' || inv.status === 'incomplete') {
-          status = 'incomplete'
+        else if (
+          inv.status === 'pending_validation' ||
+          inv.status === 'incomplete' ||
+          inv.status === 'ambiguous'
+        ) {
+          status = inv.status === 'ambiguous' ? 'ambiguous' : 'incomplete'
         } else {
-          status = 'found'
+          status = inv.confidenceBand === 'A' ? 'found' : 'incomplete'
         }
         // Telemetria best-effort (sem placa)
         try {
@@ -346,90 +337,51 @@ Deno.serve(async (req) => {
         }
       }
 
-      // R2: sem INV, ainda exige ano para criar VV no mestre.
-      const shouldUpsert = inv
-        ? inv.allowCanonicalUpsert
-        : Boolean(makerOut && modelOut && yearOut)
-      if (shouldUpsert) {
-        const upserted = await vehicleCanonicalUpsert(sb, {
-          maker: makerOut ?? enriched.maker,
-          model: modelOut ?? enriched.model,
-          year: yearOut ?? enriched.year,
-          engine: engineOut,
-          version: versionOut,
-          source: 'plate',
-        })
-        manufacturerId = upserted.manufacturerId
-        modelId = upserted.modelId
-        versionId = upserted.versionId
-        makerOut = upserted.maker
-        modelOut = upserted.model
-        yearOut = upserted.year ?? yearOut ?? raw.year
-        engineOut = upserted.engine
-        versionOut = upserted.version
-        if (!inv) {
-          status = 'found'
-          if (!upserted.engine && !upserted.version) {
-            raw.message =
-              'Veículo identificado. Motor/versão não informados pela consulta — confira antes de buscar.'
-          } else {
-            raw.message = null
-          }
-        } else if (inv.status !== 'not_in_catalog' && inv.status !== 'pending_validation') {
-          status = inv.confidenceBand === 'A' ? 'found' : 'incomplete'
-        }
-      } else if (!inv) {
-        // fallthrough
-      } else {
-        // INV bloqueou upsert (C/D) — só leitura no catálogo
-        const resolved = await resolveVehicleAgainstCatalog(sb, {
-          ...raw,
-          maker: makerOut,
-          model: modelOut,
-          year: yearOut,
-          engine: engineOut,
-          version: versionOut,
-        })
-        manufacturerId = resolved.manufacturerId
-        modelId = resolved.modelId
-        versionId = resolved.versionId
-        if (resolved.makerName) makerOut = resolved.makerName
-        if (resolved.modelName) modelOut = resolved.modelName
-        if (resolved.notInCatalog) status = 'not_in_catalog'
+      // Lookup read-only: SELECT no mestre; escrita só em vehicle-confirm-upsert.
+      const resolved = await resolveVehicleAgainstCatalog(sb, {
+        ...raw,
+        maker: makerOut,
+        model: modelOut,
+        year: yearOut,
+        engine: engineOut,
+        version: versionOut,
+      })
+      manufacturerId = resolved.manufacturerId
+      modelId = resolved.modelId
+      versionId = resolved.versionId
+      if (resolved.makerName) makerOut = resolved.makerName
+      if (resolved.modelName) modelOut = resolved.modelName
+      if (resolved.catalogYear) yearOut = resolved.catalogYear
+      if (resolved.catalogEngine) engineOut = resolved.catalogEngine
+      if (resolved.catalogVersion) versionOut = resolved.catalogVersion
+      if (resolved.notInCatalog) {
+        status = 'not_in_catalog'
+        raw.message =
+          raw.message ??
+          'Veículo identificado, mas não localizado no cadastro da FAL. Confira e ajuste montadora/modelo.'
+      } else if (!inv && !engineOut && !versionOut) {
+        raw.message =
+          raw.message ??
+          'Veículo identificado. Motor/versão não informados pela consulta — confira antes de buscar.'
       }
-    } catch (upsertErr) {
-      console.error('[plate-lookup] canonical upsert error', upsertErr)
-      try {
-        const resolved = await resolveVehicleAgainstCatalog(sb, raw)
-        manufacturerId = resolved.manufacturerId
-        modelId = resolved.modelId
-        versionId = resolved.versionId
-        if (resolved.makerName) makerOut = resolved.makerName
-        if (resolved.modelName) modelOut = resolved.modelName
-        if (resolved.catalogYear) yearOut = resolved.catalogYear
-        if (resolved.catalogEngine) engineOut = resolved.catalogEngine
-        if (resolved.catalogVersion) versionOut = resolved.catalogVersion
-        if (resolved.notInCatalog) {
-          status = 'not_in_catalog'
-          raw.message =
-            raw.message ??
-            'Veículo identificado, mas não localizado no cadastro da FAL. Confira e ajuste montadora/modelo.'
-        }
-      } catch (err) {
-        console.error('[plate-lookup] resolver error', err)
-      }
+    } catch (resolveErr) {
+      console.error('[plate-lookup] catalog resolve error', resolveErr)
     }
   }
 
   if (raw.status === 'not_in_catalog') status = 'not_in_catalog'
 
   const queriedAt = new Date().toISOString()
+  const yearModelOut = raw.yearModel ?? yearOut
+  const yearFabOut = raw.yearFabrication ?? null
   const result: NormalizedPlateLookupResult = {
     plate,
     status,
     maker: makerOut,
     model: modelOut,
     year: yearOut,
+    yearModel: yearModelOut != null ? String(yearModelOut) : null,
+    yearFabrication: yearFabOut != null ? String(yearFabOut) : null,
     version: versionOut,
     engine: engineOut,
     engineRaw: raw.engineRaw ?? null,
@@ -455,6 +407,8 @@ Deno.serve(async (req) => {
       maker: makerOut,
       model: modelOut,
       year: yearOut != null ? String(yearOut) : null,
+      yearModel: yearModelOut != null ? String(yearModelOut) : null,
+      yearFabrication: yearFabOut != null ? String(yearFabOut) : null,
       engine: engineOut,
       version: versionOut,
       engineRaw: raw.engineRaw ?? null,

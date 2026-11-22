@@ -25,7 +25,7 @@ import {
   listVehicleCatalogEntries,
 } from '@/services/vehicles/vehicleService'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
-import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
+import type { CustomerSavedVehicle, VehicleFilter, VehicleOptionTree } from '@/types'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -67,6 +67,7 @@ export function VehiclePlateSearch({
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('input')
   const [result, setResult] = useState<PlateLookupResult | null>(null)
+  const [optionTree, setOptionTree] = useState<VehicleOptionTree | null>(null)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -80,6 +81,7 @@ export function VehiclePlateSearch({
   function resetToInput() {
     setPhase('input')
     setResult(null)
+    setOptionTree(null)
     setManualMessage(null)
     setPlateDraft('')
   }
@@ -130,6 +132,7 @@ export function VehiclePlateSearch({
           getVehicleOptions(),
           listVehicleCatalogEntries(),
         ])
+        setOptionTree(tree)
         lookup = assertPlateAgainstCatalog(lookup, tree)
         lookup = await assistPlateIdentity(lookup, catalog)
         if (lookup.identityLlmAssisted) {
@@ -244,6 +247,7 @@ export function VehiclePlateSearch({
     return (
       <VehiclePlateConfirmation
         result={result}
+        tree={optionTree}
         compact={compact}
         onConfirm={(f) => {
           void applyConfirmed(f)
@@ -254,6 +258,7 @@ export function VehiclePlateSearch({
         }}
         onRetryPlate={() => {
           setResult(null)
+          setOptionTree(null)
           setPhase('input')
         }}
       />

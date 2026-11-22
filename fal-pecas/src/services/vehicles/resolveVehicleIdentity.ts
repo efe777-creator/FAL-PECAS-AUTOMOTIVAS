@@ -14,6 +14,7 @@ import {
   normalizeVehicleToken,
   reconcileVehicleFilter,
 } from '@/services/plates/reconcileVehicleFilter'
+import { detectSiblingModelAmbiguity } from '@/services/plates/siblingModelAmbiguity'
 import { VEHICLE_NOT_INFORMED_VALUE } from '@/services/vehicles/vehicleNotInformed'
 
 export type InvSource = 'plate' | 'text' | 'manual' | 'garage' | 'import'
@@ -296,7 +297,7 @@ export function resolveVehicleIdentity(
       evidence,
       raw,
       pendingCodes,
-      allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
+      allowCanonicalUpsert: false,
     }
   }
 
@@ -335,6 +336,33 @@ export function resolveVehicleIdentity(
         allowCanonicalUpsert: false,
       }
     }
+
+    // Irmãos / split-family → ambiguous (nunca auto-upsert).
+    const sibling = detectSiblingModelAmbiguity(
+      input.tree,
+      filter.maker,
+      input.model ?? filter.model,
+    )
+    if (sibling.ambiguous && sibling.ranks.length >= 2) {
+      evidence.push({ ruleId: 'sibling_family', detail: sibling.reason ?? undefined })
+      return {
+        status: 'ambiguous',
+        confidenceBand: 'C',
+        filter,
+        vehicleVersionId: null,
+        candidates: sibling.ranks.slice(0, 4).map((r) => ({
+          maker: r.maker,
+          model: r.model,
+          year: filter.year,
+          engine: filter.engine,
+          version: filter.version,
+        })),
+        evidence,
+        raw,
+        pendingCodes,
+        allowCanonicalUpsert: false,
+      }
+    }
   }
 
   if (engineKnown && versionKnown && filter.year) {
@@ -347,11 +375,12 @@ export function resolveVehicleIdentity(
       evidence,
       raw,
       pendingCodes,
-      allowCanonicalUpsert: true,
+      // Lookup Edge não upserta; confirm usa vehicle-confirm-upsert.
+      allowCanonicalUpsert: false,
     }
   }
 
-  // R2: incomplete só permite upsert canônico com maker+model+ano.
+  // Incomplete: sem escrita no lookup; humano confirma depois.
   return {
     status: 'incomplete',
     confidenceBand: 'B',
@@ -361,7 +390,7 @@ export function resolveVehicleIdentity(
     evidence,
     raw,
     pendingCodes,
-    allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
+    allowCanonicalUpsert: false,
   }
 }
 

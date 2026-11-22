@@ -32,12 +32,23 @@ export interface PlateLookupCandidate {
   versionId?: string | null
 }
 
+export type PlateIdentificationStatus =
+  | 'identified'
+  | 'partially_identified'
+  | 'ambiguous'
+  | 'unidentified'
+
 export interface PlateLookupResult {
   plate: string
   status: PlateLookupStatus
   maker: string | null
   model: string | null
+  /** Ano canônico do filtro (preferência: ano-modelo). */
   year: string | null
+  /** Ano-modelo comercial (peças / VV). */
+  yearModel?: string | null
+  /** Ano de fabricação (informativo; não predicado PVC). */
+  yearFabrication?: string | null
   version: string | null
   engine: string | null
   /** Bruto quando sanitize zerou — não usar no filtro de peças. */
@@ -54,6 +65,8 @@ export interface PlateLookupResult {
   confidence: number | null
   /** INV / assertividade no catálogo (A–D). */
   confidenceBand?: PlateConfidenceBand | null
+  /** Nível de identificação (estilo AutoUncle). */
+  identificationStatus?: PlateIdentificationStatus | null
   message: string | null
   candidates: PlateLookupCandidate[]
   /** Ambiente de teste — UI deve deixar claro que não é consulta real. */
@@ -86,6 +99,11 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
     if (!version && split.version) version = split.version
   }
 
+  const yearModel = result.yearModel ?? result.year
+  const yearFabrication = result.yearFabrication ?? null
+  // Filtro de peças = ano-modelo (não fabricação).
+  const year = yearModel ?? result.year
+
   const sourceSnapshot =
     result.sourceSnapshot ??
     buildPlateSourceSnapshot({
@@ -95,7 +113,9 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
       status: result.status,
       maker: result.maker,
       model,
-      year: result.year,
+      year,
+      yearModel,
+      yearFabrication,
       engine: engine ?? result.engine,
       version: version ?? result.version,
       engineRaw: result.engineRaw,
@@ -108,7 +128,7 @@ export function plateResultToFilter(result: PlateLookupResult): VehicleFilter {
   return {
     maker: result.maker ?? undefined,
     model,
-    year: result.year ?? undefined,
+    year: year ?? undefined,
     // Placa sem motor/versão → "" ("Não informado") para o select não ficar em branco
     engine: engine ?? (identified ? '' : undefined),
     version: version ?? (identified ? '' : undefined),

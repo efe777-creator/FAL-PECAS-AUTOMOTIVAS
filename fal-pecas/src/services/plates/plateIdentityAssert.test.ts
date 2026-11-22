@@ -69,6 +69,22 @@ describe('assertPlateAgainstCatalog', () => {
     expect(out.model).toBe('Kwid')
     expect(out.maker).toBe('Renault')
   })
+
+  it('dual year: preferência ano-modelo e rebaixa faixa A', () => {
+    const out = assertPlateAgainstCatalog(
+      base({
+        year: '2021',
+        yearModel: '2021',
+        yearFabrication: '2020',
+        confidence: 0.95,
+        confidenceBand: 'A',
+      }),
+      tree,
+    )
+    expect(out.year).toBe('2021')
+    expect(out.yearFabrication).toBe('2020')
+    expect(out.confidenceBand).toBe('B')
+  })
 })
 
 describe('derivePlateConfidenceBand', () => {

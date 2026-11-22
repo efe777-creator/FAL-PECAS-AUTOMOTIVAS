@@ -61,6 +61,10 @@ export async function vehicleCanonicalUpsert(
     throw new Error('maker_and_model_required')
   }
   const year = parseYear(input.year)
+  // R2: ano obrigatório (paridade Edge) — evita VV aberta.
+  if (year == null) {
+    throw new Error('year_required_for_canonical_upsert')
+  }
   const engine = blankToNull(sanitizeEngine(cleaned.engine) ?? undefined)
   const version = blankToNull(normalizeVersionLabel(cleaned.version) ?? undefined)
   const source = input.source ?? 'admin'
@@ -101,6 +105,9 @@ async function vehicleCanonicalUpsertClient(input: {
   version: string | null
   source: VehicleCanonicalSource
 }): Promise<VehicleCanonicalResult> {
+  if (input.year == null) {
+    throw new Error('year_required_for_canonical_upsert')
+  }
   const sb = getSupabase()
   const makerSlug = toSlug(input.maker) || `maker-${Date.now()}`
 

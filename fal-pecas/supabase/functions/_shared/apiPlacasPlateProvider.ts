@@ -1,10 +1,11 @@
 /**
- * Adapter comercial API Placas — consulta veicular simples (`/basico/{placa}`).
+ * Adapter comercial API Placas — `/basico` (default) ou `/basico-fipe` (flag).
+ * Step-up `/motor` opcional. Sem `/completa` (LGPD/custo).
  * Docs: https://apiplacas.com.br/documentacao
- * Base: https://wdapi2.com.br/v3
  *
- * Secrets (Edge only): APIPLACAS_TOKEN · PLATE_PROVIDER=apiplacas
- * Nunca VITE_ / nunca no frontend.
+ * Secrets: APIPLACAS_TOKEN · PLATE_PROVIDER=apiplacas
+ * Flags: PLATE_FIPE_ASSIST=1 · PLATE_ENGINE_STEPUP=1
+ * Nunca VITE_ / nunca no frontend. Nunca predicado PVC.
  */
 import type { PlateLookupProvider, PlateProviderRaw } from './plateProvider.ts'
 import {
@@ -162,11 +163,18 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
     asString(dados.versão) ??
     asString(dados.version)
   const version = sanitizeVersionLabel(versionRaw)
-  // Preferir ano-modelo quando a API manda faixa fab/modelo.
-  const year =
+  // Dual year: ano-modelo (filtro/peças) + fabricação (informativo).
+  const yearModel =
     extractYearPreferModel(dados.anoModelo) ??
     extractYearPreferModel(dados.ano_modelo) ??
-    extractYearPreferModel(dados.ano)
+    extractYearPreferModel(dados.anoModeloReferencia) ??
+    null
+  const yearFabrication =
+    extractYear(dados.anoFabricacao) ??
+    extractYear(dados.ano_fabricacao) ??
+    extractYear(dados.ano) ??
+    null
+  const year = yearModel ?? yearFabrication
   const fuel = asString(dados.combustivel) ?? asString(dados.combustível)
   const transmission =
     asString(dados.cambio) ??
@@ -178,22 +186,28 @@ export function mapApiPlacasBasicoToRaw(body: unknown): PlateProviderRaw {
   if (!maker && !model) return notFound()
 
   const incomplete = !year || !maker || !model
+  const dualMismatch =
+    Boolean(yearModel && yearFabrication && yearModel !== yearFabrication)
   return {
     status: incomplete ? 'incomplete' : 'found',
     maker,
     model,
     year,
+    yearModel: yearModel ?? year,
+    yearFabrication,
     version,
     engine,
     engineRaw: engine ? null : engineRaw,
     versionRaw: version ? null : versionRaw,
     fuel,
     transmission,
-    confidence: incomplete ? 0.6 : 0.85,
+    confidence: incomplete ? 0.6 : dualMismatch ? 0.75 : 0.85,
     vehicleGroup: null,
     message: incomplete
       ? 'Identificação parcial — confira e complete os dados se necessário.'
-      : null,
+      : dualMismatch
+        ? `Ano fabricação (${yearFabrication}) ≠ ano-modelo (${yearModel}). Peças usam o ano-modelo — confira.`
+        : null,
   }
 }
 
@@ -230,6 +244,70 @@ function mapHttpError(status: number, body: unknown): PlateProviderRaw {
   return unavailable()
 }
 
+function parseFipeEntries(body: unknown): Array<{
+  codigo: string
+  modelo: string
+  score: number
+}> {
+  const root = (body ?? {}) as Record<string, unknown>
+  const fipe = (root.fipe ?? {}) as Record<string, unknown>
+  if (fipe.error === true) return []
+  const dados = fipe.dados
+  if (!Array.isArray(dados)) return []
+  const out: Array<{ codigo: string; modelo: string; score: number }> = []
+  for (const row of dados) {
+    if (!row || typeof row !== 'object') continue
+    const o = row as Record<string, unknown>
+    const codigo = asString(o.codigo_fipe) ?? asString(o.codigo) ?? ''
+    const modelo = asString(o.modelo) ?? ''
+    const score = typeof o.score === 'number' ? o.score : 0
+    if (!modelo && !codigo) continue
+    out.push({ codigo, modelo, score })
+  }
+  return out.sort((a, b) => b.score - a.score)
+}
+
+/** Empate FIPE: top e 2º com Δ score ≤ 15 e ambos ≥ 40 → ambiguous. */
+function fipeAmbiguous(
+  entries: Array<{ codigo: string; modelo: string; score: number }>,
+): boolean {
+  if (entries.length < 2) return false
+  const a = entries[0]!
+  const b = entries[1]!
+  return a.score >= 40 && b.score >= 40 && a.score - b.score <= 15
+}
+
+async function fetchJson(
+  url: string,
+  token: string,
+): Promise<{ ok: boolean; status: number; json: unknown }> {
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  let json: unknown = null
+  try {
+    json = await res.json()
+  } catch {
+    json = null
+  }
+  return { ok: res.ok, status: res.status, json }
+}
+
+function extractMotorFromBlock(body: unknown): string | null {
+  const root = (body ?? {}) as Record<string, unknown>
+  const motor = (root.motor ?? {}) as Record<string, unknown>
+  if (motor.error === true) return null
+  const dados = (motor.dados ?? {}) as Record<string, unknown>
+  return (
+    sanitizeEngine(asString(dados.numero) ?? asString(dados.motor) ?? asString(dados.cilindrada)) ??
+    null
+  )
+}
+
 export function createApiPlacasPlateProvider(opts: {
   token: string
   baseUrl?: string
@@ -238,30 +316,76 @@ export function createApiPlacasPlateProvider(opts: {
     /\/$/,
     '',
   )
+  const fipeAssist = Deno.env.get('PLATE_FIPE_ASSIST') === '1'
+  const engineStepup = Deno.env.get('PLATE_ENGINE_STEPUP') === '1'
 
   return {
     source: 'apiplacas',
     async lookupByPlate(plate: string): Promise<PlateProviderRaw> {
-      const url = `${base}/basico/${encodeURIComponent(plate)}`
+      const path = fipeAssist ? 'basico-fipe' : 'basico'
+      const url = `${base}/${path}/${encodeURIComponent(plate)}`
       try {
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${opts.token}`,
-          },
-        })
+        const primary = await fetchJson(url, opts.token)
+        if (!primary.ok) return mapHttpError(primary.status, primary.json)
+        console.info('[apiplacas] ok', { plate, path, status: primary.status })
 
-        let json: unknown = null
-        try {
-          json = await res.json()
-        } catch {
-          json = null
+        let raw = mapApiPlacasBasicoToRaw(primary.json)
+        const fipeEntries = fipeAssist ? parseFipeEntries(primary.json) : []
+        if (fipeEntries.length) {
+          raw = { ...raw, fipeCodes: fipeEntries }
+          if (fipeAmbiguous(fipeEntries) && raw.status !== 'not_found') {
+            raw = {
+              ...raw,
+              status: 'ambiguous',
+              candidates: fipeEntries.slice(0, 4).map((e) => {
+                const split = splitApiModelo(e.modelo)
+                return {
+                  maker: raw.maker,
+                  model: split.model || e.modelo,
+                  year: raw.year,
+                  version: split.version,
+                  engine: split.engine ?? raw.engine,
+                }
+              }),
+              message:
+                raw.message ??
+                'Mais de uma versão FIPE possível para esta placa. Escolha a correta.',
+              confidence: Math.min(raw.confidence ?? 0.7, 0.7),
+            }
+          } else if (
+            !raw.engine &&
+            fipeEntries[0]?.modelo &&
+            raw.status !== 'ambiguous'
+          ) {
+            const split = splitApiModelo(fipeEntries[0].modelo)
+            if (split.engine && !raw.engine) {
+              raw = { ...raw, engine: split.engine }
+            }
+            if (split.version && !raw.version) {
+              raw = { ...raw, version: split.version }
+            }
+          }
         }
 
-        if (!res.ok) return mapHttpError(res.status, json)
-        console.info('[apiplacas] ok', { plate, status: res.status })
-        return mapApiPlacasBasicoToRaw(json)
+        if (engineStepup && !raw.engine && raw.status !== 'not_found' && raw.status !== 'unavailable') {
+          try {
+            const motorUrl = `${base}/motor/${encodeURIComponent(plate)}`
+            const motorRes = await fetchJson(motorUrl, opts.token)
+            if (motorRes.ok) {
+              const eng = extractMotorFromBlock(motorRes.json)
+              if (eng) raw = { ...raw, engine: eng }
+            } else {
+              console.warn('[apiplacas] motor step-up fail', {
+                plate,
+                status: motorRes.status,
+              })
+            }
+          } catch (motorErr) {
+            console.warn('[apiplacas] motor step-up error', motorErr)
+          }
+        }
+
+        return raw
       } catch (err) {
         console.error('[apiplacas] fetch error', err)
         return unavailable()

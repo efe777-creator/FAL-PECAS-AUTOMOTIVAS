@@ -63,4 +63,18 @@ describe('plateResultToFilter', () => {
     expect(f.modelId).toBe('md1')
     expect(f.versionId).toBe('v1')
   })
+
+  it('dual year: filtro e snapshot usam ano-modelo; fab só no snapshot', () => {
+    const f = plateResultToFilter(
+      base({
+        year: '2020',
+        yearModel: '2021',
+        yearFabrication: '2020',
+      }),
+    )
+    expect(f.year).toBe('2021')
+    expect(f.sourceSnapshot?.yearModel).toBe('2021')
+    expect(f.sourceSnapshot?.yearFabrication).toBe('2020')
+    expect(f.sourceSnapshot?.year).toBe('2021')
+  })
 })

@@ -3,94 +3,25 @@
  * Cruza resultado ApiPlacas/INV com o catálogo FAL — sem inventar PVC.
  * Pode elevar status para `ambiguous` quando há modelos irmãos próximos.
  */
-import { normalizeVehicleToken } from '@/services/plates/reconcileVehicleFilter'
-import { splitApiModelo } from '@/services/plates/splitApiModelo'
 import type {
   PlateLookupCandidate,
   PlateLookupResult,
   PlateLookupStatus,
 } from '@/services/plates/plateTypes'
+import {
+  detectSiblingModelAmbiguity,
+  rankCatalogModels,
+  resolveMakerAgainstTree,
+  scoreModelMatch,
+  type CatalogModelRank,
+} from '@/services/plates/siblingModelAmbiguity'
 import { vehicleModelKey } from '@/services/vehicles/vehicleOptionKeys'
 import type { VehicleOptionTree } from '@/types'
 
 export type PlateConfidenceBand = 'A' | 'B' | 'C' | 'D'
 
-export type CatalogModelRank = {
-  maker: string
-  model: string
-  score: number
-}
-
-const MAKER_ALIASES: Record<string, string> = {
-  chev: 'Chevrolet',
-  gm: 'Chevrolet',
-  chevy: 'Chevrolet',
-  vw: 'Volkswagen',
-  mercedes: 'Mercedes-Benz',
-}
-
-export function resolveMakerAgainstTree(
-  tree: VehicleOptionTree,
-  maker: string | null | undefined,
-): string | null {
-  if (!maker?.trim()) return null
-  const alias = MAKER_ALIASES[normalizeVehicleToken(maker)] ?? maker
-  const n = normalizeVehicleToken(alias)
-  const exact = tree.makers.find((m) => normalizeVehicleToken(m) === n)
-  if (exact) return exact
-  const starts = tree.makers.find(
-    (m) =>
-      normalizeVehicleToken(m).startsWith(n) || n.startsWith(normalizeVehicleToken(m)),
-  )
-  return starts ?? alias
-}
-
-/** Score 0–100: quão perto o modelo da placa está de um modelo do cadastro. */
-export function scoreModelMatch(catalogModel: string, needle: string): number {
-  const a = normalizeVehicleToken(catalogModel)
-  const b = normalizeVehicleToken(needle)
-  if (!a || !b) return 0
-  if (a === b) return 100
-  if (a.startsWith(b) || b.startsWith(a)) {
-    const ratio = Math.min(a.length, b.length) / Math.max(a.length, b.length)
-    return Math.round(70 + ratio * 25)
-  }
-  // Prefixo comum (HB20X vs HB20)
-  let common = 0
-  const len = Math.min(a.length, b.length)
-  while (common < len && a[common] === b[common]) common += 1
-  if (common >= 3) {
-    return Math.round(40 + (common / Math.max(a.length, b.length)) * 40)
-  }
-  return 0
-}
-
-export function rankCatalogModels(
-  tree: VehicleOptionTree,
-  maker: string | null,
-  modelRaw: string | null,
-): CatalogModelRank[] {
-  if (!modelRaw?.trim()) return []
-  const modelNeedle = splitApiModelo(modelRaw).model || modelRaw
-  const makerCanon = resolveMakerAgainstTree(tree, maker)
-  const pool = makerCanon
-    ? (tree.modelsByMaker[makerCanon] ?? []).map((model) => ({
-        maker: makerCanon,
-        model,
-      }))
-    : Object.entries(tree.modelsByMaker).flatMap(([m, models]) =>
-        models.map((model) => ({ maker: m, model })),
-      )
-
-  return pool
-    .map(({ maker: mk, model }) => ({
-      maker: mk,
-      model,
-      score: scoreModelMatch(model, modelNeedle),
-    }))
-    .filter((r) => r.score >= 40)
-    .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model))
-}
+export type { CatalogModelRank }
+export { resolveMakerAgainstTree, scoreModelMatch, rankCatalogModels }
 
 export function derivePlateConfidenceBand(input: {
   confidence: number | null
@@ -100,7 +31,6 @@ export function derivePlateConfidenceBand(input: {
   edgeBand?: PlateConfidenceBand | null
 }): PlateConfidenceBand {
   if (input.edgeBand === 'A' || input.edgeBand === 'B' || input.edgeBand === 'C' || input.edgeBand === 'D') {
-    // Ambiguidade de catálogo rebaixa para no máximo C
     if (input.ambiguousCount >= 2) {
       if (input.edgeBand === 'D') return 'D'
       return 'C'
@@ -153,56 +83,9 @@ export function assertPlateAgainstCatalog(
     }
   }
 
-  const ranks = rankCatalogModels(tree, result.maker, result.model)
+  const sibling = detectSiblingModelAmbiguity(tree, result.maker, result.model)
+  const ranks = sibling.ranks
   const top = ranks[0] ?? null
-  const second = ranks[1] ?? null
-  const scoreAmbiguous =
-    Boolean(top && second) &&
-    top!.score >= 55 &&
-    second!.score >= 55 &&
-    top!.score - second!.score <= 18 &&
-    normalizeVehicleToken(top!.model) !== normalizeVehicleToken(second!.model)
-
-  /**
-   * Caso típico DENATRAN: "Kwid Intens" → split Kwid + Intense, e o cadastro tem
-   * "Kwid" e "Kwid Intense" como modelos distintos — exige escolha humana.
-   */
-  const split = result.model?.trim() ? splitApiModelo(result.model) : null
-  const makerCanon = resolveMakerAgainstTree(tree, result.maker)
-  const pool = makerCanon ? (tree.modelsByMaker[makerCanon] ?? []) : []
-  const baseName = split?.model?.trim() || ''
-  const baseNorm = normalizeVehicleToken(baseName)
-  const catalogBase = pool.find((m) => normalizeVehicleToken(m) === baseNorm)
-  const catalogExtended = pool.filter(
-    (m) =>
-      normalizeVehicleToken(m) !== baseNorm &&
-      normalizeVehicleToken(m).startsWith(baseNorm) &&
-      baseNorm.length >= 3,
-  )
-  const splitFamilyAmbiguous =
-    Boolean(split?.version || split?.engine) &&
-    Boolean(catalogBase) &&
-    catalogExtended.length > 0
-
-  const ambiguousPair = scoreAmbiguous || splitFamilyAmbiguous
-  const ambiguousRanks: CatalogModelRank[] = splitFamilyAmbiguous && catalogBase && makerCanon
-    ? [
-        { maker: makerCanon, model: catalogBase, score: 100 },
-        ...catalogExtended.map((model) => ({
-          maker: makerCanon,
-          model,
-          score: scoreModelMatch(model, result.model ?? baseName),
-        })),
-        ...ranks,
-      ].filter(
-        (r, i, arr) =>
-          arr.findIndex(
-            (x) =>
-              x.maker === r.maker &&
-              normalizeVehicleToken(x.model) === normalizeVehicleToken(r.model),
-          ) === i,
-      )
-    : ranks
 
   let status = result.status
   let candidates: PlateLookupCandidate[] = result.candidates?.length
@@ -212,12 +95,12 @@ export function assertPlateAgainstCatalog(
   let model = result.model
   let message = result.message
 
-  if (ambiguousPair && ambiguousRanks.length >= 2) {
-    const a = ambiguousRanks[0]!
-    const b = ambiguousRanks[1]!
+  if (sibling.ambiguous && ranks.length >= 2) {
+    const a = ranks[0]!
+    const b = ranks[1]!
     status = 'ambiguous'
     const year = result.year
-    candidates = ambiguousRanks.slice(0, 4).map((r) => ({
+    candidates = ranks.slice(0, 4).map((r) => ({
       maker: r.maker,
       model: r.model,
       year,
@@ -250,7 +133,6 @@ export function assertPlateAgainstCatalog(
     edgeBand: result.confidenceBand ?? null,
   })
 
-  // Vida de linha: ano da placa fora do intervalo do modelo → rebaixa banda (não inventa VV).
   const yearNum = result.year != null ? Number(String(result.year).slice(0, 4)) : NaN
   if (
     maker &&
@@ -275,6 +157,21 @@ export function assertPlateAgainstCatalog(
     }
   }
 
+  // Dual year: fab ≠ modelo → rebaixa e avisa (peças usam ano-modelo).
+  const fab = result.yearFabrication
+  const yModel = result.yearModel ?? result.year
+  if (
+    fab &&
+    yModel &&
+    String(fab).slice(0, 4) !== String(yModel).slice(0, 4) &&
+    confidenceBand === 'A'
+  ) {
+    confidenceBand = 'B'
+    message =
+      message ??
+      `Ano fabricação (${fab}) ≠ ano-modelo (${yModel}). Peças usam o ano-modelo — confira.`
+  }
+
   if (confidenceBand === 'C' || confidenceBand === 'D') {
     if (status === 'found') status = 'incomplete'
   }
@@ -284,9 +181,20 @@ export function assertPlateAgainstCatalog(
     status,
     maker,
     model,
+    year: yModel ?? result.year,
+    yearModel: yModel ?? result.yearModel ?? null,
+    yearFabrication: fab ?? result.yearFabrication ?? null,
     candidates,
     message,
     confidenceBand,
     identityAsserted: true,
+    identificationStatus:
+      status === 'ambiguous'
+        ? 'ambiguous'
+        : status === 'not_in_catalog'
+          ? 'unidentified'
+          : status === 'incomplete'
+            ? 'partially_identified'
+            : 'identified',
   }
 }

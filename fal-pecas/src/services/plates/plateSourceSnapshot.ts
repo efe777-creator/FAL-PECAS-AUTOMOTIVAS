@@ -10,6 +10,8 @@ export type PlateSourceSnapshot = {
   maker: string | null
   model: string | null
   year: string | null
+  yearModel: string | null
+  yearFabrication: string | null
   engine: string | null
   version: string | null
   engineRaw: string | null
@@ -27,6 +29,8 @@ export function buildPlateSourceSnapshot(input: {
   maker?: string | null
   model?: string | null
   year?: string | number | null
+  yearModel?: string | number | null
+  yearFabrication?: string | number | null
   engine?: string | null
   version?: string | null
   engineRaw?: string | null
@@ -35,6 +39,16 @@ export function buildPlateSourceSnapshot(input: {
   transmission?: string | null
   confidence?: number | null
 }): PlateSourceSnapshot {
+  const year =
+    input.year != null && String(input.year).trim() ? String(input.year) : null
+  const yearModel =
+    input.yearModel != null && String(input.yearModel).trim()
+      ? String(input.yearModel)
+      : year
+  const yearFabrication =
+    input.yearFabrication != null && String(input.yearFabrication).trim()
+      ? String(input.yearFabrication)
+      : null
   return {
     plate: input.plate?.trim() || null,
     queriedAt: input.queriedAt ?? new Date().toISOString(),
@@ -42,7 +56,9 @@ export function buildPlateSourceSnapshot(input: {
     status: input.status ?? null,
     maker: input.maker?.trim() || null,
     model: input.model?.trim() || null,
-    year: input.year != null && String(input.year).trim() ? String(input.year) : null,
+    year: yearModel ?? year,
+    yearModel: yearModel ?? year,
+    yearFabrication,
     engine: input.engine?.trim() || null,
     version: input.version?.trim() || null,
     engineRaw: input.engineRaw?.trim() || null,
@@ -69,6 +85,8 @@ export function parsePlateSourceSnapshot(raw: unknown): PlateSourceSnapshot | nu
     maker,
     model,
     year: o.year != null ? String(o.year) : null,
+    yearModel: o.yearModel != null ? String(o.yearModel) : null,
+    yearFabrication: o.yearFabrication != null ? String(o.yearFabrication) : null,
     engine: typeof o.engine === 'string' ? o.engine : null,
     version: typeof o.version === 'string' ? o.version : null,
     engineRaw: typeof o.engineRaw === 'string' ? o.engineRaw : null,
@@ -84,7 +102,14 @@ export function formatSourceSnapshotExtras(
   snap: PlateSourceSnapshot | null | undefined,
 ): string | null {
   if (!snap) return null
+  const dualYear =
+    snap.yearFabrication &&
+    snap.yearModel &&
+    snap.yearFabrication !== snap.yearModel
+      ? `Fab ${snap.yearFabrication} / modelo ${snap.yearModel}`
+      : null
   const parts = [
+    dualYear,
     snap.fuel ? `Combustível: ${snap.fuel}` : null,
     snap.transmission ? `Câmbio: ${snap.transmission}` : null,
   ].filter(Boolean)

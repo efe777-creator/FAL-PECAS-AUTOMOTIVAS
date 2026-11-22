@@ -15,6 +15,8 @@ export interface PlateProviderRaw {
   maker: string | null
   model: string | null
   year: string | null
+  yearModel?: string | null
+  yearFabrication?: string | null
   version: string | null
   engine: string | null
   /** Bruto da API quando sanitizeEngine zera (preservação PLANO 0). */
@@ -34,6 +36,8 @@ export interface PlateProviderRaw {
     version: string | null
     engine: string | null
   }>
+  /** FIPE informativo (nunca predicado PVC). */
+  fipeCodes?: Array<{ codigo: string; modelo: string; score: number }>
 }
 
 export interface PlateLookupProvider {
@@ -47,6 +51,8 @@ export interface NormalizedPlateLookupResult {
   maker: string | null
   model: string | null
   year: string | null
+  yearModel?: string | null
+  yearFabrication?: string | null
   version: string | null
   engine: string | null
   engineRaw?: string | null
@@ -83,6 +89,8 @@ export interface NormalizedPlateLookupResult {
     maker: string | null
     model: string | null
     year: string | null
+    yearModel?: string | null
+    yearFabrication?: string | null
     engine: string | null
     version: string | null
     engineRaw: string | null

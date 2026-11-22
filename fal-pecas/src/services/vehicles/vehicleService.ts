@@ -1,6 +1,5 @@
 import { mockVehicleTree } from '@/data/mocks/vehicles'
 import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
-import { expandYearsForSelector } from '@/lib/vehicleAppYear'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { VehicleCatalogEntry } from '@/services/search/interpretSearchQuery'
 import type { VehicleFilter, VehicleOptionTree } from '@/types'
@@ -26,8 +25,8 @@ export function clearVehicleOptionsCache() {
 
 /**
  * Opções de veículo a partir de manufacturers / models / vehicle_versions.
- * Anos/motores/versões vêm de **vehicle_versions active** (cadastro mestre).
- * PVC só enriquece anos de aplicação — não limita o seletor.
+ * Anos do seletor = snapshot VV + vida de linha (identidade).
+ * PVC (fit) NÃO entra em yearsByModel — search_products usa PVC à parte.
  * Mock só com VITE_ALLOW_CATALOG_MOCKS=true em DEV (IMP-19 U1).
  * Cache em memória + coalescing de inflight (cascata PVC / garagem).
  */
@@ -77,7 +76,6 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     { data: makers, error: e1 },
     { data: models, error: e2 },
     { data: versions, error: e3 },
-    { data: pvcRows, error: e4 },
   ] = await Promise.all([
     supabase.from('manufacturers').select('id, name').eq('status', 'active').order('name'),
     supabase
@@ -91,18 +89,11 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
       .from('vehicle_versions')
       .select('year, engine, version_name, model_id, manufacturers(name), models(name)')
       .eq('status', 'active'),
-    supabase
-      .from('product_vehicle_compatibility')
-      .select(
-        'year_start, year_end, vehicle_versions!inner(year, manufacturers(name), models!inner(name))',
-      )
-      .limit(5000),
   ])
 
   if (e1) throw e1
   if (e2) throw e2
   if (e3) throw e3
-  if (e4) throw e4
 
   const makerNames = (makers ?? []).map((m) => String(m.name))
   const modelsByMaker: Record<string, string[]> = {}
@@ -132,7 +123,7 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
       start: Number.isFinite(ps as number) ? (ps as number) : null,
       end: Number.isFinite(pe as number) ? (pe as number) : null,
     }
-    // Vida de linha enriquece anos do seletor (não substitui PVC/VV).
+    // Vida de linha = identidade do modelo (não predicado PVC).
     if (ps != null && Number.isFinite(ps)) {
       yearNumsByModel[mk] ??= new Set()
       const endEff = pe != null && Number.isFinite(pe) ? (pe as number) : ps
@@ -154,6 +145,7 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     if (!makerName || !modelName) continue
     const mk = vehicleModelKey(makerName, modelName)
 
+    // Snapshot VV = identidade (anos do seletor).
     if (v.year != null) {
       yearNumsByModel[mk] ??= new Set()
       yearNumsByModel[mk].add(Number(v.year))
@@ -185,24 +177,8 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     }
   }
 
-  for (const row of pvcRows ?? []) {
-    const rawVv = row.vehicle_versions as unknown
-    const vv = (Array.isArray(rawVv) ? rawVv[0] : rawVv) as
-      | { year?: number | null; models?: unknown; manufacturers?: unknown }
-      | null
-    const makerName = relationName(vv?.manufacturers)
-    const modelName = relationName(vv?.models)
-    if (!makerName || !modelName) continue
-    const mk = vehicleModelKey(makerName, modelName)
-    const expanded = expandYearsForSelector(
-      row.year_start == null ? null : Number(row.year_start),
-      row.year_end == null ? null : Number(row.year_end),
-      vv?.year ?? null,
-    )
-    if (!expanded.length) continue
-    yearNumsByModel[mk] ??= new Set()
-    for (const y of expanded) yearNumsByModel[mk].add(y)
-  }
+  // PVC year_start/end = fit da peça — NÃO entra em yearsByModel (evita entidade falsa).
+  // search_products continua usando PVC; placa/seletor injetam ano via selectOptionsWithValue.
 
   for (const [mk, years] of Object.entries(yearNumsByModel)) {
     yearsByModel[mk] = [...years]

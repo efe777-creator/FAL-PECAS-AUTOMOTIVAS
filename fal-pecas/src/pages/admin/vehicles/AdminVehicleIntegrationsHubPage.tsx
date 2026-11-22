@@ -40,6 +40,7 @@ export function AdminVehicleIntegrationsHubPage() {
   const [makers, setMakers] = useState<number | null>(null)
   const [models, setModels] = useState<number | null>(null)
   const [versions, setVersions] = useState<number | null>(null)
+  const [withLife, setWithLife] = useState<number | null>(null)
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -54,6 +55,7 @@ export function AdminVehicleIntegrationsHubPage() {
       setMakers(s.manufacturersActive)
       setModels(s.modelsActive)
       setVersions(s.versionsActive)
+      setWithLife(s.modelsWithProductionYears)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
     }
@@ -139,6 +141,13 @@ export function AdminVehicleIntegrationsHubPage() {
               Configurações: {versions}
             </span>
           ) : null}
+          {withLife != null && models != null ? (
+            <span className="rounded-md bg-fal-line/40 px-2 py-1 text-xs font-bold text-fal-fg">
+              Vida de linha: {withLife}/{models}
+            </span>
+          ) : null}
+          <StatusChip label="Lookup read-only" on />
+          <StatusChip label="FIPE assist (flag)" on={false} />
           {lastSync ? (
             <span className="rounded-md bg-fal-line/40 px-2 py-1 text-xs font-bold text-fal-fg">
               Última sync: {new Date(lastSync.at).toLocaleString('pt-BR')} ·{' '}

@@ -259,7 +259,7 @@ export function resolveVehicleIdentity(
       evidence,
       raw,
       pendingCodes,
-      allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
+      allowCanonicalUpsert: false,
       message: messageFor(status),
     }
   }
@@ -278,6 +278,8 @@ export function resolveVehicleIdentity(
     }
   }
 
+  // Ambiguidade de irmãos (Kwid×Intense) = SoT no client via assertPlateAgainstCatalog
+  // (Edge não carrega árvore completa). Sempre allowCanonicalUpsert=false.
   if (engineKnown && versionKnown && filter.year) {
     const status: InvStatus = 'exact'
     return {
@@ -287,12 +289,12 @@ export function resolveVehicleIdentity(
       evidence,
       raw,
       pendingCodes,
-      allowCanonicalUpsert: true,
+      // Lookup Edge não upserta; confirm usa vehicle-confirm-upsert.
+      allowCanonicalUpsert: false,
       message: messageFor(status),
     }
   }
 
-  // R2: incomplete só upserta mestre com maker+model+ano (sem inventar VV aberta).
   const status: InvStatus = 'incomplete'
   return {
     status,
@@ -301,7 +303,7 @@ export function resolveVehicleIdentity(
     evidence,
     raw,
     pendingCodes,
-    allowCanonicalUpsert: Boolean(hasMakerModel && filter.year),
+    allowCanonicalUpsert: false,
     message: messageFor(status),
   }
 }

@@ -41,7 +41,8 @@ describe('resolveVehicleIdentity', () => {
     expect(r.filter.engine).toBe('1.3')
     expect(r.filter.version).toBe('Drive')
     expect(['exact', 'incomplete']).toContain(r.status)
-    expect(r.allowCanonicalUpsert).toBe(true)
+    // Lookup não upserta; confirm usa vehicle-confirm-upsert.
+    expect(r.allowCanonicalUpsert).toBe(false)
   })
 
   it('1,3 e Firefly / E.torQ normalizam sem misturar no modelo', () => {
@@ -125,7 +126,7 @@ describe('resolveVehicleIdentity', () => {
     expect(r.allowCanonicalUpsert).toBe(false)
   })
 
-  it('R2: incomplete com ano permite upsert (motor/versão opcionais)', () => {
+  it('R2: incomplete com ano também não upserta no lookup', () => {
     const r = resolveVehicleIdentity({
       source: 'plate',
       maker: 'Chevrolet',
@@ -133,7 +134,33 @@ describe('resolveVehicleIdentity', () => {
       year: '2016',
     })
     expect(r.status).toBe('incomplete')
-    expect(r.allowCanonicalUpsert).toBe(true)
+    expect(r.allowCanonicalUpsert).toBe(false)
+  })
+
+  it('família irmã Kwid × Intense → ambiguous', () => {
+    const tree: VehicleOptionTree = {
+      makers: ['Renault'],
+      modelsByMaker: {
+        Renault: ['Kwid', 'Kwid Intense'],
+      },
+      yearsByModel: {
+        'Renault|Kwid': ['2021'],
+        'Renault|Kwid Intense': ['2021'],
+      },
+      enginesByModel: {},
+      enginesByModelYear: {},
+      versionsByModel: {},
+    }
+    const r = resolveVehicleIdentity({
+      source: 'plate',
+      maker: 'Renault',
+      model: 'Kwid Intens',
+      year: '2021',
+      tree,
+    })
+    expect(r.status).toBe('ambiguous')
+    expect(r.allowCanonicalUpsert).toBe(false)
+    expect(r.candidates.length).toBeGreaterThanOrEqual(2)
   })
 
   it('mensagens UX por status', () => {

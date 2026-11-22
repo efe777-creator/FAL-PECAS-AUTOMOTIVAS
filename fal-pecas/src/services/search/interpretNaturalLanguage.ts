@@ -41,7 +41,7 @@ export function mergeSearchIntent(
   let needsClarification = partial.needsClarification ?? base.needsClarification
   let clarification = partial.clarification ?? base.clarification
 
-  // Revalida model contra catálogo se LLM inventou grafia
+  // Revalida model contra catálogo — LLM nunca inventa mosca branca (fora do mestre).
   let modelEntry: VehicleCatalogEntry | undefined
   if (vehicle.model && catalog.length) {
     const key = normalizeEntityMatchKey(vehicle.model)
@@ -49,7 +49,17 @@ export function mergeSearchIntent(
     if (modelEntry) {
       vehicle.model = modelEntry.model
       vehicle.maker = vehicle.maker || modelEntry.maker
+    } else {
+      delete vehicle.model
+      delete vehicle.maker
+      delete vehicle.year
+      delete vehicle.engine
+      delete vehicle.version
     }
+  } else if (vehicle.maker && catalog.length && !vehicle.model) {
+    const makerKey = normalizeEntityMatchKey(vehicle.maker)
+    const makerOk = catalog.some((c) => normalizeEntityMatchKey(c.maker) === makerKey)
+    if (!makerOk) delete vehicle.maker
   }
 
   // Versão do LLM só se cadastrada no modelo (T05 One vs Unique)
