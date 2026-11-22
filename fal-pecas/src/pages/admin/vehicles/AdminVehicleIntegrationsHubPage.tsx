@@ -11,6 +11,7 @@ import {
   type VehiclePointLifeItem,
   type VehicleReviewQueueItem,
   type VehicleThinShellItem,
+  type ZeroCatalogLookupItem,
 } from '@/services/admin/adminVehicleMasterStats'
 import {
   applyVehicleMasterIntelligence,
@@ -58,6 +59,7 @@ export function AdminVehicleIntegrationsHubPage() {
     thinShells: number
     pointLife: number
     noEngine: number
+    zeroCatalog: number
   } | null>(null)
   const [queue, setQueue] = useState<VehicleReviewQueueItem[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export function AdminVehicleIntegrationsHubPage() {
   const [thinShellsError, setThinShellsError] = useState<string | null>(null)
   const [pointLifeItems, setPointLifeItems] = useState<VehiclePointLifeItem[]>([])
   const [noEngineItems, setNoEngineItems] = useState<VehicleNoEngineItem[]>([])
+  const [zeroCatalogItems, setZeroCatalogItems] = useState<ZeroCatalogLookupItem[]>([])
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -158,16 +161,19 @@ export function AdminVehicleIntegrationsHubPage() {
         thinShells: s.verifiedThinShells,
         pointLife: s.verifiedPointLife,
         noEngine: s.verifiedNoEngine,
+        zeroCatalog: s.zeroCatalogLookups,
       })
       setThinShells(s.verifiedThinShellItems)
       setThinShellsError(null)
       setPointLifeItems(s.verifiedPointLifeItems)
       setNoEngineItems(s.verifiedNoEngineItems)
+      setZeroCatalogItems(s.zeroCatalogLookupItems)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
       setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
       setPointLifeItems([])
       setNoEngineItems([])
+      setZeroCatalogItems([])
     }
     setQueueError(null)
     try {
@@ -302,6 +308,15 @@ export function AdminVehicleIntegrationsHubPage() {
                 }`}
               >
                 Sem motor: {quality.noEngine}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 text-xs font-bold ${
+                  quality.zeroCatalog > 0
+                    ? 'bg-sky-100 text-sky-950'
+                    : 'bg-fal-line/40 text-fal-fg'
+                }`}
+              >
+                Lookup catálogo 0: {quality.zeroCatalog}
               </span>
             </>
           ) : null}
@@ -480,6 +495,41 @@ export function AdminVehicleIntegrationsHubPage() {
                 >
                   Abrir
                 </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">
+          Lookups INV catálogo 0 ({zeroCatalogItems.length})
+        </p>
+        <p className="mb-2 mt-1 text-sm text-fal-muted">
+          Últimos 14 dias com <code>catalog_total=0</code> (sem placa completa). Sinal operacional de
+          casca — enriquecer mestre com evidência, sem thin-seed inventado.
+        </p>
+        {zeroCatalogItems.length === 0 ? (
+          <p className="m-0 text-sm text-fal-muted">
+            Nenhum lookup com catálogo 0 no período (ou telemetria ainda sem dados pós-deploy).
+          </p>
+        ) : (
+          <ul className="m-0 max-h-48 list-none space-y-1 overflow-y-auto p-0">
+            {zeroCatalogItems.map((e) => (
+              <li
+                key={e.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-fal-line/60 py-1 text-sm"
+              >
+                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-950">
+                  {e.confidenceBand}
+                </span>
+                <span className="font-semibold text-fal-fg">
+                  {[e.maker, e.model, e.year].filter(Boolean).join(' ') || '—'}
+                </span>
+                <span className="text-fal-muted">{e.status}</span>
+                <span className="text-xs text-fal-muted">
+                  {new Date(e.createdAt).toLocaleString('pt-BR')}
+                </span>
               </li>
             ))}
           </ul>

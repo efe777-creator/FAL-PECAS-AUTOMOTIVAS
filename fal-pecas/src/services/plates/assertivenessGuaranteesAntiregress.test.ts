@@ -165,11 +165,21 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(hub).toMatch(/Sem motor:/)
     expect(hub).toMatch(/VV verified sem motor/)
     expect(hub).toMatch(/verifiedNoEngineItems/)
+    expect(hub).toMatch(/Lookup catálogo 0:/)
+    expect(hub).toMatch(/Lookups INV catálogo 0/)
+    expect(hub).toMatch(/zeroCatalogLookupItems/)
     const stats = read('src/services/admin/adminVehicleMasterStats.ts')
     expect(stats).toMatch(/verifiedThinShellItems/)
     expect(stats).toMatch(/verifiedPointLifeItems/)
     expect(stats).toMatch(/verifiedNoEngineItems/)
     expect(stats).toMatch(/loadVerifiedNoEngineRows/)
+    expect(stats).toMatch(/loadZeroCatalogLookupRows/)
+    expect(stats).toMatch(/vehicle_resolution_events/)
+    const telPol = read(
+      'supabase/migrations/20261122250000_resolution_events_staff_select.sql',
+    )
+    expect(telPol).toMatch(/vehicle_resolution_events_staff_select/)
+    expect(telPol).toMatch(/is_staff\(\)/)
     const qqFix = read(
       'supabase/migrations/20261122230000_qq_maker_to_caoa_chery.sql',
     )

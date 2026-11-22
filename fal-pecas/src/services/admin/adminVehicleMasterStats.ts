@@ -50,6 +50,20 @@ export type VehicleMasterStats = {
   verifiedNoEngine: number
   /** Lista VV sem motor (mesma fonte do contador). */
   verifiedNoEngineItems: VehicleNoEngineItem[]
+  /** Lookups INV recentes com catalog_total=0 (casca / sem VV). */
+  zeroCatalogLookups: number
+  zeroCatalogLookupItems: ZeroCatalogLookupItem[]
+}
+
+/** Evento INV com catálogo 0 — telemetria, sem placa completa. */
+export type ZeroCatalogLookupItem = {
+  id: string
+  maker: string | null
+  model: string | null
+  year: string | null
+  status: string
+  confidenceBand: string
+  createdAt: string
 }
 
 export type VehicleModelQualityStatus = 'review' | 'verified' | 'quarantined' | 'superseded'
@@ -100,6 +114,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     thinShellItems,
     pointLifeItems,
     noEngineItems,
+    zeroCatalogItems,
   ] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
@@ -116,6 +131,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     loadVerifiedThinShellRows(),
     loadVerifiedPointLifeRows(),
     loadVerifiedNoEngineRows(),
+    loadZeroCatalogLookupRows(),
   ])
   if (withLife.error) throw withLife.error
   return {
@@ -133,6 +149,8 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     verifiedPointLifeItems: pointLifeItems,
     verifiedNoEngine: noEngineItems.length,
     verifiedNoEngineItems: noEngineItems,
+    zeroCatalogLookups: zeroCatalogItems.length,
+    zeroCatalogLookupItems: zeroCatalogItems,
   }
 }
 
@@ -248,6 +266,32 @@ async function loadVerifiedNoEngineRows(): Promise<VehicleNoEngineItem[]> {
 
 export async function listVerifiedNoEngine(): Promise<VehicleNoEngineItem[]> {
   return loadVerifiedNoEngineRows()
+}
+
+/** Últimos lookups INV com catalog_total=0 (14d) — casca operacional. */
+async function loadZeroCatalogLookupRows(limit = 40): Promise<ZeroCatalogLookupItem[]> {
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { data, error } = await getSupabase()
+    .from('vehicle_resolution_events')
+    .select('id, maker, model, year, status, confidence_band, created_at')
+    .eq('catalog_total', 0)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    id: String(r.id),
+    maker: r.maker != null ? String(r.maker) : null,
+    model: r.model != null ? String(r.model) : null,
+    year: r.year != null ? String(r.year) : null,
+    status: String(r.status),
+    confidenceBand: String(r.confidence_band),
+    createdAt: String(r.created_at),
+  }))
+}
+
+export async function listZeroCatalogLookups(): Promise<ZeroCatalogLookupItem[]> {
+  return loadZeroCatalogLookupRows()
 }
 
 type QueueRow = {
