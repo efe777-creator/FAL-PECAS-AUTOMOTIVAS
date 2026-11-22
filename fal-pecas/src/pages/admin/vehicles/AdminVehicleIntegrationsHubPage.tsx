@@ -153,20 +153,17 @@ export function AdminVehicleIntegrationsHubPage() {
         thinShells: s.verifiedThinShells,
         pointLife: s.verifiedPointLife,
       })
+      setThinShells(s.verifiedThinShellItems)
+      setThinShellsError(null)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
+      setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
     }
     setQueueError(null)
     try {
       setQueue(await listReviewQueue())
     } catch (err) {
       setQueueError(toUserMessage(err, 'Falha ao carregar fila de revisão'))
-    }
-    setThinShellsError(null)
-    try {
-      setThinShells(await listVerifiedThinShells())
-    } catch (err) {
-      setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
     }
   }, [])
 

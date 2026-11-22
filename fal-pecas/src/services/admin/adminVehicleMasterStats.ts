@@ -1,5 +1,12 @@
 import { getSupabase } from '@/lib/supabase'
 
+export type VehicleThinShellItem = {
+  id: string
+  name: string
+  makerName: string
+  reviewNote: string | null
+}
+
 export type VehicleMasterStats = {
   manufacturersActive: number
   modelsActive: number
@@ -16,6 +23,8 @@ export type VehicleMasterStats = {
    * Não é review: nome ok, riqueza insuficiente.
    */
   verifiedThinShells: number
+  /** Lista das cascas (mesma fonte do contador — evita 2ª query no hub). */
+  verifiedThinShellItems: VehicleThinShellItem[]
   /** Verified com start=end (vida pontual residual — seletor pobre). */
   verifiedPointLife: number
 }
@@ -65,7 +74,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityReview,
     qualityQuarantined,
     qualitySuperseded,
-    thinShells,
+    thinShellItems,
     pointLife,
   ] = await Promise.all([
     countActive('manufacturers'),
@@ -80,7 +89,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     countQuality('review'),
     countQuality('quarantined'),
     countQuality('superseded'),
-    countVerifiedThinShells(),
+    loadVerifiedThinShellRows(),
     countVerifiedPointLife(),
   ])
   if (withLife.error) throw withLife.error
@@ -93,16 +102,10 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityReview,
     qualityQuarantined,
     qualitySuperseded,
-    verifiedThinShells: thinShells,
+    verifiedThinShells: thinShellItems.length,
+    verifiedThinShellItems: thinShellItems,
     verifiedPointLife: pointLife,
   }
-}
-
-export type VehicleThinShellItem = {
-  id: string
-  name: string
-  makerName: string
-  reviewNote: string | null
 }
 
 async function loadVerifiedThinShellRows(): Promise<VehicleThinShellItem[]> {
@@ -136,11 +139,6 @@ async function loadVerifiedThinShellRows(): Promise<VehicleThinShellItem[]> {
         reviewNote: m.review_note ? String(m.review_note) : null,
       }
     })
-}
-
-/** Verified ativos sem nenhuma VV ativa (casca). */
-async function countVerifiedThinShells(): Promise<number> {
-  return (await loadVerifiedThinShellRows()).length
 }
 
 /** Lista cascas verified (0 VV) — ex. Corolla Cross aguardando configs. */

@@ -142,10 +142,17 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(hub).toMatch(/Verificar \(A1\)/)
     expect(hub).toMatch(/\?model=/)
     expect(hub).toMatch(/Cascas \(0 VV\):/)
-    expect(hub).toMatch(/listVerifiedThinShells/)
+    expect(hub).toMatch(/verifiedThinShellItems|listVerifiedThinShells/)
     expect(hub).toMatch(/Cascas verified sem VV/)
     expect(hub).toMatch(/casca: 0 VV/)
     expect(hub).toMatch(/Vida pontual:/)
+    const stats = read('src/services/admin/adminVehicleMasterStats.ts')
+    expect(stats).toMatch(/verifiedThinShellItems/)
+    const qqFix = read(
+      'supabase/migrations/20261122230000_qq_maker_to_caoa_chery.sql',
+    )
+    expect(qqFix).toMatch(/CAOA Chery/)
+    expect(qqFix).toMatch(/QQ/)
     expect(hub).toMatch(/Fonte B não promove/)
     expect(hub).not.toMatch(/FIPE assist \(flag\)/)
     const page = read('src/pages/admin/vehicles/AdminVehiclesPage.tsx')
