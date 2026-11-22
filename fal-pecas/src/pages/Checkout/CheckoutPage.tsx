@@ -907,7 +907,9 @@ export function CheckoutPage() {
   async function finalize(outcome: 'approve' | 'fail') {
     if (!validateDoc() || !addressId || !shippingOptionId) return
     if (!termsAccepted) {
-      pushError('Aceite os termos e a política de privacidade para finalizar.')
+      pushError(
+        'Aceite os termos de uso, comerciais, privacidade e trocas/devoluções para finalizar.',
+      )
       return
     }
     if (selectedShipping && isOwnConfirmCheckoutOption(selectedShipping)) {

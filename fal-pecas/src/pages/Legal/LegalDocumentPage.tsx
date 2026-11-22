@@ -11,6 +11,8 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
   const version = legalVersionFor(kind)
   useDocumentTitle(`${doc.title} | FAL Peças Automotivas`)
 
+  const related = (doc.related ?? []).filter((r) => r.to !== '/suporte')
+
   return (
     <Container className="py-8 sm:py-10">
       <p className="mb-4 text-sm text-fal-muted">
@@ -37,11 +39,11 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
         ))}
       </ul>
 
-      {doc.related && doc.related.length > 0 ? (
+      {related.length > 0 ? (
         <nav className="mt-8 max-w-2xl" aria-label="Documentos relacionados">
           <p className="m-0 text-sm font-semibold text-fal-fg">Também veja</p>
           <ul className="mt-2 list-none space-y-1 p-0 text-sm">
-            {doc.related.map((r) => (
+            {related.map((r) => (
               <li key={r.to}>
                 <Link
                   to={r.to}
@@ -56,10 +58,7 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
       ) : null}
 
       <p className="mt-8 max-w-2xl text-sm text-fal-muted">
-        Dúvidas: use a{' '}
-        <Link to="/suporte" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
-          Central de Suporte
-        </Link>
+        Dúvidas: use a Central de Suporte
         {store.email ? (
           <>
             {' '}

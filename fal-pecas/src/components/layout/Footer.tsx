@@ -3,6 +3,7 @@ import { Container } from './Container'
 import logoFal from '@/assets/logos/logo-fal-transparente.png'
 import { useAuth } from '@/contexts/AuthContext'
 import { openCookiePreferences } from '@/lib/cookieNotice'
+import { LEGAL_DOC_PATH } from '@/lib/legalVersions'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { storeWhatsAppPhone, whatsAppHref } from '@/lib/whatsapp'
 
@@ -106,47 +107,26 @@ export function Footer() {
           <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/">
             Início
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/suporte">
+          <Link className="mb-2 block text-[13px] font-semibold text-fal-yellow hover:text-white" to="/suporte">
             Central de Suporte
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/termos">
+          <Link
+            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
+            to={LEGAL_DOC_PATH.termos}
+          >
             Termos de uso
           </Link>
           <Link
             className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
-            to="/termos-comerciais"
-          >
-            Termos comerciais
-          </Link>
-          <Link
-            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
-            to="/privacidade"
+            to={LEGAL_DOC_PATH.privacidade}
           >
             Privacidade
           </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/cookies">
-            Cookies
-          </Link>
           <Link
             className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
-            to="/frete-entrega"
-          >
-            Frete e entrega
-          </Link>
-          <Link
-            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
-            to="/trocas-devolucoes"
+            to={LEGAL_DOC_PATH['trocas-devolucoes']}
           >
             Trocas e devoluções
-          </Link>
-          <Link className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white" to="/garantia">
-            Garantia
-          </Link>
-          <Link
-            className="mb-2 block text-[13px] text-[#c5cbd1] hover:text-white"
-            to="/compatibilidade"
-          >
-            Compatibilidade
           </Link>
           <button
             type="button"

@@ -27,12 +27,11 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
       'Conteúdos, marcas e materiais da loja são protegidos; uso comercial não autorizado é vedado.',
       'Links para terceiros (pagamento, frete, mapas) seguem regras desses prestadores; a FAL não controla sites externos.',
       'A FAL pode atualizar estes Termos. Pedidos já realizados preservam as versões aceitas no momento da compra (quando registradas).',
-      'Dúvidas sobre o uso da plataforma: Central de Suporte (/suporte) ou WhatsApp/e-mail do rodapé.',
+      'Dúvidas sobre o uso da plataforma: use a Central de Suporte ou o WhatsApp/e-mail do rodapé.',
     ],
     related: [
       { to: '/termos-comerciais', label: 'Termos Comerciais' },
       { to: '/privacidade', label: 'Privacidade' },
-      { to: '/suporte', label: 'Central de Suporte' },
     ],
   },
   'termos-comerciais': {
@@ -65,7 +64,7 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
       'Finalidades principais: executar o contrato de compra, prevenção a fraude, suporte, obrigações fiscais/contábeis e, com consentimento, analytics/marketing.',
       'Base legal típica: execução de contrato, legítimo interesse (segurança/melhoria não invasiva) e consentimento (cookies de marketing).',
       'Parceiros de pagamento, frete (ex.: Melhor Envio) e, quando ativos, plataformas de ads recebem apenas o necessário à finalidade. Não vendemos seus dados.',
-      'Cookies e armazenamento local: essenciais para sessão, carrinho e segurança; analytics/marketing só com consentimento — detalhes em /cookies.',
+      'Cookies e armazenamento local: essenciais para sessão, carrinho e segurança; analytics/marketing só com consentimento — veja a Política de Cookies.',
       'Você pode solicitar acesso, correção ou exclusão de conta pela área Minha Conta (/conta) ou pelos canais oficiais (WhatsApp/e-mail do rodapé).',
       'Retenção: mantemos dados pelo tempo necessário às finalidades e obrigações legais; após isso, eliminamos ou anonimizamos quando cabível.',
       'Segurança: adotamos medidas técnicas e organizacionais proporcionais; nenhum sistema é 100% isento de risco.',
@@ -74,7 +73,6 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
     related: [
       { to: '/cookies', label: 'Política de Cookies' },
       { to: '/conta', label: 'Minha Conta' },
-      { to: '/suporte', label: 'Central de Suporte' },
     ],
   },
   cookies: {
@@ -90,10 +88,7 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
       'Inventário detalhado de tags em produção será mantido atualizado conforme campanhas (#15 Ads); esta política descreve as categorias.',
       'Para mais sobre dados pessoais, consulte a Política de Privacidade.',
     ],
-    related: [
-      { to: '/privacidade', label: 'Privacidade' },
-      { to: '/suporte', label: 'Central de Suporte' },
-    ],
+    related: [{ to: '/privacidade', label: 'Privacidade' }],
   },
   'frete-entrega': {
     title: 'Frete, Envio e Entrega',
@@ -121,7 +116,6 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
     related: [
       { to: '/garantia', label: 'Garantia e atendimento' },
       { to: '/frete-entrega', label: 'Frete e entrega' },
-      { to: '/suporte', label: 'Central de Suporte' },
     ],
   },
   garantia: {
@@ -132,7 +126,7 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
       'Garantia legal: produtos com vício (defeito) têm proteção do Código de Defesa do Consumidor (prazos típicos de 30 ou 90 dias conforme a natureza do bem, e saneamento em até 30 dias quando aplicável). Isso não se confunde com os 7 dias de arrependimento.',
       'Garantia de fabricante, quando existir, complementa e não substitui a garantia legal. A FAL não “empurra” o consumidor só ao fabricante: abra o caso no pedido para análise e orientação.',
       'Para vício, incompatibilidade alegada após uso, ou dano no transporte: use “Problema com meu pedido” na conta, com fotos/notas quando possível.',
-      'Atendimento eletrônico: a Central de Suporte (/suporte) e o WhatsApp oficiais são canais da loja. A FAL busca responder demandas de atendimento eletrônico em até 5 dias úteis (Decreto 7.962/2013), sem prejuízo de prazos legais mais favoráveis.',
+      'Atendimento eletrônico: a Central de Suporte e o WhatsApp oficiais são canais da loja. A FAL busca responder demandas de atendimento eletrônico em até 5 dias úteis (Decreto 7.962/2013), sem prejuízo de prazos legais mais favoráveis.',
       'Horários e e-mail institucionais adicionais serão publicados quando disponíveis — não inventamos canais. Use o rodapé e a Central.',
       'Reembolsos por garantia/vício seguem análise e, quando devidos, o mesmo meio de pagamento quando possível.',
       'Peças de desgaste natural, mau uso, instalação inadequada ou adulteração podem ser indeferidas após análise fundamentada.',
@@ -140,7 +134,6 @@ export const LEGAL_COPY: Record<LegalDocKind, LegalDocCopy> = {
     related: [
       { to: '/trocas-devolucoes', label: 'Trocas e devoluções' },
       { to: '/compatibilidade', label: 'Compatibilidade' },
-      { to: '/suporte', label: 'Central de Suporte' },
     ],
   },
   compatibilidade: {

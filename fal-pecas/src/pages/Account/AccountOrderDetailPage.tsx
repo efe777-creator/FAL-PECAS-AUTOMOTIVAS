@@ -637,12 +637,6 @@ export function AccountOrderDetailPage() {
                 </a>
               )
             })()}
-            <Link
-              to="/suporte"
-              className="inline-flex items-center rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-bold text-fal-fg hover:bg-fal-bg"
-            >
-              Central de Suporte
-            </Link>
           </div>
         </div>
       </div>
@@ -1086,16 +1080,11 @@ export function AccountOrderDetailPage() {
       </div>
 
       <div className="rounded-fal border border-fal-line bg-fal-surface p-5 text-sm">
-        <h3 className="mt-0 text-base font-extrabold">Ajuda e políticas</h3>
+        <h3 className="mt-0 text-base font-extrabold">Políticas deste pedido</h3>
+        <p className="mt-1 mb-3 text-fal-muted">
+          Pós-venda pelo painel acima. Documentos gerais ficam na Central.
+        </p>
         <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-2 p-0">
-          <li>
-            <Link
-              to="/suporte"
-              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
-            >
-              Central de Suporte
-            </Link>
-          </li>
           <li>
             <Link
               to="/trocas-devolucoes"
@@ -1118,6 +1107,14 @@ export function AccountOrderDetailPage() {
               className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
             >
               Frete e entrega
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/suporte"
+              className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            >
+              Central de Suporte
             </Link>
           </li>
         </ul>

@@ -70,7 +70,9 @@ export function RegisterPage() {
       return
     }
     if (!terms) {
-      pushError('Aceite os termos para continuar.')
+      pushError(
+        'Aceite os termos de uso, comerciais, privacidade e trocas/devoluções para continuar.',
+      )
       return
     }
     const cpfDigits = onlyDigits(cpf)

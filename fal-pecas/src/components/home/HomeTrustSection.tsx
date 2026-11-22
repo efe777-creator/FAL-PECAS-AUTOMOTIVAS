@@ -11,8 +11,8 @@ const ITEMS = [
   {
     title: 'Pagamento seguro',
     body: 'Pix e cartão via Mercado Pago, com resumo antes de confirmar.',
-    to: '/termos' as const,
-    label: 'Termos de uso',
+    to: '/termos-comerciais' as const,
+    label: 'Termos comerciais',
   },
   {
     title: 'Trocas e garantia',
@@ -21,10 +21,10 @@ const ITEMS = [
     label: 'Trocas e devoluções',
   },
   {
-    title: 'Privacidade',
-    body: 'Seus dados são tratados conforme a política da loja.',
-    to: '/privacidade' as const,
-    label: 'Privacidade',
+    title: 'Central de Suporte',
+    body: 'Políticas, compromisso da loja e atendimento em um só lugar.',
+    to: '/suporte' as const,
+    label: 'Ir à Central',
   },
 ]
 
