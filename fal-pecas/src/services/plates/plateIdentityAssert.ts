@@ -197,17 +197,23 @@ export function assertPlateAgainstCatalog(
   let manufacturerId = keepFks ? result.manufacturerId : null
   let modelId = keepFks ? result.modelId : null
   let versionId = keepFks ? result.versionId : null
-  if (keepFks && versionId && maker && model) {
+  if (maker && model && makerInTree) {
     const catalogVersions = tree.versionsByModel?.[vehicleModelKey(maker, model)] ?? []
-    const vText = (result.version ?? '').trim()
     if (catalogVersions.length === 0) {
-      // Casca / sem VV tipada: version_id não tem onde ancorar.
+      // Casca verified (ex. Corolla Cross): modelo ok, sem VV tipada — não inventar.
       versionId = null
-    } else if (
-      !vText ||
-      !catalogVersions.some((v) => v.trim().toLowerCase() === vText.toLowerCase())
-    ) {
-      versionId = null
+      if (confidenceBand === 'A') confidenceBand = 'B'
+      message =
+        message ??
+        'Modelo no cadastro FAL sem configuração tipada (casca). Confira o veículo — não inventamos motor/versão.'
+    } else if (keepFks && versionId) {
+      const vText = (result.version ?? '').trim()
+      if (
+        !vText ||
+        !catalogVersions.some((v) => v.trim().toLowerCase() === vText.toLowerCase())
+      ) {
+        versionId = null
+      }
     }
   }
 

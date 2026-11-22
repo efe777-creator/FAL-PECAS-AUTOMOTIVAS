@@ -9,15 +9,24 @@ import type { PlateLookupResult } from './plateTypes'
 import type { VehicleOptionTree } from '@/types'
 
 const tree: VehicleOptionTree = {
-  makers: ['Renault', 'Volkswagen'],
+  makers: ['Renault', 'Volkswagen', 'Toyota'],
   modelsByMaker: {
     Renault: ['Kwid', 'Kwid Intense', 'Sandero'],
     Volkswagen: ['Gol', 'Polo'],
+    Toyota: ['Corolla Cross'],
   },
   yearsByModel: {},
   enginesByModel: {},
   enginesByModelYear: {},
-  versionsByModel: {},
+  versionsByModel: {
+    'Renault|Kwid': ['Zen', 'Intense'],
+    'Renault|Kwid Intense': ['Intense'],
+    'Renault|Sandero': ['Life'],
+    'Volkswagen|Gol': ['1.0'],
+    'Volkswagen|Polo': ['TSI'],
+    // Corolla Cross: casca verified (0 VV) — sem thin-seed
+    'Toyota|Corolla Cross': [],
+  },
 }
 
 function base(partial: Partial<PlateLookupResult>): PlateLookupResult {
@@ -107,11 +116,11 @@ describe('assertPlateAgainstCatalog', () => {
     expect(out.versionId).toBeNull()
   })
 
-  it('mantém maker/model FKs estáveis e descarta versionId sem VV no catálogo', () => {
+  it('mantém maker/model FKs estáveis e descarta versionId se versão não está na árvore', () => {
     const out = assertPlateAgainstCatalog(
       base({
         model: 'Kwid',
-        version: 'Zen',
+        version: 'VersaoInexistente',
         confidence: 0.95,
         confidenceBand: 'A',
         manufacturerId: 'mk-1',
@@ -194,6 +203,26 @@ describe('assertPlateAgainstCatalog', () => {
     )
     expect(future.confidenceBand).not.toBe('A')
     expect(future.message ?? '').toMatch(/em linha|fora da vida/i)
+  })
+
+  it('casca 0 VV: zera versionId, rebaixa A→B e avisa sem inventar', () => {
+    const out = assertPlateAgainstCatalog(
+      base({
+        maker: 'Toyota',
+        model: 'Corolla Cross',
+        confidence: 0.95,
+        confidenceBand: 'A',
+        manufacturerId: 'mk-ty',
+        modelId: 'mo-cross',
+        versionId: 'vv-shell',
+      }),
+      tree,
+    )
+    expect(out.versionId).toBeNull()
+    expect(out.manufacturerId).toBe('mk-ty')
+    expect(out.modelId).toBe('mo-cross')
+    expect(out.confidenceBand).toBe('B')
+    expect(out.message ?? '').toMatch(/casca|sem configuração tipada/i)
   })
 })
 

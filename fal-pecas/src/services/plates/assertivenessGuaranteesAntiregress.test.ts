@@ -148,6 +148,8 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/namesStable/)
     expect(src).toMatch(/let manufacturerId = keepFks \? result\.manufacturerId : null/)
     expect(src).toMatch(/catalogVersions/)
+    expect(src).toMatch(/sem configuração tipada \(casca\)/)
+    expect(src).toMatch(/não inventamos motor\/versão/)
   })
 
   it('hub e admin usam setModelQualityStatus / badge qualidade', () => {
