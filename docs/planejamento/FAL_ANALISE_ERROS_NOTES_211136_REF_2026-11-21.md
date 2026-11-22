@@ -24,10 +24,10 @@
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | **DONE** |
 | 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | **DONE** |
-| 14 | LGPD, segurança, políticas garantia/devolução | **PENDING** (reaberto — análise minuciosa) |
-| 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
-| 16 | Portal B2B | PENDING |
-| 17 | Funil WhatsApp e sistema | PENDING |
+| 14 | LGPD, segurança, políticas garantia/devolução | **PENDING** (reaberto — onda atual) |
+| 15 | Meta Ads / Google Ads / Merchant (loja Google) | **PENDING** (onda atual — só Ads/Merchant) |
+| 16 | Portal B2B | **PENDING** (próxima onda evolutiva) |
+| 17 | Funil WhatsApp e sistema | **PENDING** (próxima onda evolutiva) |
 | 18 | Home/campanhas: linkar produtos, categorias, grupos, veículos → página filtrada | **DONE** |
 
 ## Texto extraído (PDF)
@@ -75,14 +75,15 @@ Melhorar seção e apresentação das ofertas; colocar o nome de promoções; it
 Estruturar e garantir segurança de dados (LGPD), políticas de garantia e devolução e demais normas.
 Fatia técnica `f712ac7` permanece no código, mas o Notes **não** fecha até análise minuciosa de rigor das políticas do site (jurídico/operacional + cobertura ponta a ponta).
 
-### #15 Ads / Merchant
+### #15 Ads / Merchant — onda atual (após #14)
 Integração Meta Ads e Google Ads; produtos na loja do Google (Merchant) — campanhas depois.
+Escopo desta onda: **políticas (#14) + Ads/Merchant (#15)** apenas.
 
-### #16 Portal B2B
-Fazer portal B2B no site.
+### #16 Portal B2B — próxima onda evolutiva
+Fazer portal B2B no site. (Fora da onda atual.)
 
-### #17 Funil WhatsApp
-Fazer funil WhatsApp e sistema.
+### #17 Funil WhatsApp — próxima onda evolutiva
+Fazer funil WhatsApp e sistema. (Fora da onda atual.)
 
 ### #18 Home / campanhas — **DONE** (2026-11-22)
 Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, grupos ou veículos — botão mostra página de produtos selecionados. → ver log Erro #18.
@@ -316,4 +317,12 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Fora / a auditar | Texto advogado; `/garantia`; `place_order` versões; exclusão real em Minha Conta; scripts Ads só com consent (#15); VAL jurídico |
 
 **Auditoria DONE (2026-11-22):** [FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md](./FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md)  
-**Próximo Notes (fila):** **#14** com plano de rigor · depois **#15** → **#17** → **#16**.
+
+### Ondas (decisão eFe 2026-11-22)
+
+| Onda | Escopo | Notes |
+|------|--------|--------|
+| **Atual** | Políticas + Ads | **#14** rigor LGPD/políticas → **#15** Meta Ads + Google Merchant (e Ads) |
+| **Próxima evolutiva** | Canais/B2B | **#17** funil WhatsApp · **#16** portal B2B |
+
+**Próximo na onda atual:** plano de rigor **#14**, depois **#15**.

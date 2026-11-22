@@ -19,10 +19,10 @@
 | 10 | DONE | parcial | Fatia coerência (Minha Garagem / peça / busca); marketing amplo fora |
 | 12 | DONE | sólido | Destaques sem backfill indevido quando há curadoria |
 | 13 | DONE | parcial | Promoções + gate itens/kits; heurística se gate vazio; título lista Home fora |
-| 14 | **PENDING** | fatia técnica só | Reaberto — rigor jurídico/operacional pendente |
-| 15 | PENDING | — | Ads / Merchant |
-| 16 | PENDING | — | Portal B2B |
-| 17 | PENDING | — | Funil WhatsApp |
+| 14 | **PENDING** (onda atual) | fatia técnica só | Reaberto — rigor jurídico/operacional pendente |
+| 15 | **PENDING** (onda atual) | — | Meta Ads + Google Merchant/Ads |
+| 16 | PENDING (próxima onda) | — | Portal B2B |
+| 17 | PENDING (próxima onda) | — | Funil WhatsApp |
 | 18 | DONE | parcial | Destino campanha filtrado OK; widget `campaign` / `new_arrivals` ainda **planned** |
 
 ## Residuais que não reabrem Notes (exceto #14)
@@ -45,12 +45,10 @@
 5. Cookies × Ads: scripts marketing só com consent (#15 acoplado).
 6. VAL ponta a ponta (checkout, cadastro, pós-venda, rodapé).
 
-## Próximos sensatos
+## Ondas (eFe 2026-11-22)
 
-1. **#14** — plano de rigor + VAL (antes de escala Ads).
-2. **#15** Ads/Merchant — após política de cookies/consent clara.
-3. **#17** Funil WhatsApp — valor comercial, menor que B2B.
-4. **#16** Portal B2B — maior superfície; por último nesta fila.
+**Onda atual:** só **#14 políticas** → **#15** Meta Ads + Google Merchant/Ads.  
+**Próxima onda evolutiva:** **#17** funil WhatsApp + **#16** portal B2B (não misturar nesta onda).
 
 ## Referências
 
