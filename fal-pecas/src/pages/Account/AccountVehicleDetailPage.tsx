@@ -691,7 +691,11 @@ export function AccountVehicleDetailPage() {
                   <div>
                     <dt className="text-xs font-semibold uppercase text-fal-muted">Vínculo canônico</dt>
                     <dd className="m-0 font-semibold">
-                      {vehicle.versionId ? 'Vinculado ao cadastro' : 'Ainda sem version_id'}
+                      {vehicle.versionId
+                        ? 'Versão vinculada ao cadastro'
+                        : vehicle.modelId
+                          ? 'Modelo vinculado; versão não identificada'
+                          : 'Sem vínculo ao cadastro (só o que você informou)'}
                     </dd>
                   </div>
                   {formatSourceSnapshotExtras(vehicle.sourceSnapshot) ? (

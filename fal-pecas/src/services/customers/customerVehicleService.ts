@@ -369,11 +369,17 @@ export async function addSavedVehicle(input: {
   const plate = blankToNull(input.plate)
   const plateNorm = plateNormalizedOrNull(plate)
 
+  const okFks = await assertVerifiedGarageFks({
+    manufacturerId: input.manufacturerId ?? null,
+    modelId: input.modelId ?? null,
+    versionId: input.versionId ?? null,
+  })
+
   // PLANO 2A E1: identity + ownership + membership atômicos (RPC).
   const { data, error } = await getSupabase().rpc('create_customer_vehicle_with_identity', {
-    p_manufacturer_id: input.manufacturerId ?? null,
-    p_model_id: input.modelId ?? null,
-    p_version_id: input.versionId ?? null,
+    p_manufacturer_id: okFks.manufacturerId,
+    p_model_id: okFks.modelId,
+    p_version_id: okFks.versionId,
     p_year: input.year ?? null,
     p_engine: blankToNull(input.engine ?? undefined),
     p_nickname: input.nickname?.trim() || null,

@@ -100,6 +100,7 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/assertVerifiedGarageFks/)
     expect(src).toMatch(/canonical_model_id/)
     expect(src).toMatch(/touchesFk/)
+    expect(src).toMatch(/okFks/)
     const rpc = read(
       'supabase/migrations/20261122190000_garage_verified_fk_and_vv_hygiene.sql',
     )
@@ -110,6 +111,11 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     )
     expect(backfill).toMatch(/sanitize_garage_vehicle_fks/)
     expect(backfill).toMatch(/accept_vehicle_transfer/)
+    const createSan = read(
+      'supabase/migrations/20261122210000_create_cv_uses_sanitize_and_fk_trigger.sql',
+    )
+    expect(createSan).toMatch(/sanitize_garage_vehicle_fks/)
+    expect(createSan).toMatch(/trg_sanitize_garage_fks/)
   })
 
   it('assert de placa zera FKs quando identificação não é plena', () => {
