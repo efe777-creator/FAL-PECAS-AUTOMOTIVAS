@@ -18,7 +18,7 @@
 | 5 | Ajustar e melhorar favoritos | **DONE** |
 | 6 | Placa consultada errada — assertividade do lookup | **DONE** |
 | 7 | Cards poluídos / grandes no mobile | **DONE** |
-| 8 | Header mobile muito cheio | PENDING |
+| 8 | Header mobile muito cheio | **DONE** |
 | 9 | Auditoria jornada real: caminhos errados, PDP relacionados, “ver no catálogo” filtrar certo | PENDING |
 | 10 | Textos/instruções do site — copy e coerência | PENDING |
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
@@ -240,4 +240,14 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Evidência | `tsc` + `CompatibilityAppsBlock` 6 PASS + `compatUiAntiregress` 20 PASS (M15 selo após título intacto) |
 | Arquivos | `ProductCard.tsx`, `ProductMediaFrame.tsx`, `CompatibilityAppsBlock.tsx` (+test), este REF |
 
-**Próximo Notes:** Erro #8 — Header mobile muito cheio.
+### Erro #8 — Header mobile muito cheio
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Topo mobile empilhava tema + garagem compacta + sino + ☰ junto da busca; `MobileNav` já cobre Início/Catálogo/Garagem/Carrinho/Conta; drawer já tinha garagem. |
+| Estrutura | (1) Topo mobile = logo + busca + ☰. (2) Tema no drawer (Aparência). (3) Garagem/avisos/carrinho no drawer e/ou bottom nav. Desktop `lg:` intacto. |
+| Evidência | `Header.mobileAntiregress` 2 PASS · `tsc --noEmit` OK |
+| Arquivos | `Header.tsx`, `Header.mobileAntiregress.test.ts`, este REF |
+
+**Próximo Notes:** Erro #9 — Auditoria jornada real (caminhos / PDP relacionados / “ver no catálogo”).

@@ -48,17 +48,7 @@ export function Header({ theme, onThemeToggle }: Props) {
         </Link>
         <SearchBar />
         <div className="flex items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
-          <div className="lg:hidden">
-            <StoreThemeToggle theme={theme} onToggle={onThemeToggle} />
-          </div>
-          <div className="min-w-0 max-w-[112px] flex-1 sm:max-w-[168px] lg:hidden">
-            <GarageActiveSwitcher compact />
-          </div>
-          {user ? (
-            <div className="lg:hidden">
-              <NotificationBell allHref="/conta/avisos" audience="customer" variant="light" />
-            </div>
-          ) : null}
+          {/* Mobile: só menu — tema/garagem/avisos/carrinho no drawer ou MobileNav */}
           <div className="hidden items-center gap-3 lg:flex">
             <StoreThemeToggle theme={theme} onToggle={onThemeToggle} showLabel />
             <GarageActiveSwitcher />
@@ -91,6 +81,10 @@ export function Header({ theme, onThemeToggle }: Props) {
 
       <MobileDrawer open={menuOpen} title="Menu" onClose={() => setMenuOpen(false)}>
         <nav className="flex flex-col gap-1 text-sm">
+          <div className="mb-2 flex items-center justify-between gap-2 px-3 py-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-fal-muted">Aparência</span>
+            <StoreThemeToggle theme={theme} onToggle={onThemeToggle} showLabel />
+          </div>
           <Link
             to="/"
             className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
