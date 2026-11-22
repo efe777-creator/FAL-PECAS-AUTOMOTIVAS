@@ -2,53 +2,47 @@
 
 **Data:** 2026-11-21  
 **Branch:** `dev`  
-**Projeto Supabase:** `owllmfcpbodqmoerdfxx`  
-**Migration:** `20261122160000_extract_engine_from_version_name` (aplicada no remoto)
+**Projeto Supabase (loja FAL):** `wtbpwuiayednvlhvuhbh`  
+**Migration:** `extract_engine_from_version_name` (aplicada no **wtbp**)
+
+## Correção de alvo
+
+A aplicação anterior no ref `owllmfcpbodqmoerdfxx` foi no projeto errado (não é a loja). Esta marcha reaplicou e validou no **wtbp**.
 
 ## Objetivo
 
-Mover cilindrada evidenciada em `vehicle_versions.version_name` para `engine`, sem inventar motor e sem thin-seed.
+Mover cilindrada evidenciada em `vehicle_versions.version_name` para `engine`, sem inventar motor e sem thin-seed. Fundir Cross Fox 2007 vazio com sibling `1.6`.
 
-## Antes (remoto)
+## Antes (wtbp)
 
 | Métrica | Valor |
 |--------|------:|
-| VV active com engine | 3 |
-| VV active sem engine | 183 |
-| Engine em `version_name` (regex `\d+\.\d+`) e engine vazio | 7 |
+| VV active com engine | 70 |
+| VV active sem engine | 260 |
+| Engine em `version_name` e engine vazio | **17** |
 | Colisões naturais previstas | 0 |
+| Cross Fox 2007 | 1× null + 1× `1.6` (ambas active) |
 
-Candidatos: Audi A1 `1.4 TFSI`; Celta `1.0`/`1.4`; Tigra `1.6 16V`; Strada `1.8 LOCKER`; Polo `1.6`/`2.0`.
-
-## Depois
+## Depois (wtbp)
 
 | Métrica | Valor |
 |--------|------:|
-| VV active com engine | **10** |
-| VV active sem engine | 176 |
+| VV active com engine | **87** |
+| VV active sem engine | **242** |
 | Residual engine-em-version | **0** |
+| Cross Fox 2007 | active só `1.6`; null → **inactive** |
 
-Resultado por linha:
-
-| Maker | Model | Year | engine | version_name |
-|-------|-------|-----:|--------|--------------|
-| AUDI | A1 | 2010 | 1.4 | TFSI |
-| CHEVROLET | CELTA | 2001 | 1.0 | null |
-| CHEVROLET | CELTA | 2001 | 1.4 | null |
-| CHEVROLET | TIGRA | 1997 | 1.6 | null |
-| FIAT | STRADA | 2009 | 1.8 | LOCKER |
-| Volkswagen | POLO | 2002 | 1.6 | null |
-| Volkswagen | POLO | 2002 | 2.0 | null |
+Spot-check: A1 `1.4`/`TFSI`; Cronos `1.3`; Pulse `1.0`/`TURBO`; Fusion `3.0`/`V6`; Celta `1.0`.
 
 ## Não feito (proposital)
 
-- **CROSSFOX 2005:** `engine`/`version_name` null; sem sibling 1.6 no mesmo ano no remoto — não inventar.
-- **176 VV sem engine:** sem dígito decimal em `version_name`; preencher exigiria evidência externa (OEM/placa), fora desta marcha.
-- Migrations de qualidade/`year_key`/`upsert_vehicle_canonical` do histórico local **não** estão no `schema_migrations` remoto (último veicular aplicado antes desta: `models_production_years`). Esta marcha não reaplicou o backlog — só a extração evidenciada.
+- **Corolla Cross:** casca verified 0 VV — sem thin-seed.
+- **242 VV sem engine:** sem `\d.\d` em `version_name`; exige evidência externa.
+- Sem MAIN / sem deploy.
 
 ## Gates
 
-- [x] Só extrai quando `\d+\.\d+` ∈ [0.8, 7.0] e engine vazio  
-- [x] Residual engine-em-version = 0  
-- [x] Sem thin-seed Cross Fox  
-- [x] Sem deploy / sem MAIN  
+- [x] Só extrai `\d+\.\d+` ∈ [0.8, 7.0] com engine vazio  
+- [x] Residual engine-em-version = 0 no wtbp  
+- [x] Cross Fox 2007 fundido por evidência sibling  
+- [x] Sem thin-seed Cross / Corolla Cross  

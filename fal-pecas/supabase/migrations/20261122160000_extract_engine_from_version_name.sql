@@ -3,6 +3,7 @@
 -- Não inventa motor: só quando há \d.\d no version_name e engine está vazio.
 -- Resolve colisão natural (maker+model+year+engine+version) fundindo PVC e inativando duplicata.
 -- Compatível com schema sem year_key/engine_key/version_key/updated_at.
+-- customer_vehicles: usa version_id (wtbp) quando existir.
 
 do $$
 declare
@@ -13,14 +14,22 @@ declare
   v_conflict uuid;
   v_num numeric;
   v_has_updated_at boolean;
-  v_has_customer_vehicles boolean;
+  v_cv_col text;
+  v_keep uuid;
+  v_drop uuid := 'd504f013-a014-4b27-803f-8d551635ddd9';
 begin
   select exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'vehicle_versions' and column_name = 'updated_at'
   ) into v_has_updated_at;
 
-  select to_regclass('public.customer_vehicles') is not null into v_has_customer_vehicles;
+  select c.column_name into v_cv_col
+  from information_schema.columns c
+  where c.table_schema = 'public'
+    and c.table_name = 'customer_vehicles'
+    and c.column_name in ('version_id', 'vehicle_version_id')
+  order by case c.column_name when 'version_id' then 0 else 1 end
+  limit 1;
 
   for r in
     select vv.id, vv.manufacturer_id, vv.model_id, vv.year, vv.version_name
@@ -73,9 +82,11 @@ begin
         delete from public.product_vehicle_compatibility where vehicle_version_id = r.id;
       end if;
 
-      if v_has_customer_vehicles then
-        execute 'update public.customer_vehicles set vehicle_version_id = $1 where vehicle_version_id = $2'
-          using v_conflict, r.id;
+      if v_cv_col is not null then
+        execute format(
+          'update public.customer_vehicles set %I = $1 where %I = $2',
+          v_cv_col, v_cv_col
+        ) using v_conflict, r.id;
       end if;
 
       if v_has_updated_at then
@@ -102,5 +113,57 @@ begin
       end if;
     end if;
   end loop;
+
+  -- Cross Fox 2007: VV vazia (placa) duplicada da que já tem 1.6 — fundir e inativar.
+  if exists (
+    select 1 from public.vehicle_versions vv
+    where vv.id = v_drop
+      and vv.status = 'active'
+      and (vv.engine is null or btrim(vv.engine) = '')
+      and exists (
+        select 1 from public.vehicle_versions x
+        where x.model_id = vv.model_id
+          and x.status = 'active'
+          and x.year = 2007
+          and x.engine = '1.6'
+          and x.id <> vv.id
+      )
+  ) then
+    select x.id into v_keep
+    from public.vehicle_versions vv
+    join public.vehicle_versions x on x.model_id = vv.model_id
+    where vv.id = v_drop
+      and x.status = 'active'
+      and x.year = 2007
+      and x.engine = '1.6'
+      and x.id <> vv.id
+    limit 1;
+
+    if v_keep is not null then
+      if to_regclass('public.product_vehicle_compatibility') is not null then
+        update public.product_vehicle_compatibility p
+        set vehicle_version_id = v_keep
+        where p.vehicle_version_id = v_drop
+          and not exists (
+            select 1 from public.product_vehicle_compatibility x
+            where x.vehicle_version_id = v_keep and x.product_id = p.product_id
+          );
+        delete from public.product_vehicle_compatibility where vehicle_version_id = v_drop;
+      end if;
+
+      if v_cv_col is not null then
+        execute format(
+          'update public.customer_vehicles set %I = $1 where %I = $2',
+          v_cv_col, v_cv_col
+        ) using v_keep, v_drop;
+      end if;
+
+      if v_has_updated_at then
+        update public.vehicle_versions set status = 'inactive', updated_at = now() where id = v_drop;
+      else
+        update public.vehicle_versions set status = 'inactive' where id = v_drop;
+      end if;
+    end if;
+  end if;
 end;
 $$;
