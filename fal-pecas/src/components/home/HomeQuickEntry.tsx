@@ -36,19 +36,19 @@ export function HomeQuickEntry({
       className="scroll-mt-20 border-b border-fal-line bg-fal-bg"
       aria-labelledby="home-entry-heading"
     >
-      <Container className="py-5 sm:py-7">
-        <div className="mx-auto flex max-w-xl flex-col items-stretch gap-5">
+      <Container className="py-4 sm:py-6">
+        <div className="mx-auto flex max-w-xl flex-col items-stretch gap-3 sm:gap-4">
           <header className="text-center">
             <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-fal-yellow-dark dark:text-fal-yellow">
               Busca rápida
             </p>
             <h1
               id="home-entry-heading"
-              className="m-0 mt-1 text-[22px] font-black leading-tight tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]"
+              className="m-0 mt-1 text-[20px] font-black leading-tight tracking-tight text-fal-navy dark:text-fal-fg sm:text-[26px]"
             >
               Encontre a peça certa
             </h1>
-            <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-fal-muted sm:text-[15px]">
+            <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-fal-muted sm:mt-1.5 sm:text-[15px]">
               Comece pela placa do veículo — ou use os atalhos abaixo.
             </p>
           </header>
@@ -59,7 +59,7 @@ export function HomeQuickEntry({
 
           <nav
             aria-label="Atalhos de navegação"
-            className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3"
           >
             <ButtonLink to="/catalogo" variant="primary" className="w-full justify-center">
               Buscar peça

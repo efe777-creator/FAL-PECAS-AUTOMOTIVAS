@@ -62,7 +62,7 @@ export function HomeBannerCarousel() {
   if (!ready) {
     return (
       <section
-        className="relative min-h-[220px] animate-pulse bg-gradient-to-br from-fal-navy-dark via-fal-navy to-fal-navy-2 sm:min-h-[280px] md:min-h-[320px]"
+        className="relative min-h-[140px] animate-pulse bg-gradient-to-br from-fal-navy-dark via-fal-navy to-fal-navy-2 sm:min-h-[180px] md:min-h-[220px]"
         aria-busy="true"
         aria-label="Carregando campanhas"
       />
@@ -87,7 +87,7 @@ export function HomeBannerCarousel() {
         Campanhas
       </h2>
       <div
-        className={`relative aspect-[1376/768] max-h-[min(70vh,520px)] overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white sm:max-h-[min(72vh,560px)]`}
+        className={`relative aspect-[1376/768] max-h-[min(38vh,220px)] overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white sm:max-h-[min(42vh,320px)] md:max-h-[min(45vh,380px)]`}
       >
         {current.imageSrc || current.imageSrcMobile ? (
           <picture key={current.id}>
@@ -110,19 +110,19 @@ export function HomeBannerCarousel() {
           }`}
           aria-hidden
         />
-        <div className="relative mx-auto flex h-full max-w-6xl items-end px-4 py-8 sm:items-center sm:px-6 sm:py-10 lg:px-8">
+        <div className="relative mx-auto flex h-full max-w-6xl items-end px-4 py-4 sm:items-center sm:px-6 sm:py-6 lg:px-8">
           <div key={`copy-${current.id}`} className="min-w-0 max-w-lg">
-            <p className="m-0 text-[26px] font-black leading-[1.15] tracking-tight sm:text-[34px] md:text-[40px]">
+            <p className="m-0 text-[20px] font-black leading-[1.15] tracking-tight sm:text-[28px] md:text-[34px]">
               {current.title}
             </p>
             {current.subtitle?.trim() ? (
-              <p className="mt-3 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base">
+              <p className="mt-1.5 max-w-md text-sm leading-relaxed text-white/85 line-clamp-2 sm:mt-2 sm:text-[15px]">
                 {current.subtitle}
               </p>
             ) : null}
             <Link
               to={current.to}
-              className="mt-5 inline-flex min-h-11 items-center rounded-fal bg-fal-yellow px-5 text-sm font-extrabold text-fal-navy-dark no-underline shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition hover:bg-fal-yellow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow"
+              className="mt-3 inline-flex min-h-10 items-center rounded-fal bg-fal-yellow px-4 text-sm font-extrabold text-fal-navy-dark no-underline shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition hover:bg-fal-yellow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fal-yellow sm:mt-4 sm:min-h-11 sm:px-5"
             >
               {current.ctaLabel}
             </Link>
