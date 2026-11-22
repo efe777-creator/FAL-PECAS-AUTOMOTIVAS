@@ -82,7 +82,9 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     supabase.from('manufacturers').select('id, name').eq('status', 'active').order('name'),
     supabase
       .from('models')
-      .select('id, name, manufacturer_id, manufacturers(name)')
+      .select(
+        'id, name, manufacturer_id, production_year_start, production_year_end, manufacturers(name)',
+      )
       .eq('status', 'active')
       .order('name'),
     supabase
@@ -109,6 +111,8 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
   const enginesByModelYear: Record<string, string[]> = {}
   const enginesByModel: Record<string, string[]> = {}
   const versionsByModel: Record<string, string[]> = {}
+  const productionByModel: Record<string, { start: number | null; end: number | null }> =
+    {}
 
   for (const m of models ?? []) {
     const makerName =
@@ -119,6 +123,28 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     modelsByMaker[makerName] ??= []
     if (!modelsByMaker[makerName].includes(modelName)) {
       modelsByMaker[makerName].push(modelName)
+    }
+    const mk = vehicleModelKey(makerName, modelName)
+    const ps =
+      m.production_year_start == null ? null : Number(m.production_year_start)
+    const pe = m.production_year_end == null ? null : Number(m.production_year_end)
+    productionByModel[mk] = {
+      start: Number.isFinite(ps as number) ? (ps as number) : null,
+      end: Number.isFinite(pe as number) ? (pe as number) : null,
+    }
+    // Vida de linha enriquece anos do seletor (não substitui PVC/VV).
+    if (ps != null && Number.isFinite(ps)) {
+      yearNumsByModel[mk] ??= new Set()
+      const endEff = pe != null && Number.isFinite(pe) ? (pe as number) : ps
+      const lo = Math.min(ps, endEff)
+      const hi = Math.max(ps, endEff)
+      const span = hi - lo
+      if (span <= 40) {
+        for (let y = lo; y <= hi; y++) yearNumsByModel[mk].add(y)
+      } else {
+        yearNumsByModel[mk].add(lo)
+        yearNumsByModel[mk].add(hi)
+      }
     }
   }
 
@@ -191,6 +217,7 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
     enginesByModelYear,
     enginesByModel,
     versionsByModel,
+    productionByModel,
   }
   vehicleOptionsCache = { at: Date.now(), tree }
   return tree

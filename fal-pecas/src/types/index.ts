@@ -551,6 +551,9 @@ export interface VehicleModel {
   name: string
   slug: string
   status: EntityStatus
+  /** Vida de linha (mestre). Não é PVC nem ano da placa. */
+  productionYearStart?: number | null
+  productionYearEnd?: number | null
 }
 
 export interface VehicleVersion {
@@ -654,6 +657,11 @@ export interface VehicleOptionTree {
   enginesByModel: Record<string, string[]>
   /** Chave: `maker|model`. */
   versionsByModel: Record<string, string[]>
+  /** Chave: `maker|model` — vida de linha do modelo (metadado). */
+  productionByModel?: Record<
+    string,
+    { start: number | null; end: number | null }
+  >
 }
 
 export interface CartItem {

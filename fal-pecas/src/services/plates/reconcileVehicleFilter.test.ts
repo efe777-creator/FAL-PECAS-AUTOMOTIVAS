@@ -56,6 +56,28 @@ describe('reconcileVehicleFilter', () => {
     expect(r.version).toBe('Intense')
   })
 
+  it('exact model win: Kwid Intense no mestre não colapsa para Kwid', () => {
+    const family: VehicleOptionTree = {
+      ...tree,
+      makers: ['Renault'],
+      modelsByMaker: { Renault: ['Kwid', 'Kwid Intense'] },
+      yearsByModel: {
+        'Renault|Kwid': ['2017'],
+        'Renault|Kwid Intense': ['2021'],
+      },
+      enginesByModel: {
+        'Renault|Kwid': ['1.0'],
+        'Renault|Kwid Intense': ['1.0'],
+      },
+      versionsByModel: {},
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Renault', model: 'Kwid Intense', year: '2021', engine: '1.0' },
+      family,
+    )
+    expect(r.model).toBe('Kwid Intense')
+  })
+
   it('placa Kwid não promove modelo poluído Kwid Intens 10MT do cadastro', () => {
     const dirtyTree: VehicleOptionTree = {
       ...tree,
@@ -90,20 +112,36 @@ describe('reconcileVehicleFilter', () => {
     expect(r.model).toBe('Kwid')
   })
 
-  it('placa com modelo composto alinha para base curta no cadastro', () => {
-    const dirtyTree: VehicleOptionTree = {
+  it('placa composto sem exact no mestre alinha para base curta', () => {
+    const baseOnly: VehicleOptionTree = {
       ...tree,
       makers: ['Ford'],
-      modelsByMaker: { Ford: ['Fiesta Flex', 'Fiesta'] },
+      modelsByMaker: { Ford: ['Fiesta'] },
       yearsByModel: {},
       enginesByModel: { 'Ford|Fiesta': ['1.0'] },
       versionsByModel: {},
     }
     const r = reconcileVehicleFilter(
       { maker: 'Ford', model: 'Fiesta Flex', year: '2007', engine: '1.0' },
-      dirtyTree,
+      baseOnly,
     )
     expect(r.model).toBe('Fiesta')
+  })
+
+  it('se Fiesta Flex existe como modelo no mestre, exact win preserva (não colapsa)', () => {
+    const both: VehicleOptionTree = {
+      ...tree,
+      makers: ['Ford'],
+      modelsByMaker: { Ford: ['Fiesta Flex', 'Fiesta'] },
+      yearsByModel: {},
+      enginesByModel: {},
+      versionsByModel: {},
+    }
+    const r = reconcileVehicleFilter(
+      { maker: 'Ford', model: 'Fiesta Flex', year: '2007' },
+      both,
+    )
+    expect(r.model).toBe('Fiesta Flex')
   })
 
   it('CHEV da placa alinha para Chevrolet no mestre', () => {

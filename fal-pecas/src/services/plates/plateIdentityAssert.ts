@@ -10,6 +10,7 @@ import type {
   PlateLookupResult,
   PlateLookupStatus,
 } from '@/services/plates/plateTypes'
+import { vehicleModelKey } from '@/services/vehicles/vehicleOptionKeys'
 import type { VehicleOptionTree } from '@/types'
 
 export type PlateConfidenceBand = 'A' | 'B' | 'C' | 'D'
@@ -241,13 +242,38 @@ export function assertPlateAgainstCatalog(
     }
   }
 
-  const confidenceBand = derivePlateConfidenceBand({
+  let confidenceBand = derivePlateConfidenceBand({
     confidence: result.confidence,
     status,
     ambiguousCount: candidates.length,
     topModelScore: top?.score ?? null,
     edgeBand: result.confidenceBand ?? null,
   })
+
+  // Vida de linha: ano da placa fora do intervalo do modelo → rebaixa banda (não inventa VV).
+  const yearNum = result.year != null ? Number(String(result.year).slice(0, 4)) : NaN
+  if (
+    maker &&
+    model &&
+    Number.isFinite(yearNum) &&
+    tree.productionByModel
+  ) {
+    const prod = tree.productionByModel[vehicleModelKey(maker, model)]
+    if (prod && (prod.start != null || prod.end != null)) {
+      const lo = prod.start
+      const hi = prod.end
+      const outside =
+        (lo != null && yearNum < lo) || (hi != null && yearNum > hi)
+      if (outside) {
+        if (confidenceBand === 'A') confidenceBand = 'B'
+        else if (confidenceBand === 'B') confidenceBand = 'C'
+        else confidenceBand = 'D'
+        message =
+          message ??
+          `Ano ${yearNum} fora da vida de linha cadastrada do modelo (${lo ?? '…'}–${hi ?? '…'}). Confira antes de buscar.`
+      }
+    }
+  }
 
   if (confidenceBand === 'C' || confidenceBand === 'D') {
     if (status === 'found') status = 'incomplete'

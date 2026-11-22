@@ -194,6 +194,10 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 
 Hub Admin Veículos → Integrações + seed fipeX via CSV no import existente. Spec: [FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md](./FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md). Loja híbrida e assert #6 permanecem DONE.
 
+### Onda mestre inteligente (pós-auditoria · não reabre #6)
+
+Vida de linha em `models.production_year_*` · sync validado no hub · hard-block confirm/reconcile (residual PDF versão errada). Spec no doc híbrido + plano Cursor. #6 core (band/família/assist) intacto.
+
 ### Erro #7 — Cards poluídos / mobile
 
 | Campo | Valor |

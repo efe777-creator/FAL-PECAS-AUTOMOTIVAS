@@ -32,6 +32,8 @@ export function AdminVehiclesPage() {
   const [makerId, setMakerId] = useState('')
   const [modelId, setModelId] = useState('')
   const [modelName, setModelName] = useState('')
+  const [productionYearStart, setProductionYearStart] = useState('')
+  const [productionYearEnd, setProductionYearEnd] = useState('')
   const [editingModelId, setEditingModelId] = useState<string | null>(null)
   const [year, setYear] = useState('')
   const [engine, setEngine] = useState('')
@@ -178,8 +180,16 @@ export function AdminVehiclesPage() {
         manufacturerId: targetMaker,
         name: modelName,
         status: models.find((m) => m.id === editingModelId)?.status ?? 'active',
+        productionYearStart: productionYearStart.trim()
+          ? Number(productionYearStart.trim())
+          : null,
+        productionYearEnd: productionYearEnd.trim()
+          ? Number(productionYearEnd.trim())
+          : null,
       })
       setModelName('')
+      setProductionYearStart('')
+      setProductionYearEnd('')
       setEditingModelId(null)
       await reloadModels()
       pushOk(editingModelId ? 'Modelo atualizado.' : 'Modelo criado.')
@@ -220,6 +230,10 @@ export function AdminVehiclesPage() {
     setModelName(m.name)
     setModelId(m.id)
     setMakerId(m.manufacturerId)
+    setProductionYearStart(
+      m.productionYearStart != null ? String(m.productionYearStart) : '',
+    )
+    setProductionYearEnd(m.productionYearEnd != null ? String(m.productionYearEnd) : '')
   }
 
   function startEditVersion(v: VehicleVersion) {
@@ -243,9 +257,11 @@ export function AdminVehiclesPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-fg">Veículos</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Hierarquia: Montadora → Modelo → Configuração. Período da aplicação (ano) fica em{' '}
+            Hierarquia: Montadora → Modelo → Configuração. Vida de linha do modelo = início/fim de
+            fabricação. Ano da configuração = snapshot (
+            <code className="text-xs">vehicle_versions.year</code>). Peça aplica em{' '}
             <code className="text-xs">product_vehicle_compatibility.year_start/year_end</code> — não
-            só em <code className="text-xs">vehicle_versions.year</code>.
+            misturar.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -370,6 +386,26 @@ export function AdminVehiclesPage() {
             disabled={!makerId}
           />
         </div>
+        <div className="w-[110px]">
+          <Input
+            label="Linha desde"
+            inputMode="numeric"
+            value={productionYearStart}
+            onChange={(e) => setProductionYearStart(e.target.value)}
+            disabled={!makerId}
+            hint="Vida de linha"
+          />
+        </div>
+        <div className="w-[110px]">
+          <Input
+            label="Linha até"
+            inputMode="numeric"
+            value={productionYearEnd}
+            onChange={(e) => setProductionYearEnd(e.target.value)}
+            disabled={!makerId}
+            hint="Vazio = em linha"
+          />
+        </div>
         <Button type="submit" disabled={!makerId}>
           {editingModelId ? 'Salvar modelo' : 'Criar modelo'}
         </Button>
@@ -380,6 +416,8 @@ export function AdminVehiclesPage() {
             onClick={() => {
               setEditingModelId(null)
               setModelName('')
+              setProductionYearStart('')
+              setProductionYearEnd('')
             }}
           >
             Cancelar

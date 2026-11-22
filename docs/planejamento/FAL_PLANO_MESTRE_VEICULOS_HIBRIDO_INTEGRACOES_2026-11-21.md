@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-21  
 **Branch:** `dev` (somente)  
-**Status:** M1–M3 implantados (hub + seed fipeX → CSV + stats + runbook)  
+**Status:** M1–M3 hub/seed DONE · **Onda mestre inteligente DONE** (vida de linha + sync + assert residual + pórtico)  
 **Refs:** [PLANO 0](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) · [PLANO 2A](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) · [INV pós-Onda1](./FAL_INV_EXPANSAO_POS_ONDA1_V1.md) · [Notes #6](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md) · [Pagamentos hub](./FAL_PLANO_MESTRE_PAGAMENTOS_INTEGRACOES_2026-11-09.md)
 
 ---
@@ -83,29 +83,59 @@ Filtro/catálogo por FIPE · segundo writer · PVC no seed · Adaptive CRUD nest
 
 Validação automatizada: `hybridVehicleIntegration.test.ts` (seed → assert → assist → re-assert). Smoke manual: placa com família ambígua (Kwid) e faixa A–D na conferência.
 
-### Seed fipeX → mestre
+### Sync inteligente / seed fipeX → mestre
 
-1. Obter dump/CSV fipeX (carros; licença CC0 do projeto).  
-2. Admin → Veículos → Integrações → Seed fipeX → selecionar arquivo.  
-3. Baixar CSV FAL gerado.  
-4. Abrir Enriquecer mestre (CSV) → preview → apply (idempotente, sem PVC).  
-5. Conferir contadores no hub e seletor da loja.
+1. Obter dump/CSV fipeX (carros; licença CC0).  
+2. Admin → Veículos → Integrações → **Sincronizar mestre** (admin/gerente) → selecionar arquivo.  
+3. Intelligence exige ano, sanitiza, upsert canônico + `merge_model_production_years` (**zero PVC**).  
+4. Alternativa: import CSV clássico em Enriquecer mestre.  
+5. Conferir chips (contadores + última sync) e seletor da loja.
+
+### Job auto (pórtico)
+
+```bash
+# Secret no projeto: VEHICLE_MASTER_SYNC_SECRET
+# Cron semanal (ops) → POST Edge vehicle-master-sync
+# Header: x-fal-sync-secret: <secret>
+# Body: { "csvText": "<dump>", "dryRun": true }
+npx supabase functions deploy vehicle-master-sync --yes
+```
+
+Apply completo preferencial no hub; Edge valida secret + saúde do mestre. API π = `VehicleMasterSource` `paid_api_future` (stub).
 
 ### Pós-seed (VAL seletor)
 
 - Busca por montadoras prioritárias (Fiat, VW, Chevrolet, Ford, Renault, Toyota, Hyundai).  
 - Placa continua assertindo só contra catálogo; seed não cria aplicações.
 
-## Backlog (não implementar aqui)
+## Camadas de ano (auditoria 2026-11-21)
+
+| Camada | Campo | Papel | Regra |
+|--------|-------|-------|--------|
+| Peça | PVC `year_start`/`year_end` | Fit catálogo | Fonte de verdade — não mexer no match |
+| Config/placa | `vehicle_versions.year` | Snapshot + chave natural | Mantém |
+| Instância | `customer_vehicles.year` | Garagem | Fora do mestre |
+| Vida de linha | `models.production_year_start/end` | “Existiu de X a Y” | Metadado; **nunca** predicado de `search_products` |
+
+Riscos residuais tratados na onda inteligente: confirm hard-block · reconcile exact-model · sync apply via `vehicleMasterIntelligence` · pórtico `VehicleMasterSource`.
+
+## Onda mestre inteligente (não reabre Notes #6)
+
+- Writer único: `vehicleCanonicalUpsert` + `merge_model_production_years`.  
+- Sync hub: preview → apply canônico (**zero PVC**).  
+- Assert loja: endurecer confirm/reconcile; band/família #6 permanece.  
+- API π futura: só interface fonte plugável.
+
+## Backlog
 
 - `yearFactory` / `yearModel` no snapshot  
 - `fipeCode` informativo (nunca predicado de peça)  
 - AdaptiveWorkspace no CRUD veículos  
-- Parallelum refresh  
+- Parallelum / API paga  
 - VIN 2A  
 
 ## Fora de escopo
 
-Trocar ApiPlacas · PVC em massa · visual 2B/3D · MAIN
+Trocar ApiPlacas · PVC em massa · visual 2B/3D · MAIN · predicado FIPE
 
-**Assinatura:** Spec Integrações mestre veículos · 2026-11-21.
+**Assinatura:** Spec Integrações mestre + onda inteligente · 2026-11-21.

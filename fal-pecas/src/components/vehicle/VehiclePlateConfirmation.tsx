@@ -35,6 +35,9 @@ export function VehiclePlateConfirmation({
   const band: PlateConfidenceBand = result.confidenceBand ?? 'B'
   const needsCandidatePick =
     result.status === 'ambiguous' && result.candidates.length > 0 && !pickedCandidate
+  /** Hard-block: faixa D exige correção manual ou nova placa — não confirma seed cego. */
+  const hardBlockBandD = band === 'D' && !pickedCandidate
+  const blockConfirm = needsCandidatePick || hardBlockBandD
 
   const filter = pickedCandidate ?? initial
 
@@ -57,6 +60,13 @@ export function VehiclePlateConfirmation({
         </p>
         <p className="mb-0 mt-1 font-normal">{plateBandAssertivenessCopy(band)}</p>
       </div>
+
+      {hardBlockBandD ? (
+        <p className="m-0 rounded-[9px] border border-amber-700/40 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+          Faixa D — confirme escolhendo um candidato (se houver), selecione manualmente ou tente
+          outra placa. Não gravamos identificação de baixa certeza sem revisão.
+        </p>
+      ) : null}
 
       <div role="status" aria-live="polite">
         {result.message ? (
@@ -135,7 +145,7 @@ export function VehiclePlateConfirmation({
         </div>
       ) : null}
 
-      {!needsCandidatePick ? (
+      {!blockConfirm ? (
         <VehicleSelector
           key={[filter.maker, filter.model, filter.year, filter.engine, filter.version].join('|')}
           compact={compact}

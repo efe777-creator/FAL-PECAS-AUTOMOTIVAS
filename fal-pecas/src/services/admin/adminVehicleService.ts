@@ -9,6 +9,8 @@ type ModelRow = {
   name: string
   slug: string
   status: string
+  production_year_start?: number | null
+  production_year_end?: number | null
 }
 
 type VersionRow = {
@@ -28,6 +30,8 @@ function mapModel(row: ModelRow): VehicleModel {
     name: row.name,
     slug: row.slug,
     status: row.status as VehicleModel['status'],
+    productionYearStart: row.production_year_start ?? null,
+    productionYearEnd: row.production_year_end ?? null,
   }
 }
 
@@ -46,7 +50,9 @@ function mapVersion(row: VersionRow): VehicleVersion {
 export async function adminListModels(manufacturerId?: string): Promise<VehicleModel[]> {
   let q = getSupabase()
     .from('models')
-    .select('id, manufacturer_id, name, slug, status')
+    .select(
+      'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
+    )
     .order('name')
   if (manufacturerId) q = q.eq('manufacturer_id', manufacturerId)
   const { data, error } = await q
@@ -60,6 +66,8 @@ export async function adminUpsertModel(input: {
   name: string
   slug?: string
   status?: VehicleModel['status']
+  productionYearStart?: number | null
+  productionYearEnd?: number | null
 }): Promise<VehicleModel> {
   const name = formatModelDisplayName(input.name)
   if (!name) throw new Error('Informe o nome do modelo.')
@@ -74,18 +82,64 @@ export async function adminUpsertModel(input: {
     if (dup) throw new Error(`Já existe modelo "${dup.name}" nesta montadora.`)
   }
 
+  const start = input.productionYearStart ?? null
+  const end = input.productionYearEnd ?? null
+  if (start != null && (start < 1950 || start > 2100)) {
+    throw new Error('Ano inicial de linha inválido.')
+  }
+  if (end != null && (end < 1950 || end > 2100)) {
+    throw new Error('Ano final de linha inválido.')
+  }
+  if (start != null && end != null && end < start) {
+    throw new Error('Ano final de linha deve ser ≥ ano inicial.')
+  }
+
   const payload = {
     manufacturer_id: input.manufacturerId,
     name,
     slug: (input.slug?.trim() || toSlug(name)) || toSlug(`model-${Date.now()}`),
     status: input.status ?? 'active',
+    production_year_start: start,
+    production_year_end: end,
   }
   const q = getSupabase().from('models')
   const { data, error } = input.id
-    ? await q.update(payload).eq('id', input.id).select().single()
-    : await q.insert(payload).select().single()
+    ? await q
+        .update(payload)
+        .eq('id', input.id)
+        .select(
+          'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
+        )
+        .single()
+    : await q
+        .insert(payload)
+        .select(
+          'id, manufacturer_id, name, slug, status, production_year_start, production_year_end',
+        )
+        .single()
   if (error) throw error
   return mapModel(data as ModelRow)
+}
+
+/** Expande vida de linha do modelo (min start / max end). Sem PVC. */
+export async function mergeModelProductionYears(
+  modelId: string,
+  yearStart?: number | null,
+  yearEnd?: number | null,
+): Promise<{ productionYearStart: number | null; productionYearEnd: number | null }> {
+  const { data, error } = await getSupabase().rpc('merge_model_production_years', {
+    p_model_id: modelId,
+    p_year_start: yearStart ?? null,
+    p_year_end: yearEnd ?? null,
+  })
+  if (error) throw error
+  const row = (data ?? {}) as Record<string, unknown>
+  return {
+    productionYearStart:
+      row.productionYearStart == null ? null : Number(row.productionYearStart),
+    productionYearEnd:
+      row.productionYearEnd == null ? null : Number(row.productionYearEnd),
+  }
 }
 
 export async function adminListVersions(modelId?: string): Promise<VehicleVersion[]> {

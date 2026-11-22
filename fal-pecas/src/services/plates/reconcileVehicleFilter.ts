@@ -87,11 +87,26 @@ export function reconcileVehicleFilter(
   const modelPool = maker
     ? (tree.modelsByMaker[maker] ?? [])
     : [...new Set(Object.values(tree.modelsByMaker).flat())]
-  // Re-split modelo composto da placa antes de casar no mestre.
-  const modelNeedle = filter.model?.trim()
-    ? (splitApiModelo(filter.model).model ?? filter.model)
-    : filter.model
-  const model = pickClosest(modelPool, modelNeedle, { preferShorterBase: true })
+  /**
+   * Exact model win: se o texto (ex. "Kwid Intense") já é um modelo no mestre,
+   * NÃO preferShorterBase / split — evita desfazer escolha humana (Notes #6 residual).
+   */
+  const rawModel = filter.model?.trim()
+  let model: string | undefined
+  if (rawModel) {
+    const exactHit = modelPool.find(
+      (m) =>
+        m === rawModel ||
+        m.toLowerCase() === rawModel.toLowerCase() ||
+        normalizeVehicleToken(m) === normalizeVehicleToken(rawModel),
+    )
+    if (exactHit) {
+      model = exactHit
+    } else {
+      const modelNeedle = splitApiModelo(rawModel).model ?? rawModel
+      model = pickClosest(modelPool, modelNeedle, { preferShorterBase: true })
+    }
+  }
 
   let year = filter.year
   if (maker && model && year) {

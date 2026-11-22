@@ -136,7 +136,11 @@ export function VehiclePlateSearch({
           lookup = assertPlateAgainstCatalog(lookup, tree)
         }
       } catch {
-        /* catálogo/IA down — mantém payload da Edge */
+        /* catálogo/IA down — mantém payload da Edge, avisa o operador */
+        toast.push(
+          'Não foi possível validar a placa no catálogo agora. Confira todos os campos antes de confirmar.',
+          'error',
+        )
       }
       setResult(lookup)
       if (canOpenConfirmation(lookup)) {
