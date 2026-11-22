@@ -188,7 +188,7 @@ Revisão minuciosa pós-G1 / bestsellers / caches #3 / kits #1.
 | Diagnóstico | Lookup ok na base, mas UI sem faixa INV; `ambiguous` quase só mock; modelos irmãos (Kwid × Kwid Intense) podiam confirmar errado; sem LLM na placa. |
 | Estrutura | (1) `assertPlateAgainstCatalog` — ranking no mestre + ambiguidade de família split. (2) Faixa A–D na conferência + escolha obrigatória se ambíguo. (3) `assistPlateIdentity` — Groq via `interpret-search-nl` (flags `VITE_PLATE_NL_LLM` / `VITE_SEARCH_NL_LLM`), merge só contra catálogo. (4) Edge devolve `confidenceBand`. |
 | Evidência | `tsc` + `plateIdentityAssert.test` 5 PASS |
-| Ops | Redeploy Edge `plate-lookup` para expor `confidenceBand` (client já deriva se ausente). |
+| Ops | **DONE** redeploy Edge `plate-lookup` (2026-11-21) — `confidenceBand` na resposta. VAL híbrido: `hybridVehicleIntegration.test.ts`. |
 
 ### Trilha paralela — mestre / Integrações (não reabre #6)
 

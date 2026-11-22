@@ -79,14 +79,9 @@ Filtro/catálogo por FIPE · segundo writer · PVC no seed · Adaptive CRUD nest
 
 ### Redeploy Edge `plate-lookup` (Notes #6 residual)
 
-Client já deriva `confidenceBand` se a Edge antiga não enviar. Para expor o campo na resposta:
+**DONE** 2026-11-21 — `npx supabase functions deploy plate-lookup --yes` (projeto `wtbpwuiayednvlhvuhbh`). Edge passa a expor `confidenceBand` na resposta.
 
-```bash
-cd fal-pecas
-npx supabase functions deploy plate-lookup --yes
-```
-
-Validar lookup de placa com modelo ambíguo (ex. família Kwid) e conferir faixa A–D na UI.
+Validação automatizada: `hybridVehicleIntegration.test.ts` (seed → assert → assist → re-assert). Smoke manual: placa com família ambígua (Kwid) e faixa A–D na conferência.
 
 ### Seed fipeX → mestre
 
