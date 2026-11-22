@@ -38,6 +38,7 @@ describe('garageVehicleUi (#9 helpers)', () => {
     expect(href).toContain('maker=Chevrolet')
     expect(href).toContain('model=Onix')
     expect(href).toContain('year=2020')
+    expect(href).toContain('vehicle=1')
     expect(vehiclePartsModuleHref(base)).toBe('/conta/veiculos/1?modulo=pecas')
   })
 

@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useGarageOptional } from '@/contexts/GarageContext'
 import { vehicleDisplayName } from '@/components/garage/garageVehicleUi'
+import { buildCatalogHref } from '@/lib/catalogHref'
 import { vehicleToActiveFilter } from '@/services/garage/activeGarageStorage'
 import type { CustomerSavedVehicle } from '@/types'
 import { Link, useNavigate } from 'react-router-dom'
@@ -57,13 +58,7 @@ export function SavedVehiclesQuickPick({
       return
     }
     const filter = vehicleToActiveFilter(v)
-    const qs = new URLSearchParams()
-    if (filter.maker) qs.set('maker', filter.maker)
-    if (filter.model) qs.set('model', filter.model)
-    if (filter.year) qs.set('year', filter.year)
-    if (filter.engine) qs.set('engine', filter.engine)
-    if (filter.version) qs.set('version', filter.version)
-    navigate(`/catalogo?${qs.toString()}`)
+    navigate(buildCatalogHref({ filter }))
   }
 
   return (

@@ -265,11 +265,11 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 
 | Campo | Valor |
 |-------|--------|
-| Status | **DONE** |
+| Status | **DONE** (+ composto 2026-11-22) |
 | Diagnóstico | Admin gravava só `to`/`href` livre; sem UI para cat/ids/veículo. Catálogo não lia `?ids=` como seleção curada. Trilho `campaign` (widget) permanece **planned**. |
-| Estrutura | (1) `homeCampaignLink` monta `/catalogo?cat|ids|maker|model|year&vehicle=1`. (2) Admin Home: destino CTA = catálogo / categoria / produtos / veículo / manual. (3) `CatalogPage` + `listPublishedProductsByIds` para `?ids=`. Banner Home já usa `to`. Sem migration. |
-| Evidência | `homeCampaignLink` + `productWidgets` + `productDescription` **12 PASS** · `tsc --noEmit` OK |
-| Arquivos | `homeCampaignLink.ts` (+test), `AdminHomeContentPage.tsx`, `CatalogPage.tsx`, `productWidgets.ts`, VAL, este REF |
-| Fora | Trilho de produtos `campaign` na Home; smoke E2E admin→banner |
+| Estrutura | (1) Encoder canônico `catalogHref` (Gate 0). (2) `homeCampaignLink` kinds + **filter** multi-cat/multi-model; **ids XOR filtro**. (3) RPC `search_products` CSV. (4) Admin pickers + Testar destino. (5) Arte **1376×768**. |
+| Evidência | `catalogHref`/`homeCampaignLink`/garage/PDP widgets · `tsc` OK · wtbp migration multi · VAL composto |
+| Arquivos | `catalogHref.ts`, `homeCampaignLink.ts`, `AdminHomeContentPage.tsx`, `CatalogPage.tsx`, `HomeBannerCarousel.tsx`, mapa §3.4, VAL |
+| Fora | Trilho widget `campaign`; multi-maker misturado; smoke E2E |
 
 **Próximo Notes:** Erro #10 — Copy / textos e instruções do site.

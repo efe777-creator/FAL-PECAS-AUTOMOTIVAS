@@ -7,7 +7,7 @@ import {
   parseCatalogProductIdsParam,
 } from '@/lib/homeCampaignLink'
 
-describe('homeCampaignLink (Notes #18)', () => {
+describe('homeCampaignLink (Notes #18 + composto)', () => {
   it('normalize/parse ids', () => {
     expect(normalizeCampaignProductIds('a, b  c')).toEqual(['a', 'b', 'c'])
     expect(parseCatalogProductIdsParam('x,y')).toEqual(['x', 'y'])
@@ -34,7 +34,35 @@ describe('homeCampaignLink (Notes #18)', () => {
     expect(veh).toContain('vehicle=1')
   })
 
-  it('category + vehicle no mesmo href', () => {
+  it('products XOR — não anexa cat/veículo', () => {
+    const href = buildCampaignCatalogHref({
+      kind: 'products',
+      productIds: ['p1'],
+      categorySlug: 'freios',
+      vehicle: { maker: 'Fiat', model: 'Argo' },
+    })
+    expect(href).toBe('/catalogo?ids=p1')
+    expect(href).not.toContain('cat=')
+    expect(href).not.toContain('maker=')
+  })
+
+  it('filter: Onix+Prisma+Cobalt × cats (união)', () => {
+    const href = buildCampaignCatalogHref({
+      kind: 'filter',
+      categorySlugs: ['suspensao', 'bieleta', 'amortecedor'],
+      vehicle: {
+        maker: 'Chevrolet',
+        models: ['Onix', 'Prisma', 'Cobalt'],
+      },
+    })
+    expect(href).toContain('cat=suspensao%2Cbieleta%2Camortecedor')
+    expect(href).toContain('maker=Chevrolet')
+    expect(href).toContain('model=Onix%2CPrisma%2CCobalt')
+    expect(href).toContain('vehicle=1')
+    expect(inferCampaignLinkKind(href)).toBe('filter')
+  })
+
+  it('category + vehicle no mesmo href → filter no infer', () => {
     const href = buildCampaignCatalogHref({
       kind: 'category',
       categorySlug: 'suspensao',
@@ -52,8 +80,11 @@ describe('homeCampaignLink (Notes #18)', () => {
     expect(inferCampaignLinkKind('/catalogo?maker=Fiat&model=Argo')).toBe('vehicle')
     expect(inferCampaignLinkKind('/conta')).toBe('manual')
 
-    const parsed = parseCampaignCatalogHref('/catalogo?ids=a,b&cat=x')
-    expect(parsed.kind).toBe('products')
-    expect(parsed.productIds).toEqual(['a', 'b'])
+    const parsed = parseCampaignCatalogHref(
+      '/catalogo?cat=bieleta,amortecedor&maker=Chevrolet&model=Onix,Prisma&vehicle=1',
+    )
+    expect(parsed.kind).toBe('filter')
+    expect(parsed.categorySlugs).toEqual(['bieleta', 'amortecedor'])
+    expect(parsed.vehicle?.models).toEqual(['Onix', 'Prisma'])
   })
 })

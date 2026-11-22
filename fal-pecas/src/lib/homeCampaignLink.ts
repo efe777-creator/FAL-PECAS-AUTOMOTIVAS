@@ -1,13 +1,32 @@
 /**
  * Notes #18 — destino do CTA de campanha Home → catálogo filtrado.
- * Codifica tudo no `href` (sem migration): cat, ids, veículo.
+ * Codifica no `href` (sem migration de banner): cat CSV, ids, veículo multi-model.
+ * Encoder YMM/cat: `catalogHref` (dono canônico).
+ * Regra: `ids` XOR filtro vivo (cats/YMM) — nunca os dois no mesmo `to`.
  */
 
-export type CampaignLinkKind = 'catalog' | 'category' | 'products' | 'vehicle' | 'manual'
+import {
+  buildCatalogHref,
+  CATALOG_MULTI_CAT_MAX,
+  CATALOG_MULTI_MODEL_MAX,
+  joinCatalogCsv,
+  normalizeCatalogCsvList,
+  parseCatalogCsvParam,
+} from '@/lib/catalogHref'
+
+export type CampaignLinkKind =
+  | 'catalog'
+  | 'category'
+  | 'products'
+  | 'vehicle'
+  | 'filter'
+  | 'manual'
 
 export type CampaignLinkVehicle = {
   maker?: string | null
+  /** Um modelo ou CSV / lista (mesmo maker). */
   model?: string | null
+  models?: string[] | null
   year?: string | null
   engine?: string | null
   version?: string | null
@@ -15,9 +34,10 @@ export type CampaignLinkVehicle = {
 
 export type CampaignLinkInput = {
   kind: CampaignLinkKind
-  /** Slug de categoria / grupo / subgrupo (`?cat=`). */
+  /** Slug único (legado) ou lista. */
   categorySlug?: string | null
-  /** IDs de produtos publicados (1+). */
+  categorySlugs?: string[] | null
+  /** IDs de produtos publicados (1+) — exclusivo vs filtro. */
   productIds?: string[]
   vehicle?: CampaignLinkVehicle | null
   /** Só para kind=manual — href livre. */
@@ -50,6 +70,23 @@ export function parseCatalogProductIdsParam(raw: string | null | undefined): str
   return normalizeCampaignProductIds(raw)
 }
 
+function resolveCategorySlugs(input: CampaignLinkInput): string[] {
+  if (input.categorySlugs?.length) {
+    return normalizeCatalogCsvList(input.categorySlugs, CATALOG_MULTI_CAT_MAX)
+  }
+  if (input.categorySlug?.trim()) {
+    return normalizeCatalogCsvList(input.categorySlug, CATALOG_MULTI_CAT_MAX)
+  }
+  return []
+}
+
+function resolveModels(v?: CampaignLinkVehicle | null): string[] {
+  if (!v) return []
+  if (v.models?.length) return normalizeCatalogCsvList(v.models, CATALOG_MULTI_MODEL_MAX)
+  if (v.model?.trim()) return normalizeCatalogCsvList(v.model, CATALOG_MULTI_MODEL_MAX)
+  return []
+}
+
 /**
  * Monta `/catalogo?...` a partir do destino estruturado da campanha.
  */
@@ -60,44 +97,47 @@ export function buildCampaignCatalogHref(input: CampaignLinkInput): string {
   }
   if (input.kind === 'catalog') return '/catalogo'
 
-  const q = new URLSearchParams()
-
-  if (input.kind === 'category') {
-    const cat = input.categorySlug?.trim()
-    if (cat) q.set('cat', cat)
-  }
-
+  // Produtos curados: só ids (XOR filtro).
   if (input.kind === 'products') {
     const ids = normalizeCampaignProductIds(input.productIds)
-    if (ids.length) q.set('ids', ids.join(','))
+    if (!ids.length) return '/catalogo'
+    return buildCatalogHref({
+      extra: { ids: ids.join(',') },
+    })
   }
 
-  if (input.kind === 'vehicle' || input.kind === 'category') {
-    const v = input.vehicle
-    if (v?.maker?.trim()) q.set('maker', v.maker.trim())
-    if (v?.model?.trim()) q.set('model', v.model.trim())
-    if (v?.year != null && String(v.year).trim()) q.set('year', String(v.year).trim())
-    if (v?.engine?.trim()) q.set('engine', v.engine.trim())
-    if (v?.version?.trim()) q.set('version', v.version.trim())
-    if (
-      v?.maker?.trim() ||
-      v?.model?.trim() ||
-      (v?.year != null && String(v.year).trim()) ||
-      v?.engine?.trim() ||
-      v?.version?.trim()
-    ) {
-      q.set('vehicle', '1')
-    }
-  }
+  const cats = resolveCategorySlugs(input)
+  const models = resolveModels(input.vehicle)
+  const maker = input.vehicle?.maker?.trim() || null
+  const year = input.vehicle?.year != null ? String(input.vehicle.year).trim() : ''
+  const engine = input.vehicle?.engine?.trim() || ''
+  const version = input.vehicle?.version?.trim() || ''
 
-  // category + vehicle já misturados acima; se só category sem cat, cai no catálogo
-  const qs = q.toString()
-  return qs ? `/catalogo?${qs}` : '/catalogo'
+  const useCats =
+    input.kind === 'category' || input.kind === 'filter' || (input.kind === 'vehicle' && cats.length > 0)
+  const useVehicle =
+    input.kind === 'vehicle' ||
+    input.kind === 'filter' ||
+    (input.kind === 'category' && (maker || models.length || year || engine || version))
+
+  return buildCatalogHref({
+    categorySlug: useCats ? cats : null,
+    filter: useVehicle
+      ? {
+          maker: maker || undefined,
+          model: models.length ? joinCatalogCsv(models) : undefined,
+          year: year || undefined,
+          engine: engine || undefined,
+          version: version || undefined,
+        }
+      : null,
+  })
 }
 
 /**
  * Infere o tipo a partir de um href salvo (edição admin).
  * Heurística — href livre vira `manual` se não casar padrões.
+ * `ids` domina (XOR). Multi cat+model → `filter`.
  */
 export function inferCampaignLinkKind(href: string | null | undefined): CampaignLinkKind {
   const raw = (href ?? '').trim()
@@ -106,10 +146,15 @@ export function inferCampaignLinkKind(href: string | null | undefined): Campaign
   try {
     const u = new URL(raw, 'https://fal.local')
     if (u.searchParams.get('ids')?.trim()) return 'products'
-    if (u.searchParams.get('maker')?.trim() || u.searchParams.get('model')?.trim()) {
-      return u.searchParams.get('cat')?.trim() ? 'category' : 'vehicle'
+    const cats = parseCatalogCsvParam(u.searchParams.get('cat'), CATALOG_MULTI_CAT_MAX)
+    const models = parseCatalogCsvParam(u.searchParams.get('model'), CATALOG_MULTI_MODEL_MAX)
+    const hasMaker = Boolean(u.searchParams.get('maker')?.trim())
+    const hasVehicle = hasMaker || models.length > 0
+    if (cats.length > 1 || (cats.length >= 1 && hasVehicle) || models.length > 1) {
+      return 'filter'
     }
-    if (u.searchParams.get('cat')?.trim()) return 'category'
+    if (hasVehicle) return 'vehicle'
+    if (cats.length === 1) return 'category'
     if ([...u.searchParams.keys()].length === 0) return 'catalog'
     return 'manual'
   } catch {
@@ -125,16 +170,20 @@ export function parseCampaignCatalogHref(href: string | null | undefined): Campa
   if (kind === 'catalog') return { kind: 'catalog' }
   try {
     const u = new URL(raw.startsWith('/') ? raw : `/${raw}`, 'https://fal.local')
+    const cats = parseCatalogCsvParam(u.searchParams.get('cat'), CATALOG_MULTI_CAT_MAX)
+    const models = parseCatalogCsvParam(u.searchParams.get('model'), CATALOG_MULTI_MODEL_MAX)
     const vehicle: CampaignLinkVehicle = {
       maker: u.searchParams.get('maker'),
-      model: u.searchParams.get('model'),
+      model: models.length ? joinCatalogCsv(models) : null,
+      models,
       year: u.searchParams.get('year'),
       engine: u.searchParams.get('engine'),
       version: u.searchParams.get('version'),
     }
     return {
       kind,
-      categorySlug: u.searchParams.get('cat'),
+      categorySlug: cats[0] ?? null,
+      categorySlugs: cats,
       productIds: parseCatalogProductIdsParam(u.searchParams.get('ids')),
       vehicle,
       manualHref: raw,

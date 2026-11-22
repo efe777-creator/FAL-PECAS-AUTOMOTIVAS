@@ -1,3 +1,4 @@
+import { buildCatalogHref } from '@/lib/catalogHref'
 import { formatPlateMask, normalizePlate } from '@/services/plates/plateNormalize'
 import type { CustomerSavedVehicle, VehicleFilter } from '@/types'
 
@@ -22,14 +23,15 @@ export function isVehicleIncomplete(v: CustomerSavedVehicle): boolean {
 }
 
 export function vehicleCatalogHref(v: CustomerSavedVehicle): string {
-  const q = new URLSearchParams()
-  if (v.makerName) q.set('maker', v.makerName)
-  if (v.modelName) q.set('model', v.modelName)
-  if (v.year) q.set('year', String(v.year))
-  if (v.engine) q.set('engine', v.engine)
-  if (v.versionName) q.set('version', v.versionName)
-  const qs = q.toString()
-  return qs ? `/catalogo?${qs}` : '/catalogo'
+  return buildCatalogHref({
+    filter: {
+      maker: v.makerName ?? undefined,
+      model: v.modelName ?? undefined,
+      year: v.year != null ? String(v.year) : undefined,
+      engine: v.engine ?? undefined,
+      version: v.versionName ?? undefined,
+    },
+  })
 }
 
 /** Deep-link do módulo Peças compatíveis na garagem. */

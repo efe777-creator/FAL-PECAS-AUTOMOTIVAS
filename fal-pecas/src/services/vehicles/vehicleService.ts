@@ -1,4 +1,5 @@
 import { mockVehicleTree } from '@/data/mocks/vehicles'
+import { appendCatalogVehicleParams } from '@/lib/catalogHref'
 import { assertStoreBackendConfigured, allowCatalogMocks } from '@/lib/storeBackend'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { VehicleCatalogEntry } from '@/services/search/interpretSearchQuery'
@@ -284,20 +285,7 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
 
 export function buildVehicleQuery(filter: VehicleFilter): URLSearchParams {
   const params = new URLSearchParams()
-  const entries: [keyof VehicleFilter, string | undefined][] = [
-    ['maker', filter.maker],
-    ['model', filter.model],
-    ['year', filter.year],
-    ['engine', filter.engine],
-    ['version', filter.version],
-  ]
-  const selected = entries.filter(([, v]) => Boolean(v))
-  if (selected.length) {
-    params.set('vehicle', '1')
-    selected.forEach(([k, v]) => {
-      if (v) params.set(k, v)
-    })
-  }
+  appendCatalogVehicleParams(params, filter)
   return params
 }
 

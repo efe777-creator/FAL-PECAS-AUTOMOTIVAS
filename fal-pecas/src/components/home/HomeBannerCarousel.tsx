@@ -87,7 +87,7 @@ export function HomeBannerCarousel() {
         Campanhas
       </h2>
       <div
-        className={`relative overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white`}
+        className={`relative aspect-[1376/768] max-h-[min(70vh,520px)] overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white sm:max-h-[min(72vh,560px)]`}
       >
         {current.imageSrc || current.imageSrcMobile ? (
           <picture key={current.id}>
@@ -110,7 +110,7 @@ export function HomeBannerCarousel() {
           }`}
           aria-hidden
         />
-        <div className="relative mx-auto flex min-h-[220px] max-w-6xl items-end px-4 py-10 sm:min-h-[280px] sm:items-center sm:px-6 sm:py-12 md:min-h-[320px] lg:px-8">
+        <div className="relative mx-auto flex h-full max-w-6xl items-end px-4 py-8 sm:items-center sm:px-6 sm:py-10 lg:px-8">
           <div key={`copy-${current.id}`} className="min-w-0 max-w-lg">
             <p className="m-0 text-[26px] font-black leading-[1.15] tracking-tight sm:text-[34px] md:text-[40px]">
               {current.title}

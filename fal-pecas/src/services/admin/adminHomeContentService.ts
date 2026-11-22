@@ -240,12 +240,12 @@ export async function adminDeleteHomeBanner(id: string): Promise<void> {
 
 const BANNER_IMAGE_BUCKET = 'product-images'
 
-/** Ideal na Home: faixa retangular do carrossel (~3:1). */
+/** Ideal na Home: arte canônica do carrossel (~16:9). */
 export const HOME_BANNER_IMAGE_IDEAL = {
-  width: 1440,
-  height: 480,
-  label: '1440 × 480 px (retângulo 3:1)',
-  hint: 'JPG, PNG ou WebP · horizontal · máx. ~2 MB',
+  width: 1376,
+  height: 768,
+  label: '1376 × 768 px (~16:9)',
+  hint: 'JPG, PNG ou WebP · horizontal · máx. ~2 MB · padrão FAL campanha',
 } as const
 
 /** Upload de arte da campanha → URL pública em product-images/home-banners/. */

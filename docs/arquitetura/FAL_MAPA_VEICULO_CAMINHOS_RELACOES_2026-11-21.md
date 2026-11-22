@@ -114,6 +114,17 @@ Loja: árvore/`listVehicleCatalogEntries` só `active` + `verified`. Runbook: `d
 | Catálogo / Preços / Apps / Kits | [Padrão Layout v1.5](../planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) + Adaptive | PVC vive em Aplicações |
 | Loja placa / seletor / garagem | Tokens `--fal-*`; UX Garagem | Sem Adaptive |
 
+### 3.4 Deep-link `/catalogo` (Home · campanha · PDP · garagem)
+
+| Papel | Dono |
+|-------|------|
+| Encoder YMM + `cat` + `vehicle=1` | `fal-pecas/src/lib/catalogHref.ts` |
+| Kinds campanha / `ids` XOR filtro | `homeCampaignLink.ts` (usa `catalogHref`) |
+| Lista filtrada | `search_products` (`p_category`/`p_model` CSV = união) |
+| Lista curada | `?ids=` → `listPublishedProductsByIds` (não mistura cat/YMM) |
+
+Não reimplementar `URLSearchParams` de veículo em Home/garagem — reutilizar o encoder.
+
 ---
 
 ## 4. Quatro (+1) camadas de ano

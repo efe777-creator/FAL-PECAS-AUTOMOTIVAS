@@ -1,6 +1,7 @@
 import { ButtonLink } from '@/components/common/ButtonLink'
 import { Loading } from '@/components/common/Loading'
 import { useAuth } from '@/contexts/AuthContext'
+import { buildCatalogHref } from '@/lib/catalogHref'
 import { listSavedVehicles } from '@/services/customers/customerVehicleService'
 import type { CustomerSavedVehicle } from '@/types'
 import { useEffect, useState } from 'react'
@@ -37,13 +38,17 @@ export function HomeVehiclesPanel() {
   }, [user])
 
   function applyVehicle(v: CustomerSavedVehicle) {
-    const qs = new URLSearchParams()
-    if (v.makerName) qs.set('maker', v.makerName)
-    if (v.modelName) qs.set('model', v.modelName)
-    if (v.year != null) qs.set('year', String(v.year))
-    if (v.engine) qs.set('engine', v.engine)
-    if (v.versionName) qs.set('version', v.versionName)
-    navigate(`/catalogo?${qs.toString()}`)
+    navigate(
+      buildCatalogHref({
+        filter: {
+          maker: v.makerName ?? undefined,
+          model: v.modelName ?? undefined,
+          year: v.year != null ? String(v.year) : undefined,
+          engine: v.engine ?? undefined,
+          version: v.versionName ?? undefined,
+        },
+      }),
+    )
   }
 
   return (

@@ -627,11 +627,17 @@ export type ProductSearchSort =
 /** Parâmetros do contrato searchCatalog / RPC search_products. */
 export interface ProductSearchParams {
   q?: string | null
-  /** Slug, id ou nome da categoria (inclui filhas no backend). */
+  /**
+   * Slug, id ou nome da categoria (inclui filhas no backend).
+   * CSV (`a,b,c`) = união de subárvores (até 12) — campanha composta.
+   */
   category?: string | null
   /** Nome ou id do fabricante (product_brands). */
   brand?: string | null
   maker?: string | null
+  /**
+   * Nome do modelo (match PVC). CSV (`Onix,Prisma`) = OR no mesmo maker (até 12).
+   */
   model?: string | null
   year?: string | null
   engine?: string | null

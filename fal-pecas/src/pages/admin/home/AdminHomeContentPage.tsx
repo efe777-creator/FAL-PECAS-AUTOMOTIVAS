@@ -21,8 +21,14 @@ import {
 } from '@/lib/homeSections'
 import { formatMoney } from '@/lib/money'
 import {
+  CATALOG_MULTI_CAT_MAX,
+  CATALOG_MULTI_MODEL_MAX,
+  joinCatalogCsv,
+} from '@/lib/catalogHref'
+import {
   buildCampaignCatalogHref,
   inferCampaignLinkKind,
+  normalizeCampaignProductIds,
   parseCampaignCatalogHref,
   type CampaignLinkKind,
 } from '@/lib/homeCampaignLink'
@@ -54,7 +60,14 @@ import {
   type AdminHomeBanner,
   type AdminHomeSettings,
 } from '@/services/admin/adminHomeContentService'
+import {
+  adminListCategories,
+  categoryPath,
+} from '@/services/admin/adminCategoryService'
+import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListProducts } from '@/services/admin/adminProductService'
+import { adminListModels } from '@/services/admin/adminVehicleService'
+import type { Category, Manufacturer, Product, VehicleModel } from '@/types'
 import {
   AdminHomeSectionTabs,
   type HomeSectionTab,
@@ -240,11 +253,18 @@ export function AdminHomeContentPage() {
   const [dirtySettings, setDirtySettings] = useState(false)
   /** Notes #18 — destino estruturado do CTA (grava em `to`/`href`). */
   const [linkKind, setLinkKind] = useState<CampaignLinkKind>('catalog')
-  const [linkCat, setLinkCat] = useState('')
-  const [linkIds, setLinkIds] = useState('')
+  const [linkCatSlugs, setLinkCatSlugs] = useState<string[]>([])
+  const [linkIds, setLinkIds] = useState<string[]>([])
   const [linkMaker, setLinkMaker] = useState('')
-  const [linkModel, setLinkModel] = useState('')
+  const [linkMakerId, setLinkMakerId] = useState('')
+  const [linkModels, setLinkModels] = useState<string[]>([])
   const [linkYear, setLinkYear] = useState('')
+  const [campaignProductQ, setCampaignProductQ] = useState('')
+  const [campaignProductHits, setCampaignProductHits] = useState<Product[]>([])
+  const [campaignProductSearching, setCampaignProductSearching] = useState(false)
+  const [makers, setMakers] = useState<Manufacturer[]>([])
+  const [makerModels, setMakerModels] = useState<VehicleModel[]>([])
+  const [allCats, setAllCats] = useState<Category[]>([])
   const [homeSettings, setHomeSettings] = useState<AdminHomeSettings>({
     id: '',
     featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
@@ -263,48 +283,112 @@ export function AdminHomeContentPage() {
 
   function resetCampaignLinkFields() {
     setLinkKind('catalog')
-    setLinkCat('')
-    setLinkIds('')
+    setLinkCatSlugs([])
+    setLinkIds([])
     setLinkMaker('')
-    setLinkModel('')
+    setLinkMakerId('')
+    setLinkModels([])
     setLinkYear('')
+    setCampaignProductQ('')
+    setCampaignProductHits([])
   }
 
   function syncCampaignLinkFromHref(href: string) {
     const parsed = parseCampaignCatalogHref(href)
     setLinkKind(parsed.kind)
-    setLinkCat(parsed.categorySlug ?? '')
-    setLinkIds((parsed.productIds ?? []).join(', '))
+    setLinkCatSlugs(parsed.categorySlugs ?? [])
+    setLinkIds(parsed.productIds ?? [])
     setLinkMaker(parsed.vehicle?.maker ?? '')
-    setLinkModel(parsed.vehicle?.model ?? '')
+    setLinkMakerId('')
+    setLinkModels(parsed.vehicle?.models ?? [])
     setLinkYear(parsed.vehicle?.year ?? '')
   }
 
   function rebuildCampaignHref(next?: {
     kind?: CampaignLinkKind
-    cat?: string
-    ids?: string
+    cats?: string[]
+    ids?: string[]
     maker?: string
-    model?: string
+    models?: string[]
     year?: string
     manual?: string
   }) {
     const kind = next?.kind ?? linkKind
-    const cat = next?.cat ?? linkCat
+    const cats = next?.cats ?? linkCatSlugs
     const ids = next?.ids ?? linkIds
     const maker = next?.maker ?? linkMaker
-    const model = next?.model ?? linkModel
+    const models = next?.models ?? linkModels
     const year = next?.year ?? linkYear
     const manual = next?.manual ?? form.to
     const href = buildCampaignCatalogHref({
       kind,
-      categorySlug: cat,
-      productIds: ids.split(/[,+\s]+/),
-      vehicle: { maker, model, year },
+      categorySlugs: cats,
+      productIds: ids,
+      vehicle: { maker, models, year },
       manualHref: manual,
     })
     setDirtyBanner(true)
     setForm((f) => ({ ...f, to: href }))
+  }
+
+  async function searchCampaignProducts() {
+    const q = campaignProductQ.trim()
+    if (q.length < 2) {
+      push('Digite ao menos 2 caracteres', 'info')
+      return
+    }
+    setCampaignProductSearching(true)
+    try {
+      setCampaignProductHits(await adminListProducts({ q, status: 'published', limit: 12 }))
+    } catch (err) {
+      push(toUserMessage(err), 'error')
+    } finally {
+      setCampaignProductSearching(false)
+    }
+  }
+
+  function toggleCampaignProductId(id: string) {
+    const next = linkIds.includes(id)
+      ? linkIds.filter((x) => x !== id)
+      : normalizeCampaignProductIds([...linkIds, id])
+    setLinkIds(next)
+    rebuildCampaignHref({ kind: 'products', ids: next })
+  }
+
+  function toggleCampaignCat(slug: string) {
+    const has = linkCatSlugs.includes(slug)
+    let next: string[]
+    if (has) next = linkCatSlugs.filter((s) => s !== slug)
+    else if (linkCatSlugs.length >= CATALOG_MULTI_CAT_MAX) {
+      push(`Máximo ${CATALOG_MULTI_CAT_MAX} categorias/grupos`, 'info')
+      return
+    } else next = [...linkCatSlugs, slug]
+    setLinkCatSlugs(next)
+    const kind: CampaignLinkKind =
+      next.length > 1 || linkModels.length > 0 || linkMaker.trim()
+        ? 'filter'
+        : next.length === 1
+          ? 'category'
+          : linkKind === 'filter'
+            ? 'filter'
+            : 'category'
+    rebuildCampaignHref({ kind, cats: next })
+    setLinkKind(kind)
+  }
+
+  function toggleCampaignModel(name: string) {
+    const has = linkModels.includes(name)
+    let next: string[]
+    if (has) next = linkModels.filter((s) => s !== name)
+    else if (linkModels.length >= CATALOG_MULTI_MODEL_MAX) {
+      push(`Máximo ${CATALOG_MULTI_MODEL_MAX} modelos`, 'info')
+      return
+    } else next = [...linkModels, name]
+    setLinkModels(next)
+    const kind: CampaignLinkKind =
+      next.length > 1 || linkCatSlugs.length > 0 ? 'filter' : 'vehicle'
+    setLinkKind(kind)
+    rebuildCampaignHref({ kind, models: next })
   }
   useEffect(() => {
     if (!dirty) return
@@ -405,6 +489,49 @@ export function AdminHomeContentPage() {
   useEffect(() => {
     void reload()
   }, [])
+
+  useEffect(() => {
+    let active = true
+    void Promise.all([adminListManufacturers(), adminListCategories()])
+      .then(([m, c]) => {
+        if (!active) return
+        setMakers(m.filter((x) => x.status === 'active'))
+        setAllCats(c.filter((x) => !x.status || x.status === 'published'))
+      })
+      .catch(() => {
+        /* pickers degradam silenciosamente */
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!linkMakerId) {
+      setMakerModels([])
+      return
+    }
+    let active = true
+    void adminListModels(linkMakerId)
+      .then((rows) => {
+        if (!active) return
+        setMakerModels(rows.filter((r) => r.status === 'active'))
+      })
+      .catch(() => {
+        if (active) setMakerModels([])
+      })
+    return () => {
+      active = false
+    }
+  }, [linkMakerId])
+
+  useEffect(() => {
+    if (!linkMaker.trim() || linkMakerId) return
+    const hit = makers.find(
+      (m) => m.name.toLowerCase() === linkMaker.trim().toLowerCase(),
+    )
+    if (hit) setLinkMakerId(hit.id)
+  }, [linkMaker, linkMakerId, makers])
 
   async function onSaveBanner(e: FormEvent) {
     e.preventDefault()
@@ -636,9 +763,10 @@ export function AdminHomeContentPage() {
               value={linkKind}
               options={[
                 { value: 'catalog', label: 'Catálogo geral' },
-                { value: 'category', label: 'Categoria / grupo (slug)' },
+                { value: 'filter', label: 'Filtro composto (cats + veículos)' },
                 { value: 'products', label: 'Produtos selecionados (1+)' },
-                { value: 'vehicle', label: 'Veículo (maker/modelo/ano)' },
+                { value: 'category', label: 'Só categoria / grupo' },
+                { value: 'vehicle', label: 'Só veículo' },
                 { value: 'manual', label: 'Link manual' },
               ]}
               onChange={(e) => {
@@ -647,81 +775,193 @@ export function AdminHomeContentPage() {
                 rebuildCampaignHref({ kind })
               }}
             />
-            {linkKind === 'category' ? (
-              <Input
-                label="Slug da categoria ou grupo"
-                value={linkCat}
-                onChange={(e) => {
-                  setLinkCat(e.target.value)
-                  rebuildCampaignHref({ cat: e.target.value })
-                }}
-                placeholder="ex.: freios, suspensao, pastilhas"
-                hint="Usa o mesmo ?cat= do catálogo (categoria, grupo ou subgrupo)."
-              />
-            ) : null}
             {linkKind === 'products' ? (
-              <Input
-                label="IDs dos produtos (vírgula)"
-                value={linkIds}
-                onChange={(e) => {
-                  setLinkIds(e.target.value)
-                  rebuildCampaignHref({ ids: e.target.value })
-                }}
-                placeholder="uuid1, uuid2, …"
-                hint="Abre /catalogo?ids=… com a seleção curada da campanha."
-              />
-            ) : null}
-            {linkKind === 'vehicle' || linkKind === 'category' ? (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Input
-                  label="Montadora"
-                  value={linkMaker}
-                  onChange={(e) => {
-                    setLinkMaker(e.target.value)
-                    rebuildCampaignHref({ maker: e.target.value })
-                  }}
-                  placeholder="Toyota"
-                />
-                <Input
-                  label="Modelo"
-                  value={linkModel}
-                  onChange={(e) => {
-                    setLinkModel(e.target.value)
-                    rebuildCampaignHref({ model: e.target.value })
-                  }}
-                  placeholder="Corolla"
-                />
-                <Input
-                  label="Ano"
-                  value={linkYear}
-                  onChange={(e) => {
-                    setLinkYear(e.target.value)
-                    rebuildCampaignHref({ year: e.target.value })
-                  }}
-                  placeholder="2020"
-                />
+              <div className="space-y-2 rounded-fal border border-fal-line bg-fal-bg p-3">
+                <p className="m-0 text-xs font-extrabold text-fal-muted">
+                  Produtos da campanha (abre só esses no catálogo)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    label="Buscar publicado"
+                    value={campaignProductQ}
+                    onChange={(e) => setCampaignProductQ(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        void searchCampaignProducts()
+                      }
+                    }}
+                    placeholder="SKU, nome ou ref"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="self-end"
+                    disabled={campaignProductSearching}
+                    onClick={() => void searchCampaignProducts()}
+                  >
+                    {campaignProductSearching ? 'Buscando…' : 'Buscar'}
+                  </Button>
+                </div>
+                {campaignProductHits.length > 0 ? (
+                  <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
+                    {campaignProductHits.map((hit) => (
+                      <li key={hit.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate text-fal-ink">
+                          {hit.name}
+                          <span className="text-fal-muted"> · {hit.sku}</span>
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={linkIds.includes(hit.id) ? 'primary' : 'outline'}
+                          onClick={() => toggleCampaignProductId(hit.id)}
+                        >
+                          {linkIds.includes(hit.id) ? 'Remover' : 'Incluir'}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {linkIds.length > 0 ? (
+                  <p className="m-0 text-[12px] text-fal-muted">
+                    {linkIds.length} produto(s) no destino · XOR filtro (sem cat/veículo na URL)
+                  </p>
+                ) : null}
               </div>
             ) : null}
-            <Input
-              label={linkKind === 'manual' ? 'Link manual' : 'Link gerado (avançado)'}
-              value={form.to}
-              onChange={(e) => {
-                setDirtyBanner(true)
-                const v = e.target.value
-                setForm((f) => ({ ...f, to: v }))
-                if (linkKind === 'manual') {
-                  rebuildCampaignHref({ kind: 'manual', manual: v })
-                } else if (inferCampaignLinkKind(v) === 'manual') {
-                  setLinkKind('manual')
-                }
-              }}
-              placeholder="/catalogo?cat=suspensao"
-              hint={
-                linkKind === 'manual'
-                  ? 'Qualquer rota interna (ex.: /catalogo?promo=1).'
-                  : 'Gerado pelos campos acima — edite só se souber o formato.'
-              }
-            />
+            {linkKind === 'category' || linkKind === 'filter' ? (
+              <div className="space-y-2 rounded-fal border border-fal-line bg-fal-bg p-3">
+                <p className="m-0 text-xs font-extrabold text-fal-muted">
+                  Categorias / grupos (máx. {CATALOG_MULTI_CAT_MAX}) — união no catálogo
+                </p>
+                <div className="max-h-44 space-y-1 overflow-y-auto text-sm">
+                  {allCats.slice(0, 80).map((c) => {
+                    const path = categoryPath(allCats, c.id)
+                    const checked = linkCatSlugs.includes(c.slug)
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-start gap-2 rounded px-1 py-0.5 hover:bg-fal-surface"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={checked}
+                          onChange={() => toggleCampaignCat(c.slug)}
+                        />
+                        <span className="min-w-0">
+                          <span className="text-fal-ink">{path || c.name}</span>
+                          <span className="block text-[11px] text-fal-muted">{c.slug}</span>
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+                {linkCatSlugs.length > 0 ? (
+                  <p className="m-0 text-[12px] text-fal-muted">
+                    Selecionados: {joinCatalogCsv(linkCatSlugs)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {linkKind === 'vehicle' || linkKind === 'filter' || linkKind === 'category' ? (
+              <div className="space-y-3 rounded-fal border border-fal-line bg-fal-bg p-3">
+                <p className="m-0 text-xs font-extrabold text-fal-muted">
+                  Veículos (mesmo maker · até {CATALOG_MULTI_MODEL_MAX} modelos)
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select
+                    label="Montadora"
+                    name="campaign-maker"
+                    value={linkMakerId}
+                    options={[
+                      { value: '', label: 'Selecione…' },
+                      ...makers.map((m) => ({ value: m.id, label: m.name })),
+                    ]}
+                    onChange={(e) => {
+                      const id = e.target.value
+                      setLinkMakerId(id)
+                      const name = makers.find((m) => m.id === id)?.name ?? ''
+                      setLinkMaker(name)
+                      setLinkModels([])
+                      const kind: CampaignLinkKind =
+                        linkCatSlugs.length > 0 || linkKind === 'filter' ? 'filter' : 'vehicle'
+                      setLinkKind(kind)
+                      rebuildCampaignHref({ kind, maker: name, models: [] })
+                    }}
+                  />
+                  <Input
+                    label="Ano (opcional)"
+                    value={linkYear}
+                    onChange={(e) => {
+                      setLinkYear(e.target.value)
+                      rebuildCampaignHref({ year: e.target.value })
+                    }}
+                    placeholder="2018"
+                  />
+                </div>
+                {makerModels.length > 0 ? (
+                  <div className="max-h-36 space-y-1 overflow-y-auto text-sm">
+                    {makerModels.map((m) => (
+                      <label
+                        key={m.id}
+                        className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-fal-surface"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={linkModels.includes(m.name)}
+                          onChange={() => toggleCampaignModel(m.name)}
+                        />
+                        <span>{m.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="m-0 text-[12px] text-fal-muted">
+                    Escolha a montadora para marcar Onix, Prisma, Cobalt etc.
+                  </p>
+                )}
+              </div>
+            ) : null}
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <Input
+                  label={linkKind === 'manual' ? 'Link manual' : 'Link gerado (avançado)'}
+                  value={form.to}
+                  onChange={(e) => {
+                    setDirtyBanner(true)
+                    const v = e.target.value
+                    setForm((f) => ({ ...f, to: v }))
+                    if (linkKind === 'manual') {
+                      rebuildCampaignHref({ kind: 'manual', manual: v })
+                    } else if (inferCampaignLinkKind(v) === 'manual') {
+                      setLinkKind('manual')
+                    }
+                  }}
+                  placeholder="/catalogo?cat=suspensao"
+                  hint={
+                    linkKind === 'manual'
+                      ? 'Qualquer rota interna (ex.: /catalogo?promo=1).'
+                      : 'Gerado pelos campos acima — ids XOR filtro vivo.'
+                  }
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                disabled={!form.to.trim()}
+                onClick={() => {
+                  const href = form.to.trim().startsWith('/')
+                    ? form.to.trim()
+                    : `/${form.to.trim()}`
+                  window.open(href, '_blank', 'noopener,noreferrer')
+                }}
+              >
+                Testar destino
+              </Button>
+            </div>
             <div className="space-y-2">
               <p className="m-0 text-xs font-extrabold text-fal-muted">Imagem da campanha</p>
               <p className="m-0 text-[13px] text-fal-muted">
@@ -730,12 +970,12 @@ export function AdminHomeContentPage() {
                 {HOME_BANNER_IMAGE_IDEAL.hint}
               </p>
               {form.imageSrc ? (
-                <div className="aspect-[3/1] w-full overflow-hidden rounded-xl border border-fal-line bg-fal-bg">
+                <div className="aspect-[1376/768] w-full overflow-hidden rounded-xl border border-fal-line bg-fal-bg">
                   <img src={form.imageSrc} alt="" className="h-full w-full object-cover" />
                 </div>
               ) : (
-                <div className="grid aspect-[3/1] w-full place-items-center rounded-xl border border-dashed border-fal-line bg-fal-bg text-[11px] text-fal-muted">
-                  prévia retangular 3:1 · sem imagem
+                <div className="grid aspect-[1376/768] w-full place-items-center rounded-xl border border-dashed border-fal-line bg-fal-bg text-[11px] text-fal-muted">
+                  prévia 1376×768 · sem imagem
                 </div>
               )}
               <div className="flex flex-wrap gap-2">

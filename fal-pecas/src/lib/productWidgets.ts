@@ -71,7 +71,7 @@ export const PRODUCT_WIDGET_DEFS: readonly ProductWidgetDef[] = [
     title: 'Novidades',
     subtitle: 'Recém-chegados no estoque',
     linkLabel: 'Ver novidades →',
-    catalogHref: '/catalogo?sort=newest',
+    catalogHref: '/catalogo?sort=name_desc',
     defaultLimit: 12,
     tone: 'white',
   },

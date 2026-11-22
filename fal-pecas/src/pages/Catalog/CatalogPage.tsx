@@ -35,6 +35,11 @@ import {
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
+import {
+  CATALOG_MULTI_CAT_MAX,
+  CATALOG_MULTI_MODEL_MAX,
+  parseCatalogCsvParam,
+} from '@/lib/catalogHref'
 import { parseCatalogProductIdsParam } from '@/lib/homeCampaignLink'
 import {
   listPromoHighlightProducts,
@@ -126,6 +131,14 @@ export function CatalogPage() {
   const curatedIds = useMemo(
     () => parseCatalogProductIdsParam(params.get('ids')),
     [params],
+  )
+  const catSlugs = useMemo(
+    () => parseCatalogCsvParam(cat, CATALOG_MULTI_CAT_MAX),
+    [cat],
+  )
+  const modelNames = useMemo(
+    () => parseCatalogCsvParam(model, CATALOG_MULTI_MODEL_MAX),
+    [model],
   )
   const urlPage = parsePage(params.get('page'))
 
@@ -517,9 +530,14 @@ export function CatalogPage() {
     [brands],
   )
 
+  /** Facetas single-cat: multi-CSV de campanha não preenche cascata (só chip). */
   const catPath = useMemo(
-    () => categoryPathFromSlug(allCategories, cat),
-    [allCategories, cat],
+    () =>
+      categoryPathFromSlug(
+        allCategories,
+        catSlugs.length === 1 ? catSlugs[0]! : '',
+      ),
+    [allCategories, catSlugs],
   )
 
   const sortCatOpts = (a: Category, b: Category) =>
@@ -733,6 +751,7 @@ export function CatalogPage() {
     }
   }
 
+  /** `ids` XOR filtro vivo — chips de cat/YMM só quando não há seleção curada. */
   const activeChips = [
     q && { key: 'q', label: `Busca: ${q}` },
     promoOnly && { key: 'promo', label: 'Só ofertas' },
@@ -740,15 +759,29 @@ export function CatalogPage() {
       key: 'ids',
       label: `Seleção da campanha (${curatedIds.length})`,
     },
-    cat && {
-      key: 'cat',
-      label: `Classificação: ${catPath.label || cat}`,
-    },
-    maker && { key: 'maker', label: `Montadora: ${maker}` },
-    model && { key: 'model', label: `Modelo: ${model}` },
-    year && { key: 'year', label: `Ano: ${year}` },
-    engine && { key: 'engine', label: `Motor: ${engine}` },
-    version && { key: 'version', label: `Versão: ${version}` },
+    curatedIds.length === 0 &&
+      cat && {
+        key: 'cat',
+        label:
+          catSlugs.length > 1
+            ? `Classificação: ${catSlugs.join(', ')}`
+            : `Classificação: ${catPath.label || cat}`,
+      },
+    curatedIds.length === 0 &&
+      maker && { key: 'maker', label: `Montadora: ${maker}` },
+    curatedIds.length === 0 &&
+      model && {
+        key: 'model',
+        label:
+          modelNames.length > 1
+            ? `Modelos: ${modelNames.join(', ')}`
+            : `Modelo: ${model}`,
+      },
+    curatedIds.length === 0 && year && { key: 'year', label: `Ano: ${year}` },
+    curatedIds.length === 0 &&
+      engine && { key: 'engine', label: `Motor: ${engine}` },
+    curatedIds.length === 0 &&
+      version && { key: 'version', label: `Versão: ${version}` },
     brand && { key: 'brand', label: `Fabricante: ${brand}` },
     productKind && {
       key: 'kind',
