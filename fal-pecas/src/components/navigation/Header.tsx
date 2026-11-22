@@ -139,6 +139,16 @@ export function Header({ theme, onThemeToggle }: Props) {
               Notificações
             </Link>
           ) : null}
+          <p className="mt-3 mb-1 px-3 text-xs font-bold uppercase tracking-wide text-fal-muted">
+            Ajuda
+          </p>
+          <Link
+            to="/suporte"
+            className="rounded-[10px] px-3 py-2.5 font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
+            onClick={() => setMenuOpen(false)}
+          >
+            Central de Suporte
+          </Link>
           {categories.data.length > 0 ? (
             <>
               <p className="mt-3 mb-1 px-3 text-xs font-bold uppercase tracking-wide text-fal-muted">

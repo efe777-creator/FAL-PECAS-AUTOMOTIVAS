@@ -1,9 +1,23 @@
 import { Button } from '@/components/common/Button'
+import { ButtonLink } from '@/components/common/ButtonLink'
 import { Container } from '@/components/layout/Container'
+import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { LEGAL_POLICY_CARDS } from '@/lib/legalVersions'
+import { formatMoney } from '@/lib/money'
+import { motiveRequiresPolicyAck } from '@/lib/postSaleMotives'
+import { RETURN_POLICY_ACK_LABEL } from '@/lib/returnPolicyCopy'
+import {
+  SUPPORT_SUBJECTS,
+  findSupportSubject,
+  resolveSupportSubjectLabel,
+} from '@/lib/supportSubjects'
+import { getCustomerProfile } from '@/services/customers/customerService'
+import { listMyOrders } from '@/services/customers/orderQueryService'
+import { customerReportDeliveryIssue } from '@/services/orders/customerOrderActions'
 import { activeSupportChannel } from '@/services/support/supportChannel'
-import { useState } from 'react'
+import type { CustomerOrderSummary } from '@/types'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const PILLARS = [
@@ -29,22 +43,162 @@ const PILLARS = [
   },
 ] as const
 
+const NAV_ITEMS = [
+  { href: '#suporte-politicas', label: 'Políticas' },
+  { href: '#suporte-compromisso', label: 'Compromisso' },
+  { href: '#suporte-atendimento', label: 'Atendimento' },
+] as const
+
+function shortOrderId(id: string): string {
+  return id.length > 8 ? `${id.slice(0, 8)}…` : id
+}
+
+function orderOptionLabel(o: CustomerOrderSummary): string {
+  const date = o.createdAt
+    ? new Date(o.createdAt).toLocaleDateString('pt-BR')
+    : '—'
+  return `${shortOrderId(o.id)} · ${date} · ${o.status} · ${formatMoney(o.total)}`
+}
+
 export function SupportPage() {
   useDocumentTitle('Central de Suporte | FAL Peças Automotivas')
-  const [subject, setSubject] = useState('')
-  const [orderNumber, setOrderNumber] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const { user, loading: authLoading } = useAuth()
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    const result = activeSupportChannel.send({ subject, orderNumber, message })
-    if (!result.ok) {
-      setError(result.error)
+  const [subjectCode, setSubjectCode] = useState('')
+  const [customSubject, setCustomSubject] = useState('')
+  const [orderId, setOrderId] = useState('')
+  const [message, setMessage] = useState('')
+  const [policyAck, setPolicyAck] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const [orders, setOrders] = useState<CustomerOrderSummary[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [profileName, setProfileName] = useState<string | null>(null)
+  const [profilePhone, setProfilePhone] = useState<string | null>(null)
+
+  const subject = useMemo(
+    () => (subjectCode ? findSupportSubject(subjectCode) : undefined),
+    [subjectCode],
+  )
+  const requiresOrder = Boolean(subject?.requiresOrder)
+  const needsCustom = Boolean(subject?.needsCustomLabel)
+  const needsAck = Boolean(
+    subject?.motivoCode && motiveRequiresPolicyAck(subject.motivoCode),
+  )
+
+  useEffect(() => {
+    if (!user) {
+      setOrders([])
+      setProfileName(null)
+      setProfilePhone(null)
       return
     }
-    window.open(result.href, '_blank', 'noopener,noreferrer')
+    let cancelled = false
+    setOrdersLoading(true)
+    void (async () => {
+      try {
+        const [list, profileRes] = await Promise.all([
+          listMyOrders(),
+          getCustomerProfile(user.id),
+        ])
+        if (cancelled) return
+        setOrders(list)
+        setProfileName(profileRes.profile.fullName ?? null)
+        setProfilePhone(profileRes.profile.phone ?? null)
+      } catch {
+        if (!cancelled) {
+          setOrders([])
+        }
+      } finally {
+        if (!cancelled) setOrdersLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!requiresOrder) {
+      // Mantém seleção opcional em assuntos gerais; não limpa automaticamente
+      // se o usuário já escolheu um pedido — só limpa ack.
+      setPolicyAck(false)
+    }
+  }, [requiresOrder])
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSuccess(null)
+
+    if (!user) {
+      setError('Entre na conta para abrir atendimento.')
+      return
+    }
+    if (!subject) {
+      setError('Selecione o assunto.')
+      return
+    }
+    if (needsCustom && !customSubject.trim()) {
+      setError('Descreva o assunto em “Outro”.')
+      return
+    }
+    if (requiresOrder && !orderId) {
+      setError('Selecione o pedido relacionado.')
+      return
+    }
+    if (needsAck && !policyAck) {
+      setError('Confirme que leu as condições de devolução.')
+      return
+    }
+    if (!message.trim()) {
+      setError('Descreva sua mensagem.')
+      return
+    }
+
+    const subjectLabel = resolveSupportSubjectLabel(subject, customSubject)
+    const reasonParts = [`[Central] ${subjectLabel}`, message.trim()]
+    const reason = reasonParts.join('\n\n')
+
+    setBusy(true)
+    try {
+      let registeredPostSale = false
+      if (subject.kind === 'post_sale' && orderId && subject.motivoCode) {
+        await customerReportDeliveryIssue(orderId, {
+          reason,
+          motivoCode: subject.motivoCode,
+          scope: 'order',
+          policyAck: needsAck ? policyAck : false,
+        })
+        registeredPostSale = true
+      }
+
+      const channelResult = activeSupportChannel.send({
+        subject: subjectLabel,
+        subjectCode: subject.code,
+        orderNumber: orderId || undefined,
+        message: message.trim(),
+        customerName: profileName ?? undefined,
+        customerEmail: user.email ?? undefined,
+        customerPhone: profilePhone ?? undefined,
+      })
+      if (!channelResult.ok) {
+        setError(channelResult.error)
+        return
+      }
+      window.open(channelResult.href, '_blank', 'noopener,noreferrer')
+      setSuccess(
+        registeredPostSale
+          ? 'Registramos o atendimento neste pedido. A loja analisa e trata — acompanhe em Meus Pedidos.'
+          : 'Mensagem pronta no WhatsApp oficial da loja.',
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível registrar o atendimento.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -65,20 +219,32 @@ export function SupportPage() {
         também “Problema com meu pedido” na sua conta.
       </p>
 
-      {/* Seção 1 */}
-      <section className="mt-10" aria-labelledby="suporte-politicas">
-        <h2 id="suporte-politicas" className="m-0 text-xl font-extrabold text-fal-fg">
-          Termos e Políticas
-        </h2>
+      <nav
+        className="sticky top-[52px] z-20 -mx-1 mt-6 mb-2 overflow-x-auto overscroll-x-contain bg-fal-bg/95 px-1 py-2 backdrop-blur-sm lg:top-[84px]"
+        aria-label="Seções da Central"
+      >
+        <ul className="m-0 flex list-none gap-2 p-0">
+          {NAV_ITEMS.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-fal border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-navy hover:bg-fal-surface-2 dark:text-fal-fg"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <section className="mt-8 scroll-mt-28" aria-labelledby="suporte-politicas" id="suporte-politicas">
+        <h2 className="m-0 text-xl font-extrabold text-fal-fg">Termos e Políticas</h2>
         <p className="mt-1 mb-4 text-sm text-fal-muted">
           Documentos completos em páginas próprias — versão e data em cada card.
         </p>
         <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2">
           {LEGAL_POLICY_CARDS.map((card) => (
-            <li
-              key={card.kind}
-              className="rounded-fal border border-fal-line bg-fal-surface p-5"
-            >
+            <li key={card.kind} className="rounded-fal border border-fal-line bg-fal-surface p-5">
               <h3 className="m-0 text-base font-extrabold text-fal-fg">{card.title}</h3>
               <p className="mt-1 mb-0 text-sm text-fal-muted">{card.description}</p>
               <p className="mt-2 mb-3 text-xs font-semibold tracking-wide text-fal-muted uppercase">
@@ -95,11 +261,12 @@ export function SupportPage() {
         </ul>
       </section>
 
-      {/* Seção 2 */}
-      <section className="mt-12" aria-labelledby="suporte-compromisso">
-        <h2 id="suporte-compromisso" className="m-0 text-xl font-extrabold text-fal-fg">
-          Nosso Compromisso
-        </h2>
+      <section
+        className="mt-12 scroll-mt-28"
+        aria-labelledby="suporte-compromisso"
+        id="suporte-compromisso"
+      >
+        <h2 className="m-0 text-xl font-extrabold text-fal-fg">Nosso Compromisso</h2>
         <div className="mt-4 rounded-fal border border-fal-line bg-fal-surface p-5">
           <p className="m-0 max-w-2xl text-sm text-fal-ink sm:text-base">
             A FAL Peças Automotivas busca oferecer peça certa, compra clara e pós-venda no mesmo
@@ -117,78 +284,204 @@ export function SupportPage() {
         </div>
       </section>
 
-      {/* Seção 3 */}
-      <section className="mt-12" aria-labelledby="suporte-atendimento">
-        <h2 id="suporte-atendimento" className="m-0 text-xl font-extrabold text-fal-fg">
-          Atendimento e Suporte
-        </h2>
+      <section
+        className="mt-12 scroll-mt-28"
+        aria-labelledby="suporte-atendimento"
+        id="suporte-atendimento"
+      >
+        <h2 className="m-0 text-xl font-extrabold text-fal-fg">Atendimento e Suporte</h2>
         <p className="mt-1 mb-4 text-sm text-fal-muted">
-          Preencha o formulário. O envio abre o WhatsApp oficial da loja com sua mensagem (canal
-          atual). Buscamos responder demandas de atendimento eletrônico em até 5 dias úteis.
+          Assunto tipado, pedido da conta quando for pós-venda, e mensagem. O envio registra o caso
+          no pedido (quando aplicável) e abre o WhatsApp oficial. Buscamos responder demandas de
+          atendimento eletrônico em até 5 dias úteis.
         </p>
-        <form
-          onSubmit={onSubmit}
-          className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-fal-surface p-5"
-          noValidate
-        >
-          <div>
-            <label htmlFor="support-subject" className="block text-sm font-semibold text-fal-fg">
-              Assunto
-            </label>
-            <input
-              id="support-subject"
-              name="subject"
-              className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              required
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label htmlFor="support-order" className="block text-sm font-semibold text-fal-fg">
-              Nº do pedido <span className="font-normal text-fal-muted">(opcional)</span>
-            </label>
-            <input
-              id="support-order"
-              name="orderNumber"
-              className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
-              value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
-          <div>
-            <label htmlFor="support-message" className="block text-sm font-semibold text-fal-fg">
-              Mensagem
-            </label>
-            <textarea
-              id="support-message"
-              name="message"
-              rows={5}
-              className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-            />
-          </div>
-          {error ? (
-            <p role="alert" className="m-0 text-sm font-semibold text-red-700 dark:text-red-400">
-              {error}
+
+        {authLoading ? (
+          <p className="m-0 text-sm text-fal-muted">Carregando sessão…</p>
+        ) : !user ? (
+          <div className="max-w-xl rounded-fal border border-fal-line bg-fal-surface p-5">
+            <p className="m-0 text-sm text-fal-ink">
+              Entre na conta para abrir atendimento com seus dados e pedidos.
             </p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="primary">
-              Abrir WhatsApp com a mensagem
-            </Button>
-            <Link
-              to="/conta/pedidos"
-              className="inline-flex items-center text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+            <ButtonLink
+              to="/login"
+              state={{ from: '/suporte' }}
+              variant="primary"
+              className="mt-4"
             >
-              Ir para Meus Pedidos
-            </Link>
+              Entrar para abrir atendimento
+            </ButtonLink>
           </div>
-        </form>
+        ) : (
+          <form
+            onSubmit={(e) => void onSubmit(e)}
+            className="max-w-xl space-y-4 rounded-fal border border-fal-line bg-fal-surface p-5"
+            noValidate
+          >
+            <div className="rounded-fal border border-fal-line bg-fal-bg p-3 text-sm">
+              <p className="m-0 font-semibold text-fal-fg">Seus dados</p>
+              <p className="mt-1 mb-0 text-fal-muted">
+                {profileName || '—'}
+                {user.email ? ` · ${user.email}` : ''}
+                {profilePhone ? ` · ${profilePhone}` : ''}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="support-subject" className="block text-sm font-semibold text-fal-fg">
+                Assunto
+              </label>
+              <select
+                id="support-subject"
+                name="subject"
+                className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
+                value={subjectCode}
+                onChange={(e) => {
+                  setSubjectCode(e.target.value)
+                  setCustomSubject('')
+                  setPolicyAck(false)
+                  setError(null)
+                  setSuccess(null)
+                }}
+                required
+              >
+                <option value="">Selecione…</option>
+                <optgroup label="Pedido / pós-venda">
+                  {SUPPORT_SUBJECTS.filter((s) => s.kind === 'post_sale').map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Geral">
+                  {SUPPORT_SUBJECTS.filter((s) => s.kind === 'general').map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.label}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {needsCustom ? (
+              <div>
+                <label
+                  htmlFor="support-subject-custom"
+                  className="block text-sm font-semibold text-fal-fg"
+                >
+                  Descreva o assunto
+                </label>
+                <input
+                  id="support-subject-custom"
+                  name="subjectCustom"
+                  className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
+                  value={customSubject}
+                  onChange={(e) => setCustomSubject(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+            ) : null}
+
+            {subject ? (
+              <div>
+                <label htmlFor="support-order" className="block text-sm font-semibold text-fal-fg">
+                  Pedido
+                  {requiresOrder ? null : (
+                    <span className="font-normal text-fal-muted"> (opcional)</span>
+                  )}
+                </label>
+                <select
+                  id="support-order"
+                  name="orderId"
+                  className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
+                  value={orderId}
+                  onChange={(e) => setOrderId(e.target.value)}
+                  required={requiresOrder}
+                  disabled={ordersLoading}
+                >
+                  <option value="">
+                    {ordersLoading
+                      ? 'Carregando pedidos…'
+                      : requiresOrder
+                        ? 'Selecione o pedido…'
+                        : 'Sem pedido / assunto geral'}
+                  </option>
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {orderOptionLabel(o)}
+                    </option>
+                  ))}
+                </select>
+                {!ordersLoading && orders.length === 0 ? (
+                  <p className="mt-1 mb-0 text-xs text-fal-muted">
+                    Nenhum pedido nesta conta.
+                    {requiresOrder ? ' Compre ou use outro canal se ainda não houver pedido.' : null}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {needsAck ? (
+              <div className="space-y-2 rounded-fal border border-fal-line bg-fal-bg p-3">
+                <p className="m-0 text-xs text-fal-muted">
+                  Leia as{' '}
+                  <Link to="/trocas-devolucoes" className="font-semibold underline">
+                    condições de trocas e devoluções
+                  </Link>
+                  .
+                </p>
+                <label className="flex items-start gap-2 text-sm text-fal-ink">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={policyAck}
+                    onChange={(e) => setPolicyAck(e.target.checked)}
+                  />
+                  <span>{RETURN_POLICY_ACK_LABEL}</span>
+                </label>
+              </div>
+            ) : null}
+
+            <div>
+              <label htmlFor="support-message" className="block text-sm font-semibold text-fal-fg">
+                Mensagem
+              </label>
+              <textarea
+                id="support-message"
+                name="message"
+                rows={5}
+                className="mt-1 w-full rounded-fal border border-fal-line bg-fal-bg px-3 py-2.5 text-sm text-fal-ink"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
+              />
+            </div>
+
+            {error ? (
+              <p role="alert" className="m-0 text-sm font-semibold text-red-700 dark:text-red-400">
+                {error}
+              </p>
+            ) : null}
+            {success ? (
+              <p role="status" className="m-0 text-sm font-semibold text-fal-fg">
+                {success}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" variant="primary" disabled={busy}>
+                {busy ? 'Enviando…' : 'Registrar e abrir WhatsApp'}
+              </Button>
+              <Link
+                to="/conta/pedidos"
+                className="inline-flex items-center text-sm font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+              >
+                Ir para Meus Pedidos
+              </Link>
+            </div>
+          </form>
+        )}
       </section>
     </Container>
   )

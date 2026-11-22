@@ -237,7 +237,6 @@ export function OrderOpsSurface({
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setTab('geral')
     setPending(null)
     setCancelNote('')
     void (async () => {
@@ -248,7 +247,26 @@ export function OrderOpsSurface({
         ])
         if (cancelled) return
         applyOrder(d, cancel)
-        if (!d) pushError('Pedido não encontrado')
+        if (!d) {
+          pushError('Pedido não encontrado')
+          setTab('geral')
+          return
+        }
+        // Caso pós-venda aberto → guia já na Logística (controle visível)
+        const postSale = buildPostSaleReturnOpsSummary({
+          events: (d.events ?? []).map((e) => ({
+            id: e.id,
+            eventType: e.eventType,
+            payload: e.payload,
+            visibility: e.visibility,
+            createdAt: e.createdAt,
+          })),
+          orderStatus: d.status,
+          provider: d.shipment?.provider,
+          shipmentMetadata: d.shipment?.metadata ?? null,
+          outboundTracking: d.shipment?.trackingCode ?? null,
+        })
+        setTab(postSale ? 'logistica' : 'geral')
       } catch (e) {
         if (!cancelled) pushError(actionErrorMessage(e, 'Falha ao carregar pedido'))
       } finally {
@@ -622,7 +640,7 @@ export function OrderOpsSurface({
       ) : null}
 
       <div
-        className="flex flex-wrap gap-1 rounded-[10px] border border-fal-line bg-fal-bg p-1"
+        className="flex flex-wrap gap-1 rounded-fal border border-fal-line bg-fal-bg p-1"
         role="tablist"
         aria-label="Seções do pedido"
       >
@@ -633,7 +651,7 @@ export function OrderOpsSurface({
             role="tab"
             aria-selected={tab === t.id}
             className={[
-              'min-h-8 flex-1 rounded-[8px] px-2 text-xs font-bold transition',
+              'min-h-11 flex-1 rounded-[10px] px-2 text-xs font-bold transition',
               tab === t.id
                 ? 'bg-fal-surface text-fal-fg shadow-sm'
                 : 'text-fal-muted hover:bg-fal-surface/70 hover:text-fal-fg',
@@ -661,7 +679,7 @@ export function OrderOpsSurface({
                 onAttached={() => void reload()}
               />
 
-              <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2">
+              <section className="rounded-fal border border-fal-line bg-fal-bg/50 px-2.5 py-2">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
                   Situação
                 </p>
@@ -839,7 +857,7 @@ export function OrderOpsSurface({
               role="tabpanel"
               aria-label="Pagamento"
             >
-              <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
+              <section className="rounded-fal border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
                   Pagamento
                 </p>
@@ -933,14 +951,7 @@ export function OrderOpsSurface({
             >
               {returnLogistics && order ? (
                 <>
-                  <PostSaleReturnLogisticsPanel
-                    summary={returnLogistics}
-                    outboundLabelState={
-                      orderUsesMelhorEnvio(order)
-                        ? meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))
-                        : order.shipment?.provider ?? null
-                    }
-                  />
+                  {/* Hierarquia: ação + mensagem do cliente antes do contexto Ida×devolução */}
                   <PostSaleCaseQuickActions
                     order={order}
                     busy={busy}
@@ -950,9 +961,17 @@ export function OrderOpsSurface({
                     onBusy={setBusy}
                     reload={reload}
                   />
+                  <PostSaleReturnLogisticsPanel
+                    summary={returnLogistics}
+                    outboundLabelState={
+                      orderUsesMelhorEnvio(order)
+                        ? meLabelStateLabel(meLabelState(order.shipment?.metadata ?? null))
+                        : order.shipment?.provider ?? null
+                    }
+                  />
                 </>
               ) : null}
-              <section className="rounded-[10px] border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
+              <section className="rounded-fal border border-fal-line bg-fal-bg/50 px-2.5 py-2 text-sm">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
                   Frete e retirada
                 </p>
@@ -964,12 +983,20 @@ export function OrderOpsSurface({
                     Valor frete: {formatMoney(order.shippingAmount)}
                   </p>
                 ) : null}
-                {order?.shipment?.trackingCode ? (
+                {order?.shipment?.trackingCode &&
+                !(
+                  returnLogistics?.outboundTracking &&
+                  returnLogistics.outboundTracking === order.shipment.trackingCode
+                ) ? (
                   <p className="mb-0 mt-1 text-xs text-fal-fg">
                     Rastreio:{' '}
                     <span className="font-mono font-semibold">
                       {order.shipment.trackingCode}
                     </span>
+                  </p>
+                ) : returnLogistics?.outboundTracking && order?.shipment?.trackingCode ? (
+                  <p className="mb-0 mt-1 text-xs text-fal-muted">
+                    Rastreio da ida no bloco Ida × devolução acima.
                   </p>
                 ) : null}
               </section>
@@ -1011,7 +1038,7 @@ export function OrderOpsSurface({
         </div>
 
         {pending ? (
-          <div className="shrink-0 rounded-[10px] border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-sm text-fal-fg">
+          <div className="shrink-0 rounded-fal border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-sm text-fal-fg">
             <p className="m-0 font-bold">{PENDING_COPY[pending].title}</p>
             <p className="mb-0 mt-1 text-xs text-fal-muted">{PENDING_COPY[pending].body}</p>
             {pending === 'cancel' ? (
@@ -1049,7 +1076,7 @@ export function OrderOpsSurface({
         ) : null}
 
         {order?.cancellationRequest === 'pending' ? (
-          <div className="shrink-0 rounded-[10px] border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-xs">
+          <div className="shrink-0 rounded-fal border border-fal-warning/50 bg-fal-warning/15 px-2.5 py-2 text-xs">
             <p className="m-0 font-semibold text-fal-fg">
               Cancelamento solicitado pelo cliente
             </p>
@@ -1204,7 +1231,7 @@ function ItemsBlock({
         return (
           <li
             key={it.id}
-            className="flex items-start gap-2 rounded-[10px] border border-fal-line bg-fal-bg/40 px-2 py-1.5 text-sm"
+            className="flex items-start gap-2 rounded-fal border border-fal-line bg-fal-bg/40 px-2 py-1.5 text-sm"
           >
             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border border-fal-line bg-fal-surface">
               {it.imageUrl ? (

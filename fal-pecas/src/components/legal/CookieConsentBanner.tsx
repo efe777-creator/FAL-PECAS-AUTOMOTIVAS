@@ -3,6 +3,7 @@ import {
   hasAcceptedCookieNotice,
   saveCookieConsent,
 } from '@/lib/cookieNotice'
+import { syncMarketingTags } from '@/lib/marketingTags'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -24,6 +25,7 @@ export function CookieConsentBanner() {
 
   function choose(marketing: boolean) {
     saveCookieConsent({ marketing })
+    syncMarketingTags()
     setVisible(false)
   }
 

@@ -99,7 +99,12 @@ export function parsePlateSourceSnapshot(raw: unknown): PlateSourceSnapshot | nu
 
 /** Linha informativa para UI (fora do filtro PVC). */
 export function formatSourceSnapshotExtras(
-  snap: PlateSourceSnapshot | null | undefined,
+  snap: {
+    yearModel?: string | null
+    yearFabrication?: string | null
+    fuel?: string | null
+    transmission?: string | null
+  } | null | undefined,
 ): string | null {
   if (!snap) return null
   const dualYear =

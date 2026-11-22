@@ -5,6 +5,7 @@ import {
   WORKSPACE_SPLIT_MAX,
   WORKSPACE_SPLIT_MIN,
   writeModulePrefs,
+  type WorkspaceGuideDensity,
   type WorkspaceMode,
   type WorkspaceModuleKey,
 } from '@/lib/adminWorkspacePrefs'
@@ -75,14 +76,19 @@ export function AdaptiveWorkspace({
   }, [])
 
   const persist = useCallback(
-    (next: { mode?: WorkspaceMode; splitWidthPx?: number }) => {
+    (next: {
+      mode?: WorkspaceMode
+      splitWidthPx?: number
+      guideDensity?: WorkspaceGuideDensity
+    }) => {
       const merged = writeModulePrefs(moduleKey, {
         mode: next.mode ?? prefs.mode,
         splitWidthPx: next.splitWidthPx ?? prefs.splitWidthPx,
+        guideDensity: next.guideDensity ?? prefs.guideDensity,
       })
       setPrefs(merged)
     },
-    [moduleKey, prefs.mode, prefs.splitWidthPx],
+    [moduleKey, prefs.mode, prefs.splitWidthPx, prefs.guideDensity],
   )
 
   const effectiveMode: WorkspaceMode =
@@ -160,6 +166,14 @@ export function AdaptiveWorkspace({
     persist({ splitWidthPx: next })
   }
 
+  function setSplitWidthPreset(px: number) {
+    persist({ splitWidthPx: clampSplitWidth(px) })
+  }
+
+  function setGuideDensity(d: WorkspaceGuideDensity) {
+    persist({ guideDensity: d })
+  }
+
   // Painel desktop fica fixed na viewport — clique no meio/fim da página sempre vê o split.
   useEffect(() => {
     if (!showContextual || !isDesktop || fullscreen) return
@@ -197,14 +211,18 @@ export function AdaptiveWorkspace({
         extraActions={contextualExtraActions}
         statusBadge={contextualStatusBadge}
         onSplitWidthStep={isDesktop ? stepSplitWidth : undefined}
+        onSplitWidthPreset={isDesktop ? setSplitWidthPreset : undefined}
         splitWidthNarrowed={prefs.splitWidthPx <= WORKSPACE_SPLIT_MIN}
         splitWidthWidened={prefs.splitWidthPx >= WORKSPACE_SPLIT_MAX}
+        guideDensity={prefs.guideDensity}
+        onGuideDensityChange={setGuideDensity}
       />
       <div
         className={[
           'mt-1.5 flex min-h-0 flex-col',
           !isDesktop || fullscreen ? 'min-h-0 flex-1 overflow-y-auto' : '',
         ].join(' ')}
+        data-guide-density={prefs.guideDensity}
       >
         {contextual}
       </div>

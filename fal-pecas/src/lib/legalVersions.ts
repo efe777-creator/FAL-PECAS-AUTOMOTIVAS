@@ -4,7 +4,7 @@ export const LEGAL_VERSIONS = {
   terms: '2026-11-22',
   commercial: '2026-11-22',
   privacy: '2026-11-22',
-  cookies: '2026-11-22',
+  cookies: '2026-11-22b',
   shipping: '2026-11-22',
   returns: '2026-11-22',
   warranty: '2026-11-22',

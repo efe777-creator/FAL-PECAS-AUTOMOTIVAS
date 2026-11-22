@@ -1,6 +1,6 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.5.0**`  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.5.3**`  
 **Data:** 2026-11-21 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
@@ -139,7 +139,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 
 ---
 
-## 5. Mapa de módulos (v1.5.0)
+## 5. Mapa de módulos (v1.5.3)
 
 | Módulo | `moduleKey` | Primary | Contextual | Full |
 |--------|-------------|---------|------------|------|
@@ -192,11 +192,15 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL17** | `ApplicationWorkSurface` (criar/editar/swap/bulk na guia); sem form criar permanente no primary; atalho guia Produto → hub `?q=`; chip `productId` | fonte |
 | **FL18** | Pontes guia↔guia: `adminGuideBridges` (`products` / `applications` / `kits`); CTAs Abrir guia + Cadastro completo | fonte |
 | **FL19** | Cascata PVC compartilhada: `pvcVehicleCascade` (hub + ficha); hint coringa único; ficha → Hub Aplicações | fonte |
+| **FL20** | OrderOps tabs `min-h-11` + tablist `rounded-fal`; PanelChrome ≥44px; Home Trust/Vehicles `rounded-fal`; carrossel; promoções `fal-warning`; **Logística:** QuickActions antes de Ida×devolução; painel contexto sem H2/jargão; CTA primary | fonte |
 | **FL20** | Hub Classificação Adaptive: `moduleKey="categories"` + `CategoryWorkSurface`; sem form mid-page; lista compact mobile; dirty ao trocar; max-h browse | fonte |
 | **FL21** | Polish P0: lote Produtos só via barra; chips Editar Apps; CTA guia amarelo unificado | fonte |
 | **FL22** | Hub Promoções Adaptive: `moduleKey="promotions"` + `PromotionWorkSurface`; sem form mid-page; filtros expansíveis | fonte |
 | **FL23** | Hub Estoque Adaptive: `moduleKey="inventory"` + `InventoryWorkSurface`; sem painel mid-page 2 colunas | fonte |
 | **FL24** | Hub Clientes Adaptive: `moduleKey="customers"` + `CustomerWorkSurface`; sem painel mid-page 2 colunas | fonte |
+| **FL25** | Revisão no Hub Adaptive (fila canônica + lista + CTAs) | fonte |
+| **FL26** | Guia Preços: colunas Custo\|Margem\|Preço; edição híbrida (dblclick/Enter/F2→modal; inline preço; botão Editar); paridade lista completa | fonte |
+| **FL27** | Adaptive: prefs `guideDensity`; presets Estreita(420)/Larga(720); `data-guide-density`; Garagem nav in-place (sidebar Resumo; chips só mobile) | fonte |
 
 Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
 
@@ -230,6 +234,32 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.5.3 — 2026-11-22 (MINOR)
+
+**Guias · dimensões · edição (estudo + marchas 1→3→2):**
+- Preços: grade Custo\|Margem %\|Preço; híbrido dblclick/Enter/F2 + inline preço + Editar
+- Adaptive: `guideDensity` em prefs; presets Estreita/Larga; `data-guide-density`
+- Garagem: sidebar “Garagem” = Resumo in-place; chips só mobile; Visual só em Mais
+- Estudo: `FAL_ESTUDO_GUIAS_DIMENSOES_EDICAO_2026-11-22.md`
+- Locks **FL26** · **FL27**
+
+### v1.5.2 — 2026-11-22 (PATCH)
+
+**Hierarquia guia Logística (pós-venda):**
+- Ordem: **Caso + mensagem + CTAs** → Ida × devolução (contexto) → Frete → Expedição
+- Painel Ida×devolução: micro-label (sem H2/accent); sem `cart_item_id`/`live-ready` na UI
+- QuickActions: CTA principal `primary` por estágio
+- Lock **FL20** estendido
+
+### v1.5.1 — 2026-11-22 (PATCH)
+
+**Widgets/guias — alinhamento touch + radius (auditoria layout):**
+- OrderOps: tablist `rounded-fal`; tabs `min-h-11` (antes `min-h-8`); painéis de seção → `rounded-fal`
+- PanelChrome: controles `min-h-11` / `rounded-[10px]`
+- Home: Trust + Vehicles empty `rounded-fal`; ProductCarousel setas `min-h-11 min-w-11`
+- Promoções admin: alerta com tokens `fal-warning` (sem amber Tailwind)
+- Lock **FL20**
 
 ### v1.5.0 — 2026-11-21 (MINOR)
 
@@ -376,4 +406,4 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 
 ---
 
-**Assinatura:** FAL-UI-LAYOUT v1.5.0 · excelência registrada · 2026-11-21 · eFe / Cursor
+**Assinatura:** FAL-UI-LAYOUT v1.5.3 · excelência registrada · 2026-11-22 · eFe / Cursor

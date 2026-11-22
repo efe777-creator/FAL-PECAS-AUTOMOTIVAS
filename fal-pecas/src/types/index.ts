@@ -85,6 +85,8 @@ export type CustomerVehicleSourceSnapshot = {
   maker: string | null
   model: string | null
   year: string | null
+  yearModel: string | null
+  yearFabrication: string | null
   engine: string | null
   version: string | null
   engineRaw: string | null

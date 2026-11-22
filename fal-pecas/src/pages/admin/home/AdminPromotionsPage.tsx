@@ -279,7 +279,7 @@ export function AdminPromotionsPage() {
 
       {inactiveLists.length > 0 || lists.length === 0 ? (
         <div
-          className="rounded-fal border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          className="rounded-fal border border-fal-warning/50 bg-fal-warning/15 px-4 py-3 text-sm text-fal-fg"
           role="status"
         >
           <p className="m-0 font-bold">

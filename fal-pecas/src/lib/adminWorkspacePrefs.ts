@@ -10,8 +10,13 @@ export const WORKSPACE_SPLIT_MIN = 360
 /** Teto da guia contextual (PATCH layout — antes 640, pouco útil). */
 export const WORKSPACE_SPLIT_MAX = 920
 export const WORKSPACE_SPLIT_STEP = 40
+/** Preset guia estreita (default histórico). */
+export const WORKSPACE_SPLIT_PRESET_NARROW = 420
+/** Preset guia larga (trabalho denso na guia). */
+export const WORKSPACE_SPLIT_PRESET_WIDE = 720
 
 export type WorkspaceMode = 'split' | 'expanded' | 'fullscreen' | 'collapsed'
+export type WorkspaceGuideDensity = 'compact' | 'comfortable'
 export type WorkspaceModuleKey =
   | 'orders'
   | 'dashboard'
@@ -40,6 +45,8 @@ const WORKSPACE_MODULE_KEYS: readonly WorkspaceModuleKey[] = [
 export type WorkspaceModulePrefs = {
   mode: WorkspaceMode
   splitWidthPx: number
+  /** Densidade da grade na guia — opt-in; default comfortable. */
+  guideDensity: WorkspaceGuideDensity
 }
 
 export type WorkspaceFileV1 = {
@@ -66,8 +73,20 @@ function defaultStorage(): StorageLike | null {
   }
 }
 
+const GUIDE_DENSITIES: readonly WorkspaceGuideDensity[] = ['compact', 'comfortable'] as const
+
 export function defaultModulePrefs(): WorkspaceModulePrefs {
-  return { mode: 'collapsed', splitWidthPx: WORKSPACE_SPLIT_DEFAULT }
+  return {
+    mode: 'collapsed',
+    splitWidthPx: WORKSPACE_SPLIT_DEFAULT,
+    guideDensity: 'comfortable',
+  }
+}
+
+function sanitizeGuideDensity(v: unknown): WorkspaceGuideDensity {
+  return typeof v === 'string' && (GUIDE_DENSITIES as readonly string[]).includes(v)
+    ? (v as WorkspaceGuideDensity)
+    : 'comfortable'
 }
 
 export function clampSplitWidth(px: number): number {
@@ -90,6 +109,7 @@ function sanitizeModule(raw: unknown): WorkspaceModulePrefs {
     splitWidthPx: clampSplitWidth(
       typeof o.splitWidthPx === 'number' ? o.splitWidthPx : d.splitWidthPx,
     ),
+    guideDensity: sanitizeGuideDensity(o.guideDensity),
   }
 }
 
@@ -138,6 +158,7 @@ export function writeModulePrefs(
   const nextPrefs: WorkspaceModulePrefs = {
     mode: sanitizeMode(prefs.mode),
     splitWidthPx: clampSplitWidth(prefs.splitWidthPx),
+    guideDensity: sanitizeGuideDensity(prefs.guideDensity),
   }
   if (!storage) return nextPrefs
   const file = readWorkspaceFile(storage)

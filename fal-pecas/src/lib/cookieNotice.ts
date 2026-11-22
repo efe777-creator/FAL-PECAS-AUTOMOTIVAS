@@ -1,7 +1,8 @@
 /**
- * Consent cookies / armazenamento local (prep Ads).
+ * Consent cookies / armazenamento local (prep Ads / #15-A).
  * v1: aceite único "accepted".
- * v2: { essential: true, marketing: boolean } — scripts de marketing só com marketing=true + IDs.
+ * v2: { essential: true, marketing: boolean } — scripts só com marketing=true + IDs
+ * (`syncMarketingTags` no banner / StorefrontAnalytics).
  */
 
 export const COOKIE_NOTICE_STORAGE_KEY = 'fal_cookie_notice_v1'
@@ -17,6 +18,14 @@ type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 /** Disparado pelo rodapé para reabrir o banner de preferências. */
 export const COOKIE_PREFERENCES_EVENT = 'fal:open-cookie-preferences'
+
+/** Consent gravado/limpo — StorefrontAnalytics sincroniza tags. */
+export const COOKIE_CONSENT_CHANGED_EVENT = 'fal:cookie-consent-changed'
+
+function emitConsentChanged(): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(COOKIE_CONSENT_CHANGED_EVENT))
+}
 
 function defaultLocalStorage(): StorageLike | null {
   try {
@@ -103,6 +112,7 @@ export function saveCookieConsent(
   } catch {
     /* private mode / quota */
   }
+  emitConsentChanged()
   return value
 }
 
@@ -117,6 +127,7 @@ export function clearCookieConsent(
   } catch {
     /* private mode */
   }
+  emitConsentChanged()
 }
 
 /** Limpa o aceite e pede ao banner para reabrir (preferências no rodapé). */

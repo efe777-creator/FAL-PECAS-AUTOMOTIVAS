@@ -14,9 +14,15 @@ import {
   POST_SALE_STAGE_LABEL,
   type PostSaleReturnMode,
 } from '@/lib/postSaleStages'
+import { POST_SALE_MOTIVES } from '@/lib/postSaleMotives'
 import { pickPrimaryPostSaleOccurrence } from '@/lib/postSaleReturnOpsSummary'
 import type { AdminOrderDetail } from '@/services/admin/adminOrderService'
 import { useMemo, useState } from 'react'
+
+function motivoLabel(code: string | null): string | null {
+  if (!code) return null
+  return POST_SALE_MOTIVES.find((m) => m.code === code)?.label ?? code
+}
 
 type Props = {
   order: AdminOrderDetail
@@ -29,7 +35,7 @@ type Props = {
 }
 
 /**
- * CTAs do caso pós-venda sob Ida × devolução (guia Adaptive).
+ * CTAs do caso pós-venda no topo da Logística (acima do contexto Ida × devolução).
  * Histórico completo permanece em OrderOccurrencesPanel.
  */
 export function PostSaleCaseQuickActions({
@@ -110,22 +116,37 @@ export function PostSaleCaseQuickActions({
     }
   }
 
+  const motivo = motivoLabel(primary.motivoCode)
+  const customerNote = primary.note?.trim() || null
+
   return (
     <section
-      className="rounded-[10px] border border-fal-navy/25 bg-fal-surface px-2.5 py-2"
+      className="rounded-fal border border-fal-navy/30 bg-fal-surface px-3 py-2.5 shadow-sm"
       aria-label="Ações do caso pós-venda"
     >
       <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
         Caso · {stageLabel}
       </p>
-      <p className="mb-0 mt-1 text-xs text-fal-muted">
-        {primary.tipo ?? 'pós-venda'} · {primary.occurrenceId.slice(0, 8)}…
+      <p className="mb-0 mt-1 text-xs font-semibold text-fal-fg">
+        {motivo ?? primary.tipo ?? 'pós-venda'}
+        <span className="font-normal text-fal-muted">
+          {' '}
+          · {primary.occurrenceId.slice(0, 8)}…
+        </span>
       </p>
+      {customerNote ? (
+        <div className="mt-2 rounded-fal border border-fal-line bg-fal-bg px-2.5 py-2">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+            Mensagem do cliente
+          </p>
+          <p className="mb-0 mt-1 whitespace-pre-wrap text-sm text-fal-ink">{customerNote}</p>
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-2">
         {(!stage || stage === 'aberto') && (
           <Button
             type="button"
-            variant="light"
+            variant="primary"
             disabled={busy}
             onClick={() => void run('start')}
           >
@@ -136,7 +157,7 @@ export function PostSaleCaseQuickActions({
           <>
             <Button
               type="button"
-              variant="light"
+              variant="primary"
               disabled={busy}
               onClick={() => {
                 setReturnMode(meEligible.ok ? 'me_codigo' : 'wa')
@@ -164,7 +185,7 @@ export function PostSaleCaseQuickActions({
         {stage === 'autorizada' ? (
           <Button
             type="button"
-            variant="light"
+            variant="primary"
             disabled={busy}
             onClick={() => void run('awaiting_piece')}
           >
@@ -174,7 +195,7 @@ export function PostSaleCaseQuickActions({
         {(stage === 'autorizada' || stage === 'aguardando_peca') && (
           <Button
             type="button"
-            variant="light"
+            variant={stage === 'aguardando_peca' ? 'primary' : 'light'}
             disabled={busy}
             onClick={() => void run('conference')}
           >
@@ -184,7 +205,7 @@ export function PostSaleCaseQuickActions({
         {stage === 'em_conferencia' || stage === 'recusada' ? (
           <Button
             type="button"
-            variant="light"
+            variant="primary"
             disabled={busy}
             onClick={() =>
               void run('resolve', {

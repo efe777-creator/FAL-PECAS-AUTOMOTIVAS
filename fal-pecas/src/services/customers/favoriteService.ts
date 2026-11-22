@@ -149,7 +149,7 @@ async function listFavoriteProductsViaJoin(): Promise<FavoriteListResult> {
         productId: mapped.id,
         name: mapped.name,
         sku: mapped.sku,
-        status: mapped.status,
+        status: mapped.status ?? null,
       })
     }
   }
@@ -240,7 +240,7 @@ export function partitionFavoriteRows(
         productId: row.id,
         name: row.name,
         sku: row.sku,
-        status: row.status,
+        status: row.status ?? null,
       })
     } else unavailable.push(row)
   }

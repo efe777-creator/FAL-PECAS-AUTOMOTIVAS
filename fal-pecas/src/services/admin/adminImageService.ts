@@ -180,7 +180,7 @@ export async function adminEnsureKitImageFromComponents(
     if (!primary) continue
     if (desiredComponentPaths.has(primary.storagePath)) continue
     desiredComponentPaths.add(primary.storagePath)
-    componentPrimaries.push({ storagePath: primary.storagePath, alt: primary.alt })
+    componentPrimaries.push({ storagePath: primary.storagePath, alt: primary.alt ?? null })
   }
 
   let existing = await adminListImages(kitProductId)

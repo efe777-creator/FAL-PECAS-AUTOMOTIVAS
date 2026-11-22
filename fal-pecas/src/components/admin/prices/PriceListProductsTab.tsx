@@ -384,18 +384,34 @@ export function PriceListProductsTab({
               visibleItems.map((item) => {
                 const busyRow = rowBusy === item.id
                 const isSingleHit = singleMatch?.id === item.id
+                const marginPct = item.effectiveMarginPct
+                const marginTone =
+                  marginPct != null && marginPct <= 0 ? 'text-red-700' : ''
                 return (
                   <tr
                     key={item.id}
-                    className={`border-b border-fal-line/70 align-top ${
+                    tabIndex={0}
+                    className={`border-b border-fal-line/70 align-top outline-none focus-visible:bg-fal-yellow/15 ${
                       isSingleHit ? 'bg-fal-yellow/25' : ''
                     }`}
+                    onDoubleClick={() => {
+                      if (!allowed || busyRow) return
+                      onEditItem(item)
+                    }}
+                    onKeyDown={(e) => {
+                      if (!allowed || busyRow) return
+                      if (e.key === 'Enter' || e.key === 'F2') {
+                        e.preventDefault()
+                        onEditItem(item)
+                      }
+                    }}
                   >
                     <td className="px-3 py-2">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(item.id)}
                         onChange={() => onToggleSelectOne(item.id)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -407,24 +423,26 @@ export function PriceListProductsTab({
                       ) : null}
                     </td>
                     <td className="px-3 py-2 font-mono text-xs">{item.sku}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
                       {item.costTotal != null
                         ? formatMoney(item.costTotal)
                         : item.baseCost != null
                           ? formatMoney(item.baseCost)
                           : '—'}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
                       {item.effectiveMarkupPct != null
                         ? `${item.effectiveMarkupPct.toFixed(1)}%`
                         : '—'}
                     </td>
-                    <td className="px-3 py-2">
-                      {item.effectiveMarginPct != null
-                        ? `${item.effectiveMarginPct.toFixed(1)}%`
-                        : '—'}
+                    <td
+                      className={`px-3 py-2 text-right font-mono text-xs tabular-nums ${marginTone}`}
+                    >
+                      {marginPct != null ? `${marginPct.toFixed(1)}%` : '—'}
                     </td>
-                    <td className="px-3 py-2 font-semibold">{formatMoney(item.price)}</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                      {formatMoney(item.price)}
+                    </td>
                     <td className="px-3 py-2">
                       <OriginBadge origin={item.priceOrigin} />
                     </td>
@@ -432,17 +450,23 @@ export function PriceListProductsTab({
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          className="text-sm font-semibold text-fal-fg underline"
+                          className="min-h-11 text-sm font-semibold text-fal-fg underline"
                           disabled={!allowed || busyRow}
-                          onClick={() => onEditItem(item)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditItem(item)
+                          }}
                         >
                           Editar
                         </button>
                         <button
                           type="button"
-                          className="text-sm font-semibold text-red-700 underline"
+                          className="min-h-11 text-sm font-semibold text-red-700 underline"
                           disabled={busyRow}
-                          onClick={() => onRemoveItem(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onRemoveItem(item.id)
+                          }}
                         >
                           Remover
                         </button>

@@ -1,4 +1,10 @@
-import { WORKSPACE_SPLIT_STEP, type WorkspaceMode } from '@/lib/adminWorkspacePrefs'
+import {
+  WORKSPACE_SPLIT_PRESET_NARROW,
+  WORKSPACE_SPLIT_PRESET_WIDE,
+  WORKSPACE_SPLIT_STEP,
+  type WorkspaceGuideDensity,
+  type WorkspaceMode,
+} from '@/lib/adminWorkspacePrefs'
 import type { ReactNode } from 'react'
 
 export type PanelChromeProps = {
@@ -11,8 +17,12 @@ export type PanelChromeProps = {
   statusBadge?: ReactNode
   /** Largura da guia (desktop split) — − / + quando disponível. */
   onSplitWidthStep?: (deltaPx: number) => void
+  /** Preset absoluto de largura (Estreita / Larga). */
+  onSplitWidthPreset?: (px: number) => void
   splitWidthNarrowed?: boolean
   splitWidthWidened?: boolean
+  guideDensity?: WorkspaceGuideDensity
+  onGuideDensityChange?: (d: WorkspaceGuideDensity) => void
 }
 
 export function PanelChrome({
@@ -23,11 +33,16 @@ export function PanelChrome({
   extraActions,
   statusBadge,
   onSplitWidthStep,
+  onSplitWidthPreset,
   splitWidthNarrowed = false,
   splitWidthWidened = false,
+  guideDensity = 'comfortable',
+  onGuideDensityChange,
 }: PanelChromeProps) {
   const showWidthControls =
-    Boolean(onSplitWidthStep) && mode !== 'fullscreen' && mode !== 'collapsed'
+    Boolean(onSplitWidthStep || onSplitWidthPreset) &&
+    mode !== 'fullscreen' &&
+    mode !== 'collapsed'
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-1.5 border-b border-fal-line pb-2">
@@ -50,31 +65,78 @@ export function PanelChrome({
             role="group"
             aria-label="Largura da guia"
           >
-            <button
-              type="button"
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[8px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40 lg:min-h-10 lg:min-w-10"
-              aria-label="Diminuir largura da guia"
-              title="Diminuir largura"
-              disabled={splitWidthNarrowed}
-              onClick={() => onSplitWidthStep?.(-WORKSPACE_SPLIT_STEP)}
-            >
-              −
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[8px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40 lg:min-h-10 lg:min-w-10"
-              aria-label="Aumentar largura da guia"
-              title="Aumentar largura"
-              disabled={splitWidthWidened}
-              onClick={() => onSplitWidthStep?.(WORKSPACE_SPLIT_STEP)}
-            >
-              +
-            </button>
+            {onSplitWidthPreset ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-2 text-xs font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40"
+                  aria-label="Guia estreita"
+                  title="Estreita (420px)"
+                  onClick={() => onSplitWidthPreset(WORKSPACE_SPLIT_PRESET_NARROW)}
+                >
+                  Estreita
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface px-2 text-xs font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40"
+                  aria-label="Guia larga"
+                  title="Larga (720px)"
+                  onClick={() => onSplitWidthPreset(WORKSPACE_SPLIT_PRESET_WIDE)}
+                >
+                  Larga
+                </button>
+              </>
+            ) : null}
+            {onSplitWidthStep ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40"
+                  aria-label="Diminuir largura da guia"
+                  title="Diminuir largura"
+                  disabled={splitWidthNarrowed}
+                  onClick={() => onSplitWidthStep(-WORKSPACE_SPLIT_STEP)}
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg disabled:opacity-40"
+                  aria-label="Aumentar largura da guia"
+                  title="Aumentar largura"
+                  disabled={splitWidthWidened}
+                  onClick={() => onSplitWidthStep(WORKSPACE_SPLIT_STEP)}
+                >
+                  +
+                </button>
+              </>
+            ) : null}
           </div>
+        ) : null}
+        {onGuideDensityChange ? (
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
+            aria-label={
+              guideDensity === 'compact'
+                ? 'Densidade confortável'
+                : 'Densidade compacta'
+            }
+            title={
+              guideDensity === 'compact'
+                ? 'Mudar para confortável'
+                : 'Mudar para compacta'
+            }
+            onClick={() =>
+              onGuideDensityChange(guideDensity === 'compact' ? 'comfortable' : 'compact')
+            }
+          >
+            {guideDensity === 'compact' ? 'Confortável' : 'Compacta'}
+          </button>
         ) : null}
         <button
           type="button"
-          className="inline-flex min-h-9 items-center rounded-[8px] border border-fal-line bg-fal-surface px-2 text-[11px] font-bold text-fal-fg hover:bg-fal-bg lg:min-h-10 lg:text-xs"
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
           aria-label={mode === 'expanded' ? 'Dividir painéis' : 'Expandir painel'}
           title={mode === 'expanded' ? 'Dividir' : 'Expandir'}
           onClick={() => onModeChange(mode === 'expanded' ? 'split' : 'expanded')}
@@ -83,7 +145,7 @@ export function PanelChrome({
         </button>
         <button
           type="button"
-          className="inline-flex min-h-9 items-center rounded-[8px] border border-fal-line bg-fal-surface px-2 text-[11px] font-bold text-fal-fg hover:bg-fal-bg lg:min-h-10 lg:text-xs"
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line bg-fal-surface px-2.5 text-xs font-bold text-fal-fg hover:bg-fal-bg"
           aria-label={mode === 'fullscreen' ? 'Voltar à composição' : 'Tela cheia'}
           title={mode === 'fullscreen' ? 'Composição' : 'Tela cheia'}
           onClick={() => onModeChange(mode === 'fullscreen' ? 'split' : 'fullscreen')}
@@ -92,7 +154,7 @@ export function PanelChrome({
         </button>
         <button
           type="button"
-          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[8px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg lg:min-h-10 lg:min-w-10"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-fal-line bg-fal-surface text-sm font-bold text-fal-fg hover:bg-fal-bg"
           aria-label="Fechar painel"
           title="Fechar todas as guias"
           onClick={onClose}

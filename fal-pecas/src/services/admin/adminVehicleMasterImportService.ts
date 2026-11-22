@@ -160,7 +160,10 @@ export async function adminApplyVehicleMasterImport(
       result.created += 1
       // Vida de linha expansiva (min/max), como sync inteligente — sem criar VV/PVC.
       if (row.ano && !mergedLife.has(upserted.modelId)) {
-        await mergeModelProductionYears(upserted.modelId, row.ano, row.ano)
+        const yearNum = Number.parseInt(row.ano, 10)
+        if (Number.isFinite(yearNum)) {
+          await mergeModelProductionYears(upserted.modelId, yearNum, yearNum)
+        }
         mergedLife.add(upserted.modelId)
       }
     } catch (err) {

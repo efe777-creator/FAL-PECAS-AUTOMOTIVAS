@@ -411,9 +411,11 @@ export function AccountVehicleDetailPage() {
         </form>
       ) : null}
 
+      {/* Mobile: chips. Desktop: sidebar do GarageShell (um eixo de nav). */}
       <nav
-        className="sticky top-[3.25rem] z-10 -mx-1 flex gap-2 overflow-x-auto bg-fal-bg/95 px-1 py-2 backdrop-blur-sm lg:top-0"
+        className="sticky top-[3.25rem] z-10 -mx-1 flex gap-2 overflow-x-auto bg-fal-bg/95 px-1 py-2 backdrop-blur-sm lg:hidden"
         aria-label="Seções do veículo"
+        data-garage-nav-axis="mobile-chips"
       >
         {GARAGE_MODULE_TABS.map((tab) => (
           <button
@@ -430,16 +432,6 @@ export function AccountVehicleDetailPage() {
             {tab.label}
           </button>
         ))}
-        {modulo !== 'visual' ? (
-          <button
-            type="button"
-            onClick={() => setModulo('visual')}
-            className="min-h-11 shrink-0 rounded-[10px] border border-fal-yellow/70 bg-fal-yellow/15 px-3 text-sm font-extrabold text-fal-navy dark:text-fal-yellow"
-            title="Abrir visualização 3D / foto"
-          >
-            Visual
-          </button>
-        ) : null}
       </nav>
 
       {modulo === 'mais' ? (

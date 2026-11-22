@@ -20,7 +20,9 @@ function isSidebarItemActive(
   isHome: boolean,
   activeModulo: string | null,
 ): boolean {
-  if (itemKey === 'home') return isHome
+  if (itemKey === 'home') {
+    return isHome || (!isHome && (activeModulo === 'visao' || !activeModulo))
+  }
   if (isHome || !activeModulo) return false
   if (itemKey === 'mais') {
     return (
@@ -64,6 +66,16 @@ export function GarageShell() {
     navigate(moduleHref(focusVehicleId, key))
   }
 
+  /** Resumo do veículo focado — sem voltar à lista (stay-on-page). */
+  function goGarageHome() {
+    if (!focusVehicleId || isHome) {
+      navigate('/conta/veiculos')
+      return
+    }
+    writeGarageWorkspacePrefs({ lastModule: 'visao' })
+    navigate(moduleHref(focusVehicleId, 'visao'), { replace: true })
+  }
+
   return (
     <div className="flex min-h-[70vh] flex-col gap-4 lg:flex-row lg:gap-0">
       <aside
@@ -84,7 +96,7 @@ export function GarageShell() {
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => navigate('/conta/veiculos')}
+                  onClick={goGarageHome}
                   className={[
                     'flex min-h-11 items-center gap-2 rounded-[10px] px-3 text-left text-sm font-semibold transition',
                     active
@@ -120,7 +132,16 @@ export function GarageShell() {
             )
           })}
         </nav>
-        <div className="mt-auto border-t border-white/10 p-3">
+        <div className="mt-auto space-y-2 border-t border-white/10 p-3">
+          {!isHome ? (
+            <button
+              type="button"
+              className="w-full rounded-[10px] border border-white/20 px-3 py-2 text-left text-xs font-semibold text-white/85 hover:bg-white/10"
+              onClick={() => navigate('/conta/veiculos')}
+            >
+              Todos os veículos
+            </button>
+          ) : null}
           <p className="m-0 px-1 text-[11px] font-semibold text-white/55">
             Use Voltar para retornar ao catálogo ou à conta.
           </p>

@@ -27,4 +27,10 @@ describe('Header mobile declutter (Notes #8)', () => {
     expect(drawer).toMatch(/GarageActiveSwitcher/)
     expect(drawer).toMatch(/Aparência/)
   })
+
+  it('drawer inclui Central de Suporte', () => {
+    const drawer = src.slice(src.indexOf('<MobileDrawer'))
+    expect(drawer).toMatch(/to="\/suporte"/)
+    expect(drawer).toMatch(/Central de Suporte/)
+  })
 })

@@ -10,7 +10,7 @@ import {
 } from '@/lib/adminWorkspacePrefs'
 
 /**
- * FAL-UI-LAYOUT v1.5.0 — anti-regressão de telas / layout / design.
+ * FAL-UI-LAYOUT v1.5.2 — anti-regressão de telas / layout / design.
  * Contratos de fonte + prefs. Sem browser.
  * Doc: docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md
  */
@@ -95,7 +95,11 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
         delete mem[k]
       },
     }
-    writeModulePrefs('products', { mode: 'split', splitWidthPx: 420 }, storage)
+    writeModulePrefs(
+      'products',
+      { mode: 'split', splitWidthPx: 420, guideDensity: 'comfortable' },
+      storage,
+    )
     expect(readModulePrefs('products', storage).mode).toBe('split')
     expect(JSON.stringify(mem)).not.toMatch(/selectedProductId/)
   })
@@ -545,5 +549,100 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(ops).toMatch(/PostSaleCaseQuickActions/)
     expect(ops).toMatch(/Caso pós-venda aberto/)
     expect(ops).toMatch(/onOrderChangeRef/)
+  })
+
+  it('FL26: guia Preços Custo|Margem|Preço + edição híbrida; paridade lista', () => {
+    const quick = read('pages/admin/prices/PriceListQuickAdjustPanel.tsx')
+    expect(quick).toMatch(/Margem/)
+    expect(quick).toMatch(/effectiveMarginPct|liveMarginPct/)
+    expect(quick).toMatch(/onDoubleClick/)
+    expect(quick).toMatch(/e\.key === 'Enter' \|\| e\.key === 'F2'/)
+    expect(quick).toMatch(/startInlinePrice|commitInlinePrice/)
+    expect(quick).toMatch(/openPricingModal/)
+    expect(quick).toMatch(/Editar/)
+    expect(quick).toMatch(/embedded/)
+
+    const products = read('components/admin/prices/PriceListProductsTab.tsx')
+    expect(products).toMatch(/effectiveMarginPct/)
+    expect(products).toMatch(/onDoubleClick/)
+    expect(products).toMatch(/e\.key === 'Enter' \|\| e\.key === 'F2'/)
+  })
+
+  it('FL27: Adaptive guideDensity + presets; Garagem nav in-place', () => {
+    const prefs = read('lib/adminWorkspacePrefs.ts')
+    expect(prefs).toMatch(/guideDensity/)
+    expect(prefs).toMatch(/WORKSPACE_SPLIT_PRESET_NARROW = 420/)
+    expect(prefs).toMatch(/WORKSPACE_SPLIT_PRESET_WIDE = 720/)
+
+    const chrome = read('components/admin/workspace/PanelChrome.tsx')
+    expect(chrome).toMatch(/onSplitWidthPreset/)
+    expect(chrome).toMatch(/Estreita/)
+    expect(chrome).toMatch(/Larga/)
+    expect(chrome).toMatch(/onGuideDensityChange/)
+    expect(chrome).toMatch(/min-h-11/)
+
+    const shell = read('components/admin/workspace/AdaptiveWorkspace.tsx')
+    expect(shell).toMatch(/data-guide-density/)
+    expect(shell).toMatch(/setSplitWidthPreset|onSplitWidthPreset/)
+
+    const garage = read('components/garage/GarageShell.tsx')
+    expect(garage).toMatch(/goGarageHome/)
+    expect(garage).toMatch(/Todos os veículos/)
+    expect(garage).toMatch(/modulo=visao|lastModule: 'visao'/)
+
+    const detail = read('pages/Account/AccountVehicleDetailPage.tsx')
+    expect(detail).toMatch(/lg:hidden/)
+    expect(detail).toMatch(/data-garage-nav-axis="mobile-chips"/)
+    expect(detail).not.toMatch(/Abrir visualização 3D/)
+  })
+
+  it('FL20: OrderOps tabs touch + radius; PanelChrome ≥44px; Home nested rounded-fal', () => {
+    const ops = read('components/admin/orders/OrderOpsSurface.tsx')
+    expect(ops).toMatch(/role="tablist"/)
+    expect(ops).toMatch(/min-h-11 flex-1 rounded-\[10px\]/)
+    expect(ops).toMatch(/rounded-fal border border-fal-line bg-fal-bg p-1/)
+    expect(ops).not.toMatch(/min-h-8 flex-1 rounded-\[8px\]/)
+    expect(ops).toMatch(/setTab\(postSale \? 'logistica' : 'geral'\)/)
+
+    const chrome = read('components/admin/workspace/PanelChrome.tsx')
+    expect(chrome).toMatch(/min-h-11/)
+    expect(chrome).not.toMatch(/min-h-9/)
+
+    const trust = read('components/home/HomeTrustSection.tsx')
+    expect(trust).toMatch(/rounded-fal border border-fal-line border-l-4/)
+    expect(trust).not.toMatch(/rounded-\[12px\]/)
+
+    const vehicles = read('components/home/HomeVehiclesPanel.tsx')
+    expect(vehicles).toMatch(/rounded-fal border border-fal-line bg-fal-bg px-4 py-5/)
+
+    const carousel = read('components/home/ProductCarousel.tsx')
+    expect(carousel).toMatch(/min-h-11 min-w-11/)
+
+    const promo = read('pages/admin/home/AdminPromotionsPage.tsx')
+    expect(promo).toMatch(/border-fal-warning\/50 bg-fal-warning\/15/)
+    expect(promo).not.toMatch(/border-amber-300 bg-amber-50/)
+
+    const quick = read('components/admin/orders/PostSaleCaseQuickActions.tsx')
+    expect(quick).toMatch(/Mensagem do cliente/)
+    expect(quick).toMatch(/POST_SALE_MOTIVES/)
+    expect(quick).toMatch(/variant="primary"/)
+
+    // Hierarquia Logística: ações antes do contexto Ida×devolução
+    const logisticaBlock = ops.slice(ops.indexOf('aria-label="Logística"'))
+    const iQuick = logisticaBlock.indexOf('<PostSaleCaseQuickActions')
+    const iIda = logisticaBlock.indexOf('<PostSaleReturnLogisticsPanel')
+    expect(iQuick).toBeGreaterThanOrEqual(0)
+    expect(iIda).toBeGreaterThan(iQuick)
+
+    const ida = read('components/admin/orders/PostSaleReturnLogisticsPanel.tsx')
+    expect(ida).toMatch(/text-\[11px\] font-bold uppercase/)
+    expect(ida).not.toMatch(/<h2/)
+    expect(ida).not.toMatch(/cart_item_id/)
+    expect(ida).not.toMatch(/live-ready/)
+    expect(ida).toMatch(/Ref\. envio/)
+
+    // P2: não repetir rastreio da ida em Frete quando já está no painel acima
+    expect(logisticaBlock).toMatch(/Rastreio da ida no bloco Ida/)
+    expect(logisticaBlock).toMatch(/returnLogistics\?\.outboundTracking/)
   })
 })

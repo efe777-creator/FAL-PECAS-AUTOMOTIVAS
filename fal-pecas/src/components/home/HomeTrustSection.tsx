@@ -54,7 +54,7 @@ export function HomeTrustSection() {
           {ITEMS.map((item) => (
             <li
               key={item.title}
-              className="rounded-[12px] border border-fal-line border-l-4 border-l-fal-yellow bg-fal-surface px-4 py-3"
+              className="rounded-fal border border-fal-line border-l-4 border-l-fal-yellow bg-fal-surface px-4 py-3"
             >
               <p className="m-0 text-sm font-extrabold text-fal-navy dark:text-fal-fg">{item.title}</p>
               <p className="mt-1 text-[13px] leading-snug text-fal-muted">{item.body}</p>

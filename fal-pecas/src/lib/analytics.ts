@@ -1,7 +1,7 @@
 /**
- * Facade de analytics (prep Ads).
+ * Facade de analytics (prep Ads / #15-A).
  * No-op até: consent marketing + pelo menos um ID (GTM / GA / Meta).
- * Não carrega scripts — só prepara o contrato de eventos do funil.
+ * Scripts: `marketingTags.syncMarketingTags()` (Consent Mode + inject).
  */
 
 import { hasMarketingConsent } from '@/lib/cookieNotice'
@@ -26,7 +26,8 @@ export type AnalyticsSink = (event: AnalyticsEventName, payload: AnalyticsPayloa
 
 declare global {
   interface Window {
-    dataLayer?: Array<Record<string, unknown>>
+    /** GTM/gtag: objetos de evento e arrays de args. */
+    dataLayer?: unknown[]
     falAnalyticsDebug?: boolean
   }
 }
@@ -50,7 +51,7 @@ export function hasAnalyticsIdsConfigured(
   return Boolean(ids.gtmId || ids.gaMeasurementId || ids.metaPixelId)
 }
 
-/** Pronto para disparar (consent + IDs). Scripts live = fase futura. */
+/** Pronto para disparar (consent + IDs). Scripts via marketingTags. */
 export function canTrackAnalytics(
   opts: {
     marketingConsent?: boolean
@@ -80,7 +81,7 @@ function pushDataLayer(event: AnalyticsEventName, payload: AnalyticsPayload): vo
 
 /**
  * Dispara evento do funil. Sem consent/IDs → no-op.
- * Com IDs: empurra dataLayer (GTM consome depois); sem carregar GTM/Pixel neste ciclo.
+ * Com IDs: empurra dataLayer (GTM/GA consomem após syncMarketingTags).
  */
 export function track(
   event: AnalyticsEventName,

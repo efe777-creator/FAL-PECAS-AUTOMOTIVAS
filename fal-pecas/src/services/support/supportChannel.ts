@@ -7,8 +7,12 @@ import { storeWhatsAppPhone, whatsAppHref } from '@/lib/whatsapp'
 
 export type SupportFormInput = {
   subject: string
+  subjectCode?: string
   orderNumber?: string
   message: string
+  customerName?: string
+  customerEmail?: string
+  customerPhone?: string
 }
 
 export type SupportChannelResult =
@@ -25,8 +29,21 @@ function buildSupportWhatsAppMessage(input: SupportFormInput): string {
     '',
     `Assunto: ${input.subject.trim()}`,
   ]
+  if (input.subjectCode?.trim()) {
+    lines.push(`Código: ${input.subjectCode.trim()}`)
+  }
+  const name = input.customerName?.trim()
+  const email = input.customerEmail?.trim()
+  const phone = input.customerPhone?.trim()
+  if (name || email || phone) {
+    lines.push('')
+    lines.push('Cliente:')
+    if (name) lines.push(`- Nome: ${name}`)
+    if (email) lines.push(`- E-mail: ${email}`)
+    if (phone) lines.push(`- WhatsApp: ${phone}`)
+  }
   const order = input.orderNumber?.trim()
-  if (order) lines.push(`Pedido: ${order}`)
+  if (order) lines.push('', `Pedido: ${order}`)
   lines.push('', input.message.trim())
   return lines.join('\n')
 }

@@ -36,8 +36,16 @@ describe('adminWorkspacePrefs', () => {
   })
 
   it('grava e lê prefs sem tocar no layout do dashboard', () => {
-    writeModulePrefs('orders', { mode: 'split', splitWidthPx: 480 })
-    expect(readModulePrefs('orders')).toEqual({ mode: 'split', splitWidthPx: 480 })
+    writeModulePrefs('orders', {
+      mode: 'split',
+      splitWidthPx: 480,
+      guideDensity: 'compact',
+    })
+    expect(readModulePrefs('orders')).toEqual({
+      mode: 'split',
+      splitWidthPx: 480,
+      guideDensity: 'compact',
+    })
     expect(touchedKeys.every((k) => k.includes(ADMIN_WORKSPACE_KEY))).toBe(true)
     expect(touchedKeys.some((k) => k.includes('fal-admin-dashboard-layout'))).toBe(
       false,
@@ -55,26 +63,69 @@ describe('adminWorkspacePrefs', () => {
     expect(readModulePrefs('dashboard')).toEqual({
       mode: 'collapsed',
       splitWidthPx: WORKSPACE_SPLIT_DEFAULT,
+      guideDensity: 'comfortable',
     })
   })
 
   it('persiste prefs de catálogo Adaptive incl. inventory e customers', () => {
-    writeModulePrefs('products', { mode: 'expanded', splitWidthPx: 400 })
-    writeModulePrefs('kits', { mode: 'split', splitWidthPx: 500 })
-    writeModulePrefs('prices', { mode: 'fullscreen', splitWidthPx: 420 })
-    writeModulePrefs('applications', { mode: 'split', splitWidthPx: 440 })
-    writeModulePrefs('categories', { mode: 'split', splitWidthPx: 460 })
-    writeModulePrefs('promotions', { mode: 'split', splitWidthPx: 480 })
-    writeModulePrefs('inventory', { mode: 'split', splitWidthPx: 440 })
-    writeModulePrefs('customers', { mode: 'split', splitWidthPx: 420 })
+    writeModulePrefs('products', {
+      mode: 'expanded',
+      splitWidthPx: 400,
+      guideDensity: 'comfortable',
+    })
+    writeModulePrefs('kits', { mode: 'split', splitWidthPx: 500, guideDensity: 'comfortable' })
+    writeModulePrefs('prices', {
+      mode: 'fullscreen',
+      splitWidthPx: 420,
+      guideDensity: 'compact',
+    })
+    writeModulePrefs('applications', {
+      mode: 'split',
+      splitWidthPx: 440,
+      guideDensity: 'comfortable',
+    })
+    writeModulePrefs('categories', {
+      mode: 'split',
+      splitWidthPx: 460,
+      guideDensity: 'comfortable',
+    })
+    writeModulePrefs('promotions', {
+      mode: 'split',
+      splitWidthPx: 480,
+      guideDensity: 'comfortable',
+    })
+    writeModulePrefs('inventory', {
+      mode: 'split',
+      splitWidthPx: 440,
+      guideDensity: 'comfortable',
+    })
+    writeModulePrefs('customers', {
+      mode: 'split',
+      splitWidthPx: 420,
+      guideDensity: 'comfortable',
+    })
     expect(readModulePrefs('products').mode).toBe('expanded')
     expect(readModulePrefs('kits').splitWidthPx).toBe(500)
     expect(readModulePrefs('prices').mode).toBe('fullscreen')
+    expect(readModulePrefs('prices').guideDensity).toBe('compact')
     expect(readModulePrefs('applications').mode).toBe('split')
     expect(readModulePrefs('categories').mode).toBe('split')
     expect(readModulePrefs('promotions').mode).toBe('split')
     expect(readModulePrefs('inventory').mode).toBe('split')
     expect(readModulePrefs('customers').mode).toBe('split')
     expect(readModulePrefs('orders').mode).toBe('collapsed')
+  })
+
+  it('migra prefs antigas sem guideDensity para comfortable', () => {
+    store.set(
+      ADMIN_WORKSPACE_KEY,
+      JSON.stringify({
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        modules: { orders: { mode: 'split', splitWidthPx: 500 } },
+      }),
+    )
+    expect(readModulePrefs('orders').guideDensity).toBe('comfortable')
+    expect(readModulePrefs('orders').splitWidthPx).toBe(500)
   })
 })

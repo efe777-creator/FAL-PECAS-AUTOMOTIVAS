@@ -103,10 +103,14 @@ export function PriceListQuickAdjustPanel({
 
   const [pricingItem, setPricingItem] = useState<PriceListItem | null>(null)
   const [rowBusy, setRowBusy] = useState<string | null>(null)
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null)
+  const [inlinePriceDraft, setInlinePriceDraft] = useState('')
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
 
   const addFormRef = useRef<HTMLFormElement>(null)
   const addSkuInputRef = useRef<HTMLInputElement>(null)
   const loadGenRef = useRef(0)
+  const inlineInputRef = useRef<HTMLInputElement>(null)
 
   const effectiveListId = forcedListId ?? listId
   const selectedList = lists.find((l) => l.id === effectiveListId) ?? null
@@ -265,6 +269,60 @@ export function PriceListQuickAdjustPanel({
     const row = rows.find((i) => i.productId === item.productId && !isVirtualPriceListItemId(i.id))
     if (!row) throw new Error('Falha ao incluir item na lista')
     return row.id
+  }
+
+  function openPricingModal(item: PriceListItem) {
+    setInlineEditId(null)
+    setPricingItem(item)
+  }
+
+  function startInlinePrice(item: PriceListItem) {
+    if (!allowed) return
+    setPricingItem(null)
+    setInlineEditId(item.id)
+    setInlinePriceDraft(item.price > 0 ? String(item.price).replace('.', ',') : '')
+    window.requestAnimationFrame(() => {
+      inlineInputRef.current?.focus()
+      inlineInputRef.current?.select()
+    })
+  }
+
+  function cancelInlinePrice() {
+    setInlineEditId(null)
+    setInlinePriceDraft('')
+  }
+
+  function liveMarginPct(item: PriceListItem, draftPrice: number | null): number | null {
+    const cost = item.costTotal
+    if (cost == null || draftPrice == null || !(draftPrice > 0)) return item.effectiveMarginPct
+    return ((draftPrice - cost) / draftPrice) * 100
+  }
+
+  async function commitInlinePrice(item: PriceListItem) {
+    if (!selectedList || !allowed) return
+    const priceNum = parseMoneyBr(inlinePriceDraft)
+    if (priceNum == null || priceNum < 0) {
+      pushError('Preço inválido ou negativo')
+      return
+    }
+    setRowBusy(item.id)
+    setError(null)
+    try {
+      const itemId = await ensureItemOnList(item)
+      await adminSetPriceListItemPricing({
+        itemId,
+        mode: 'manual',
+        price: priceNum,
+        extraCost: item.extraCost,
+      })
+      cancelInlinePrice()
+      pushOk(`Preço manual atualizado na lista ${selectedList.name}.`)
+      await withWindowScrollPreserved(() => reloadItems({ keepAddOpen: addOpen }))
+    } catch (err) {
+      pushError(toUserMessage(err, 'Falha ao salvar preço'))
+    } finally {
+      setRowBusy(null)
+    }
   }
 
   async function onSavePricingEdit(result: PricingEditResult) {
@@ -430,37 +488,52 @@ export function PriceListQuickAdjustPanel({
         </Button>
       </form>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block min-w-[160px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Origem</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={filterOrigin}
-            onChange={(e) => setFilterOrigin(e.target.value as PriceOrigin | '')}
-          >
-            <option value="">Todas</option>
-            <option value="calculated">Calculado</option>
-            <option value="imported">Importado</option>
-            <option value="manual">Manual</option>
-          </select>
-        </label>
-        <label className="inline-flex items-center gap-2 pb-3 text-sm">
-          <input
-            type="checkbox"
-            checked={filterWithoutPrice}
-            onChange={(e) => setFilterWithoutPrice(e.target.checked)}
-          />
-          Sem preço
-        </label>
-        {hasRestrictiveFilters ? (
-          <button
-            type="button"
-            className="pb-3 text-sm font-semibold text-fal-fg underline"
-            onClick={clearFilters}
-          >
-            Limpar filtros
-          </button>
-        ) : null}
+      <div className="flex flex-wrap items-end gap-3" data-price-ops-secondary-filters="">
+        <button
+          type="button"
+          className="pb-3 text-sm font-semibold text-fal-fg underline md:hidden"
+          aria-expanded={filtersExpanded}
+          onClick={() => setFiltersExpanded((v) => !v)}
+        >
+          {filtersExpanded ? 'Recolher filtros' : 'Mais filtros'}
+        </button>
+        <div
+          className={[
+            'flex w-full flex-wrap items-end gap-3',
+            filtersExpanded ? '' : 'hidden md:flex',
+          ].join(' ')}
+        >
+          <label className="block min-w-[160px] text-sm">
+            <span className="mb-1 block text-xs font-extrabold text-fal-muted">Origem</span>
+            <select
+              className="w-full rounded-[9px] border border-fal-line px-3 py-3"
+              value={filterOrigin}
+              onChange={(e) => setFilterOrigin(e.target.value as PriceOrigin | '')}
+            >
+              <option value="">Todas</option>
+              <option value="calculated">Calculado</option>
+              <option value="imported">Importado</option>
+              <option value="manual">Manual</option>
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 pb-3 text-sm">
+            <input
+              type="checkbox"
+              checked={filterWithoutPrice}
+              onChange={(e) => setFilterWithoutPrice(e.target.checked)}
+            />
+            Sem preço
+          </label>
+          {hasRestrictiveFilters ? (
+            <button
+              type="button"
+              className="pb-3 text-sm font-semibold text-fal-fg underline"
+              onClick={clearFilters}
+            >
+              Limpar filtros
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -478,21 +551,26 @@ export function PriceListQuickAdjustPanel({
 
       {!loadingItems ? (
         <div className="overflow-x-auto rounded-[10px] border border-fal-line">
-          <table className="min-w-full text-left text-sm">
+          <table
+            className="min-w-full text-left text-sm"
+            role="grid"
+            aria-label="Itens da lista para ajuste rápido"
+          >
             <thead className="bg-fal-bg text-fal-muted">
               <tr>
                 <th className="px-3 py-2">Produto</th>
-                <th className="px-3 py-2">Código</th>
-                <th className="hidden px-3 py-2 md:table-cell">Custo + adic.</th>
-                <th className="px-3 py-2">Preço</th>
-                <th className="hidden px-3 py-2 sm:table-cell">Origem</th>
+                <th className="hidden px-3 py-2 sm:table-cell">Código</th>
+                <th className="px-3 py-2 text-right">Custo</th>
+                <th className="px-3 py-2 text-right">Margem</th>
+                <th className="px-3 py-2 text-right">Preço</th>
+                <th className="price-ops-col-origin hidden px-3 py-2 lg:table-cell">Origem</th>
                 <th className="px-3 py-2">Ação</th>
               </tr>
             </thead>
             <tbody>
               {visibleItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-fal-muted">
+                  <td colSpan={7} className="px-3 py-6 text-center text-fal-muted">
                     {items.length === 0 ? (
                       <div className="space-y-2">
                         <p>Nenhum item nesta lista.</p>
@@ -540,34 +618,108 @@ export function PriceListQuickAdjustPanel({
               ) : (
                 visibleItems.map((item) => {
                   const busyRow = rowBusy === item.id
+                  const editingInline = inlineEditId === item.id
+                  const draftNum = editingInline ? parseMoneyBr(inlinePriceDraft) : null
+                  const marginPct = editingInline
+                    ? liveMarginPct(item, draftNum)
+                    : item.effectiveMarginPct
                   const costLabel =
                     item.costTotal != null
                       ? `${formatMoney(item.costTotal)}${
                           item.extraCost > 0 ? ` (+${formatMoney(item.extraCost)})` : ''
                         }`
                       : '—'
+                  const marginTone =
+                    marginPct != null && marginPct <= 0 ? 'text-red-700' : 'text-fal-fg'
                   return (
                     <tr
                       key={item.id}
-                      className={`border-t border-fal-line ${
+                      tabIndex={0}
+                      className={`border-t border-fal-line outline-none focus-visible:bg-fal-yellow/15 ${
                         pricingItem?.id === item.id || singleMatch?.id === item.id
                           ? 'bg-fal-yellow/20'
                           : ''
                       }`}
+                      onDoubleClick={() => {
+                        if (!allowed || busyRow) return
+                        openPricingModal(item)
+                      }}
+                      onKeyDown={(e) => {
+                        if (!allowed || busyRow || editingInline) return
+                        if (e.key === 'Enter' || e.key === 'F2') {
+                          e.preventDefault()
+                          openPricingModal(item)
+                        }
+                      }}
                     >
-                      <td className="px-3 py-2">{item.productName ?? '—'}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{item.sku ?? '—'}</td>
-                      <td className="hidden px-3 py-2 text-xs md:table-cell">{costLabel}</td>
-                      <td className="px-3 py-2 font-semibold">{formatMoney(item.price)}</td>
-                      <td className="hidden px-3 py-2 text-xs sm:table-cell">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{item.productName ?? '—'}</div>
+                        <div className="font-mono text-[11px] text-fal-muted sm:hidden">
+                          {item.sku ?? '—'}
+                        </div>
+                      </td>
+                      <td className="hidden px-3 py-2 font-mono text-xs sm:table-cell">
+                        {item.sku ?? '—'}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">
+                        {costLabel}
+                      </td>
+                      <td
+                        className={`px-3 py-2 text-right font-mono text-xs tabular-nums ${marginTone}`}
+                      >
+                        {marginPct != null ? `${marginPct.toFixed(1)}%` : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {editingInline ? (
+                          <input
+                            ref={inlineInputRef}
+                            className="w-[6.5rem] rounded border border-fal-line px-2 py-1 text-right font-semibold"
+                            inputMode="decimal"
+                            aria-label={`Preço de ${item.productName ?? item.sku ?? 'item'}`}
+                            value={inlinePriceDraft}
+                            disabled={busyRow}
+                            onChange={(e) => setInlinePriceDraft(e.target.value)}
+                            onBlur={() => {
+                              if (inlineEditId === item.id) void commitInlinePrice(item)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                void commitInlinePrice(item)
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault()
+                                cancelInlinePrice()
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className="font-semibold tabular-nums underline-offset-2 hover:underline disabled:opacity-50"
+                            disabled={!allowed || busyRow}
+                            title="Clique para editar preço; duplo-clique na linha abre o modal completo"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startInlinePrice(item)
+                            }}
+                          >
+                            {formatMoney(item.price)}
+                          </button>
+                        )}
+                      </td>
+                      <td className="price-ops-col-origin hidden px-3 py-2 text-xs lg:table-cell">
                         {priceOriginLabel(item.priceOrigin)}
                       </td>
                       <td className="px-3 py-2">
                         <button
                           type="button"
-                          className="font-semibold text-fal-fg underline disabled:opacity-50"
+                          className="min-h-11 font-semibold text-fal-fg underline disabled:opacity-50"
                           disabled={!allowed || busyRow}
-                          onClick={() => setPricingItem(item)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openPricingModal(item)
+                          }}
                         >
                           Editar
                         </button>

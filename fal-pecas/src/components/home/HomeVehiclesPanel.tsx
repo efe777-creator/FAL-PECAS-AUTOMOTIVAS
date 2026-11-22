@@ -74,7 +74,7 @@ export function HomeVehiclesPanel() {
       </div>
 
       {!user ? (
-        <div className="rounded-[12px] border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
+        <div className="rounded-fal border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
           <p className="m-0 text-sm text-fal-muted">
             Entre na conta para ver e usar os veículos salvos na Minha Garagem.
           </p>
@@ -95,7 +95,7 @@ export function HomeVehiclesPanel() {
       {user && loading ? <Loading /> : null}
 
       {user && !loading && items.length === 0 ? (
-        <div className="rounded-[12px] border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
+        <div className="rounded-fal border border-fal-line bg-fal-bg px-4 py-5 text-center sm:px-6">
           <p className="m-0 text-sm text-fal-muted">
             Você ainda não salvou nenhum veículo. Identifique pela placa acima e confirme para
             guardar na Minha Garagem.

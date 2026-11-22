@@ -7,16 +7,21 @@ type Props = {
   outboundLabelState?: string | null
 }
 
-/** Ops: acompanha venda (ida) e devolução (código/etiqueta reversa) no mesmo bloco. */
+/** Ops: contexto ida × devolução (peso visual abaixo das ações do caso). */
 export function PostSaleReturnLogisticsPanel({ summary, outboundLabelState }: Props) {
   return (
-    <section className="rounded-[14px] border border-fal-accent/40 bg-fal-accent/10 p-4">
-      <h2 className="m-0 text-lg font-extrabold text-fal-fg">Ida × devolução</h2>
-      <p className="mt-1 mb-0 text-sm text-fal-muted">
-        Acompanhe a etiqueta da venda e a situação da devolução no mesmo pedido.
+    <section
+      className="rounded-fal border border-fal-line bg-fal-bg/50 px-2.5 py-2"
+      aria-label="Contexto ida e devolução"
+    >
+      <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
+        Ida × devolução
+      </p>
+      <p className="mt-1 mb-0 text-xs text-fal-muted">
+        Etiqueta da venda e situação da devolução neste pedido.
       </p>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
         <div className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">
           <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-fal-muted">
             Ida (venda)
@@ -32,15 +37,15 @@ export function PostSaleReturnLogisticsPanel({ summary, outboundLabelState }: Pr
               {summary.outboundTracking || '—'}
             </span>
           </p>
-          <p className="mb-0 mt-1 text-xs text-fal-muted">
-            cart_item_id:{' '}
-            {summary.outboundCartItemId
-              ? summary.outboundSynthetic
-                ? `${summary.outboundCartItemId.slice(0, 8)}… (sintético)`
-                : summary.outboundCartItemId
-              : '—'}
-            {summary.liveReady ? ' · live-ready' : ''}
-          </p>
+          {summary.outboundCartItemId ? (
+            <p className="mb-0 mt-1 text-xs text-fal-muted" title="Referência do envio Melhor Envio">
+              Ref. envio:{' '}
+              {summary.outboundSynthetic
+                ? `${summary.outboundCartItemId.slice(0, 8)}… (teste)`
+                : summary.outboundCartItemId.slice(0, 12) +
+                  (summary.outboundCartItemId.length > 12 ? '…' : '')}
+            </p>
+          ) : null}
         </div>
 
         <div className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2">

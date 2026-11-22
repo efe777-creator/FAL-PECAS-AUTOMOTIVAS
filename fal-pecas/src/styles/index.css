@@ -297,3 +297,17 @@ input.fal-plate-input {
 [data-workspace-primary='compact'] .admin-customers-list-desktop {
   display: none;
 }
+
+/** Guia Adaptive — densidade opt-in (só grade; CTAs ficam ≥44px). */
+[data-guide-density='compact'] table tbody td,
+[data-guide-density='compact'] table thead th,
+[data-price-ops-density='compact'] table tbody td,
+[data-price-ops-density='compact'] table thead th {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+[data-guide-density='compact'] .price-ops-col-origin,
+[data-price-ops-density='compact'] .price-ops-col-origin {
+  display: none;
+}
