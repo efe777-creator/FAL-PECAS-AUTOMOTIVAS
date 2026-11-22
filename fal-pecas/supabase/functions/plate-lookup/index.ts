@@ -321,23 +321,6 @@ Deno.serve(async (req) => {
         } else {
           status = inv.confidenceBand === 'A' ? 'found' : 'incomplete'
         }
-        // Telemetria best-effort (sem placa)
-        try {
-          await sb.from('vehicle_resolution_events').insert({
-            source: 'plate',
-            status: inv.status,
-            confidence_band: inv.confidenceBand,
-            rule_ids: inv.evidence.map((e) => e.ruleId),
-            input_hash: plate.slice(0, 3) + '***',
-            maker: makerOut,
-            model: modelOut,
-            year: yearOut,
-            engine: engineOut,
-            version: versionOut,
-          })
-        } catch (telErr) {
-          console.error('[plate-lookup] inv telemetry', telErr)
-        }
       }
 
       // Lookup read-only: SELECT no mestre; escrita só em vehicle-confirm-upsert.
@@ -366,6 +349,28 @@ Deno.serve(async (req) => {
         raw.message =
           raw.message ??
           'Veículo identificado. Motor/versão não informados pela consulta — confira antes de buscar.'
+      }
+
+      // Telemetria INV pós-catálogo (sem placa completa): catalog_total + version_id.
+      if (inv) {
+        try {
+          await sb.from('vehicle_resolution_events').insert({
+            source: 'plate',
+            status: inv.status,
+            confidence_band: inv.confidenceBand,
+            rule_ids: inv.evidence.map((e) => e.ruleId),
+            input_hash: plate.slice(0, 3) + '***',
+            maker: makerOut,
+            model: modelOut,
+            year: yearOut != null ? String(yearOut) : null,
+            engine: engineOut,
+            version: versionOut,
+            vehicle_version_id: versionId,
+            catalog_total: resolved.catalogVersionTotal,
+          })
+        } catch (telErr) {
+          console.error('[plate-lookup] inv telemetry', telErr)
+        }
       }
     } catch (resolveErr) {
       console.error('[plate-lookup] catalog resolve error', resolveErr)

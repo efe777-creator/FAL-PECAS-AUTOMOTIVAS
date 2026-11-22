@@ -17,6 +17,11 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).not.toMatch(/upsert_vehicle_canonical/)
     expect(src).not.toMatch(/vehicleCanonicalUpsert\s*\(/)
     expect(src).toMatch(/read-only|vehicle-confirm-upsert/i)
+    expect(src).toMatch(/Telemetria INV pós-catálogo/)
+    expect(src).toMatch(/catalog_total:\s*resolved\.catalogVersionTotal/)
+    expect(src).toMatch(/vehicle_version_id:\s*versionId/)
+    const resolver = read('supabase/functions/_shared/vehicleResolver.ts')
+    expect(resolver).toMatch(/catalogVersionTotal/)
   })
 
   it('Edge resolveVehicleIdentity nunca permite allowCanonicalUpsert true', () => {

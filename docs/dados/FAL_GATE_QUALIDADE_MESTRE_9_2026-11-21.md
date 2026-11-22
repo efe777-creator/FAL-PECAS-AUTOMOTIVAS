@@ -28,6 +28,6 @@
 
 **Nota higiene/gates nome: 9/10 — módulo mestre fechado em higiene (2026-11-21).**  
 **Riqueza cadastro (pós-marcha vida):** ~6–6,5/10 — Cross ainda 0 VV (sem thin-seed); anos Cross via vida 2021→agora; 242 VV sem engine.  
-**Assertividade operacional:** ~8/10 — bug `end null` corrigido; RLS+resolver verified; telemetria ainda fina.  
+**Assertividade operacional:** ~8,5/10 — bug `end null` corrigido; RLS+resolver verified; telemetria INV com `catalog_total`/`version_id` pós-resolve.  
 Gate 12 parcial (snapshots SENATRAN/PBEV) — residual ops.  
 VAL fechamento: `docs/dados/FAL_MARCHA_FECHAMENTO_MESTRE_VEICULAR_VAL_2026-11-21.md`.

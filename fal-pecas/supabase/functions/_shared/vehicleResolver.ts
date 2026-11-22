@@ -28,6 +28,8 @@ export interface ResolvedVehicleIds {
   catalogVersion: string | null
   /** Se maker/model externos não existem no cadastro FAL. */
   notInCatalog: boolean
+  /** VV active no modelo (telemetria — casca = 0). */
+  catalogVersionTotal: number | null
 }
 
 /**
@@ -48,6 +50,7 @@ export async function resolveVehicleAgainstCatalog(
     catalogEngine: null,
     catalogVersion: null,
     notInCatalog: false,
+    catalogVersionTotal: null,
   }
 
   if (!raw.maker?.trim() || !raw.model?.trim()) return empty
@@ -121,6 +124,14 @@ export async function resolveVehicleAgainstCatalog(
     }
   }
 
+  const { count: vvTotal, error: eCount } = await sb
+    .from('vehicle_versions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'active')
+    .eq('model_id', model.id)
+  if (eCount) throw eCount
+  const catalogVersionTotal = vvTotal ?? 0
+
   let q = sb
     .from('vehicle_versions')
     .select('id, year, engine, version_name, manufacturers(name), models(name)')
@@ -162,5 +173,6 @@ export async function resolveVehicleAgainstCatalog(
     catalogEngine: match?.engine != null ? String(match.engine) : null,
     catalogVersion: match?.version_name != null ? String(match.version_name) : null,
     notInCatalog: false,
+    catalogVersionTotal,
   }
 }
