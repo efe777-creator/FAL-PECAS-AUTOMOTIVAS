@@ -9,5 +9,5 @@
 
 ## Pós
 
-- Vitest antiregress
-- Deploy Edge `plate-lookup` no wtbp
+- Vitest antiregress: **17/17**
+- Deploy Edge `plate-lookup` no wtbp: **ok** (`b458016`)
