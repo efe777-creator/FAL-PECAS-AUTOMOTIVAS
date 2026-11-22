@@ -24,7 +24,7 @@
 | 11 | Corrigir tela de favoritos | **DONE** (junto #5) |
 | 12 | Seção destaques: configs não respeitadas | **DONE** |
 | 13 | Ofertas/promoções: nome, itens + kits, textos e CTAs | **DONE** |
-| 14 | LGPD, segurança, políticas garantia/devolução | **DONE** |
+| 14 | LGPD, segurança, políticas garantia/devolução | **PENDING** (reaberto — análise minuciosa) |
 | 15 | Meta Ads / Google Ads / Merchant (loja Google) | PENDING |
 | 16 | Portal B2B | PENDING |
 | 17 | Funil WhatsApp e sistema | PENDING |
@@ -71,8 +71,9 @@ Configurações da seção de destaque não estão sendo respeitadas / refletida
 ### #13 Ofertas / promoções — **DONE** (2026-11-22)
 Melhorar seção e apresentação das ofertas; colocar o nome de promoções; itens promocionais ativos + kits; textos e CTAs. → ver log Erro #13.
 
-### #14 LGPD / normas — **DONE** (2026-11-22)
-Estruturar e garantir segurança de dados (LGPD), políticas de garantia e devolução e demais normas. → ver log Erro #14.
+### #14 LGPD / normas — **PENDING** (reaberto 2026-11-22)
+Estruturar e garantir segurança de dados (LGPD), políticas de garantia e devolução e demais normas.
+Fatia técnica `f712ac7` permanece no código, mas o Notes **não** fecha até análise minuciosa de rigor das políticas do site (jurídico/operacional + cobertura ponta a ponta).
 
 ### #15 Ads / Merchant
 Integração Meta Ads e Google Ads; produtos na loja do Google (Merchant) — campanhas depois.
@@ -309,11 +310,10 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 
 | Campo | Valor |
 |-------|--------|
-| Status | **DONE** |
-| Diagnóstico | Pós-venda truncava `RETURN_POLICY_BULLETS` (slice 0–5); Register sem link trocas; privacidade sem caminho `/conta`; cookies sem reabrir preferências no rodapé. |
-| Estrutura | (1) PostSaleHelpPanel lista bullets completos. (2) Register alinhado ao checkout (termos + privacidade + trocas). (3) Privacidade → Minha Conta. (4) Footer “Preferências de cookies” + `openCookiePreferences` / banner. |
-| Evidência | `cookieNotice` 5 PASS · `postSaleAntiregress` 11 PASS · `tsc` OK |
-| Arquivos | `PostSaleHelpPanel.tsx`, `RegisterPage.tsx`, `LegalDocumentPage.tsx`, `cookieNotice.ts` (+test), `CookieConsentBanner.tsx`, `Footer.tsx`, VAL, este REF |
-| Fora | Texto jurídico advogado; versões `place_order`; página `/garantia` dedicada; Ads scripts (#15) |
+| Status | **PENDING** (reaberto 2026-11-22 — eFe) |
+| Fatia técnica | `f712ac7` (bullets pós-venda, Register=checkout, privacidade→`/conta`, preferências cookies) — **não** equivale a fechar o Notes |
+| Motivo reopen | Análise minuciosa de rigor das políticas trabalhadas no site (texto jurídico, garantia, aceite/versões, exclusão de conta, cookies×Ads) |
+| Fora / a auditar | Texto advogado; `/garantia`; `place_order` versões; exclusão real em Minha Conta; scripts Ads só com consent (#15); VAL jurídico |
 
-**Próximo Notes:** Erro #15 — Ads / Merchant.
+**Auditoria DONE (2026-11-22):** [FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md](./FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md)  
+**Próximo Notes (fila):** **#14** com plano de rigor · depois **#15** → **#17** → **#16**.
