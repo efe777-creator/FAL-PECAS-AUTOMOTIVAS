@@ -218,4 +218,26 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/yearFabrication/)
     expect(src).toMatch(/buildPlateSourceSnapshot/)
   })
+
+  it('fechamento inteligência veicular: hub + evidence + telemetria + assert casca', () => {
+    const hub = read('src/pages/admin/vehicles/AdminVehicleIntegrationsHubPage.tsx')
+    expect(hub).toMatch(/Inteligência operacional fechada/)
+    expect(hub).toMatch(/Cascas verified sem VV/)
+    expect(hub).toMatch(/Vida pontual verified/)
+    expect(hub).toMatch(/VV verified sem motor/)
+    expect(hub).toMatch(/Lookups INV catálogo 0/)
+    expect(hub).toMatch(/Fonte B não promove/)
+    expect(hub).toMatch(/Gate 12 checksum A2/)
+    const evidence = read('src/services/vehicles/vehicleEvidence.ts')
+    expect(evidence).toMatch(/isGate12FormalSnapshot/)
+    expect(evidence).toMatch(/GATE12_FORMAL_SOURCES/)
+    const plateLookup = read('supabase/functions/plate-lookup/index.ts')
+    expect(plateLookup).toMatch(/catalog_total:\s*resolved\.catalogVersionTotal/)
+    const assert = read('src/services/plates/plateIdentityAssert.ts')
+    expect(assert).toMatch(/sem configuração tipada \(casca\)/)
+    const fechamento = read(
+      '../docs/dados/FAL_MARCHA_FECHAMENTO_INTELIGENCIA_VEICULAR_VAL_2026-11-22.md',
+    )
+    expect(fechamento).toMatch(/inteligência veicular \*\*fechada em operação\*\*/)
+  })
 })

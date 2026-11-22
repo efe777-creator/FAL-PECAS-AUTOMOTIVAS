@@ -244,6 +244,10 @@ export function AdminVehicleIntegrationsHubPage() {
           aplicações (PVC) são caminhos separados — sync/import <strong>não cria PVC</strong> e não
           usa código FIPE para filtrar peças.
         </p>
+        <p className="mb-0 mt-2 text-sm text-fal-muted">
+          Inteligência operacional fechada em <code>dev</code>: defesa + observação de residuais.
+          Riqueza de catálogo (Cross/VV/motor) só com evidência — sem thin-seed inventado.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <StatusChip label="Import CSV" on />
           <StatusChip label="Sync inteligente" on={allowed} />

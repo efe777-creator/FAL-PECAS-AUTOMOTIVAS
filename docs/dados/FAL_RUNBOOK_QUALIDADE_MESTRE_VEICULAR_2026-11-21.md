@@ -1,8 +1,9 @@
 # Runbook — Qualidade do mestre veicular (DQ)
 
 **Projeto:** `wtbpwuiayednvlhvuhbh` (dev)  
-**Data:** 2026-11-21  
-**Invariante:** Corolla ≠ Corolla Cross (linhas OEM distintas). Busca/normalize/remap nunca colapsam filho→pai.
+**Data:** 2026-11-22 (fechamento inteligência operacional)  
+**Invariante:** Corolla ≠ Corolla Cross (linhas OEM distintas). Busca/normalize/remap nunca colapsam filho→pai.  
+**Fechamento:** higiene `FAL_MARCHA_FECHAMENTO_MESTRE_VEICULAR_VAL_2026-11-21.md` · inteligência `FAL_MARCHA_FECHAMENTO_INTELIGENCIA_VEICULAR_VAL_2026-11-22.md`.
 
 ## Artefatos
 
@@ -47,6 +48,9 @@ Residuais de riqueza (só visibilidade staff — **sem inventar** VV/motor/faixa
 - Cascas verified (0 VV) — ex. Corolla Cross
 - Vida pontual (start=end)
 - VV verified sem motor
+- Lookups INV `catalog_total=0` (14d; sem placa completa)
+
+Chips operacionais: Lookup read-only · Fonte B não promove · Gate 12 checksum A2.
 
 ## Gate 12 — snapshots SENATRAN / PBEV (ops)
 
