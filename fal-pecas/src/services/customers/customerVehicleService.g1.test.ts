@@ -156,14 +156,35 @@ describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
       if (table === 'manufacturers') {
         return verifiedFkChain({ id: 'm1' })
       }
-      return {
-        select: listThenable.select,
-        eq: listThenable.eq,
-        order: listThenable.order,
-        then: listThenable.then.bind(listThenable),
+      if (table === 'vehicle_identities') {
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }
+      }
+      const cvChain = {
+        select: vi.fn(),
+        eq: vi.fn(),
+        order: vi.fn(),
+        single: vi.fn(async () => ({
+          data: {
+            manufacturer_id: 'm1',
+            model_id: 'mo1',
+            version_id: 'skip-resolve',
+          },
+          error: null,
+        })),
         update: updateFn,
         insert: insertFn,
+        then(onFulfilled: (v: { data: unknown[]; error: null }) => unknown) {
+          return Promise.resolve({ data: [existingRow], error: null }).then(onFulfilled)
+        },
       }
+      cvChain.select.mockReturnValue(cvChain)
+      cvChain.eq.mockReturnValue(cvChain)
+      cvChain.order.mockReturnValue(cvChain)
+      return cvChain
     })
 
     const { ensureSavedVehicleFromFilter } = await import('./customerVehicleService')

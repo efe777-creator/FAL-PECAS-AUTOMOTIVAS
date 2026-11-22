@@ -99,11 +99,17 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/models\.quality_status/)
     expect(src).toMatch(/assertVerifiedGarageFks/)
     expect(src).toMatch(/canonical_model_id/)
+    expect(src).toMatch(/touchesFk/)
     const rpc = read(
       'supabase/migrations/20261122190000_garage_verified_fk_and_vv_hygiene.sql',
     )
     expect(rpc).toMatch(/quality_status = 'verified'/)
     expect(rpc).toMatch(/create_customer_vehicle_with_identity/)
+    const backfill = read(
+      'supabase/migrations/20261122200000_garage_fk_backfill_and_transfer_sanitize.sql',
+    )
+    expect(backfill).toMatch(/sanitize_garage_vehicle_fks/)
+    expect(backfill).toMatch(/accept_vehicle_transfer/)
   })
 
   it('assert de placa zera FKs quando identificação não é plena', () => {

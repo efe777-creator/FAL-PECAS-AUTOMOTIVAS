@@ -430,9 +430,6 @@ export async function updateSavedVehicle(
     if (!modelText) throw new Error('Informe montadora e modelo para salvar o veículo.')
     patch.model_text = modelText
   }
-  if (input.versionId !== undefined) patch.version_id = input.versionId
-  if (input.manufacturerId !== undefined) patch.manufacturer_id = input.manufacturerId
-  if (input.modelId !== undefined) patch.model_id = input.modelId
   if (input.year !== undefined) patch.year = input.year
   if (input.engine !== undefined) patch.engine = blankToNull(input.engine)
   if (input.nickname !== undefined) patch.nickname = input.nickname?.trim() || null
@@ -455,6 +452,35 @@ export async function updateSavedVehicle(
   if (input.primaryAssetId !== undefined) patch.primary_asset_id = input.primaryAssetId
   if (input.sourceSnapshot !== undefined) {
     patch.source_snapshot = input.sourceSnapshot
+  }
+
+  const touchesFk =
+    input.versionId !== undefined ||
+    input.manufacturerId !== undefined ||
+    input.modelId !== undefined
+  if (touchesFk) {
+    const { data: cur, error: curErr } = await getSupabase()
+      .from('customer_vehicles')
+      .select('manufacturer_id, model_id, version_id')
+      .eq('id', id)
+      .eq('customer_id', customerId)
+      .single()
+    if (curErr) throw curErr
+    const ok = await assertVerifiedGarageFks({
+      manufacturerId:
+        input.manufacturerId !== undefined
+          ? input.manufacturerId
+          : ((cur?.manufacturer_id as string | null) ?? null),
+      modelId:
+        input.modelId !== undefined ? input.modelId : ((cur?.model_id as string | null) ?? null),
+      versionId:
+        input.versionId !== undefined
+          ? input.versionId
+          : ((cur?.version_id as string | null) ?? null),
+    })
+    patch.manufacturer_id = ok.manufacturerId
+    patch.model_id = ok.modelId
+    patch.version_id = ok.versionId
   }
 
   if (input.isPrimary) {
@@ -486,12 +512,14 @@ export async function updateSavedVehicle(
   if (error) throw error
   const mapped = mapVehicle(data as Row)
 
-  // Espelha attrs públicos na identity (owner vigente via RLS).
+  // Espelha attrs públicos na identity (owner vigente via RLS) — FKs já saneadas no patch.
   if (mapped.vehicleIdentityId) {
     const identityPatch: Record<string, unknown> = {}
-    if (input.manufacturerId !== undefined) identityPatch.manufacturer_id = input.manufacturerId
-    if (input.modelId !== undefined) identityPatch.model_id = input.modelId
-    if (input.versionId !== undefined) identityPatch.version_id = input.versionId
+    if (touchesFk) {
+      identityPatch.manufacturer_id = mapped.manufacturerId
+      identityPatch.model_id = mapped.modelId
+      identityPatch.version_id = mapped.versionId
+    }
     if (input.year !== undefined) identityPatch.year = input.year
     if (input.makerText !== undefined) identityPatch.maker_text = blankToNull(input.makerText)
     if (input.modelText !== undefined) identityPatch.model_text = blankToNull(input.modelText)
