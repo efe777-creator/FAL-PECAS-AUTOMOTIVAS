@@ -105,6 +105,9 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/okFks/)
     expect(src).toMatch(/rpc\('sanitize_garage_vehicle_fks'/)
     expect(src).toMatch(/SECURITY DEFINER|não enxerga superseded/)
+    expect(src).toMatch(/isUntypedShellVv/)
+    const edgeResolver = read('supabase/functions/_shared/vehicleResolver.ts')
+    expect(edgeResolver).toMatch(/Casca VV sem ano/)
     const rpc = read(
       'supabase/migrations/20261122190000_garage_verified_fk_and_vv_hygiene.sql',
     )

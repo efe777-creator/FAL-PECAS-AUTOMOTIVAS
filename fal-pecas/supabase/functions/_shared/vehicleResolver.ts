@@ -138,10 +138,18 @@ export async function resolveVehicleAgainstCatalog(
   const match = (versions ?? []).find((v) => {
     const mk = relName(v.manufacturers)
     const md = relName(v.models)
-    return (
-      mk?.toLowerCase() === String(maker.name).toLowerCase() &&
-      md?.toLowerCase() === String(model.name).toLowerCase()
-    )
+    if (
+      mk?.toLowerCase() !== String(maker.name).toLowerCase() ||
+      md?.toLowerCase() !== String(model.name).toLowerCase()
+    ) {
+      return false
+    }
+    // Casca VV sem ano/motor/versão — não anexar versionId (modelo ok).
+    const noYear = v.year == null
+    const noEng = v.engine == null || String(v.engine).trim() === ''
+    const noVer = v.version_name == null || String(v.version_name).trim() === ''
+    if (noYear && noEng && noVer) return false
+    return true
   })
 
   return {

@@ -25,6 +25,15 @@ describe('plateNormalizedOrNull', () => {
   })
 })
 
+describe('isUntypedShellVv', () => {
+  it('detecta casca sem ano/motor/versão', async () => {
+    const { isUntypedShellVv } = await import('./customerVehicleService')
+    expect(isUntypedShellVv({ year: null, engine: null, version_name: null })).toBe(true)
+    expect(isUntypedShellVv({ year: 2010, engine: null, version_name: null })).toBe(false)
+    expect(isUntypedShellVv({ year: null, engine: '1.0', version_name: null })).toBe(false)
+  })
+})
+
 describe('updateSavedVehicle (#23)', () => {
   beforeEach(() => {
     fromMock.mockReset()

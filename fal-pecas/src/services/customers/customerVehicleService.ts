@@ -123,11 +123,23 @@ export type ResolvedGarageIdentity = {
   ambiguous?: boolean
 }
 
+/** VV sem ano, motor e versão — casca tipada (não é identidade de config). */
+export function isUntypedShellVv(v: {
+  year?: unknown
+  engine?: unknown
+  version_name?: unknown
+}): boolean {
+  const noYear = v.year == null || v.year === ''
+  const noEng = v.engine == null || String(v.engine).trim() === ''
+  const noVer = v.version_name == null || String(v.version_name).trim() === ''
+  return noYear && noEng && noVer
+}
+
 /**
  * Resolve identidade canônica para a garagem.
  * Sem motor/versão informados: não inventa; se vários VV do mesmo maker+model,
- * prefere linha com version_name e engine nulos; se ainda ambíguo, retorna FKs de
- * maker/model sem versionId (ambiguous).
+ * prefere linha com version_name e engine nulos (mas com ano); se ainda ambíguo,
+ * retorna FKs de maker/model sem versionId (ambiguous). Cascas VV vazias não viram versionId.
  */
 export async function resolveVersionId(input: {
   maker: string
@@ -176,6 +188,16 @@ export async function resolveVersionId(input: {
 
   if (matches.length === 1) {
     const match = matches[0]!
+    // VV sem ano/motor/versão = casca tipada vazia (ex. Palio/Idea/Siena) — não anexar versionId.
+    if (isUntypedShellVv(match)) {
+      return {
+        versionId: null,
+        manufacturerId: String(match.manufacturer_id),
+        modelId: String(match.model_id),
+        year: input.year?.trim() ? Number(input.year) : null,
+        engine: blankToNull(input.engine),
+      }
+    }
     return {
       versionId: String(match.id),
       manufacturerId: String(match.manufacturer_id),
@@ -185,8 +207,10 @@ export async function resolveVersionId(input: {
     }
   }
 
+  // Linha "aberta" só conta se tem ano (senão é casca vazia, não identidade).
   const open = matches.filter(
     (m) =>
+      !isUntypedShellVv(m) &&
       (m.version_name == null || String(m.version_name).trim() === '') &&
       (m.engine == null || String(m.engine).trim() === ''),
   )
