@@ -98,6 +98,12 @@ export function AdminVehicleIntegrationsHubPage() {
       })
       setQueueActionMsg(`${item.makerName} ${item.name} → verified`)
       await loadStats()
+      const shells = await listVerifiedThinShells()
+      if (shells.some((s) => s.id === item.id)) {
+        setQueueActionMsg(
+          `${item.makerName} ${item.name} → verified (casca: 0 VV — enriquecer configs sem thin-seed inventado)`,
+        )
+      }
     } catch (err) {
       setQueueActionError(toUserMessage(err, 'Falha ao verificar modelo'))
     } finally {

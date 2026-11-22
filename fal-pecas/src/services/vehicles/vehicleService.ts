@@ -102,7 +102,6 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
   if (e2) throw e2
   if (e3) throw e3
 
-  const makerNames = (makers ?? []).map((m) => String(m.name))
   const modelsByMaker: Record<string, string[]> = {}
   const yearsByModel: Record<string, string[]> = {}
   const yearNumsByModel: Record<string, Set<number>> = {}
@@ -186,6 +185,11 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
       .sort((a, b) => b - a)
       .map(String)
   }
+
+  // Só montadoras com ≥1 modelo verified — evita SR/Yamaha (só quarentena) no seletor.
+  const makerNames = Object.keys(modelsByMaker).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR'),
+  )
 
   const tree: VehicleOptionTree = {
     makers: makerNames,
