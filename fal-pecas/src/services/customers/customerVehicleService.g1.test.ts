@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fromMock = vi.fn()
+const rpcMock = vi.fn()
 const getCurrentCustomerId = vi.fn()
 
 vi.mock('@/lib/supabase', () => ({
-  getSupabase: () => ({ from: (...args: unknown[]) => fromMock(...args) }),
+  getSupabase: () => ({
+    from: (...args: unknown[]) => fromMock(...args),
+    rpc: (...args: unknown[]) => rpcMock(...args),
+  }),
 }))
 
 vi.mock('@/services/customers/customerService', () => ({
@@ -24,6 +28,7 @@ describe('plateNormalizedOrNull', () => {
 describe('updateSavedVehicle (#23)', () => {
   beforeEach(() => {
     fromMock.mockReset()
+    rpcMock.mockReset()
     getCurrentCustomerId.mockReset()
     getCurrentCustomerId.mockResolvedValue('cust-1')
     vi.resetModules()
@@ -75,6 +80,7 @@ describe('updateSavedVehicle (#23)', () => {
 describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
   beforeEach(() => {
     fromMock.mockReset()
+    rpcMock.mockReset()
     getCurrentCustomerId.mockReset()
     getCurrentCustomerId.mockResolvedValue('cust-1')
     vi.resetModules()
@@ -100,17 +106,19 @@ describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
       vehicle_versions: null,
     }
 
-    const listThenable = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      order: vi.fn(),
-      then(onFulfilled: (v: { data: unknown[]; error: null }) => unknown) {
-        return Promise.resolve({ data: [existingRow], error: null }).then(onFulfilled)
-      },
-    }
-    listThenable.select.mockReturnValue(listThenable)
-    listThenable.eq.mockReturnValue(listThenable)
-    listThenable.order.mockReturnValue(listThenable)
+    rpcMock.mockImplementation(async (name: string) => {
+      if (name === 'sanitize_garage_vehicle_fks') {
+        return {
+          data: {
+            o_manufacturer_id: 'm1',
+            o_model_id: 'mo1',
+            o_version_id: 'skip-resolve',
+          },
+          error: null,
+        }
+      }
+      return { data: null, error: null }
+    })
 
     const updateSingle = vi.fn(async () => ({
       data: { ...existingRow, nickname: 'Atualizado', year: 2020 },
@@ -125,37 +133,7 @@ describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
     })
     const insertFn = vi.fn()
 
-    function verifiedFkChain(data: unknown) {
-      const chain: {
-        select: ReturnType<typeof vi.fn>
-        eq: ReturnType<typeof vi.fn>
-        maybeSingle: ReturnType<typeof vi.fn>
-      } = {
-        select: vi.fn(),
-        eq: vi.fn(),
-        maybeSingle: vi.fn(async () => ({ data, error: null })),
-      }
-      chain.select.mockReturnValue(chain)
-      chain.eq.mockReturnValue(chain)
-      return chain
-    }
-
     fromMock.mockImplementation((table: string) => {
-      if (table === 'models') {
-        return verifiedFkChain({
-          id: 'mo1',
-          manufacturer_id: 'm1',
-          status: 'active',
-          quality_status: 'verified',
-          canonical_model_id: null,
-        })
-      }
-      if (table === 'vehicle_versions') {
-        return verifiedFkChain({ id: 'skip-resolve', model_id: 'mo1', status: 'active' })
-      }
-      if (table === 'manufacturers') {
-        return verifiedFkChain({ id: 'm1' })
-      }
       if (table === 'vehicle_identities') {
         return {
           update: vi.fn().mockReturnValue({
@@ -202,5 +180,9 @@ describe('ensureSavedVehicleFromFilter dedup (#22)', () => {
     expect(insertFn).not.toHaveBeenCalled()
     expect(saved.id).toBe('existing')
     expect(updateFn).toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledWith(
+      'sanitize_garage_vehicle_fks',
+      expect.objectContaining({ p_model_id: 'mo1' }),
+    )
   })
 })

@@ -257,7 +257,10 @@ async function resolveManufacturerModelIds(
   return { manufacturerId: String(makerRow.id), modelId: String(modelRow.id) }
 }
 
-/** Confirma que FKs apontam para mestre verified (staff também). */
+/**
+ * Higiene FK via RPC SECURITY DEFINER (mesmo canônico do trigger/backfill).
+ * Client sob RLS público não enxerga superseded — sem RPC, remap falhava e zerava.
+ */
 async function assertVerifiedGarageFks(input: {
   manufacturerId: string | null
   modelId: string | null
@@ -267,72 +270,26 @@ async function assertVerifiedGarageFks(input: {
   modelId: string | null
   versionId: string | null
 }> {
-  const sb = getSupabase()
-  let manufacturerId = input.manufacturerId
-  let modelId = input.modelId
-  let versionId = input.versionId
-
-  if (modelId) {
-    const { data: mo, error } = await sb
-      .from('models')
-      .select('id, manufacturer_id, status, quality_status, canonical_model_id')
-      .eq('id', modelId)
-      .maybeSingle()
-    if (error) throw error
-    if (!mo) {
-      modelId = null
-      versionId = null
-    } else if (String(mo.quality_status) === 'superseded' && mo.canonical_model_id) {
-      const { data: canon, error: cErr } = await sb
-        .from('models')
-        .select('id, manufacturer_id')
-        .eq('id', mo.canonical_model_id)
-        .eq('status', 'active')
-        .eq('quality_status', 'verified')
-        .maybeSingle()
-      if (cErr) throw cErr
-      if (canon?.id) {
-        modelId = String(canon.id)
-        manufacturerId = String(canon.manufacturer_id)
-        versionId = null
-      } else {
-        modelId = null
-        versionId = null
-      }
-    } else if (mo.status !== 'active' || String(mo.quality_status) !== 'verified') {
-      modelId = null
-      versionId = null
-    } else {
-      manufacturerId = String(mo.manufacturer_id)
-    }
+  if (!input.manufacturerId && !input.modelId && !input.versionId) {
+    return { manufacturerId: null, modelId: null, versionId: null }
   }
-
-  if (versionId && modelId) {
-    const { data: vv, error: vErr } = await sb
-      .from('vehicle_versions')
-      .select('id, model_id, status')
-      .eq('id', versionId)
-      .eq('model_id', modelId)
-      .eq('status', 'active')
-      .maybeSingle()
-    if (vErr) throw vErr
-    if (!vv) versionId = null
-  } else if (versionId && !modelId) {
-    versionId = null
+  const { data, error } = await getSupabase().rpc('sanitize_garage_vehicle_fks', {
+    p_manufacturer_id: input.manufacturerId,
+    p_model_id: input.modelId,
+    p_version_id: input.versionId,
+  })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  const r = (row ?? {}) as {
+    o_manufacturer_id?: string | null
+    o_model_id?: string | null
+    o_version_id?: string | null
   }
-
-  if (manufacturerId) {
-    const { data: mk, error: mErr } = await sb
-      .from('manufacturers')
-      .select('id')
-      .eq('id', manufacturerId)
-      .eq('status', 'active')
-      .maybeSingle()
-    if (mErr) throw mErr
-    if (!mk) manufacturerId = null
+  return {
+    manufacturerId: r.o_manufacturer_id ? String(r.o_manufacturer_id) : null,
+    modelId: r.o_model_id ? String(r.o_model_id) : null,
+    versionId: r.o_version_id ? String(r.o_version_id) : null,
   }
-
-  return { manufacturerId, modelId, versionId }
 }
 
 export async function addSavedVehicle(input: {

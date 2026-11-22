@@ -103,6 +103,8 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/canonical_model_id/)
     expect(src).toMatch(/touchesFk/)
     expect(src).toMatch(/okFks/)
+    expect(src).toMatch(/rpc\('sanitize_garage_vehicle_fks'/)
+    expect(src).toMatch(/SECURITY DEFINER|não enxerga superseded/)
     const rpc = read(
       'supabase/migrations/20261122190000_garage_verified_fk_and_vv_hygiene.sql',
     )
