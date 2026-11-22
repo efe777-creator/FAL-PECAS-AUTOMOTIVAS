@@ -118,6 +118,12 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     )
     expect(createSan).toMatch(/sanitize_garage_vehicle_fks/)
     expect(createSan).toMatch(/trg_sanitize_garage_fks/)
+    const sanDefiner = read(
+      'supabase/migrations/20261122220000_sanitize_garage_fks_security_definer.sql',
+    )
+    expect(sanDefiner).toMatch(/security definer/i)
+    expect(sanDefiner).toMatch(/sanitize_garage_vehicle_fks/)
+    expect(sanDefiner).toMatch(/'SR', 'Yamaha'/)
   })
 
   it('assert de placa zera FKs quando identificação não é plena', () => {
