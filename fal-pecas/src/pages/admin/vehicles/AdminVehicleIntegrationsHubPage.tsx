@@ -307,6 +307,7 @@ export function AdminVehicleIntegrationsHubPage() {
           ) : null}
           <StatusChip label="Lookup read-only" on />
           <StatusChip label="Fonte B não promove" on />
+          <StatusChip label="Gate 12 checksum A2" on />
           {lastSync ? (
             <span className="rounded-md bg-fal-line/40 px-2 py-1 text-xs font-bold text-fal-fg">
               Última sync: {new Date(lastSync.at).toLocaleString('pt-BR')} ·{' '}

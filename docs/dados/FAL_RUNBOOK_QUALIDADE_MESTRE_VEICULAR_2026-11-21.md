@@ -42,6 +42,24 @@
 
 Admin → Integrações · Veículos: chips `verified` / `review` / `quarantined` / `superseded` + fila com ações Verificar (A1) / Quarentena + deep link `?model=` no cadastro.
 
+Residuais de riqueza (só visibilidade staff — **sem inventar** VV/motor/faixa):
+
+- Cascas verified (0 VV) — ex. Corolla Cross
+- Vida pontual (start=end)
+- VV verified sem motor
+
+## Gate 12 — snapshots SENATRAN / PBEV (ops)
+
+Contrato em código: `toVehicleEvidence` + `isGate12FormalSnapshot` (`fal-pecas/src/services/vehicles/vehicleEvidence.ts`).
+
+Checklist ops (não automatizado nesta marcha):
+
+1. Baixar dump datado (SENATRAN e/ou PBEV) e guardar fora do repo se licença restringir.
+2. Calcular checksum (ex. `sha256:<hex>`) do arquivo baixado.
+3. Registrar evidência com `sourceId` `senatran`/`pbev`, `sourceUrl` (origem oficial), `fetchedAt` ISO e `checksum`.
+4. Adaptador **somente leitura** — não escreve `models` / VV / PVC; promoção continua via RPC A1/A2.
+5. Fonte B (fipeX) **não** conta como Gate 12 formal.
+
 ## Remap seguro
 
 1. Contar VV/PVC/customer dos IDs origem/destino.

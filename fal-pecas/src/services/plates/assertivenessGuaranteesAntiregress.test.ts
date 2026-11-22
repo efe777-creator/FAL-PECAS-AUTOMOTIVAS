@@ -180,6 +180,12 @@ describe('assertividade · writers e duplicidade de escrita', () => {
   it('vehicleEvidence é somente leitura (sem writers em models/VV/PVC)', () => {
     const src = read('src/services/vehicles/vehicleEvidence.ts')
     expect(src).not.toMatch(/supabase|\.insert\(|\.update\(|\.upsert\(|\.rpc\(/)
+    expect(src).toMatch(/GATE12_FORMAL_SOURCES/)
+    expect(src).toMatch(/isGate12FormalSnapshot/)
+    expect(src).toMatch(/senatran/)
+    expect(src).toMatch(/pbev/)
+    const hub = read('src/pages/admin/vehicles/AdminVehicleIntegrationsHubPage.tsx')
+    expect(hub).toMatch(/Gate 12 checksum A2/)
   })
 
   it('apps-import cria modelos só em review', () => {

@@ -38,9 +38,16 @@ export type VehicleEvidenceInput = {
   checksum?: string | null
 }
 
+/** Fontes A2 externas que o Gate 12 exige como snapshot formal (checksum). */
+export const GATE12_FORMAL_SOURCES: ReadonlySet<VehicleEvidenceSourceId> = new Set([
+  'senatran',
+  'pbev',
+])
+
 /**
  * Stub: normaliza uma entrada de adaptador para `VehicleEvidence`.
  * Retorna null se faltar maker/descrição/URL (evidência sem origem não vale).
+ * Senatran/PBEV exigem checksum (Gate 12) — sem inventar hash.
  * Puro, sem I/O e sem escrita no mestre.
  */
 export function toVehicleEvidence(input: VehicleEvidenceInput): VehicleEvidence | null {
@@ -48,6 +55,9 @@ export function toVehicleEvidence(input: VehicleEvidenceInput): VehicleEvidence 
   const rawDescription = input.rawDescription?.trim()
   const sourceUrl = input.sourceUrl?.trim()
   if (!maker || !rawDescription || !sourceUrl) return null
+
+  const checksum = input.checksum?.trim() || null
+  if (GATE12_FORMAL_SOURCES.has(input.sourceId) && !checksum) return null
 
   const year =
     input.referenceYear == null || input.referenceYear === ''
@@ -64,6 +74,18 @@ export function toVehicleEvidence(input: VehicleEvidenceInput): VehicleEvidence 
     sourceUrl,
     license: input.license?.trim() || 'unknown',
     fetchedAt: input.fetchedAt?.trim() || new Date().toISOString(),
-    checksum: input.checksum?.trim() || null,
+    checksum,
   }
+}
+
+/**
+ * Gate 12: snapshot externo formal = senatran/pbev com URL + checksum + fetchedAt.
+ * Não baixa arquivo — só valida o contrato para ops/adapters.
+ */
+export function isGate12FormalSnapshot(ev: VehicleEvidence): boolean {
+  if (!GATE12_FORMAL_SOURCES.has(ev.sourceId)) return false
+  if (!ev.sourceUrl.trim()) return false
+  if (!ev.checksum?.trim()) return false
+  if (!ev.fetchedAt.trim()) return false
+  return true
 }

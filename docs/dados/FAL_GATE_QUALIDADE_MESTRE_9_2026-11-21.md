@@ -16,7 +16,7 @@
 | 9 | Remap preserva PVC/garagem; IDs auditáveis via superseded | PASS | `canonical_model_id` + customer/VV move |
 | 10 | Testes alvo + smoke SQL | PASS parcial | vitest 77/77 nos pacotes DQ; tsc com erros pré-existentes fora do escopo |
 | 11 | verified com A1 (OEM URL) — nenhum só fipeX/LLM/placa | PASS | `evidence_kind=oem_a1` + URLs marca/linha |
-| 12 | Snapshots externos com checksum | PASS parcial | fipeX tratado como B (não autoridade); OEM URLs registradas; SENATRAN/PBEV snapshot formal ainda pendente de download datado |
+| 12 | Snapshots externos com checksum | PASS parcial | Contrato código (`isGate12FormalSnapshot` + checksum obrigatório senatran/pbev); fipeX = B; download datado SENATRAN/PBEV ainda ops |
 
 ## Contagens pós-apply (wtbp)
 
