@@ -129,6 +129,12 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(sanDefiner).toMatch(/security definer/i)
     expect(sanDefiner).toMatch(/sanitize_garage_vehicle_fks/)
     expect(sanDefiner).toMatch(/'SR', 'Yamaha'/)
+    const sanShell = read(
+      'supabase/migrations/20261122240000_sanitize_rejects_untyped_shell_vv.sql',
+    )
+    expect(sanShell).toMatch(/sanitize_garage_vehicle_fks/)
+    expect(sanShell).toMatch(/version_name/)
+    expect(sanShell).toMatch(/rejeita version_id de VV casca|VV tipada/)
   })
 
   it('assert de placa zera FKs quando identificação não é plena', () => {
