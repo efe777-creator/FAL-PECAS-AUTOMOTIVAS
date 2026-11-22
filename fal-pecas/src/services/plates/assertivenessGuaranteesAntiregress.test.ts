@@ -121,7 +121,9 @@ describe('assertividade · writers e duplicidade de escrita', () => {
   it('assert de placa zera FKs quando identificação não é plena', () => {
     const src = read('src/services/plates/plateIdentityAssert.ts')
     expect(src).toMatch(/keepFks/)
-    expect(src).toMatch(/manufacturerId: keepFks \? result\.manufacturerId : null/)
+    expect(src).toMatch(/namesStable/)
+    expect(src).toMatch(/let manufacturerId = keepFks \? result\.manufacturerId : null/)
+    expect(src).toMatch(/catalogVersions/)
   })
 
   it('hub e admin usam setModelQualityStatus / badge qualidade', () => {
@@ -130,6 +132,8 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(hub).toMatch(/Verificar \(A1\)/)
     expect(hub).toMatch(/\?model=/)
     expect(hub).toMatch(/Cascas \(0 VV\):/)
+    expect(hub).toMatch(/listVerifiedThinShells/)
+    expect(hub).toMatch(/Cascas verified sem VV/)
     expect(hub).toMatch(/Vida pontual:/)
     expect(hub).toMatch(/Fonte B não promove/)
     expect(hub).not.toMatch(/FIPE assist \(flag\)/)

@@ -98,17 +98,25 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
   }
 }
 
-/** Verified ativos sem nenhuma VV ativa (casca). */
-async function countVerifiedThinShells(): Promise<number> {
+export type VehicleThinShellItem = {
+  id: string
+  name: string
+  makerName: string
+  reviewNote: string | null
+}
+
+async function loadVerifiedThinShellRows(): Promise<VehicleThinShellItem[]> {
   const sb = getSupabase()
   const { data: models, error: e1 } = await sb
     .from('models')
-    .select('id')
+    .select('id, name, review_note, manufacturers(name)')
     .eq('status', 'active')
     .eq('quality_status', 'verified')
+    .order('name')
   if (e1) throw e1
-  const ids = (models ?? []).map((m) => String(m.id))
-  if (!ids.length) return 0
+  const rows = models ?? []
+  if (!rows.length) return []
+  const ids = rows.map((m) => String(m.id))
   const { data: vvs, error: e2 } = await sb
     .from('vehicle_versions')
     .select('model_id')
@@ -116,7 +124,28 @@ async function countVerifiedThinShells(): Promise<number> {
     .in('model_id', ids)
   if (e2) throw e2
   const withVv = new Set((vvs ?? []).map((v) => String(v.model_id)))
-  return ids.filter((id) => !withVv.has(id)).length
+  return rows
+    .filter((m) => !withVv.has(String(m.id)))
+    .map((m) => {
+      const mk = m.manufacturers
+      const first = Array.isArray(mk) ? mk[0] : mk
+      return {
+        id: String(m.id),
+        name: String(m.name),
+        makerName: String(first?.name ?? '—'),
+        reviewNote: m.review_note ? String(m.review_note) : null,
+      }
+    })
+}
+
+/** Verified ativos sem nenhuma VV ativa (casca). */
+async function countVerifiedThinShells(): Promise<number> {
+  return (await loadVerifiedThinShellRows()).length
+}
+
+/** Lista cascas verified (0 VV) — ex. Corolla Cross aguardando configs. */
+export async function listVerifiedThinShells(): Promise<VehicleThinShellItem[]> {
+  return loadVerifiedThinShellRows()
 }
 
 /** Verified ativos com vida pontual (start=end) — seletor não abre faixa. */

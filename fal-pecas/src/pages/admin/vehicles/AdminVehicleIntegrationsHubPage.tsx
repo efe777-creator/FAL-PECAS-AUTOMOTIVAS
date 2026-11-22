@@ -6,7 +6,9 @@ import { setModelQualityStatus } from '@/services/admin/adminVehicleService'
 import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
+  listVerifiedThinShells,
   type VehicleReviewQueueItem,
+  type VehicleThinShellItem,
 } from '@/services/admin/adminVehicleMasterStats'
 import {
   applyVehicleMasterIntelligence,
@@ -56,6 +58,8 @@ export function AdminVehicleIntegrationsHubPage() {
   } | null>(null)
   const [queue, setQueue] = useState<VehicleReviewQueueItem[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
+  const [thinShells, setThinShells] = useState<VehicleThinShellItem[]>([])
+  const [thinShellsError, setThinShellsError] = useState<string | null>(null)
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -151,6 +155,12 @@ export function AdminVehicleIntegrationsHubPage() {
       setQueue(await listReviewQueue())
     } catch (err) {
       setQueueError(toUserMessage(err, 'Falha ao carregar fila de revisão'))
+    }
+    setThinShellsError(null)
+    try {
+      setThinShells(await listVerifiedThinShells())
+    } catch (err) {
+      setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
     }
   }, [])
 
@@ -339,6 +349,46 @@ export function AdminVehicleIntegrationsHubPage() {
             CRUD com vida de linha (desde/até). Período de peça continua no PVC.
           </p>
         </Link>
+      </div>
+
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">
+          Cascas verified sem VV ({thinShells.length})
+        </p>
+        <p className="mb-2 mt-1 text-sm text-fal-muted">
+          Nome ok na loja, sem configuração tipada — não inventar VV/PVC aqui. Abrir no cadastro
+          manual para enriquecer quando houver evidência.
+        </p>
+        {thinShellsError ? <p className="m-0 text-sm text-fal-danger">{thinShellsError}</p> : null}
+        {!thinShellsError && thinShells.length === 0 ? (
+          <p className="m-0 text-sm text-fal-muted">Nenhuma casca verified.</p>
+        ) : null}
+        {thinShells.length > 0 ? (
+          <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
+            {thinShells.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-fal-line/60 py-1 text-sm"
+              >
+                <span className="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-950">
+                  Casca
+                </span>
+                <span className="font-semibold text-fal-fg">
+                  {s.makerName} {s.name}
+                </span>
+                {s.reviewNote ? (
+                  <span className="text-fal-muted">{s.reviewNote}</span>
+                ) : null}
+                <Link
+                  to={`/admin/veiculos?model=${encodeURIComponent(s.id)}`}
+                  className="text-xs font-semibold text-fal-fg"
+                >
+                  Abrir
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">

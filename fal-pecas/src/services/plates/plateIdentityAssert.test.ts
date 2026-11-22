@@ -87,6 +87,78 @@ describe('assertPlateAgainstCatalog', () => {
     expect(out.versionId).toBeNull()
   })
 
+  it('zera FKs quando o assert realinha o nome do modelo', () => {
+    const out = assertPlateAgainstCatalog(
+      base({
+        maker: 'Volkswagen',
+        model: 'Gol G5',
+        confidence: 0.95,
+        confidenceBand: 'A',
+        manufacturerId: 'mk-stale',
+        modelId: 'mo-stale',
+        versionId: 'vv-stale',
+      }),
+      tree,
+    )
+    expect(out.model).toBe('Gol')
+    expect(out.model?.toLowerCase()).not.toBe('gol g5')
+    expect(out.manufacturerId).toBeNull()
+    expect(out.modelId).toBeNull()
+    expect(out.versionId).toBeNull()
+  })
+
+  it('mantém maker/model FKs estáveis e descarta versionId sem VV no catálogo', () => {
+    const out = assertPlateAgainstCatalog(
+      base({
+        model: 'Kwid',
+        version: 'Zen',
+        confidence: 0.95,
+        confidenceBand: 'A',
+        manufacturerId: 'mk-1',
+        modelId: 'mo-1',
+        versionId: 'vv-1',
+      }),
+      tree,
+    )
+    expect(out.status).toBe('found')
+    expect(out.manufacturerId).toBe('mk-1')
+    expect(out.modelId).toBe('mo-1')
+    expect(out.versionId).toBeNull()
+  })
+
+  it('mantém versionId só se a versão tipada existe na árvore', () => {
+    const withVersions: VehicleOptionTree = {
+      ...tree,
+      versionsByModel: { 'Renault|Kwid': ['Zen', 'Intense'] },
+    }
+    const ok = assertPlateAgainstCatalog(
+      base({
+        model: 'Kwid',
+        version: 'Zen',
+        confidence: 0.95,
+        confidenceBand: 'A',
+        manufacturerId: 'mk-1',
+        modelId: 'mo-1',
+        versionId: 'vv-zen',
+      }),
+      withVersions,
+    )
+    expect(ok.versionId).toBe('vv-zen')
+    const bad = assertPlateAgainstCatalog(
+      base({
+        model: 'Kwid',
+        version: 'Outra',
+        confidence: 0.95,
+        confidenceBand: 'A',
+        manufacturerId: 'mk-1',
+        modelId: 'mo-1',
+        versionId: 'vv-x',
+      }),
+      withVersions,
+    )
+    expect(bad.versionId).toBeNull()
+  })
+
   it('dual year: preferência ano-modelo e rebaixa faixa A', () => {
     const out = assertPlateAgainstCatalog(
       base({

@@ -187,8 +187,29 @@ export function assertPlateAgainstCatalog(
     !!model &&
     Array.isArray(tree.modelsByMaker?.[maker]) &&
     tree.modelsByMaker[maker]!.some((m) => m.toLowerCase() === model.toLowerCase())
-  // FKs só sobrevivem se o par está na árvore verified e o status é identificação plena.
-  const keepFks = fullyIdentified && makerInTree
+  // Nome realinhado pelo assert ≠ IDs resolvidos na edge → não reaproveitar FKs.
+  const namesStable =
+    (result.maker ?? '').trim().toLowerCase() === (maker ?? '').trim().toLowerCase() &&
+    (result.model ?? '').trim().toLowerCase() === (model ?? '').trim().toLowerCase()
+  // FKs só sobrevivem se o par está na árvore verified, identificação plena e nome estável.
+  const keepFks = fullyIdentified && makerInTree && namesStable
+
+  let manufacturerId = keepFks ? result.manufacturerId : null
+  let modelId = keepFks ? result.modelId : null
+  let versionId = keepFks ? result.versionId : null
+  if (keepFks && versionId && maker && model) {
+    const catalogVersions = tree.versionsByModel?.[vehicleModelKey(maker, model)] ?? []
+    const vText = (result.version ?? '').trim()
+    if (catalogVersions.length === 0) {
+      // Casca / sem VV tipada: version_id não tem onde ancorar.
+      versionId = null
+    } else if (
+      !vText ||
+      !catalogVersions.some((v) => v.trim().toLowerCase() === vText.toLowerCase())
+    ) {
+      versionId = null
+    }
+  }
 
   return {
     ...result,
@@ -198,9 +219,9 @@ export function assertPlateAgainstCatalog(
     year: yModel ?? result.year,
     yearModel: yModel ?? result.yearModel ?? null,
     yearFabrication: fab ?? result.yearFabrication ?? null,
-    manufacturerId: keepFks ? result.manufacturerId : null,
-    modelId: keepFks ? result.modelId : null,
-    versionId: keepFks ? result.versionId : null,
+    manufacturerId,
+    modelId,
+    versionId,
     candidates,
     message,
     confidenceBand,
