@@ -83,8 +83,8 @@ Fazer portal B2B no site.
 ### #17 Funil WhatsApp
 Fazer funil WhatsApp e sistema.
 
-### #18 Home / campanhas
-Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, grupos ou veículos — botão mostra página de produtos selecionados.
+### #18 Home / campanhas — **DONE** (2026-11-22)
+Melhorar home da loja; tela campanhas poder linkar produtos (1+), categorias, grupos ou veículos — botão mostra página de produtos selecionados. → ver log Erro #18.
 
 ## Log de marchas
 
@@ -260,5 +260,16 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Evidência | `productDescription` + `compatUiAntiregress` **26 PASS** |
 | Arquivos | `productDescription.ts`, `ProductPage.tsx`, `CartPage.tsx`, `router.tsx`, este REF |
 | Fora desta fatia | Smoke E2E manual em todas as telas; copy (#10); destaques (#12) |
+
+### Erro #18 — Home / campanhas → catálogo filtrado
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** |
+| Diagnóstico | Admin gravava só `to`/`href` livre; sem UI para cat/ids/veículo. Catálogo não lia `?ids=` como seleção curada. Trilho `campaign` (widget) permanece **planned**. |
+| Estrutura | (1) `homeCampaignLink` monta `/catalogo?cat|ids|maker|model|year&vehicle=1`. (2) Admin Home: destino CTA = catálogo / categoria / produtos / veículo / manual. (3) `CatalogPage` + `listPublishedProductsByIds` para `?ids=`. Banner Home já usa `to`. Sem migration. |
+| Evidência | `homeCampaignLink` + `productWidgets` + `productDescription` **12 PASS** · `tsc --noEmit` OK |
+| Arquivos | `homeCampaignLink.ts` (+test), `AdminHomeContentPage.tsx`, `CatalogPage.tsx`, `productWidgets.ts`, VAL, este REF |
+| Fora | Trilho de produtos `campaign` na Home; smoke E2E admin→banner |
 
 **Próximo Notes:** Erro #10 — Copy / textos e instruções do site.

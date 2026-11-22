@@ -80,7 +80,7 @@ export const PRODUCT_WIDGET_DEFS: readonly ProductWidgetDef[] = [
     sortOrder: 50,
     status: 'planned',
     title: 'Campanha',
-    subtitle: 'Seleção vinculada a campanha / home',
+    subtitle: 'Trilho de produtos de campanha (futuro); CTA do banner já filtra via href',
     linkLabel: 'Ver seleção →',
     catalogHref: '/catalogo',
     defaultLimit: 12,

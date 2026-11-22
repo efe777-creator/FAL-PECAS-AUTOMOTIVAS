@@ -20,6 +20,12 @@ import {
   HOME_FEATURED_LIMIT_DEFAULT,
 } from '@/lib/homeSections'
 import { formatMoney } from '@/lib/money'
+import {
+  buildCampaignCatalogHref,
+  inferCampaignLinkKind,
+  parseCampaignCatalogHref,
+  type CampaignLinkKind,
+} from '@/lib/homeCampaignLink'
 import { CODIGO_REFERENCIA_LABEL } from '@/lib/productLabels'
 import {
   formatOfertaBadgeLabel,
@@ -232,6 +238,13 @@ export function AdminHomeContentPage() {
   const [dirtyBanner, setDirtyBanner] = useState(false)
   const [dirtyPayment, setDirtyPayment] = useState(false)
   const [dirtySettings, setDirtySettings] = useState(false)
+  /** Notes #18 — destino estruturado do CTA (grava em `to`/`href`). */
+  const [linkKind, setLinkKind] = useState<CampaignLinkKind>('catalog')
+  const [linkCat, setLinkCat] = useState('')
+  const [linkIds, setLinkIds] = useState('')
+  const [linkMaker, setLinkMaker] = useState('')
+  const [linkModel, setLinkModel] = useState('')
+  const [linkYear, setLinkYear] = useState('')
   const [homeSettings, setHomeSettings] = useState<AdminHomeSettings>({
     id: '',
     featuredDisplayLimit: HOME_FEATURED_LIMIT_DEFAULT,
@@ -247,6 +260,52 @@ export function AdminHomeContentPage() {
     message:
       'Há alterações em campanhas, destaques ou condições de pagamento ainda não salvas. Sair mesmo assim?',
   })
+
+  function resetCampaignLinkFields() {
+    setLinkKind('catalog')
+    setLinkCat('')
+    setLinkIds('')
+    setLinkMaker('')
+    setLinkModel('')
+    setLinkYear('')
+  }
+
+  function syncCampaignLinkFromHref(href: string) {
+    const parsed = parseCampaignCatalogHref(href)
+    setLinkKind(parsed.kind)
+    setLinkCat(parsed.categorySlug ?? '')
+    setLinkIds((parsed.productIds ?? []).join(', '))
+    setLinkMaker(parsed.vehicle?.maker ?? '')
+    setLinkModel(parsed.vehicle?.model ?? '')
+    setLinkYear(parsed.vehicle?.year ?? '')
+  }
+
+  function rebuildCampaignHref(next?: {
+    kind?: CampaignLinkKind
+    cat?: string
+    ids?: string
+    maker?: string
+    model?: string
+    year?: string
+    manual?: string
+  }) {
+    const kind = next?.kind ?? linkKind
+    const cat = next?.cat ?? linkCat
+    const ids = next?.ids ?? linkIds
+    const maker = next?.maker ?? linkMaker
+    const model = next?.model ?? linkModel
+    const year = next?.year ?? linkYear
+    const manual = next?.manual ?? form.to
+    const href = buildCampaignCatalogHref({
+      kind,
+      categorySlug: cat,
+      productIds: ids.split(/[,+\s]+/),
+      vehicle: { maker, model, year },
+      manualHref: manual,
+    })
+    setDirtyBanner(true)
+    setForm((f) => ({ ...f, to: href }))
+  }
   useEffect(() => {
     if (!dirty) return
     function onBeforeUnload(e: BeforeUnloadEvent) {
@@ -359,6 +418,7 @@ export function AdminHomeContentPage() {
       })
       push(form.id ? 'Campanha atualizada' : 'Campanha criada', 'success')
       setForm(emptyBanner())
+      resetCampaignLinkFields()
       setDirtyBanner(false)
       await reload()
     } catch (err) {
@@ -381,6 +441,7 @@ export function AdminHomeContentPage() {
       push('Campanha removida', 'success')
       if (form.id === id) {
         setForm(emptyBanner())
+        resetCampaignLinkFields()
         setDirtyBanner(false)
       }
       await reload()
@@ -569,14 +630,97 @@ export function AdminHomeContentPage() {
                 setForm((f) => ({ ...f, ctaLabel: e.target.value }))
               }}
             />
+            <Select
+              label="Destino do botão (Notes #18)"
+              name="campaign-link-kind"
+              value={linkKind}
+              options={[
+                { value: 'catalog', label: 'Catálogo geral' },
+                { value: 'category', label: 'Categoria / grupo (slug)' },
+                { value: 'products', label: 'Produtos selecionados (1+)' },
+                { value: 'vehicle', label: 'Veículo (maker/modelo/ano)' },
+                { value: 'manual', label: 'Link manual' },
+              ]}
+              onChange={(e) => {
+                const kind = e.target.value as CampaignLinkKind
+                setLinkKind(kind)
+                rebuildCampaignHref({ kind })
+              }}
+            />
+            {linkKind === 'category' ? (
+              <Input
+                label="Slug da categoria ou grupo"
+                value={linkCat}
+                onChange={(e) => {
+                  setLinkCat(e.target.value)
+                  rebuildCampaignHref({ cat: e.target.value })
+                }}
+                placeholder="ex.: freios, suspensao, pastilhas"
+                hint="Usa o mesmo ?cat= do catálogo (categoria, grupo ou subgrupo)."
+              />
+            ) : null}
+            {linkKind === 'products' ? (
+              <Input
+                label="IDs dos produtos (vírgula)"
+                value={linkIds}
+                onChange={(e) => {
+                  setLinkIds(e.target.value)
+                  rebuildCampaignHref({ ids: e.target.value })
+                }}
+                placeholder="uuid1, uuid2, …"
+                hint="Abre /catalogo?ids=… com a seleção curada da campanha."
+              />
+            ) : null}
+            {linkKind === 'vehicle' || linkKind === 'category' ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Input
+                  label="Montadora"
+                  value={linkMaker}
+                  onChange={(e) => {
+                    setLinkMaker(e.target.value)
+                    rebuildCampaignHref({ maker: e.target.value })
+                  }}
+                  placeholder="Toyota"
+                />
+                <Input
+                  label="Modelo"
+                  value={linkModel}
+                  onChange={(e) => {
+                    setLinkModel(e.target.value)
+                    rebuildCampaignHref({ model: e.target.value })
+                  }}
+                  placeholder="Corolla"
+                />
+                <Input
+                  label="Ano"
+                  value={linkYear}
+                  onChange={(e) => {
+                    setLinkYear(e.target.value)
+                    rebuildCampaignHref({ year: e.target.value })
+                  }}
+                  placeholder="2020"
+                />
+              </div>
+            ) : null}
             <Input
-              label="Para onde o botão leva"
+              label={linkKind === 'manual' ? 'Link manual' : 'Link gerado (avançado)'}
               value={form.to}
               onChange={(e) => {
                 setDirtyBanner(true)
-                setForm((f) => ({ ...f, to: e.target.value }))
+                const v = e.target.value
+                setForm((f) => ({ ...f, to: v }))
+                if (linkKind === 'manual') {
+                  rebuildCampaignHref({ kind: 'manual', manual: v })
+                } else if (inferCampaignLinkKind(v) === 'manual') {
+                  setLinkKind('manual')
+                }
               }}
               placeholder="/catalogo?cat=suspensao"
+              hint={
+                linkKind === 'manual'
+                  ? 'Qualquer rota interna (ex.: /catalogo?promo=1).'
+                  : 'Gerado pelos campos acima — edite só se souber o formato.'
+              }
             />
             <div className="space-y-2">
               <p className="m-0 text-xs font-extrabold text-fal-muted">Imagem da campanha</p>
@@ -770,6 +914,7 @@ export function AdminHomeContentPage() {
                   variant="outline"
                   onClick={() => {
                     setForm(emptyBanner())
+                    resetCampaignLinkFields()
                     setDirtyBanner(false)
                   }}
                 >
@@ -832,6 +977,7 @@ export function AdminHomeContentPage() {
                       variant="outline"
                       onClick={() => {
                         setForm({ ...b })
+                        syncCampaignLinkFromHref(b.to)
                         setDirtyBanner(false)
                       }}
                     >

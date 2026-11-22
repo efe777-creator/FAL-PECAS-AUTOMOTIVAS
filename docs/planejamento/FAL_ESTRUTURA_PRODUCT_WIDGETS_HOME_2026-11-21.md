@@ -24,7 +24,7 @@ Registry único para trilhos de produto (destaques, ofertas, **mais vendidos**, 
 | `offers` | ready | `listPromoHighlightProducts` |
 | `bestsellers` | **ready** | RPC `store_bestseller_product_ids` + `bestsellerService` · Home rail (sem duplicar destaques/ofertas) |
 | `new_arrivals` | planned | stub — data de publicação / estoque |
-| `campaign` | planned | stub — campanhas Notes #18 |
+| `campaign` | planned | stub trilho; CTA banner Notes #18 já filtra via `href` (`homeCampaignLink`) |
 
 ## Ops
 

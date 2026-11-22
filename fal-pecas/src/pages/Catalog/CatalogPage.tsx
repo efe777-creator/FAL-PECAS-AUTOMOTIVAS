@@ -35,7 +35,11 @@ import {
 import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
-import { listPromoHighlightProducts } from '@/services/products/productService'
+import { parseCatalogProductIdsParam } from '@/lib/homeCampaignLink'
+import {
+  listPromoHighlightProducts,
+  listPublishedProductsByIds,
+} from '@/services/products/productService'
 import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
 import {
   catalogProductKindLabel,
@@ -118,6 +122,11 @@ export function CatalogPage() {
   const sort = parseSort(params.get('sort'))
   /** Home Ofertas → `/catalogo?promo=1` (só itens com preço abaixo da lista). */
   const promoOnly = params.get('promo') === '1'
+  /** Campanha Home Notes #18 → `/catalogo?ids=uuid,uuid` (seleção curada). */
+  const curatedIds = useMemo(
+    () => parseCatalogProductIdsParam(params.get('ids')),
+    [params],
+  )
   const urlPage = parsePage(params.get('page'))
 
   const [searchDraft, setSearchDraft] = useState(q)
@@ -346,8 +355,22 @@ export function CatalogPage() {
       productKind: productKind || null,
       sort,
       promoOnly,
+      curatedIdsKey: curatedIds.join(','),
     }),
-    [q, cat, brand, maker, model, year, engine, version, productKind, sort, promoOnly],
+    [
+      q,
+      cat,
+      brand,
+      maker,
+      model,
+      year,
+      engine,
+      version,
+      productKind,
+      sort,
+      promoOnly,
+      curatedIds,
+    ],
   )
 
   /**
@@ -386,7 +409,17 @@ export function CatalogPage() {
           return
         }
 
-        const { promoOnly: _promo, ...catalogQuery } = searchArgs
+        if (curatedIds.length > 0) {
+          const curated = await listPublishedProductsByIds(curatedIds)
+          if (id !== requestId.current) return
+          setProducts(curated)
+          setTotal(curated.length)
+          setHasMore(false)
+          setLoadedPage(1)
+          return
+        }
+
+        const { promoOnly: _promo, curatedIdsKey: _ids, ...catalogQuery } = searchArgs
         const first = await searchCatalog({
           ...catalogQuery,
           page: 1,
@@ -659,6 +692,10 @@ export function CatalogPage() {
     setLoadingMore(true)
     setLoadMoreError(null)
     try {
+      if (curatedIds.length > 0) {
+        setHasMore(false)
+        return
+      }
       if (promoOnly) {
         const need = PAGE_SIZE * nextPage
         const offers = await listPromoHighlightProducts(Math.max(need + PAGE_SIZE, 48))
@@ -667,7 +704,7 @@ export function CatalogPage() {
         setHasMore(offers.length > need)
         setLoadedPage(nextPage)
       } else {
-        const { promoOnly: _promo, ...catalogQuery } = searchArgs
+        const { promoOnly: _promo, curatedIdsKey: _ids, ...catalogQuery } = searchArgs
         const result = await searchCatalog({
           ...catalogQuery,
           page: nextPage,
@@ -699,6 +736,10 @@ export function CatalogPage() {
   const activeChips = [
     q && { key: 'q', label: `Busca: ${q}` },
     promoOnly && { key: 'promo', label: 'Só ofertas' },
+    curatedIds.length > 0 && {
+      key: 'ids',
+      label: `Seleção da campanha (${curatedIds.length})`,
+    },
     cat && {
       key: 'cat',
       label: `Classificação: ${catPath.label || cat}`,
