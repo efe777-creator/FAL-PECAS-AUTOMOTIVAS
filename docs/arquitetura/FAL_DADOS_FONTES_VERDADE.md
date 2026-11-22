@@ -50,13 +50,18 @@
 |----------|--------|------|-------------|
 | Montadora | `manufacturers` | INV/mestre | Canônico |
 | Modelo | `models` | INV/mestre | FK manufacturer |
-| Versão | `vehicle_versions` | INV/mestre | Identidade técnica |
+| Vida de linha | `models.production_year_*` | Mestre | Metadado assert; **nunca** predicado `search_products` |
+| Versão | `vehicle_versions` | INV/mestre | Identidade técnica (snapshot) |
 | Fitment | `product_vehicle_compatibility` | Fitment | Única prova compatível |
 | Alias | `vehicle_aliases` | INV | Aditivo; pending ≠ filtro |
 | Cache placa | `cached_plates` | INV | Não SoT |
 | Eventos resolução | `vehicle_resolution_events` | INV | Telemetria |
+| Instância cliente | `customer_vehicles` | Garagem | ≠ mestre; ≠ PVC |
 
-**Espelho proibido como SoT:** usar `vehicle_versions.year` no lugar de PVC `year_start`/`year_end`.
+**Espelho proibido como SoT:** usar `vehicle_versions.year` no lugar de PVC `year_start`/`year_end`.  
+**Seletor de anos (UI):** VV + vida — **não** PVC.  
+**Placa:** snapshot `yearModel`/`yearFabrication`; filtro = ano-modelo.  
+**Writers / caminhos:** [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](./FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) (lookup read-only; confirm = writer).
 
 ### 2.4 Preço
 
@@ -128,7 +133,9 @@
 
 ### Veículo → busca → PDP
 
-`placa/manual/NL` → INV/mestre → `VehicleFilter` → `search_products` (PVC) → card/PDP → summary apps
+`placa/manual/NL` → Edge lookup **read-only** → INV assert (client) → **confirm humano** → writer confirm-upsert → `VehicleFilter` → `search_products` (**PVC**) → card/PDP → summary apps  
+
+Mapa: [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](./FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md).
 
 ### Preço
 

@@ -1,17 +1,16 @@
-# Documentação FAL Peças Automotivas 3.0
+# Documentação FAL Peças Automotivas
 
-Pasta central de documentos.
+Pasta central. **Autoridade e ordem de leitura:** [entrada/FAL_INDICE_CANONICO.md](entrada/FAL_INDICE_CANONICO.md).
 
 | Tipo | Fonte canônica |
 |------|----------------|
-| **PRD de produto** | [`entrada/FAL_PRD_3.0.md`](entrada/FAL_PRD_3.0.md) — **PRD Mestre 2.0 (2026-10-08)** |
-| **Roadmap de execução** | [`planejamento/ROADMAP_FASES_3.0.md`](planejamento/ROADMAP_FASES_3.0.md) |
-| **Diagnóstico de consolidação** | [`planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md`](planejamento/DIAGNOSTICO_CONSOLIDACAO_FAL_3.0_2026-10-08.md) |
-| **Backlog consolidação** | [`planejamento/BACKLOG_CONSOLIDACAO_FAL_3.0_2026-10-08.md`](planejamento/BACKLOG_CONSOLIDACAO_FAL_3.0_2026-10-08.md) |
-| **Protocolo de auditoria (Cursor)** | [`planejamento/PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md`](planejamento/PROTOCOLO_OPERACIONAL_AUDITORIA_FAL_v1.0.md) |
-| **Gate Fase 0 / plano** | [`planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md`](planejamento/AUDITORIA_FAL_FASE0_PLANO_CORRECAO_2026-10-08.md) — Onda 0 |
-| **Schema Onda 0** | [adendo runtime](planejamento/FAL_IMP_01_ADDENDUM_RUNTIME_CANONICO_2026-10-08.md) + [VAL-01](planejamento/FAL_VAL_01_RUNTIME_SCHEMA_2026-10-08.md) — **runtime `wtbp…` PASS; gate Onda 1** |
-| Specs técnicas de entrada | `entrada/ARCHITECTURE.md`, `DATABASE.md`, `API.md`, `IMPORT.md`, `UX.md`, `IDENTIDADE_VISUAL.md` |
+| **Índice / autoridade** | [`entrada/FAL_INDICE_CANONICO.md`](entrada/FAL_INDICE_CANONICO.md) |
+| **PRD de produto** | [`entrada/FAL_PRD_4.0.md`](entrada/FAL_PRD_4.0.md) |
+| **Dados / SoT** | [`arquitetura/FAL_DADOS_FONTES_VERDADE.md`](arquitetura/FAL_DADOS_FONTES_VERDADE.md) |
+| **Veículo · caminhos · relações · layout** | [`arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md`](arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
+| **Layout admin / Adaptive** | [`planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md`](planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) |
+| **Roadmap** | [`planejamento/FAL_ROADMAP_MESTRE_4.0.md`](planejamento/FAL_ROADMAP_MESTRE_4.0.md) |
+| Histórico PRD 3.0 | [`entrada/FAL_PRD_3.0.md`](entrada/FAL_PRD_3.0.md) — supersedido |
 
 ---
 
@@ -19,43 +18,28 @@ Pasta central de documentos.
 
 ```text
 docs/
-├── README.md
-├── FAL_PRD_3.0.md           # stub → aponta para entrada/
-├── entrada/                 # PRD + specs de produto/arquitetura
-└── planejamento/            # roadmap, specs de fase, auditorias, STOPs
+├── README.md                 # ponteiro (este arquivo)
+├── entrada/                  # índice, PRD 4.0, visão
+├── arquitetura/              # SoT dados, mapa veículo, 360
+├── planejamento/             # planos, MARCHAs, VALs, padrões UX/layout
+├── futuro/                   # visão — não implementar sem gate
+└── superpowers/              # specs/plans de sessão
 ```
-
----
-
-## Fases (resumo 2026-10-08)
-
-| Bloco | Fases | Status |
-|-------|-------|--------|
-| A Fundação e operação | F1–F7 | **Concluído** |
-| B Operação comercial | F8 / F8.1 | **Base construída** |
-| C Integrações comerciais | F9 | F9-E local OK → **STOP smoke** → F9-F |
-| **D Consolidação** | **F10** | **Onda 1** — IMP-02+03 feitos; próximo IMP-08 preços ([IMP-03](planejamento/FAL_IMP_03_IDENTIDADE_VAL_2026-10-09.md)) |
-| E Catálogo mestre | F11 | Planejado |
-| F Enriquecimento | F12 | Futuro |
-| G Escala | F13 | Futuro |
-
-Detalhe e gates: [planejamento/ROADMAP_FASES_3.0.md](planejamento/ROADMAP_FASES_3.0.md).
 
 ---
 
 ## Como contribuir
 
-1. Visão/regras de produto → `docs/entrada/FAL_PRD_3.0.md` (após auditoria/consolidação)
-2. Decisões e execução de fase → `docs/planejamento/`
-3. Não duplicar specs dentro de `fal-pecas/docs/` (lá há apenas ponteiros)
-4. Branch `plan` para planejamento/implementação de fase; `dev` para integração antes de `main`
-5. **Não avançar fase sem gate**; PRD não autoriza implementar tudo de uma vez
-6. **F10:** Fase 0 feita; gate **só Onda 0** — próximo `FAL-IMP-01` (schema). Sem `FAL-IMP-02+` até `FAL-VAL-01` + aprovação Onda 1
+1. Regra de produto → PRD 4.0 (via índice).  
+2. SoT de dados / writers veículo → Fontes de Verdade + Mapa veículo.  
+3. Layout admin → Padrão Telas Layout (bump + antiregress).  
+4. Execução tática → `docs/planejamento/` (MARCHA/VAL); **não** recopiar regra canônica.  
+5. Não duplicar specs em `fal-pecas/docs/` (só ponteiros).  
+6. Branch: trabalho em `dev`; `main` só com autorização eFe.  
+7. Uma verdade: cada regra tem **um** dono; o resto linka.
 
 ---
 
-## Código da aplicação
+## Código
 
-App React: `fal-pecas/`  
-Migrations: `fal-pecas/supabase/migrations/`  
-Instalação e env: `fal-pecas/README.md`
+App: `fal-pecas/` · Migrations: `fal-pecas/supabase/migrations/` · Env: `fal-pecas/README.md`

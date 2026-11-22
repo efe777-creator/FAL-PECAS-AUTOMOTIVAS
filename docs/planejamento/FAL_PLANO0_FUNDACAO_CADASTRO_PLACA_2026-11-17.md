@@ -7,6 +7,11 @@
 **Natureza:** Auditoria + planejamento técnico (**sem implementação nesta etapa**)  
 **Relacionados:** [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) *(supersedida)* · [FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md](./FAL_SPEC_BUSCA_POR_PLACA_2026-11-09.md) · [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) · [FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md](./FAL_PLANO1_MINHA_GARAGEM_FUNDACAO_EXPERIENCIA_2026-11-18.md) · [FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md](./FAL_PLANO0_RESIDUALS_POS_FUNDACAO_2026-11-18.md)
 
+> **Atualização 2026-11-21 (autoridade):** caminhos runtime, writers e camadas de ano →  
+> [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md).  
+> **Superseded:** qualquer trecho deste PLANO 0 que diga que `plate-lookup` faz `upsert_vehicle_canonical`.  
+> Lookup é **read-only**; writer = confirm (`vehicle-confirm-upsert`). PVC continua §5.4.
+
 ---
 
 ## 0. Escopo desta entrega
@@ -30,7 +35,7 @@
 |------------|-----------|
 | Consulta de placa (mock / API Placas) via Edge `plate-lookup` | `supabase/functions/plate-lookup/index.ts` |
 | Split de modelo composto + sanitização de motor/versão | `_shared/apiPlacasPlateProvider.ts`, `splitApiModelo.ts` |
-| Upsert canônico no mestre com `source: 'plate'` | Edge + RPC `upsert_vehicle_canonical` |
+| Upsert canônico no mestre | **Pós-confirm** `vehicle-confirm-upsert` (não no lookup) — ver [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
 | Retorno de `manufacturerId` / `modelId` / `versionId` no payload | `PlateLookupResult` em `plateTypes.ts` |
 | Confirmação humana editável (`VehicleSelector`) | `VehiclePlateConfirmation.tsx` |
 | Fallback manual se API falha / incompleto | `VehiclePlateSearch` fase `manual` |
@@ -420,7 +425,7 @@ A FAL identifica e cadastra veículo pessoal mesmo sem versão/motorização da 
 
 | Camada | Placa enriquece? |
 |--------|------------------|
-| Mestre (`manufacturers` / `models` / `vehicle_versions`) | **Sim** — Edge `plate-lookup` → `upsert_vehicle_canonical` (`source=plate`), gate INV |
+| Mestre (`manufacturers` / `models` / `vehicle_versions`) | **Sim** — pós-confirm `vehicle-confirm-upsert` (lookup **RO**); ver [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
 | Garagem (`customer_vehicles`) | **Sim** — após Sim, salvar + auth (`ensureSavedVehicleFromFilter`); **não** cria mestre |
 | PVC | **Não** (proposital) |
 

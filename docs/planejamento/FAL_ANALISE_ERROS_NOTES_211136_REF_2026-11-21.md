@@ -198,6 +198,38 @@ Hub Admin Veículos → Integrações + seed fipeX via CSV no import existente. 
 
 Vida de linha em `models.production_year_*` · sync validado no hub · hard-block confirm/reconcile (residual PDF versão errada). Spec no doc híbrido + plano Cursor. #6 core (band/família/assist) intacto.
 
+**Mapa canônico (caminhos · relações · layout · writers):** [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) — não recopiar regras aqui.
+
+### Inteligência ≥8,5 — Fase 1 (2026-11-21 · não reabre #6)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** (Fase 1) |
+| Lookup | Edge `plate-lookup` **read-only** (sem upsert fresco/cache); IDs só SELECT; escrita em `vehicle-confirm-upsert` |
+| INV | `ambiguous` família irmã; `allowCanonicalUpsert=false` no lookup |
+| Dual year | Snapshot `yearModel` + `yearFabrication`; filtro prefere ano-modelo |
+| R2 | Client `vehicleCanonicalUpsert` exige ano |
+| Vida de linha | Bootstrap min/max VV → `production_year_*` no mestre ativo |
+| Evidência | vitest plates/vehicles **121+ PASS** · redeploy Edge `plate-lookup` wtbp… · vida de linha **112**/127 |
+| Fase 2 | Flags Edge `PLATE_FIPE_ASSIST=1` (`/basico-fipe` + multi-candidato) · `PLATE_ENGINE_STEPUP=1` (`/motor`) · hub chip vida de linha |
+| Ops flags | Definir secrets no projeto **dev** só quando quiser custo extra ApiPlacas |
+| VAL jornada 2026-11-21 | **PASS** 68+ unit · UI: `pastilha HB20 2015` → `maker/model/year` · mosca Troller: LLM inventava filtro → **fix** `mergeSearchIntent` descarta modelo fora do mestre · reteste UI sem chip Troller |
+| Próximo | VAL placa real ApiPlacas (ops) · sync fipeX dump completo quando disponível · ver [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
+
+### Inteligência — Riqueza→8,5 + Assert→9 (2026-11-21 · não reabre #6)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DONE** (dev) |
+| Assert-1 | `yearsByModel` = VV + vida; **PVC fora** do seletor (fit só em `search_products`) |
+| Assert-2 | Re-assert pós-candidato + dual year na confirmação; exact win não reabre irmãos |
+| Riqueza | Crossfox→Cross Fox; CHEV/QQ inactive; thin makers ocos + shells BMW/Audi/CAOA/Citroën/Hyundai |
+| Métricas mestre | makers ocos **0** · models active **134**/134 com vida · VV active **330** · models sem VV **0** |
+| VAL | mosca T1–T8 + plateIdentityAssert dual year **PASS** |
+| Score interno | Riqueza ~**8,5** · Assert ~**9** (falta VAL placa real + dump fipeX completo p/ 10) |
+| Garantias | `assertivenessGuaranteesAntiregress` + `vehicleOptionsIdentityAntiregress` · R4 residual superseded (confirm-writer) |
+| Fora | Flags FIPE/motor off até ops; MAIN/produção; predicado FIPE; Notes #6 |
+
 ### Erro #7 — Cards poluídos / mobile
 
 | Campo | Valor |

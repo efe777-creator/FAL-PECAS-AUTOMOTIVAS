@@ -21,6 +21,9 @@
 - [FAL_GARAGE_VISAO_FUNCIONAL.md](../futuro/FAL_GARAGE_VISAO_FUNCIONAL.md) — direção P2 / Garage 1+ (**FUTURO** — não autoriza implementação)
 - [VAL-placa-filtros-veiculo.md](../../fal-pecas/docs/VAL-placa-filtros-veiculo.md) — evidências smoke placa/flush
 - [FAL_AUDITORIA_GARAGEM_PLACA_V1.md](./FAL_AUDITORIA_GARAGEM_PLACA_V1.md) — **supersedida** pelo PLANO 0 + este PLANO 1
+- [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) — **autoridade** caminhos/writers (lookup RO; confirm = upsert)
+
+> **2026-11-21:** trechos que dizem `plate-lookup` → upsert mestre estão **superseded** pelo mapa acima.
 
 ---
 
@@ -45,7 +48,7 @@
 
 | Capacidade | Evidência |
 |------------|-----------|
-| Consulta placa → mestre (`source=plate`) | Edge `plate-lookup` → `vehicleCanonicalUpsert` → RPC `upsert_vehicle_canonical` |
+| Consulta placa → mestre | Lookup **RO** → confirm → `vehicle-confirm-upsert` ([mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md)) |
 | Confirmação editável + filtros catálogo | `VehiclePlateSearch`, `VehiclePlateConfirmation`, `VehicleSelector` |
 | Save progressivo na garagem (sem `version_id`) | `ensureSavedVehicleFromFilter`, `addSavedVehicle`; migration `20261118010000_customer_vehicles_progressive_text.sql` |
 | Listagem de incompletos | `listSavedVehicles` **não** filtra `version_id` null |
@@ -743,7 +746,7 @@ flowchart LR
 
 | Já existe — reaproveitar | Corrigir | Desenvolver (PLANO 1) | Futuro (P2) |
 |--------------------------|---------|----------------------|-------------|
-| plate-lookup + upsert mestre | R1 update | Dashboard + detalhe | 3D / configurador |
+| plate-lookup RO + confirm-upsert | R1 update | Dashboard + detalhe | 3D / configurador |
 | Save/list progressivo | Dedup `plate_normalized` | GarageContext + localStorage | Oficinas / mecânicos |
 | Pending/flush/ask | Exibir placa na UI | Cor, notes, assets, stock 4 níveis | Documentos avançados |
 | Account/Home/QuickPick seed | Docs auditoria v1 | Motor compat + badges | Manutenção preditiva |

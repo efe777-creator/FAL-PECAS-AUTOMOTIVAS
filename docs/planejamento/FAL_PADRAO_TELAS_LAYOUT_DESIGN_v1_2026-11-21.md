@@ -51,7 +51,9 @@ flowchart LR
 6. **Prefs ortogonais:** workspace `fal-admin-workspace-v1` ≠ RGL `fal-admin-dashboard-layout-*`.  
 7. **Domínio intocado** por mudança de layout: RPCs, resolve_price, place_order, H2/H5/H6.
 
-Âncora Adaptive já documentada: [FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md](./FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md)
+Âncora Adaptive já documentada: [FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md](./FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md)  
+
+**Veículos (CRUD + hub Integrações):** fora Adaptive — ver [mapa veículo](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) §3.3 (chips/cards, família Pagamentos).
 
 ---
 

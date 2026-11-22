@@ -3,30 +3,29 @@
 **Data:** 2026-11-21  
 **Branch:** `dev` (somente)  
 **Status:** M1–M3 hub/seed DONE · **Onda mestre inteligente DONE** (vida de linha + sync + assert residual + pórtico)  
-**Refs:** [PLANO 0](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) · [PLANO 2A](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) · [INV pós-Onda1](./FAL_INV_EXPANSAO_POS_ONDA1_V1.md) · [Notes #6](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md) · [Pagamentos hub](./FAL_PLANO_MESTRE_PAGAMENTOS_INTEGRACOES_2026-11-09.md)
+**Refs:** [Mapa veículo (caminhos·relações·layout)](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) · [PLANO 0](./FAL_PLANO0_FUNDACAO_CADASTRO_PLACA_2026-11-17.md) · [PLANO 2A](./FAL_PLANO2A_VEHICLE_IDENTITY_2026.md) · [INV pós-Onda1](./FAL_INV_EXPANSAO_POS_ONDA1_V1.md) · [Notes #6](./FAL_ANALISE_ERROS_NOTES_211136_REF_2026-11-21.md) · [Pagamentos hub](./FAL_PLANO_MESTRE_PAGAMENTOS_INTEGRACOES_2026-11-09.md) · [Layout v1.5](./FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md)
 
 ---
 
 ## Princípio de assertividade
 
-Cada afirmação tem evidência em **doc** e/ou **código**. DONE não se reimplementa. GAP vira marcha. Conflito com PLANO 0 / PVC é **bloqueado**.
+Cada afirmação tem evidência em **doc** e/ou **código**. DONE não se reimplementa. GAP vira marcha. Conflito com PLANO 0 / PVC / [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) é **bloqueado**.
 
 ## Matriz cruzada — docs × implantação × este plano
 
 | Tema | Doc canônico | Código / evidência | Status | Ação |
 |------|--------------|-------------------|--------|------|
+| Caminhos / writers / anos | [Mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) | confirm-upsert; lookup RO | **DONE** | Não recopiar |
 | Híbrido placa + manual | PLANO 0 | `VehiclePlateSearch`, `VehiclePlateConfirmation`, `VehicleSelector` | **DONE** | Não redesenhar |
-| Identificação ≠ PVC | PLANO 0 §5.4 | `adminApplyVehicleMasterImport` “sem criar PVC”; copy em `AdminVehiclesPage` | **DONE** | Hub reforça; seed herda |
+| Identificação ≠ PVC | PLANO 0 §5.4 · Fontes Verdade | import “sem PVC”; seletor sem PVC | **DONE** | Hub reforça |
 | Cache placa | PLANO 0 | Edge `cached_plates` | **DONE** | Runbook |
-| Assert placa / band | Notes #6 | `assertPlateAgainstCatalog`, `assistPlateIdentity` | **DONE** (+ ops redeploy) | Checklist ops; não reabrir |
+| Assert placa / band | Notes #6 | `assertPlateAgainstCatalog`, `assistPlateIdentity` | **DONE** | Não reabrir |
 | Garagem / activeFilter | Garagem fundação | `GarageContext` | **DONE** | Fora |
 | Identidade 2A | PLANO 2A | Roadmap | **NÃO ESTE PLANO** | Backlog |
-| INV / FIPE fonte | INV item 5 | Sem seed fipeX | **GAP** | Seed → mestre (não INV UI) |
-| Import CSV mestre | — | `AdminVehicleMasterImportPage` + service | **DONE** | **Único writer** massa |
-| Nav Importar | — | Link na página; ausente no menu | **GAP UX** | Hub na nav |
-| Hub Integrações | — | `/admin/veiculos/integracoes` | **GAP→M1** | Este plano |
-| Seed fipeX → CSV | — | `fipeXToFalVehicleMasterCsv` | **GAP→M2** | Este plano |
-| Adaptive CRUD veículos | Padrão Adaptive | CRUD clássico | **FORA** | Não misturar |
+| Seed fipeX → mestre | Este plano | `fipeXToFal*` + import / sync hub | **DONE** (fixture+thin; dump completo = ops) | Sync dump quando houver |
+| Import CSV mestre | Este plano | `adminApplyVehicleMasterImport` | **DONE** | **Único writer** massa |
+| Hub Integrações | Este plano · Layout chips | `/admin/veiculos/integracoes` | **DONE** | — |
+| Adaptive CRUD veículos | Layout v1.5 | CRUD clássico | **FORA** | Não misturar |
 | Filtro peças por FIPE | — | Catálogo = PVC | **BLOQUEADO** | Nunca |
 | Copy “100% compatível” | — | Selos PVC | **BLOQUEADO** | Nunca |
 
@@ -128,11 +127,17 @@ Riscos residuais tratados na onda inteligente: confirm hard-block · reconcile e
 
 ## Backlog
 
-- `yearFactory` / `yearModel` no snapshot  
-- `fipeCode` informativo (nunca predicado de peça)  
+- ~~`yearFactory` / `yearModel` no snapshot~~ → **DONE** Fase 1 inteligência (`yearModel` + `yearFabrication`; filtro = ano-modelo)  
+- Lookup placa **read-only** (sem upsert Edge) → **DONE** Fase 1 (writer = confirm)  
+- ~~`fipeCode` informativo~~ → **DONE** Fase 2 (flags `PLATE_FIPE_ASSIST` / `PLATE_ENGINE_STEPUP`; nunca predicado PVC)  
+- Vida de linha → **134/134** ativos com vida; makers ocos **0** (dev 2026-11-21)  
+- Anos seletor = VV+vida (PVC fora) → [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md)
+
+**Backlog residual (não reabre este plano)**  
 - AdaptiveWorkspace no CRUD veículos  
 - Parallelum / API paga  
 - VIN 2A  
+- Dump fipeX completo (ops) · VAL placa ApiPlacas ao vivo
 
 ## Fora de escopo
 

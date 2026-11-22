@@ -1,7 +1,7 @@
 # FAL — Índice canônico de documentos
 
-**Versão:** 1.2  
-**Data:** 2026-11-16  
+**Versão:** 1.3  
+**Data:** 2026-11-21  
 **Status:** CANÔNICO (mapa de autoridade)
 
 Em caso de conflito: **documento proprietário da regra vence**. Docs históricos são evidência, não autoridade.
@@ -14,6 +14,10 @@ Em caso de conflito: **documento proprietário da regra vence**. Docs histórico
 |---------------|------|
 | Entender o norte 2040 | [FAL_VISAO_ECOSSISTEMA_2040.md](./FAL_VISAO_ECOSSISTEMA_2040.md) |
 | Regra de produto | [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) |
+| Dados / o que não duplicar | [FAL_DADOS_FONTES_VERDADE.md](../arquitetura/FAL_DADOS_FONTES_VERDADE.md) |
+| **Veículo: caminhos · relações · layout** | [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
+| Layout admin / Adaptive / tokens | [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md](../planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) |
+| Mestre / seed / hub Integrações | [FAL_PLANO_MESTRE_VEICULOS_HIBRIDO…](../planejamento/FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md) |
 | Saber o que é MVP / done | [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) |
 | **Executar agora** | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — frente **G8** (STOP 8.3) |
 | Telas e jornadas | [FAL_MVP_MAPA_TELAS_JORNADAS.md](../planejamento/FAL_MVP_MAPA_TELAS_JORNADAS.md) |
@@ -47,6 +51,8 @@ Evidência transversal: [FAL_AUDITORIA_CONSOLIDADA_PRD4.md](../planejamento/FAL_
 | [FAL_PRD_4.0.md](./FAL_PRD_4.0.md) | PRD produto | CANÔNICO |
 | [FAL_ARQUITETURA_360.md](../arquitetura/FAL_ARQUITETURA_360.md) | Arquitetura | CANÔNICO |
 | [FAL_DADOS_FONTES_VERDADE.md](../arquitetura/FAL_DADOS_FONTES_VERDADE.md) | Dados / SoT | CANÔNICO |
+| [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) | Veículo caminhos·relações·layout | CANÔNICO |
+| [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md](../planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) | Layout admin / Adaptive | NORMATIVO |
 | [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) | Escopo MVP | CANÔNICO |
 | [FAL_MVP_MAPA_TELAS_JORNADAS.md](../planejamento/FAL_MVP_MAPA_TELAS_JORNADAS.md) | Telas / jornadas | CANÔNICO |
 | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) | P0 + G1–G8 | CANÔNICO |
