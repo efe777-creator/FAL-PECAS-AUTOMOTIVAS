@@ -229,7 +229,7 @@ export function PostSaleHelpPanel({
             <div className="rounded-[10px] border border-fal-warning/40 bg-fal-warning/10 p-3 text-sm text-fal-ink">
               <p className="mt-0 mb-2 font-extrabold text-fal-fg">Condições de devolução</p>
               <ul className="mb-3 mt-0 list-disc space-y-1 pl-5">
-                {RETURN_POLICY_BULLETS.slice(0, 5).map((b) => (
+                {RETURN_POLICY_BULLETS.map((b) => (
                   <li key={b.slice(0, 48)}>{b}</li>
                 ))}
               </ul>

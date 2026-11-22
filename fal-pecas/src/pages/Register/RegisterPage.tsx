@@ -262,10 +262,17 @@ export function RegisterPage() {
                 Li e aceito os{' '}
                 <Link to="/termos" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   termos de uso
-                </Link>{' '}
-                e a{' '}
+                </Link>
+                , a{' '}
                 <Link to="/privacidade" className="font-semibold text-fal-navy dark:text-fal-fg hover:underline">
                   política de privacidade
+                </Link>{' '}
+                e a política de{' '}
+                <Link
+                  to="/trocas-devolucoes"
+                  className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+                >
+                  trocas e devoluções
                 </Link>
                 .
               </span>

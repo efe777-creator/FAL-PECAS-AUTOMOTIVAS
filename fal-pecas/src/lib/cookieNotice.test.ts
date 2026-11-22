@@ -3,6 +3,7 @@ import {
   COOKIE_CONSENT_V2_STORAGE_KEY,
   COOKIE_NOTICE_STORAGE_KEY,
   acceptCookieNotice,
+  clearCookieConsent,
   getCookieConsent,
   hasAcceptedCookieNotice,
   hasMarketingConsent,
@@ -53,5 +54,16 @@ describe('cookieNotice', () => {
     expect(hasAcceptedCookieNotice(storage)).toBe(true)
     expect(hasMarketingConsent(storage)).toBe(false)
     expect(storage.getItem(COOKIE_CONSENT_V2_STORAGE_KEY)).toBeTruthy()
+  })
+
+  it('clearCookieConsent remove aceite e permite novo banner', () => {
+    const storage = memoryStorage()
+    saveCookieConsent({ marketing: true }, storage)
+    expect(hasAcceptedCookieNotice(storage)).toBe(true)
+    clearCookieConsent(storage)
+    expect(hasAcceptedCookieNotice(storage)).toBe(false)
+    expect(hasMarketingConsent(storage)).toBe(false)
+    expect(storage.getItem(COOKIE_CONSENT_V2_STORAGE_KEY)).toBeNull()
+    expect(storage.getItem(COOKIE_NOTICE_STORAGE_KEY)).toBeNull()
   })
 })

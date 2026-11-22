@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Container } from './Container'
 import logoFal from '@/assets/logos/logo-fal-transparente.png'
 import { useAuth } from '@/contexts/AuthContext'
+import { openCookiePreferences } from '@/lib/cookieNotice'
 import { getStoreIdentity } from '@/lib/storeIdentity'
 import { storeWhatsAppPhone, whatsAppHref } from '@/lib/whatsapp'
 
@@ -120,6 +121,13 @@ export function Footer() {
           >
             Trocas e devoluções
           </Link>
+          <button
+            type="button"
+            className="mb-2 block cursor-pointer border-0 bg-transparent p-0 text-left text-[13px] text-[#c5cbd1] hover:text-white"
+            onClick={() => openCookiePreferences()}
+          >
+            Preferências de cookies
+          </button>
         </div>
       </Container>
     </footer>

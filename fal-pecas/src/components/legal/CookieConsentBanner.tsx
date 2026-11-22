@@ -1,5 +1,9 @@
-import { hasAcceptedCookieNotice, saveCookieConsent } from '@/lib/cookieNotice'
-import { useState } from 'react'
+import {
+  COOKIE_PREFERENCES_EVENT,
+  hasAcceptedCookieNotice,
+  saveCookieConsent,
+} from '@/lib/cookieNotice'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export function CookieConsentBanner() {
@@ -7,6 +11,14 @@ export function CookieConsentBanner() {
     if (typeof window === 'undefined') return false
     return !hasAcceptedCookieNotice()
   })
+
+  useEffect(() => {
+    function onOpenPreferences() {
+      setVisible(true)
+    }
+    window.addEventListener(COOKIE_PREFERENCES_EVENT, onOpenPreferences)
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, onOpenPreferences)
+  }, [])
 
   if (!visible) return null
 

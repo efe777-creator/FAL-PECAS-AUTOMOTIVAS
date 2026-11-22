@@ -27,7 +27,7 @@ const COPY: Record<
       'Usamos cookies e armazenamento local essenciais (sessão, carrinho, segurança).',
       'Com o seu consentimento, podemos usar cookies/tags de analytics e marketing (ex.: Google Analytics/Ads, Meta Pixel) para medir campanhas e melhorar a loja. Sem consentimento de marketing, esses scripts não são carregados.',
       'Não vendemos seus dados pessoais. Parceiros de pagamento, frete e, quando ativos, plataformas de ads recebem apenas o necessário para a finalidade (compra ou medição de conversão).',
-      'Você pode solicitar correção ou exclusão de conta pelos canais de atendimento da loja (WhatsApp ou e-mail do rodapé).',
+      'Você pode solicitar correção ou exclusão de conta pela área Minha Conta (/conta) ou pelos canais de atendimento da loja (WhatsApp ou e-mail do rodapé).',
     ],
   },
   'trocas-devolucoes': {
@@ -77,6 +77,16 @@ export function LegalDocumentPage({ kind }: { kind: LegalDocKind }) {
         . Documento resumido operacional — versão jurídica completa pode ser publicada pela loja a
         qualquer momento.
       </p>
+      {kind === 'privacidade' ? (
+        <p className="mt-4 max-w-2xl text-sm">
+          <Link
+            to="/conta"
+            className="font-semibold text-fal-navy dark:text-fal-fg hover:underline"
+          >
+            Ir para Minha Conta (solicitar correção ou exclusão)
+          </Link>
+        </p>
+      ) : null}
       {kind !== 'trocas-devolucoes' ? (
         <p className="mt-4 max-w-2xl text-sm">
           <Link

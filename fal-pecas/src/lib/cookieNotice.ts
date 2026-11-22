@@ -13,7 +13,10 @@ export type CookieConsentV2 = {
   acceptedAt: string
 }
 
-type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
+type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+
+/** Disparado pelo rodapé para reabrir o banner de preferências. */
+export const COOKIE_PREFERENCES_EVENT = 'fal:open-cookie-preferences'
 
 function defaultLocalStorage(): StorageLike | null {
   try {
@@ -101,4 +104,26 @@ export function saveCookieConsent(
     /* private mode / quota */
   }
   return value
+}
+
+/** Remove o aceite para o banner poder ser exibido de novo. */
+export function clearCookieConsent(
+  storage: StorageLike | null = defaultLocalStorage(),
+): void {
+  if (!storage) return
+  try {
+    storage.removeItem(COOKIE_CONSENT_V2_STORAGE_KEY)
+    storage.removeItem(COOKIE_NOTICE_STORAGE_KEY)
+  } catch {
+    /* private mode */
+  }
+}
+
+/** Limpa o aceite e pede ao banner para reabrir (preferências no rodapé). */
+export function openCookiePreferences(
+  storage: StorageLike | null = defaultLocalStorage(),
+): void {
+  clearCookieConsent(storage)
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(COOKIE_PREFERENCES_EVENT))
 }
