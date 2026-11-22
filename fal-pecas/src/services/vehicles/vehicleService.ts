@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import type { VehicleCatalogEntry } from '@/services/search/interpretSearchQuery'
 import type { VehicleFilter, VehicleOptionTree } from '@/types'
 import { vehicleModelKey, vehicleModelYearKey } from '@/services/vehicles/vehicleOptionKeys'
+import { yearsFromProductionLife } from '@/services/vehicles/productionLifeYears'
 
 function relationName(value: unknown): string | undefined {
   if (!value) return undefined
@@ -126,17 +127,11 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
       end: Number.isFinite(pe as number) ? (pe as number) : null,
     }
     // Vida de linha = identidade do modelo (não predicado PVC).
+    // end null = em linha → expande até o ano corrente (não colapsar no start).
     if (ps != null && Number.isFinite(ps)) {
       yearNumsByModel[mk] ??= new Set()
-      const endEff = pe != null && Number.isFinite(pe) ? (pe as number) : ps
-      const lo = Math.min(ps, endEff)
-      const hi = Math.max(ps, endEff)
-      const span = hi - lo
-      if (span <= 40) {
-        for (let y = lo; y <= hi; y++) yearNumsByModel[mk].add(y)
-      } else {
-        yearNumsByModel[mk].add(lo)
-        yearNumsByModel[mk].add(hi)
+      for (const y of yearsFromProductionLife(ps, pe)) {
+        yearNumsByModel[mk].add(y)
       }
     }
   }

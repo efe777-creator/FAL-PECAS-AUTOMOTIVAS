@@ -14,5 +14,6 @@ describe('vehicleOptions identity antiregress', () => {
     expect(src).not.toMatch(/product_vehicle_compatibility/)
     expect(src).toMatch(/production_year_start/)
     expect(src).toMatch(/yearsByModel/)
+    expect(src).toMatch(/yearsFromProductionLife/)
   })
 })

@@ -11,6 +11,11 @@ export type VehicleMasterStats = {
   qualityReview: number
   qualityQuarantined: number
   qualitySuperseded: number
+  /**
+   * Verified+active com 0 VV ativo (casca nominal — ex. Corolla Cross sem config).
+   * Não é review: nome ok, riqueza insuficiente.
+   */
+  verifiedThinShells: number
 }
 
 export type VehicleModelQualityStatus = 'review' | 'verified' | 'quarantined' | 'superseded'
@@ -58,6 +63,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityReview,
     qualityQuarantined,
     qualitySuperseded,
+    thinShells,
   ] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
@@ -71,6 +77,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     countQuality('review'),
     countQuality('quarantined'),
     countQuality('superseded'),
+    countVerifiedThinShells(),
   ])
   if (withLife.error) throw withLife.error
   return {
@@ -82,7 +89,29 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityReview,
     qualityQuarantined,
     qualitySuperseded,
+    verifiedThinShells: thinShells,
   }
+}
+
+/** Verified ativos sem nenhuma VV ativa (casca). */
+async function countVerifiedThinShells(): Promise<number> {
+  const sb = getSupabase()
+  const { data: models, error: e1 } = await sb
+    .from('models')
+    .select('id')
+    .eq('status', 'active')
+    .eq('quality_status', 'verified')
+  if (e1) throw e1
+  const ids = (models ?? []).map((m) => String(m.id))
+  if (!ids.length) return 0
+  const { data: vvs, error: e2 } = await sb
+    .from('vehicle_versions')
+    .select('model_id')
+    .eq('status', 'active')
+    .in('model_id', ids)
+  if (e2) throw e2
+  const withVv = new Set((vvs ?? []).map((v) => String(v.model_id)))
+  return ids.filter((id) => !withVv.has(id)).length
 }
 
 type QueueRow = {

@@ -50,6 +50,7 @@ export function AdminVehicleIntegrationsHubPage() {
     review: number
     quarantined: number
     superseded: number
+    thinShells: number
   } | null>(null)
   const [queue, setQueue] = useState<VehicleReviewQueueItem[]>([])
   const [queueError, setQueueError] = useState<string | null>(null)
@@ -73,6 +74,7 @@ export function AdminVehicleIntegrationsHubPage() {
         review: s.qualityReview,
         quarantined: s.qualityQuarantined,
         superseded: s.qualitySuperseded,
+        thinShells: s.verifiedThinShells,
       })
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
@@ -184,6 +186,11 @@ export function AdminVehicleIntegrationsHubPage() {
               <span className="rounded-md bg-fal-line/60 px-2 py-1 text-xs font-bold text-fal-muted">
                 Substituídos: {quality.superseded}
               </span>
+              {quality.thinShells > 0 ? (
+                <span className="rounded-md bg-orange-100 px-2 py-1 text-xs font-bold text-orange-950">
+                  Cascas (0 VV): {quality.thinShells}
+                </span>
+              ) : null}
             </>
           ) : null}
           <StatusChip label="Lookup read-only" on />
