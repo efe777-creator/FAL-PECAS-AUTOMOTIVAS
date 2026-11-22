@@ -101,7 +101,9 @@ flowchart TB
 
 ### 3.2 Seed / sync mestre
 
-Hub `/admin/veiculos/integracoes` → CSV / fipeX normalizer → **único** apply massa `adminApplyVehicleMasterImport` (+ `merge_model_production_years`). Zero PVC.
+Hub `/admin/veiculos/integracoes` → `normalizeVehicleMasterInput` → CSV / fipeX intelligence → apply massa `adminApplyVehicleMasterImport` / sync (+ `merge_model_production_years`). Zero PVC.  
+Writers reais também: CRUD admin (`adminUpsertModel`) e RPC `apply_catalog_applications_import` (modelo novo só `quality_status=review`).  
+Loja: árvore/`listVehicleCatalogEntries` só `active` + `verified`. Runbook: `docs/dados/FAL_RUNBOOK_QUALIDADE_MESTRE_VEICULAR_2026-11-21.md`.
 
 ### 3.3 Admin layout (veículos)
 
