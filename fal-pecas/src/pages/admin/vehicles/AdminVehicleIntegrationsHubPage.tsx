@@ -7,6 +7,7 @@ import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
   listVerifiedThinShells,
+  type VehiclePointLifeItem,
   type VehicleReviewQueueItem,
   type VehicleThinShellItem,
 } from '@/services/admin/adminVehicleMasterStats'
@@ -60,6 +61,7 @@ export function AdminVehicleIntegrationsHubPage() {
   const [queueError, setQueueError] = useState<string | null>(null)
   const [thinShells, setThinShells] = useState<VehicleThinShellItem[]>([])
   const [thinShellsError, setThinShellsError] = useState<string | null>(null)
+  const [pointLifeItems, setPointLifeItems] = useState<VehiclePointLifeItem[]>([])
   const [statsError, setStatsError] = useState<string | null>(null)
 
   const [syncBusy, setSyncBusy] = useState(false)
@@ -155,9 +157,11 @@ export function AdminVehicleIntegrationsHubPage() {
       })
       setThinShells(s.verifiedThinShellItems)
       setThinShellsError(null)
+      setPointLifeItems(s.verifiedPointLifeItems)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar contadores'))
       setThinShellsError(toUserMessage(err, 'Falha ao listar cascas'))
+      setPointLifeItems([])
     }
     setQueueError(null)
     try {
@@ -392,6 +396,42 @@ export function AdminVehicleIntegrationsHubPage() {
             ))}
           </ul>
         ) : null}
+      </div>
+
+      <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+        <p className="m-0 text-sm font-bold text-fal-fg">
+          Vida pontual verified ({pointLifeItems.length})
+        </p>
+        <p className="mb-2 mt-1 text-sm text-fal-muted">
+          start=end — seletor só oferece um ano. Abrir no cadastro para alargar a vida com evidência
+          (sem inventar faixa).
+        </p>
+        {pointLifeItems.length === 0 ? (
+          <p className="m-0 text-sm text-fal-muted">Nenhuma vida pontual verified.</p>
+        ) : (
+          <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
+            {pointLifeItems.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-fal-line/60 py-1 text-sm"
+              >
+                <span className="rounded-md bg-orange-50 px-2 py-0.5 text-xs font-bold text-orange-900">
+                  {p.year}
+                </span>
+                <span className="font-semibold text-fal-fg">
+                  {p.makerName} {p.name}
+                </span>
+                {p.reviewNote ? <span className="text-fal-muted">{p.reviewNote}</span> : null}
+                <Link
+                  to={`/admin/veiculos?model=${encodeURIComponent(p.id)}`}
+                  className="text-xs font-semibold text-fal-fg"
+                >
+                  Abrir
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">

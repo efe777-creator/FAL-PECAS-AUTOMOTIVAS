@@ -7,6 +7,14 @@ export type VehicleThinShellItem = {
   reviewNote: string | null
 }
 
+export type VehiclePointLifeItem = {
+  id: string
+  name: string
+  makerName: string
+  year: number
+  reviewNote: string | null
+}
+
 export type VehicleMasterStats = {
   manufacturersActive: number
   modelsActive: number
@@ -27,6 +35,8 @@ export type VehicleMasterStats = {
   verifiedThinShellItems: VehicleThinShellItem[]
   /** Verified com start=end (vida pontual residual — seletor pobre). */
   verifiedPointLife: number
+  /** Lista vida pontual (mesma fonte do contador). */
+  verifiedPointLifeItems: VehiclePointLifeItem[]
 }
 
 export type VehicleModelQualityStatus = 'review' | 'verified' | 'quarantined' | 'superseded'
@@ -75,7 +85,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualityQuarantined,
     qualitySuperseded,
     thinShellItems,
-    pointLife,
+    pointLifeItems,
   ] = await Promise.all([
     countActive('manufacturers'),
     countActive('models'),
@@ -90,7 +100,7 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     countQuality('quarantined'),
     countQuality('superseded'),
     loadVerifiedThinShellRows(),
-    countVerifiedPointLife(),
+    loadVerifiedPointLifeRows(),
   ])
   if (withLife.error) throw withLife.error
   return {
@@ -104,7 +114,8 @@ export async function adminFetchVehicleMasterStats(): Promise<VehicleMasterStats
     qualitySuperseded,
     verifiedThinShells: thinShellItems.length,
     verifiedThinShellItems: thinShellItems,
-    verifiedPointLife: pointLife,
+    verifiedPointLife: pointLifeItems.length,
+    verifiedPointLifeItems: pointLifeItems,
   }
 }
 
@@ -147,21 +158,38 @@ export async function listVerifiedThinShells(): Promise<VehicleThinShellItem[]> 
 }
 
 /** Verified ativos com vida pontual (start=end) — seletor não abre faixa. */
-async function countVerifiedPointLife(): Promise<number> {
+async function loadVerifiedPointLifeRows(): Promise<VehiclePointLifeItem[]> {
   const { data, error } = await getSupabase()
     .from('models')
-    .select('id, production_year_start, production_year_end')
+    .select('id, name, review_note, production_year_start, production_year_end, manufacturers(name)')
     .eq('status', 'active')
     .eq('quality_status', 'verified')
     .not('production_year_start', 'is', null)
     .not('production_year_end', 'is', null)
+    .order('name')
   if (error) throw error
-  return (data ?? []).filter(
-    (r) =>
-      r.production_year_start != null &&
-      r.production_year_end != null &&
-      Number(r.production_year_start) === Number(r.production_year_end),
-  ).length
+  return (data ?? [])
+    .filter(
+      (r) =>
+        r.production_year_start != null &&
+        r.production_year_end != null &&
+        Number(r.production_year_start) === Number(r.production_year_end),
+    )
+    .map((r) => {
+      const mk = r.manufacturers
+      const first = Array.isArray(mk) ? mk[0] : mk
+      return {
+        id: String(r.id),
+        name: String(r.name),
+        makerName: String(first?.name ?? '—'),
+        year: Number(r.production_year_start),
+        reviewNote: r.review_note ? String(r.review_note) : null,
+      }
+    })
+}
+
+export async function listVerifiedPointLife(): Promise<VehiclePointLifeItem[]> {
+  return loadVerifiedPointLifeRows()
 }
 
 type QueueRow = {
