@@ -155,7 +155,8 @@ describe('assertividade · writers e duplicidade de escrita', () => {
   it('hub e admin usam setModelQualityStatus / badge qualidade', () => {
     const hub = read('src/pages/admin/vehicles/AdminVehicleIntegrationsHubPage.tsx')
     expect(hub).toMatch(/setModelQualityStatus/)
-    expect(hub).toMatch(/Verificar \(A1\)/)
+    expect(hub).toMatch(/Verificar/)
+    expect(hub).not.toMatch(/window\.prompt/)
     expect(hub).toMatch(/\?model=/)
     expect(hub).toMatch(/Cascas \(0 VV\):/)
     expect(hub).toMatch(/verifiedThinShellItems|listVerifiedThinShells/)

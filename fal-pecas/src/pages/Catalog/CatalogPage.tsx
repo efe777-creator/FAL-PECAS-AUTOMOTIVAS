@@ -32,7 +32,13 @@ import {
   readCatalogScroll,
   saveCatalogScroll,
 } from '@/lib/catalogScroll'
-import { SEARCH_CATALOG_HINT, SEARCH_INPUT_PLACEHOLDER } from '@/lib/searchCopy'
+import {
+  SEARCH_CATALOG_HINT,
+  SEARCH_INPUT_PLACEHOLDER,
+  SEARCH_REFINE_PRODUCT_HINT,
+  searchVehicleBrowseLabel,
+  searchVehicleEmptyDescription,
+} from '@/lib/searchCopy'
 import { listAllCategories } from '@/services/categories/categoryService'
 import { subscribeCategoriesChanged } from '@/services/categories/categoryEvents'
 import {
@@ -168,6 +174,8 @@ export function CatalogPage() {
   const requestId = useRef(0)
   const resultsRef = useRef<HTMLDivElement>(null)
   const scrollRestoredRef = useRef(false)
+  /** Após limpar veículo da URL, não reescrever YMM a partir de `q` (ex.: I30). */
+  const suppressVehicleRewriteRef = useRef(false)
   const productsRef = useRef<Product[]>([])
   productsRef.current = products
 
@@ -277,15 +285,31 @@ export function CatalogPage() {
   }, [fitFilter, garage?.activeFilter, garage?.isSessionActive, pageVehicleFilter])
 
   function clearFitContext() {
-    if (garage?.activeFilter) garage.clearActiveVehicle()
+    const hadGarage = Boolean(garage?.activeFilter)
+    if (hadGarage) garage!.clearActiveVehicle()
+
+    // Chip “Minha Garagem/sessão”: só limpa o veículo ativo — mantém a busca/YMM da URL
+    // (ex.: pesquisou I30; limpar HB20 da garagem não pode apagar a pesquisa).
+    const pageHasVehicle = fitSpecificityScore(pageVehicleFilter) > 0
+    if (hadGarage && pageHasVehicle) return
+    if (hadGarage && !pageHasVehicle) return
+
+    // Fit só vinha dos filtros da página: tira YMM mas devolve o termo à busca.
     setParams((prev) => {
       const next = new URLSearchParams(prev)
+      const keepQ = next.get('q')?.trim() ?? ''
+      const modelName = next.get('model')?.trim() ?? ''
       let changed = false
-      for (const key of ['maker', 'model', 'year', 'engine', 'version', 'page'] as const) {
+      for (const key of ['maker', 'model', 'year', 'engine', 'version', 'vehicle', 'page'] as const) {
         if (next.has(key)) {
           next.delete(key)
           changed = true
         }
+      }
+      if (!keepQ && modelName) {
+        next.set('q', modelName)
+        changed = true
+        suppressVehicleRewriteRef.current = true
       }
       return changed ? next : prev
     })
@@ -604,6 +628,14 @@ export function CatalogPage() {
     if (intent.clarification === 'version') {
       return 'Não encontramos essa versão no cadastro deste modelo. Mostrando peças por modelo/ano — refine pelo filtro Versão se precisar.'
     }
+    if (intent.clarification === 'product') {
+      const vehicleLabel = [intent.vehicle.maker, intent.vehicle.model, intent.vehicle.year]
+        .filter(Boolean)
+        .join(' ')
+      return vehicleLabel
+        ? `Encontramos o veículo ${vehicleLabel}. ${SEARCH_REFINE_PRODUCT_HINT}`
+        : SEARCH_REFINE_PRODUCT_HINT
+    }
     if (intent.clarification === 'year') {
       return 'Informe o ano do veículo para refinar a busca.'
     }
@@ -613,7 +645,11 @@ export function CatalogPage() {
     return null
   }
 
-  /** Texto livre → URL canônica (mesmos params do seletor YMM). */
+  const vehicleBrowseOnly = Boolean(
+    (maker.trim() || model.trim()) && !q.trim() && curatedIds.length === 0,
+  )
+
+  /** Texto livre → URL canônica (intent novo substitui YMM; limpa campanha ids). */
   async function applyInterpretedQuery(raw: string) {
     const catalog = await listVehicleCatalogEntries()
     const intent = await interpretNaturalLanguage(raw, { catalog })
@@ -626,14 +662,22 @@ export function CatalogPage() {
       year: catalogParams.year ?? null,
       engine: catalogParams.engine ?? null,
       version: catalogParams.version ?? null,
+      ids: null,
     })
   }
 
-  /** Deep-link `?q=HB20 2015` sem vehicle → reescreve URL canônica. */
+  /**
+   * Deep-link / URL com `q`: se o texto carrega veículo, intent vence YMM velho
+   * (ex.: ?maker=Fiat&model=Palio&q=I30 → Hyundai i30).
+   * Só-texto (ex.: q=pivô com YMM já certo) não apaga maker/model.
+   */
   useEffect(() => {
     const raw = q.trim()
     if (!raw) return
-    if (maker || model || year || engine || version) return
+    if (suppressVehicleRewriteRef.current) {
+      suppressVehicleRewriteRef.current = false
+      return
+    }
     let cancelled = false
     void (async () => {
       try {
@@ -641,13 +685,22 @@ export function CatalogPage() {
         if (cancelled) return
         const intent = await interpretNaturalLanguage(raw, { catalog })
         const { catalogParams } = buildCatalogSearchParams(intent)
-        const hasVehicle =
+        const intentHasVehicle =
           Boolean(catalogParams.maker) ||
           Boolean(catalogParams.model) ||
           Boolean(catalogParams.year) ||
           Boolean(catalogParams.engine) ||
           Boolean(catalogParams.version)
-        if (!hasVehicle) return
+        if (!intentHasVehicle) return
+        const nextQ = catalogParams.q ?? ''
+        const same =
+          nextQ === q &&
+          (catalogParams.maker ?? '') === maker &&
+          (catalogParams.model ?? '') === model &&
+          (catalogParams.year ?? '') === year &&
+          (catalogParams.engine ?? '') === engine &&
+          (catalogParams.version ?? '') === version
+        if (same) return
         if (cancelled) return
         setSearchHint(hintFromIntent(intent))
         patchParams({
@@ -657,6 +710,7 @@ export function CatalogPage() {
           year: catalogParams.year ?? null,
           engine: catalogParams.engine ?? null,
           version: catalogParams.version ?? null,
+          ids: null,
         })
       } catch {
         /* searchCatalog ainda interpreta no fetch */
@@ -665,7 +719,7 @@ export function CatalogPage() {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só deep-link q-only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link q ↔ YMM
   }, [q, maker, model, year, engine, version])
 
   /** Placa / garagem: grava filtros e atualiza árvore (anos PVC expandidos). */
@@ -694,7 +748,15 @@ export function CatalogPage() {
     try {
       await applyInterpretedQuery(raw)
     } catch {
-      patchParams({ q: raw })
+      patchParams({
+        q: raw,
+        maker: null,
+        model: null,
+        year: null,
+        engine: null,
+        version: null,
+        ids: null,
+      })
     }
   }
 
@@ -810,22 +872,34 @@ export function CatalogPage() {
     return null
   }, [cat, catPath.subgrupoId, catPath.grupoId, catPath.categoriaId, allCategories])
 
-  const emptyDescription = vehicleFiltersActive && !onlyQueryChip
-    ? 'Identificamos o veículo, mas ainda não temos peças compatíveis cadastradas.'
-    : onlyQueryChip
-      ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
-      : cat.trim() && parentCategorySlug
-        ? `Nenhum produto nesta classificação (${catPath.label || cat}). Experimente o nível superior ou limpe o filtro de grupo/subgrupo.`
-      : activeChips.length > 0
-        ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
-        : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
+  const emptyDescription =
+    vehicleFiltersActive && !onlyQueryChip
+      ? searchVehicleEmptyDescription({ maker, model, year })
+      : onlyQueryChip
+        ? `Nada encontrado para “${q}”. Tente o código do fabricante, o código interno, outro nome da peça ou filtre pelo veículo.`
+        : cat.trim() && parentCategorySlug
+          ? `Nenhum produto nesta classificação (${catPath.label || cat}). Experimente o nível superior ou limpe o filtro de grupo/subgrupo.`
+          : activeChips.length > 0
+            ? `Nenhum resultado para: ${activeChips.map((c) => c.label).join(' · ')}. Remova filtros, tente o código da peça ou selecione o veículo.`
+            : 'Busque por nome, código ou filtre pelo veículo para ver resultados.'
 
   function removeChip(key: string) {
-    if (key === 'maker') {
-      patchParams({ maker: null, model: null, year: null, engine: null, version: null })
-    } else if (key === 'model') {
-      patchParams({ model: null, year: null, engine: null, version: null })
-    } else if (key === 'year') {
+    if (key === 'maker' || key === 'model') {
+      // Só-veículo (q vazio, ex. I30): devolve o modelo à busca ao tirar o chip.
+      const restoreQ = q.trim() || model.trim() || maker.trim()
+      if (!q.trim() && restoreQ) suppressVehicleRewriteRef.current = true
+      patchParams({
+        maker: null,
+        model: null,
+        year: null,
+        engine: null,
+        version: null,
+        q: restoreQ || null,
+      })
+      if (restoreQ) setSearchDraft(restoreQ)
+      return
+    }
+    if (key === 'year') {
       patchParams({ year: null })
     } else if (key === 'sort') {
       patchParams({ sort: null })
@@ -1224,6 +1298,18 @@ export function CatalogPage() {
           >
             Fechar
           </button>
+        </div>
+      ) : null}
+
+      {vehicleBrowseOnly ? (
+        <div
+          className="mt-3 rounded-fal border border-fal-navy/25 bg-fal-navy px-3 py-3 text-sm text-fal-yellow sm:px-4"
+          role="status"
+        >
+          <p className="m-0 font-extrabold">
+            {searchVehicleBrowseLabel({ maker, model, year })}
+          </p>
+          <p className="mt-1 mb-0 text-xs text-white/85 sm:text-sm">{SEARCH_REFINE_PRODUCT_HINT}</p>
         </div>
       ) : null}
 

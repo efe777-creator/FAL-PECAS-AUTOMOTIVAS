@@ -25,7 +25,7 @@ Cada afirmação tem evidência em **doc** e/ou **código**. DONE não se reimpl
 | Seed fipeX → mestre | Este plano | `fipeXToFal*` + import / sync hub | **DONE** (fixture+thin; dump completo = ops) | Sync dump quando houver |
 | Import CSV mestre | Este plano | `adminApplyVehicleMasterImport` | **DONE** | **Único writer** massa |
 | Hub Integrações | Este plano · Layout chips | `/admin/veiculos/integracoes` | **DONE** | — |
-| Adaptive CRUD veículos | Layout v1.5 | CRUD clássico | **FORA** | Não misturar |
+| Adaptive CRUD veículos | Layout v1.6 | Lista + guia Adaptive | **ESTE PLANO** | Hub Integrações continua chips |
 | Filtro peças por FIPE | — | Catálogo = PVC | **BLOQUEADO** | Nunca |
 | Copy “100% compatível” | — | Selos PVC | **BLOQUEADO** | Nunca |
 
@@ -35,7 +35,7 @@ Cada afirmação tem evidência em **doc** e/ou **código**. DONE não se reimpl
 2. Não segundo `adminApply*` — fipeX só produz CSV para o import atual.  
 3. Não gravar PVC no seed/import.  
 4. Não usar `codigo_fipe` como predicado de catálogo.  
-5. Hub visual = padrão Pagamentos (chips + cards), não AdaptiveWorkspace.  
+5. Hub Integrações = padrão Pagamentos (chips + cards); CRUD `/admin/veiculos` = AdaptiveWorkspace (`moduleKey=vehicles`) desde FAL-UI-LAYOUT v1.6.0.  
 6. Branch só `dev`.
 
 ## Spec hub — `/admin/veiculos/integracoes`
@@ -134,7 +134,7 @@ Riscos residuais tratados na onda inteligente: confirm hard-block · reconcile e
 - Anos seletor = VV+vida (PVC fora) → [mapa](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md)
 
 **Backlog residual (não reabre este plano)**  
-- AdaptiveWorkspace no CRUD veículos  
+- AdaptiveWorkspace no hub Integrações (CRUD veículos já Adaptive desde v1.6.0)  
 - Parallelum / API paga  
 - VIN 2A  
 - Dump fipeX completo (ops) · VAL placa ApiPlacas ao vivo

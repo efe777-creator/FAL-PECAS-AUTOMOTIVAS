@@ -3,6 +3,7 @@
  * Fallback permanente: interpretSearchQuery.
  * LLM: Edge `interpret-search-nl` só com VITE_SEARCH_NL_LLM=1.
  * Nunca inventa PVC / preço / estoque.
+ * Auxilia YMM/peça; não apaga pesquisa sustentada pelo texto; não inventa productQuery.
  */
 import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
@@ -25,6 +26,23 @@ function llmEnabledByEnv(): boolean {
   } catch {
     return false
   }
+}
+
+/** Tokens significativos do productQuery precisam aparecer no raw (anti-alucinação). */
+export function productQuerySupportedByRaw(
+  raw: string,
+  productQuery: string | null | undefined,
+): boolean {
+  if (productQuery == null) return true
+  const pq = productQuery.trim()
+  if (!pq) return true
+  const rawKey = normalizeEntityMatchKey(raw)
+  const tokens = pq
+    .split(/\s+/)
+    .map((t) => normalizeEntityMatchKey(t))
+    .filter((t) => t.length >= 2)
+  if (!tokens.length) return true
+  return tokens.every((t) => rawKey.includes(t))
 }
 
 /** Exportado para Vitest — merge LLM + cadastro (versão só se existir). */
@@ -78,10 +96,33 @@ export function mergeSearchIntent(
     if (!base.vehicle.version) delete vehicle.version
   }
 
+  let productQuery =
+    partial.productQuery !== undefined ? partial.productQuery : base.productQuery
+
+  // Não aceitar peça inventada pelo LLM (ex.: "terminal" em query "I30").
+  if (
+    partial.productQuery !== undefined &&
+    partial.productQuery != null &&
+    !productQuerySupportedByRaw(base.raw, partial.productQuery)
+  ) {
+    productQuery = base.productQuery
+  }
+
+  // Só-veículo após merge: pedir peça (pesquisa PVC continua; UI guia).
+  // Versão inválida (clarification version) tem prioridade.
+  if (
+    vehicle.model &&
+    !productQuery &&
+    !(partial.codeHint ?? base.codeHint) &&
+    clarification !== 'version'
+  ) {
+    needsClarification = true
+    clarification = 'product'
+  }
+
   return {
     ...base,
-    productQuery:
-      partial.productQuery !== undefined ? partial.productQuery : base.productQuery,
+    productQuery,
     vehicle,
     codeHint: partial.codeHint ?? base.codeHint,
     needsClarification,

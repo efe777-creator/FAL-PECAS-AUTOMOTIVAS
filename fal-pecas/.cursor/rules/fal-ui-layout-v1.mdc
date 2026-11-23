@@ -3,21 +3,21 @@ description: FAL-UI-LAYOUT v1 — padrão telas/layout/design + versionamento + 
 alwaysApply: true
 ---
 
-# FAL-UI-LAYOUT v1.5.3 (excelência admin)
+# FAL-UI-LAYOUT v1.6.3 (excelência admin)
 
 Normativo: `docs/planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md`  
-VAL: `docs/planejamento/FAL_MARCHA_UI_LAYOUT_v153_GUIAS_EDICAO_VAL_2026-11-22.md`  
-Estudo: `docs/planejamento/FAL_ESTUDO_GUIAS_DIMENSOES_EDICAO_2026-11-22.md`
+Script: `pnpm test:ui-layout-antiregress`
 
 ## Regras
 
-1. Um shell: `AdaptiveWorkspace` + `PanelChrome`.
-2. Tokens `--fal-*` / `bg-fal-*` / `text-fal-*`.
-3. Vocabulário Abrir guia / Na guia / Fechar guia / Mais filtros / Listas de preço.
-4. Nunca `<Link><Button>`; seleção → barra → guia (não hijack checkbox).
-5. Prefs `fal-admin-workspace-v1` (+ `guideDensity`); domínio intocado por layout.
-6. Changelog §9 + FL1–FL27 ; `pnpm test:ui-layout-antiregress` ; só `dev`.
+1. Um shell: `AdaptiveWorkspace` + `PanelChrome` (chrome = título/badge/extra + Fechar ×).
+2. Guia desktop **in-flow sticky** (lista\|guia); **proibido** `fixed`+spacer no docked (abre buraco); arraste na borda; bleed `-mr` no padding do main.
+3. Tokens `--fal-*` / `bg-fal-*` / `text-fal-*`.
+4. Vocabulário Abrir guia / Na guia / Fechar guia / Mais filtros / Listas de preço.
+5. Nunca `<Link><Button>`; seleção → barra → guia (não hijack checkbox).
+6. Prefs `fal-admin-workspace-v1` (+ `guideDensity`); domínio intocado por layout.
+7. Changelog §9 + FL1–FL28 ; só `dev`.
 
 ## WorkSurfaces
 
-products · kits · prices · applications · categories · promotions · inventory · customers · orders (OrderOps)
+products · kits · prices · applications · categories · promotions · inventory · customers · vehicles · orders (OrderOps)

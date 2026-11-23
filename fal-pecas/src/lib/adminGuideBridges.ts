@@ -6,6 +6,7 @@
 export const KITS_OPEN_GUIDE_KEY = 'fal.kits.openGuideId'
 export const PRODUCTS_OPEN_GUIDE_KEY = 'fal.products.openGuideId'
 export const APPLICATIONS_OPEN_GUIDE_KEY = 'fal.applications.openGuideId'
+export const VEHICLES_OPEN_GUIDE_KEY = 'fal.vehicles.openGuideId'
 
 export function setGuideBridge(key: string, entityId: string): void {
   try {

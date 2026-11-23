@@ -19,10 +19,17 @@ function relationName(value: unknown): string | undefined {
 const VEHICLE_OPTIONS_TTL_MS = 5 * 60_000
 let vehicleOptionsCache: { at: number; tree: VehicleOptionTree } | null = null
 let vehicleOptionsInflight: Promise<VehicleOptionTree> | null = null
+let vehicleCatalogCache: { at: number; entries: VehicleCatalogEntry[] } | null = null
+const VEHICLE_CATALOG_TTL_MS = 5 * 60 * 1000
 
 export function clearVehicleOptionsCache() {
   vehicleOptionsCache = null
   vehicleOptionsInflight = null
+  vehicleCatalogCache = null
+}
+
+export function clearVehicleCatalogCache() {
+  vehicleCatalogCache = null
 }
 
 /**
@@ -205,8 +212,18 @@ async function loadVehicleOptionsFromSupabase(): Promise<VehicleOptionTree> {
   return tree
 }
 
-let vehicleCatalogCache: { at: number; entries: VehicleCatalogEntry[] } | null = null
-const VEHICLE_CATALOG_TTL_MS = 5 * 60 * 1000
+function isMissingQualityStatusError(err: { message?: string; code?: string } | null): boolean {
+  const msg = String(err?.message ?? '').toLowerCase()
+  return msg.includes('quality_status') && (msg.includes('does not exist') || msg.includes('column'))
+}
+
+type CatalogModelRow = {
+  name?: string | null
+  manufacturers?:
+    | { name?: string; status?: string }
+    | { name?: string; status?: string }[]
+    | null
+}
 
 /** Distinct maker+model active para o interpretador de busca. */
 export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]> {
@@ -226,24 +243,47 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     return entries
   }
 
-  const [modelsRes, versionsRes] = await Promise.all([
-    supabase
+  let modelsRes = await supabase
+    .from('models')
+    .select('name, status, quality_status, manufacturers!inner(name, status)')
+    .eq('status', 'active')
+    .eq('quality_status', 'verified')
+    .order('name')
+
+  let versionsRes = await supabase
+    .from('vehicle_versions')
+    .select(
+      'version_name, status, models!inner(name, status, quality_status), manufacturers!inner(name)',
+    )
+    .eq('status', 'active')
+    .eq('models.status', 'active')
+    .eq('models.quality_status', 'verified')
+    .not('version_name', 'is', null)
+
+  // Schema drift: coluna quality_status ausente → fallback status=active (não derruba busca).
+  if (
+    isMissingQualityStatusError(modelsRes.error) ||
+    isMissingQualityStatusError(versionsRes.error)
+  ) {
+    modelsRes = await supabase
       .from('models')
-      .select('name, status, quality_status, manufacturers!inner(name, status)')
+      .select('name, status, manufacturers!inner(name, status)')
       .eq('status', 'active')
-      .eq('quality_status', 'verified')
-      .order('name'),
-    supabase
+      .order('name')
+    versionsRes = await supabase
       .from('vehicle_versions')
       .select(
-        'version_name, status, models!inner(name, status, quality_status), manufacturers!inner(name)',
+        'version_name, status, models!inner(name, status), manufacturers!inner(name)',
       )
       .eq('status', 'active')
       .eq('models.status', 'active')
-      .eq('models.quality_status', 'verified')
-      .not('version_name', 'is', null),
-  ])
-  if (modelsRes.error) throw modelsRes.error
+      .not('version_name', 'is', null)
+  }
+
+  if (modelsRes.error) {
+    // Não cachear falha — próxima tentativa pode recuperar.
+    throw modelsRes.error
+  }
 
   const versionsByKey = new Map<string, Set<string>>()
   for (const row of versionsRes.data ?? []) {
@@ -263,11 +303,8 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
 
   const entries: VehicleCatalogEntry[] = []
   const seen = new Set<string>()
-  for (const row of modelsRes.data ?? []) {
-    const rawMaker = row.manufacturers as
-      | { name?: string; status?: string }
-      | { name?: string; status?: string }[]
-      | null
+  for (const row of (modelsRes.data ?? []) as CatalogModelRow[]) {
+    const rawMaker = row.manufacturers
     const makerObj = Array.isArray(rawMaker) ? rawMaker[0] : rawMaker
     if (!makerObj?.name || makerObj.status !== 'active') continue
     const maker = String(makerObj.name)
@@ -279,7 +316,7 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     const versions = [...(versionsByKey.get(key) ?? [])]
     entries.push({ maker, model, versions: versions.length ? versions : undefined })
   }
-  vehicleCatalogCache = { at: now, entries }
+  vehicleCatalogCache = { at: Date.now(), entries }
   return entries
 }
 

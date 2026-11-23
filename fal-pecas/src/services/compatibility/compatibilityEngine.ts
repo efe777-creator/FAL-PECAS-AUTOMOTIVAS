@@ -1,3 +1,4 @@
+import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import { yearMatchesVehicleApp } from '@/lib/vehicleAppYear'
 import type { CompatibilityAppGroup, VehicleFilter } from '@/types'
 
@@ -297,8 +298,10 @@ export function fitSpecificityScore(filter: VehicleFilter | null | undefined): n
 }
 
 /**
- * M25: chip/sessão primeiro; senão URL da tela; desempate pelo mais específico;
- * empate de especificidade → chip.
+ * M25: chip/sessão vs URL da tela.
+ * Conflito maker/model (ex.: busca Cerato com garagem HB20): **página vence** —
+ * senão a grade esconde peças “do carro errado” e parece busca quebrada.
+ * Mesmo veículo: desempate por especificidade; empate → chip.
  */
 export function resolveFitContext(
   chipFilter: VehicleFilter | null | undefined,
@@ -307,6 +310,14 @@ export function resolveFitContext(
   const chipScore = fitSpecificityScore(chipFilter)
   const pageScore = fitSpecificityScore(pageFilter)
   if (chipScore === 0 && pageScore === 0) return null
+
+  if (chipScore > 0 && pageScore > 0 && chipFilter && pageFilter) {
+    const sameVehicle =
+      normalizeEntityMatchKey(chipFilter.maker) === normalizeEntityMatchKey(pageFilter.maker) &&
+      normalizeEntityMatchKey(chipFilter.model) === normalizeEntityMatchKey(pageFilter.model)
+    if (!sameVehicle) return pageFilter
+  }
+
   if (pageScore > chipScore) return pageFilter ?? null
   if (chipScore > 0) return chipFilter ?? null
   return pageFilter ?? null

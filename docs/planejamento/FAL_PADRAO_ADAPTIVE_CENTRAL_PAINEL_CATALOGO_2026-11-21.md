@@ -11,6 +11,7 @@
 |--------|-------------|---------|------------|------------|-----|
 | **Central de Pedidos** | `orders` | Hub KPIs/tabs/lista | `OrderOpsSurface` compact | `OrderSplitTabPanels` + `useOrderSplitTabs` | Adaptive VAL 17/11 + OrderOps VAL 19/11 |
 | **Painel** | `dashboard` | Widgets RGL | Pedido via mesmos tab panels **ou** `DashboardContextualPanel` | Mesmo stack de guias de pedido | Painel cockpit / modular VALs |
+| **Veículos** | `vehicles` | Lista + filtros + scroll | `AdminVehicleGuidePanel` (modelo + VV) | `OrderSplitTabPanels` + `useIdSplitTabs` | FAL-UI-LAYOUT v1.6.0 |
 
 **Shell único:** [`AdaptiveWorkspace`](../../fal-pecas/src/components/admin/workspace/AdaptiveWorkspace.tsx) + [`PanelChrome`](../../fal-pecas/src/components/admin/workspace/PanelChrome.tsx)  
 **Prefs:** `fal-admin-workspace-v1` — `mode` + `splitWidthPx` por módulo ([`adminWorkspacePrefs.ts`](../../fal-pecas/src/lib/adminWorkspacePrefs.ts))  

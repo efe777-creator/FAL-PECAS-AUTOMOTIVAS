@@ -31,9 +31,9 @@ describe('mergeSearchIntent', () => {
     expect(merged.clarification).toBe('version')
   })
 
-  it('mantém Unique canônica do cadastro', () => {
+  it('mantém Unique canônica do cadastro e pede peça se só-veículo', () => {
     const merged = mergeSearchIntent(
-      base(),
+      base({ raw: 'HB20 Unique 2015' }),
       {
         vehicle: { model: 'HB20', version: 'unique', year: '2015' },
         productQuery: null,
@@ -43,12 +43,33 @@ describe('mergeSearchIntent', () => {
     expect(merged.vehicle.model).toBe('HB20')
     expect(merged.vehicle.maker).toBe('Hyundai')
     expect(merged.vehicle.version).toBe('Unique')
-    expect(merged.needsClarification).toBe(false)
+    expect(merged.needsClarification).toBe(true)
+    expect(merged.clarification).toBe('product')
+  })
+
+  it('rejeita productQuery alucinado (I30 → terminal)', () => {
+    const merged = mergeSearchIntent(
+      base({
+        raw: 'I30',
+        vehicle: { maker: 'Hyundai', model: 'i30' },
+        productQuery: null,
+        needsClarification: true,
+        clarification: 'product',
+      }),
+      {
+        productQuery: 'terminal',
+        vehicle: { maker: 'Hyundai', model: 'i30' },
+        confidence: 'high',
+      },
+      catalog,
+    )
+    expect(merged.productQuery).toBeNull()
+    expect(merged.clarification).toBe('product')
   })
 
   it('aplica productQuery e veículo do LLM sem inventar versão', () => {
     const merged = mergeSearchIntent(
-      base({ confidence: 'low' }),
+      base({ raw: 'preciso de um pivo para o palio 2010', confidence: 'low' }),
       {
         productQuery: 'pivo',
         vehicle: { maker: 'Fiat', model: 'Palio', year: '2010' },

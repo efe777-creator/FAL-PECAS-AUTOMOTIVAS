@@ -101,8 +101,8 @@ export async function adminUpsertModel(input: {
   }
   // Nome canônico (typo/trim/motor removidos; Corolla Cross ≠ Corolla).
   const name = normalized.model
-  // Modelo novo NUNCA nasce verified; outcome=review mantém/rebaixa para review.
-  // Fica active (admin enxerga); a árvore pública filtra quality_status=verified.
+  // Add manual: nasce verified (sem fila). Import/apps continuam review no writer SQL.
+  // Update com nome “sujo” (outcome=review) pode rebaixar para review.
   const keepReview = normalized.outcome === 'review'
 
   if (!input.id) {
@@ -135,15 +135,17 @@ export async function adminUpsertModel(input: {
     production_year_start: start,
     production_year_end: end,
   }
-  // Update preserva quality_status (não promove) salvo outcome=review (rebaixa).
+  // Update preserva quality_status salvo outcome=review (rebaixa).
   const updatePayload = keepReview ? { ...payload, quality_status: 'review' } : payload
   const insertPayload = {
     ...payload,
-    quality_status: 'review',
+    quality_status: 'verified',
     vehicle_class: 'unknown',
+    evidence_kind: 'admin_manual',
     review_note: keepReview
-      ? 'Criado via admin; nome com resíduo — revisar antes de verificar'
-      : 'Criado via admin; aguarda evidência A1 ou A2+A2',
+      ? 'Criado via admin manual; nome com resíduo — liberado (revisar se necessário)'
+      : 'Criado via admin manual — liberado sem fila',
+    reviewed_at: new Date().toISOString(),
   }
   const q = getSupabase().from('models')
   const { data, error } = input.id
@@ -170,7 +172,8 @@ export type SetModelQualityInput = {
 }
 
 /**
- * Staff: promove/rebaixa qualidade via RPC (evidência obrigatória para verified).
+ * Staff: promove/rebaixa qualidade via RPC.
+ * verified: staff_override|master_api (sem URL) ou oem_a1|a2_concordant (+ URL).
  * Não inventa VV/PVC.
  */
 export async function setModelQualityStatus(

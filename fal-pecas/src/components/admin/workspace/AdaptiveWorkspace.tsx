@@ -4,6 +4,7 @@ import {
   readModulePrefs,
   WORKSPACE_SPLIT_MAX,
   WORKSPACE_SPLIT_MIN,
+  WORKSPACE_SPLIT_STEP,
   writeModulePrefs,
   type WorkspaceGuideDensity,
   type WorkspaceMode,
@@ -14,14 +15,22 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
 
 const DESKTOP_MQ = '(min-width: 1024px)'
-/** Altura do header admin sticky — painel fixo fica abaixo dele. */
-const DESKTOP_PANEL_TOP = '4.25rem'
+/**
+ * Guia desktop in-flow (FAL-UI-LAYOUT v1.6.3):
+ * - split flex: lista | guia (sem fixed + spacer = sem buraco)
+ * - sticky no scroll do main; altura viewport − header
+ * - bleed `-mr/-mb` cancela padding do AdminLayout (p-3/4/6)
+ */
+export const WORKSPACE_PANEL_STICKY_TOP = '0px'
+/** Altura do header admin sticky (calc da guia). */
+export const WORKSPACE_ADMIN_HEADER = '4.25rem'
 
 export type AdaptiveWorkspaceProps = {
   moduleKey: WorkspaceModuleKey
@@ -123,7 +132,6 @@ export function AdaptiveWorkspace({
     return () => {
       modeApiRef.current = null
     }
-    // handleModeChange closes over prefs — refresh when prefs/module change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modeApiRef, moduleKey, prefs.mode, prefs.splitWidthPx, contextualOpen])
 
@@ -140,94 +148,102 @@ export function AdaptiveWorkspace({
     const startW = prefs.splitWidthPx
     const target = e.currentTarget
     target.setPointerCapture(e.pointerId)
+    const prevCursor = document.body.style.cursor
+    const prevUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    target.dataset.dragging = '1'
 
     function onMove(ev: PointerEvent) {
       if (!dragging.current) return
       const delta = startX - ev.clientX
-      persist({ splitWidthPx: startW + delta })
+      persist({ splitWidthPx: clampSplitWidth(startW + delta) })
     }
     function onUp(ev: PointerEvent) {
       dragging.current = false
-      target.releasePointerCapture(ev.pointerId)
+      delete target.dataset.dragging
+      document.body.style.cursor = prevCursor
+      document.body.style.userSelect = prevUserSelect
+      try {
+        target.releasePointerCapture(ev.pointerId)
+      } catch {
+        /* already released */
+      }
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }
+
+  function onSplitterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!isDesktop) return
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      persist({ splitWidthPx: clampSplitWidth(prefs.splitWidthPx + WORKSPACE_SPLIT_STEP) })
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      persist({ splitWidthPx: clampSplitWidth(prefs.splitWidthPx - WORKSPACE_SPLIT_STEP) })
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      persist({ splitWidthPx: WORKSPACE_SPLIT_MAX })
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      persist({ splitWidthPx: WORKSPACE_SPLIT_MIN })
+    }
   }
 
   const showContextual = contextualOpen && contextual != null && effectiveMode !== 'collapsed'
   const fullscreen = showContextual && effectiveMode === 'fullscreen'
   const expanded = showContextual && effectiveMode === 'expanded'
   const splitWidth = expanded ? Math.max(prefs.splitWidthPx, 560) : prefs.splitWidthPx
+  const showGrip = isDesktop && showContextual && !fullscreen
 
-  function stepSplitWidth(deltaPx: number) {
-    const next = clampSplitWidth(prefs.splitWidthPx + deltaPx)
-    persist({ splitWidthPx: next })
-  }
-
-  function setSplitWidthPreset(px: number) {
-    persist({ splitWidthPx: clampSplitWidth(px) })
-  }
-
-  function setGuideDensity(d: WorkspaceGuideDensity) {
-    persist({ guideDensity: d })
-  }
-
-  // Painel desktop fica fixed na viewport — clique no meio/fim da página sempre vê o split.
   useEffect(() => {
     if (!showContextual || !isDesktop || fullscreen) return
     panelRef.current?.focus({ preventScroll: true })
   }, [showContextual, isDesktop, fullscreen, contextualTitle])
 
-  const panel = showContextual ? (
-    <aside
-      ref={panelRef}
-      tabIndex={-1}
-      className={[
-        'flex min-h-0 flex-col rounded-[14px] border border-fal-line bg-fal-surface p-2.5 shadow-sm outline-none',
-        !isDesktop || fullscreen
-          ? 'fixed inset-0 z-40 m-0 flex h-full max-h-[100dvh] rounded-none border-0 bg-fal-bg p-4'
-          : 'fixed z-30 overflow-y-auto shadow-lg',
-      ].join(' ')}
-      style={
-        isDesktop && !fullscreen
-          ? {
-              width: splitWidth,
-              maxWidth: `min(100vw - 1.5rem, ${WORKSPACE_SPLIT_MAX}px)`,
-              top: DESKTOP_PANEL_TOP,
-              right: '0.75rem',
-              bottom: '0.75rem',
-            }
-          : undefined
-      }
-      aria-label={contextualTitle}
-    >
+  const panelBody = (
+    <>
+      {showGrip ? (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={Math.round(splitWidth)}
+          aria-valuemin={WORKSPACE_SPLIT_MIN}
+          aria-valuemax={WORKSPACE_SPLIT_MAX}
+          aria-label="Arrastar para largura da guia"
+          title="Arrastar · ← → para ajustar"
+          tabIndex={0}
+          className="group absolute inset-y-0 -left-2 z-20 w-4 cursor-col-resize touch-none outline-none focus-visible:ring-2 focus-visible:ring-fal-accent"
+          onPointerDown={onSplitterPointerDown}
+          onKeyDown={onSplitterKeyDown}
+        >
+          <span
+            className="absolute inset-y-3 left-1/2 w-1 -translate-x-1/2 rounded-full bg-fal-line transition-colors group-hover:bg-fal-accent group-focus-visible:bg-fal-accent group-data-[dragging=1]:bg-fal-accent group-data-[dragging=1]:w-1.5"
+            aria-hidden
+          />
+        </div>
+      ) : null}
       <PanelChrome
         title={contextualTitle}
-        mode={effectiveMode}
-        onModeChange={handleModeChange}
         onClose={handleClose}
         extraActions={contextualExtraActions}
         statusBadge={contextualStatusBadge}
-        onSplitWidthStep={isDesktop ? stepSplitWidth : undefined}
-        onSplitWidthPreset={isDesktop ? setSplitWidthPreset : undefined}
-        splitWidthNarrowed={prefs.splitWidthPx <= WORKSPACE_SPLIT_MIN}
-        splitWidthWidened={prefs.splitWidthPx >= WORKSPACE_SPLIT_MAX}
-        guideDensity={prefs.guideDensity}
-        onGuideDensityChange={setGuideDensity}
       />
       <div
         className={[
-          'mt-1.5 flex min-h-0 flex-col',
-          !isDesktop || fullscreen ? 'min-h-0 flex-1 overflow-y-auto' : '',
+          'mt-1.5 flex min-h-0 flex-1 flex-col overflow-y-auto',
         ].join(' ')}
         data-guide-density={prefs.guideDensity}
       >
         {contextual}
       </div>
-    </aside>
-  ) : null
+    </>
+  )
 
   if (fullscreen) {
     return (
@@ -235,7 +251,15 @@ export function AdaptiveWorkspace({
         <div className="pointer-events-none invisible" aria-hidden>
           {primary}
         </div>
-        {panel}
+        <aside
+          ref={panelRef}
+          tabIndex={-1}
+          data-workspace-panel="overlay"
+          className="fixed inset-0 z-40 m-0 flex h-full max-h-[100dvh] flex-col rounded-none border-0 bg-fal-bg p-4 outline-none"
+          aria-label={contextualTitle}
+        >
+          {panelBody}
+        </aside>
       </div>
     )
   }
@@ -251,13 +275,24 @@ export function AdaptiveWorkspace({
         >
           {primary}
         </div>
-        {panel}
+        <aside
+          ref={panelRef}
+          tabIndex={-1}
+          data-workspace-panel="overlay"
+          className="fixed inset-0 z-40 m-0 flex h-full max-h-[100dvh] flex-col rounded-none border-0 bg-fal-bg p-4 outline-none"
+          aria-label={contextualTitle}
+        >
+          {panelBody}
+        </aside>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-0 items-start gap-0">
+    <div
+      className="flex min-h-0 items-stretch gap-0"
+      data-workspace-layout={showContextual ? 'split' : 'stack'}
+    >
       <div
         className="min-w-0 flex-1 overflow-x-hidden"
         data-workspace-primary={primaryCompact ? 'compact' : 'full'}
@@ -265,29 +300,26 @@ export function AdaptiveWorkspace({
         {primary}
       </div>
       {showContextual ? (
-        <>
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Arrastar para largura da guia"
-            title="Arrastar para largura da guia"
-            tabIndex={0}
-            className="relative mx-0.5 hidden w-3 shrink-0 cursor-col-resize lg:block"
-            onPointerDown={onSplitterPointerDown}
-          >
-            <span
-              className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-fal-line hover:bg-fal-accent"
-              aria-hidden
-            />
-          </div>
-          {/* Reserva = largura do painel + margem right (0.75rem) do fixed */}
-          <div
-            className="hidden shrink-0 lg:block"
-            style={{ width: `calc(${splitWidth}px + 0.75rem)` }}
-            aria-hidden
-          />
-          {panel}
-        </>
+        <aside
+          ref={panelRef}
+          tabIndex={-1}
+          data-workspace-panel="docked"
+          className={[
+            'relative z-20 flex shrink-0 flex-col overflow-visible border-l border-fal-line bg-fal-surface p-2.5 outline-none',
+            'sticky self-start',
+            // Bleed: cancela padding do main (AdminLayout p-3 / sm:p-4 / md:p-6)
+            '-mr-3 mb-[-0.75rem] sm:-mr-4 sm:mb-[-1rem] md:-mr-6 md:mb-[-1.5rem]',
+          ].join(' ')}
+          style={{
+            width: splitWidth,
+            maxWidth: `min(100%, ${WORKSPACE_SPLIT_MAX}px)`,
+            top: WORKSPACE_PANEL_STICKY_TOP,
+            height: `calc(100dvh - ${WORKSPACE_ADMIN_HEADER})`,
+          }}
+          aria-label={contextualTitle}
+        >
+          {panelBody}
+        </aside>
       ) : null}
     </div>
   )

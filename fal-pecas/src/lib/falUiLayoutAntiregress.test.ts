@@ -33,6 +33,7 @@ const MODULE_KEYS: WorkspaceModuleKey[] = [
   'promotions',
   'inventory',
   'customers',
+  'vehicles',
 ]
 
 describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
@@ -46,8 +47,15 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
 
     const chrome = read('components/admin/workspace/PanelChrome.tsx')
     expect(chrome).toMatch(/export function PanelChrome/)
-    expect(chrome).toMatch(/onSplitWidthStep/)
-    expect(chrome).toMatch(/WORKSPACE_SPLIT_STEP/)
+    expect(chrome).toMatch(/onClose/)
+    expect(chrome).toMatch(/Fechar painel/)
+    expect(chrome).not.toMatch(/Estreita|Larga|onSplitWidthStep|Expandir|Tela cheia|Compacta/)
+
+    expect(shell).toMatch(/role="separator"/)
+    expect(shell).toMatch(/Arrastar para largura da guia/)
+    expect(shell).toMatch(/cursor-col-resize/)
+    expect(shell).toMatch(/clampSplitWidth/)
+    expect(shell).toMatch(/data-workspace-panel="docked"/)
 
     const prefsSrc = read('lib/adminWorkspacePrefs.ts')
     expect(prefsSrc).toMatch(/WORKSPACE_SPLIT_MAX = 920/)
@@ -67,6 +75,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       ['pages/admin/home/AdminPromotionsPage.tsx', 'promotions'],
       ['pages/admin/inventory/AdminInventoryPage.tsx', 'inventory'],
       ['pages/admin/customers/AdminCustomersPage.tsx', 'customers'],
+      ['pages/admin/vehicles/AdminVehiclesPage.tsx', 'vehicles'],
     ]
     for (const [file, key] of hubs) {
       const body = read(file)
@@ -568,22 +577,45 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(products).toMatch(/e\.key === 'Enter' \|\| e\.key === 'F2'/)
   })
 
-  it('FL27: Adaptive guideDensity + presets; Garagem nav in-place', () => {
+  it('FL28: guia desktop in-flow sticky (sem fixed+spacer / sem buraco)', () => {
+    const shell = read('components/admin/workspace/AdaptiveWorkspace.tsx')
+    expect(shell).toMatch(/data-workspace-panel="docked"/)
+    expect(shell).toMatch(/data-workspace-layout=\{/)
+    expect(shell).toMatch(/WORKSPACE_ADMIN_HEADER/)
+    expect(shell).toMatch(/WORKSPACE_PANEL_STICKY_TOP/)
+    expect(shell).toMatch(/sticky self-start/)
+    expect(shell).toMatch(/-mr-3.*md:-mr-6/)
+    expect(shell).toMatch(/width: splitWidth/)
+    expect(shell).not.toMatch(/data-workspace-spacer/)
+    // Desktop docked NÃO usa fixed (só overlay mobile/fullscreen)
+    expect(shell).toMatch(/data-workspace-panel="overlay"/)
+    const dockedBlock = shell.slice(
+      shell.indexOf('data-workspace-panel="docked"'),
+      shell.indexOf('data-workspace-panel="docked"') + 800,
+    )
+    expect(dockedBlock).not.toMatch(/\bfixed\b/)
+  })
+
+  it('FL27: Adaptive resize por arraste; chrome só Fechar; Garagem nav in-place', () => {
     const prefs = read('lib/adminWorkspacePrefs.ts')
     expect(prefs).toMatch(/guideDensity/)
     expect(prefs).toMatch(/WORKSPACE_SPLIT_PRESET_NARROW = 420/)
     expect(prefs).toMatch(/WORKSPACE_SPLIT_PRESET_WIDE = 720/)
 
     const chrome = read('components/admin/workspace/PanelChrome.tsx')
-    expect(chrome).toMatch(/onSplitWidthPreset/)
-    expect(chrome).toMatch(/Estreita/)
-    expect(chrome).toMatch(/Larga/)
-    expect(chrome).toMatch(/onGuideDensityChange/)
     expect(chrome).toMatch(/min-h-11/)
+    expect(chrome).toMatch(/onClose/)
+    expect(chrome).not.toMatch(/Estreita|Larga|onSplitWidthPreset|onGuideDensityChange/)
+    expect(chrome).not.toMatch(/Expandir|Tela cheia|Compacta/)
 
     const shell = read('components/admin/workspace/AdaptiveWorkspace.tsx')
     expect(shell).toMatch(/data-guide-density/)
-    expect(shell).toMatch(/setSplitWidthPreset|onSplitWidthPreset/)
+    expect(shell).toMatch(/role="separator"/)
+    expect(shell).toMatch(/onSplitterPointerDown/)
+    expect(shell).toMatch(/onSplitterKeyDown/)
+    expect(shell).toMatch(/overflow-visible/)
+    expect(shell).toMatch(/modeApiRef/)
+    expect(shell).not.toMatch(/onSplitWidthStep|onSplitWidthPreset|setGuideDensity/)
 
     const garage = read('components/garage/GarageShell.tsx')
     expect(garage).toMatch(/goGarageHome/)

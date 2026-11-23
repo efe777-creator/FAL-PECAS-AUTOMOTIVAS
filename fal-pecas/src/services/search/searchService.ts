@@ -8,7 +8,10 @@ import {
 } from '@/services/pricing/priceResolutionService'
 import { attachCompatibilitySummaries } from '@/services/products/compatibilitySummary'
 import { attachPrimaryProductImages } from '@/services/products/productImages'
-import { buildCatalogSearchParams } from '@/services/search/buildCatalogSearchParams'
+import {
+  applyIntentToSearchParams,
+  buildCatalogSearchParams,
+} from '@/services/search/buildCatalogSearchParams'
 import { interpretNaturalLanguage } from '@/services/search/interpretNaturalLanguage'
 import { prepareSearchQuery } from '@/services/search/searchPrepService'
 import { listVehicleCatalogEntries } from '@/services/vehicles/vehicleService'
@@ -201,24 +204,14 @@ export async function searchCatalog(params: ProductSearchParams = {}): Promise<P
   }
 
   let effective: ProductSearchParams = { ...params }
-  const hasVehicle =
-    Boolean(params.maker?.trim()) ||
-    Boolean(params.model?.trim()) ||
-    Boolean(params.year?.trim()) ||
-    Boolean(params.engine?.trim()) ||
-    Boolean(params.version?.trim())
-  if (params.q?.trim() && !hasVehicle) {
+  // Com `q`, sempre interpreta — mesmo se já houver YMM (intent vence stale).
+  if (params.q?.trim()) {
     try {
       const catalog = await listVehicleCatalogEntries()
       const intent = await interpretNaturalLanguage(params.q, { catalog })
       const { catalogParams } = buildCatalogSearchParams(intent)
-      // Não manter o q bruto quando a frase inteira virou filtro de veículo
-      // (ex.: "HB20 2015" → model+year sem texto de produto).
-      effective = {
-        ...params,
-        ...catalogParams,
-        q: catalogParams.q,
-      }
+      // Só-veículo: q some; peça+carro: q da peça; YMM velho cede ao intent.
+      effective = applyIntentToSearchParams(params, catalogParams)
     } catch {
       // Mantém params originais se o catálogo de veículos falhar
     }

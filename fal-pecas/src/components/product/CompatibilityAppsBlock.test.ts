@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   countCompatibilityLines,
+  prioritizeCompatibilityGroupsForVehicle,
   sliceCompatibilityGroups,
 } from '@/components/product/CompatibilityAppsBlock'
 import type { CompatibilityAppGroup } from '@/types'
@@ -57,5 +58,26 @@ describe('sliceCompatibilityGroups (MARCHA UI)', () => {
     expect(onlyFiat).toHaveLength(1)
     expect(onlyFiat[0].maker).toBe('Fiat')
     expect(onlyFiat[0].lines).toHaveLength(3)
+  })
+})
+
+describe('prioritizeCompatibilityGroupsForVehicle', () => {
+  const multi: CompatibilityAppGroup[] = [
+    { maker: 'Fiat', lines: [line('Palio'), line('Uno')] },
+    { maker: 'Hyundai', lines: [line('HB20'), line('i30')] },
+  ]
+
+  it('i30 ativo: Hyundai sobe e i30 lidera as linhas', () => {
+    const ordered = prioritizeCompatibilityGroupsForVehicle(multi, {
+      maker: 'Hyundai',
+      model: 'i30',
+    })
+    expect(ordered[0]?.maker).toBe('Hyundai')
+    expect(ordered[0]?.lines[0]?.model).toBe('i30')
+    expect(ordered[1]?.maker).toBe('Fiat')
+  })
+
+  it('sem veículo: mantém ordem original', () => {
+    expect(prioritizeCompatibilityGroupsForVehicle(multi, null)).toEqual(multi)
   })
 })

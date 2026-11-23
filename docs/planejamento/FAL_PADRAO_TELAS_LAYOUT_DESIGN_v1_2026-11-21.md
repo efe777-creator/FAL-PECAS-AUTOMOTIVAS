@@ -1,7 +1,7 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.5.3**`  
-**Data:** 2026-11-21 · Branch âncora: **`dev`**  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.6.3**`  
+**Data:** 2026-11-23 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
 Este documento é a **fonte de verdade de excelência visual/operacional** da FAL.  
@@ -53,7 +53,7 @@ flowchart LR
 
 Âncora Adaptive já documentada: [FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md](./FAL_PADRAO_ADAPTIVE_CENTRAL_PAINEL_CATALOGO_2026-11-21.md)  
 
-**Veículos (CRUD + hub Integrações):** fora Adaptive — ver [mapa veículo](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) §3.3 (chips/cards, família Pagamentos).
+**Veículos:** CRUD em Adaptive (`moduleKey="vehicles"`, lista + guia) desde **v1.6.0**. Hub **Integrações** permanece chips/cards (família Pagamentos) e abre a guia via ponte.
 
 ---
 
@@ -65,19 +65,20 @@ flowchart LR
 ┌─────────────────────────────────────────────────────────────┐
 │ Admin shell (nav + sticky header)                           │
 ├──────────────────────────┬──────────────────────────────────┤
-│ PRIMARY                  │ CONTEXTUAL (PanelChrome)         │
-│ data-workspace-primary=  │ Expandir · Tela cheia · Fechar   │
-│   compact | full         │ WorkSurface de domínio           │
-│ Lista / filtros / KPIs   │ Guias empilhadas (se houver)     │
+│ PRIMARY                  │ CONTEXTUAL docked (PanelChrome)  │
+│ data-workspace-primary=  │ Arraste borda · Fechar (×)       │
+│   compact | full         │ WorkSurface · guias empilhadas   │
+│ Lista / filtros / KPIs   │ right/bottom 0 · radius só left  │
 │ SEMPRE clicável          │                                  │
 └──────────────────────────┴──────────────────────────────────┘
 ```
 
 | Peça | Contrato |
 |------|----------|
-| `moduleKey` | `orders` \| `dashboard` \| `products` \| `kits` \| `prices` \| `applications` (+ futuras só por MINOR) |
+| `moduleKey` | `orders` \| `dashboard` \| `products` \| `kits` \| `prices` \| `applications` \| `vehicles` (+ futuras só por MINOR) |
 | Modos | `split` \| `expanded` \| `fullscreen` \| `collapsed` |
 | Desktop | ≥ `lg` (1024) split; &lt; lg contextual fullscreen |
+| Guia docked | **In-flow** (`data-workspace-panel="docked"`): flex lista\|guia; `sticky`; **sem** `fixed`+spacer (evita buraco); bleed `-mr` cancela padding do `main`; arraste na borda |
 | Multi-guia | `OrderSplitTabPanels` / `useIdSplitTabs` — empilhar IDs, não minimizar |
 | Full page | Rota dedicada para formulário “comfortable” (abas) |
 
@@ -128,7 +129,8 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 | Abrir guia | Abre contextual Adaptive (1ª guia) |
 | Na guia | Já está no stack |
 | + Guia | Empilha outro registro (já há guia aberta) |
-| Expandir / Tela cheia / Restaurar | Modos PanelChrome |
+| Arrastar borda da guia | Largura `splitWidthPx` (sem botões Estreita/Larga) |
+| Expandir / Tela cheia | Só via `modeApiRef` (Pedidos/Painel) — sem botões no chrome |
 | Mais filtros / Recolher filtros | Bloco de filtros do hub Produtos |
 | Expandir / Recolher | Seções dentro da guia Produto |
 | Abrir cadastro | Full `/admin/produtos/:id` ou `/admin/kits/:id` |
@@ -139,7 +141,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 
 ---
 
-## 5. Mapa de módulos (v1.5.3)
+## 5. Mapa de módulos (v1.6.0)
 
 | Módulo | `moduleKey` | Primary | Contextual | Full |
 |--------|-------------|---------|------------|------|
@@ -153,6 +155,7 @@ Fonte CSS: `fal-pecas/src/styles/index.css`
 | Promoções | `promotions` | Abas + lista + filtros | `PromotionWorkSurface` (incluir/ativar) | — |
 | Estoque | `inventory` | Modo + lista compacta | `InventoryWorkSurface` (ajuste + movimentos) | — |
 | Clientes | `customers` | Busca + lista compacta | `CustomerWorkSurface` (B2B + pedidos) | pedido full |
+| Veículos | `vehicles` | Lista + filtros + scroll | `AdminVehicleGuidePanel` (modelo + VV) | Integrações chips |
 
 Dinâmica catálogo (v1.0.4): [FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v104_VAL_2026-11-21.md)  
 Marcha Aplicações: [FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v110_APLICACOES_VAL_2026-11-21.md) · estudo [FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md](./FAL_ESTUDO_APLICACOES_WORKSPACE_TOBE_2026-11-21.md)  
@@ -162,7 +165,7 @@ Marcha Promoções: [FAL_MARCHA_UI_LAYOUT_v130_PROMOCOES_VAL_2026-11-21.md](./FA
 Marcha Estoque: [FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v140_ESTOQUE_VAL_2026-11-21.md)  
 Marcha Clientes: [FAL_MARCHA_UI_LAYOUT_v150_CLIENTES_VAL_2026-11-21.md](./FAL_MARCHA_UI_LAYOUT_v150_CLIENTES_VAL_2026-11-21.md)
 
-**Não é padrão zin (ainda):** Home multi-aba, Veículos, Avisos, hubs só cards — backlog seletivo.
+**Não é padrão zin (ainda):** Home multi-aba, Avisos — backlog seletivo. Hub Integrações veículos = chips (não Adaptive).
 
 ---
 
@@ -173,7 +176,7 @@ Script: `pnpm test:ui-layout-antiregress`
 
 | ID | Invariante | Tipo |
 |----|------------|------|
-| **FL1** | `AdaptiveWorkspace` + hubs orders/dashboard/products/kits/prices/applications/categories/promotions/inventory/**customers** usam `moduleKey` | fonte |
+| **FL1** | `AdaptiveWorkspace` + hubs orders/dashboard/products/kits/prices/applications/categories/promotions/inventory/customers/**vehicles** usam `moduleKey` | fonte |
 | **FL2** | Prefs `fal-admin-workspace-v1` + keys incl. inventory/customers; sem gravar selectedId | fonte + unit prefs |
 | **FL3** | `data-workspace-primary` compact\|full no shell | fonte |
 | **FL4** | CSS compact primary (orders) + regra `@container` no exec-summary | fonte |
@@ -200,7 +203,8 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL24** | Hub Clientes Adaptive: `moduleKey="customers"` + `CustomerWorkSurface`; sem painel mid-page 2 colunas | fonte |
 | **FL25** | Revisão no Hub Adaptive (fila canônica + lista + CTAs) | fonte |
 | **FL26** | Guia Preços: colunas Custo\|Margem\|Preço; edição híbrida (dblclick/Enter/F2→modal; inline preço; botão Editar); paridade lista completa | fonte |
-| **FL27** | Adaptive: prefs `guideDensity`; presets Estreita(420)/Larga(720); `data-guide-density`; Garagem nav in-place (sidebar Resumo; chips só mobile) | fonte |
+| **FL27** | Adaptive: resize por arraste (`role=separator` na borda da guia); chrome só Fechar; prefs `guideDensity` + presets no prefs (sem botões); `modeApiRef` programático; Garagem nav in-place | fonte |
+| **FL28** | Guia desktop **in-flow sticky**: `data-workspace-panel=docked`; sem spacer/fixed docked; bleed `-mr-3…md:-mr-6`; grip separator; overlay só mobile/fullscreen | fonte |
 
 Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/Painel**.
 
@@ -234,6 +238,34 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.6.3 — 2026-11-23 (PATCH)
+
+**Guia Adaptive in-flow (fecha o buraco):**
+- Desktop: flex lista\|guia sticky — **não** `fixed` + spacer (causava vão escuro)
+- Bleed `-mr/-mb` cancela padding do AdminLayout
+- Lock **FL28** atualizado
+
+### v1.6.2 — 2026-11-23 (PATCH)
+
+**Guia Adaptive docked (iteração):** tentativa right/bottom 0 + spacer — supersedida por v1.6.3 in-flow.
+
+### v1.6.1 — 2026-11-23 (PATCH)
+
+**Adaptive resize por arraste:**
+- Grip na borda esquerda do painel (`cursor-col-resize`); remove Estreita/Larga/−/+ / Compacta / Expandir / Tela cheia do chrome
+- PanelChrome: título + badge + extraActions + Fechar (×)
+- `modeApiRef` permanece para Pedidos/Painel pedirem expanded/fullscreen
+- Lock **FL27** atualizado · **FL1** chrome sem `onSplitWidthStep`
+
+### v1.6.0 — 2026-11-23 (MINOR)
+
+**Veículos Adaptive (lista + guia):**
+- `moduleKey="vehicles"` + `AdminVehicleGuidePanel` (modelo + configs VV)
+- Primary: busca termo livre, filtros, `fal-admin-scroll`, duplo clique → Abrir guia
+- Hub Integrações: chips/cards; ponte `VEHICLES_OPEN_GUIDE_KEY`; aprovação sem `window.prompt`
+- Manual create permanece verified; import/sync continua review
+- Lock **FL1** estendido (vehicles)
 
 ### v1.5.3 — 2026-11-22 (MINOR)
 
@@ -406,4 +438,4 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 
 ---
 
-**Assinatura:** FAL-UI-LAYOUT v1.5.3 · excelência registrada · 2026-11-22 · eFe / Cursor
+**Assinatura:** FAL-UI-LAYOUT v1.6.3 · excelência registrada · 2026-11-23 · eFe / Cursor

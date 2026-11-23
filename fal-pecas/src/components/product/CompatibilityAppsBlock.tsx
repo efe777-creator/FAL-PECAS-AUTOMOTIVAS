@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/common/Button'
+import { normalizeEntityMatchKey } from '@/lib/entityNormalize'
 import {
   APLICACAO_SECTION_LABEL,
   APPS_EMPTY_LABEL,
@@ -40,6 +41,40 @@ export function sliceCompatibilityGroups(
     remaining -= take.length
   }
   return out
+}
+
+/**
+ * Com veículo ativo na busca/garagem: maker/model do fit sobem na lista
+ * (card não lidera com Palio quando o filtro é i30 em peça multi-fit).
+ */
+export function prioritizeCompatibilityGroupsForVehicle(
+  groups: CompatibilityAppGroup[],
+  vehicle: { maker?: string | null; model?: string | null } | null | undefined,
+): CompatibilityAppGroup[] {
+  if (!groups.length) return groups
+  const makerKey = normalizeEntityMatchKey(vehicle?.maker ?? '')
+  const modelKey = normalizeEntityMatchKey(vehicle?.model ?? '')
+  if (!makerKey && !modelKey) return groups
+
+  const scored = groups.map((g, index) => {
+    const gMaker = normalizeEntityMatchKey(g.maker)
+    const makerMatch = Boolean(makerKey && gMaker === makerKey)
+    let bestModel = false
+    const lines = [...g.lines]
+    if (modelKey) {
+      lines.sort((a, b) => {
+        const aHit = normalizeEntityMatchKey(a.model) === modelKey ? 0 : 1
+        const bHit = normalizeEntityMatchKey(b.model) === modelKey ? 0 : 1
+        return aHit - bHit
+      })
+      bestModel = lines.some((l) => normalizeEntityMatchKey(l.model) === modelKey)
+    }
+    const rank = makerMatch && bestModel ? 0 : makerMatch ? 1 : bestModel ? 2 : 3
+    return { g: { maker: g.maker, lines }, rank, index }
+  })
+
+  scored.sort((a, b) => a.rank - b.rank || a.index - b.index)
+  return scored.map((s) => s.g)
 }
 
 export function CompatibilityAppsBlock({

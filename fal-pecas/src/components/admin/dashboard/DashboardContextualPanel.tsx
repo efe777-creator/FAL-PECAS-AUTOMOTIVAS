@@ -63,7 +63,8 @@ export function DashboardContextualPanel({
     return (
       <div className="flex flex-col gap-2 p-1">
         <p className="mb-0 text-sm text-fal-muted">
-          O pedido está no painel dividido do Adaptive. Use Expandir ou Página completa.
+          O pedido está no painel dividido do Adaptive. Arraste a borda para largura ou abra a
+          página completa.
         </p>
         <button
           type="button"

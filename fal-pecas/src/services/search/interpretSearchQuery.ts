@@ -14,7 +14,7 @@ export type SearchIntent = {
   vehicle: SearchIntentVehicle
   codeHint?: string
   needsClarification: boolean
-  clarification?: 'engine' | 'version' | 'year' | 'model'
+  clarification?: 'engine' | 'version' | 'year' | 'model' | 'product'
   confidence: 'high' | 'medium' | 'low'
 }
 
@@ -422,9 +422,10 @@ export function interpretSearchQuery(
   if (vehicle.model && vehicle.year) confidence = 'high'
   else if (vehicle.model || codeHint) confidence = 'medium'
 
-  if (!needsClarification && vehicle.model && !vehicle.year && !vehicle.engine && !productQuery) {
+  // Só-veículo: PVC já “pesquisa”; pedir a peça para refinar (não sumir o intent).
+  if (!needsClarification && vehicle.model && !productQuery && !codeHint) {
     needsClarification = true
-    clarification = 'year'
+    clarification = 'product'
   }
 
   return {

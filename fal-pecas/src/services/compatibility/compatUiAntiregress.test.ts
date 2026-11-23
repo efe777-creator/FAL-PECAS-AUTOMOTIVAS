@@ -77,6 +77,9 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
   it('Card M15: selo após título (não overlay); Kit nas infos; -N% na mídia; Incompatível visível', () => {
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/cardSeal\.kind !== 'hide' \|\| cardSeal\.label/)
+    // Compatível NÃO esconde Aplicação — selo + apps juntos.
+    expect(card).toMatch(/const showApps = !sealPending/)
+    expect(card).not.toMatch(/selo substitui apps/)
     expect(card).toMatch(/CompatibilityStateBadge/)
     expect(card).not.toMatch(/pointer-events-none absolute[\s\S]*CompatibilityStateBadge/)
     const titleIdx = card.indexOf('title={displayName}')

@@ -1,12 +1,13 @@
 import { Button } from '@/components/common/Button'
+import { Input } from '@/components/common/Input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { setGuideBridge, VEHICLES_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { setModelQualityStatus } from '@/services/admin/adminVehicleService'
 import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
-  listVerifiedThinShells,
   type VehicleNoEngineItem,
   type VehiclePointLifeItem,
   type VehicleReviewQueueItem,
@@ -24,7 +25,7 @@ import {
   type VehicleMasterSyncMeta,
 } from '@/services/vehicles/vehicleMasterSource'
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function StatusChip({ label, on }: { label: string; on: boolean }) {
   return (
@@ -45,6 +46,7 @@ function canSync(role: string | undefined): boolean {
 export function AdminVehicleIntegrationsHubPage() {
   useDocumentTitle('Integrações veículos | Admin FAL')
   const { user } = useAuth()
+  const navigate = useNavigate()
   const allowed = canSync(user?.role)
 
   const [makers, setMakers] = useState<number | null>(null)
@@ -77,56 +79,28 @@ export function AdminVehicleIntegrationsHubPage() {
   const [queueBusyId, setQueueBusyId] = useState<string | null>(null)
   const [queueActionError, setQueueActionError] = useState<string | null>(null)
   const [queueActionMsg, setQueueActionMsg] = useState<string | null>(null)
+  const [quarantineFormId, setQuarantineFormId] = useState<string | null>(null)
+  const [quarantineNote, setQuarantineNote] = useState('')
 
-  async function onQueueVerify(item: VehicleReviewQueueItem) {
-    if (!allowed) {
-      setQueueActionError('Sem permissão para alterar qualidade.')
-      return
-    }
-    const url = window.prompt(
-      `URL de evidência A1 (OEM) para verificar ${item.makerName} ${item.name}:`,
-      '',
-    )
-    if (url == null) return
-    const trimmed = url.trim()
-    if (!trimmed) {
-      setQueueActionError('URL de evidência obrigatória para verified.')
-      return
-    }
-    setQueueBusyId(item.id)
-    setQueueActionError(null)
-    setQueueActionMsg(null)
-    try {
-      await setModelQualityStatus({
-        modelId: item.id,
-        qualityStatus: 'verified',
-        evidenceKind: 'oem_a1',
-        evidenceUrl: trimmed,
-        reviewNote: `Verificado via hub · ${new Date().toISOString().slice(0, 10)}`,
-      })
-      setQueueActionMsg(`${item.makerName} ${item.name} → verified`)
-      await loadStats()
-      const shells = await listVerifiedThinShells()
-      if (shells.some((s) => s.id === item.id)) {
-        setQueueActionMsg(
-          `${item.makerName} ${item.name} → verified (casca: 0 VV — enriquecer configs sem thin-seed inventado)`,
-        )
-      }
-    } catch (err) {
-      setQueueActionError(toUserMessage(err, 'Falha ao verificar modelo'))
-    } finally {
-      setQueueBusyId(null)
-    }
+  function openVehicleGuide(modelId: string, opts?: { approve?: boolean }) {
+    setGuideBridge(VEHICLES_OPEN_GUIDE_KEY, modelId)
+    const qs = opts?.approve ? `?model=${encodeURIComponent(modelId)}&approve=1` : `?model=${encodeURIComponent(modelId)}`
+    navigate(`/admin/veiculos${qs}`)
   }
 
-  async function onQueueQuarantine(item: VehicleReviewQueueItem) {
+  function onQueueVerify(item: VehicleReviewQueueItem) {
     if (!allowed) {
       setQueueActionError('Sem permissão para alterar qualidade.')
       return
     }
-    const note =
-      window.prompt(`Motivo da quarentena (${item.makerName} ${item.name}):`, item.reviewNote ?? '') ??
-      ''
+    openVehicleGuide(item.id, { approve: true })
+  }
+
+  async function onQueueQuarantineSubmit(item: VehicleReviewQueueItem) {
+    if (!allowed) {
+      setQueueActionError('Sem permissão para alterar qualidade.')
+      return
+    }
     setQueueBusyId(item.id)
     setQueueActionError(null)
     setQueueActionMsg(null)
@@ -134,9 +108,11 @@ export function AdminVehicleIntegrationsHubPage() {
       await setModelQualityStatus({
         modelId: item.id,
         qualityStatus: 'quarantined',
-        reviewNote: note.trim() || 'Quarentena via hub',
+        reviewNote: quarantineNote.trim() || 'Quarentena via hub',
       })
       setQueueActionMsg(`${item.makerName} ${item.name} → quarantined`)
+      setQuarantineFormId(null)
+      setQuarantineNote('')
       await loadStats()
     } catch (err) {
       setQueueActionError(toUserMessage(err, 'Falha ao quarentenar modelo'))
@@ -388,7 +364,8 @@ export function AdminVehicleIntegrationsHubPage() {
         >
           <h2 className="m-0 text-lg font-extrabold text-fal-fg">Cadastro manual</h2>
           <p className="mb-0 mt-2 text-sm text-fal-muted">
-            CRUD com vida de linha (desde/até). Período de peça continua no PVC.
+            Lista + guia Adaptive. Modelo manual nasce <strong>verified</strong> (liberado na loja,
+            sem fila). Import/sync entra em revisão abaixo.
           </p>
         </Link>
       </div>
@@ -398,8 +375,8 @@ export function AdminVehicleIntegrationsHubPage() {
           Cascas verified sem VV ({thinShells.length})
         </p>
         <p className="mb-2 mt-1 text-sm text-fal-muted">
-          Nome ok na loja, sem configuração tipada — não inventar VV/PVC aqui. Abrir no cadastro
-          manual para enriquecer quando houver evidência.
+          Nome ok na loja, casca: 0 VV — sem configuração tipada. Não inventar VV/PVC. Abrir guia no
+          cadastro para enriquecer quando houver evidência.
         </p>
         {thinShellsError ? <p className="m-0 text-sm text-fal-danger">{thinShellsError}</p> : null}
         {!thinShellsError && thinShells.length === 0 ? (
@@ -421,12 +398,13 @@ export function AdminVehicleIntegrationsHubPage() {
                 {s.reviewNote ? (
                   <span className="text-fal-muted">{s.reviewNote}</span>
                 ) : null}
-                <Link
-                  to={`/admin/veiculos?model=${encodeURIComponent(s.id)}`}
-                  className="text-xs font-semibold text-fal-fg"
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-fal-fg underline"
+                  onClick={() => openVehicleGuide(s.id)}
                 >
-                  Abrir
-                </Link>
+                  Abrir guia
+                </button>
               </li>
             ))}
           </ul>
@@ -457,12 +435,13 @@ export function AdminVehicleIntegrationsHubPage() {
                   {p.makerName} {p.name}
                 </span>
                 {p.reviewNote ? <span className="text-fal-muted">{p.reviewNote}</span> : null}
-                <Link
-                  to={`/admin/veiculos?model=${encodeURIComponent(p.id)}`}
-                  className="text-xs font-semibold text-fal-fg"
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-fal-fg underline"
+                  onClick={() => openVehicleGuide(p.id)}
                 >
-                  Abrir
-                </Link>
+                  Abrir guia
+                </button>
               </li>
             ))}
           </ul>
@@ -493,12 +472,13 @@ export function AdminVehicleIntegrationsHubPage() {
                   {v.makerName} {v.modelName}
                   {v.versionName ? ` · ${v.versionName}` : ''}
                 </span>
-                <Link
-                  to={`/admin/veiculos?model=${encodeURIComponent(v.modelId)}`}
-                  className="text-xs font-semibold text-fal-fg"
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-fal-fg underline"
+                  onClick={() => openVehicleGuide(v.modelId)}
                 >
-                  Abrir
-                </Link>
+                  Abrir guia
+                </button>
               </li>
             ))}
           </ul>
@@ -545,8 +525,8 @@ export function AdminVehicleIntegrationsHubPage() {
           Fila de revisão ({queue.length})
         </p>
         <p className="mb-2 mt-1 text-sm text-fal-muted">
-          Só modelos <strong>verificados</strong> aparecem no seletor público. Revisão e quarentena
-          ficam visíveis apenas no admin.
+          Fila só de origem <strong>import/sync</strong>. Cadastro manual já nasce verified. Verificar
+          abre a guia — troque a situação sem URL (staff_override até API de mestre).
         </p>
         {queueError ? <p className="m-0 text-sm text-fal-danger">{queueError}</p> : null}
         {queueActionError ? <p className="m-0 text-sm text-fal-danger">{queueActionError}</p> : null}
@@ -570,12 +550,13 @@ export function AdminVehicleIntegrationsHubPage() {
                 >
                   {q.qualityStatus === 'quarantined' ? 'Quarentena' : 'Revisão'}
                 </span>
-                <Link
-                  to={`/admin/veiculos?model=${encodeURIComponent(q.id)}`}
-                  className="font-semibold text-fal-fg no-underline hover:underline"
+                <button
+                  type="button"
+                  className="font-semibold text-fal-fg underline"
+                  onClick={() => openVehicleGuide(q.id)}
                 >
                   {q.makerName} {q.name}
-                </Link>
+                </button>
                 <span className="text-xs text-fal-muted">
                   {q.vehicleClass}
                   {q.evidenceKind ? ` · ${q.evidenceKind}` : ''}
@@ -591,9 +572,9 @@ export function AdminVehicleIntegrationsHubPage() {
                       type="button"
                       className="rounded-md bg-emerald-700 px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
                       disabled={queueBusyId === q.id || !allowed}
-                      onClick={() => void onQueueVerify(q)}
+                      onClick={() => onQueueVerify(q)}
                     >
-                      Verificar (A1)
+                      Verificar
                     </button>
                   ) : null}
                   {q.qualityStatus !== 'quarantined' ? (
@@ -601,12 +582,47 @@ export function AdminVehicleIntegrationsHubPage() {
                       type="button"
                       className="rounded-md border border-red-300 px-2 py-1 text-xs font-bold text-red-900 disabled:opacity-50"
                       disabled={queueBusyId === q.id || !allowed}
-                      onClick={() => void onQueueQuarantine(q)}
+                      onClick={() => {
+                        setQuarantineFormId(q.id)
+                        setQuarantineNote(q.reviewNote ?? '')
+                      }}
                     >
                       Quarentena
                     </button>
                   ) : null}
                 </span>
+                {quarantineFormId === q.id ? (
+                  <form
+                    className="mt-2 w-full space-y-2 rounded-md border border-red-200 bg-red-50/40 p-2"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      void onQueueQuarantineSubmit(q)
+                    }}
+                  >
+                    <Input
+                      label="Motivo da quarentena"
+                      value={quarantineNote}
+                      onChange={(ev) => setQuarantineNote(ev.target.value)}
+                      placeholder="Motivo"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="submit" size="sm" disabled={queueBusyId === q.id || !allowed}>
+                        Confirmar quarentena
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="light"
+                        size="sm"
+                        onClick={() => {
+                          setQuarantineFormId(null)
+                          setQuarantineNote('')
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                ) : null}
               </li>
             ))}
           </ul>

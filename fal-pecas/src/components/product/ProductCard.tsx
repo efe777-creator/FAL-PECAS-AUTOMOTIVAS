@@ -1,6 +1,9 @@
 import { Badge } from '@/components/common/Badge'
 import { Button } from '@/components/common/Button'
-import { CompatibilityAppsBlock } from '@/components/product/CompatibilityAppsBlock'
+import {
+  CompatibilityAppsBlock,
+  prioritizeCompatibilityGroupsForVehicle,
+} from '@/components/product/CompatibilityAppsBlock'
 import { CompatibilityStateBadge } from '@/components/product/CompatibilityStateBadge'
 import {
   PaymentConditionHint,
@@ -105,6 +108,16 @@ export function ProductCard({
   const inCart = cartQty > 0
 
   const effectiveFit = fitFilter !== undefined ? fitFilter : garage?.activeFilter ?? null
+  const prioritizedApps = useMemo(
+    () =>
+      prioritizeCompatibilityGroupsForVehicle(
+        product.compatibilityGroups ?? [],
+        effectiveFit
+          ? { maker: effectiveFit.maker, model: effectiveFit.model }
+          : null,
+      ),
+    [product.compatibilityGroups, effectiveFit],
+  )
   const [selfPvc, setSelfPvc] = useState<PvcCompatRow[] | null>(null)
   const parentOwnsPvc = pvcRows !== undefined
 
@@ -142,10 +155,9 @@ export function ProductCard({
   // Inclui Incompatível (hide com label) — antes o hide sumia e o aviso não aparecia no card.
   const showSeal = Boolean(cardSeal && (cardSeal.kind !== 'hide' || cardSeal.label))
   const hasFitContext = Boolean(vehicleFilterToCompatInput(effectiveFit))
-  // Compatível/similar/A verificar: selo substitui apps. Incompatível: selo + apps.
+  // Selo (Compatível/…) NÃO substitui aplicação — cliente precisa ver para quais carros serve.
   const sealPending = hasFitContext && resolvedPvc == null
-  const showApps =
-    !sealPending && (!showSeal || cardSeal?.kind === 'hide')
+  const showApps = !sealPending
   const equivIncompatible =
     surface === 'equiv' && Boolean(cardSeal?.kind === 'hide' && cardSeal.label)
   const showPurchaseCtas = available && !equivIncompatible
@@ -339,7 +351,7 @@ export function ProductCard({
           <CompatibilityAppsBlock
             className="my-1 sm:my-1.5"
             variant="card"
-            groups={product.compatibilityGroups}
+            groups={prioritizedApps.length ? prioritizedApps : product.compatibilityGroups}
             summary={product.compatibilitySummary}
             emptyLabel={product.productKind === 'kit' ? KIT_APPS_EMPTY_LABEL : undefined}
           />

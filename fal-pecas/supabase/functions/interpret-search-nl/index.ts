@@ -24,7 +24,7 @@ type IntentPartial = {
   }
   codeHint?: string
   needsClarification?: boolean
-  clarification?: 'engine' | 'version' | 'year' | 'model'
+  clarification?: 'engine' | 'version' | 'year' | 'model' | 'product'
   confidence?: 'high' | 'medium' | 'low'
 }
 
@@ -35,15 +35,17 @@ function json(status: number, body: Record<string, unknown>) {
   })
 }
 
-const SYSTEM = `Você extrai intenção de busca de autopeças no Brasil.
+const SYSTEM = `Você extrai intenção de busca de autopeças no Brasil e AUXILIA a busca (não inventa).
 Responda APENAS JSON válido (sem markdown) no formato:
-{"productQuery":string|null,"vehicle":{"maker"?:string,"model"?:string,"year"?:string,"engine"?:string,"version"?:string},"codeHint"?:string,"needsClarification":boolean,"clarification"?: "engine"|"version"|"year"|"model","confidence":"high"|"medium"|"low"}
+{"productQuery":string|null,"vehicle":{"maker"?:string,"model"?:string,"year"?:string,"engine"?:string,"version"?:string},"codeHint"?:string,"needsClarification":boolean,"clarification"?: "engine"|"version"|"year"|"model"|"product","confidence":"high"|"medium"|"low"}
 
 Regras:
-- productQuery = só termos de peça/marca de peça (ex.: terminal, pivô, óleo). Sem modelo/ano.
+- productQuery = só termos de peça/marca de peça EXPLICITAMENTE no texto (ex.: terminal, pivô, óleo). Sem modelo/ano.
+- Se a query for SÓ modelo/marca (ex.: "I30", "HB20"), productQuery=null, preencha vehicle, needsClarification=true, clarification="product". NÃO invente nome de peça.
 - vehicle = montadora/modelo/ano/motor/versão se mencionados.
 - codeHint = SKU/referência alfanumérica se parecer código de peça.
-- NÃO invente compatibilidade, preço, estoque ou dados que não estejam no texto.
+- NÃO invente compatibilidade, preço, estoque, nem productQuery que não esteja no texto.
+- Frases mistas ("axial do i30"): productQuery=peça + vehicle=carro.
 - Se ambíguo, needsClarification=true e clarification apropriado; confidence baixa/média.
 - Anos: 2 ou 4 dígitos (2015 ou 15 → "2015").
 - Motor: normalize "1.0", "1.6", etc.`
@@ -78,7 +80,8 @@ function sanitizeIntent(raw: unknown): IntentPartial | null {
       clarification === 'engine' ||
       clarification === 'version' ||
       clarification === 'year' ||
-      clarification === 'model'
+      clarification === 'model' ||
+      clarification === 'product'
         ? clarification
         : undefined,
     confidence: conf === 'high' || conf === 'medium' || conf === 'low' ? conf : 'medium',

@@ -3,16 +3,54 @@ import { interpretSearchQuery } from './interpretSearchQuery'
 
 const catalog = [
   { maker: 'Hyundai', model: 'HB20', versions: ['Unique'] },
+  /** Nome canônico no mestre loja é I30 (maiúsculo) — matching deve ser case-insensitive. */
+  { maker: 'Hyundai', model: 'I30' },
   { maker: 'Fiat', model: 'Palio' },
 ]
 
 describe('interpretSearchQuery', () => {
-  it('HB20 2015 → model+year, sem productQuery', () => {
+  it('HB20 2015 → model+year, sem productQuery; pede peça', () => {
     const i = interpretSearchQuery('HB20 2015', catalog)
     expect(i.vehicle.model).toBe('HB20')
     expect(i.vehicle.maker).toBe('Hyundai')
     expect(i.vehicle.year).toBe('2015')
     expect(i.productQuery).toBeNull()
+    expect(i.needsClarification).toBe(true)
+    expect(i.clarification).toBe('product')
+  })
+
+  it('I30 / i30 → só-veículo (case-insensitive no mestre I30)', () => {
+    for (const raw of ['I30', 'i30', 'I30 ']) {
+      const i = interpretSearchQuery(raw, catalog)
+      expect(i.vehicle.model?.toLowerCase()).toBe('i30')
+      expect(i.vehicle.maker).toBe('Hyundai')
+      expect(i.productQuery).toBeNull()
+      expect(i.needsClarification).toBe(true)
+      expect(i.clarification).toBe('product')
+    }
+  })
+
+  it('Palio e HB20 → reconhecimento no campo de busca', () => {
+    const palio = interpretSearchQuery('Palio', catalog)
+    expect(palio.vehicle.model).toBe('Palio')
+    expect(palio.vehicle.maker).toBe('Fiat')
+    const hb20 = interpretSearchQuery('HB20', catalog)
+    expect(hb20.vehicle.model).toBe('HB20')
+    expect(hb20.vehicle.maker).toBe('Hyundai')
+  })
+
+  it('axial I30 → peça + veículo + maker Hyundai', () => {
+    const i = interpretSearchQuery('axial I30', catalog)
+    expect(i.productQuery?.toLowerCase()).toContain('axial')
+    expect(i.vehicle.model?.toLowerCase()).toBe('i30')
+    expect(i.vehicle.maker).toBe('Hyundai')
+  })
+
+  it('texto livre bosta → productQuery, sem veículo', () => {
+    const i = interpretSearchQuery('bosta', catalog)
+    expect(i.productQuery?.toLowerCase()).toBe('bosta')
+    expect(i.vehicle.model).toBeUndefined()
+    expect(i.vehicle.maker).toBeUndefined()
   })
 
   it('HB20 1.0 2015 → engine', () => {
@@ -64,10 +102,12 @@ describe('interpretSearchQuery', () => {
     expect(i.productQuery).toBeNull()
   })
 
-  it('HB20 Unique 2015 → version Unique do cadastro', () => {
+  it('HB20 Unique 2015 → version Unique; pede peça (só-veículo)', () => {
     const i = interpretSearchQuery('HB20 Unique 2015', catalog)
     expect(i.vehicle.version).toBe('Unique')
-    expect(i.needsClarification).toBe(false)
+    expect(i.productQuery).toBeNull()
+    expect(i.needsClarification).toBe(true)
+    expect(i.clarification).toBe('product')
   })
 
   it('Nakata PVI1032 → prioriza código (não perde SKU)', () => {

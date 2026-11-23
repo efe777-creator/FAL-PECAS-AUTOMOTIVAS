@@ -41,3 +41,39 @@ export function buildCatalogSearchParams(intent: SearchIntent): {
 
   return { searchParams: sp, catalogParams }
 }
+
+function intentHasVehicleParams(p: ProductSearchParams): boolean {
+  return Boolean(
+    p.maker?.trim() ||
+      p.model?.trim() ||
+      p.year?.trim() ||
+      p.engine?.trim() ||
+      p.version?.trim(),
+  )
+}
+
+/**
+ * Merge params de listagem com intent derivado de `q`.
+ * Se o intent carrega veículo, ele vence YMM stale (Palio + q=I30 → i30).
+ * Só-texto: preserva filtros YMM existentes e aplica `q` do intent.
+ */
+export function applyIntentToSearchParams(
+  params: ProductSearchParams,
+  catalogParams: ProductSearchParams,
+): ProductSearchParams {
+  if (intentHasVehicleParams(catalogParams)) {
+    return {
+      ...params,
+      maker: catalogParams.maker,
+      model: catalogParams.model,
+      year: catalogParams.year,
+      engine: catalogParams.engine,
+      version: catalogParams.version,
+      q: catalogParams.q,
+    }
+  }
+  return {
+    ...params,
+    q: catalogParams.q !== undefined ? catalogParams.q : params.q,
+  }
+}

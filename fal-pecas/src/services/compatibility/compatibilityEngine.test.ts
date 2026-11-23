@@ -131,6 +131,13 @@ describe('resolveFitContext M25', () => {
     expect(resolveFitContext(null, chip)).toEqual(chip)
     expect(resolveFitContext(null, null)).toBeNull()
   })
+
+  it('busca Cerato na URL vence garagem HB20 (conflito de modelo)', () => {
+    const garage = { maker: 'Hyundai', model: 'HB20', year: '2019' }
+    const page = { maker: 'Kia', model: 'Cerato' }
+    // CatalogPage: resolveFitContext(garage, pageVehicleFilter)
+    expect(resolveFitContext(garage, page)).toEqual(page)
+  })
 })
 
 describe('classifyCardCompatibility honesto', () => {
