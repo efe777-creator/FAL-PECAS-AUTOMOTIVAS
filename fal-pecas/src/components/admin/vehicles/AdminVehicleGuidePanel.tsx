@@ -114,17 +114,18 @@ export function AdminVehicleGuidePanel({
     )
   }
 
-  const q = qualityBadge(model.qualityStatus)
+  const current = model
+  const q = qualityBadge(current.qualityStatus)
 
   async function saveModel(e: FormEvent) {
     e.preventDefault()
     setBusyModel(true)
     try {
       const saved = await adminUpsertModel({
-        id: model.id,
-        manufacturerId: model.manufacturerId,
+        id: current.id,
+        manufacturerId: current.manufacturerId,
         name: modelName.trim(),
-        status: model.status,
+        status: current.status,
         productionYearStart: productionYearStart.trim()
           ? Number(productionYearStart.trim())
           : null,
@@ -154,8 +155,8 @@ export function AdminVehicleGuidePanel({
       const peeled = peelEngineFromVersionName(eng, versionName.trim() || null)
       const saved = await adminUpsertVersion({
         id: editingVersionId ?? undefined,
-        manufacturerId: model.manufacturerId,
-        modelId: model.id,
+        manufacturerId: current.manufacturerId,
+        modelId: current.id,
         year: year.trim() ? Number(year) : null,
         engine: eng,
         versionName: peeled,
@@ -170,7 +171,7 @@ export function AdminVehicleGuidePanel({
       setYear('')
       setEngine('')
       setVersionName('')
-      await reloadVersions(model.id)
+      await reloadVersions(current.id)
       void saved
     } catch (err) {
       toast.push(toUserMessage(err, 'Falha ao salvar configuração'), 'error')
@@ -195,14 +196,14 @@ export function AdminVehicleGuidePanel({
               : 'Substituído via guia')
       // Sem URL: staff_override até a API de mestre (master_api) assumir o cadastro.
       await setModelQualityStatus({
-        modelId: model.id,
+        modelId: current.id,
         qualityStatus: status,
         evidenceKind: STAFF_QUALITY_EVIDENCE_KIND,
         evidenceUrl: null,
         reviewNote: note,
       })
       onModelUpdated({
-        ...model,
+        ...current,
         qualityStatus: status,
         evidenceKind: STAFF_QUALITY_EVIDENCE_KIND,
         evidenceUrl: null,

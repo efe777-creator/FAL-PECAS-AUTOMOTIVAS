@@ -265,12 +265,12 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
     isMissingQualityStatusError(modelsRes.error) ||
     isMissingQualityStatusError(versionsRes.error)
   ) {
-    modelsRes = await supabase
+    const modelsFb = await supabase
       .from('models')
       .select('name, status, manufacturers!inner(name, status)')
       .eq('status', 'active')
       .order('name')
-    versionsRes = await supabase
+    const versionsFb = await supabase
       .from('vehicle_versions')
       .select(
         'version_name, status, models!inner(name, status), manufacturers!inner(name)',
@@ -278,6 +278,9 @@ export async function listVehicleCatalogEntries(): Promise<VehicleCatalogEntry[]
       .eq('status', 'active')
       .eq('models.status', 'active')
       .not('version_name', 'is', null)
+    // Cast: fallback sem quality_status — runtime só usa name/status/makers.
+    modelsRes = modelsFb as typeof modelsRes
+    versionsRes = versionsFb as typeof versionsRes
   }
 
   if (modelsRes.error) {
