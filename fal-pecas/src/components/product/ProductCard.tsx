@@ -46,7 +46,7 @@ import {
 import { formatMoney } from '@/lib/money'
 import { formatLadoLabel, formatPosicaoLabel } from '@/lib/productPosicaoLado'
 import {
-  formatOfertaBadgeLabel,
+  formatDiscountPercentLabel,
   resolvePromoOffer,
 } from '@/lib/promoPresentation'
 import { saveBuyNowIntent } from '@/services/checkout/buyNowSession'
@@ -213,25 +213,18 @@ export function ProductCard({
     navigate('/checkout', { state: { from: returnFrom } })
   }
 
-  return (
-    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3.5">
-      {(offer.isOffer && presentation.showOfertaBadge) || product.productKind === 'kit' ? (
-        <div className="absolute top-3.5 left-3.5 z-[1] flex flex-col items-start gap-1">
-          {product.productKind === 'kit' ? <Badge>Kit</Badge> : null}
-          {offer.isOffer && presentation.showOfertaBadge ? (
-            <Badge>
-              {formatOfertaBadgeLabel(offer, {
-                showDiscountPercent: presentation.showDiscountPercent,
-              })}
-            </Badge>
-          ) : null}
-        </div>
-      ) : null}
+  const showMediaPct =
+    offer.isOffer &&
+    presentation.showOfertaBadge &&
+    presentation.showDiscountPercent !== false &&
+    offer.discountPercent != null
 
+  return (
+    <article className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-fal border border-fal-line bg-fal-surface p-2 text-fal-fg transition hover:-translate-y-0.5 hover:border-fal-yellow/35 hover:shadow-fal sm:p-3">
       <button
         type="button"
         className={[
-          'absolute top-2 right-2 z-[2] grid h-9 w-9 place-items-center rounded-full border bg-fal-surface/95 text-sm shadow-sm sm:top-3.5 sm:right-3.5 sm:h-11 sm:w-11 sm:text-base',
+          'absolute top-2 right-2 z-[2] grid h-9 w-9 place-items-center rounded-full border bg-fal-surface/95 text-sm shadow-sm sm:top-2.5 sm:right-2.5 sm:h-11 sm:w-11 sm:text-base',
           favoritesLoading && user ? 'opacity-60' : '',
           liked
             ? 'border-fal-favorite/40 text-fal-favorite hover:border-fal-favorite/60'
@@ -244,7 +237,12 @@ export function ProductCard({
         {liked ? '♥' : '♡'}
       </button>
 
-      <div className="relative mb-0.5 shrink-0 sm:mb-1">
+      <div className="relative mb-0.5 shrink-0">
+        {showMediaPct && offer.discountPercent != null ? (
+          <div className="absolute top-2 left-2 z-[1] max-w-[calc(100%-2.75rem)] sm:top-2.5 sm:left-2.5">
+            <Badge variant="promo">{formatDiscountPercentLabel(offer.discountPercent)}</Badge>
+          </div>
+        ) : null}
         <ProductMediaFrame variant="card">
           {product.imageUrl ? (
             <Link
@@ -267,14 +265,22 @@ export function ProductCard({
       </div>
 
       <Link to={productHref} state={pdpLinkState} className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {product.productKind === 'kit' ? (
+          <div className="mt-1 mb-0.5 sm:mt-1.5">
+            <Badge variant="kit">Kit</Badge>
+          </div>
+        ) : null}
         <h3
-          className="mt-1.5 mb-0.5 line-clamp-2 min-h-8 break-words text-xs font-bold leading-snug sm:mt-2 sm:mb-1 sm:min-h-[2.7rem] sm:text-[15px]"
+          className={[
+            'mb-0.5 line-clamp-2 break-words text-xs font-bold leading-snug sm:text-[15px]',
+            product.productKind === 'kit' ? 'mt-0' : 'mt-1 sm:mt-1.5',
+          ].join(' ')}
           title={displayName}
         >
           {displayName}
         </h3>
         {showSeal && compatVerdict ? (
-          <div className="mb-1">
+          <div className="mb-0.5">
             <CompatibilityStateBadge
               verdict={compatVerdict}
               variant="card"
@@ -331,7 +337,7 @@ export function ProductCard({
         ) : null}
         {showApps ? (
           <CompatibilityAppsBlock
-            className="my-1.5 sm:my-2"
+            className="my-1 sm:my-1.5"
             variant="card"
             groups={product.compatibilityGroups}
             summary={product.compatibilitySummary}
@@ -340,7 +346,7 @@ export function ProductCard({
         ) : null}
       </Link>
 
-      <div className="mt-auto flex shrink-0 flex-col gap-1.5 pt-1.5 sm:gap-2 sm:pt-2">
+      <div className="mt-auto flex shrink-0 flex-col gap-1 pt-1 sm:gap-1.5 sm:pt-1.5">
         {!available ? (
           <p className="m-0 text-sm font-bold text-fal-danger">Indisponível</p>
         ) : (

@@ -74,12 +74,10 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(css).toMatch(/--color-fal-fg:\s*var\(--fal-fg\)/)
   })
 
-  it('Card M15: selo após título (não overlay); Oferta absoluta na foto; Incompatível visível', () => {
+  it('Card M15: selo após título (não overlay); Kit nas infos; -N% na mídia; Incompatível visível', () => {
     const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
     expect(card).toMatch(/cardSeal\.kind !== 'hide' \|\| cardSeal\.label/)
     expect(card).toMatch(/CompatibilityStateBadge/)
-    // Gate: selo NÃO volta para cima da foto (não tapa Oferta/peça).
-    expect(card).not.toMatch(/absolute top-2 left-2[\s\S]*CompatibilityStateBadge/)
     expect(card).not.toMatch(/pointer-events-none absolute[\s\S]*CompatibilityStateBadge/)
     const titleIdx = card.indexOf('title={displayName}')
     const sealIdx = card.indexOf('<CompatibilityStateBadge')
@@ -87,11 +85,22 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(titleIdx).toBeGreaterThan(-1)
     expect(sealIdx).toBeGreaterThan(titleIdx)
     expect(refIdx).toBeGreaterThan(sealIdx)
-    // Oferta permanece no canto da mídia.
-    expect(card).toMatch(/showOfertaBadge/)
-    expect(card).toMatch(/absolute top-3\.5 left-3\.5/)
-    expect(card).toMatch(/formatOfertaBadgeLabel/)
+    // Overlay da mídia = só -N% (promo); Kit fica nas infos acima do título.
+    const mediaBlockIdx = card.indexOf('absolute top-2 left-2 z-[1]')
+    expect(mediaBlockIdx).toBeGreaterThan(-1)
+    expect(mediaBlockIdx).toBeLessThan(titleIdx)
+    expect(card).toMatch(/showMediaPct/)
+    expect(card).toMatch(/formatDiscountPercentLabel/)
+    expect(card).not.toMatch(/formatOfertaBadgeLabel/)
+    const kitIdx = card.indexOf('variant="kit"')
+    expect(kitIdx).toBeGreaterThan(mediaBlockIdx)
+    expect(kitIdx).toBeLessThan(titleIdx)
+    expect(card).toMatch(/variant="promo"/)
     expect(card).toMatch(/shadow-none/)
+    const badge = readFileSync(src('components/common/Badge.tsx'), 'utf8')
+    expect(badge).toMatch(/BadgeVariant/)
+    expect(badge).toMatch(/kit:/)
+    expect(badge).toMatch(/promo:/)
   })
 
   it('Card Notes #7 CTAs: wrappers sm (sem hidden no Button — evita vazamento inline-flex)', () => {
