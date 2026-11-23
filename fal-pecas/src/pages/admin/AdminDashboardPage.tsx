@@ -42,6 +42,7 @@ import {
   type DashboardPeriodPreset,
   type DashboardPeriodRange,
 } from '@/lib/adminDashboardPeriod'
+import { useToast } from '@/components/common/Toast'
 import { formatDateTime } from '@/lib/datetime'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -57,6 +58,7 @@ function DashboardShell({
   const role = user?.role
   const data = useDashboardData()
   const navigate = useNavigate()
+  const { push } = useToast()
   const {
     contextual,
     setContextual,
@@ -176,11 +178,16 @@ function DashboardShell({
       handleCancelEdit()
       return
     }
+    const hadChanges = dirty
     persist(filterAllowed(draftItems))
     setDraftItems(null)
     setBaselineItems([])
     setEditing(false)
     setAddOpen(false)
+    push(
+      hadChanges ? 'Layout do painel salvo' : 'Personalização encerrada',
+      hadChanges ? 'success' : 'info',
+    )
   }
 
   function handleItemsChange(items: DashboardLayoutItem[]) {
@@ -342,18 +349,18 @@ function DashboardShell({
               </button>
               <button
                 type="button"
-                className="hidden min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3.5 text-sm font-semibold text-fal-fg sm:inline-flex"
+                className="min-h-10 items-center rounded-xl border border-fal-line bg-fal-surface px-3.5 text-sm font-semibold text-fal-fg inline-flex"
                 onClick={handleCancelEdit}
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                className="hidden min-h-10 items-center rounded-xl border border-fal-accent bg-fal-accent px-3.5 text-sm font-semibold text-white sm:inline-flex disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!dirty}
+                data-testid="dashboard-layout-save"
+                className="inline-flex min-h-10 items-center rounded-xl border border-fal-accent bg-fal-accent px-3.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
                 onClick={handleSaveEdit}
               >
-                Salvar
+                {dirty ? 'Salvar' : 'Concluir'}
               </button>
             </>
           )}
@@ -366,8 +373,9 @@ function DashboardShell({
           role="status"
         >
           Segure o ícone ⋮⋮ e arraste para mudar a posição. No celular a grade fica
-          em coluna; no desktop também dá para redimensionar. Alterações só gravam
-          ao tocar em Salvar.
+          em coluna; no desktop também dá para redimensionar. Toque em{' '}
+          <strong>Salvar</strong> (ou Concluir) para gravar — o botão fica sempre
+          disponível enquanto edita.
         </p>
       ) : null}
 
@@ -406,8 +414,9 @@ function DashboardShell({
 
       {editing ? (
         <div
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-fal-line bg-fal-surface/95 px-3 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-fal-line bg-fal-surface/95 px-3 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] backdrop-blur sm:hidden"
           style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+          data-testid="dashboard-layout-save-bar"
         >
           <div className="mx-auto flex max-w-7xl gap-2">
             <button
@@ -426,11 +435,11 @@ function DashboardShell({
             </button>
             <button
               type="button"
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-fal-accent text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!dirty}
+              data-testid="dashboard-layout-save-mobile"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-fal-accent text-sm font-bold text-white"
               onClick={handleSaveEdit}
             >
-              Salvar
+              {dirty ? 'Salvar' : 'Concluir'}
             </button>
           </div>
         </div>

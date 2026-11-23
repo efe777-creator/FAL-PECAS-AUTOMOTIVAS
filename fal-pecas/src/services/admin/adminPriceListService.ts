@@ -1395,6 +1395,128 @@ export async function adminListProductListPrices(productId: string): Promise<Pro
   })
 }
 
+/** Linha rica para a guia do produto (custo / margem / preço + meta da lista). */
+export type ProductPricingRow = {
+  list: PriceList
+  item: PriceListItem
+}
+
+/**
+ * Todas as listas com item do produto (real ou virtual `missing:`) + custo/margem.
+ * Usado na guia Adaptive menu Preços (G2).
+ */
+export async function adminGetProductPricingRows(
+  productId: string,
+  productMeta?: { sku?: string; name?: string },
+): Promise<ProductPricingRow[]> {
+  const sb = getSupabase()
+  const pid = productId.trim()
+  if (!pid) return []
+
+  const [{ data: lists, error: lErr }, { data: items, error: iErr }, costByProduct] =
+    await Promise.all([
+      selectPriceListsWithPercentFallback((columns) =>
+        sb.from('price_lists').select(columns).order('priority', { ascending: false }),
+      ),
+      sb
+        .from('price_list_items')
+        .select(
+          'id, price_list_id, product_id, price, extra_cost, price_origin, calculated_price, updated_at',
+        )
+        .eq('product_id', pid),
+      loadProductBaseCosts([pid]),
+    ])
+  if (lErr) throw lErr
+  if (iErr) throw iErr
+
+  const costInfo = costByProduct.get(pid)
+  const baseCost = costInfo?.baseCost ?? null
+  const byList = new Map<string, Record<string, unknown>>()
+  for (const row of items ?? []) {
+    byList.set(String((row as { price_list_id: string }).price_list_id), row as Record<string, unknown>)
+  }
+
+  const sku = productMeta?.sku
+  const productName = productMeta?.name
+
+  return (lists ?? []).map((raw) => {
+    const list = mapList(raw as unknown as Record<string, unknown>)
+    const hit = byList.get(list.id)
+    const listPct = list.listExtraCostPercent
+    if (!hit) {
+      const costTotal =
+        baseCost == null ? null : computeCostTotal(baseCost, 0, 0, listPct)
+      const item: PriceListItem = {
+        id: `missing:${pid}`,
+        priceListId: list.id,
+        productId: pid,
+        price: 0,
+        extraCost: 0,
+        priceOrigin: 'calculated',
+        calculatedPrice: null,
+        baseCost,
+        costTotal,
+        effectiveMarginPct: null,
+        effectiveMarkupPct: null,
+        sku,
+        productName,
+        supplierId: costInfo?.costSupplierId ?? null,
+      }
+      return { list, item }
+    }
+
+    const extraCost = Number(hit.extra_cost ?? 0)
+    const price = Number(hit.price)
+    const costTotal =
+      baseCost == null ? null : computeCostTotal(baseCost, extraCost, 0, listPct)
+    const item: PriceListItem = {
+      id: String(hit.id),
+      priceListId: list.id,
+      productId: pid,
+      price,
+      extraCost,
+      priceOrigin: (hit.price_origin as PriceOrigin) || 'manual',
+      calculatedPrice: hit.calculated_price == null ? null : Number(hit.calculated_price),
+      baseCost,
+      costTotal,
+      effectiveMarginPct:
+        costTotal == null ? null : toPercent(effectiveMarginFraction(price, costTotal)),
+      effectiveMarkupPct:
+        costTotal == null ? null : toPercent(effectiveMarkupFraction(price, costTotal)),
+      sku,
+      productName,
+      supplierId: costInfo?.costSupplierId ?? null,
+      updatedAt: hit.updated_at != null ? String(hit.updated_at) : undefined,
+    }
+    return { list, item }
+  })
+}
+
+/**
+ * Garante linha real na lista (materializa virtual `missing:`).
+ * Retorna o id do item.
+ */
+export async function adminEnsureProductOnPriceList(input: {
+  priceListId: string
+  productId: string
+  itemId?: string
+}): Promise<string> {
+  if (input.itemId && !isVirtualPriceListItemId(input.itemId)) return input.itemId
+  await adminSyncProductsOntoPriceList({
+    priceListId: input.priceListId,
+    productIds: [input.productId],
+  })
+  const { data, error } = await getSupabase()
+    .from('price_list_items')
+    .select('id')
+    .eq('price_list_id', input.priceListId)
+    .eq('product_id', input.productId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data?.id) throw new Error('Falha ao incluir item na lista')
+  return String(data.id)
+}
+
 /**
  * Sincroniza o produto nas listas: preço definido = upsert; null = remove da lista.
  * A lista Base deve sempre receber preço (≥ 0) quando o modo for listas.

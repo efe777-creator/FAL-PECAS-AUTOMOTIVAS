@@ -66,7 +66,7 @@ import {
   categoryPath,
 } from '@/services/admin/adminCategoryService'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
-import { adminListProducts } from '@/services/admin/adminProductService'
+import { adminGetProduct, adminListProducts } from '@/services/admin/adminProductService'
 import { adminListModels } from '@/services/admin/adminVehicleService'
 import type { Category, Manufacturer, Product, VehicleModel } from '@/types'
 import {
@@ -263,6 +263,10 @@ export function AdminHomeContentPage() {
   const [campaignProductQ, setCampaignProductQ] = useState('')
   const [campaignProductHits, setCampaignProductHits] = useState<Product[]>([])
   const [campaignProductSearching, setCampaignProductSearching] = useState(false)
+  /** Rótulos persistentes dos produtos selecionados no destino da campanha. */
+  const [campaignSelectedLabels, setCampaignSelectedLabels] = useState<
+    Record<string, { name: string; sku: string }>
+  >({})
   const [makers, setMakers] = useState<Manufacturer[]>([])
   const [makerModels, setMakerModels] = useState<VehicleModel[]>([])
   const [allCats, setAllCats] = useState<Category[]>([])
@@ -292,6 +296,7 @@ export function AdminHomeContentPage() {
     setLinkYear('')
     setCampaignProductQ('')
     setCampaignProductHits([])
+    setCampaignSelectedLabels({})
   }
 
   function syncCampaignLinkFromHref(href: string) {
@@ -304,6 +309,56 @@ export function AdminHomeContentPage() {
     setLinkModels(parsed.vehicle?.models ?? [])
     setLinkYear(parsed.vehicle?.year ?? '')
   }
+
+  useEffect(() => {
+    const missing = linkIds.filter((id) => !campaignSelectedLabels[id])
+    if (!missing.length) {
+      setCampaignSelectedLabels((prev) => {
+        const prevKeys = Object.keys(prev)
+        if (
+          prevKeys.length === linkIds.length &&
+          linkIds.every((id) => Boolean(prev[id]))
+        ) {
+          return prev
+        }
+        const next: typeof prev = {}
+        for (const id of linkIds) {
+          if (prev[id]) next[id] = prev[id]!
+        }
+        return next
+      })
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const entries = await Promise.all(
+        missing.map(async (id) => {
+          const p = await adminGetProduct(id).catch(() => null)
+          return [
+            id,
+            {
+              name: p?.name ?? id.slice(0, 8),
+              sku: p?.commercialRef || p?.sku || '—',
+            },
+          ] as const
+        }),
+      )
+      if (cancelled) return
+      setCampaignSelectedLabels((prev) => {
+        const next: typeof prev = {}
+        for (const id of linkIds) {
+          if (prev[id]) next[id] = prev[id]!
+        }
+        for (const [id, label] of entries) next[id] = label
+        return next
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+    // Só reage a linkIds; labels preenchidos sob demanda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkIds])
 
   function rebuildCampaignHref(next?: {
     kind?: CampaignLinkKind
@@ -348,11 +403,22 @@ export function AdminHomeContentPage() {
     }
   }
 
-  function toggleCampaignProductId(id: string) {
-    const next = linkIds.includes(id)
+  function toggleCampaignProductId(id: string, label?: { name: string; sku: string }) {
+    const removing = linkIds.includes(id)
+    const next = removing
       ? linkIds.filter((x) => x !== id)
       : normalizeCampaignProductIds([...linkIds, id])
     setLinkIds(next)
+    if (!removing && label) {
+      setCampaignSelectedLabels((prev) => ({ ...prev, [id]: label }))
+    }
+    if (removing) {
+      setCampaignSelectedLabels((prev) => {
+        const copy = { ...prev }
+        delete copy[id]
+        return copy
+      })
+    }
     rebuildCampaignHref({ kind: 'products', ids: next })
   }
 
@@ -806,29 +872,82 @@ export function AdminHomeContentPage() {
                 </div>
                 {campaignProductHits.length > 0 ? (
                   <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
-                    {campaignProductHits.map((hit) => (
-                      <li key={hit.id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="min-w-0 truncate text-fal-ink">
-                          {hit.name}
-                          <span className="text-fal-muted"> · {hit.sku}</span>
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={linkIds.includes(hit.id) ? 'primary' : 'outline'}
-                          onClick={() => toggleCampaignProductId(hit.id)}
+                    {campaignProductHits.map((hit) => {
+                      const selected = linkIds.includes(hit.id)
+                      return (
+                        <li
+                          key={hit.id}
+                          className={`flex items-center justify-between gap-2 rounded-[8px] px-2 py-1.5 text-sm ${
+                            selected
+                              ? 'bg-fal-accent/15 ring-1 ring-fal-accent/50'
+                              : 'hover:bg-fal-surface'
+                          }`}
                         >
-                          {linkIds.includes(hit.id) ? 'Remover' : 'Incluir'}
-                        </Button>
-                      </li>
-                    ))}
+                          <span className="min-w-0 truncate text-fal-ink">
+                            {hit.name}
+                            <span className="text-fal-muted">
+                              {' '}
+                              · {hit.commercialRef || hit.sku}
+                            </span>
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={selected ? 'primary' : 'outline'}
+                            onClick={() =>
+                              toggleCampaignProductId(hit.id, {
+                                name: hit.name,
+                                sku: hit.commercialRef || hit.sku,
+                              })
+                            }
+                          >
+                            {selected ? 'Remover' : 'Incluir'}
+                          </Button>
+                        </li>
+                      )
+                    })}
                   </ul>
                 ) : null}
                 {linkIds.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <p className="m-0 text-[12px] font-semibold text-fal-fg">
+                      {linkIds.length} produto(s) selecionado(s) no destino
+                    </p>
+                    <ul className="m-0 max-h-48 list-none space-y-1 overflow-y-auto p-0">
+                      {linkIds.map((id) => {
+                        const label = campaignSelectedLabels[id]
+                        return (
+                          <li
+                            key={id}
+                            className="flex items-center justify-between gap-2 rounded-[8px] border border-fal-line bg-fal-surface px-2 py-1.5 text-sm"
+                          >
+                            <span className="min-w-0 truncate text-fal-ink">
+                              <strong>{label?.name ?? 'Carregando…'}</strong>
+                              <span className="ml-1 text-xs text-fal-muted">
+                                {label?.sku ?? id.slice(0, 8)}
+                              </span>
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleCampaignProductId(id)}
+                            >
+                              Remover
+                            </Button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                    <p className="m-0 text-[11px] text-fal-muted">
+                      XOR filtro (sem cat/veículo na URL)
+                    </p>
+                  </div>
+                ) : (
                   <p className="m-0 text-[12px] text-fal-muted">
-                    {linkIds.length} produto(s) no destino · XOR filtro (sem cat/veículo na URL)
+                    Nenhum produto selecionado ainda — busque e inclua acima.
                   </p>
-                ) : null}
+                )}
               </div>
             ) : null}
             {linkKind === 'category' || linkKind === 'filter' ? (

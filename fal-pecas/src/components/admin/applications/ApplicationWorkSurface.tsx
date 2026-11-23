@@ -1,220 +1,42 @@
-import { Button, buttonClassName } from '@/components/common/Button'
+import { Button } from '@/components/common/Button'
 import { confirmDialog } from '@/components/common/ConfirmDialog'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
-import { PRODUCTS_OPEN_GUIDE_KEY, setGuideBridge } from '@/lib/adminGuideBridges'
-import {
-  PVC_CASCADE_HINT,
-  pvcEngineOptions,
-  pvcMatchingVersions,
-  pvcVersionNameOptions,
-} from '@/lib/pvcVehicleCascade'
-import { formatVehicleAppYear, validatePvcYearInputs } from '@/lib/vehicleAppYear'
 import { SKU_FAL_LABEL } from '@/lib/productLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
-  adminAddApplicationsBulk,
   adminFindProductIdBySku,
-  adminRemoveApplication,
   adminRemoveApplicationsBulk,
-  adminUpdateApplicationVehicleVersion,
-  adminUpdateApplicationYears,
   type AdminApplicationRow,
 } from '@/services/admin/adminApplicationService'
-import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
-import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 
-export type ApplicationGuideMode = 'create' | 'focus' | 'bulk'
+export type ApplicationGuideMode = 'create' | 'bulk'
 
 type Props = {
   mode: ApplicationGuideMode
-  focused: AdminApplicationRow | null
   selectedRows: AdminApplicationRow[]
-  makers: Manufacturer[]
   onClose: () => void
   onMutated: (opts?: { focusSku?: string }) => void
+  /** Após resolver SKU, abre a guia centrada no produto. */
+  onOpenProduct: (productId: string, sku: string) => void
 }
 
 /**
  * Superfície contextual do hub Aplicações (Adaptive).
- * Criar / editar período / trocar veículo / bulk — não é OrderOps.
+ * create = resolver SKU → guia do item; bulk = exclusão em lote.
+ * Edição de vínculos: ProductApplicationsEditor.
  */
 export function ApplicationWorkSurface({
   mode,
-  focused,
   selectedRows,
-  makers,
   onClose,
   onMutated,
+  onOpenProduct,
 }: Props) {
   const toast = useToast()
-  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
-
-  const [yearStart, setYearStart] = useState('')
-  const [yearEnd, setYearEnd] = useState('')
-
-  const [swapMakerId, setSwapMakerId] = useState('')
-  const [swapModelId, setSwapModelId] = useState('')
-  const [swapEngine, setSwapEngine] = useState('')
-  const [swapVersion, setSwapVersion] = useState('')
-  const [swapModels, setSwapModels] = useState<VehicleModel[]>([])
-  const [swapVersions, setSwapVersions] = useState<VehicleVersion[]>([])
-
   const [createSku, setCreateSku] = useState('')
-  const [createMakerId, setCreateMakerId] = useState('')
-  const [createModelId, setCreateModelId] = useState('')
-  const [createEngine, setCreateEngine] = useState('')
-  const [createVersion, setCreateVersion] = useState('')
-  const [createYearStart, setCreateYearStart] = useState('')
-  const [createYearEnd, setCreateYearEnd] = useState('')
-  const [createModels, setCreateModels] = useState<VehicleModel[]>([])
-  const [createVersions, setCreateVersions] = useState<VehicleVersion[]>([])
-
-  useEffect(() => {
-    if (!focused) return
-    setYearStart(focused.yearStart != null ? String(focused.yearStart) : '')
-    setYearEnd(focused.yearEnd != null ? String(focused.yearEnd) : '')
-    setSwapMakerId(focused.makerId ?? '')
-    setSwapModelId(focused.modelId ?? '')
-    setSwapEngine((focused.engine ?? '').trim())
-    setSwapVersion((focused.versionName ?? '').trim())
-  }, [focused])
-
-  useEffect(() => {
-    if (!swapMakerId) {
-      setSwapModels([])
-      setSwapModelId('')
-      return
-    }
-    void adminListModels(swapMakerId).then(setSwapModels)
-  }, [swapMakerId])
-
-  useEffect(() => {
-    if (!swapModelId) {
-      setSwapVersions([])
-      setSwapEngine('')
-      setSwapVersion('')
-      return
-    }
-    void adminListVersions(swapModelId).then(setSwapVersions)
-  }, [swapModelId])
-
-  useEffect(() => {
-    if (!createMakerId) {
-      setCreateModels([])
-      setCreateModelId('')
-      return
-    }
-    void adminListModels(createMakerId).then(setCreateModels)
-  }, [createMakerId])
-
-  useEffect(() => {
-    if (!createModelId) {
-      setCreateVersions([])
-      setCreateEngine('')
-      setCreateVersion('')
-      return
-    }
-    void adminListVersions(createModelId).then(setCreateVersions)
-  }, [createModelId])
-
-  const swapEngineOptions = useMemo(() => pvcEngineOptions(swapVersions), [swapVersions])
-  const swapVersionOptions = useMemo(
-    () => pvcVersionNameOptions(swapVersions, swapEngine),
-    [swapVersions, swapEngine],
-  )
-  const matchingSwap = useMemo(
-    () => pvcMatchingVersions(swapVersions, swapEngine, swapVersion),
-    [swapVersions, swapEngine, swapVersion],
-  )
-
-  const createEngineOptions = useMemo(() => pvcEngineOptions(createVersions), [createVersions])
-  const createVersionOptions = useMemo(
-    () => pvcVersionNameOptions(createVersions, createEngine),
-    [createVersions, createEngine],
-  )
-  const matchingCreate = useMemo(
-    () => pvcMatchingVersions(createVersions, createEngine, createVersion),
-    [createVersions, createEngine, createVersion],
-  )
-
-  async function savePeriod() {
-    if (!focused) return
-    const period = validatePvcYearInputs(yearStart, yearEnd)
-    if (!period.ok) {
-      toast.push(period.message, 'error')
-      return
-    }
-    setBusy(true)
-    try {
-      await adminUpdateApplicationYears(focused.id, {
-        yearStart: period.yearStart,
-        yearEnd: period.yearEnd,
-      })
-      toast.push('Período atualizado.', 'success')
-      onMutated()
-    } catch (e) {
-      toast.push(toUserMessage(e, 'Falha ao salvar período'), 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function saveSwap() {
-    if (!focused) return
-    if (!swapModelId) {
-      toast.push('Selecione montadora e modelo', 'error')
-      return
-    }
-    if (matchingSwap.length === 0) {
-      toast.push('Nenhuma configuração bate com motorização/versão', 'error')
-      return
-    }
-    if (matchingSwap.length > 1 && (!swapEngine || !swapVersion)) {
-      toast.push('Refine motorização e versão até restar uma configuração', 'error')
-      return
-    }
-    const nextVersionId = matchingSwap[0]!.id
-    if (nextVersionId === focused.vehicleVersionId) {
-      toast.push('Selecione uma configuração diferente da atual', 'error')
-      return
-    }
-    setBusy(true)
-    try {
-      await adminUpdateApplicationVehicleVersion(focused.id, nextVersionId)
-      toast.push('Configuração veicular atualizada.', 'success')
-      onMutated()
-    } catch (e) {
-      toast.push(toUserMessage(e, 'Falha ao trocar configuração'), 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function deleteOne() {
-    if (!focused) return
-    const { confirmed } = await confirmDialog({
-      title: 'Excluir aplicação?',
-      message: 'Excluir esta aplicação?',
-      confirmLabel: 'Excluir',
-      danger: true,
-    })
-    if (!confirmed) return
-    setBusy(true)
-    try {
-      await adminRemoveApplication(focused.id)
-      toast.push('Aplicação excluída.', 'success')
-      onClose()
-      onMutated()
-    } catch (e) {
-      toast.push(toUserMessage(e, 'Falha ao excluir'), 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   async function deleteBulk() {
     if (!selectedRows.length) return
@@ -238,23 +60,10 @@ export function ApplicationWorkSurface({
     }
   }
 
-  async function onCreate() {
+  async function onResolveSku() {
     const sku = createSku.trim()
     if (!sku) {
       toast.push(`Informe o ${SKU_FAL_LABEL.toLowerCase()} do produto`, 'error')
-      return
-    }
-    if (!createModelId) {
-      toast.push('Selecione montadora e modelo', 'error')
-      return
-    }
-    if (matchingCreate.length === 0) {
-      toast.push('Nenhuma configuração bate com motorização/versão', 'error')
-      return
-    }
-    const period = validatePvcYearInputs(createYearStart, createYearEnd)
-    if (!period.ok) {
-      toast.push(period.message, 'error')
       return
     }
     setBusy(true)
@@ -264,22 +73,13 @@ export function ApplicationWorkSurface({
         toast.push(`Produto não encontrado: ${sku}`, 'error')
         return
       }
-      const n = await adminAddApplicationsBulk(
-        productId,
-        matchingCreate.map((v) => v.id),
-        { yearStart: period.yearStart, yearEnd: period.yearEnd },
-      )
-      toast.push(`${n} aplicação(ões) criada(s) para ${sku}.`, 'success')
-      onClose()
-      onMutated({ focusSku: sku })
+      onOpenProduct(productId, sku)
     } catch (e) {
-      toast.push(toUserMessage(e, 'Falha ao criar aplicação'), 'error')
+      toast.push(toUserMessage(e, 'Falha ao buscar produto'), 'error')
     } finally {
       setBusy(false)
     }
   }
-
-  const selectCls = 'w-full rounded-[9px] border border-fal-line px-3 py-2.5 text-sm text-fal-fg'
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3" data-application-ops-density="compact">
@@ -287,9 +87,7 @@ export function ApplicationWorkSurface({
         <p className="m-0 text-xs font-semibold text-fal-muted">
           {mode === 'create'
             ? 'Nova aplicação na guia'
-            : mode === 'bulk'
-              ? `Lote · ${selectedRows.length} selecionada(s)`
-              : 'Aberto na guia · PVC'}
+            : `Lote · ${selectedRows.length} selecionada(s)`}
         </p>
         <button
           type="button"
@@ -304,101 +102,23 @@ export function ApplicationWorkSurface({
         {mode === 'create' ? (
           <section className="space-y-3 rounded-[12px] border border-fal-line bg-fal-surface p-3">
             <p className="m-0 text-xs text-fal-muted">
-              {PVC_CASCADE_HINT} Elegíveis agora: {matchingCreate.length}.
+              Informe o {SKU_FAL_LABEL} para abrir a guia do item e vincular quantos veículos
+              quiser (fila multi-montadora).
             </p>
             <Input
               label={SKU_FAL_LABEL}
               value={createSku}
               onChange={(e) => setCreateSku(e.target.value)}
               placeholder="Código do produto"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void onResolveSku()
+                }
+              }}
             />
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-              <select
-                className={selectCls}
-                value={createMakerId}
-                onChange={(e) => setCreateMakerId(e.target.value)}
-              >
-                <option value="">Selecione</option>
-                {makers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
-              <select
-                className={selectCls}
-                value={createModelId}
-                onChange={(e) => setCreateModelId(e.target.value)}
-                disabled={!createMakerId}
-              >
-                <option value="">Selecione</option>
-                {createModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motorização</span>
-              <select
-                className={selectCls}
-                value={createEngine}
-                onChange={(e) => {
-                  setCreateEngine(e.target.value)
-                  setCreateVersion('')
-                }}
-                disabled={!createModelId}
-              >
-                <option value="">Todas</option>
-                {createEngineOptions.map((e) => (
-                  <option key={e} value={e}>
-                    {e}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
-              <select
-                className={selectCls}
-                value={createVersion}
-                onChange={(e) => setCreateVersion(e.target.value)}
-                disabled={!createModelId}
-              >
-                <option value="">Todas</option>
-                {createVersionOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Input
-              label="Ano inicial *"
-              inputMode="numeric"
-              value={createYearStart}
-              onChange={(e) => setCreateYearStart(e.target.value)}
-            />
-            <Input
-              label="Ano final"
-              inputMode="numeric"
-              value={createYearEnd}
-              onChange={(e) => setCreateYearEnd(e.target.value)}
-              hint="Em branco = vigente até o ano atual"
-            />
-            <Button
-              type="button"
-              disabled={busy || !createModelId || matchingCreate.length === 0}
-              onClick={() => void onCreate()}
-            >
-              {busy
-                ? 'Criando…'
-                : `Criar${matchingCreate.length > 1 ? ` (${matchingCreate.length})` : ''}`}
+            <Button type="button" disabled={busy || !createSku.trim()} onClick={() => void onResolveSku()}>
+              {busy ? 'Abrindo…' : 'Abrir guia do item'}
             </Button>
           </section>
         ) : null}
@@ -422,155 +142,6 @@ export function ApplicationWorkSurface({
               {busy ? 'Excluindo…' : 'Excluir seleção'}
             </Button>
           </section>
-        ) : null}
-
-        {mode === 'focus' && !focused ? (
-          <p className="m-0 text-sm text-fal-muted">
-            Aplicação fora da lista atual. Feche a guia ou ajuste o filtro.
-          </p>
-        ) : null}
-
-        {mode === 'focus' && focused ? (
-          <>
-            <section className="rounded-[12px] border border-fal-line bg-fal-bg/40 p-3">
-              <p className="m-0 font-mono text-xs text-fal-muted">{focused.productSku}</p>
-              <h2 className="mt-0.5 mb-0 text-base font-extrabold text-fal-fg">
-                {focused.productName}
-              </h2>
-              <p className="mt-1 mb-0 text-sm text-fal-muted">
-                {[focused.makerName, focused.modelName, focused.engine, focused.versionName]
-                  .filter(Boolean)
-                  .join(' · ') || 'Veículo'}
-              </p>
-              <p className="mt-1 mb-0 text-sm font-semibold text-fal-fg">
-                {formatVehicleAppYear({
-                  yearStart: focused.yearStart,
-                  yearEnd: focused.yearEnd,
-                  versionYear: focused.versionYear,
-                }) ?? '—'}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setGuideBridge(PRODUCTS_OPEN_GUIDE_KEY, focused.productId)
-                    navigate('/admin/produtos')
-                  }}
-                >
-                  Abrir guia
-                </Button>
-                <Link
-                  to={`/admin/produtos/${focused.productId}`}
-                  className={buttonClassName({ variant: 'light', size: 'sm' })}
-                >
-                  Cadastro completo
-                </Link>
-                <Button type="button" variant="danger" size="sm" disabled={busy} onClick={() => void deleteOne()}>
-                  Excluir
-                </Button>
-              </div>
-            </section>
-
-            <section className="space-y-2 rounded-[12px] border border-fal-line bg-fal-surface p-3">
-              <h3 className="m-0 text-sm font-extrabold text-fal-fg">Período</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  label="Ano inicial *"
-                  inputMode="numeric"
-                  value={yearStart}
-                  onChange={(e) => setYearStart(e.target.value)}
-                />
-                <Input
-                  label="Ano final"
-                  inputMode="numeric"
-                  value={yearEnd}
-                  onChange={(e) => setYearEnd(e.target.value)}
-                />
-              </div>
-              <Button type="button" size="sm" disabled={busy} onClick={() => void savePeriod()}>
-                {busy ? 'Salvando…' : 'Salvar período'}
-              </Button>
-            </section>
-
-            <section className="space-y-2 rounded-[12px] border border-fal-line bg-fal-surface p-3">
-              <h3 className="m-0 text-sm font-extrabold text-fal-fg">Trocar veículo</h3>
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-                <select
-                  className={selectCls}
-                  value={swapMakerId}
-                  onChange={(e) => {
-                    setSwapMakerId(e.target.value)
-                    setSwapModelId('')
-                  }}
-                >
-                  <option value="">Montadora</option>
-                  {makers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Modelo</span>
-                <select
-                  className={selectCls}
-                  value={swapModelId}
-                  onChange={(e) => setSwapModelId(e.target.value)}
-                  disabled={!swapMakerId}
-                >
-                  <option value="">Modelo</option>
-                  {swapModels.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Motorização</span>
-                <select
-                  className={selectCls}
-                  value={swapEngine}
-                  onChange={(e) => {
-                    setSwapEngine(e.target.value)
-                    setSwapVersion('')
-                  }}
-                  disabled={!swapModelId}
-                >
-                  <option value="">Motor</option>
-                  {swapEngineOptions.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs font-extrabold text-fal-muted">Versão</span>
-                <select
-                  className={selectCls}
-                  value={swapVersion}
-                  onChange={(e) => setSwapVersion(e.target.value)}
-                  disabled={!swapModelId}
-                >
-                  <option value="">Versão</option>
-                  {swapVersionOptions.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="m-0 text-[11px] text-fal-muted">{matchingSwap.length} config.</p>
-              <Button type="button" size="sm" disabled={busy} onClick={() => void saveSwap()}>
-                {busy ? 'Salvando…' : 'Salvar veículo'}
-              </Button>
-            </section>
-          </>
         ) : null}
       </div>
     </div>

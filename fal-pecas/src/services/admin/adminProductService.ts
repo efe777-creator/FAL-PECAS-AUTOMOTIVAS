@@ -806,9 +806,9 @@ export async function adminListApplications(productId: string) {
       `
       id, notes, vehicle_version_id, year_start, year_end,
       vehicle_versions (
-        id, year, engine, version_name,
-        manufacturers ( name ),
-        models ( name )
+        id, year, engine, version_name, manufacturer_id, model_id,
+        manufacturers ( id, name ),
+        models ( id, name )
       )
     `,
     )

@@ -185,6 +185,9 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
       /export function ApplicationWorkSurface/,
     )
+    expect(read('components/admin/applications/ProductApplicationsEditor.tsx')).toMatch(
+      /export function ProductApplicationsEditor/,
+    )
     expect(read('components/admin/categories/CategoryWorkSurface.tsx')).toMatch(
       /export function CategoryWorkSurface/,
     )
@@ -269,7 +272,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
       'components/admin/products/ProductWorkSurface.tsx',
       'components/admin/kits/KitWorkSurface.tsx',
       'components/admin/prices/PriceListWorkSurface.tsx',
-      'components/admin/applications/ApplicationWorkSurface.tsx',
+      'components/admin/applications/ProductApplicationsEditor.tsx',
     ]) {
       expect(read(file)).toMatch(/buttonClassName/)
     }
@@ -311,6 +314,15 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(kits).toMatch(/contextualTitle=\{[\s\S]*\? 'Novo na guia'/)
     expect(kits).not.toMatch(/Novo \(página\)/)
 
+    const kitSurface = read('components/admin/kits/KitWorkSurface.tsx')
+    expect(kitSurface).toMatch(/data-kit-guide-menus|Mini-menus da guia do kit/)
+    expect(kitSurface).toMatch(/fal\.kits\.guideMenu|KIT_GUIDE_MENU_KEY/)
+    expect(kitSurface).toMatch(/surfacePart="bom"/)
+    expect(kitSurface).toMatch(/surfacePart="pricing"/)
+    expect(kitSurface).toMatch(/ProductApplicationsEditor/)
+    expect(kitSurface).toMatch(/Salvar identidade/)
+    expect(kitSurface).toMatch(/parseKitGuideSectionParam|\?section=/)
+
     const productSurface = read('components/admin/products/ProductWorkSurface.tsx')
     expect(productSurface).toMatch(/to="\/admin\/precos"/)
     expect(productSurface).toMatch(/`\/admin\/kits\/\$\{focused\.id\}`/)
@@ -320,9 +332,16 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
   it('FL15: guia Produto rica — foto, preço/categoria, apps, kits, relacionados, + Guia', () => {
     const surface = read('components/admin/products/ProductWorkSurface.tsx')
     expect(surface).toMatch(/adminPrimaryImageUrlMap/)
-    expect(surface).toMatch(/Salvar preço|Preço \(Lista Base\)/)
+    // G2: multi-lista + modal de precificação (custo/margem/preço)
+    expect(surface).toMatch(/adminGetProductPricingRows|PriceItemPricingModal/)
+    expect(surface).toMatch(/adminSetPriceListItemPricing|adminSetCalculatedListPrice/)
+    expect(surface).toMatch(/Abrir hub de listas/)
     expect(surface).toMatch(/Salvar categoria/)
+    // G3: editor PVC embutido (Trocar veículo / modelo·motor·versão)
+    expect(surface).toMatch(/ProductApplicationsEditor/)
+    expect(surface).toMatch(/variant="embedded"/)
     expect(surface).toMatch(/adminListApplications/)
+    expect(surface).not.toMatch(/G3: surface completa/)
     expect(surface).toMatch(/adminListKitsUsingProduct/)
     expect(surface).toMatch(/adminListProductRelated/)
     expect(surface).toMatch(/KITS_OPEN_GUIDE_KEY|fal\.kits\.openGuideId/)
@@ -365,19 +384,27 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(css).toMatch(/admin-applications-list-mobile/)
   })
 
-  it('FL17: ApplicationWorkSurface — criar/editar na guia; sem form mid-page permanente', () => {
+  it('FL17: ProductApplicationsEditor — guia centrada no item; sem form mid-page permanente', () => {
+    const editor = read('components/admin/applications/ProductApplicationsEditor.tsx')
+    expect(editor).toMatch(/export function ProductApplicationsEditor/)
+    expect(editor).toMatch(/adminUpdateApplicationYears/)
+    expect(editor).toMatch(/adminUpdateApplicationVehicleVersion/)
+    expect(editor).toMatch(/adminAddApplicationsBulk/)
+    expect(editor).toMatch(/Adicionar à fila/)
+    expect(editor).toMatch(/Vincular fila/)
+    expect(editor).toMatch(/Cadastro completo/)
+    expect(editor).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
+
     const surface = read('components/admin/applications/ApplicationWorkSurface.tsx')
     expect(surface).toMatch(/export function ApplicationWorkSurface/)
-    expect(surface).toMatch(/adminUpdateApplicationYears/)
-    expect(surface).toMatch(/adminUpdateApplicationVehicleVersion/)
-    expect(surface).toMatch(/adminAddApplicationsBulk/)
     expect(surface).toMatch(/Nova aplicação na guia|mode === 'create'/)
-    expect(surface).toMatch(/Cadastro completo/)
-    expect(surface).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
+    expect(surface).toMatch(/onOpenProduct/)
+    expect(surface).toMatch(/adminFindProductIdBySku/)
 
     const page = read('pages/admin/products/AdminApplicationsPage.tsx')
+    expect(page).toMatch(/ProductApplicationsEditor/)
     expect(page).toMatch(/ApplicationWorkSurface/)
-    expect(page).toMatch(/openCreate/)
+    expect(page).toMatch(/openProductGuide|openCreate/)
     // Criar só via guia (sem formulário permanente no primary)
     expect(page).not.toMatch(/Fechar formulário/)
     expect(page).not.toMatch(/ring-2 ring-fal-yellow/)
@@ -385,7 +412,8 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(page).toMatch(/clearAllFilters|clearProductIdFilter/)
 
     const productSurface = read('components/admin/products/ProductWorkSurface.tsx')
-    expect(productSurface).toMatch(/\/admin\/aplicacoes\?q=/)
+    expect(productSurface).toMatch(/ProductApplicationsEditor/)
+    expect(productSurface).toMatch(/variant="embedded"/)
   })
 
   it('FL18: pontes guia↔guia Produto ↔ Aplicações ↔ Kits', () => {
@@ -395,11 +423,12 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(bridges).toMatch(/KITS_OPEN_GUIDE_KEY/)
     expect(bridges).toMatch(/consumeGuideBridge/)
 
-    expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
+    expect(read('components/admin/applications/ProductApplicationsEditor.tsx')).toMatch(
       /PRODUCTS_OPEN_GUIDE_KEY/,
     )
+    // Guia produto embute o editor (não precisa mais da ponte só para editar PVC)
     expect(read('components/admin/products/ProductWorkSurface.tsx')).toMatch(
-      /APPLICATIONS_OPEN_GUIDE_KEY/,
+      /ProductApplicationsEditor/,
     )
     expect(read('pages/admin/products/AdminProductsPage.tsx')).toMatch(/PRODUCTS_OPEN_GUIDE_KEY/)
     expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(
@@ -414,14 +443,16 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(lib).toMatch(/export function pvcMatchingVersions/)
     expect(lib).toMatch(/PVC_CASCADE_HINT/)
 
-    expect(read('components/admin/applications/ApplicationWorkSurface.tsx')).toMatch(
+    expect(read('components/admin/applications/ProductApplicationsEditor.tsx')).toMatch(
       /pvcMatchingVersions|pvcEngineOptions/,
     )
     expect(read('components/admin/AdminProductApplicationsSection.tsx')).toMatch(
-      /pvcMatchingVersions|PVC_CASCADE_HINT/,
+      /ProductApplicationsEditor/,
     )
     expect(read('pages/admin/products/AdminApplicationsPage.tsx')).toMatch(/pvcEngineOptions/)
-    expect(read('components/admin/AdminProductApplicationsSection.tsx')).toMatch(/Hub Aplicações/)
+    expect(read('components/admin/applications/ProductApplicationsEditor.tsx')).toMatch(
+      /Hub Aplicações/,
+    )
   })
 
   it('FL20: Hub Classificação Adaptive — CategoryWorkSurface; sem form mid-page', () => {
@@ -676,5 +707,14 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     // P2: não repetir rastreio da ida em Frete quando já está no painel acima
     expect(logisticaBlock).toMatch(/Rastreio da ida no bloco Ida/)
     expect(logisticaBlock).toMatch(/returnLogistics\?\.outboundTracking/)
+  })
+
+  it('FL29: ProductCard — stepper ± do carrinho (não só chip “No carrinho: N”)', () => {
+    const card = read('components/product/ProductCard.tsx')
+    expect(card).toMatch(/data-testid="product-card-cart-qty"/)
+    expect(card).toMatch(/data-testid="product-card-cart-dec"/)
+    expect(card).toMatch(/data-testid="product-card-cart-inc"/)
+    expect(card).toMatch(/updateQty\(product\.id, cartQty - 1\)/)
+    expect(card).not.toMatch(/No carrinho:\s*\{cartQty\}/)
   })
 })

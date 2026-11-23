@@ -1,3 +1,4 @@
+import { ProductApplicationsEditor } from '@/components/admin/applications/ProductApplicationsEditor'
 import {
   CategoryCascadeSelects,
   effectiveCategoryId,
@@ -6,14 +7,9 @@ import {
 import { Button, buttonClassName } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useToast } from '@/components/common/Toast'
-import { useAuth } from '@/contexts/AuthContext'
 import { productStatusLabel } from '@/lib/adminLabels'
-import {
-  APPLICATIONS_OPEN_GUIDE_KEY,
-  KITS_OPEN_GUIDE_KEY,
-  setGuideBridge,
-} from '@/lib/adminGuideBridges'
-import { formatMoney, formatMoneyInput, parseMoneyBr } from '@/lib/money'
+import { KITS_OPEN_GUIDE_KEY, setGuideBridge } from '@/lib/adminGuideBridges'
+import { formatMoney } from '@/lib/money'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminPrimaryImageUrlMap } from '@/services/admin/adminImageService'
 import {
@@ -27,11 +23,23 @@ import {
   adminUpsertProduct,
 } from '@/services/admin/adminProductService'
 import {
-  adminUpsertPriceListItem,
+  PriceItemPricingModal,
+  type PricingEditResult,
+} from '@/pages/admin/prices/PriceItemPricingModal'
+import {
+  adminEnsureProductOnPriceList,
+  adminGetProductPricingRows,
+  adminSetCalculatedListPrice,
+  adminSetPriceListItemPricing,
+  isVirtualPriceListItemId,
   PRICE_LIST_BASE_ID,
+  priceListStatusLabel,
+  type PriceList,
+  type PriceListItem,
+  type ProductPricingRow,
 } from '@/services/admin/adminPriceListService'
 import type { Category, Product } from '@/types'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 /** Persistência do mini-menu ativo (G1 — um painel por vez). */
@@ -131,31 +139,6 @@ function cascadeFromLeaf(
   }
 }
 
-function appLabel(row: Record<string, unknown>): string {
-  const vvRaw = row.vehicle_versions
-  const v = (Array.isArray(vvRaw) ? vvRaw[0] : vvRaw) as
-    | {
-        version_name?: string | null
-        year?: number | null
-        engine?: string | null
-        manufacturers?: { name?: string } | { name?: string }[] | null
-        models?: { name?: string } | { name?: string }[] | null
-      }
-    | null
-    | undefined
-  if (!v) return 'Aplicação'
-  const makerRaw = v.manufacturers
-  const modelRaw = v.models
-  const maker = Array.isArray(makerRaw) ? makerRaw[0]?.name : makerRaw?.name
-  const model = Array.isArray(modelRaw) ? modelRaw[0]?.name : modelRaw?.name
-  const bits = [maker, model, v.version_name, v.engine].filter(Boolean)
-  const ys = row.year_start
-  const ye = row.year_end
-  const years =
-    ys || ye ? ` (${ys ?? '…'}–${ye ?? '…'})` : v.year ? ` (${v.year})` : ''
-  return `${bits.join(' · ') || 'Aplicação'}${years}`
-}
-
 /**
  * Superfície contextual do hub Produtos (padrão Adaptive Central).
  * G1: mini-menus (um painel ativo) — identidade, categoria, preços, apps, kits, relacionados.
@@ -173,7 +156,6 @@ export function ProductWorkSurface({
   onOpenProductGuide,
 }: Props) {
   const toast = useToast()
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const sectionFromUrl = parseProductGuideSectionParam(searchParams.get('section'))
@@ -183,7 +165,6 @@ export function ProductWorkSurface({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [commercialRef, setCommercialRef] = useState('')
-  const [priceInput, setPriceInput] = useState('')
   const [cascade, setCascade] = useState<CategoryCascadeValue>({
     categoriaId: '',
     grupoId: '',
@@ -192,8 +173,12 @@ export function ProductWorkSurface({
   const [apps, setApps] = useState<Record<string, unknown>[]>([])
   const [kitRows, setKitRows] = useState<AdminKitUsageRow[]>([])
   const [related, setRelated] = useState<AdminRelatedRow[]>([])
+  const [pricingRows, setPricingRows] = useState<ProductPricingRow[]>([])
+  const [pricingItem, setPricingItem] = useState<PriceListItem | null>(null)
+  const [pricingList, setPricingList] = useState<PriceList | null>(null)
   const [saving, setSaving] = useState(false)
   const [loadingExtra, setLoadingExtra] = useState(false)
+  const [loadingPricing, setLoadingPricing] = useState(false)
 
   const editTo =
     focused?.productKind === 'kit'
@@ -204,18 +189,39 @@ export function ProductWorkSurface({
 
   const isKit = focused?.productKind === 'kit'
 
+  const reloadPricing = useCallback(async (product: Product) => {
+    setLoadingPricing(true)
+    try {
+      const rows = await adminGetProductPricingRows(product.id, {
+        sku: product.commercialRef || product.sku,
+        name: product.name,
+      })
+      setPricingRows(rows)
+    } catch (e) {
+      toast.push(toUserMessage(e, 'Falha ao carregar preços das listas'), 'error')
+      setPricingRows([])
+    } finally {
+      setLoadingPricing(false)
+    }
+    // toast estável o bastante no provider
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (!focused) {
       setImageUrl(null)
       setApps([])
       setKitRows([])
       setRelated([])
+      setPricingRows([])
+      setPricingItem(null)
+      setPricingList(null)
       return
     }
     setName(focused.name)
     setCommercialRef(focused.commercialRef ?? focused.sku)
-    setPriceInput(formatMoneyInput(focused.price))
     setCascade(cascadeFromLeaf(categories, focused.categoryId))
+    void reloadPricing(focused)
 
     let cancelled = false
     setLoadingExtra(true)
@@ -241,7 +247,7 @@ export function ProductWorkSurface({
     return () => {
       cancelled = true
     }
-  }, [focused, categories, isKit])
+  }, [focused, categories, isKit, reloadPricing])
 
   useEffect(() => {
     if (sectionFromUrl && sectionFromUrl !== activeMenu) {
@@ -295,41 +301,80 @@ export function ProductWorkSurface({
     }
   }
 
-  async function savePrice() {
-    if (!focused || isKit) return
-    const priceNum = parseMoneyBr(priceInput)
-    if (priceNum == null || priceNum < 0) {
-      toast.push('Preço inválido.', 'error')
-      return
-    }
+  function openPricingEdit(row: ProductPricingRow) {
+    setPricingList(row.list)
+    setPricingItem(row.item)
+  }
+
+  async function onSavePricingEdit(result: PricingEditResult) {
+    if (!focused || !pricingItem || !pricingList || isKit) return
     setSaving(true)
     try {
-      await adminUpsertPriceListItem({
-        priceListId: PRICE_LIST_BASE_ID,
+      const itemId = await adminEnsureProductOnPriceList({
+        priceListId: pricingList.id,
         productId: focused.id,
-        price: priceNum,
-        source: 'manual',
-        changedBy: user?.id ?? null,
+        itemId: pricingItem.id,
       })
-      const saved = await adminUpsertProduct({
-        id: focused.id,
+      if (result.mode === 'apply_list_rule') {
+        await adminSetPriceListItemPricing({
+          itemId,
+          mode: 'apply_rule',
+          extraCost: result.extraCost,
+        })
+      } else if (result.mode === 'edit_rule_percent') {
+        await adminSetCalculatedListPrice({
+          priceListId: pricingList.id,
+          productId: focused.id,
+          price: result.price,
+          extraCost: result.extraCost,
+        })
+      } else {
+        await adminSetPriceListItemPricing({
+          itemId,
+          mode: 'manual',
+          price: result.price,
+          extraCost: result.extraCost,
+        })
+      }
+
+      const rows = await adminGetProductPricingRows(focused.id, {
+        sku: focused.commercialRef || focused.sku,
         name: focused.name,
-        commercialRef: focused.commercialRef ?? focused.sku,
-        sku: focused.sku,
-        categoryId: focused.categoryId ?? null,
-        brandId: focused.brandId ?? null,
-        supplierId: focused.supplierId ?? null,
-        productKind: 'item',
-        price: priceNum,
-        promoPrice: focused.promoPrice ?? null,
-        status: focused.status,
-        isAvailable: focused.available,
-        syncBasePromoLists: true,
       })
-      toast.push('Preço Base atualizado na guia.', 'success')
-      onProductUpdated?.(saved)
+      setPricingRows(rows)
+
+      const baseRow = rows.find((r) => r.list.id === PRICE_LIST_BASE_ID)
+      const basePrice =
+        baseRow && !isVirtualPriceListItemId(baseRow.item.id)
+          ? baseRow.item.price
+          : focused.price
+
+      if (pricingList.id === PRICE_LIST_BASE_ID || basePrice !== focused.price) {
+        const saved = await adminUpsertProduct({
+          id: focused.id,
+          name: focused.name,
+          commercialRef: focused.commercialRef ?? focused.sku,
+          sku: focused.sku,
+          categoryId: focused.categoryId ?? null,
+          brandId: focused.brandId ?? null,
+          supplierId: focused.supplierId ?? null,
+          productKind: 'item',
+          price: basePrice,
+          promoPrice: focused.promoPrice ?? null,
+          status: focused.status,
+          isAvailable: focused.available,
+          syncBasePromoLists: false,
+        })
+        onProductUpdated?.(saved)
+      } else {
+        onProductUpdated?.(focused)
+      }
+
+      setPricingItem(null)
+      setPricingList(null)
+      toast.push(`Precificação atualizada · ${pricingList.name}.`, 'success')
     } catch (e) {
-      toast.push(toUserMessage(e, 'Falha ao salvar preço'), 'error')
+      toast.push(toUserMessage(e, 'Falha ao salvar precificação'), 'error')
     } finally {
       setSaving(false)
     }
@@ -375,14 +420,14 @@ export function ProductWorkSurface({
     navigate('/admin/kits')
   }
 
-  function openApplicationInHub(applicationId: string) {
-    const sku = (focused?.commercialRef || focused?.sku || '').trim()
-    setGuideBridge(APPLICATIONS_OPEN_GUIDE_KEY, applicationId)
-    navigate(
-      sku
-        ? `/admin/aplicacoes?q=${encodeURIComponent(sku)}`
-        : '/admin/aplicacoes',
-    )
+  async function reloadAppsCount() {
+    if (!focused) return
+    try {
+      const appRows = await adminListApplications(focused.id)
+      setApps(appRows as Record<string, unknown>[])
+    } catch {
+      /* hint opcional */
+    }
   }
 
   const categoryHint = useMemo(() => {
@@ -407,7 +452,9 @@ export function ProductWorkSurface({
               ? '…'
               : `${related.length} item(ns)`
             : activeMenu === 'precos'
-              ? 'Lista Base (multi-lista na G2)'
+              ? loadingPricing
+                ? '…'
+                : `${pricingRows.length} lista(s)`
               : 'Nome e código referência'
 
   return (
@@ -580,67 +627,73 @@ export function ProductWorkSurface({
 
                 {activeMenu === 'precos' ? (
                   <>
-                    <Input
-                      label="Preço (Lista Base)"
-                      inputMode="decimal"
-                      value={priceInput}
-                      onChange={(e) => setPriceInput(e.target.value)}
-                      hint="G1: Lista Base. G2: seletor multi-lista na mesma guia."
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={saving}
-                      onClick={() => void savePrice()}
+                    <p className="m-0 text-xs text-fal-muted">
+                      Custo adicional, margem/regra e preço por lista — sem sair da guia.
+                      Custo base do fornecedor é só leitura.
+                    </p>
+                    {loadingPricing ? (
+                      <p className="m-0 text-sm text-fal-muted">Carregando listas…</p>
+                    ) : pricingRows.length === 0 ? (
+                      <p className="m-0 text-sm text-fal-muted">Nenhuma lista cadastrada.</p>
+                    ) : (
+                      <ul className="m-0 list-none space-y-1.5 p-0">
+                        {pricingRows.map((row) => {
+                          const { list, item } = row
+                          const onList = !isVirtualPriceListItemId(item.id)
+                          const margin =
+                            item.effectiveMarginPct != null
+                              ? `${item.effectiveMarginPct.toFixed(1)}%`
+                              : '—'
+                          return (
+                            <li
+                              key={list.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-fal-line px-2 py-1.5 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="m-0 font-semibold text-fal-fg">
+                                  {list.name}
+                                  {list.id === PRICE_LIST_BASE_ID ? ' · Base' : ''}
+                                  {list.isDefault ? ' · padrão' : ''}
+                                </p>
+                                <p className="mb-0 mt-0.5 text-[11px] text-fal-muted">
+                                  {priceListStatusLabel(list.status)}
+                                  {' · '}
+                                  custo{' '}
+                                  {item.costTotal != null ? formatMoney(item.costTotal) : '—'}
+                                  {' · '}
+                                  margem {margin}
+                                  {' · '}
+                                  {onList ? formatMoney(item.price) : 'fora da lista'}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                className="shrink-0 font-semibold text-fal-fg underline"
+                                disabled={saving}
+                                onClick={() => openPricingEdit(row)}
+                              >
+                                Editar
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                    <Link
+                      to="/admin/precos"
+                      className={buttonClassName({ variant: 'light', size: 'sm' })}
                     >
-                      {saving ? 'Salvando…' : 'Salvar preço'}
-                    </Button>
+                      Abrir hub de listas
+                    </Link>
                   </>
                 ) : null}
 
                 {activeMenu === 'aplicacoes' ? (
-                  <>
-                    {apps.length === 0 ? (
-                      <p className="m-0 text-sm text-fal-muted">Nenhuma aplicação PVC.</p>
-                    ) : (
-                      <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
-                        {apps.slice(0, 12).map((a) => (
-                          <li
-                            key={String(a.id)}
-                            className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-fal-line px-2 py-1.5 text-xs text-fal-fg"
-                          >
-                            <span className="min-w-0 flex-1">{appLabel(a)}</span>
-                            <button
-                              type="button"
-                              className="shrink-0 font-semibold text-fal-fg underline"
-                              onClick={() => openApplicationInHub(String(a.id))}
-                            >
-                              Abrir guia
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="m-0 text-[11px] text-fal-muted">
-                      G3: surface completa de aplicações nesta guia (com ano início/fim).
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {editTo ? (
-                        <Link
-                          to={editTo}
-                          className={buttonClassName({ variant: 'light', size: 'sm' })}
-                        >
-                          Gerir no cadastro
-                        </Link>
-                      ) : null}
-                      <Link
-                        to={`/admin/aplicacoes?q=${encodeURIComponent(focused.commercialRef || focused.sku)}`}
-                        className={buttonClassName({ variant: 'light', size: 'sm' })}
-                      >
-                        Hub Aplicações
-                      </Link>
-                    </div>
-                  </>
+                  <ProductApplicationsEditor
+                    productId={focused.id}
+                    variant="embedded"
+                    onMutated={() => void reloadAppsCount()}
+                  />
                 ) : null}
 
                 {activeMenu === 'kits' ? (
@@ -737,6 +790,18 @@ export function ProductWorkSurface({
           Selecione produtos na lista ou abra uma guia para ver foto, editar e empilhar (+ Guia).
         </p>
       ) : null}
+
+      <PriceItemPricingModal
+        open={Boolean(pricingItem && pricingList)}
+        item={pricingItem}
+        list={pricingList}
+        busy={saving}
+        onClose={() => {
+          setPricingItem(null)
+          setPricingList(null)
+        }}
+        onSave={onSavePricingEdit}
+      />
     </div>
   )
 }

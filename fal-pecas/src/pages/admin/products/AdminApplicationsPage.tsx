@@ -2,6 +2,7 @@ import {
   ApplicationWorkSurface,
   type ApplicationGuideMode,
 } from '@/components/admin/applications/ApplicationWorkSurface'
+import { ProductApplicationsEditor } from '@/components/admin/applications/ProductApplicationsEditor'
 import { OrderSplitTabPanels } from '@/components/admin/orders/OrderSplitTabPanels'
 import { AdaptiveWorkspace } from '@/components/admin/workspace/AdaptiveWorkspace'
 import { Button, buttonClassName } from '@/components/common/Button'
@@ -27,7 +28,7 @@ import {
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import { adminListModels, adminListVersions } from '@/services/admin/adminVehicleService'
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 const FILTERS_KEY = 'fal.applications.filtersExpanded'
@@ -257,11 +258,13 @@ export function AdminApplicationsPage() {
     setSelected(new Set(rows.map((r) => r.id)))
   }
 
-  function openAppGuide(id: string) {
+  /** Guia Adaptive centrada no produto (não na linha PVC). */
+  function openProductGuide(productId: string) {
+    if (!productId) return
     setCreateOpen(false)
     setBulkOpen(false)
     setPendingGuideId(null)
-    splitTabs.openTab(id)
+    splitTabs.openTab(productId)
   }
 
   function openCreate() {
@@ -283,41 +286,42 @@ export function AdminApplicationsPage() {
     splitTabs.closeAll()
   }
 
-  const rowsById = useMemo(() => {
-    const map: Record<string, AdminApplicationRow> = {}
-    for (const r of rows) map[r.id] = r
+  const productMetaById = useMemo(() => {
+    const map: Record<string, { sku: string; name: string }> = {}
+    for (const r of rows) {
+      if (!r.productId || map[r.productId]) continue
+      map[r.productId] = { sku: r.productSku || 'SKU', name: r.productName || '' }
+    }
     return map
   }, [rows])
 
-  // Ponte guia Produto → guia Aplicação (após lista carregar)
+  // Ponte guia Produto → guia Aplicações por productId
   useEffect(() => {
     if (!pendingGuideId || loading) return
-    if (rowsById[pendingGuideId]) {
-      openAppGuide(pendingGuideId)
-    }
-  }, [pendingGuideId, loading, rowsById])
-
-  // Fecha guias órfãs quando o filtro remove a linha da lista
-  useEffect(() => {
-    if (loading || createOpen || bulkOpen) return
-    for (const id of splitTabs.openIds) {
-      if (!rowsById[id]) splitTabs.closeTab(id)
-    }
-    // openIds/closeTab estáveis o bastante; evita loop com objeto splitTabs
+    openProductGuide(pendingGuideId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, createOpen, bulkOpen, rowsById, splitTabs.openIds])
+  }, [pendingGuideId, loading])
 
-  const focused = splitTabs.activeId ? rowsById[splitTabs.activeId] ?? null : null
+  // Auto-abre guia uma vez quando chega com ?productId= da ficha (não reabre no reload)
+  const autoOpenedProductRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!productIdFilter) {
+      autoOpenedProductRef.current = null
+      return
+    }
+    if (loading || createOpen || bulkOpen) return
+    if (autoOpenedProductRef.current === productIdFilter) return
+    autoOpenedProductRef.current = productIdFilter
+    openProductGuide(productIdFilter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productIdFilter, loading, createOpen, bulkOpen])
+
   const selectedRows = useMemo(
     () => rows.filter((r) => selected.has(r.id)),
     [rows, selected],
   )
 
-  const guideMode: ApplicationGuideMode = createOpen
-    ? 'create'
-    : bulkOpen
-      ? 'bulk'
-      : 'focus'
+  const guideMode: ApplicationGuideMode = createOpen ? 'create' : 'bulk'
 
   const contextualOpen = createOpen || bulkOpen || splitTabs.hasOpen
 
@@ -329,8 +333,13 @@ export function AdminApplicationsPage() {
     )
   }
 
-  const guideLabel = (row: AdminApplicationRow) =>
-    `${row.productSku || 'SKU'} · ${row.makerName ?? '—'} ${row.modelName ?? ''}`.trim()
+  const guideLabelForProduct = (productId: string) => {
+    const meta = productMetaById[productId]
+    return meta ? meta.sku : productId.slice(0, 8)
+  }
+
+  const activeProductId = splitTabs.activeId
+  const activeMeta = activeProductId ? productMetaById[activeProductId] : undefined
 
   const primary = (
     <div className="admin-applications-hub space-y-4">
@@ -338,7 +347,8 @@ export function AdminApplicationsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-fg">Aplicações</h1>
           <p className="mt-1 mb-0 max-w-2xl text-sm text-fal-muted">
-            Compatibilidades produto × veículo (PVC): listar, criar e editar na guia.
+            Compatibilidades produto × veículo (PVC): a guia abre o item com todos os
+            vínculos — adicione, retire e edite à vontade.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -533,7 +543,7 @@ export function AdminApplicationsPage() {
         <>
           <div className="admin-applications-list-mobile space-y-3 md:hidden">
             {rows.map((row) => {
-              const onGuide = splitTabs.openIds.includes(row.id)
+              const onGuide = splitTabs.openIds.includes(row.productId)
               const period =
                 formatVehicleAppYear({
                   yearStart: row.yearStart,
@@ -568,7 +578,7 @@ export function AdminApplicationsPage() {
                         <button
                           type="button"
                           className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-yellow px-3 text-sm font-extrabold text-fal-navy-dark"
-                          onClick={() => openAppGuide(row.id)}
+                          onClick={() => openProductGuide(row.productId)}
                         >
                           {onGuide ? 'Na guia' : splitTabs.hasOpen ? '+ Guia' : 'Abrir guia'}
                         </button>
@@ -620,7 +630,7 @@ export function AdminApplicationsPage() {
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const onGuide = splitTabs.openIds.includes(row.id)
+                  const onGuide = splitTabs.openIds.includes(row.productId)
                   const period =
                     formatVehicleAppYear({
                       yearStart: row.yearStart,
@@ -656,7 +666,7 @@ export function AdminApplicationsPage() {
                           <button
                             type="button"
                             className="inline-flex min-h-9 items-center rounded-[10px] bg-fal-yellow px-2.5 text-xs font-bold text-fal-navy-dark"
-                            onClick={() => openAppGuide(row.id)}
+                            onClick={() => openProductGuide(row.productId)}
                           >
                             {onGuide ? 'Na guia' : splitTabs.hasOpen ? '+ Guia' : 'Abrir guia'}
                           </button>
@@ -708,19 +718,19 @@ export function AdminApplicationsPage() {
           : bulkOpen
             ? `Lote · ${selected.size}`
             : splitTabs.openIds.length > 1
-              ? `${focused ? guideLabel(focused) : 'Aplicação'} · ${splitTabs.openIds.length} guias`
-              : focused
-                ? guideLabel(focused)
-                : 'Aplicação'
+              ? `${activeMeta?.sku ?? 'Item'} · ${splitTabs.openIds.length} guias`
+              : activeMeta
+                ? activeMeta.sku
+                : activeProductId
+                  ? guideLabelForProduct(activeProductId)
+                  : 'Aplicações do item'
       }
       contextual={
         contextualOpen ? (
           createOpen || bulkOpen ? (
             <ApplicationWorkSurface
               mode={guideMode}
-              focused={null}
               selectedRows={selectedRows}
-              makers={makers}
               onClose={closeContextual}
               onMutated={(opts) => {
                 if (opts?.focusSku) {
@@ -729,38 +739,33 @@ export function AdminApplicationsPage() {
                 }
                 void reload()
               }}
+              onOpenProduct={(productId, sku) => {
+                setQ(sku)
+                setQDebounced(sku)
+                openProductGuide(productId)
+              }}
             />
           ) : (
             <OrderSplitTabPanels
               orderIds={splitTabs.openIds}
               meta={splitTabs.openIds.map((id) => {
-                const r = rowsById[id]
+                const meta = productMetaById[id]
                 return {
                   id,
-                  label: r ? guideLabel(r) : id.slice(0, 8),
-                  statusLabel: r
-                    ? formatVehicleAppYear({
-                        yearStart: r.yearStart,
-                        yearEnd: r.yearEnd,
-                        versionYear: r.versionYear,
-                      }) ?? undefined
-                    : undefined,
+                  label: meta?.sku ?? id.slice(0, 8),
+                  statusLabel: meta?.name || undefined,
                 }
               })}
               onCloseTab={splitTabs.closeTab}
-              render={(appId) => {
-                const row = rowsById[appId] ?? null
-                return (
-                  <ApplicationWorkSurface
-                    mode="focus"
-                    focused={row}
-                    selectedRows={[]}
-                    makers={makers}
-                    onClose={() => splitTabs.closeTab(appId)}
-                    onMutated={() => void reload()}
-                  />
-                )
-              }}
+              render={(productId) => (
+                <ProductApplicationsEditor
+                  productId={productId}
+                  makers={makers}
+                  variant="guide"
+                  onClose={() => splitTabs.closeTab(productId)}
+                  onMutated={() => void reload()}
+                />
+              )}
             />
           )
         ) : null

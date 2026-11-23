@@ -37,6 +37,10 @@ type Props = {
   surfacePart?: 'all' | 'bom' | 'pricing'
   /** Densidade compacta para guia Adaptive. */
   compact?: boolean
+  /** Após mutação BOM/preço — refresh do hub/guia. */
+  onMutated?: () => void
+  /** Alternar auto/manual na própria section (guia Preços). */
+  onPriceModeChange?: (mode: 'auto' | 'manual') => void
 }
 
 type Candidate = Product & { imageUrl?: string }
@@ -46,6 +50,8 @@ export function AdminProductKitSection({
   kitPriceMode,
   surfacePart = 'all',
   compact = false,
+  onMutated,
+  onPriceModeChange,
 }: Props) {
   const toast = useToast()
   const { user } = useAuth()
@@ -166,6 +172,7 @@ export function AdminProductKitSection({
           actorId: user?.id ?? null,
         })
         await reload()
+        onMutated?.()
         toast.push(
           `Item já no kit — quantidade atualizada para ${merged}`,
           'success',
@@ -178,6 +185,7 @@ export function AdminProductKitSection({
           actorId: user?.id ?? null,
         })
         await reload()
+        onMutated?.()
         toast.push(`Item linkado: ${match.commercialRef ?? match.sku}`, 'success')
       }
       setQ('')
@@ -238,6 +246,7 @@ export function AdminProductKitSection({
       setCandidates([])
       setPickedIds(new Set())
       await reload()
+      onMutated?.()
     } catch (e) {
       const msg = toUserMessage(e, 'Não foi possível linkar em lote')
       setError(msg)
@@ -320,6 +329,7 @@ export function AdminProductKitSection({
         actorId: user?.id ?? null,
       })
       await reload()
+      onMutated?.()
       toast.push('Quantidade atualizada', 'success')
     } catch (e) {
       const msg = toUserMessage(e, 'Falha ao atualizar quantidade')
@@ -350,6 +360,7 @@ export function AdminProductKitSection({
         actorId: user?.id ?? null,
       })
       await reload()
+      onMutated?.()
       toast.push('Componente removido', 'success')
     } catch (e) {
       const msg = toUserMessage(e, 'Falha ao remover')
@@ -365,6 +376,7 @@ export function AdminProductKitSection({
     try {
       await adminSwapKitComponentSortOrder({ kitProductId, rowId: row.id, direction })
       await reload()
+      onMutated?.()
     } catch (e) {
       toast.push(toUserMessage(e, 'Falha ao reordenar'), 'error')
     } finally {
@@ -391,9 +403,39 @@ export function AdminProductKitSection({
         changedBy: user?.id ?? null,
       })
       await reload()
+      onPriceModeChange?.('manual')
+      onMutated?.()
       toast.push('Preço manual do kit salvo na lista exclusiva', 'success')
     } catch (e) {
       const msg = toUserMessage(e, 'Falha ao salvar preço manual')
+      setError(msg)
+      toast.push(msg, 'error')
+    } finally {
+      setBusyLink(false)
+    }
+  }
+
+  async function handleSetPriceMode(mode: 'auto' | 'manual') {
+    if (mode === kitPriceMode) return
+    setBusyLink(true)
+    setError(null)
+    try {
+      const parsed = mode === 'manual' ? parseMoneyBr(manualPrice) : null
+      await adminSetKitPriceModeAndSync({
+        kitProductId,
+        kitPriceMode: mode,
+        manualPrice: mode === 'manual' ? (parsed ?? preview?.effectiveHint ?? 0) : null,
+        changedBy: user?.id ?? null,
+      })
+      await reload()
+      onPriceModeChange?.(mode)
+      onMutated?.()
+      toast.push(
+        mode === 'manual' ? 'Kit em modo preço manual.' : 'Kit em modo automático (soma).',
+        'success',
+      )
+    } catch (e) {
+      const msg = toUserMessage(e, 'Falha ao alterar modo de preço')
       setError(msg)
       toast.push(msg, 'error')
     } finally {
@@ -511,7 +553,7 @@ export function AdminProductKitSection({
       ) : null}
 
       {showPricing && preview ? (
-        <div className="rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
+        <div className="space-y-2 rounded-[10px] border border-fal-line bg-fal-bg px-3 py-2 text-sm">
           <p className="m-0 text-fal-fg">
             Soma dos componentes (Lista Base):{' '}
             <strong>{formatMoney(preview.componentsSum)}</strong>
@@ -522,19 +564,40 @@ export function AdminProductKitSection({
             ) : null}
           </p>
           <p className="mt-1 m-0 text-xs text-fal-muted">
-            Modo:{' '}
-            {kitPriceMode === 'manual'
-              ? 'manual (lista Preços dos kits)'
-              : 'automático (soma → Lista Base)'}{' '}
-            · efetivo sugerido: {formatMoney(preview.effectiveHint)}
+            Efetivo sugerido: {formatMoney(preview.effectiveHint)}
           </p>
+          {onPriceModeChange ? (
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-extrabold text-fal-muted">
+                Modo de preço
+              </span>
+              <select
+                className="w-full rounded-[9px] border border-fal-line px-3 py-2.5 text-sm text-fal-fg"
+                value={kitPriceMode}
+                disabled={busyLink}
+                onChange={(e) =>
+                  void handleSetPriceMode(e.target.value === 'manual' ? 'manual' : 'auto')
+                }
+              >
+                <option value="auto">Automático (soma → Lista Base)</option>
+                <option value="manual">Manual (lista Preços dos kits)</option>
+              </select>
+            </label>
+          ) : (
+            <p className="mt-1 m-0 text-xs text-fal-muted">
+              Modo:{' '}
+              {kitPriceMode === 'manual'
+                ? 'manual (lista Preços dos kits)'
+                : 'automático (soma → Lista Base)'}
+            </p>
+          )}
           {preview.provisional ? (
-            <p className="mt-2 m-0 rounded-[8px] border border-fal-warning/40 bg-fal-warning/15 px-2 py-1 text-xs text-fal-fg">
+            <p className="m-0 rounded-[8px] border border-fal-warning/40 bg-fal-warning/15 px-2 py-1 text-xs text-fal-fg">
               Preço provisório: kit manual sem preço cadastrado — usando a soma até salvar o valor
               manual.
             </p>
           ) : null}
-          <p className="mt-2 mb-0 text-xs">
+          <p className="mb-0 text-xs">
             <Link to="/admin/kits/precos" className="font-semibold text-fal-fg underline">
               Ver todos os preços de kits
             </Link>
@@ -543,8 +606,8 @@ export function AdminProductKitSection({
       ) : null}
 
       {showPricing && kitPriceMode === 'manual' ? (
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="w-40">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="min-w-0 w-full sm:w-40">
             <Input
               label="Preço manual do kit"
               value={manualPrice}
@@ -563,8 +626,14 @@ export function AdminProductKitSection({
       {showBom ? (
         <>
           <div className="relative space-y-2">
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="min-w-[220px] flex-1">
+            <div
+              className={
+                compact
+                  ? 'flex flex-col gap-2'
+                  : 'flex flex-wrap items-end gap-2'
+              }
+            >
+              <div className={compact ? 'min-w-0 w-full' : 'min-w-[220px] flex-1'}>
                 <Input
                   label="Buscar item do cadastro (SKU / ref / nome)"
                   value={q}
@@ -586,44 +655,48 @@ export function AdminProductKitSection({
                   autoComplete="off"
                 />
               </div>
-              <div className="flex w-28 items-end gap-1">
-                <button
-                  type="button"
-                  className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
-                  disabled={busyLink}
-                  onClick={() => setQty((v) => String(Math.max(1, (Number(v.replace(',', '.')) || 1) - 1)))}
-                  aria-label="Diminuir quantidade padrão"
-                >
-                  −
-                </button>
-                <Input label="Qtd" value={qty} onChange={(e) => setQty(e.target.value)} />
-                <button
-                  type="button"
-                  className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
-                  disabled={busyLink}
-                  onClick={() => setQty((v) => String((Number(v.replace(',', '.')) || 1) + 1))}
-                  aria-label="Aumentar quantidade padrão"
-                >
-                  +
-                </button>
-              </div>
-              <Button
-                type="button"
-                disabled={busyLink || !q.trim()}
-                onClick={() => void handleAddFromQuery()}
-              >
-                {busyLink ? '…' : 'Linkar item'}
-              </Button>
-              {pickedIds.size > 0 ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex w-28 items-end gap-1">
+                  <button
+                    type="button"
+                    className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
+                    disabled={busyLink}
+                    onClick={() =>
+                      setQty((v) => String(Math.max(1, (Number(v.replace(',', '.')) || 1) - 1)))
+                    }
+                    aria-label="Diminuir quantidade padrão"
+                  >
+                    −
+                  </button>
+                  <Input label="Qtd" value={qty} onChange={(e) => setQty(e.target.value)} />
+                  <button
+                    type="button"
+                    className="h-11 w-9 rounded-[8px] border border-fal-line text-fal-fg"
+                    disabled={busyLink}
+                    onClick={() => setQty((v) => String((Number(v.replace(',', '.')) || 1) + 1))}
+                    aria-label="Aumentar quantidade padrão"
+                  >
+                    +
+                  </button>
+                </div>
                 <Button
                   type="button"
-                  variant="outline"
-                  disabled={busyLink}
-                  onClick={() => void linkPickedBatch()}
+                  disabled={busyLink || !q.trim()}
+                  onClick={() => void handleAddFromQuery()}
                 >
-                  Linkar {pickedIds.size} marcados
+                  {busyLink ? '…' : 'Linkar item'}
                 </Button>
-              ) : null}
+                {pickedIds.size > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busyLink}
+                    onClick={() => void linkPickedBatch()}
+                  >
+                    Linkar {pickedIds.size} marcados
+                  </Button>
+                ) : null}
+              </div>
             </div>
 
             {q.trim().length >= 2 ? (
@@ -711,7 +784,11 @@ export function AdminProductKitSection({
                 return (
                   <li
                     key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm"
+                    className={
+                      compact
+                        ? 'space-y-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm'
+                        : 'flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm'
+                    }
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[8px] border border-fal-line bg-fal-bg">
@@ -724,17 +801,25 @@ export function AdminProductKitSection({
                       <div className="min-w-0">
                         <Link
                           to={`/admin/produtos/${row.componentProductId}`}
-                          className="font-semibold text-fal-fg underline"
+                          className="break-words font-semibold text-fal-fg underline"
                         >
                           {row.componentCommercialRef || row.componentSku}
                         </Link>
-                        <span className="text-fal-muted"> — {row.componentName}</span>
-                        <span className="ml-2 text-xs text-fal-muted">
-                          ({productStatusLabel(row.componentStatus)})
-                        </span>
+                        <p className="mb-0 mt-0.5 break-words text-xs text-fal-muted">
+                          {row.componentName}
+                          <span className="ml-1">
+                            ({productStatusLabel(row.componentStatus)})
+                          </span>
+                        </p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div
+                      className={
+                        compact
+                          ? 'flex flex-wrap items-center gap-1 border-t border-fal-line pt-2'
+                          : 'flex flex-wrap items-center gap-1'
+                      }
+                    >
                       <Button
                         type="button"
                         variant="light"

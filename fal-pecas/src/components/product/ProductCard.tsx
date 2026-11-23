@@ -86,7 +86,7 @@ export function ProductCard({
   quietFavoriteToast = false,
 }: Props) {
   const { user } = useAuth()
-  const { items, addItem } = useCart()
+  const { items, addItem, updateQty } = useCart()
   const { isFavorite, toggle, loading: favoritesLoading } = useFavorites()
   const garage = useGarageOptional()
   const { push } = useToast()
@@ -206,6 +206,30 @@ export function ProductCard({
       'success',
       { action: { label: 'Ver carrinho', to: '/carrinho' } },
     )
+  }
+
+  function onDecreaseQty(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!inCart) return
+    updateQty(product.id, cartQty - 1)
+  }
+
+  async function onIncreaseQty(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!available) return
+    if (!(await confirmCompatIfNeeded('add'))) return
+    addItem(product, 1)
+    trackAddToCart({
+      itemId: product.id,
+      itemName: toCommercialTitleCase(product.name),
+      price,
+      quantity: 1,
+    })
+    push(`${cartQty + 1} unidades no carrinho`, 'success', {
+      action: { label: 'Ver carrinho', to: '/carrinho' },
+    })
   }
 
   async function onBuyNow(e: MouseEvent) {
@@ -377,28 +401,57 @@ export function ProductCard({
           </>
         )}
 
-        {available && inCart ? (
-          <p
-            className="m-0 w-fit max-w-full truncate rounded-full bg-fal-yellow/30 px-2 py-0.5 text-[11px] font-bold text-fal-navy-dark sm:px-2.5 sm:py-1 sm:text-xs dark:bg-fal-yellow/25 dark:text-fal-yellow"
-            aria-live="polite"
+        {showPurchaseCtas && inCart ? (
+          <div
+            className="flex w-full min-w-0 items-center gap-1.5"
+            data-testid="product-card-cart-qty"
           >
-            No carrinho: {cartQty}
-          </p>
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-fal-line bg-fal-surface text-base font-bold text-fal-navy hover:bg-fal-bg dark:text-fal-fg"
+              aria-label="Diminuir quantidade"
+              data-testid="product-card-cart-dec"
+              onClick={onDecreaseQty}
+            >
+              −
+            </button>
+            <div
+              className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-[10px] bg-fal-yellow/35 px-1.5 py-1 text-center dark:bg-fal-yellow/25"
+              aria-live="polite"
+            >
+              <span className="text-[10px] leading-none text-fal-muted">No carrinho</span>
+              <span className="text-sm font-black text-fal-navy-dark dark:text-fal-yellow">
+                {cartQty}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-transparent bg-fal-yellow text-base font-bold text-fal-navy-dark hover:bg-fal-yellow-hover"
+              aria-label="Aumentar quantidade"
+              data-testid="product-card-cart-inc"
+              onClick={(e) => void onIncreaseQty(e)}
+            >
+              +
+            </button>
+          </div>
         ) : null}
 
         {showPurchaseCtas ? (
           <>
             {/* Mobile: 1 CTA + link; sm+: dois botões (Notes #7). Display no wrapper —
-                Button força inline-flex e vaza se hidden for no className do Button. */}
+                Button força inline-flex e vaza se hidden for no className do Button.
+                Com item no carrinho: stepper ± acima + Comprar agora. */}
             <div className="flex flex-col gap-1.5 sm:hidden">
-              <Button
-                variant="primary"
-                size="sm"
-                fullWidth
-                onClick={(e) => void onAddToCart(e)}
-              >
-                {ADICIONAR_AO_CARRINHO_LABEL}
-              </Button>
+              {!inCart ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  onClick={(e) => void onAddToCart(e)}
+                >
+                  {ADICIONAR_AO_CARRINHO_LABEL}
+                </Button>
+              ) : null}
               <button
                 type="button"
                 className="m-0 border-0 bg-transparent p-0 text-center text-[11px] font-semibold text-fal-navy underline dark:text-fal-fg"
@@ -411,14 +464,16 @@ export function ProductCard({
               <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
                 {COMPRAR_AGORA_LABEL}
               </Button>
-              <Button
-                variant="light"
-                size="sm"
-                fullWidth
-                onClick={(e) => void onAddToCart(e)}
-              >
-                {ADICIONAR_AO_CARRINHO_LABEL}
-              </Button>
+              {!inCart ? (
+                <Button
+                  variant="light"
+                  size="sm"
+                  fullWidth
+                  onClick={(e) => void onAddToCart(e)}
+                >
+                  {ADICIONAR_AO_CARRINHO_LABEL}
+                </Button>
+              ) : null}
             </div>
           </>
         ) : null}
