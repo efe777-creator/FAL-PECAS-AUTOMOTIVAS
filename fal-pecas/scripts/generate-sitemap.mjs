@@ -14,14 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 const outPath = join(root, 'public', 'sitemap.xml')
 
-const SITE_ORIGIN =
-  process.env.VITE_SITE_ORIGIN?.trim() ||
-  process.env.URL?.trim() ||
-  process.env.DEPLOY_PRIME_URL?.trim() ||
-  'https://fal-pecas-automotivas.netlify.app'
-
-function loadEnvFile() {
-  const envPath = join(root, '.env')
+function loadEnvFile(envPath) {
   if (!existsSync(envPath)) return
   for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
     const t = line.trim()
@@ -39,6 +32,17 @@ function loadEnvFile() {
     if (process.env[key] == null) process.env[key] = val
   }
 }
+
+/** Ordem: production.local (Hostinger build) → .env.local → .env */
+loadEnvFile(join(root, '.env.production.local'))
+loadEnvFile(join(root, '.env.local'))
+loadEnvFile(join(root, '.env'))
+
+const SITE_ORIGIN =
+  process.env.VITE_SITE_ORIGIN?.trim() ||
+  process.env.URL?.trim() ||
+  process.env.DEPLOY_PRIME_URL?.trim() ||
+  'https://falpecasautomotivas.com'
 
 function escapeXml(value) {
   return value
@@ -165,7 +169,6 @@ order by slug;
 }
 
 async function main() {
-  loadEnvFile()
   const origin = SITE_ORIGIN.replace(/\/$/, '')
   const supabaseUrl = process.env.VITE_SUPABASE_URL?.trim()
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY?.trim()
