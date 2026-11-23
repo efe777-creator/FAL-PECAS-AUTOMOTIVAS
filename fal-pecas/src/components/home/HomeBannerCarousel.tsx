@@ -62,7 +62,7 @@ export function HomeBannerCarousel() {
   if (!ready) {
     return (
       <section
-        className="relative min-h-[140px] animate-pulse bg-gradient-to-br from-fal-navy-dark via-fal-navy to-fal-navy-2 sm:min-h-[180px] md:min-h-[220px]"
+        className="relative h-[min(38vh,220px)] w-full animate-pulse bg-gradient-to-br from-fal-navy-dark via-fal-navy to-fal-navy-2 sm:h-[min(42vh,320px)] md:h-[min(45vh,380px)]"
         aria-busy="true"
         aria-label="Carregando campanhas"
       />
@@ -87,7 +87,7 @@ export function HomeBannerCarousel() {
         Campanhas
       </h2>
       <div
-        className={`relative aspect-[1376/768] max-h-[min(38vh,220px)] overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white sm:max-h-[min(42vh,320px)] md:max-h-[min(45vh,380px)]`}
+        className={`relative h-[min(38vh,220px)] w-full overflow-hidden bg-gradient-to-br ${TONE_CLASS[current.tone]} text-white sm:h-[min(42vh,320px)] md:h-[min(45vh,380px)]`}
       >
         {current.imageSrc || current.imageSrcMobile ? (
           <picture key={current.id}>

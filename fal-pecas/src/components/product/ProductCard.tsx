@@ -370,41 +370,38 @@ export function ProductCard({
 
         {showPurchaseCtas ? (
           <>
-            {/* Mobile: 1 CTA + link; sm+: dois botões (densidade Notes #7). */}
-            <Button
-              variant="primary"
-              size="sm"
-              fullWidth
-              className="sm:hidden"
-              onClick={(e) => void onAddToCart(e)}
-            >
-              {ADICIONAR_AO_CARRINHO_LABEL}
-            </Button>
-            <button
-              type="button"
-              className="m-0 border-0 bg-transparent p-0 text-center text-[11px] font-semibold text-fal-navy underline sm:hidden dark:text-fal-fg"
-              onClick={(e) => void onBuyNow(e)}
-            >
-              {COMPRAR_AGORA_LABEL}
-            </button>
-            <Button
-              variant="primary"
-              size="sm"
-              fullWidth
-              className="hidden sm:inline-flex"
-              onClick={onBuyNow}
-            >
-              {COMPRAR_AGORA_LABEL}
-            </Button>
-            <Button
-              variant="light"
-              size="sm"
-              fullWidth
-              className="hidden sm:inline-flex"
-              onClick={(e) => void onAddToCart(e)}
-            >
-              {ADICIONAR_AO_CARRINHO_LABEL}
-            </Button>
+            {/* Mobile: 1 CTA + link; sm+: dois botões (Notes #7). Display no wrapper —
+                Button força inline-flex e vaza se hidden for no className do Button. */}
+            <div className="flex flex-col gap-1.5 sm:hidden">
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
+                onClick={(e) => void onAddToCart(e)}
+              >
+                {ADICIONAR_AO_CARRINHO_LABEL}
+              </Button>
+              <button
+                type="button"
+                className="m-0 border-0 bg-transparent p-0 text-center text-[11px] font-semibold text-fal-navy underline dark:text-fal-fg"
+                onClick={(e) => void onBuyNow(e)}
+              >
+                {COMPRAR_AGORA_LABEL}
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-col sm:gap-2">
+              <Button variant="primary" size="sm" fullWidth onClick={onBuyNow}>
+                {COMPRAR_AGORA_LABEL}
+              </Button>
+              <Button
+                variant="light"
+                size="sm"
+                fullWidth
+                onClick={(e) => void onAddToCart(e)}
+              >
+                {ADICIONAR_AO_CARRINHO_LABEL}
+              </Button>
+            </div>
           </>
         ) : null}
         {equivIncompatible ? (

@@ -1,13 +1,21 @@
 # Domínio falpecasautomotivas.com → Netlify (Cursor / eFe)
 
 **Data:** 2026-11-22 · **Branch:** `dev`  
+**Status:** **HISTÓRICO / SUPERSEDIDO** (2026-11-23)  
+**Canônico atual:** [FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md](./FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md)
+
+> **Não usar como autoridade de deploy.** Fluxo Netlify-as-host encerrado por decisão eFe.  
+> Cutover Hostinger-only = MARCHA separada (checklist no doc de decisão).
+
+---
+
+## Registro histórico (fato até 2026-11-22)
+
 **Site Netlify:** `fal-pecas-automotivas-efe` (`79994809-2fb1-4faf-bce5-4feac9a7d3a3`)  
 **Registrar:** Hostinger
 
-## Feito
-
-| Passo | Status |
-|-------|--------|
+| Passo | Status (à época) |
+|-------|------------------|
 | Domínio ativo no portfolio Hostinger | ✓ |
 | Netlify `custom_domain` = `falpecasautomotivas.com` | ✓ |
 | Alias `www.falpecasautomotivas.com` | ✓ |
@@ -16,21 +24,14 @@
 | DNS público `www` → Netlify | ✓ (CNAME) |
 | DNS apex ALIAS → Netlify | ✓ |
 | HTTP/HTTPS responde **Server: Netlify** 200 | ✓ (smoke 2026-11-22) |
-| SSL API `site.ssl=true` / Force HTTPS | em consolidação (cert pode ainda provisionar) |
+| SSL API `site.ssl=true` / Force HTTPS | em consolidação (à época) |
 
-## URLs
+## URLs (legado)
 
-- Canônico: https://falpecasautomotivas.com  
-- www → redireciona para apex (Netlify)  
+- Canônico (à época): https://falpecasautomotivas.com  
+- www → redirecionava para apex (Netlify)  
 - Fallback: https://fal-pecas-automotivas-efe.netlify.app  
 
-## Pendente (#15-B / ops)
+## Nota histórica
 
-1. Confirmar cadeado verde estável (Force HTTPS no painel Netlify se ainda off)  
-2. Env prod: `VITE_SITE_ORIGIN=https://falpecasautomotivas.com` + rebuild/deploy  
-3. Supabase Auth: Site URL + Redirect URLs no domínio  
-4. Merchant/Ads verify  
-
-## Nota
-
-Site linkado no Cursor = **efe** (`fal-pecas-automotivas-efe`), não o espelho `fal-pecas-automotivas` (fernando). Tráfego do domínio aponta para o projeto eFe.
+Site linkado no Cursor = **efe** (`fal-pecas-automotivas-efe`), não o espelho `fal-pecas-automotivas` (fernando). Tráfego do domínio apontava para o projeto eFe via Netlify.

@@ -240,22 +240,79 @@ export async function adminDeleteHomeBanner(id: string): Promise<void> {
 
 const BANNER_IMAGE_BUCKET = 'product-images'
 
-/** Ideal na Home: arte canônica do carrossel (~16:9). */
-export const HOME_BANNER_IMAGE_IDEAL = {
+export type HomeBannerImageIdeal = {
+  width: number
+  height: number
+  label: string
+  hint: string
+}
+
+/** Desktop: arte canônica do carrossel (exata — upload rejeita fora). */
+export const HOME_BANNER_IMAGE_IDEAL: HomeBannerImageIdeal = {
   width: 1376,
   height: 768,
-  label: '1376 × 768 px (~16:9)',
-  hint: 'JPG, PNG ou WebP · horizontal · máx. ~2 MB · padrão FAL campanha',
-} as const
+  label: '1376 × 768 px',
+  hint: 'Obrigatório 1376×768 · JPG/PNG/WebP · máx. 2 MB',
+}
+
+/** Mobile opcional: 16:9 na metade da largura canônica. */
+export const HOME_BANNER_IMAGE_MOBILE_IDEAL: HomeBannerImageIdeal = {
+  width: 768,
+  height: 432,
+  label: '768 × 432 px',
+  hint: 'Obrigatório 768×432 se enviar mobile · JPG/PNG/WebP · máx. 2 MB',
+}
+
+/** Rejeita arte fora do tamanho exato (Notes #18 residual). */
+export function assertHomeBannerImageDimensions(
+  width: number,
+  height: number,
+  ideal: Pick<HomeBannerImageIdeal, 'width' | 'height' | 'label'>,
+): void {
+  if (width !== ideal.width || height !== ideal.height) {
+    throw new Error(
+      `Dimensão inválida: esperado ${ideal.label}, recebido ${width}×${height} px.`,
+    )
+  }
+}
+
+export async function readImageFileDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(file)
+    const dims = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return dims
+  }
+  const url = URL.createObjectURL(file)
+  try {
+    const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+      img.onerror = () => reject(new Error('Não foi possível ler as dimensões da imagem.'))
+      img.src = url
+    })
+    return dims
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
 
 /** Upload de arte da campanha → URL pública em product-images/home-banners/. */
-export async function adminUploadHomeBannerImage(file: File): Promise<string> {
+export async function adminUploadHomeBannerImage(
+  file: File,
+  variant: 'desktop' | 'mobile' = 'desktop',
+): Promise<string> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Selecione um arquivo de imagem (PNG, JPG ou WebP).')
   }
   if (file.size > 2 * 1024 * 1024) {
     throw new Error('Imagem muito grande (máx. 2 MB).')
   }
+  const ideal = variant === 'mobile' ? HOME_BANNER_IMAGE_MOBILE_IDEAL : HOME_BANNER_IMAGE_IDEAL
+  const dims = await readImageFileDimensions(file)
+  assertHomeBannerImageDimensions(dims.width, dims.height, ideal)
   const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
   const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? ext : 'png'
   const path = `home-banners/${crypto.randomUUID()}.${safeExt}`

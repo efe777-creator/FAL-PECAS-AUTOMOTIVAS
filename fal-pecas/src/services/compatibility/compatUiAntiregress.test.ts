@@ -94,6 +94,14 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     expect(card).toMatch(/shadow-none/)
   })
 
+  it('Card Notes #7 CTAs: wrappers sm (sem hidden no Button — evita vazamento inline-flex)', () => {
+    const card = readFileSync(src('components/product/ProductCard.tsx'), 'utf8')
+    expect(card).toMatch(/flex flex-col gap-1\.5 sm:hidden/)
+    expect(card).toMatch(/hidden sm:flex sm:flex-col sm:gap-2/)
+    expect(card).not.toMatch(/hidden sm:inline-flex/)
+    expect(card).not.toMatch(/className="sm:hidden"/)
+  })
+
   it('PDP M1: container 1440 só via maxWidth pdp; grid 55/45; galeria 4:3', () => {
     const page = readFileSync(src('pages/Product/ProductPage.tsx'), 'utf8')
     expect(page).toMatch(/maxWidth=\"pdp\"/)
@@ -215,6 +223,32 @@ describe('compat UI anti-regressão (contratos fonte)', () => {
     const router = readFileSync(src('app/router.tsx'), 'utf8')
     expect(router).toMatch(/path:\s*'garagem'/)
     expect(router).toMatch(/Navigate to="\/conta\/veiculos"/)
+  })
+
+  it('Cart layout P0: sticky mobile CTAs; total empilhado mobile; sem Ver produto redundante', () => {
+    const cart = readFileSync(src('pages/Cart/CartPage.tsx'), 'utf8')
+    expect(cart).toMatch(/STICKY_BOTTOM|bottom-\[calc\(56px/)
+    expect(cart).toMatch(/flex-col gap-2\.5/)
+    expect(cart).not.toMatch(/w-\[min\(100%,220px\)\]/)
+    expect(cart).toMatch(/hidden lg:block/)
+    expect(cart).toMatch(/sm:grid-cols-\[86px_minmax\(0,1fr\)_auto\]/)
+    expect(cart).toMatch(/text-sm font-black text-fal-ink sm:hidden/)
+    expect(cart).not.toMatch(/>\s*Ver produto\s*</)
+    expect(cart).toMatch(/Continuar comprando/)
+  })
+
+  it('Cart frete UI: padrão PDP M5 (Calcular frete + CEP + Consultar); motor conjunto intacto', () => {
+    const ship = readFileSync(src('components/cart/CartShippingQuoteBlock.tsx'), 'utf8')
+    expect(ship).toMatch(/Calcular frete/)
+    expect(ship).toMatch(/Consultar/)
+    expect(ship).toMatch(/variant="dark"/)
+    expect(ship).toMatch(/Digite seu CEP|placeholder="Digite seu CEP"/)
+    expect(ship).toMatch(/loadCartLogistics/)
+    expect(ship).toMatch(/quoteStorefrontShippingEnvelope/)
+    expect(ship).toMatch(/saveShippingQuoteHandoff/)
+    expect(ship).not.toMatch(/Consultar fretes/)
+    expect(ship).not.toMatch(/Entrega e frete/)
+    expect(ship).not.toMatch(/Nº \(frete próprio\)/)
   })
 
   it('PDP M5: frete compacto CEP + Consultar; handoff preservado', () => {

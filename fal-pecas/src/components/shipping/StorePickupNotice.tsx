@@ -25,7 +25,7 @@ export function StorePickupNotice({ origin, compact, showSwitchHint }: Props) {
       role="status"
     >
       <p className="m-0 font-bold text-fal-navy dark:text-fal-fg">
-        {compact ? 'Retirada na loja' : 'Onde retirar'}
+        {compact ? 'Endereço da loja' : 'Onde retirar'}
       </p>
       {origin ? (
         <p className="mb-0 mt-1 text-fal-ink">{formatStoreOriginAddress(origin)}</p>

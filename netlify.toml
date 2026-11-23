@@ -1,5 +1,7 @@
-# Netlify — app Vite em fal-pecas/
-# Site Settings → Build: este arquivo sobrescreve UI se existir no branch.
+# LEGADO — Netlify NÃO é host canônico de produção (decisão 2026-11-23: Hostinger only).
+# Mantido para rollback / preview histórico até cutover Hostinger estável.
+# Canônico: docs/planejamento/FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md
+# App Vite em fal-pecas/ — se o arquivo existir no branch, sobrescreve UI do site Netlify.
 
 [build]
   base = "fal-pecas"

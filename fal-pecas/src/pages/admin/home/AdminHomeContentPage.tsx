@@ -56,6 +56,7 @@ import {
   adminUpsertHomeBanner,
   adminUpsertHomeSettings,
   HOME_BANNER_IMAGE_IDEAL,
+  HOME_BANNER_IMAGE_MOBILE_IDEAL,
   type AdminFeaturedRow,
   type AdminHomeBanner,
   type AdminHomeSettings,
@@ -965,7 +966,8 @@ export function AdminHomeContentPage() {
             <div className="space-y-2">
               <p className="m-0 text-xs font-extrabold text-fal-muted">Imagem da campanha</p>
               <p className="m-0 text-[13px] text-fal-muted">
-                Dimensão ideal: <strong className="text-fal-ink">{HOME_BANNER_IMAGE_IDEAL.label}</strong>
+                Dimensão obrigatória:{' '}
+                <strong className="text-fal-ink">{HOME_BANNER_IMAGE_IDEAL.label}</strong>
                 {' · '}
                 {HOME_BANNER_IMAGE_IDEAL.hint}
               </p>
@@ -989,7 +991,7 @@ export function AdminHomeContentPage() {
                     e.target.value = ''
                     if (!file) return
                     setUploadingBannerImage(true)
-                    void adminUploadHomeBannerImage(file)
+                    void adminUploadHomeBannerImage(file, 'desktop')
                       .then((url) => {
                         setDirtyBanner(true)
                         setForm((f) => ({ ...f, imageSrc: url }))
@@ -1034,7 +1036,10 @@ export function AdminHomeContentPage() {
                 Imagem mobile (opcional)
               </p>
               <p className="m-0 text-[13px] text-fal-muted">
-                Se vazia, a loja usa a imagem desktop. Ideal: arte vertical ou crop 16:9 estreito.
+                Se vazia, a loja usa a desktop. Dimensão obrigatória se enviar:{' '}
+                <strong className="text-fal-ink">{HOME_BANNER_IMAGE_MOBILE_IDEAL.label}</strong>
+                {' · '}
+                {HOME_BANNER_IMAGE_MOBILE_IDEAL.hint}
               </p>
               {form.imageSrcMobile ? (
                 <div className="aspect-[16/9] w-full max-w-xs overflow-hidden rounded-xl border border-fal-line bg-fal-bg">
@@ -1052,7 +1057,7 @@ export function AdminHomeContentPage() {
                     e.target.value = ''
                     if (!file) return
                     setUploadingBannerImage(true)
-                    void adminUploadHomeBannerImage(file)
+                    void adminUploadHomeBannerImage(file, 'mobile')
                       .then((url) => {
                         setDirtyBanner(true)
                         setForm((f) => ({ ...f, imageSrcMobile: url }))

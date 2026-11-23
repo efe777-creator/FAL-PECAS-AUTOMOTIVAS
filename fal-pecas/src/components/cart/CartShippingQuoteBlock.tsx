@@ -1,5 +1,4 @@
 import { Button } from '@/components/common/Button'
-import { Input } from '@/components/common/Input'
 import { SavedAddressQuoteSelect } from '@/components/shipping/SavedAddressQuoteSelect'
 import { StorePickupNotice } from '@/components/shipping/StorePickupNotice'
 import { formatCepMask } from '@/lib/cep'
@@ -17,6 +16,7 @@ import {
   loadShippingQuoteHandoff,
   saveShippingQuoteHandoff,
 } from '@/services/shipping/shippingQuoteSession'
+import { formatShippingEtaLabel } from '@/services/shipping/shippingEta'
 import {
   createStorePickupOption,
   isStorePickupOption,
@@ -38,8 +38,8 @@ function formatCepInput(raw: string): string {
 }
 
 /**
- * Cotação do **conjunto** do carrinho (não soma fretes unitários).
- * Sempre oferece retirada R$ 0; demais opções após consultar CEP.
+ * Cotação do **conjunto** do carrinho (SPEC D1 — não soma fretes unitários).
+ * UI alinhada ao padrão PDP M5: “Calcular frete” + CEP + Consultar compacto.
  */
 export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange }: Props) {
   const [cep, setCep] = useState('')
@@ -50,6 +50,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
   const [selectedId, setSelectedId] = useState(STORE_PICKUP_OPTION_ID)
   const [origin, setOrigin] = useState<StoreShippingOrigin | null>(null)
   const [hintNeedsNumber, setHintNeedsNumber] = useState(false)
+  const [quoted, setQuoted] = useState(false)
   const quoteGen = useRef(0)
 
   const pickupOnly = useMemo(() => [createStorePickupOption()], [])
@@ -97,6 +98,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
       try {
         if (digits.length !== 8) {
           if (gen !== quoteGen.current) return
+          setQuoted(true)
           setEnvelope({
             status: 'invalid_cep',
             providerId: 'melhorenvio',
@@ -139,8 +141,8 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         if (gen !== quoteGen.current) return
         setHintNeedsNumber(needsAddressNumber)
         setEnvelope(env)
+        setQuoted(true)
         if (env.status === 'ok' && env.options.length) {
-          // Handoff da PDP/carrinho prevalece sobre o default "retirada" do radio.
           const prev = loadShippingQuoteHandoff()
           const preferred = preferStorefrontShippingOption(env.options, {
             postalCode: digits,
@@ -155,6 +157,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         }
       } catch (e) {
         if (gen !== quoteGen.current) return
+        setQuoted(true)
         setEnvelope({
           status: 'provider_error',
           providerId: 'melhorenvio',
@@ -173,6 +176,7 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
 
   useEffect(() => {
     setEnvelope(null)
+    setQuoted(false)
     onShippingAmountChange?.(null, null)
     const digits = cep.replace(/\D/g, '')
     if (digits.length !== 8 || items.length === 0) return
@@ -222,83 +226,144 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
     })
   }
 
+  function onConsultar() {
+    void runQuote()
+  }
+
   const selected = displayOptions.find((o) => o.id === selectedId)
   const showPickupNotice = selected ? isStorePickupOption(selected) : false
+  const showNumberField = hintNeedsNumber || number.trim().length > 0
 
   return (
-    <div className="mb-3 border-b border-fal-line pb-3">
-      <p className="m-0 mb-2 text-sm font-extrabold text-fal-navy dark:text-fal-fg">Entrega e frete</p>
+    <section
+      className="mb-3 border-b border-fal-line pb-3"
+      aria-labelledby="cart-entrega-frete-title"
+    >
+      <h2
+        id="cart-entrega-frete-title"
+        className="m-0 text-[13px] font-extrabold text-fal-navy dark:text-fal-fg"
+      >
+        Calcular frete
+      </h2>
 
-      <SavedAddressQuoteSelect
-        valueId={savedAddressId}
-        name="cart-saved-address"
-        onSelect={onSavedAddress}
-      />
-
-      <div className="mb-2 space-y-1.5">
-        {displayOptions.map((o) => (
-          <label
-            key={o.id}
-            className="flex cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-fal-line bg-fal-bg px-2 py-1.5 text-xs"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <input
-                type="radio"
-                name="cart-ship-opt"
-                checked={selectedId === o.id}
-                onChange={() => setSelectedId(o.id)}
-              />
-              <span className="truncate font-semibold text-fal-ink">{o.label}</span>
-            </span>
-            <span className="shrink-0 text-fal-ink">
-              {formatMoney(o.amount)}
-              {o.etaDaysMin != null && o.etaDaysMax != null && !isStorePickupOption(o)
-                ? ` · ${o.etaDaysMin}–${o.etaDaysMax} d`
-                : isStorePickupOption(o)
-                  ? ' · Retirada'
-                  : ''}
-            </span>
+      <div className="mt-1.5 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <label className="sr-only" htmlFor="cart-shipping-cep">
+            CEP
           </label>
-        ))}
+          <input
+            id="cart-shipping-cep"
+            name="cart-shipping-cep"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            placeholder="Digite seu CEP"
+            aria-label="CEP"
+            className="fal-field min-w-0 flex-1 rounded-[9px] border border-fal-line bg-fal-bg px-2.5 py-1.5 text-sm text-fal-fg outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
+            value={cep}
+            onChange={(e) => {
+              setSavedAddressId('')
+              setCep(formatCepInput(e.target.value))
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                onConsultar()
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="dark"
+            size="sm"
+            disabled={loading}
+            onClick={onConsultar}
+            className="h-9 shrink-0"
+          >
+            {loading ? '…' : 'Consultar'}
+          </Button>
+        </div>
+
+        <details className="group">
+          <summary className="cursor-pointer list-none text-xs font-semibold text-fal-navy hover:underline dark:text-fal-fg [&::-webkit-details-marker]:hidden">
+            Usar endereço salvo
+          </summary>
+          <div className="mt-1.5">
+            <SavedAddressQuoteSelect
+              valueId={savedAddressId}
+              name="cart-saved-address"
+              onSelect={onSavedAddress}
+            />
+          </div>
+        </details>
+
+        {showNumberField ? (
+          <div>
+            <label className="sr-only" htmlFor="cart-shipping-number">
+              Número (entrega FAL)
+            </label>
+            <input
+              id="cart-shipping-number"
+              name="cart-shipping-number"
+              inputMode="text"
+              autoComplete="address-line2"
+              placeholder="Nº do endereço"
+              aria-label="Número do endereço"
+              className="fal-field w-full rounded-[9px] border border-fal-line bg-fal-bg px-2.5 py-1.5 text-sm text-fal-fg outline-none placeholder:text-fal-muted focus:border-fal-yellow-dark focus:shadow-[0_0_0_3px_rgba(242,200,75,0.2)]"
+              value={number}
+              onChange={(e) => {
+                setSavedAddressId('')
+                setNumber(e.target.value.slice(0, 20))
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onConsultar()
+                }
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-1.5 space-y-1.5">
+        {displayOptions.map((o) => {
+          const active = selectedId === o.id
+          const eta = formatShippingEtaLabel(o)
+          return (
+            <label
+              key={o.id}
+              className={`flex cursor-pointer items-start justify-between gap-2 rounded-fal border px-2 py-1.5 text-sm transition-colors ${
+                active
+                  ? 'border-fal-navy bg-fal-bg ring-1 ring-fal-navy dark:border-fal-yellow'
+                  : 'border-fal-line bg-fal-bg hover:border-fal-navy/40'
+              }`}
+            >
+              <span className="flex min-w-0 items-start gap-2">
+                <input
+                  type="radio"
+                  name="cart-ship-opt"
+                  className="mt-0.5 shrink-0"
+                  checked={active}
+                  onChange={() => setSelectedId(o.id)}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-fal-navy dark:text-fal-fg">
+                    {o.label}
+                  </span>
+                  {eta && !isStorePickupOption(o) ? (
+                    <span className="mt-0.5 block text-xs text-fal-muted">{eta}</span>
+                  ) : null}
+                </span>
+              </span>
+              <strong className="shrink-0 text-fal-navy dark:text-fal-fg">
+                {formatMoney(o.amount)}
+              </strong>
+            </label>
+          )
+        })}
       </div>
 
       {showPickupNotice ? <StorePickupNotice origin={origin} compact /> : null}
-
-      <div className="mt-2 flex flex-col gap-2">
-        <Input
-          label="CEP de destino"
-          name="cart-shipping-cep"
-          inputMode="numeric"
-          autoComplete="postal-code"
-          placeholder="00000-000"
-          value={cep}
-          onChange={(e) => {
-            setSavedAddressId('')
-            setCep(formatCepInput(e.target.value))
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              void runQuote()
-            }
-          }}
-        />
-        <Input
-          label="Nº (frete próprio)"
-          name="cart-shipping-number"
-          inputMode="text"
-          autoComplete="address-line2"
-          placeholder="123"
-          value={number}
-          onChange={(e) => {
-            setSavedAddressId('')
-            setNumber(e.target.value.slice(0, 20))
-          }}
-        />
-        <Button type="button" variant="light" size="sm" disabled={loading} onClick={() => void runQuote()}>
-          {loading ? 'Consultando…' : 'Consultar fretes'}
-        </Button>
-      </div>
 
       {envelope?.disclaimer && !/D-FRETE|VITE_|mock|sandbox|webhook/i.test(envelope.disclaimer) ? (
         <p className="mb-0 mt-2 text-[11px] font-semibold text-fal-muted">{envelope.disclaimer}</p>
@@ -310,11 +375,17 @@ export function CartShippingQuoteBlock({ items, subtotal, onShippingAmountChange
         </p>
       ) : null}
 
-      {envelope && envelope.status !== 'ok' ? (
+      {envelope && envelope.status !== 'ok' && quoted ? (
         <p className="mb-0 mt-2 text-xs text-fal-danger" role="alert">
-          {envelope.message ?? 'Consulta indisponível.'}
+          {envelope.message ?? 'Consulta de entrega indisponível no momento.'}
         </p>
       ) : null}
-    </div>
+
+      {envelope?.status === 'ok' && envelope.options.length === 0 ? (
+        <p className="mb-0 mt-2 text-xs text-fal-muted">
+          Nenhuma opção de frete para este CEP. Use a retirada ou confirme no checkout.
+        </p>
+      ) : null}
+    </section>
   )
 }

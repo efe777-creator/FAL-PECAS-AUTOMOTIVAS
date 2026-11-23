@@ -1,7 +1,7 @@
 /**
  * #15-A — Loader de tags marketing (GTM / GA4 / Meta) + Google Consent Mode v2.
  * Carrega scripts só com: consent marketing + pelo menos um ID em env.
- * Sem domínio definitivo: IDs ficam vazios em prod até Hostinger + go-live (#15-B).
+ * Host front = Hostinger only (2026-11-23). IDs vazios até go-live Ads (#15-B).
  */
 
 import {
