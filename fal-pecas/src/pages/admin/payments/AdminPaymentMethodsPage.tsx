@@ -106,6 +106,8 @@ export function AdminPaymentMethodsPage() {
           <p className="m-0 font-semibold text-fal-fg">Roteamento FAL PAY</p>
           <p className="mb-3 mt-1 text-xs text-fal-muted">
             Controle real da loja (`payment_routing_config`). Vale no checkout e nas Edges.
+            Canônico: Pix até R$&nbsp;201,00 → Mercado Pago; acima → Asaas; cartão
+            crédito/débito → sempre Asaas (independente do select de cartão).
           </p>
           <label className="mb-2 flex items-center gap-2">
             <input

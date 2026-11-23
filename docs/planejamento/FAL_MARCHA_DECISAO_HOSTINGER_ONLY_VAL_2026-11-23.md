@@ -2,14 +2,15 @@
 
 **Data:** 2026-11-23 · **Branch:** `dev` · Sem MAIN  
 **Auth:** eFe — `MARCHA`  
-**Decisão:** [FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md](./FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md)
+**Decisão:** [FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md](./FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md)  
+**Cutover (técnico):** [FAL_MARCHA_HOSTINGER_ONLY_CUTOVER_VAL_2026-11-23.md](./FAL_MARCHA_HOSTINGER_ONLY_CUTOVER_VAL_2026-11-23.md) — **DONE**
 
-## Escopo
+## Escopo (esta VAL)
 
 Documentar decisão de inativar Netlify como host e usar **somente Hostinger** para o storefront.  
-**Fora:** cutover DNS, desligar sites, deploy, MAIN.
+Cutover DNS / Netlify off / deploy = VAL cutover (não esta página).
 
-## Entrega
+## Entrega (docs)
 
 | Item | Status |
 |------|--------|
@@ -19,7 +20,6 @@ Documentar decisão de inativar Netlify como host e usar **somente Hostinger** p
 | Ponteiro índice canônico | PASS |
 | Antiregress `hostingerOnlyAntiregress.test.ts` | PASS |
 | `.env.example` + `netlify.toml` LEGADO | PASS |
-| DNS / Netlify / Hostinger painel alterados | **NÃO** (STOP) |
 
 ## Antiregress
 
@@ -34,4 +34,4 @@ Documentar decisão de inativar Netlify como host e usar **somente Hostinger** p
 
 ## Próximo
 
-`MARCHA HOSTINGER-ONLY CUTOVER` com OK eFe.
+Cutover técnico **DONE** — ver VAL cutover. Restante MVP: G8 (fora) · Ads IDs (#15-B opcional).

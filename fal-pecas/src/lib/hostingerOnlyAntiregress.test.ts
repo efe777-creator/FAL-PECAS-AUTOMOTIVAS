@@ -2,7 +2,7 @@
  * Anti-regressão: Hostinger only (decisão 2026-11-23).
  * Impede recolocar Netlify como host canônico de produção nos docs/env.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -76,5 +76,10 @@ describe('Hostinger-only anti-regressão (deploy / domínio)', () => {
     expect(toml).toMatch(/LEGADO|histórico|não.*host canônico|Hostinger only/i)
     expect(toml).toMatch(/base\s*=\s*"fal-pecas"/)
     expect(toml).toMatch(/publish\s*=\s*"dist"/)
+  })
+
+  it('public/ sem páginas de teste MP (não publicar em Hostinger)', () => {
+    expect(existsSync(resolve(falPecasRoot, 'public/dev-mp-vanilla.html'))).toBe(false)
+    expect(existsSync(resolve(falPecasRoot, 'public/dev-mp-fields.html'))).toBe(false)
   })
 })

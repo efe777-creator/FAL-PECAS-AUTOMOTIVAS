@@ -236,10 +236,11 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 
 | Campo | Valor |
 |-------|--------|
-| Status | **DONE** |
+| Status | **DONE** (+ residual CTA 2026-11-23) |
 | Diagnóstico | `ProductCard` único empilhava meta (cat/fab/lado) + apps até 4 + Pix/parcelas + 2 CTAs full-width em grade `grid-cols-2` com foto 132px — altura e ruído no mobile. |
 | Estrutura | (1) Foto card `104px` mobile. (2) Meta extra só `sm+`; ref permanece. (3) Apps card: 2 linhas, sem “Mais”. (4) Condições pagamento só `sm+`. (5) Mobile: 1 CTA Adicionar + link Comprar; `sm+` dois botões. (6) Favorito menor no mobile. |
-| Evidência | `tsc` + `CompatibilityAppsBlock` 6 PASS + `compatUiAntiregress` 20 PASS (M15 selo após título intacto) |
+| Residual 2026-11-23 | Par desktop vazava no mobile (`Button` `inline-flex` × `hidden`). Fix: wrappers `sm:hidden` / `hidden sm:flex` — display fora do Button. Antiregress Card Notes #7 CTAs. |
+| Evidência | `tsc` + `CompatibilityAppsBlock` + `compatUiAntiregress` (M15 + CTAs) · VAL `FAL_MARCHA_HOME_CARD_CTA_ARTE_BANNER_VAL_2026-11-23.md` |
 | Arquivos | `ProductCard.tsx`, `ProductMediaFrame.tsx`, `CompatibilityAppsBlock.tsx` (+test), este REF |
 
 ### Erro #8 — Header mobile muito cheio
@@ -267,12 +268,13 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 
 | Campo | Valor |
 |-------|--------|
-| Status | **DONE** (+ composto 2026-11-22) |
+| Status | **DONE** (+ composto 2026-11-22 · arte enforced 2026-11-23) |
 | Diagnóstico | Admin gravava só `to`/`href` livre; sem UI para cat/ids/veículo. Catálogo não lia `?ids=` como seleção curada. Trilho `campaign` (widget) permanece **planned**. |
 | Estrutura | (1) Encoder canônico `catalogHref` (Gate 0). (2) `homeCampaignLink` kinds + **filter** multi-cat/multi-model; **ids XOR filtro**. (3) RPC `search_products` CSV. (4) Admin pickers + Testar destino. (5) Arte **1376×768**. |
-| Evidência | `catalogHref`/`homeCampaignLink`/garage/PDP widgets · `tsc` OK · wtbp migration multi · VAL composto |
-| Arquivos | `catalogHref.ts`, `homeCampaignLink.ts`, `AdminHomeContentPage.tsx`, `CatalogPage.tsx`, `HomeBannerCarousel.tsx`, mapa §3.4, VAL |
-| Fora | Trilho widget `campaign`; multi-maker misturado; smoke E2E |
+| Residual 2026-11-23 | Upload rejeita ≠ 1376×768 (desktop) / 768×432 (mobile). Frame Home `w-full` + altura vh (full-bleed; `aspect`+`max-h` encolhia desktop). |
+| Evidência | `catalogHref`/`homeCampaignLink` · `adminHomeBannerImage` · `tsc` · VAL composto + VAL card/arte 2026-11-23 |
+| Arquivos | `catalogHref.ts`, `homeCampaignLink.ts`, `AdminHomeContentPage.tsx`, `adminHomeContentService.ts`, `CatalogPage.tsx`, `HomeBannerCarousel.tsx`, mapa §3.4, VAL |
+| Fora | Trilho widget `campaign`; multi-maker misturado; smoke E2E; URL manual sem check |
 
 ### Erro #10 — Copy / textos e instruções (coerência)
 
@@ -317,6 +319,16 @@ Vida de linha em `models.production_year_*` · sync validado no hub · hard-bloc
 | Fora / a auditar | Texto advogado; `/garantia`; `place_order` versões; exclusão real em Minha Conta; scripts Ads só com consent (#15); VAL jurídico |
 
 **Auditoria DONE (2026-11-22):** [FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md](./FAL_AUDITORIA_NOTES_211136_DONE_2026-11-22.md)  
+
+### Auditoria auxiliar — Carrinho layout/funções/visual (2026-11-23)
+
+| Campo | Valor |
+|-------|--------|
+| Status | **DOC ONLY** (opção A — sem código) |
+| Doc | [FAL_AUDITORIA_CARRINHO_LAYOUT_FUNCOES_VISUAL_2026-11-23.md](./FAL_AUDITORIA_CARRINHO_LAYOUT_FUNCOES_VISUAL_2026-11-23.md) |
+| VAL | [FAL_MARCHA_AUDITORIA_CARRINHO_VAL_2026-11-23.md](./FAL_MARCHA_AUDITORIA_CARRINHO_VAL_2026-11-23.md) |
+| P0 recomendados | Sticky Finalizar mobile (E.3); overlap preço×título na linha mobile |
+| Fora | Implementação; Notes #14–#17 |
 
 ### Ondas (decisão eFe 2026-11-22)
 

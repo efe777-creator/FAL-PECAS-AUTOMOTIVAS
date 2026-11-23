@@ -10,6 +10,7 @@ import {
   moneyToAmountCents,
   resolveRoutedPaymentProvider,
 } from '@/services/payments/routing/paymentRouter'
+import { DEFAULT_PAYMENT_ROUTING_CONFIG } from '@/services/payments/paymentRoutingService'
 import { ASAAS_CARD_CHECKOUT_READY } from '@/services/payments/falPayCapabilities'
 
 const root = resolve(__dirname, '../../..')
@@ -52,6 +53,18 @@ describe('FAL PAY regras (contrato vivo)', () => {
     const d = decidePaymentRoute({ method: 'pix', amountCents: 5000 })
     expect(d.ruleVersion).toBe('fal-pay-hybrid-v1')
     expect(d.provider).toBe('mercadopago')
+  })
+
+  it('DEFAULT_PAYMENT_ROUTING_CONFIG = matriz canônica (201 / MP↓ / Asaas↑ / cartão Asaas)', () => {
+    expect(DEFAULT_PAYMENT_ROUTING_CONFIG).toMatchObject({
+      pixMpMaxAmountCents: 20_100,
+      pixBelowLimitProvider: 'mercadopago',
+      pixAboveLimitProvider: 'asaas',
+      cardProvider: 'asaas',
+      boletoProvider: 'asaas',
+      asaasEnabled: true,
+      mercadopagoEnabled: true,
+    })
   })
 })
 

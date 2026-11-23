@@ -32,3 +32,35 @@ verify_jwt = false
 
 [functions.melhorenvio-reverse]
 verify_jwt = true
+
+[auth]
+# Produção Hostinger-only (cutover 2026-11-23). Localhost permanece para smoke local.
+site_url = "https://falpecasautomotivas.com"
+additional_redirect_urls = [
+  "https://falpecasautomotivas.com",
+  "https://falpecasautomotivas.com/**",
+  "https://www.falpecasautomotivas.com",
+  "https://www.falpecasautomotivas.com/**",
+  "http://127.0.0.1:5173/**",
+  "http://localhost:5173/**",
+  "http://127.0.0.1:3000/**",
+  "http://localhost:3000/**",
+]
+
+[auth.email]
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.sms]
+enable_confirmations = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[storage.vector]
+enabled = false

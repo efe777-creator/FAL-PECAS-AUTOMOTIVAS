@@ -2,11 +2,13 @@
 
 **Data:** 2026-11-09  
 **Escopo:** inventário apenas · **não aplicar** secrets · **não** deploy  
-**Alvo:** conta nova (Netlify + Supabase) no momento certo
+**Alvo (histórico):** conta nova (Netlify + Supabase) no momento certo  
+
+> **Nota cutover 2026-11-23 (Hostinger-only):** `VITE_*` de build **não** se colam mais no Netlify como SoT. Ir para o **ambiente de build** que gera `dist` Hostinger (`.env.production.local` / CI — nunca git). Secrets Edge continuam só no Supabase. Checklist PASS: [VAL cutover](./FAL_MARCHA_HOSTINGER_ONLY_CUTOVER_VAL_2026-11-23.md).
 
 ---
 
-## Build loja (Netlify / Vite) — prefixo `VITE_`
+## Build loja (Vite) — prefixo `VITE_`
 
 | Variável | Teste / homolog | Produção (conta nova) | Obrigatória ops |
 |----------|-----------------|----------------------|-----------------|
@@ -66,7 +68,7 @@ Misturar TEST front com token prod (ou o inverso) gera falha de Brick/Pix ou cob
 
 1. Criar app MP produção → Public Key + Access Token + webhook secret.  
 2. Autorizar app ME produção → token + User-Agent.  
-3. Colar build vars no Netlify da conta nova.  
+3. Colar build vars no ambiente de build Hostinger (`.env.production.local` / CI) — **não** Netlify SoT pós-cutover.  
 4. `supabase secrets set …` no projeto vinculado (sem commitar valores).  
 5. Redeploy Edges: `create-mp-payment`, `mercado-pago-webhook`, `quote-shipping`, `melhorenvio-label`.  
 6. Smoke G3/G4 reais.

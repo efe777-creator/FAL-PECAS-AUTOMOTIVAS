@@ -22,7 +22,7 @@ Regra: **`ids` XOR filtro vivo** no `to` da campanha.
 
 ## Arte
 
-- `HOME_BANNER_IMAGE_IDEAL` = **1376 × 768**; preview admin + frame Home `aspect-[1376/768]`.
+- `HOME_BANNER_IMAGE_IDEAL` = **1376 × 768** (upload **rejeita** fora); mobile opcional **768 × 432**; preview admin `aspect-[1376/768]`; frame Home **`w-full` + `h-[min(vh,…)]`** (full-bleed; arte 16:9 via `object-cover`).
 
 ## Evidência
 
