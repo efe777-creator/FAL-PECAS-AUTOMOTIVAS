@@ -216,17 +216,18 @@ export function AdminVehicleGuidePanel({
       }
 
       if (editingGroupKey) {
-        const { created, reactivated, inactivated, skipped } =
+        const { created, reactivated, inactivated, skipped, renamed } =
           await adminReconcileVersionYearRange({
             manufacturerId: current.manufacturerId,
             modelId: current.id,
             years,
             engine: eng,
             versionName: peeled,
+            sourceGroupKey: editingGroupKey,
             existing: versions,
           })
         toast.push(
-          `Período ${ys}–${ye}: ${created} novas, ${reactivated} reativadas, ${inactivated} fora do período inativadas` +
+          `Config ${ys}–${ye}: ${created} novas, ${reactivated} reativadas, ${renamed} motor/versão, ${inactivated} fora do período inativadas` +
             (skipped ? `, ${skipped} ok` : '') +
             '.',
           'success',
@@ -453,25 +454,23 @@ export function AdminVehicleGuidePanel({
             label="Motor"
             value={engine}
             onChange={(e) => setEngine(e.target.value)}
-            disabled={Boolean(editingGroupKey)}
           />
           <Input
             label="Versão"
             value={versionName}
             onChange={(e) => setVersionName(e.target.value)}
             hint="Motor no início é peelado no save"
-            disabled={Boolean(editingGroupKey)}
           />
           <p className="m-0 text-[11px] text-fal-muted sm:col-span-3">
             {yearSelectOptions.length === 0
               ? 'Defina a linha do modelo (Linha desde/até) antes de criar configurações.'
               : editingGroupKey
-                ? 'Altere o período desta configuração (anos fora do intervalo são inativados).'
+                ? 'Altere período, motor e/ou versão (anos fora do intervalo são inativados; ids preservados).'
                 : 'Período dentro da vida do modelo — gera 1 linha por ano (placa/identidade).'}
           </p>
           <div className="flex flex-wrap gap-2 sm:col-span-3">
             <Button type="submit" disabled={busyVv || yearSelectOptions.length === 0}>
-              {editingGroupKey ? 'Salvar período' : 'Criar config'}
+              {editingGroupKey ? 'Salvar config' : 'Criar config'}
             </Button>
             {editingGroupKey ? (
               <Button type="button" variant="light" onClick={clearVersionForm}>
@@ -514,7 +513,7 @@ export function AdminVehicleGuidePanel({
                       className="font-semibold text-fal-auth-link"
                       onClick={() => startEditGroup(g)}
                     >
-                      Editar período
+                      Editar config
                     </button>
                     <button
                       type="button"

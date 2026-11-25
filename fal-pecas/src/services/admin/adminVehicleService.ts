@@ -301,8 +301,9 @@ export async function adminUpsertVersionYearRange(input: {
 }
 
 /**
- * Reconcilia o período de uma família motor+versão:
- * cria anos faltantes, reativa os do intervalo, inativa os fora do intervalo.
+ * Reconcilia período (+ opcionalmente motor/versão) de uma família:
+ * atualiza identidade no lugar (preserva id/PVC), cria anos faltantes,
+ * reativa no intervalo e inativa fora. `sourceGroupKey` = família em edição.
  */
 export async function adminReconcileVersionYearRange(input: {
   manufacturerId: string
@@ -310,52 +311,127 @@ export async function adminReconcileVersionYearRange(input: {
   years: number[]
   engine?: string | null
   versionName?: string | null
+  /** Chave da família que está sendo editada (`versionConfigGroupKey`). */
+  sourceGroupKey?: string
   existing?: VehicleVersion[]
-}): Promise<{ created: number; reactivated: number; inactivated: number; skipped: number }> {
+}): Promise<{
+  created: number
+  reactivated: number
+  inactivated: number
+  skipped: number
+  renamed: number
+}> {
   const eng = input.engine?.trim() || null
   const ver = input.versionName?.trim() || null
-  const groupKey = versionConfigGroupKey({ engine: eng, versionName: ver })
+  const toKey = versionConfigGroupKey({ engine: eng, versionName: ver })
+  const fromKey = input.sourceGroupKey ?? toKey
+  const identityChanged = fromKey !== toKey
   const existing = input.existing ?? (await adminListVersions(input.modelId))
-  const family = existing.filter(
-    (v) => versionConfigGroupKey(v) === groupKey,
-  )
+  const family = existing.filter((v) => versionConfigGroupKey(v) === fromKey)
+  const targetOthers = identityChanged
+    ? existing.filter((v) => versionConfigGroupKey(v) === toKey)
+    : []
   const want = new Set(input.years)
   let created = 0
   let reactivated = 0
   let inactivated = 0
   let skipped = 0
+  let renamed = 0
 
   for (const year of input.years) {
-    const row = family.find((v) => v.year === year)
-    if (!row) {
-      await adminUpsertVersion({
-        manufacturerId: input.manufacturerId,
-        modelId: input.modelId,
-        year,
-        engine: eng,
-        versionName: ver,
-        status: 'active',
-      })
-      created += 1
+    const sourceRow = family.find((v) => v.year === year)
+    const conflict = identityChanged
+      ? targetOthers.find((v) => v.year === year)
+      : undefined
+
+    if (sourceRow && conflict && conflict.id !== sourceRow.id) {
+      if (conflict.status === 'inactive') {
+        await adminUpsertVersion({
+          id: conflict.id,
+          manufacturerId: input.manufacturerId,
+          modelId: input.modelId,
+          year,
+          engine: eng,
+          versionName: ver,
+          status: 'active',
+        })
+        reactivated += 1
+      } else {
+        skipped += 1
+      }
+      if (sourceRow.status === 'active') {
+        await adminSetVersionStatus(sourceRow.id, 'inactive')
+        inactivated += 1
+      }
       continue
     }
-    if (row.status === 'inactive') {
-      await adminSetVersionStatus(row.id, 'active')
-      reactivated += 1
-    } else {
-      skipped += 1
+
+    if (sourceRow) {
+      const needsRename =
+        identityChanged ||
+        (sourceRow.engine ?? null) !== eng ||
+        (sourceRow.versionName ?? null) !== ver
+      if (needsRename || sourceRow.status === 'inactive') {
+        await adminUpsertVersion({
+          id: sourceRow.id,
+          manufacturerId: input.manufacturerId,
+          modelId: input.modelId,
+          year,
+          engine: eng,
+          versionName: ver,
+          status: 'active',
+        })
+        if (needsRename) renamed += 1
+        else reactivated += 1
+      } else {
+        skipped += 1
+      }
+      continue
     }
+
+    if (conflict) {
+      if (conflict.status === 'inactive') {
+        await adminSetVersionStatus(conflict.id, 'active')
+        reactivated += 1
+      } else {
+        skipped += 1
+      }
+      continue
+    }
+
+    await adminUpsertVersion({
+      manufacturerId: input.manufacturerId,
+      modelId: input.modelId,
+      year,
+      engine: eng,
+      versionName: ver,
+      status: 'active',
+    })
+    created += 1
   }
 
   for (const row of family) {
     if (row.year == null || want.has(row.year)) continue
-    if (row.status === 'active') {
-      await adminSetVersionStatus(row.id, 'inactive')
-      inactivated += 1
+    const needsRename =
+      identityChanged ||
+      (row.engine ?? null) !== eng ||
+      (row.versionName ?? null) !== ver
+    if (needsRename || row.status === 'active') {
+      await adminUpsertVersion({
+        id: row.id,
+        manufacturerId: input.manufacturerId,
+        modelId: input.modelId,
+        year: row.year,
+        engine: eng,
+        versionName: ver,
+        status: 'inactive',
+      })
+      if (row.status === 'active') inactivated += 1
+      else if (needsRename) renamed += 1
     }
   }
 
-  return { created, reactivated, inactivated, skipped }
+  return { created, reactivated, inactivated, skipped, renamed }
 }
 
 export async function adminSetModelStatus(id: string, status: VehicleModel['status']) {
