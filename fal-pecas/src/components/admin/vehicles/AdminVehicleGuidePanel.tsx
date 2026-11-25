@@ -9,6 +9,7 @@ import {
   assertVersionYearsWithinModelLife,
   formatVersionPeriodLabel,
   groupVersionsByConfig,
+  type VersionConfigGroup,
 } from '@/lib/vehicles/expandVersionYearRange'
 import { peelEngineFromVersionName } from '@/lib/vehicles/peelEngineFromVersionName'
 import {
@@ -139,7 +140,10 @@ export function AdminVehicleGuidePanel({
       .map((y) => ({ value: String(y), label: String(y) }))
   }, [modelLifeYears, yearStart, yearEnd])
 
-  const configGroups = useMemo(() => groupVersionsByConfig(versions), [versions])
+  const configGroups = useMemo(
+    () => groupVersionsByConfig<VehicleVersion>(versions),
+    [versions],
+  )
 
   if (!model) {
     return (
@@ -178,7 +182,7 @@ export function AdminVehicleGuidePanel({
     }
   }
 
-  function startEditGroup(group: ReturnType<typeof groupVersionsByConfig>[number]) {
+  function startEditGroup(group: VersionConfigGroup<VehicleVersion>) {
     setEditingGroupKey(group.key)
     setYearStart(group.yearStart != null ? String(group.yearStart) : '')
     setYearEnd(group.yearEnd != null ? String(group.yearEnd) : '')
@@ -253,7 +257,7 @@ export function AdminVehicleGuidePanel({
     }
   }
 
-  async function toggleGroupStatus(group: ReturnType<typeof groupVersionsByConfig>[number]) {
+  async function toggleGroupStatus(group: VersionConfigGroup<VehicleVersion>) {
     const anyActive = group.rows.some((r) => r.status === 'active')
     const next: VehicleVersion['status'] = anyActive ? 'inactive' : 'active'
     try {
