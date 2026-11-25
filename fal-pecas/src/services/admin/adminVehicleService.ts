@@ -1,4 +1,8 @@
 import { formatModelDisplayName, normalizeEntityMatchKey } from '@/lib/entityNormalize'
+import {
+  versionConfigGroupKey,
+  versionNaturalKey,
+} from '@/lib/vehicles/expandVersionYearRange'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
@@ -250,6 +254,108 @@ export async function adminUpsertVersion(input: {
     : await q.insert(payload).select().single()
   if (error) throw error
   return mapVersion(data as VersionRow)
+}
+
+/**
+ * Cria 1 VV por ano do intervalo. Skip se já existir a mesma identidade
+ * (model + year + engine + version). Não altera schema nem merge de vida do modelo.
+ */
+export async function adminUpsertVersionYearRange(input: {
+  manufacturerId: string
+  modelId: string
+  years: number[]
+  engine?: string | null
+  versionName?: string | null
+  status?: VehicleVersion['status']
+  /** VVs já carregadas do modelo (para skip sem round-trip). */
+  existing?: VehicleVersion[]
+}): Promise<{ created: number; skipped: number; years: number[] }> {
+  const eng = input.engine?.trim() || null
+  const ver = input.versionName?.trim() || null
+  const existing = input.existing ?? (await adminListVersions(input.modelId))
+  const known = new Set(
+    existing.map((v) =>
+      versionNaturalKey({ year: v.year, engine: v.engine, versionName: v.versionName }),
+    ),
+  )
+  let created = 0
+  let skipped = 0
+  for (const year of input.years) {
+    const key = versionNaturalKey({ year, engine: eng, versionName: ver })
+    if (known.has(key)) {
+      skipped += 1
+      continue
+    }
+    await adminUpsertVersion({
+      manufacturerId: input.manufacturerId,
+      modelId: input.modelId,
+      year,
+      engine: eng,
+      versionName: ver,
+      status: input.status ?? 'active',
+    })
+    known.add(key)
+    created += 1
+  }
+  return { created, skipped, years: input.years }
+}
+
+/**
+ * Reconcilia o período de uma família motor+versão:
+ * cria anos faltantes, reativa os do intervalo, inativa os fora do intervalo.
+ */
+export async function adminReconcileVersionYearRange(input: {
+  manufacturerId: string
+  modelId: string
+  years: number[]
+  engine?: string | null
+  versionName?: string | null
+  existing?: VehicleVersion[]
+}): Promise<{ created: number; reactivated: number; inactivated: number; skipped: number }> {
+  const eng = input.engine?.trim() || null
+  const ver = input.versionName?.trim() || null
+  const groupKey = versionConfigGroupKey({ engine: eng, versionName: ver })
+  const existing = input.existing ?? (await adminListVersions(input.modelId))
+  const family = existing.filter(
+    (v) => versionConfigGroupKey(v) === groupKey,
+  )
+  const want = new Set(input.years)
+  let created = 0
+  let reactivated = 0
+  let inactivated = 0
+  let skipped = 0
+
+  for (const year of input.years) {
+    const row = family.find((v) => v.year === year)
+    if (!row) {
+      await adminUpsertVersion({
+        manufacturerId: input.manufacturerId,
+        modelId: input.modelId,
+        year,
+        engine: eng,
+        versionName: ver,
+        status: 'active',
+      })
+      created += 1
+      continue
+    }
+    if (row.status === 'inactive') {
+      await adminSetVersionStatus(row.id, 'active')
+      reactivated += 1
+    } else {
+      skipped += 1
+    }
+  }
+
+  for (const row of family) {
+    if (row.year == null || want.has(row.year)) continue
+    if (row.status === 'active') {
+      await adminSetVersionStatus(row.id, 'inactive')
+      inactivated += 1
+    }
+  }
+
+  return { created, reactivated, inactivated, skipped }
 }
 
 export async function adminSetModelStatus(id: string, status: VehicleModel['status']) {

@@ -209,6 +209,19 @@ export function ProductApplicationsEditor({
     [versions, engineFilter, versionNameFilter],
   )
 
+  /** Sugere período PVC a partir dos anos das configs (VV) batendo motor/versão. */
+  useEffect(() => {
+    if (!engineFilter && !versionNameFilter) return
+    const years = matchingVersions
+      .map((v) => v.year)
+      .filter((y): y is number => y != null && Number.isFinite(y))
+    if (!years.length) return
+    const lo = Math.min(...years)
+    const hi = Math.max(...years)
+    setYearStart(String(lo))
+    setYearEnd(String(hi))
+  }, [matchingVersions, engineFilter, versionNameFilter])
+
   const swapEngineOptions = useMemo(() => pvcEngineOptions(swapVersions), [swapVersions])
   const swapVersionOptions = useMemo(
     () => pvcVersionNameOptions(swapVersions, swapEngine),

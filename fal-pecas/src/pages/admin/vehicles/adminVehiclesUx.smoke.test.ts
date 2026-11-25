@@ -33,7 +33,14 @@ describe('Admin veículos UX smoke (lista + guia)', () => {
 
   it('guia: modelo + VV + peel + approve form (sem prompt)', () => {
     expect(guide).toMatch(/peelEngineFromVersionName/)
-    expect(guide).toMatch(/adminUpsertVersion/)
+    expect(guide).toMatch(/adminUpsertVersionYearRange/)
+    expect(guide).toMatch(/adminReconcileVersionYearRange/)
+    expect(guide).toMatch(/assertVersionYearsWithinModelLife/)
+    expect(guide).toMatch(/groupVersionsByConfig/)
+    expect(guide).toMatch(/Ano início/)
+    expect(guide).toMatch(/Ano fim/)
+    expect(guide).toMatch(/Editar período/)
+    expect(guide).toMatch(/formatVersionPeriodLabel/)
     expect(guide).toMatch(/setModelQualityStatus/)
     expect(guide).toMatch(/Salvar situação/)
     expect(guide).toMatch(/qualityDraft/)
@@ -48,6 +55,12 @@ describe('Admin veículos UX smoke (lista + guia)', () => {
     const provider = read('services/vehicles/vehicleMasterProvider.ts')
     expect(provider).toMatch(/master_api/)
     expect(provider).toMatch(/staff_override/)
+    const expand = read('lib/vehicles/expandVersionYearRange.ts')
+    expect(expand).toMatch(/assertVersionYearsWithinModelLife/)
+    expect(expand).toMatch(/yearsInInclusiveRange/)
+    const svc = read('services/admin/adminVehicleService.ts')
+    expect(svc).toMatch(/export async function adminUpsertVersionYearRange/)
+    expect(svc).toMatch(/export async function adminReconcileVersionYearRange/)
   })
 
   it('hub: ponte guia + quarentena form + zero prompt', () => {

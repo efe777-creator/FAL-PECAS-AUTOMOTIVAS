@@ -1,21 +1,29 @@
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
+import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { entityStatusLabel } from '@/lib/adminLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
+import {
+  assertVersionYearsWithinModelLife,
+  formatVersionPeriodLabel,
+  groupVersionsByConfig,
+} from '@/lib/vehicles/expandVersionYearRange'
 import { peelEngineFromVersionName } from '@/lib/vehicles/peelEngineFromVersionName'
 import {
   adminListVersions,
+  adminReconcileVersionYearRange,
   adminSetModelStatus,
   adminSetVersionStatus,
   adminUpsertModel,
-  adminUpsertVersion,
+  adminUpsertVersionYearRange,
   setModelQualityStatus,
 } from '@/services/admin/adminVehicleService'
+import { yearsFromProductionLife } from '@/services/vehicles/productionLifeYears'
 import { STAFF_QUALITY_EVIDENCE_KIND } from '@/services/vehicles/vehicleMasterProvider'
 import type { VehicleModel, VehicleVersion } from '@/types'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 function qualityBadge(status: VehicleModel['qualityStatus']): { label: string; className: string } {
@@ -57,8 +65,10 @@ export function AdminVehicleGuidePanel({
   const [productionYearEnd, setProductionYearEnd] = useState('')
   const [busyModel, setBusyModel] = useState(false)
 
-  const [editingVersionId, setEditingVersionId] = useState<string | null>(null)
-  const [year, setYear] = useState('')
+  /** Chave motor|versão da família em edição (null = criar nova). */
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null)
+  const [yearStart, setYearStart] = useState('')
+  const [yearEnd, setYearEnd] = useState('')
   const [engine, setEngine] = useState('')
   const [versionName, setVersionName] = useState('')
   const [busyVv, setBusyVv] = useState(false)
@@ -90,8 +100,9 @@ export function AdminVehicleGuidePanel({
       model.productionYearStart != null ? String(model.productionYearStart) : '',
     )
     setProductionYearEnd(model.productionYearEnd != null ? String(model.productionYearEnd) : '')
-    setEditingVersionId(null)
-    setYear('')
+    setEditingGroupKey(null)
+    setYearStart('')
+    setYearEnd('')
     setEngine('')
     setVersionName('')
     setQualityNote(model.reviewNote ?? '')
@@ -102,6 +113,33 @@ export function AdminVehicleGuidePanel({
     )
     void reloadVersions(model.id)
   }, [model, initialApprove, reloadVersions])
+
+  const modelLifeYears = useMemo(() => {
+    if (
+      !model ||
+      model.productionYearStart == null ||
+      !Number.isFinite(Number(model.productionYearStart))
+    ) {
+      return [] as number[]
+    }
+    return yearsFromProductionLife(
+      Number(model.productionYearStart),
+      model.productionYearEnd ?? null,
+    )
+  }, [model])
+
+  const yearSelectOptions = useMemo(() => {
+    const set = new Set(modelLifeYears)
+    for (const raw of [yearStart, yearEnd]) {
+      const n = Number(raw)
+      if (raw.trim() && Number.isFinite(n)) set.add(n)
+    }
+    return [...set]
+      .sort((a, b) => a - b)
+      .map((y) => ({ value: String(y), label: String(y) }))
+  }, [modelLifeYears, yearStart, yearEnd])
+
+  const configGroups = useMemo(() => groupVersionsByConfig(versions), [versions])
 
   if (!model) {
     return (
@@ -140,11 +178,20 @@ export function AdminVehicleGuidePanel({
     }
   }
 
-  function startEditVersion(v: VehicleVersion) {
-    setEditingVersionId(v.id)
-    setYear(v.year != null ? String(v.year) : '')
-    setEngine(v.engine ?? '')
-    setVersionName(v.versionName ?? '')
+  function startEditGroup(group: ReturnType<typeof groupVersionsByConfig>[number]) {
+    setEditingGroupKey(group.key)
+    setYearStart(group.yearStart != null ? String(group.yearStart) : '')
+    setYearEnd(group.yearEnd != null ? String(group.yearEnd) : '')
+    setEngine(group.engine ?? '')
+    setVersionName(group.versionName ?? '')
+  }
+
+  function clearVersionForm() {
+    setEditingGroupKey(null)
+    setYearStart('')
+    setYearEnd('')
+    setEngine('')
+    setVersionName('')
   }
 
   async function saveVersion(e: FormEvent) {
@@ -153,30 +200,73 @@ export function AdminVehicleGuidePanel({
     try {
       const eng = engine.trim() || null
       const peeled = peelEngineFromVersionName(eng, versionName.trim() || null)
-      const saved = await adminUpsertVersion({
-        id: editingVersionId ?? undefined,
-        manufacturerId: current.manufacturerId,
-        modelId: current.id,
-        year: year.trim() ? Number(year) : null,
-        engine: eng,
-        versionName: peeled,
-        status: versions.find((v) => v.id === editingVersionId)?.status ?? 'active',
+      const { years, yearStart: ys, yearEnd: ye } = assertVersionYearsWithinModelLife({
+        yearStart: Number(yearStart),
+        yearEnd: Number(yearEnd),
+        productionYearStart: current.productionYearStart,
+        productionYearEnd: current.productionYearEnd,
       })
+
       if (peeled !== (versionName.trim() || null) && eng && versionName.trim()) {
         toast.push('Versão ajustada: motor removido do nome (higiene).', 'success')
-      } else {
-        toast.push(editingVersionId ? 'Configuração atualizada.' : 'Configuração criada.', 'success')
       }
-      setEditingVersionId(null)
-      setYear('')
-      setEngine('')
-      setVersionName('')
+
+      if (editingGroupKey) {
+        const { created, reactivated, inactivated, skipped } =
+          await adminReconcileVersionYearRange({
+            manufacturerId: current.manufacturerId,
+            modelId: current.id,
+            years,
+            engine: eng,
+            versionName: peeled,
+            existing: versions,
+          })
+        toast.push(
+          `Período ${ys}–${ye}: ${created} novas, ${reactivated} reativadas, ${inactivated} fora do período inativadas` +
+            (skipped ? `, ${skipped} ok` : '') +
+            '.',
+          'success',
+        )
+      } else {
+        const { created, skipped } = await adminUpsertVersionYearRange({
+          manufacturerId: current.manufacturerId,
+          modelId: current.id,
+          years,
+          engine: eng,
+          versionName: peeled,
+          existing: versions,
+        })
+        if (created === 0 && skipped > 0) {
+          toast.push(`Nenhuma nova: ${skipped} já existiam (${ys}–${ye}).`, 'info')
+        } else if (skipped > 0) {
+          toast.push(`${created} novas, ${skipped} já existiam (${ys}–${ye}).`, 'success')
+        } else {
+          toast.push(`Criadas ${created} configuração(ões) (${ys}–${ye}).`, 'success')
+        }
+      }
+      clearVersionForm()
       await reloadVersions(current.id)
-      void saved
     } catch (err) {
       toast.push(toUserMessage(err, 'Falha ao salvar configuração'), 'error')
     } finally {
       setBusyVv(false)
+    }
+  }
+
+  async function toggleGroupStatus(group: ReturnType<typeof groupVersionsByConfig>[number]) {
+    const anyActive = group.rows.some((r) => r.status === 'active')
+    const next: VehicleVersion['status'] = anyActive ? 'inactive' : 'active'
+    try {
+      for (const row of group.rows) {
+        if (row.status !== next) await adminSetVersionStatus(row.id, next)
+      }
+      await reloadVersions(current.id)
+      toast.push(
+        next === 'inactive' ? 'Configuração inativada no período.' : 'Configuração ativada no período.',
+        'success',
+      )
+    } catch (err) {
+      toast.push(toUserMessage(err, 'Falha ao atualizar status'), 'error')
     }
   }
 
@@ -328,101 +418,111 @@ export function AdminVehicleGuidePanel({
 
       <div>
         <p className="mb-2 mt-0 text-sm font-bold text-fal-fg">
-          Configurações (VV){loadingVv ? '…' : ` · ${versions.length}`}
+          Configurações (VV)
+          {loadingVv
+            ? '…'
+            : ` · ${configGroups.length} config${configGroups.length === 1 ? '' : 's'}`}
         </p>
         <form
           onSubmit={(e) => void saveVersion(e)}
           className="mb-3 grid gap-2 rounded-[12px] border border-fal-line bg-fal-bg/40 p-3 sm:grid-cols-3"
         >
-          <Input
-            label="Ano"
-            inputMode="numeric"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
+          <Select
+            label="Ano início"
+            name="vv-year-start"
+            placeholder="Selecione"
+            options={yearSelectOptions}
+            value={yearStart}
+            disabled={yearSelectOptions.length === 0}
+            onChange={(e) => setYearStart(e.target.value)}
           />
-          <Input label="Motor" value={engine} onChange={(e) => setEngine(e.target.value)} />
+          <Select
+            label="Ano fim"
+            name="vv-year-end"
+            placeholder="Selecione"
+            options={yearSelectOptions}
+            value={yearEnd}
+            disabled={yearSelectOptions.length === 0}
+            onChange={(e) => setYearEnd(e.target.value)}
+          />
+          <Input
+            label="Motor"
+            value={engine}
+            onChange={(e) => setEngine(e.target.value)}
+            disabled={Boolean(editingGroupKey)}
+          />
           <Input
             label="Versão"
             value={versionName}
             onChange={(e) => setVersionName(e.target.value)}
             hint="Motor no início é peelado no save"
+            disabled={Boolean(editingGroupKey)}
           />
+          <p className="m-0 text-[11px] text-fal-muted sm:col-span-3">
+            {yearSelectOptions.length === 0
+              ? 'Defina a linha do modelo (Linha desde/até) antes de criar configurações.'
+              : editingGroupKey
+                ? 'Altere o período desta configuração (anos fora do intervalo são inativados).'
+                : 'Período dentro da vida do modelo — gera 1 linha por ano (placa/identidade).'}
+          </p>
           <div className="flex flex-wrap gap-2 sm:col-span-3">
-            <Button type="submit" disabled={busyVv}>
-              {editingVersionId ? 'Salvar config' : 'Criar config'}
+            <Button type="submit" disabled={busyVv || yearSelectOptions.length === 0}>
+              {editingGroupKey ? 'Salvar período' : 'Criar config'}
             </Button>
-            {editingVersionId ? (
-              <Button
-                type="button"
-                variant="light"
-                onClick={() => {
-                  setEditingVersionId(null)
-                  setYear('')
-                  setEngine('')
-                  setVersionName('')
-                }}
-              >
+            {editingGroupKey ? (
+              <Button type="button" variant="light" onClick={clearVersionForm}>
                 Cancelar
               </Button>
             ) : null}
           </div>
         </form>
 
-        {versions.length === 0 && !loadingVv ? (
+        {configGroups.length === 0 && !loadingVv ? (
           <EmptyState
             title="Nenhuma configuração"
-            description="Crie ano/motor/versão nesta guia (casca verified sem VV)."
+            description="Informe Ano início/fim + motor/versão nesta guia."
           />
         ) : (
           <div className="fal-admin-scroll max-h-[min(40dvh,360px)] space-y-2 overflow-y-auto">
-            {versions.map((v) => (
-              <article
-                key={v.id}
-                className={[
-                  'cursor-pointer rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm',
-                  editingVersionId === v.id ? 'border-fal-yellow bg-fal-yellow/20' : '',
-                ].join(' ')}
-                onDoubleClick={() => startEditVersion(v)}
-              >
-                <p className="m-0 font-semibold text-fal-fg">
-                  {v.year ?? '—'} · {v.engine ?? '—'} · {v.versionName ?? '—'}
-                </p>
-                <p className="mb-0 mt-1 flex flex-wrap gap-2 text-xs text-fal-muted">
-                  <span>{entityStatusLabel(v.status)}</span>
-                  <button
-                    type="button"
-                    className="font-semibold text-fal-auth-link"
-                    onClick={() => startEditVersion(v)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="font-semibold text-fal-muted"
-                    onClick={() =>
-                      void adminSetVersionStatus(
-                        v.id,
-                        v.status === 'active' ? 'inactive' : 'active',
-                      )
-                        .then(async () => {
-                          await reloadVersions(model.id)
-                          toast.push(
-                            v.status === 'active'
-                              ? 'Configuração inativada.'
-                              : 'Configuração ativada.',
-                            'success',
-                          )
-                        })
-                        .catch((err) =>
-                          toast.push(toUserMessage(err, 'Falha ao atualizar status'), 'error'),
-                        )
-                    }
-                  >
-                    {v.status === 'active' ? 'Inativar' : 'Ativar'}
-                  </button>
-                </p>
-              </article>
-            ))}
+            {configGroups.map((g) => {
+              const period = formatVersionPeriodLabel(g.yearStart, g.yearEnd)
+              const allInactive = g.activeCount === 0
+              return (
+                <article
+                  key={g.key}
+                  className={[
+                    'cursor-pointer rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm',
+                    editingGroupKey === g.key ? 'border-fal-yellow bg-fal-yellow/20' : '',
+                    allInactive ? 'opacity-70' : '',
+                  ].join(' ')}
+                  onDoubleClick={() => startEditGroup(g)}
+                >
+                  <p className="m-0 font-semibold text-fal-fg">
+                    {period} · {g.engine ?? '—'} · {g.versionName ?? '—'}
+                  </p>
+                  <p className="mb-0 mt-1 flex flex-wrap gap-2 text-xs text-fal-muted">
+                    <span>
+                      {g.years.length} ano{g.years.length === 1 ? '' : 's'}
+                      {allInactive ? ' · inativa' : ` · ${g.activeCount} ativo(s)`}
+                    </span>
+                    <button
+                      type="button"
+                      className="font-semibold text-fal-auth-link"
+                      onClick={() => startEditGroup(g)}
+                    >
+                      Editar período
+                    </button>
+                    <button
+                      type="button"
+                      className="font-semibold text-fal-muted"
+                      onClick={() => void toggleGroupStatus(g)}
+                    >
+                      {allInactive ? 'Ativar' : 'Inativar'}
+                    </button>
+                  </p>
+                </article>
+              )
+            })}
           </div>
         )}
       </div>
