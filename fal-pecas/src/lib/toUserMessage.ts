@@ -26,6 +26,9 @@ export function toUserMessage(err: unknown, fallback = 'Algo deu errado. Tente n
   if (err instanceof Error) {
     const msg = err.message?.trim()
     if (!msg || msg === '[object Object]') return fallback
+    if (/vehicle_versions_natural_uidx|duplicate key value/i.test(msg)) {
+      return 'Já existe configuração com o mesmo ano, motor e versão neste modelo. Ajuste o período ou reative a existente.'
+    }
     for (const [en, pt] of Object.entries(SUPABASE_PT)) {
       if (msg.includes(en)) return pt
     }

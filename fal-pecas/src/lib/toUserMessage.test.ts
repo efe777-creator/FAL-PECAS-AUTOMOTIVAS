@@ -18,4 +18,14 @@ describe('toUserMessage', () => {
       'Este e-mail já está cadastrado. Faça login ou recupere a senha.',
     )
   })
+
+  it('explica conflito de chave natural de VV', () => {
+    expect(
+      toUserMessage(
+        new Error(
+          'duplicate key value violates unique constraint "vehicle_versions_natural_uidx"',
+        ),
+      ),
+    ).toMatch(/mesmo ano, motor e versão/i)
+  })
 })

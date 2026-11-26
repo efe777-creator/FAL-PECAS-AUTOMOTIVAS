@@ -66,6 +66,20 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).not.toMatch(/\.insert\(/)
   })
 
+  it('edge/placa não enviam p_fuel; client admin/import pode enviar', () => {
+    const edge = read('supabase/functions/_shared/vehicleCanonicalUpsert.ts')
+    expect(edge).not.toMatch(/p_fuel/)
+    const client = read('src/services/vehicles/vehicleCanonicalUpsert.ts')
+    expect(client).toMatch(/p_fuel/)
+    const filter = read('src/types/index.ts')
+    expect(filter).toMatch(/export interface VehicleFilter/)
+    // VehicleFilter não lista fuel (só sourceSnapshot R3).
+    const vfBlock = filter.slice(filter.indexOf('export interface VehicleFilter'))
+    const vfEnd = vfBlock.indexOf('export type ProductSearchSort')
+    const vf = vfEnd > 0 ? vfBlock.slice(0, vfEnd) : vfBlock.slice(0, 800)
+    expect(vf).not.toMatch(/^\s*fuel\??:/m)
+  })
+
   it('árvore pública só lê modelos verified; admin permanece sem filtro', () => {
     const pub = read('src/services/vehicles/vehicleService.ts')
     expect(pub).toMatch(/\.eq\('quality_status', 'verified'\)/)

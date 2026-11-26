@@ -3,6 +3,7 @@ import {
   versionConfigGroupKey,
   versionNaturalKey,
 } from '@/lib/vehicles/expandVersionYearRange'
+import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
@@ -34,8 +35,12 @@ type VersionRow = {
   year: number | null
   engine: string | null
   version_name: string | null
+  fuel?: string | null
   status: string
 }
+
+const VERSION_SELECT =
+  'id, manufacturer_id, model_id, year, engine, version_name, fuel, status'
 
 function mapModel(row: ModelRow): VehicleModel {
   return {
@@ -63,6 +68,7 @@ function mapVersion(row: VersionRow): VehicleVersion {
     year: row.year,
     engine: row.engine,
     versionName: row.version_name,
+    fuel: row.fuel ?? null,
     status: row.status as VehicleVersion['status'],
   }
 }
@@ -109,15 +115,14 @@ export async function adminUpsertModel(input: {
   // Update com nome “sujo” (outcome=review) pode rebaixar para review.
   const keepReview = normalized.outcome === 'review'
 
-  if (!input.id) {
-    const siblings = await adminListModels(input.manufacturerId)
-    const dup = siblings.find(
-      (m) =>
-        m.status === 'active' &&
-        normalizeEntityMatchKey(m.name) === normalizeEntityMatchKey(name),
-    )
-    if (dup) throw new Error(`Já existe modelo "${dup.name}" nesta montadora.`)
-  }
+  const siblings = await adminListModels(input.manufacturerId)
+  const dup = siblings.find(
+    (m) =>
+      m.id !== input.id &&
+      m.status === 'active' &&
+      normalizeEntityMatchKey(m.name) === normalizeEntityMatchKey(name),
+  )
+  if (dup) throw new Error(`Já existe modelo "${dup.name}" nesta montadora.`)
 
   const start = input.productionYearStart ?? null
   const end = input.productionYearEnd ?? null
@@ -163,7 +168,19 @@ export async function adminUpsertModel(input: {
         .select(MODEL_SELECT)
         .single()
   if (error) throw error
-  return mapModel(data as ModelRow)
+  const saved = mapModel(data as ModelRow)
+
+  // VV guarda manufacturer_id denormalizado — alinhar ao trocar montadora do modelo.
+  if (input.id) {
+    const { error: vvErr } = await getSupabase()
+      .from('vehicle_versions')
+      .update({ manufacturer_id: input.manufacturerId })
+      .eq('model_id', input.id)
+      .neq('manufacturer_id', input.manufacturerId)
+    if (vvErr) throw vvErr
+  }
+
+  return saved
 }
 
 export type SetModelQualityInput = {
@@ -223,7 +240,7 @@ export async function mergeModelProductionYears(
 export async function adminListVersions(modelId?: string): Promise<VehicleVersion[]> {
   let q = getSupabase()
     .from('vehicle_versions')
-    .select('id, manufacturer_id, model_id, year, engine, version_name, status')
+    .select(VERSION_SELECT)
     .order('year', { ascending: false, nullsFirst: false })
   if (modelId) q = q.eq('model_id', modelId)
   const { data, error } = await q
@@ -231,6 +248,55 @@ export async function adminListVersions(modelId?: string): Promise<VehicleVersio
   return (data as VersionRow[]).map(mapVersion)
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const o = err as { code?: string; message?: string }
+  if (o.code === '23505') return true
+  return /vehicle_versions_natural_uidx|duplicate key/i.test(String(o.message ?? ''))
+}
+
+/** Localiza VV pela chave natural (exato; se fuel setado, claim em fuel vazio). */
+export async function adminFindVersionByNaturalKey(input: {
+  manufacturerId: string
+  modelId: string
+  year?: number | null
+  engine?: string | null
+  versionName?: string | null
+  fuel?: string | null
+  /** Se true (default), com fuel informado tenta linha sem fuel (placa). */
+  claimEmptyFuel?: boolean
+}): Promise<VehicleVersion | null> {
+  const year = input.year ?? null
+  const eng = input.engine?.trim() || null
+  const ver = input.versionName?.trim() || null
+  const fuel = normalizeVehicleFuel(input.fuel)
+  const fuelKey = (fuel ?? '').toLowerCase()
+  const base = () =>
+    getSupabase()
+      .from('vehicle_versions')
+      .select(VERSION_SELECT)
+      .eq('manufacturer_id', input.manufacturerId)
+      .eq('model_id', input.modelId)
+      .eq('year_key', year == null ? -1 : year)
+      .eq('engine_key', (eng ?? '').toLowerCase())
+      .eq('version_key', (ver ?? '').toLowerCase())
+
+  const exact = await base().eq('fuel_key', fuelKey).limit(1).maybeSingle()
+  if (exact.error) throw exact.error
+  if (exact.data) return mapVersion(exact.data as VersionRow)
+
+  if (fuel && input.claimEmptyFuel !== false) {
+    const empty = await base().eq('fuel_key', '').limit(1).maybeSingle()
+    if (empty.error) throw empty.error
+    if (empty.data) return mapVersion(empty.data as VersionRow)
+  }
+  return null
+}
+
+/**
+ * Upsert idempotente por id ou chave natural — reativa em vez de duplicar
+ * (`vehicle_versions_natural_uidx`).
+ */
 export async function adminUpsertVersion(input: {
   id?: string
   manufacturerId: string
@@ -238,27 +304,80 @@ export async function adminUpsertVersion(input: {
   year?: number | null
   engine?: string | null
   versionName?: string | null
+  fuel?: string | null
   status?: VehicleVersion['status']
 }): Promise<VehicleVersion> {
+  const fuel = normalizeVehicleFuel(input.fuel)
   const payload = {
     manufacturer_id: input.manufacturerId,
     model_id: input.modelId,
     year: input.year ?? null,
     engine: input.engine?.trim() || null,
     version_name: input.versionName?.trim() || null,
+    fuel,
     status: input.status ?? 'active',
   }
-  const q = getSupabase().from('vehicle_versions')
-  const { data, error } = input.id
-    ? await q.update(payload).eq('id', input.id).select().single()
-    : await q.insert(payload).select().single()
-  if (error) throw error
-  return mapVersion(data as VersionRow)
+  const sb = getSupabase().from('vehicle_versions')
+
+  async function updateById(id: string): Promise<VehicleVersion> {
+    const { data, error } = await sb.update(payload).eq('id', id).select(VERSION_SELECT).single()
+    if (!error) return mapVersion(data as VersionRow)
+    if (!isUniqueViolation(error)) throw error
+    const winner = await adminFindVersionByNaturalKey({
+      manufacturerId: payload.manufacturer_id,
+      modelId: payload.model_id,
+      year: payload.year,
+      engine: payload.engine,
+      versionName: payload.version_name,
+      fuel: payload.fuel,
+      claimEmptyFuel: false,
+    })
+    if (!winner || winner.id === id) throw error
+    const { data: revived, error: revErr } = await sb
+      .update({
+        status: payload.status,
+        manufacturer_id: payload.manufacturer_id,
+        fuel: payload.fuel,
+      })
+      .eq('id', winner.id)
+      .select(VERSION_SELECT)
+      .single()
+    if (revErr) throw revErr
+    if (id !== winner.id) {
+      await sb.update({ status: 'inactive' }).eq('id', id)
+    }
+    return mapVersion(revived as VersionRow)
+  }
+
+  if (input.id) return updateById(input.id)
+
+  const found = await adminFindVersionByNaturalKey({
+    manufacturerId: payload.manufacturer_id,
+    modelId: payload.model_id,
+    year: payload.year,
+    engine: payload.engine,
+    versionName: payload.version_name,
+    fuel: payload.fuel,
+  })
+  if (found) return updateById(found.id)
+
+  const { data, error } = await sb.insert(payload).select(VERSION_SELECT).single()
+  if (!error) return mapVersion(data as VersionRow)
+  if (!isUniqueViolation(error)) throw error
+  const raced = await adminFindVersionByNaturalKey({
+    manufacturerId: payload.manufacturer_id,
+    modelId: payload.model_id,
+    year: payload.year,
+    engine: payload.engine,
+    versionName: payload.version_name,
+    fuel: payload.fuel,
+  })
+  if (!raced) throw error
+  return updateById(raced.id)
 }
 
 /**
- * Cria 1 VV por ano do intervalo. Skip se já existir a mesma identidade
- * (model + year + engine + version). Não altera schema nem merge de vida do modelo.
+ * Cria/reativa 1 VV por ano do intervalo. Idempotente na chave natural.
  */
 export async function adminUpsertVersionYearRange(input: {
   manufacturerId: string
@@ -266,42 +385,81 @@ export async function adminUpsertVersionYearRange(input: {
   years: number[]
   engine?: string | null
   versionName?: string | null
+  fuel?: string | null
   status?: VehicleVersion['status']
   /** VVs já carregadas do modelo (para skip sem round-trip). */
   existing?: VehicleVersion[]
 }): Promise<{ created: number; skipped: number; years: number[] }> {
   const eng = input.engine?.trim() || null
   const ver = input.versionName?.trim() || null
+  const fuel = normalizeVehicleFuel(input.fuel)
   const existing = input.existing ?? (await adminListVersions(input.modelId))
-  const known = new Set(
-    existing.map((v) =>
-      versionNaturalKey({ year: v.year, engine: v.engine, versionName: v.versionName }),
-    ),
+  const byKey = new Map(
+    existing.map((v) => [
+      versionNaturalKey({
+        year: v.year,
+        engine: v.engine,
+        versionName: v.versionName,
+        fuel: v.fuel,
+      }),
+      v,
+    ]),
   )
   let created = 0
   let skipped = 0
+  const wantStatus = input.status ?? 'active'
   for (const year of input.years) {
-    const key = versionNaturalKey({ year, engine: eng, versionName: ver })
-    if (known.has(key)) {
-      skipped += 1
+    const key = versionNaturalKey({ year, engine: eng, versionName: ver, fuel })
+    const hit =
+      byKey.get(key) ??
+      (fuel
+        ? existing.find(
+            (v) =>
+              v.year === year &&
+              versionNaturalKey({
+                year: v.year,
+                engine: v.engine,
+                versionName: v.versionName,
+                fuel: null,
+              }) === versionNaturalKey({ year, engine: eng, versionName: ver, fuel: null }),
+          )
+        : undefined)
+    if (hit) {
+      const needsFuel = fuel != null && (hit.fuel ?? null) !== fuel
+      if (hit.status !== wantStatus || needsFuel) {
+        await adminUpsertVersion({
+          id: hit.id,
+          manufacturerId: input.manufacturerId,
+          modelId: input.modelId,
+          year,
+          engine: eng,
+          versionName: ver,
+          fuel,
+          status: wantStatus,
+        })
+        created += 1
+      } else {
+        skipped += 1
+      }
       continue
     }
-    await adminUpsertVersion({
+    const saved = await adminUpsertVersion({
       manufacturerId: input.manufacturerId,
       modelId: input.modelId,
       year,
       engine: eng,
       versionName: ver,
-      status: input.status ?? 'active',
+      fuel,
+      status: wantStatus,
     })
-    known.add(key)
+    byKey.set(key, saved)
     created += 1
   }
   return { created, skipped, years: input.years }
 }
 
 /**
- * Reconcilia período (+ opcionalmente motor/versão) de uma família:
+ * Reconcilia período (+ opcionalmente motor/versão/combustível) de uma família:
  * atualiza identidade no lugar (preserva id/PVC), cria anos faltantes,
  * reativa no intervalo e inativa fora. `sourceGroupKey` = família em edição.
  */
@@ -311,6 +469,7 @@ export async function adminReconcileVersionYearRange(input: {
   years: number[]
   engine?: string | null
   versionName?: string | null
+  fuel?: string | null
   /** Chave da família que está sendo editada (`versionConfigGroupKey`). */
   sourceGroupKey?: string
   existing?: VehicleVersion[]
@@ -323,7 +482,8 @@ export async function adminReconcileVersionYearRange(input: {
 }> {
   const eng = input.engine?.trim() || null
   const ver = input.versionName?.trim() || null
-  const toKey = versionConfigGroupKey({ engine: eng, versionName: ver })
+  const fuel = normalizeVehicleFuel(input.fuel)
+  const toKey = versionConfigGroupKey({ engine: eng, versionName: ver, fuel })
   const fromKey = input.sourceGroupKey ?? toKey
   const identityChanged = fromKey !== toKey
   const existing = input.existing ?? (await adminListVersions(input.modelId))
@@ -353,6 +513,7 @@ export async function adminReconcileVersionYearRange(input: {
           year,
           engine: eng,
           versionName: ver,
+          fuel,
           status: 'active',
         })
         reactivated += 1
@@ -370,7 +531,8 @@ export async function adminReconcileVersionYearRange(input: {
       const needsRename =
         identityChanged ||
         (sourceRow.engine ?? null) !== eng ||
-        (sourceRow.versionName ?? null) !== ver
+        (sourceRow.versionName ?? null) !== ver ||
+        (sourceRow.fuel ?? null) !== fuel
       if (needsRename || sourceRow.status === 'inactive') {
         await adminUpsertVersion({
           id: sourceRow.id,
@@ -379,6 +541,7 @@ export async function adminReconcileVersionYearRange(input: {
           year,
           engine: eng,
           versionName: ver,
+          fuel,
           status: 'active',
         })
         if (needsRename) renamed += 1
@@ -405,6 +568,7 @@ export async function adminReconcileVersionYearRange(input: {
       year,
       engine: eng,
       versionName: ver,
+      fuel,
       status: 'active',
     })
     created += 1
@@ -415,7 +579,8 @@ export async function adminReconcileVersionYearRange(input: {
     const needsRename =
       identityChanged ||
       (row.engine ?? null) !== eng ||
-      (row.versionName ?? null) !== ver
+      (row.versionName ?? null) !== ver ||
+      (row.fuel ?? null) !== fuel
     if (needsRename || row.status === 'active') {
       await adminUpsertVersion({
         id: row.id,
@@ -424,6 +589,7 @@ export async function adminReconcileVersionYearRange(input: {
         year: row.year,
         engine: eng,
         versionName: ver,
+        fuel,
         status: 'inactive',
       })
       if (row.status === 'active') inactivated += 1

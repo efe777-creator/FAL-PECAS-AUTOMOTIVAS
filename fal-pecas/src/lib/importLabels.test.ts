@@ -37,6 +37,7 @@ describe('importLabels (IMP-06)', () => {
     expect(importWizardPath('supplier_cost')).toBe('/admin/fornecedores/importar-custos')
     expect(importWizardPath('price_list')).toBe('/admin/precos')
     expect(importWizardPath('kit_composition')).toBe('/admin/produtos/importar-kits')
+    expect(importWizardPath('vehicle_master')).toBe('/admin/veiculos/importar-mestre')
     expect(importWizardPath('unknown')).toBeNull()
   })
 })

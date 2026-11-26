@@ -291,7 +291,8 @@ export function AdminVehiclesPage() {
           <h1 className="text-2xl font-extrabold text-fal-fg">Veículos</h1>
           <p className="mt-1 text-sm text-fal-muted">
             Lista + guia: modelo e configurações (VV). Cadastro manual nasce{' '}
-            <strong>verified</strong>. Import/sync entra em revisão no hub Integrações.
+            <strong>verified</strong>. Import CSV pode marcar Verificado ou Quarentena; sync sem
+            Status fica em revisão no hub Integrações.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -300,6 +301,12 @@ export function AdminVehiclesPage() {
             to="/admin/veiculos/integracoes"
           >
             Integrações
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/veiculos/importar-mestre"
+          >
+            Importar veículos
           </Link>
           <Link
             className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
@@ -648,6 +655,7 @@ export function AdminVehiclesPage() {
                   makerName={
                     m ? (makerNameById.get(m.manufacturerId) ?? '—') : '—'
                   }
+                  manufacturers={makers}
                   initialApprove={Boolean(approveIds[modelId]) || m?.qualityStatus === 'review'}
                   onClose={() => splitTabs.closeTab(modelId)}
                   onModelUpdated={onGuideModelUpdated}

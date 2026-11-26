@@ -580,6 +580,8 @@ export interface VehicleVersion {
   year: number | null
   engine: string | null
   versionName: string | null
+  /** Combustível da config (Flex/…). Null = não informado. */
+  fuel: string | null
   status: EntityStatus
 }
 

@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase'
+import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
 
 export type VehicleCanonicalSource = 'import' | 'plate' | 'admin'
@@ -9,6 +10,8 @@ export type VehicleCanonicalInput = {
   year?: string | number | null
   engine?: string | null
   version?: string | null
+  /** Admin/import only. Placa não envia (fica null → fuel_key ''). */
+  fuel?: string | null
   source?: VehicleCanonicalSource
 }
 
@@ -21,6 +24,7 @@ export type VehicleCanonicalResult = {
   year: string | null
   engine: string | null
   version: string | null
+  fuel: string | null
 }
 
 function parseYear(year: string | number | null | undefined): number | null {
@@ -61,6 +65,7 @@ export async function vehicleCanonicalUpsert(
   }
   const engine = blankToNull(normalized.engine)
   const version = blankToNull(normalized.version)
+  const fuel = normalizeVehicleFuel(input.fuel)
   const source = input.source ?? 'admin'
 
   const sb = getSupabase()
@@ -71,6 +76,7 @@ export async function vehicleCanonicalUpsert(
     p_engine: engine,
     p_version: version,
     p_source: source,
+    p_fuel: fuel,
   })
 
   if (error) throw error
@@ -87,5 +93,6 @@ export async function vehicleCanonicalUpsert(
     year: row.year == null || row.year === '' ? null : String(row.year),
     engine: row.engine == null || row.engine === '' ? null : String(row.engine),
     version: row.version == null || row.version === '' ? null : String(row.version),
+    fuel: row.fuel == null || row.fuel === '' ? null : String(row.fuel),
   }
 }

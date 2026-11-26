@@ -38,6 +38,9 @@ describe('canAccessAdminPath', () => {
       true,
     )
     expect(canAccessAdminPath('/admin/pagamentos', 'atendimento')).toBe(false)
+    expect(canAccessAdminPath('/admin/veiculos/importar-mestre', 'administrador')).toBe(true)
+    expect(canAccessAdminPath('/admin/veiculos/importar-mestre', 'gerente')).toBe(true)
+    expect(canAccessAdminPath('/admin/veiculos/importar-mestre', 'operador')).toBe(false)
   })
 })
 

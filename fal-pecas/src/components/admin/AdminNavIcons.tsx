@@ -155,6 +155,14 @@ export function adminNavIcon(to: string): ReactNode {
           <path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1" />
         </Svg>
       )
+    case '/admin/veiculos/importar-mestre':
+      return (
+        <Svg>
+          <path d="M12 3v12" />
+          <path d="m8 11 4 4 4-4" />
+          <path d="M5 19h14" />
+        </Svg>
+      )
     case '/admin/modelos-3d':
       return (
         <Svg>

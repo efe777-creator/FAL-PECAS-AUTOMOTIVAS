@@ -119,8 +119,8 @@ export function AdminImportsPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-fg">Importações</h1>
           <p className="mt-1 max-w-2xl text-sm text-fal-muted">
-            Histórico das importações da loja — catálogo, aplicações, conversões, custos e listas de
-            preços.
+            Histórico das importações da loja — catálogo, aplicações, conversões, custos, kits e
+            veículos (mestre).
             {rows.length > 0
               ? ` · ${rows.length} importaç${rows.length === 1 ? 'ão' : 'ões'} carregada${rows.length === 1 ? '' : 's'}.`
               : null}
@@ -156,6 +156,12 @@ export function AdminImportsPage() {
             to="/admin/produtos/importar-kits"
           >
             Importar composição de kits
+          </Link>
+          <Link
+            className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
+            to="/admin/veiculos/importar-mestre"
+          >
+            Importar veículos
           </Link>
         </div>
       </div>

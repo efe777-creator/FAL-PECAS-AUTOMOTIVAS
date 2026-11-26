@@ -17,6 +17,7 @@ function v(
     engine: partial.engine ?? null,
     versionName: partial.versionName ?? null,
     year: partial.year ?? null,
+    fuel: partial.fuel ?? null,
     status: partial.status ?? 'active',
   }
 }

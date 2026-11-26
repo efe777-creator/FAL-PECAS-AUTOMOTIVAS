@@ -55,5 +55,6 @@ export function importWizardPath(kind: string): string | null {
   if (kind === 'supplier_cost') return '/admin/fornecedores/importar-custos'
   if (kind === 'price_list') return '/admin/precos'
   if (kind === 'kit_composition') return '/admin/produtos/importar-kits'
+  if (kind === 'vehicle_master') return '/admin/veiculos/importar-mestre'
   return null
 }

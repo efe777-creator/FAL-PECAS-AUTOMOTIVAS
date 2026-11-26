@@ -7,6 +7,7 @@ import { toUserMessage } from '@/lib/toUserMessage'
 import {
   adminApplyVehicleMasterImport,
   adminPreviewVehicleMasterImport,
+  VEHICLE_MASTER_CSV_TEMPLATE,
   type VehicleMasterApplyResult,
   type VehicleMasterRow,
 } from '@/services/admin/adminVehicleMasterImportService'
@@ -15,6 +16,22 @@ import { Link } from 'react-router-dom'
 
 function canImport(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
+}
+
+function qualityCell(r: VehicleMasterRow): string {
+  if (r.qualityStatus === 'verified') return 'Verificado'
+  if (r.qualityStatus === 'quarantined') return 'Quarentena'
+  return '—'
+}
+
+function downloadTemplate() {
+  const blob = new Blob([VEHICLE_MASTER_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'fal-veiculos-mestre-modelo.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export function AdminVehicleMasterImportPage() {
@@ -74,7 +91,7 @@ export function AdminVehicleMasterImportPage() {
       const result = await adminApplyVehicleMasterImport(preview)
       setReport(result)
       toast.push(
-        `Mestre aplicado: ${result.created} upserts, ${result.skipped} ignorados, ${result.errors} erros.`,
+        `Mestre aplicado: ${result.created} upserts, ${result.qualitySet} qualidade, ${result.skipped} ignorados, ${result.errors} erros.`,
         result.errors ? 'error' : 'success',
       )
     } catch (err) {
@@ -92,11 +109,16 @@ export function AdminVehicleMasterImportPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-fal-fg">Importar veículos (mestre)</h1>
           <p className="mt-1 text-sm text-fal-muted">
-            Colunas: <code>montadora, modelo, ano, motor, versao</code>. Idempotente — não cria
-            aplicações (PVC).
+            Colunas:{' '}
+            <code>Montadora, Modelo, Versão, Motor, Ano início, Ano fim, Status</code>. Status:{' '}
+            <strong>Verificado</strong> ou <strong>Quarentena</strong>. Compatível com CSV legado (
+            <code>ano</code> único). Idempotente — não cria aplicações (PVC).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="light" onClick={downloadTemplate}>
+            Baixar modelo CSV
+          </Button>
           <Link
             className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
             to="/admin/veiculos/integracoes"
@@ -135,16 +157,19 @@ export function AdminVehicleMasterImportPage() {
             </Button>
           </div>
           <div className="max-h-[420px] overflow-auto rounded-[12px] border border-fal-line">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[880px] border-collapse text-left text-sm">
               <thead className="sticky top-0 bg-fal-surface-2">
                 <tr>
                   <th className="px-2 py-2">#</th>
                   <th className="px-2 py-2">Montadora</th>
                   <th className="px-2 py-2">Modelo</th>
-                  <th className="px-2 py-2">Ano</th>
-                  <th className="px-2 py-2">Motor</th>
                   <th className="px-2 py-2">Versão</th>
-                  <th className="px-2 py-2">Status</th>
+                  <th className="px-2 py-2">Motor</th>
+                  <th className="px-2 py-2">Combustível</th>
+                  <th className="px-2 py-2">Ano início</th>
+                  <th className="px-2 py-2">Ano fim</th>
+                  <th className="px-2 py-2">Qualidade</th>
+                  <th className="px-2 py-2">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,9 +178,12 @@ export function AdminVehicleMasterImportPage() {
                     <td className="px-2 py-1.5">{r.lineNumber}</td>
                     <td className="px-2 py-1.5">{r.montadora}</td>
                     <td className="px-2 py-1.5">{r.modelo}</td>
-                    <td className="px-2 py-1.5">{r.ano || '—'}</td>
-                    <td className="px-2 py-1.5">{r.motor || '—'}</td>
                     <td className="px-2 py-1.5">{r.versao || '—'}</td>
+                    <td className="px-2 py-1.5">{r.motor || '—'}</td>
+                    <td className="px-2 py-1.5">{r.combustivel || '—'}</td>
+                    <td className="px-2 py-1.5">{r.anoInicio || '—'}</td>
+                    <td className="px-2 py-1.5">{r.anoFim || '—'}</td>
+                    <td className="px-2 py-1.5">{qualityCell(r)}</td>
                     <td className="px-2 py-1.5">{r.message ?? r.action}</td>
                   </tr>
                 ))}
@@ -169,7 +197,8 @@ export function AdminVehicleMasterImportPage() {
         <div className="mt-4 rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm">
           <p className="m-0 font-semibold text-fal-fg">Resultado</p>
           <ul className="mt-2 list-disc pl-5 text-fal-muted">
-            <li>Upserts: {report.created}</li>
+            <li>Upserts (VV/ano): {report.created}</li>
+            <li>Qualidade aplicada: {report.qualitySet}</li>
             <li>Duplicatas no arquivo: {report.reused}</li>
             <li>Ignorados: {report.skipped}</li>
             <li>Erros: {report.errors}</li>
