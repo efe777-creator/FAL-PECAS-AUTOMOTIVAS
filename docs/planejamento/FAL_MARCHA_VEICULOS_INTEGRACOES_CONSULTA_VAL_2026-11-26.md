@@ -17,8 +17,8 @@
 
 | Peça | Tip |
 |------|-----|
-| Branch | `dev` (FF → `main` nesta marcha) |
-| Escopo paths | hub · consult page · preview · diff/consult services · Edge FIPE · smokes |
+| `origin/dev` / `origin/main` | `0388763` (FF merge) |
+| Escopo paths | hub · consult page · preview · diff/consult services · Edge FIPE · smokes · VAL |
 
 ## Smoke / testes (pré-deploy)
 
@@ -26,23 +26,24 @@
 |-------|--------|
 | Vitest hub/consult/diff/fuel/nav/assertiveness/layout | **PASS** · 69 |
 | `pnpm run build` (`tsc -b` + vite) | **PASS** |
-| Chunks consult/hub no dist | **PASS** · `AdminVehicleMasterConsultPage-*` · `AdminVehicleIntegrationsHubPage-*` |
+| Chunks consult/hub no dist | **PASS** · `AdminVehicleMasterConsultPage-DswshLng` · `AdminVehicleIntegrationsHubPage-CkYeYGYd` |
 
 ## Deploy
 
 | Peça | Fato |
 |------|------|
 | Host | `falpecasautomotivas.com` · `hosting_deploy-static-website` |
+| Archive | `dist_20261126_212047.zip` (removed pós-upload) |
 | Edge FIPE | Deployed ACTIVE + `FIPE_API_TOKEN` set |
-| Tip live | (preencher pós-upload) |
+| Tip live | `index-CXCg7fhR.js` · HTTP 200 |
 
 ## Smoke prod (pós-deploy)
 
 | Check | Status |
 |-------|--------|
-| Home 200 | (pós) |
-| Tip JS = dist | (pós) |
-| Admin → Integrações → Consultar e escolher | (pós) |
+| Home 200 | **PASS** |
+| Tip JS = dist | **PASS** · `index-CXCg7fhR.js` |
+| Chunks consult/hub 200 + `consultar-mestre` no index | **PASS** |
 
 ## STOP
 
