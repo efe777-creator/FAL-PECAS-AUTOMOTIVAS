@@ -33,10 +33,11 @@ describe('VehicleMasterSource + intelligence (cadastro rico)', () => {
     }
   })
 
-  it('pórtico resolve fipeX; API paga permanece stub', async () => {
+  it('pórtico resolve fipeX e fipe_api; legado paid_api aponta consulta', async () => {
     expect(resolveVehicleMasterSource('fipex_csv').kind).toBe('fipex_csv')
+    expect(resolveVehicleMasterSource('fipe_api').kind).toBe('fipe_api')
     const stub = await paidApiVehicleMasterSourceStub.fetchNormalizedRows({})
     expect(stub.rows).toEqual([])
-    expect(stub.fileErrors[0]).toMatch(/não contratada/i)
+    expect(stub.fileErrors[0]).toMatch(/Consultar e escolher|fipe_api/i)
   })
 })

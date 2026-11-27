@@ -35,14 +35,18 @@ describe('adminNavConfig', () => {
     expect(order).toContain('/admin/home/promocoes')
   })
 
-  it('Veículos tem Integrações e Importar após CRUD e antes de Modelos 3D', () => {
+  it('Veículos tem Integrações, Consultar e Importar após CRUD e antes de Modelos 3D', () => {
     const order = adminNavLinkOrder()
     expect(order).toContain('/admin/veiculos/integracoes')
+    expect(order).toContain('/admin/veiculos/consultar-mestre')
     expect(order).toContain('/admin/veiculos/importar-mestre')
     expect(order.indexOf('/admin/veiculos')).toBeLessThan(
       order.indexOf('/admin/veiculos/integracoes'),
     )
     expect(order.indexOf('/admin/veiculos/integracoes')).toBeLessThan(
+      order.indexOf('/admin/veiculos/consultar-mestre'),
+    )
+    expect(order.indexOf('/admin/veiculos/consultar-mestre')).toBeLessThan(
       order.indexOf('/admin/veiculos/importar-mestre'),
     )
     expect(order.indexOf('/admin/veiculos/importar-mestre')).toBeLessThan(

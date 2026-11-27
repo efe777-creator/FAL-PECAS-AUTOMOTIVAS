@@ -25,4 +25,28 @@ describe('prepareVehicleMasterIntelligence', () => {
     ])
     expect(report.fileErrors.length).toBeGreaterThan(0)
   })
+
+  it('normaliza combustível e inclui na chave VV', () => {
+    const report = prepareVehicleMasterIntelligence([
+      {
+        montadora: 'VW',
+        modelo: 'Gol',
+        ano: '2018',
+        motor: '1.0',
+        versao: '',
+        combustivel: 'flex',
+      },
+      {
+        montadora: 'VW',
+        modelo: 'Gol',
+        ano: '2018',
+        motor: '1.0',
+        versao: '',
+        combustivel: 'Flex',
+      },
+    ])
+    const ok = report.prepared.filter((p) => p.action === 'upsert')
+    expect(ok).toHaveLength(1)
+    expect(ok[0]!.fuel).toBe('Flex')
+  })
 })

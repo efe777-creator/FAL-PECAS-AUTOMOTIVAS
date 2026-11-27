@@ -33,6 +33,7 @@ const PATH_ROLES: Record<string, UserRole[]> = {
   '/admin/montadoras': CATALOG_OPS,
   '/admin/veiculos': CATALOG_OPS,
   '/admin/veiculos/integracoes': CATALOG_OPS,
+  '/admin/veiculos/consultar-mestre': MGMT,
   '/admin/veiculos/importar-mestre': MGMT,
   '/admin/modelos-3d': CATALOG_OPS,
   '/admin/imagens-stock': CATALOG_OPS,

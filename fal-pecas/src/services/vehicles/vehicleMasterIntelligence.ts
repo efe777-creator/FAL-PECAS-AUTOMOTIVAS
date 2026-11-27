@@ -7,6 +7,7 @@ import {
   formatManufacturerDisplayName,
   formatModelDisplayName,
 } from '@/lib/entityNormalize'
+import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import {
   assertModelClean,
   normalizeVersionLabel,
@@ -22,6 +23,8 @@ export type MasterIntelligenceRow = {
   ano: string
   motor: string
   versao: string
+  /** Opcional — sync/import com combustível. */
+  combustivel?: string
 }
 
 export type MasterIntelligencePrepared = {
@@ -30,6 +33,7 @@ export type MasterIntelligencePrepared = {
   year: number
   engine: string | null
   version: string | null
+  fuel: string | null
   productionYearStart: number
   productionYearEnd: number
   key: string
@@ -100,6 +104,7 @@ export function prepareVehicleMasterIntelligence(
     let modelName = raw.modelo.trim()
     let engine = (raw.motor ?? '').trim() || null
     let version = (raw.versao ?? '').trim() || null
+    const fuel = normalizeVehicleFuel(raw.combustivel)
 
     // Se motor/versão vazios, tenta extrair do texto do modelo (sem inventar).
     if (!engine && !version) {
@@ -119,6 +124,7 @@ export function prepareVehicleMasterIntelligence(
         year,
         engine,
         version,
+        fuel,
         productionYearStart: year,
         productionYearEnd: year,
         key: '',
@@ -143,7 +149,7 @@ export function prepareVehicleMasterIntelligence(
       rangeByModel.set(modelKey, { start: year, end: year })
     }
 
-    const vvKey = [maker, model, year, engine ?? '', version ?? '']
+    const vvKey = [maker, model, year, engine ?? '', version ?? '', fuel ?? '']
       .map((x) => String(x).toLowerCase())
       .join('|')
     if (seenVv.has(vvKey)) {
@@ -159,6 +165,7 @@ export function prepareVehicleMasterIntelligence(
       year,
       engine,
       version,
+      fuel,
       productionYearStart: range.start,
       productionYearEnd: range.end,
       key: vvKey,
@@ -216,6 +223,7 @@ export async function applyVehicleMasterIntelligence(
         year: row.year,
         engine: row.engine,
         version: row.version,
+        fuel: row.fuel,
         source: 'import',
       })
       result.upserted += 1

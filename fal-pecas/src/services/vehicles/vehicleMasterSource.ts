@@ -8,7 +8,7 @@ import {
 } from '@/services/admin/fipeXToFalVehicleMasterCsv'
 import type { MasterIntelligenceRow } from '@/services/vehicles/vehicleMasterIntelligence'
 
-export type VehicleMasterSourceKind = 'fipex_csv' | 'paid_api_future'
+export type VehicleMasterSourceKind = 'fipex_csv' | 'fipe_api' | 'paid_api_future'
 
 export type VehicleMasterSourceResult = {
   kind: VehicleMasterSourceKind
@@ -31,6 +31,7 @@ function toIntelligenceRows(rows: FalVehicleMasterCsvRow[]): MasterIntelligenceR
     ano: r.ano,
     motor: r.motor,
     versao: r.versao,
+    combustivel: '',
   }))
 }
 
@@ -50,7 +51,26 @@ export const fipeXCsvVehicleMasterSource: VehicleMasterSource = {
   },
 }
 
-/** Placeholder API π — não implementa fetch real. */
+/**
+ * Fonte FIPE API — fetch real via Edge `fipe-catalog-lookup` no client admin
+ * (`fipeCatalogClient`). Este adaptador só documenta o kind no pórtico.
+ */
+export const fipeApiVehicleMasterSource: VehicleMasterSource = {
+  kind: 'fipe_api',
+  async fetchNormalizedRows(): Promise<VehicleMasterSourceResult> {
+    return {
+      kind: 'fipe_api',
+      rows: [],
+      skipped: 0,
+      fileErrors: [
+        'Use a tela Consultar e escolher (modo FIPE) — cascata marca/modelo/anos via Edge.',
+      ],
+      meta: { source: 'fipe_api', ready: true },
+    }
+  },
+}
+
+/** Placeholder legado. */
 export const paidApiVehicleMasterSourceStub: VehicleMasterSource = {
   kind: 'paid_api_future',
   async fetchNormalizedRows(): Promise<VehicleMasterSourceResult> {
@@ -58,7 +78,7 @@ export const paidApiVehicleMasterSourceStub: VehicleMasterSource = {
       kind: 'paid_api_future',
       rows: [],
       skipped: 0,
-      fileErrors: ['Fonte API paga ainda não contratada — use fipeX CSV.'],
+      fileErrors: ['Use fipe_api / Consultar e escolher.'],
       meta: { source: 'paid_api_future', ready: false },
     }
   },
@@ -67,6 +87,7 @@ export const paidApiVehicleMasterSourceStub: VehicleMasterSource = {
 export function resolveVehicleMasterSource(
   kind: VehicleMasterSourceKind = 'fipex_csv',
 ): VehicleMasterSource {
+  if (kind === 'fipe_api') return fipeApiVehicleMasterSource
   if (kind === 'paid_api_future') return paidApiVehicleMasterSourceStub
   return fipeXCsvVehicleMasterSource
 }

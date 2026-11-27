@@ -1,27 +1,26 @@
+import { VehicleMasterConsultPreview } from '@/components/admin/vehicles/VehicleMasterConsultPreview'
 import { Button } from '@/components/common/Button'
 import { useToast } from '@/components/common/Toast'
-import { PageShell } from '@/components/layout/PageShell'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { setGuideBridge, VEHICLES_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
 import { toUserMessage } from '@/lib/toUserMessage'
+import { VEHICLE_MASTER_CSV_TEMPLATE } from '@/services/admin/adminVehicleMasterImportService'
+import type { MasterDiffCandidate, MasterDiffStatus } from '@/services/vehicles/diffVehicleMasterCandidates'
 import {
-  adminApplyVehicleMasterImport,
-  adminPreviewVehicleMasterImport,
-  VEHICLE_MASTER_CSV_TEMPLATE,
-  type VehicleMasterApplyResult,
-  type VehicleMasterRow,
-} from '@/services/admin/adminVehicleMasterImportService'
+  applySelectedMasterCandidates,
+  buildCandidatesFromFalCsvFile,
+  buildCandidatesFromFipeXText,
+} from '@/services/vehicles/vehicleMasterConsultService'
+import {
+  writeVehicleMasterSyncMeta,
+  type VehicleMasterSyncMeta,
+} from '@/services/vehicles/vehicleMasterSource'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function canImport(role: string | undefined): boolean {
   return role === 'administrador' || role === 'gerente'
-}
-
-function qualityCell(r: VehicleMasterRow): string {
-  if (r.qualityStatus === 'verified') return 'Verificado'
-  if (r.qualityStatus === 'quarantined') return 'Quarentena'
-  return '—'
 }
 
 function downloadTemplate() {
@@ -38,42 +37,54 @@ export function AdminVehicleMasterImportPage() {
   useDocumentTitle('Importar veículos mestre | Admin FAL')
   const { user } = useAuth()
   const toast = useToast()
+  const navigate = useNavigate()
   const allowed = canImport(user?.role)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [preview, setPreview] = useState<VehicleMasterRow[] | null>(null)
-  const [report, setReport] = useState<VehicleMasterApplyResult | null>(null)
+  const [candidates, setCandidates] = useState<MasterDiffCandidate[] | null>(null)
+  const [statusFilter, setStatusFilter] = useState<MasterDiffStatus | ''>('')
+  const [report, setReport] = useState<string | null>(null)
+  const [touchedModelIds, setTouchedModelIds] = useState<string[]>([])
 
   if (!allowed) {
     return (
-      <PageShell>
+      <div className="space-y-4">
         <p className="text-sm text-fal-muted">Sem permissão para importar veículos.</p>
-        <Link to="/admin/veiculos">Voltar</Link>
-      </PageShell>
+        <Link to="/admin/veiculos/integracoes">Integrações</Link>
+      </div>
     )
   }
 
   async function onFile(file: File) {
     setBusy(true)
     setError(null)
-    setPreview(null)
     setReport(null)
+    setTouchedModelIds([])
+    setFileName(file.name)
     try {
-      setFileName(file.name)
-      const { rows, fileErrors } = await adminPreviewVehicleMasterImport(file)
-      if (fileErrors.length) {
-        setError(fileErrors.join(' · '))
-        toast.push(fileErrors[0]!, 'error')
+      const text = await file.text()
+      const looksFal =
+        /ano\s*in[ií]cio/i.test(text.slice(0, 400)) ||
+        /montadora,\s*modelo/i.test(text.slice(0, 200))
+      const out = looksFal
+        ? await buildCandidatesFromFalCsvFile(file)
+        : await buildCandidatesFromFipeXText(text)
+      if (out.fileErrors.length) {
+        setError(out.fileErrors.join(' · '))
+        setCandidates(null)
+        toast.push(out.fileErrors[0]!, 'error')
         return
       }
-      if (!rows.length) {
-        setError('Arquivo sem linhas de dados')
-        toast.push('Arquivo sem linhas de dados', 'error')
+      if (!out.candidates.length) {
+        setError('Arquivo sem linhas válidas')
+        setCandidates(null)
+        toast.push('Arquivo sem linhas válidas', 'error')
         return
       }
-      setPreview(rows)
+      setCandidates(out.candidates)
+      toast.push(`${out.candidates.length} linha(s) na prévia`, 'success')
     } catch (err) {
       const msg = toUserMessage(err, 'Falha ao ler arquivo')
       setError(msg)
@@ -84,16 +95,29 @@ export function AdminVehicleMasterImportPage() {
   }
 
   async function onApply() {
-    if (!preview?.length) return
+    if (!candidates?.length) return
     setBusy(true)
     setError(null)
     try {
-      const result = await adminApplyVehicleMasterImport(preview)
-      setReport(result)
+      const result = await applySelectedMasterCandidates(candidates)
+      const meta: VehicleMasterSyncMeta = {
+        at: new Date().toISOString(),
+        upserted: result.upserted,
+        productionMerged: result.productionMerged,
+        errors: result.errors,
+        skipped: result.skipped,
+        source: 'import_csv_selective',
+      }
+      writeVehicleMasterSyncMeta(meta)
+      setTouchedModelIds(result.modelIds)
+      setReport(
+        `Upserts: ${result.upserted} · vidas: ${result.productionMerged} · fora da seleção: ${result.skipped} · erros: ${result.errors}`,
+      )
       toast.push(
-        `Mestre aplicado: ${result.created} upserts, ${result.qualitySet} qualidade, ${result.skipped} ignorados, ${result.errors} erros.`,
+        result.errors ? 'Import com erros' : 'Mestre aplicado (selecionados)',
         result.errors ? 'error' : 'success',
       )
+      if (result.messages.length) setError(result.messages.slice(0, 5).join(' · '))
     } catch (err) {
       const msg = toUserMessage(err, 'Falha ao aplicar importação')
       setError(msg)
@@ -104,15 +128,12 @@ export function AdminVehicleMasterImportPage() {
   }
 
   return (
-    <PageShell>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-fal-fg">Importar veículos (mestre)</h1>
-          <p className="mt-1 text-sm text-fal-muted">
-            Colunas:{' '}
-            <code>Montadora, Modelo, Versão, Motor, Ano início, Ano fim, Status</code>. Status:{' '}
-            <strong>Verificado</strong> ou <strong>Quarentena</strong>. Compatível com CSV legado (
-            <code>ano</code> único). Idempotente — não cria aplicações (PVC).
+          <h1 className="mt-0 text-[28px] font-extrabold text-fal-fg">Importar veículos (mestre)</h1>
+          <p className="m-0 text-sm text-fal-muted">
+            Prévia com checkbox e edição. Só as linhas marcadas entram no mestre. Não cria PVC.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -121,15 +142,15 @@ export function AdminVehicleMasterImportPage() {
           </Button>
           <Link
             className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
-            to="/admin/veiculos/integracoes"
+            to="/admin/veiculos/consultar-mestre"
           >
-            Integrações
+            Consultar e escolher
           </Link>
           <Link
             className="rounded-[10px] border border-fal-line bg-fal-surface px-3 py-2 text-sm font-semibold text-fal-fg"
-            to="/admin/veiculos"
+            to="/admin/veiculos/integracoes"
           >
-            Voltar a veículos
+            Integrações
           </Link>
         </div>
       </div>
@@ -142,69 +163,44 @@ export function AdminVehicleMasterImportPage() {
           onChange={(e) => {
             const f = e.target.files?.[0]
             if (f) void onFile(f)
+            e.target.value = ''
           }}
         />
         {fileName ? <p className="mt-2 text-sm text-fal-muted">Arquivo: {fileName}</p> : null}
         {error ? <p className="mt-2 text-sm text-fal-danger">{error}</p> : null}
+        {report ? <p className="mt-2 text-sm text-emerald-800">{report}</p> : null}
       </div>
 
-      {preview ? (
-        <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="m-0 text-sm text-fal-muted">{preview.length} linha(s) na prévia</p>
-            <Button type="button" variant="primary" disabled={busy} onClick={() => void onApply()}>
-              Aplicar upsert
+      {touchedModelIds.length ? (
+        <div className="flex flex-wrap gap-2">
+          {touchedModelIds.slice(0, 8).map((id) => (
+            <Button
+              key={id}
+              type="button"
+              variant="light"
+              size="sm"
+              onClick={() => {
+                setGuideBridge(VEHICLES_OPEN_GUIDE_KEY, id)
+                navigate(`/admin/veiculos?model=${encodeURIComponent(id)}`)
+              }}
+            >
+              Abrir guia
             </Button>
-          </div>
-          <div className="max-h-[420px] overflow-auto rounded-[12px] border border-fal-line">
-            <table className="w-full min-w-[880px] border-collapse text-left text-sm">
-              <thead className="sticky top-0 bg-fal-surface-2">
-                <tr>
-                  <th className="px-2 py-2">#</th>
-                  <th className="px-2 py-2">Montadora</th>
-                  <th className="px-2 py-2">Modelo</th>
-                  <th className="px-2 py-2">Versão</th>
-                  <th className="px-2 py-2">Motor</th>
-                  <th className="px-2 py-2">Combustível</th>
-                  <th className="px-2 py-2">Ano início</th>
-                  <th className="px-2 py-2">Ano fim</th>
-                  <th className="px-2 py-2">Qualidade</th>
-                  <th className="px-2 py-2">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.slice(0, 200).map((r) => (
-                  <tr key={r.lineNumber} className="border-t border-fal-line/70">
-                    <td className="px-2 py-1.5">{r.lineNumber}</td>
-                    <td className="px-2 py-1.5">{r.montadora}</td>
-                    <td className="px-2 py-1.5">{r.modelo}</td>
-                    <td className="px-2 py-1.5">{r.versao || '—'}</td>
-                    <td className="px-2 py-1.5">{r.motor || '—'}</td>
-                    <td className="px-2 py-1.5">{r.combustivel || '—'}</td>
-                    <td className="px-2 py-1.5">{r.anoInicio || '—'}</td>
-                    <td className="px-2 py-1.5">{r.anoFim || '—'}</td>
-                    <td className="px-2 py-1.5">{qualityCell(r)}</td>
-                    <td className="px-2 py-1.5">{r.message ?? r.action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          ))}
         </div>
       ) : null}
 
-      {report ? (
-        <div className="mt-4 rounded-[14px] border border-fal-line bg-fal-surface p-4 text-sm">
-          <p className="m-0 font-semibold text-fal-fg">Resultado</p>
-          <ul className="mt-2 list-disc pl-5 text-fal-muted">
-            <li>Upserts (VV/ano): {report.created}</li>
-            <li>Qualidade aplicada: {report.qualitySet}</li>
-            <li>Duplicatas no arquivo: {report.reused}</li>
-            <li>Ignorados: {report.skipped}</li>
-            <li>Erros: {report.errors}</li>
-          </ul>
-        </div>
+      {candidates ? (
+        <VehicleMasterConsultPreview
+          rows={candidates}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onChange={setCandidates}
+          onApply={() => void onApply()}
+          busy={busy}
+          allowed={allowed}
+        />
       ) : null}
-    </PageShell>
+    </div>
   )
 }

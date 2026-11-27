@@ -14,6 +14,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   montadoras: 'Montadoras',
   veiculos: 'Veículos',
   integracoes: 'Integrações',
+  'consultar-mestre': 'Consultar mestre',
   'importar-mestre': 'Importar mestre',
   fabricantes: 'Fabricantes',
   fornecedores: 'Fornecedores',
