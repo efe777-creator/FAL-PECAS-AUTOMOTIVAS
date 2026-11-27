@@ -5,11 +5,17 @@ import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Loading } from '@/components/common/Loading'
+import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useIdSplitTabs } from '@/hooks/useIdSplitTabs'
 import { consumeGuideBridge, VEHICLES_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
-import { entityStatusLabel } from '@/lib/adminLabels'
+import { entityStatusLabel, vehicleQualityBadge } from '@/lib/adminLabels'
+import { filterAdminVehicleModels } from '@/lib/vehicles/filterAdminVehicleModels'
+import { VEHICLE_BODY_CONFIGURATION_SELECT_OPTIONS, VEHICLE_CLASS_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleBodyConfig'
+import { VEHICLE_FUEL_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleFuel'
+import { VEHICLE_TRANSMISSION_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleTransmission'
+import { VEHICLE_TRACTION_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleTraction'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
@@ -21,20 +27,6 @@ import {
 import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-
-function qualityBadge(status: VehicleModel['qualityStatus']): { label: string; className: string } {
-  switch (status) {
-    case 'verified':
-      return { label: 'Verificado', className: 'bg-emerald-100 text-emerald-900' }
-    case 'quarantined':
-      return { label: 'Quarentena', className: 'bg-red-100 text-red-900' }
-    case 'superseded':
-      return { label: 'Substituído', className: 'bg-fal-line/60 text-fal-muted' }
-    case 'review':
-    default:
-      return { label: 'Revisão', className: 'bg-amber-100 text-amber-900' }
-  }
-}
 
 const MODELS_PAGE_SIZE = 40
 
@@ -62,6 +54,12 @@ export function AdminVehiclesPage() {
   const [filterYear, setFilterYear] = useState('')
   const [filterQuality, setFilterQuality] = useState<QualityFilter>('')
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('')
+  const [filterFuel, setFilterFuel] = useState('')
+  const [filterTransmission, setFilterTransmission] = useState('')
+  const [filterTraction, setFilterTraction] = useState('')
+  const [filterClass, setFilterClass] = useState('')
+  const [filterBody, setFilterBody] = useState('')
+  const [filterSource, setFilterSource] = useState('')
   const [sortBy, setSortBy] = useState<ModelSort>('maker_model')
   const [modelsPage, setModelsPage] = useState(1)
 
@@ -175,43 +173,28 @@ export function AdminVehiclesPage() {
   }, [toast])
 
   const filteredModels = useMemo(() => {
-    const q = searchName.trim().toLowerCase()
-    const yearN = filterYear.trim() ? Number(filterYear.trim()) : null
-    const yearOk = yearN != null && Number.isInteger(yearN)
-
-    let list = models.filter((m) => {
-      if (filterMakerId && m.manufacturerId !== filterMakerId) return false
-      if (filterQuality && (m.qualityStatus ?? 'review') !== filterQuality) return false
-      if (filterStatus && m.status !== filterStatus) return false
-
-      if (yearOk) {
-        const vvs = versionsByModelId.get(m.id) ?? []
-        if (!vvs.some((v) => v.year === yearN)) return false
-      }
-
-      if (q) {
-        const maker = (makerNameById.get(m.manufacturerId) ?? '').toLowerCase()
-        const qualityLabel = qualityBadge(m.qualityStatus).label.toLowerCase()
-        const statusLabel = entityStatusLabel(m.status).toLowerCase()
-        const hayModel = [
-          m.name,
-          maker,
-          qualityLabel,
-          statusLabel,
-          m.qualityStatus ?? '',
-          m.reviewNote ?? '',
-        ]
-          .join(' ')
-          .toLowerCase()
-        const vvs = versionsByModelId.get(m.id) ?? []
-        const hayVv = vvs
-          .map((v) => [v.year, v.engine, v.versionName].filter(Boolean).join(' '))
-          .join(' ')
-          .toLowerCase()
-        if (!hayModel.includes(q) && !hayVv.includes(q)) return false
-      }
-      return true
-    })
+    let list = filterAdminVehicleModels(
+      models,
+      versionsByModelId,
+      makerNameById,
+      {
+        searchName,
+        makerId: filterMakerId,
+        year: filterYear,
+        quality: filterQuality,
+        status: filterStatus,
+        fuel: filterFuel,
+        transmission: filterTransmission,
+        traction: filterTraction,
+        vehicleClass: filterClass,
+        bodyConfiguration: filterBody,
+        source: filterSource,
+      },
+      {
+        qualityLabel: (q) => vehicleQualityBadge(q).label,
+        statusLabel: entityStatusLabel,
+      },
+    )
 
     list = [...list].sort((a, b) => {
       const ma = makerNameById.get(a.manufacturerId) ?? ''
@@ -231,6 +214,12 @@ export function AdminVehiclesPage() {
     filterQuality,
     filterStatus,
     filterYear,
+    filterFuel,
+    filterTransmission,
+    filterTraction,
+    filterClass,
+    filterBody,
+    filterSource,
     searchName,
     makerNameById,
     sortBy,
@@ -247,7 +236,20 @@ export function AdminVehiclesPage() {
 
   useEffect(() => {
     setModelsPage(1)
-  }, [searchName, filterMakerId, filterYear, filterQuality, filterStatus, sortBy])
+  }, [
+    searchName,
+    filterMakerId,
+    filterYear,
+    filterQuality,
+    filterStatus,
+    filterFuel,
+    filterTransmission,
+    filterTraction,
+    filterClass,
+    filterBody,
+    filterSource,
+    sortBy,
+  ])
 
   async function createModel(e: FormEvent) {
     e.preventDefault()
@@ -319,7 +321,7 @@ export function AdminVehiclesPage() {
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
       {loading ? <Loading /> : null}
 
-      <div className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <div className="sm:col-span-2">
           <Input
             label="Buscar (qualquer termo)"
@@ -328,52 +330,95 @@ export function AdminVehiclesPage() {
             placeholder="Montadora, modelo, qualidade, ano, motor…"
           />
         </div>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={filterMakerId}
-            onChange={(e) => setFilterMakerId(e.target.value)}
-          >
-            <option value="">Todas</option>
-            {makers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Qualidade</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={filterQuality}
-            onChange={(e) => setFilterQuality(e.target.value as QualityFilter)}
-          >
-            <option value="">Todas</option>
-            <option value="verified">Verificado</option>
-            <option value="review">Revisão</option>
-            <option value="quarantined">Quarentena</option>
-            <option value="superseded">Substituído</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Status</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as StatusFilter)}
-          >
-            <option value="">Todos</option>
-            <option value="active">Ativo</option>
-            <option value="inactive">Inativo</option>
-          </select>
-        </label>
+        <Select
+          label="Montadora"
+          name="filter-maker"
+          placeholder="Todas"
+          options={makers.map((m) => ({ value: m.id, label: m.name }))}
+          value={filterMakerId}
+          onChange={(e) => setFilterMakerId(e.target.value)}
+        />
+        <Select
+          label="Qualidade"
+          name="filter-quality"
+          placeholder="Todas"
+          options={[
+            { value: 'verified', label: 'Verificado' },
+            { value: 'review', label: 'Revisão' },
+            { value: 'quarantined', label: 'Quarentena' },
+            { value: 'superseded', label: 'Substituído' },
+          ]}
+          value={filterQuality}
+          onChange={(e) => setFilterQuality(e.target.value as QualityFilter)}
+        />
+        <Select
+          label="Status"
+          name="filter-status"
+          placeholder="Todos"
+          options={[
+            { value: 'active', label: 'Ativo' },
+            { value: 'inactive', label: 'Inativo' },
+          ]}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value as StatusFilter)}
+        />
         <Input
           label="Ano (config)"
           inputMode="numeric"
           value={filterYear}
           onChange={(e) => setFilterYear(e.target.value)}
+        />
+        <Select
+          label="Combustível"
+          name="filter-fuel"
+          placeholder="Todos"
+          options={[...VEHICLE_FUEL_SELECT_OPTIONS]}
+          value={filterFuel}
+          onChange={(e) => setFilterFuel(e.target.value)}
+        />
+        <Select
+          label="Transmissão"
+          name="filter-transmission"
+          placeholder="Todas"
+          options={[...VEHICLE_TRANSMISSION_SELECT_OPTIONS]}
+          value={filterTransmission}
+          onChange={(e) => setFilterTransmission(e.target.value)}
+        />
+        <Select
+          label="Tração"
+          name="filter-traction"
+          placeholder="Todas"
+          options={[...VEHICLE_TRACTION_SELECT_OPTIONS]}
+          value={filterTraction}
+          onChange={(e) => setFilterTraction(e.target.value)}
+        />
+        <Select
+          label="Classe"
+          name="filter-class"
+          placeholder="Todas"
+          options={[...VEHICLE_CLASS_SELECT_OPTIONS]}
+          value={filterClass}
+          onChange={(e) => setFilterClass(e.target.value)}
+        />
+        <Select
+          label="Configuração"
+          name="filter-body"
+          placeholder="Todas"
+          options={[...VEHICLE_BODY_CONFIGURATION_SELECT_OPTIONS]}
+          value={filterBody}
+          onChange={(e) => setFilterBody(e.target.value)}
+        />
+        <Select
+          label="Fonte"
+          name="filter-source"
+          placeholder="Todas"
+          options={[
+            { value: 'admin', label: 'Admin' },
+            { value: 'import', label: 'Importação' },
+            { value: 'plate', label: 'Placa' },
+          ]}
+          value={filterSource}
+          onChange={(e) => setFilterSource(e.target.value)}
         />
       </div>
 
@@ -382,40 +427,36 @@ export function AdminVehiclesPage() {
           {totalFiltered} modelo{totalFiltered === 1 ? '' : 's'}
           {totalFiltered !== models.length ? ` (de ${models.length})` : ''}
         </p>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-xs font-extrabold text-fal-muted">Ordenar</span>
-          <select
-            className="rounded-[9px] border border-fal-line px-2 py-2"
+        <div className="w-[220px]">
+          <Select
+            label="Ordenar"
+            name="sort-models"
+            options={[
+              { value: 'maker_model', label: 'Montadora + modelo' },
+              { value: 'model', label: 'Modelo' },
+              { value: 'maker', label: 'Montadora' },
+            ]}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as ModelSort)}
-          >
-            <option value="maker_model">Montadora + modelo</option>
-            <option value="model">Modelo</option>
-            <option value="maker">Montadora</option>
-          </select>
-        </label>
+          />
+        </div>
       </div>
 
       <form
         onSubmit={(e) => void createModel(e)}
         className="flex flex-wrap items-end gap-3 rounded-[14px] border border-fal-line bg-fal-surface p-4"
       >
-        <label className="block min-w-[160px] text-sm">
-          <span className="mb-1 block text-xs font-extrabold text-fal-muted">Montadora</span>
-          <select
-            className="w-full rounded-[9px] border border-fal-line px-3 py-3"
+        <div className="min-w-[180px]">
+          <Select
+            label="Montadora"
+            name="create-maker"
+            placeholder="Selecione"
+            options={makers.map((m) => ({ value: m.id, label: m.name }))}
             value={createMakerId}
-            onChange={(e) => setCreateMakerId(e.target.value)}
             required
-          >
-            <option value="">Selecione</option>
-            {makers.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={(e) => setCreateMakerId(e.target.value)}
+          />
+        </div>
         <div className="min-w-[180px] flex-1">
           <Input
             label="Novo modelo"
@@ -461,7 +502,7 @@ export function AdminVehiclesPage() {
 
       <div className="admin-vehicles-list-mobile fal-admin-scroll max-h-[min(60dvh,640px)] space-y-3 overflow-y-auto md:hidden">
         {pageModels.map((m) => {
-          const qb = qualityBadge(m.qualityStatus)
+          const qb = vehicleQualityBadge(m.qualityStatus)
           return (
             <article
               key={m.id}
@@ -485,16 +526,16 @@ export function AdminVehiclesPage() {
                 </span>
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
-                  className="inline-flex min-h-11 items-center rounded-[10px] bg-fal-navy px-3 text-sm font-bold text-white"
+                  className="min-h-11"
                   onClick={(ev) => {
                     ev.stopPropagation()
                     openGuide(m.id)
                   }}
                 >
                   Abrir guia
-                </button>
+                </Button>
                 <button
                   type="button"
                   className="inline-flex min-h-11 items-center rounded-[10px] border border-fal-line px-3 text-sm font-semibold text-fal-muted"
@@ -529,7 +570,7 @@ export function AdminVehiclesPage() {
           </thead>
           <tbody>
             {pageModels.map((m) => {
-              const qb = qualityBadge(m.qualityStatus)
+              const qb = vehicleQualityBadge(m.qualityStatus)
               return (
                 <tr
                   key={m.id}
@@ -643,7 +684,7 @@ export function AdminVehiclesPage() {
                 label: m
                   ? `${makerNameById.get(m.manufacturerId) ?? '?'} · ${m.name}`
                   : id.slice(0, 8),
-                statusLabel: m ? qualityBadge(m.qualityStatus).label : undefined,
+                statusLabel: m ? vehicleQualityBadge(m.qualityStatus).label : undefined,
               }
             })}
             onCloseTab={splitTabs.closeTab}

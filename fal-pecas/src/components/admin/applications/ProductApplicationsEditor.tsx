@@ -255,6 +255,13 @@ export function ProductApplicationsEditor({
       setError('Nenhuma configuração bate com motorização/versão')
       return
     }
+    // Versão/motor vazios = todas as configs do modelo (regra geral). Confirma se o recorte for amplo.
+    if (!engineFilter && !versionNameFilter && matchingVersions.length > 12) {
+      const ok = window.confirm(
+        `Motor e versão vazios: serão ligadas ${matchingVersions.length} configurações deste modelo. Continuar?`,
+      )
+      if (!ok) return
+    }
     const period = validatePvcYearInputs(yearStart, yearEnd)
     if (!period.ok) {
       setError(period.message)

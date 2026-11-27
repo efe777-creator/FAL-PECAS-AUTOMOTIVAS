@@ -1,9 +1,12 @@
 import { VehicleMasterConsultPreview } from '@/components/admin/vehicles/VehicleMasterConsultPreview'
 import { Button } from '@/components/common/Button'
+import { Input } from '@/components/common/Input'
+import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { setGuideBridge, VEHICLES_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
+import { ADMIN_SEGMENT_OFF, ADMIN_SEGMENT_ON } from '@/lib/adminLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   fipeListBrands,
@@ -287,7 +290,7 @@ export function AdminVehicleMasterConsultPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Origem da consulta">
         {(
           [
             ['arquivo', 'Arquivo'],
@@ -298,8 +301,10 @@ export function AdminVehicleMasterConsultPage() {
           <button
             key={id}
             type="button"
-            className={`rounded-md px-3 py-1.5 text-sm font-bold ${
-              mode === id ? 'bg-fal-navy text-white' : 'bg-fal-line/50 text-fal-fg'
+            role="tab"
+            aria-selected={mode === id}
+            className={`min-h-11 rounded-[10px] border px-3 text-sm font-bold ${
+              mode === id ? ADMIN_SEGMENT_ON : ADMIN_SEGMENT_OFF
             }`}
             onClick={() => {
               setMode(id)
@@ -336,39 +341,25 @@ export function AdminVehicleMasterConsultPage() {
             Consulta pontual via API FIPE (Edge). Selecione anos e monte a prévia.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm">
-              Marca
-              <select
-                className="mt-1 block w-full rounded-md border border-fal-line bg-fal-bg px-2 py-2"
-                value={brandId}
-                disabled={busy}
-                onChange={(e) => void onBrandChange(e.target.value)}
-                onFocus={() => void ensureBrands()}
-              >
-                <option value="">—</option>
-                {brands.map((b) => (
-                  <option key={b.code} value={b.code}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Modelo
-              <select
-                className="mt-1 block w-full rounded-md border border-fal-line bg-fal-bg px-2 py-2"
-                value={modelId}
-                disabled={busy || !brandId}
-                onChange={(e) => void onModelChange(e.target.value)}
-              >
-                <option value="">—</option>
-                {models.map((m) => (
-                  <option key={m.code} value={m.code}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              label="Marca"
+              name="fipe-brand"
+              placeholder="—"
+              options={brands.map((b) => ({ value: b.code, label: b.name }))}
+              value={brandId}
+              disabled={busy}
+              onChange={(e) => void onBrandChange(e.target.value)}
+              onFocus={() => void ensureBrands()}
+            />
+            <Select
+              label="Modelo"
+              name="fipe-model"
+              placeholder="—"
+              options={models.map((m) => ({ value: m.code, label: m.name }))}
+              value={modelId}
+              disabled={busy || !brandId}
+              onChange={(e) => void onModelChange(e.target.value)}
+            />
           </div>
           {years.length ? (
             <div>
@@ -409,12 +400,15 @@ export function AdminVehicleMasterConsultPage() {
           <p className="m-0 text-sm text-fal-muted">
             Texto livre a partir de lookup catálogo 0 (ex.: Volkswagen Gol 2018).
           </p>
-          <input
-            className="mt-3 w-full rounded-md border border-fal-line bg-fal-bg px-3 py-2 text-sm"
-            value={demandaText}
-            onChange={(e) => setDemandaText(e.target.value)}
-            placeholder="Montadora Modelo Ano"
-          />
+          <div className="mt-3">
+            <Input
+              label="Demanda"
+              value={demandaText}
+              onChange={(e) => setDemandaText(e.target.value)}
+              placeholder="Montadora Modelo Ano"
+              hint="Ex.: Volkswagen Gol 2018"
+            />
+          </div>
           <Button
             type="button"
             className="mt-3"
@@ -427,7 +421,7 @@ export function AdminVehicleMasterConsultPage() {
       ) : null}
 
       {error ? <p className="text-sm text-fal-danger">{error}</p> : null}
-      {applyMsg ? <p className="text-sm text-emerald-800">{applyMsg}</p> : null}
+      {applyMsg ? <p className="text-sm text-fal-success">{applyMsg}</p> : null}
       {busy ? <p className="text-sm text-fal-muted">Processando…</p> : null}
 
       {touchedModelIds.length ? (

@@ -118,7 +118,7 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(shell).toMatch(/data-workspace-primary=\{primaryCompact \? 'compact' : 'full'\}/)
   })
 
-  it('FL4: CSS compact primary (orders+catálogo) + @container KPI Painel', () => {
+  it('FL4: CSS compact primary (orders+catálogo+veículos) + @container KPI Painel', () => {
     const css = read('styles/index.css')
     expect(css).toMatch(/\[data-workspace-primary='compact'\]/)
     expect(css).toMatch(/admin-orders-list-mobile|admin-orders-hub/)
@@ -126,9 +126,13 @@ describe('FAL-UI-LAYOUT v1 antiregress (FL*)', () => {
     expect(css).toMatch(/admin-kits-list-mobile/)
     expect(css).toMatch(/admin-products-list-desktop/)
     expect(css).toMatch(/admin-kits-list-desktop/)
+    expect(css).toMatch(/admin-vehicles-hub/)
+    expect(css).toMatch(/admin-vehicles-list-mobile/)
+    expect(css).toMatch(/admin-vehicles-list-desktop/)
 
     expect(read('pages/admin/products/AdminProductsPage.tsx')).toMatch(/admin-products-hub/)
     expect(read('pages/admin/kits/AdminKitsPage.tsx')).toMatch(/admin-kits-hub/)
+    expect(read('pages/admin/vehicles/AdminVehiclesPage.tsx')).toMatch(/admin-vehicles-hub/)
 
     const widgets = read('components/admin/dashboard/widgets/DashboardWidgets.tsx')
     expect(widgets).toMatch(/@container/)

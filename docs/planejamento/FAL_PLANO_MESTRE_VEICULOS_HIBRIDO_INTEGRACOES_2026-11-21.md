@@ -23,9 +23,9 @@ Cada afirmação tem evidência em **doc** e/ou **código**. DONE não se reimpl
 | Garagem / activeFilter | Garagem fundação | `GarageContext` | **DONE** | Fora |
 | Identidade 2A | PLANO 2A | Roadmap | **NÃO ESTE PLANO** | Backlog |
 | Seed fipeX → mestre | Este plano | `fipeXToFal*` + import / sync hub | **DONE** (fixture+thin; dump completo = ops) | Sync dump quando houver |
-| Import CSV mestre | Este plano | `adminApplyVehicleMasterImport` | **DONE** | **Único writer** massa |
+| Import CSV mestre | Este plano | `applySelectedMasterCandidates` | **DONE** | **Único writer** massa (consultar + importar) |
 | Hub Integrações | Este plano · Layout chips | `/admin/veiculos/integracoes` | **DONE** | — |
-| Adaptive CRUD veículos | Layout v1.6 | Lista + guia Adaptive | **ESTE PLANO** | Hub Integrações continua chips |
+| Adaptive CRUD veículos | Layout v1.6 | Lista + guia Adaptive | **DONE** | Hub Integrações continua chips |
 | Filtro peças por FIPE | — | Catálogo = PVC | **BLOQUEADO** | Nunca |
 | Copy “100% compatível” | — | Selos PVC | **BLOQUEADO** | Nunca |
 
@@ -64,7 +64,7 @@ Deep-link `/admin/veiculos/importar-mestre` e botão na página Veículos **perm
 
 - [x] Matriz bate com arquivos citados  
 - [x] Diff loja placa/confirmação/PVC vazio (links hub/import apenas)  
-- [x] Único writer massa = `adminApplyVehicleMasterImport`  
+- [x] Único writer massa = `applySelectedMasterCandidates`  
 - [x] Zero insert PVC no seed/import (`fipeXToFal*` só emite CSV)  
 - [x] Nav tem Integrações; import ainda abre  
 - [x] `tsc` + `adminNavConfig` + `fipeXToFalVehicleMasterCsv` PASS  

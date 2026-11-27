@@ -582,6 +582,20 @@ export interface VehicleVersion {
   versionName: string | null
   /** Combustível da config (Flex/…). Null = não informado. */
   fuel: string | null
+  /** manual | automatica | automatizada. Null/omitido = não informado. */
+  transmission?: string | null
+  /** cvt | at | amt. Null quando só a categoria veio. */
+  transmissionDetail?: string | null
+  /** 4x2 | 4x4 | awd. Null/omitido = não informado. */
+  traction?: string | null
+  /** dianteira | traseira. Null quando só a categoria veio. */
+  tractionDetail?: string | null
+  /** hatch | sedan | cabine_* | furgao | … Null/omitido = não informado. */
+  bodyConfiguration?: string | null
+  /** Override da classe da linha. Null = herda models.vehicle_class. */
+  vehicleClass?: string | null
+  /** Origem do cadastro (admin | import | plate). */
+  source?: string | null
   status: EntityStatus
 }
 

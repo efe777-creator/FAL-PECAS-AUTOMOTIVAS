@@ -16,6 +16,11 @@
 | Apps-import review | `fal-pecas/supabase/migrations/20261122122000_apps_import_models_review_only.sql` |
 | RLS público + RPC qualidade | `fal-pecas/supabase/migrations/20261122170000_mestre_public_rls_and_quality_rpc.sql` |
 | Extração engine←version | `fal-pecas/supabase/migrations/20261122160000_extract_engine_from_version_name.sql` |
+| Fuel + chave natural | `fal-pecas/supabase/migrations/20261126150000_vehicle_versions_fuel.sql` |
+| Attrs técnicos VV | `fal-pecas/supabase/migrations/20261127190000_vehicle_versions_tech_attributes.sql` |
+| RPC enrich tech | `fal-pecas/supabase/migrations/20261127191000_enrich_vehicle_version_tech.sql` |
+| Fontes / evidência | `fal-pecas/supabase/migrations/20261127192000_vehicle_data_sources_evidence.sql` |
+| Lotes import mestre | `fal-pecas/supabase/migrations/20261127193000_vehicle_import_batches.sql` |
 
 ## Política rápida
 
@@ -31,7 +36,8 @@
 
 | Writer | Caminho | Normaliza? |
 |--------|---------|------------|
-| Import CSV mestre | `adminVehicleMasterImportService` → `vehicleCanonicalUpsert` + `mergeModelProductionYears` | sim |
+| Consultar / import CSV mestre | `applySelectedMasterCandidates` → `vehicleCanonicalUpsert` + `mergeModelProductionYears` | sim |
+| Lote import (infra; UI apply ainda não) | `adminVehicleImportBatchService` → canônico + `enrich_vehicle_version_tech` | sim |
 | Sync intelligence | `vehicleMasterIntelligence` → `vehicleCanonicalUpsert` + vida | sim |
 | Confirm placa | Edge `vehicle-confirm-upsert` → RPC | sim (Edge mirror) |
 | Admin CRUD modelo | `adminVehicleService.adminUpsertModel` | sim (exceção: sem RPC canônico) |

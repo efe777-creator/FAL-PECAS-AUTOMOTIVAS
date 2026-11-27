@@ -54,9 +54,11 @@ flowchart TB
   end
   subgraph write [Writers únicos]
     ConfirmUpsert[vehicle-confirm-upsert]
-    Import[adminApplyVehicleMasterImport]
+    Import[applySelectedMasterCandidates]
+    Guide[adminUpsertVersion]
     Confirm --> ConfirmUpsert
     Import --> VV
+    Guide --> VV
     ConfirmUpsert --> VV
     ConfirmUpsert --> CV[customer_vehicles]
   end
@@ -101,7 +103,8 @@ flowchart TB
 
 ### 3.2 Seed / sync mestre
 
-Hub `/admin/veiculos/integracoes` → `normalizeVehicleMasterInput` → CSV / fipeX intelligence → apply massa `adminApplyVehicleMasterImport` / sync (+ `merge_model_production_years`). Zero PVC.  
+Hub `/admin/veiculos/integracoes` → consultar/importar → `applySelectedMasterCandidates` → `upsert_vehicle_canonical` (+ `merge_model_production_years`). Zero PVC.  
+Guia `/admin/veiculos`: `adminUpsertVersion` (correção manual, inclusive attrs técnicos). Preencher NULL automático: só `enrich_vehicle_version_tech` (RPC no wtbp; serviço de lote existe, UI de apply ainda não ligada às telas).  
 Writers reais também: CRUD admin (`adminUpsertModel`) e RPC `apply_catalog_applications_import` (modelo novo só `quality_status=review`).  
 Loja: árvore/`listVehicleCatalogEntries` só `active` + `verified`. Runbook: `docs/dados/FAL_RUNBOOK_QUALIDADE_MESTRE_VEICULAR_2026-11-21.md`.
 
@@ -109,8 +112,8 @@ Loja: árvore/`listVehicleCatalogEntries` só `active` + `verified`. Runbook: `d
 
 | Superfície | Padrão layout | Nota |
 |------------|---------------|------|
-| CRUD `/admin/veiculos` | Página clássica | **Fora** AdaptiveWorkspace (decisão híbrido) |
-| Hub Integrações | Chips + cards (família Pagamentos) | Não inventar segundo shell |
+| CRUD `/admin/veiculos` | AdaptiveWorkspace (`moduleKey=vehicles`) | Lista + guia desde FAL-UI-LAYOUT v1.6.0 |
+| Hub Integrações | Chips + cards (família Pagamentos) | Não Adaptive; não inventar segundo shell |
 | Catálogo / Preços / Apps / Kits | [Padrão Layout v1.5](../planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) + Adaptive | PVC vive em Aplicações |
 | Loja placa / seletor / garagem | Tokens `--fal-*`; UX Garagem | Sem Adaptive |
 
@@ -145,12 +148,14 @@ Detalhe histórico: [híbrido § Camadas de ano](../planejamento/FAL_PLANO_MESTR
 
 | Writer | Quando | PVC? |
 |--------|--------|------|
+| `adminUpsertVersion` | Guia admin — correção manual | Não |
+| `applySelectedMasterCandidates` → `upsert_vehicle_canonical` | Consultar e importar mestre | Não |
 | `vehicle-confirm-upsert` / client confirm | Pós-humano (placa/manual confirmado) | Não |
-| `adminApplyVehicleMasterImport` | Massa CSV / seed | Não |
 | `merge_model_production_years` | Vida de linha | Não |
+| `enrich_vehicle_version_tech` | Só preenche NULL (RPC; lote/UI opcional) | Não |
 | Edge `plate-lookup` | — | **Proibido upsert** (2026-11-21) |
 
-Qualquer segundo writer de mestre = rejeitar.
+Qualquer segundo writer de identidade do mestre = rejeitar. Enriquecimento de atributo vazio não sobrescreve valor confirmado.
 
 ---
 
@@ -200,4 +205,16 @@ Referência de marcha — não substitui telemetria hub:
 - Reabrir Notes #6 core  
 - Merge/push `main` / prod sem autorização eFe  
 
-**Assinatura:** Mapa veículo caminhos·relações·layout · 2026-11-21 · garantias antiregress §8.
+## 10. Migrations no wtbp (ops)
+
+**Não** rodar `npx supabase db push --linked` cego no `wtbpwuiayednvlhvuhbh`. O disco local tem backlog com timestamps que **não** batem com `supabase_migrations.schema_migrations` (dashboard vs nomes locais); um push massivo reaplicaria ou quebraria produção.
+
+Marcha correta:
+
+1. Aplicar **um arquivo** por vez (`db query --remote -f …` ou equivalente).  
+2. Registrar a versão em `schema_migrations` se o efeito já estiver no schema e a linha faltar (ex.: `20261126150000` fuel — efeito já no ar; só `insert … on conflict do nothing`).  
+3. Não reexecutar migrations já registradas (`20261127190000`…`93000` mestre técnico).  
+4. Backlog local ≠ fila de produção — inventariar antes de qualquer apply.  
+   Snapshot 2026-11-27 (`migration list --linked` wtbp): ~86 alinhadas · ~129 só local · ~141 só remote (timestamps dashboard). Mestre fuel+tech (`20261126150000` + `2026112719*`) está nas duas pontas.
+
+**Assinatura:** Mapa veículo caminhos·relações·layout · 2026-11-21 · garantias antiregress §8 · ops migrations §10 (2026-11-27).

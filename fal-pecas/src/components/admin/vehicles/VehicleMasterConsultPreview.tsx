@@ -1,4 +1,6 @@
 import { Button } from '@/components/common/Button'
+import { Select } from '@/components/common/Select'
+import { ADMIN_CHIP } from '@/lib/adminLabels'
 import { VEHICLE_FUEL_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleFuel'
 import type { MasterDiffCandidate, MasterDiffStatus } from '@/services/vehicles/diffVehicleMasterCandidates'
 
@@ -10,10 +12,10 @@ const STATUS_LABEL: Record<MasterDiffStatus, string> = {
 }
 
 const STATUS_CLASS: Record<MasterDiffStatus, string> = {
-  novo: 'bg-emerald-100 text-emerald-900',
-  ja_cadastrado: 'bg-fal-line/60 text-fal-muted',
-  enriquece: 'bg-sky-100 text-sky-950',
-  conflito: 'bg-amber-100 text-amber-900',
+  novo: ADMIN_CHIP.ok,
+  ja_cadastrado: ADMIN_CHIP.neutral,
+  enriquece: ADMIN_CHIP.info,
+  conflito: ADMIN_CHIP.warn,
 }
 
 export type VehicleMasterConsultPreviewProps = {
@@ -58,21 +60,22 @@ export function VehicleMasterConsultPreview({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-sm text-fal-muted">
-          Estado{' '}
-          <select
-            className="ml-1 rounded-md border border-fal-line bg-fal-surface px-2 py-1 text-sm"
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="w-[200px]">
+          <Select
+            label="Estado"
+            name="master-diff-status"
+            placeholder="Todos"
+            options={[
+              { value: 'novo', label: 'Novo' },
+              { value: 'enriquece', label: 'Enriquece' },
+              { value: 'ja_cadastrado', label: 'Já cadastrado' },
+              { value: 'conflito', label: 'Conflito' },
+            ]}
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as MasterDiffStatus | '')}
-          >
-            <option value="">Todos</option>
-            <option value="novo">Novo</option>
-            <option value="enriquece">Enriquece</option>
-            <option value="ja_cadastrado">Já cadastrado</option>
-            <option value="conflito">Conflito</option>
-          </select>
-        </label>
+          />
+        </div>
         <Button type="button" variant="light" size="sm" onClick={() => setVisibleSelected(true)}>
           Marcar visíveis
         </Button>
@@ -96,7 +99,7 @@ export function VehicleMasterConsultPreview({
         {visible.length} na vista · {selectedCount} marcados no total. Linha desmarcada não grava
         (nem modelo, nem versão, nem motor, nem anos).
       </p>
-      <div className="max-h-[min(60dvh,640px)] overflow-auto rounded-[12px] border border-fal-line fal-admin-scroll">
+      <div className="fal-admin-scroll max-h-[min(60dvh,640px)] overflow-auto rounded-[14px] border border-fal-line bg-fal-surface">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead className="sticky top-0 bg-fal-surface-2">
             <tr>
@@ -126,41 +129,41 @@ export function VehicleMasterConsultPreview({
                   />
                 </td>
                 <td className="px-2 py-1.5">
-                  <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${STATUS_CLASS[r.status]}`}>
+                  <span className={`rounded-[10px] px-2 py-0.5 text-xs font-bold ${STATUS_CLASS[r.status]}`}>
                     {STATUS_LABEL[r.status]}
                   </span>
                 </td>
                 <td className="px-2 py-1.5">
                   <input
-                    className="w-full min-w-[6rem] rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-full min-w-[6rem] rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.maker}
                     onChange={(e) => patch(r.id, { maker: e.target.value })}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
-                    className="w-full min-w-[6rem] rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-full min-w-[6rem] rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.model}
                     onChange={(e) => patch(r.id, { model: e.target.value })}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
-                    className="w-full min-w-[5rem] rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-full min-w-[5rem] rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.version}
                     onChange={(e) => patch(r.id, { version: e.target.value })}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
-                    className="w-full min-w-[4rem] rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-full min-w-[4rem] rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.engine}
                     onChange={(e) => patch(r.id, { engine: e.target.value })}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <select
-                    className="w-full rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-full rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.fuel}
                     onChange={(e) => patch(r.id, { fuel: e.target.value })}
                   >
@@ -175,7 +178,7 @@ export function VehicleMasterConsultPreview({
                 <td className="px-2 py-1.5">
                   <input
                     type="number"
-                    className="w-20 rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-20 rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.yearStart}
                     onChange={(e) => patch(r.id, { yearStart: Number(e.target.value) })}
                   />
@@ -183,7 +186,7 @@ export function VehicleMasterConsultPreview({
                 <td className="px-2 py-1.5">
                   <input
                     type="number"
-                    className="w-20 rounded border border-fal-line bg-fal-bg px-1 py-0.5"
+                    className="fal-field w-20 rounded-[9px] border border-fal-line bg-fal-surface px-2 py-1.5 text-fal-fg"
                     value={r.yearEnd}
                     onChange={(e) => patch(r.id, { yearEnd: Number(e.target.value) })}
                   />

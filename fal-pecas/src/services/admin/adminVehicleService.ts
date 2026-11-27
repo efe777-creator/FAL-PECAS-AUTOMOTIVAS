@@ -3,7 +3,19 @@ import {
   versionConfigGroupKey,
   versionNaturalKey,
 } from '@/lib/vehicles/expandVersionYearRange'
+import {
+  normalizeBodyConfiguration,
+  normalizeVehicleClass,
+} from '@/lib/vehicles/normalizeVehicleBodyConfig'
 import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
+import {
+  normalizeTransmissionDetail,
+  normalizeVehicleTransmission,
+} from '@/lib/vehicles/normalizeVehicleTransmission'
+import {
+  normalizeTractionDetail,
+  normalizeVehicleTraction,
+} from '@/lib/vehicles/normalizeVehicleTraction'
 import { getSupabase } from '@/lib/supabase'
 import { toSlug } from '@/lib/slug'
 import { normalizeVehicleMasterInput } from '@/services/vehicles/normalizeVehicleMasterInput'
@@ -36,11 +48,52 @@ type VersionRow = {
   engine: string | null
   version_name: string | null
   fuel?: string | null
+  transmission?: string | null
+  transmission_detail?: string | null
+  traction?: string | null
+  traction_detail?: string | null
+  body_configuration?: string | null
+  vehicle_class?: string | null
+  source?: string | null
   status: string
 }
 
 const VERSION_SELECT =
-  'id, manufacturer_id, model_id, year, engine, version_name, fuel, status'
+  'id, manufacturer_id, model_id, year, engine, version_name, fuel, transmission, transmission_detail, traction, traction_detail, body_configuration, vehicle_class, source, status'
+
+const VERSION_SELECT_BASE =
+  'id, manufacturer_id, model_id, year, engine, version_name, fuel, source, status'
+
+function isMissingTechColumn(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const o = err as { code?: string; message?: string }
+  const message = String(o.message ?? '')
+  const mentionsTech = /transmission|traction|body_configuration|vehicle_class/i.test(message)
+  if (o.code === 'PGRST204' && mentionsTech) return true
+  if (o.code === '42703' && mentionsTech) return true
+  return /schema cache/i.test(message) && mentionsTech
+}
+
+function techPayloadHasValue(tech: {
+  transmission: string | null
+  transmission_detail: string | null
+  traction: string | null
+  traction_detail: string | null
+  body_configuration: string | null
+  vehicle_class: string | null
+}): boolean {
+  return Boolean(
+    tech.transmission ||
+      tech.transmission_detail ||
+      tech.traction ||
+      tech.traction_detail ||
+      tech.body_configuration ||
+      tech.vehicle_class,
+  )
+}
+
+const TECH_COLUMNS_PENDING =
+  'Atributos técnicos indisponíveis neste ambiente (coluna ausente no schema). No wtbp loja use as migrations 20261127190000+; em outro banco, aplique-as antes de gravar câmbio, tração, configuração ou classe.'
 
 function mapModel(row: ModelRow): VehicleModel {
   return {
@@ -69,6 +122,13 @@ function mapVersion(row: VersionRow): VehicleVersion {
     engine: row.engine,
     versionName: row.version_name,
     fuel: row.fuel ?? null,
+    transmission: row.transmission ?? null,
+    transmissionDetail: row.transmission_detail ?? null,
+    traction: row.traction ?? null,
+    tractionDetail: row.traction_detail ?? null,
+    bodyConfiguration: row.body_configuration ?? null,
+    vehicleClass: row.vehicle_class ?? null,
+    source: row.source ?? null,
     status: row.status as VehicleVersion['status'],
   }
 }
@@ -238,14 +298,18 @@ export async function mergeModelProductionYears(
 }
 
 export async function adminListVersions(modelId?: string): Promise<VehicleVersion[]> {
-  let q = getSupabase()
-    .from('vehicle_versions')
-    .select(VERSION_SELECT)
-    .order('year', { ascending: false, nullsFirst: false })
-  if (modelId) q = q.eq('model_id', modelId)
-  const { data, error } = await q
-  if (error) throw error
-  return (data as VersionRow[]).map(mapVersion)
+  const run = (select: string) => {
+    let q = getSupabase()
+      .from('vehicle_versions')
+      .select(select)
+      .order('year', { ascending: false, nullsFirst: false })
+    if (modelId) q = q.eq('model_id', modelId)
+    return q
+  }
+  let res = await run(VERSION_SELECT)
+  if (res.error && isMissingTechColumn(res.error)) res = await run(VERSION_SELECT_BASE)
+  if (res.error) throw res.error
+  return (res.data as unknown as VersionRow[]).map(mapVersion)
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -271,24 +335,42 @@ export async function adminFindVersionByNaturalKey(input: {
   const ver = input.versionName?.trim() || null
   const fuel = normalizeVehicleFuel(input.fuel)
   const fuelKey = (fuel ?? '').toLowerCase()
-  const base = () =>
-    getSupabase()
+  const read = async (select: string, fuelKeyValue: string) => {
+    let res = await getSupabase()
       .from('vehicle_versions')
-      .select(VERSION_SELECT)
+      .select(select)
       .eq('manufacturer_id', input.manufacturerId)
       .eq('model_id', input.modelId)
       .eq('year_key', year == null ? -1 : year)
       .eq('engine_key', (eng ?? '').toLowerCase())
       .eq('version_key', (ver ?? '').toLowerCase())
+      .eq('fuel_key', fuelKeyValue)
+      .limit(1)
+      .maybeSingle()
+    if (res.error && isMissingTechColumn(res.error)) {
+      res = await getSupabase()
+        .from('vehicle_versions')
+        .select(VERSION_SELECT_BASE)
+        .eq('manufacturer_id', input.manufacturerId)
+        .eq('model_id', input.modelId)
+        .eq('year_key', year == null ? -1 : year)
+        .eq('engine_key', (eng ?? '').toLowerCase())
+        .eq('version_key', (ver ?? '').toLowerCase())
+        .eq('fuel_key', fuelKeyValue)
+        .limit(1)
+        .maybeSingle()
+    }
+    return res
+  }
 
-  const exact = await base().eq('fuel_key', fuelKey).limit(1).maybeSingle()
+  const exact = await read(VERSION_SELECT, fuelKey)
   if (exact.error) throw exact.error
-  if (exact.data) return mapVersion(exact.data as VersionRow)
+  if (exact.data) return mapVersion(exact.data as unknown as VersionRow)
 
   if (fuel && input.claimEmptyFuel !== false) {
-    const empty = await base().eq('fuel_key', '').limit(1).maybeSingle()
+    const empty = await read(VERSION_SELECT, '')
     if (empty.error) throw empty.error
-    if (empty.data) return mapVersion(empty.data as VersionRow)
+    if (empty.data) return mapVersion(empty.data as unknown as VersionRow)
   }
   return null
 }
@@ -297,6 +379,33 @@ export async function adminFindVersionByNaturalKey(input: {
  * Upsert idempotente por id ou chave natural — reativa em vez de duplicar
  * (`vehicle_versions_natural_uidx`).
  */
+export type AdminVersionTechAttrs = {
+  transmission?: string | null
+  transmissionDetail?: string | null
+  traction?: string | null
+  tractionDetail?: string | null
+  bodyConfiguration?: string | null
+  vehicleClass?: string | null
+}
+
+function normalizeTechAttrs(input: AdminVersionTechAttrs): {
+  transmission: string | null
+  transmission_detail: string | null
+  traction: string | null
+  traction_detail: string | null
+  body_configuration: string | null
+  vehicle_class: string | null
+} {
+  return {
+    transmission: normalizeVehicleTransmission(input.transmission),
+    transmission_detail: normalizeTransmissionDetail(input.transmissionDetail),
+    traction: normalizeVehicleTraction(input.traction),
+    traction_detail: normalizeTractionDetail(input.tractionDetail),
+    body_configuration: normalizeBodyConfiguration(input.bodyConfiguration),
+    vehicle_class: normalizeVehicleClass(input.vehicleClass),
+  }
+}
+
 export async function adminUpsertVersion(input: {
   id?: string
   manufacturerId: string
@@ -306,8 +415,9 @@ export async function adminUpsertVersion(input: {
   versionName?: string | null
   fuel?: string | null
   status?: VehicleVersion['status']
-}): Promise<VehicleVersion> {
+} & AdminVersionTechAttrs): Promise<VehicleVersion> {
   const fuel = normalizeVehicleFuel(input.fuel)
+  const tech = normalizeTechAttrs(input)
   const payload = {
     manufacturer_id: input.manufacturerId,
     model_id: input.modelId,
@@ -315,14 +425,45 @@ export async function adminUpsertVersion(input: {
     engine: input.engine?.trim() || null,
     version_name: input.versionName?.trim() || null,
     fuel,
+    ...tech,
     status: input.status ?? 'active',
   }
   const sb = getSupabase().from('vehicle_versions')
 
+  function withoutTech(row: typeof payload) {
+    return {
+      manufacturer_id: row.manufacturer_id,
+      model_id: row.model_id,
+      year: row.year,
+      engine: row.engine,
+      version_name: row.version_name,
+      fuel: row.fuel,
+      status: row.status,
+    }
+  }
+
+  async function updateRow(id: string, row: typeof payload) {
+    let res = await sb.update(row).eq('id', id).select(VERSION_SELECT).single()
+    if (res.error && isMissingTechColumn(res.error)) {
+      if (techPayloadHasValue(row)) throw new Error(TECH_COLUMNS_PENDING)
+      res = await sb.update(withoutTech(row)).eq('id', id).select(VERSION_SELECT_BASE).single()
+    }
+    return res
+  }
+
+  async function insertRow(row: typeof payload) {
+    let res = await sb.insert(row).select(VERSION_SELECT).single()
+    if (res.error && isMissingTechColumn(res.error)) {
+      if (techPayloadHasValue(row)) throw new Error(TECH_COLUMNS_PENDING)
+      res = await sb.insert(withoutTech(row)).select(VERSION_SELECT_BASE).single()
+    }
+    return res
+  }
+
   async function updateById(id: string): Promise<VehicleVersion> {
-    const { data, error } = await sb.update(payload).eq('id', id).select(VERSION_SELECT).single()
-    if (!error) return mapVersion(data as VersionRow)
-    if (!isUniqueViolation(error)) throw error
+    const saved = await updateRow(id, payload)
+    if (!saved.error) return mapVersion(saved.data as VersionRow)
+    if (!isUniqueViolation(saved.error)) throw saved.error
     const winner = await adminFindVersionByNaturalKey({
       manufacturerId: payload.manufacturer_id,
       modelId: payload.model_id,
@@ -332,21 +473,16 @@ export async function adminUpsertVersion(input: {
       fuel: payload.fuel,
       claimEmptyFuel: false,
     })
-    if (!winner || winner.id === id) throw error
-    const { data: revived, error: revErr } = await sb
-      .update({
-        status: payload.status,
-        manufacturer_id: payload.manufacturer_id,
-        fuel: payload.fuel,
-      })
-      .eq('id', winner.id)
-      .select(VERSION_SELECT)
-      .single()
-    if (revErr) throw revErr
+    if (!winner || winner.id === id) throw saved.error
+    const revived = await updateRow(winner.id, {
+      ...payload,
+      manufacturer_id: payload.manufacturer_id,
+    })
+    if (revived.error) throw revived.error
     if (id !== winner.id) {
       await sb.update({ status: 'inactive' }).eq('id', id)
     }
-    return mapVersion(revived as VersionRow)
+    return mapVersion(revived.data as VersionRow)
   }
 
   if (input.id) return updateById(input.id)
@@ -361,9 +497,9 @@ export async function adminUpsertVersion(input: {
   })
   if (found) return updateById(found.id)
 
-  const { data, error } = await sb.insert(payload).select(VERSION_SELECT).single()
-  if (!error) return mapVersion(data as VersionRow)
-  if (!isUniqueViolation(error)) throw error
+  const inserted = await insertRow(payload)
+  if (!inserted.error) return mapVersion(inserted.data as VersionRow)
+  if (!isUniqueViolation(inserted.error)) throw inserted.error
   const raced = await adminFindVersionByNaturalKey({
     manufacturerId: payload.manufacturer_id,
     modelId: payload.model_id,
@@ -372,13 +508,36 @@ export async function adminUpsertVersion(input: {
     versionName: payload.version_name,
     fuel: payload.fuel,
   })
-  if (!raced) throw error
+  if (!raced) throw inserted.error
   return updateById(raced.id)
 }
 
 /**
  * Cria/reativa 1 VV por ano do intervalo. Idempotente na chave natural.
  */
+function techFromInput(input: AdminVersionTechAttrs): AdminVersionTechAttrs {
+  const normalized = normalizeTechAttrs(input)
+  return {
+    transmission: normalized.transmission,
+    transmissionDetail: normalized.transmission_detail,
+    traction: normalized.traction,
+    tractionDetail: normalized.traction_detail,
+    bodyConfiguration: normalized.body_configuration,
+    vehicleClass: normalized.vehicle_class,
+  }
+}
+
+function techChanged(hit: VehicleVersion, tech: AdminVersionTechAttrs): boolean {
+  return (
+    (hit.transmission ?? null) !== (tech.transmission ?? null) ||
+    (hit.transmissionDetail ?? null) !== (tech.transmissionDetail ?? null) ||
+    (hit.traction ?? null) !== (tech.traction ?? null) ||
+    (hit.tractionDetail ?? null) !== (tech.tractionDetail ?? null) ||
+    (hit.bodyConfiguration ?? null) !== (tech.bodyConfiguration ?? null) ||
+    (hit.vehicleClass ?? null) !== (tech.vehicleClass ?? null)
+  )
+}
+
 export async function adminUpsertVersionYearRange(input: {
   manufacturerId: string
   modelId: string
@@ -389,10 +548,11 @@ export async function adminUpsertVersionYearRange(input: {
   status?: VehicleVersion['status']
   /** VVs já carregadas do modelo (para skip sem round-trip). */
   existing?: VehicleVersion[]
-}): Promise<{ created: number; skipped: number; years: number[] }> {
+} & AdminVersionTechAttrs): Promise<{ created: number; skipped: number; years: number[] }> {
   const eng = input.engine?.trim() || null
   const ver = input.versionName?.trim() || null
   const fuel = normalizeVehicleFuel(input.fuel)
+  const tech = techFromInput(input)
   const existing = input.existing ?? (await adminListVersions(input.modelId))
   const byKey = new Map(
     existing.map((v) => [
@@ -426,7 +586,8 @@ export async function adminUpsertVersionYearRange(input: {
         : undefined)
     if (hit) {
       const needsFuel = fuel != null && (hit.fuel ?? null) !== fuel
-      if (hit.status !== wantStatus || needsFuel) {
+      const needsTech = techChanged(hit, tech)
+      if (hit.status !== wantStatus || needsFuel || needsTech) {
         await adminUpsertVersion({
           id: hit.id,
           manufacturerId: input.manufacturerId,
@@ -436,6 +597,7 @@ export async function adminUpsertVersionYearRange(input: {
           versionName: ver,
           fuel,
           status: wantStatus,
+          ...tech,
         })
         created += 1
       } else {
@@ -451,6 +613,7 @@ export async function adminUpsertVersionYearRange(input: {
       versionName: ver,
       fuel,
       status: wantStatus,
+      ...tech,
     })
     byKey.set(key, saved)
     created += 1
@@ -473,16 +636,18 @@ export async function adminReconcileVersionYearRange(input: {
   /** Chave da família que está sendo editada (`versionConfigGroupKey`). */
   sourceGroupKey?: string
   existing?: VehicleVersion[]
-}): Promise<{
+} & AdminVersionTechAttrs): Promise<{
   created: number
   reactivated: number
   inactivated: number
   skipped: number
   renamed: number
+  updated: number
 }> {
   const eng = input.engine?.trim() || null
   const ver = input.versionName?.trim() || null
   const fuel = normalizeVehicleFuel(input.fuel)
+  const tech = techFromInput(input)
   const toKey = versionConfigGroupKey({ engine: eng, versionName: ver, fuel })
   const fromKey = input.sourceGroupKey ?? toKey
   const identityChanged = fromKey !== toKey
@@ -497,6 +662,7 @@ export async function adminReconcileVersionYearRange(input: {
   let inactivated = 0
   let skipped = 0
   let renamed = 0
+  let updated = 0
 
   for (const year of input.years) {
     const sourceRow = family.find((v) => v.year === year)
@@ -515,6 +681,7 @@ export async function adminReconcileVersionYearRange(input: {
           versionName: ver,
           fuel,
           status: 'active',
+          ...tech,
         })
         reactivated += 1
       } else {
@@ -533,7 +700,8 @@ export async function adminReconcileVersionYearRange(input: {
         (sourceRow.engine ?? null) !== eng ||
         (sourceRow.versionName ?? null) !== ver ||
         (sourceRow.fuel ?? null) !== fuel
-      if (needsRename || sourceRow.status === 'inactive') {
+      const needsTech = techChanged(sourceRow, tech)
+      if (needsRename || needsTech || sourceRow.status === 'inactive') {
         await adminUpsertVersion({
           id: sourceRow.id,
           manufacturerId: input.manufacturerId,
@@ -543,9 +711,11 @@ export async function adminReconcileVersionYearRange(input: {
           versionName: ver,
           fuel,
           status: 'active',
+          ...tech,
         })
         if (needsRename) renamed += 1
-        else reactivated += 1
+        else if (sourceRow.status === 'inactive') reactivated += 1
+        else if (needsTech) updated += 1
       } else {
         skipped += 1
       }
@@ -553,9 +723,20 @@ export async function adminReconcileVersionYearRange(input: {
     }
 
     if (conflict) {
-      if (conflict.status === 'inactive') {
-        await adminSetVersionStatus(conflict.id, 'active')
-        reactivated += 1
+      if (conflict.status === 'inactive' || techChanged(conflict, tech)) {
+        await adminUpsertVersion({
+          id: conflict.id,
+          manufacturerId: input.manufacturerId,
+          modelId: input.modelId,
+          year,
+          engine: eng,
+          versionName: ver,
+          fuel,
+          status: 'active',
+          ...tech,
+        })
+        if (conflict.status === 'inactive') reactivated += 1
+        else renamed += 1
       } else {
         skipped += 1
       }
@@ -570,6 +751,7 @@ export async function adminReconcileVersionYearRange(input: {
       versionName: ver,
       fuel,
       status: 'active',
+      ...tech,
     })
     created += 1
   }
@@ -591,13 +773,14 @@ export async function adminReconcileVersionYearRange(input: {
         versionName: ver,
         fuel,
         status: 'inactive',
+        ...tech,
       })
       if (row.status === 'active') inactivated += 1
       else if (needsRename) renamed += 1
     }
   }
 
-  return { created, reactivated, inactivated, skipped, renamed }
+  return { created, reactivated, inactivated, skipped, renamed, updated }
 }
 
 export async function adminSetModelStatus(id: string, status: VehicleModel['status']) {

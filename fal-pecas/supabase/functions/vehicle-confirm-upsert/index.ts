@@ -1,7 +1,7 @@
 /**
  * FAL — R4: re-upsert canônico após confirmação humana da placa.
- * Exige JWT de usuário autenticado. Usa service_role só no upsert RPC.
- * Guards R2: maker + model + ano obrigatórios.
+ * Exige JWT. Grava via service_role no RPC.
+ * Fase 2: staff OU cliente com placa coerente com cache recente (não basta JWT genérico).
  */
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1'
 import { vehicleCanonicalUpsert } from '../_shared/vehicleCanonicalUpsert.ts'
@@ -11,11 +11,34 @@ const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const STAFF_ROLES = new Set([
+  'administrador',
+  'gerente',
+  'operador',
+  'estoque',
+  'atendimento',
+])
+
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+}
+
+function fold(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+}
+
+function modelsCompatible(confirmed: string, cached: string): boolean {
+  const a = fold(confirmed)
+  const b = fold(cached)
+  if (!a || !b) return false
+  return a === b || a.startsWith(b) || b.startsWith(a)
 }
 
 Deno.serve(async (req) => {
@@ -45,6 +68,7 @@ Deno.serve(async (req) => {
       year?: string | number | null
       engine?: string | null
       version?: string | null
+      plate?: string | null
     }
 
     const maker = String(body.maker ?? '').trim()
@@ -56,6 +80,56 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey)
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('id', userData.user.id)
+      .maybeSingle()
+    const role = String((profile as { role?: string } | null)?.role ?? '')
+    const isStaff = STAFF_ROLES.has(role)
+
+    if (!isStaff) {
+      const plateRaw = String(body.plate ?? '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+      if (!plateRaw) {
+        return json(403, { error: 'plate_required_for_customer_confirm' })
+      }
+      const { data: cached, error: cacheErr } = await admin
+        .from('cached_plates')
+        .select('plate, payload, updated_at, expires_at')
+        .eq('plate', plateRaw)
+        .maybeSingle()
+      if (cacheErr || !cached) {
+        return json(403, { error: 'plate_lookup_required_before_confirm' })
+      }
+      const expiresAt = new Date(String((cached as { expires_at?: string }).expires_at ?? 0))
+      if (Number.isFinite(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
+        return json(403, { error: 'plate_lookup_expired' })
+      }
+      const payload = (cached as { payload?: Record<string, unknown> }).payload ?? {}
+      const nested = payload.vehicle
+      const vehicle =
+        nested && typeof nested === 'object' ? (nested as Record<string, unknown>) : null
+      const pick = (key: string) => {
+        const fromVehicle = vehicle?.[key]
+        if (fromVehicle != null && String(fromVehicle).trim() !== '') return String(fromVehicle)
+        const fromRoot = payload[key]
+        return fromRoot == null ? '' : String(fromRoot)
+      }
+      const cacheMaker = fold(pick('maker'))
+      const cacheModel = fold(pick('model'))
+      const cacheYear = pick('year').trim()
+      if (fold(maker) !== cacheMaker || !modelsCompatible(model, cacheModel)) {
+        return json(403, { error: 'plate_confirm_mismatch' })
+      }
+      if (cacheYear && String(year).trim() !== cacheYear) {
+        return json(403, { error: 'plate_confirm_year_mismatch' })
+      }
+    }
+
     const upserted = await vehicleCanonicalUpsert(admin, {
       maker,
       model,

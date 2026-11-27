@@ -1,7 +1,7 @@
 # FAL Padrão — Telas · Layout · Design
 
-**Versão do padrão:** `FAL-UI-LAYOUT **v1.6.3**`  
-**Data:** 2026-11-23 · Branch âncora: **`dev`**  
+**Versão do padrão:** `FAL-UI-LAYOUT **v1.6.4**`  
+**Data:** 2026-11-27 · Branch âncora: **`dev`**  
 **Status:** normativo — toda evolução admin (e loja quando aplicável) deve **registrar versão** e **passar antiregressão**
 
 Este documento é a **fonte de verdade de excelência visual/operacional** da FAL.  
@@ -179,7 +179,7 @@ Script: `pnpm test:ui-layout-antiregress`
 | **FL1** | `AdaptiveWorkspace` + hubs orders/dashboard/products/kits/prices/applications/categories/promotions/inventory/customers/**vehicles** usam `moduleKey` | fonte |
 | **FL2** | Prefs `fal-admin-workspace-v1` + keys incl. inventory/customers; sem gravar selectedId | fonte + unit prefs |
 | **FL3** | `data-workspace-primary` compact\|full no shell | fonte |
-| **FL4** | CSS compact primary (orders) + regra `@container` no exec-summary | fonte |
+| **FL4** | CSS compact primary (orders+catálogo+**vehicles**) + regra `@container` no exec-summary | fonte |
 | **FL5** | Vocabulário Abrir guia / Fechar guia / **Listas de preço** (nav + hubs + Home/fornecedor; sem “preços” plural no label) | fonte |
 | **FL6** | WorkSurfaces: Product / Kit / PriceList / Application / Category / Promotion / Inventory / Customer exportados | fonte |
 | **FL7** | Tokens `--fal-fg/bg/surface/accent` + `.dark` | fonte |
@@ -238,6 +238,12 @@ Herdados Adaptive (PZ1–PZ6): ver doc padrão zin — **não regredir Central/P
 ---
 
 ## 9. Changelog do padrão
+
+### v1.6.4 — 2026-11-27 (PATCH)
+
+**Veículos compact primary:**
+- CSS `[data-workspace-primary=compact]` inclui `admin-vehicles-hub` + força cards (`list-mobile`) / esconde tabela (`list-desktop`) — mesma lição catálogo
+- Lock **FL4** estendido; smoke `adminVehiclesUx` cobre filtros tech + hub fontes/incompletude
 
 ### v1.6.3 — 2026-11-23 (PATCH)
 

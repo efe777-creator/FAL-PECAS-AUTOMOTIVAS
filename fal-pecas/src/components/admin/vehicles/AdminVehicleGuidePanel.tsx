@@ -3,7 +3,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Input } from '@/components/common/Input'
 import { Select } from '@/components/common/Select'
 import { useToast } from '@/components/common/Toast'
-import { entityStatusLabel } from '@/lib/adminLabels'
+import { entityStatusLabel, vehicleQualityBadge } from '@/lib/adminLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import {
   assertVersionYearsWithinModelLife,
@@ -15,9 +15,22 @@ import {
 } from '@/lib/vehicles/expandVersionYearRange'
 import { peelEngineFromVersionName } from '@/lib/vehicles/peelEngineFromVersionName'
 import {
+  effectiveVehicleClass,
+  VEHICLE_BODY_CONFIGURATION_SELECT_OPTIONS,
+  VEHICLE_CLASS_SELECT_OPTIONS,
+} from '@/lib/vehicles/normalizeVehicleBodyConfig'
+import {
   normalizeVehicleFuel,
   VEHICLE_FUEL_SELECT_OPTIONS,
 } from '@/lib/vehicles/normalizeVehicleFuel'
+import {
+  VEHICLE_TRANSMISSION_DETAIL_SELECT_OPTIONS,
+  VEHICLE_TRANSMISSION_SELECT_OPTIONS,
+} from '@/lib/vehicles/normalizeVehicleTransmission'
+import {
+  VEHICLE_TRACTION_DETAIL_SELECT_OPTIONS,
+  VEHICLE_TRACTION_SELECT_OPTIONS,
+} from '@/lib/vehicles/normalizeVehicleTraction'
 import {
   adminListVersions,
   adminReconcileVersionYearRange,
@@ -33,19 +46,29 @@ import type { Manufacturer, VehicleModel, VehicleVersion } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-function qualityBadge(status: VehicleModel['qualityStatus']): { label: string; className: string } {
-  switch (status) {
-    case 'verified':
-      return { label: 'Verificado', className: 'bg-emerald-100 text-emerald-900' }
-    case 'quarantined':
-      return { label: 'Quarentena', className: 'bg-red-100 text-red-900' }
-    case 'superseded':
-      return { label: 'Substituído', className: 'bg-fal-line/60 text-fal-muted' }
-    case 'review':
-    default:
-      return { label: 'Revisão', className: 'bg-amber-100 text-amber-900' }
-  }
+function optionLabel(
+  options: ReadonlyArray<{ value: string; label: string }>,
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null
+  return options.find((o) => o.value === value)?.label ?? value
 }
+
+function techSummary(row: VehicleVersion | undefined): string {
+  if (!row) return ''
+  return [
+    optionLabel(VEHICLE_TRANSMISSION_SELECT_OPTIONS, row.transmission),
+    optionLabel(VEHICLE_TRANSMISSION_DETAIL_SELECT_OPTIONS, row.transmissionDetail),
+    optionLabel(VEHICLE_TRACTION_SELECT_OPTIONS, row.traction),
+    optionLabel(VEHICLE_TRACTION_DETAIL_SELECT_OPTIONS, row.tractionDetail),
+    optionLabel(VEHICLE_BODY_CONFIGURATION_SELECT_OPTIONS, row.bodyConfiguration),
+    row.vehicleClass ? optionLabel(VEHICLE_CLASS_SELECT_OPTIONS, row.vehicleClass) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+const qualityBadge = vehicleQualityBadge
 
 export type AdminVehicleGuidePanelProps = {
   model: VehicleModel | null
@@ -83,6 +106,12 @@ export function AdminVehicleGuidePanel({
   const [engine, setEngine] = useState('')
   const [versionName, setVersionName] = useState('')
   const [fuel, setFuel] = useState('')
+  const [transmission, setTransmission] = useState('')
+  const [transmissionDetail, setTransmissionDetail] = useState('')
+  const [traction, setTraction] = useState('')
+  const [tractionDetail, setTractionDetail] = useState('')
+  const [bodyConfiguration, setBodyConfiguration] = useState('')
+  const [versionClass, setVersionClass] = useState('')
   const [busyVv, setBusyVv] = useState(false)
   const [highlightGroupKey, setHighlightGroupKey] = useState<string | null>(null)
   const highlightRef = useRef<HTMLElement | null>(null)
@@ -121,6 +150,12 @@ export function AdminVehicleGuidePanel({
     setEngine('')
     setVersionName('')
     setFuel('')
+    setTransmission('')
+    setTransmissionDetail('')
+    setTraction('')
+    setTractionDetail('')
+    setBodyConfiguration('')
+    setVersionClass('')
     setQualityNote(model.reviewNote ?? '')
     setQualityDraft(
       initialApprove
@@ -241,6 +276,13 @@ export function AdminVehicleGuidePanel({
     setEngine(group.engine ?? '')
     setVersionName(group.versionName ?? '')
     setFuel(group.fuel ?? '')
+    const sample = group.rows.find((r) => r.status === 'active') ?? group.rows[0]
+    setTransmission(sample?.transmission ?? '')
+    setTransmissionDetail(sample?.transmissionDetail ?? '')
+    setTraction(sample?.traction ?? '')
+    setTractionDetail(sample?.tractionDetail ?? '')
+    setBodyConfiguration(sample?.bodyConfiguration ?? '')
+    setVersionClass(sample?.vehicleClass ?? '')
   }
 
   function clearVersionForm() {
@@ -250,6 +292,12 @@ export function AdminVehicleGuidePanel({
     setEngine('')
     setVersionName('')
     setFuel('')
+    setTransmission('')
+    setTransmissionDetail('')
+    setTraction('')
+    setTractionDetail('')
+    setBodyConfiguration('')
+    setVersionClass('')
   }
 
   async function saveVersion(
@@ -267,6 +315,14 @@ export function AdminVehicleGuidePanel({
       const eng = engine.trim() || null
       const peeled = peelEngineFromVersionName(eng, versionName.trim() || null)
       const fuelNorm = normalizeVehicleFuel(fuel)
+      const tech = {
+        transmission: transmission || null,
+        transmissionDetail: transmissionDetail || null,
+        traction: traction || null,
+        tractionDetail: tractionDetail || null,
+        bodyConfiguration: bodyConfiguration || null,
+        vehicleClass: versionClass || null,
+      }
       const endBlank = !yearEnd.trim()
       const { years, yearStart: ys, yearEnd: ye, openEnded } =
         assertVersionYearsWithinModelLife({
@@ -288,7 +344,7 @@ export function AdminVehicleGuidePanel({
       }
 
       if (!asCreate && editingGroupKey) {
-        const { created, reactivated, inactivated, skipped, renamed } =
+        const { created, reactivated, inactivated, skipped, renamed, updated } =
           await adminReconcileVersionYearRange({
             manufacturerId: current.manufacturerId,
             modelId: current.id,
@@ -298,9 +354,10 @@ export function AdminVehicleGuidePanel({
             fuel: fuelNorm,
             sourceGroupKey: editingGroupKey,
             existing: versions,
+            ...tech,
           })
         toast.push(
-          `Atualizada ${identityLabel}: ${created} novas, ${reactivated} reativadas, ${renamed} motor/versão/fuel, ${inactivated} fora do período` +
+          `Atualizada ${identityLabel}: ${created} novas, ${reactivated} reativadas, ${renamed} motor/versão/fuel, ${updated} atributos, ${inactivated} fora do período` +
             (skipped ? `, ${skipped} ok` : '') +
             '.',
           'success',
@@ -317,6 +374,7 @@ export function AdminVehicleGuidePanel({
           versionName: peeled,
           fuel: fuelNorm,
           existing: versions,
+          ...tech,
         })
         if (created === 0 && skipped > 0) {
           toast.push(
@@ -525,8 +583,9 @@ export function AdminVehicleGuidePanel({
         </p>
         <form
           onSubmit={(e) => void saveVersion(e, editingGroupKey ? 'edit' : 'create')}
-          className="mb-3 grid gap-2 rounded-[12px] border border-fal-line bg-fal-bg/40 p-3 sm:grid-cols-3"
+          className="mb-3 space-y-3 rounded-[12px] border border-fal-line bg-fal-bg/40 p-3"
         >
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <Select
             label="Ano início"
             name="vv-year-start"
@@ -539,11 +598,12 @@ export function AdminVehicleGuidePanel({
           <Select
             label="Ano fim"
             name="vv-year-end"
-            placeholder="Vazio = vigente"
+            placeholder="Não informado"
             options={yearSelectOptions}
             value={yearEnd}
             disabled={yearSelectOptions.length === 0}
             onChange={(e) => setYearEnd(e.target.value)}
+            hint="Vazio = vigente"
           />
           <Input
             label="Motor"
@@ -564,14 +624,72 @@ export function AdminVehicleGuidePanel({
             value={fuel}
             onChange={(e) => setFuel(e.target.value)}
           />
-          <p className="m-0 text-[11px] text-fal-muted sm:col-span-3">
+          </div>
+          <div className="grid gap-2 rounded-[10px] border border-fal-line bg-fal-surface p-3 sm:grid-cols-2 lg:grid-cols-3">
+            <p className="m-0 text-xs font-extrabold text-fal-muted sm:col-span-2 lg:col-span-3">
+              Atributos técnicos — vazio permanece NULL
+            </p>
+          <Select
+            label="Transmissão"
+            name="vv-transmission"
+            placeholder="Não informado"
+            options={[...VEHICLE_TRANSMISSION_SELECT_OPTIONS]}
+            value={transmission}
+            onChange={(e) => setTransmission(e.target.value)}
+          />
+          <Select
+            label="Detalhe transmissão"
+            name="vv-transmission-detail"
+            placeholder="Não informado"
+            options={[...VEHICLE_TRANSMISSION_DETAIL_SELECT_OPTIONS]}
+            value={transmissionDetail}
+            onChange={(e) => setTransmissionDetail(e.target.value)}
+          />
+          <Select
+            label="Tração"
+            name="vv-traction"
+            placeholder="Não informado"
+            options={[...VEHICLE_TRACTION_SELECT_OPTIONS]}
+            value={traction}
+            onChange={(e) => setTraction(e.target.value)}
+          />
+          <Select
+            label="Detalhe tração"
+            name="vv-traction-detail"
+            placeholder="Não informado"
+            options={[...VEHICLE_TRACTION_DETAIL_SELECT_OPTIONS]}
+            value={tractionDetail}
+            onChange={(e) => setTractionDetail(e.target.value)}
+          />
+          <Select
+            label="Configuração"
+            name="vv-body"
+            placeholder="Não informado"
+            options={[...VEHICLE_BODY_CONFIGURATION_SELECT_OPTIONS]}
+            value={bodyConfiguration}
+            onChange={(e) => setBodyConfiguration(e.target.value)}
+          />
+          <Select
+            label="Classe específica"
+            name="vv-class"
+            placeholder={`Herdar (${current.vehicleClass ?? 'unknown'})`}
+            options={[...VEHICLE_CLASS_SELECT_OPTIONS]}
+            value={versionClass}
+            onChange={(e) => setVersionClass(e.target.value)}
+          />
+          <p className="m-0 text-[11px] text-fal-muted sm:col-span-2 lg:col-span-3">
+            Classe efetiva:{' '}
+            {effectiveVehicleClass(versionClass || null, current.vehicleClass)}
+          </p>
+          </div>
+          <p className="m-0 text-[11px] text-fal-muted">
             {yearSelectOptions.length === 0
               ? 'Defina a linha do modelo (Linha desde/até) antes de criar configurações.'
               : editingGroupKey
-                ? 'Altere período, motor, versão e/ou combustível. Ano fim vazio = vigente até o fim da linha do modelo.'
-                : 'Ano início obrigatório; Ano fim vazio = vigente. Gera 1 VV por ano até o fim da linha.'}
+                ? 'Altere período e atributos. Campos técnicos vazios permanecem NULL. Ano fim vazio = vigente até o fim da linha.'
+                : 'Ano início obrigatório; Ano fim vazio = vigente. Atributos técnicos opcionais. Gera 1 VV por ano.'}
           </p>
-          <div className="flex flex-wrap gap-2 sm:col-span-3">
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={busyVv || yearSelectOptions.length === 0}>
               {editingGroupKey ? 'Salvar alterações' : 'Criar config'}
             </Button>
@@ -611,6 +729,8 @@ export function AdminVehicleGuidePanel({
               })
               const allInactive = g.activeCount === 0
               const highlighted = highlightGroupKey === g.key
+              const sample = g.rows.find((r) => r.status === 'active') ?? g.rows[0]
+              const techLine = techSummary(sample)
               return (
                 <article
                   key={g.key}
@@ -627,6 +747,7 @@ export function AdminVehicleGuidePanel({
                   <p className="m-0 font-semibold text-fal-fg">
                     {period} · {g.engine ?? '—'} · {g.versionName ?? '—'} · {g.fuel ?? '—'}
                   </p>
+                  {techLine ? <p className="mb-0 mt-1 text-xs text-fal-muted">{techLine}</p> : null}
                   <p className="mb-0 mt-1 flex flex-wrap gap-2 text-xs text-fal-muted">
                     <span>
                       {g.years.length} ano{g.years.length === 1 ? '' : 's'}

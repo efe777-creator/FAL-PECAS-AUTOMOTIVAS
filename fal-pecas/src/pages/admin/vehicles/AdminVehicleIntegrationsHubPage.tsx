@@ -3,11 +3,16 @@ import { Input } from '@/components/common/Input'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { setGuideBridge, VEHICLES_OPEN_GUIDE_KEY } from '@/lib/adminGuideBridges'
+import { ADMIN_CHIP, ADMIN_SEGMENT_OFF, ADMIN_SEGMENT_ON } from '@/lib/adminLabels'
 import { toUserMessage } from '@/lib/toUserMessage'
 import { setModelQualityStatus } from '@/services/admin/adminVehicleService'
+import { adminListVehicleDataSources, type VehicleDataSource } from '@/services/admin/adminVehicleDataSourceService'
+import { adminListVehicleImportBatches } from '@/services/admin/adminVehicleImportBatchService'
+import { adminFetchVehicleIncompletenessReport, type VehicleIncompletenessReport } from '@/services/admin/adminVehicleIncompletenessReport'
 import {
   adminFetchVehicleMasterStats,
   listReviewQueue,
+  type VehicleMasterStats,
   type VehicleNoEngineItem,
   type VehiclePointLifeItem,
   type VehicleReviewQueueItem,
@@ -24,8 +29,8 @@ import { Link, useNavigate } from 'react-router-dom'
 function StatusChip({ label, on }: { label: string; on: boolean }) {
   return (
     <span
-      className={`rounded-md px-2 py-1 text-xs font-bold ${
-        on ? 'bg-emerald-100 text-emerald-900' : 'bg-fal-line/60 text-fal-muted'
+      className={`rounded-[10px] px-2 py-1 text-xs font-bold ${
+        on ? ADMIN_CHIP.ok : ADMIN_CHIP.neutral
       }`}
     >
       {label}: {on ? 'ligado' : 'off'}
@@ -61,6 +66,10 @@ export function AdminVehicleIntegrationsHubPage() {
   const [pointLifeItems, setPointLifeItems] = useState<VehiclePointLifeItem[]>([])
   const [noEngineItems, setNoEngineItems] = useState<VehicleNoEngineItem[]>([])
   const [zeroCatalogItems, setZeroCatalogItems] = useState<ZeroCatalogLookupItem[]>([])
+  const [masterStats, setMasterStats] = useState<VehicleMasterStats | null>(null)
+  const [incompleteness, setIncompleteness] = useState<VehicleIncompletenessReport | null>(null)
+  const [sources, setSources] = useState<VehicleDataSource[]>([])
+  const [batches, setBatches] = useState<unknown[]>([])
   const [statsError, setStatsError] = useState<string | null>(null)
   const [queueError, setQueueError] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<VehicleMasterSyncMeta | null>(null)
@@ -117,12 +126,14 @@ export function AdminVehicleIntegrationsHubPage() {
     setQueueError(null)
     try {
       const s = await adminFetchVehicleMasterStats()
+      setMasterStats(s)
       setThinShells(s.verifiedThinShellItems)
       setPointLifeItems(s.verifiedPointLifeItems)
       setNoEngineItems(s.verifiedNoEngineItems)
       setZeroCatalogItems(s.zeroCatalogLookupItems)
     } catch (err) {
       setStatsError(toUserMessage(err, 'Falha ao carregar listas'))
+      setMasterStats(null)
       setThinShells([])
       setPointLifeItems([])
       setNoEngineItems([])
@@ -132,6 +143,21 @@ export function AdminVehicleIntegrationsHubPage() {
       setQueue(await listReviewQueue())
     } catch (err) {
       setQueueError(toUserMessage(err, 'Falha ao carregar fila de revisão'))
+    }
+    try {
+      setIncompleteness(await adminFetchVehicleIncompletenessReport())
+    } catch {
+      setIncompleteness(null)
+    }
+    try {
+      setSources(await adminListVehicleDataSources())
+    } catch {
+      setSources([])
+    }
+    try {
+      setBatches(await adminListVehicleImportBatches(8))
+    } catch {
+      setBatches([])
     }
   }, [])
 
@@ -147,9 +173,7 @@ export function AdminVehicleIntegrationsHubPage() {
         kind: 'revisao',
         badge: q.qualityStatus === 'quarantined' ? 'Quarentena' : 'Revisão',
         badgeClass:
-          q.qualityStatus === 'quarantined'
-            ? 'bg-red-100 text-red-900'
-            : 'bg-amber-100 text-amber-900',
+          q.qualityStatus === 'quarantined' ? ADMIN_CHIP.danger : ADMIN_CHIP.warn,
         title: `${q.makerName} ${q.name}`,
         subtitle: [
           q.vehicleClass,
@@ -169,7 +193,7 @@ export function AdminVehicleIntegrationsHubPage() {
         key: `t-${s.id}`,
         kind: 'casca',
         badge: 'Casca',
-        badgeClass: 'bg-orange-100 text-orange-950',
+        badgeClass: ADMIN_CHIP.warn,
         title: `${s.makerName} ${s.name}`,
         subtitle: s.reviewNote ?? undefined,
         modelId: s.id,
@@ -180,7 +204,7 @@ export function AdminVehicleIntegrationsHubPage() {
         key: `p-${p.id}`,
         kind: 'vida',
         badge: String(p.year),
-        badgeClass: 'bg-orange-50 text-orange-900',
+        badgeClass: ADMIN_CHIP.warn,
         title: `${p.makerName} ${p.name}`,
         subtitle: p.reviewNote ?? undefined,
         modelId: p.id,
@@ -191,7 +215,7 @@ export function AdminVehicleIntegrationsHubPage() {
         key: `e-${v.id}`,
         kind: 'sem_motor',
         badge: 'Sem motor',
-        badgeClass: 'bg-orange-50 text-orange-900',
+        badgeClass: ADMIN_CHIP.warn,
         title: `${v.makerName} ${v.modelName}${v.versionName ? ` · ${v.versionName}` : ''}`,
         modelId: v.modelId,
       }))
@@ -200,7 +224,7 @@ export function AdminVehicleIntegrationsHubPage() {
       key: `z-${e.id}`,
       kind: 'catalogo0',
       badge: e.confidenceBand,
-      badgeClass: 'bg-sky-100 text-sky-950',
+      badgeClass: ADMIN_CHIP.info,
       title: [e.maker, e.model, e.year].filter(Boolean).join(' ') || '—',
       subtitle: `${e.status} · ${new Date(e.createdAt).toLocaleString('pt-BR')}`,
       modelId: null,
@@ -239,6 +263,104 @@ export function AdminVehicleIntegrationsHubPage() {
         </div>
         {statsError ? <p className="mt-2 text-sm text-fal-danger">{statsError}</p> : null}
       </div>
+
+      {masterStats ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          {[
+            ['Montadoras', masterStats.manufacturersActive],
+            ['Modelos', masterStats.modelsActive],
+            ['Versões', masterStats.versionsActive],
+            ['Verificados', masterStats.qualityVerified],
+            ['Em revisão', masterStats.qualityReview],
+            ['Quarentena', masterStats.qualityQuarantined],
+          ].map(([label, n]) => (
+            <div
+              key={String(label)}
+              className="rounded-[14px] border border-fal-line bg-fal-surface px-4 py-3"
+            >
+              <p className="m-0 text-xs font-extrabold uppercase tracking-wide text-fal-muted">
+                {label}
+              </p>
+              <p className="mb-0 mt-1 text-2xl font-extrabold text-fal-fg">{n}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {incompleteness ? (
+        <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+          <p className="m-0 text-sm font-bold text-fal-fg">Incompletude (versões ativas)</p>
+          <p className="mb-2 mt-1 text-xs text-fal-muted">
+            Indicador de qualidade — não bloqueia cadastro. Atualizado em{' '}
+            {new Date(incompleteness.generatedAt).toLocaleString('pt-BR')}.
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs font-semibold text-fal-fg">
+            <span className={`rounded-[10px] px-2.5 py-1 ${ADMIN_CHIP.neutral}`}>
+              Total {incompleteness.totalActiveVersions}
+            </span>
+            {(
+              [
+                ['Sem motor', incompleteness.withoutEngine],
+                ['Sem versão', incompleteness.withoutVersionName],
+                ['Sem combustível', incompleteness.withoutFuel],
+                ['Sem transmissão', incompleteness.withoutTransmission],
+                ['Sem tração', incompleteness.withoutTraction],
+                ['Sem configuração', incompleteness.withoutBodyConfiguration],
+                ['Sem ano', incompleteness.withoutYear],
+              ] as const
+            ).map(([label, n]) => (
+              <span key={label} className={`rounded-[10px] px-2.5 py-1 ${ADMIN_CHIP.warn}`}>
+                {label} {n}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {(sources.length > 0 || batches.length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {sources.length > 0 ? (
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <p className="m-0 text-sm font-bold text-fal-fg">Fontes de dados</p>
+              <ul className="mb-0 mt-2 list-none space-y-1 p-0 text-sm">
+                {sources.map((s) => (
+                  <li key={s.id} className="flex justify-between gap-2 border-b border-fal-line/60 py-1">
+                    <span className="font-semibold text-fal-fg">{s.name}</span>
+                    <span className="text-xs text-fal-muted">
+                      {s.providerType} · {s.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mb-0 mt-2 text-[11px] text-fal-muted">
+                Credenciais ficam só em secrets do backend — nunca nesta tela.
+              </p>
+            </div>
+          ) : null}
+          {batches.length > 0 ? (
+            <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
+              <p className="m-0 text-sm font-bold text-fal-fg">Histórico de importações</p>
+              <ul className="mb-0 mt-2 list-none space-y-1 p-0 text-sm">
+                {(batches as Array<Record<string, unknown>>).map((b) => {
+                  const src = b.vehicle_data_sources as { name?: string } | null
+                  return (
+                    <li key={String(b.id)} className="border-b border-fal-line/60 py-1">
+                      <span className="font-semibold text-fal-fg">
+                        {String(b.file_name ?? 'lote')} · {String(b.status)}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-fal-muted">
+                        {src?.name ?? 'fonte'} · {String(b.total_records ?? 0)} linhas · +
+                        {String(b.created_count ?? 0)} / ~
+                        {String(b.updated_count ?? 0)} / !{String(b.conflict_count ?? 0)}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
@@ -281,7 +403,7 @@ export function AdminVehicleIntegrationsHubPage() {
             Atualizar lista
           </Button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filtros da revisão">
           {(
             [
               ['revisao', 'Revisão'],
@@ -294,10 +416,10 @@ export function AdminVehicleIntegrationsHubPage() {
             <button
               key={id}
               type="button"
-              className={`rounded-md px-2 py-1 text-xs font-bold ${
-                filter === id
-                  ? 'bg-fal-navy text-white'
-                  : 'bg-fal-line/50 text-fal-fg hover:bg-fal-line'
+              role="tab"
+              aria-selected={filter === id}
+              className={`min-h-11 rounded-[10px] border px-3 text-xs font-bold ${
+                filter === id ? ADMIN_SEGMENT_ON : ADMIN_SEGMENT_OFF
               }`}
               onClick={() => setFilter(id)}
             >
@@ -309,7 +431,7 @@ export function AdminVehicleIntegrationsHubPage() {
           <p className="mt-2 text-sm text-fal-danger">{queueError}</p>
         ) : null}
         {queueActionError ? <p className="mt-2 text-sm text-fal-danger">{queueActionError}</p> : null}
-        {queueActionMsg ? <p className="mt-2 text-sm text-emerald-800">{queueActionMsg}</p> : null}
+        {queueActionMsg ? <p className="mt-2 text-sm text-fal-success">{queueActionMsg}</p> : null}
         {unified.length === 0 ? (
           <p className="mb-0 mt-3 text-sm text-fal-muted">Nenhum item neste filtro.</p>
         ) : (
@@ -355,19 +477,22 @@ export function AdminVehicleIntegrationsHubPage() {
                     </Link>
                   ) : null}
                   {row.queueItem?.qualityStatus === 'review' ? (
-                    <button
+                    <Button
                       type="button"
-                      className="rounded-md bg-emerald-700 px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
+                      size="sm"
+                      className="min-h-11"
                       disabled={queueBusyId === row.queueItem.id || !allowed}
                       onClick={() => onQueueVerify(row.queueItem!)}
                     >
                       Verificar
-                    </button>
+                    </Button>
                   ) : null}
                   {row.queueItem && row.queueItem.qualityStatus !== 'quarantined' ? (
-                    <button
+                    <Button
                       type="button"
-                      className="rounded-md border border-red-300 px-2 py-1 text-xs font-bold text-red-900 disabled:opacity-50"
+                      size="sm"
+                      variant="danger"
+                      className="min-h-11"
                       disabled={queueBusyId === row.queueItem.id || !allowed}
                       onClick={() => {
                         setQuarantineFormId(row.queueItem!.id)
@@ -375,12 +500,12 @@ export function AdminVehicleIntegrationsHubPage() {
                       }}
                     >
                       Quarentena
-                    </button>
+                    </Button>
                   ) : null}
                 </span>
                 {row.queueItem && quarantineFormId === row.queueItem.id ? (
                   <form
-                    className="mt-2 w-full space-y-2 rounded-md border border-red-200 bg-red-50/40 p-2"
+                    className="mt-2 w-full space-y-2 rounded-[10px] border border-fal-danger/40 bg-fal-danger/10 p-3"
                     onSubmit={(e) => {
                       e.preventDefault()
                       void onQueueQuarantineSubmit(row.queueItem!)

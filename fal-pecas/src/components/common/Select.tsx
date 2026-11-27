@@ -2,12 +2,14 @@ import type { SelectHTMLAttributes } from 'react'
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
+  hint?: string
   options: Array<{ value: string; label: string }>
   placeholder?: string
 }
 
 export function Select({
   label,
+  hint,
   options,
   placeholder,
   id,
@@ -43,6 +45,7 @@ export function Select({
           </option>
         ))}
       </select>
+      {hint ? <p className="m-0 text-[13px] text-fal-muted">{hint}</p> : null}
     </div>
   )
 }

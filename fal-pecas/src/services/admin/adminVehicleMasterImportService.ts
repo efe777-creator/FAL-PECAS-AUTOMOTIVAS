@@ -1,15 +1,9 @@
-import {
-  mergeModelProductionYears,
-  setModelQualityStatus,
-} from '@/services/admin/adminVehicleService'
 import { yearsInInclusiveRange } from '@/lib/vehicles/expandVersionYearRange'
 import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { decodeImportCsvText } from '@/services/import/decodeImportCsvText'
 import { detectCsvDelimiter } from '@/services/import/delimiter'
 import { splitCsvLine, splitCsvRecords } from '@/services/import/csvSplit'
 import { normalizeHeader } from '@/services/import/headers'
-import { STAFF_QUALITY_EVIDENCE_KIND } from '@/services/vehicles/vehicleMasterProvider'
-import { vehicleCanonicalUpsert } from '@/services/vehicles/vehicleCanonicalUpsert'
 
 export type VehicleMasterQuality = 'verified' | 'quarantined'
 
@@ -29,15 +23,6 @@ export type VehicleMasterRow = {
   qualityStatus: VehicleMasterQuality | null
   action: 'create' | 'reuse' | 'skip' | 'error'
   message?: string
-}
-
-export type VehicleMasterApplyResult = {
-  created: number
-  reused: number
-  skipped: number
-  errors: number
-  qualitySet: number
-  versionIds: string[]
 }
 
 const YEAR_MIN = 1950
@@ -265,127 +250,4 @@ export async function adminPreviewVehicleMasterImport(file: File): Promise<{
   }
 
   return { rows, delimiter, fileErrors }
-}
-
-/** Aplica upsert canônico por ano do período — sem PVC. Idempotente. */
-export async function adminApplyVehicleMasterImport(
-  rows: VehicleMasterRow[],
-): Promise<VehicleMasterApplyResult> {
-  const result: VehicleMasterApplyResult = {
-    created: 0,
-    reused: 0,
-    skipped: 0,
-    errors: 0,
-    qualitySet: 0,
-    versionIds: [],
-  }
-
-  const seen = new Set<string>()
-  const qualityByModel = new Map<string, VehicleMasterQuality>()
-  const lifeByModel = new Map<string, { start: number; end: number }>()
-
-  for (const row of rows) {
-    if (row.action === 'skip' || !row.montadora || !row.modelo) {
-      result.skipped += 1
-      continue
-    }
-
-    const bounds = resolveYearBounds({
-      ano: row.ano,
-      anoInicio: row.anoInicio,
-      anoFim: row.anoFim,
-    })
-    if ('error' in bounds) {
-      result.skipped += 1
-      row.action = 'skip'
-      row.message = bounds.error
-      continue
-    }
-
-    const key = [
-      row.montadora.toLowerCase(),
-      row.modelo.toLowerCase(),
-      bounds.start,
-      bounds.end,
-      row.motor.toLowerCase(),
-      row.versao.toLowerCase(),
-      (row.combustivel ?? '').toLowerCase(),
-      row.qualityStatus ?? '',
-    ].join('|')
-    if (seen.has(key)) {
-      result.reused += 1
-      continue
-    }
-    seen.add(key)
-
-    try {
-      const years = yearsInInclusiveRange(bounds.start, bounds.end)
-      let modelId: string | null = null
-      for (const year of years) {
-        const upserted = await vehicleCanonicalUpsert({
-          maker: row.montadora,
-          model: row.modelo,
-          year,
-          engine: row.motor || null,
-          version: row.versao || null,
-          fuel: row.combustivel,
-          source: 'import',
-        })
-        result.versionIds.push(upserted.versionId)
-        modelId = upserted.modelId
-        result.created += 1
-      }
-
-      if (modelId) {
-        const prevLife = lifeByModel.get(modelId)
-        if (!prevLife) {
-          lifeByModel.set(modelId, { start: bounds.start, end: bounds.end })
-        } else {
-          lifeByModel.set(modelId, {
-            start: Math.min(prevLife.start, bounds.start),
-            end: Math.max(prevLife.end, bounds.end),
-          })
-        }
-
-        if (row.qualityStatus) {
-          const prevQ = qualityByModel.get(modelId)
-          if (prevQ === 'quarantined' || row.qualityStatus === 'quarantined') {
-            qualityByModel.set(modelId, 'quarantined')
-          } else {
-            qualityByModel.set(modelId, 'verified')
-          }
-        }
-      }
-    } catch (err) {
-      result.errors += 1
-      row.action = 'error'
-      row.message = err instanceof Error ? err.message : 'Falha no upsert'
-    }
-  }
-
-  for (const [modelId, life] of lifeByModel) {
-    try {
-      await mergeModelProductionYears(modelId, life.start, life.end)
-    } catch {
-      // vida expansiva — falha isolada não invalida VVs já criadas
-    }
-  }
-
-  for (const [modelId, qualityStatus] of qualityByModel) {
-    try {
-      await setModelQualityStatus({
-        modelId,
-        qualityStatus,
-        evidenceKind: STAFF_QUALITY_EVIDENCE_KIND,
-        reviewNote: 'Import mestre CSV',
-      })
-      result.qualitySet += 1
-    } catch (err) {
-      result.errors += 1
-      // não reverte VVs; reporta erro de qualidade
-      void err
-    }
-  }
-
-  return result
 }

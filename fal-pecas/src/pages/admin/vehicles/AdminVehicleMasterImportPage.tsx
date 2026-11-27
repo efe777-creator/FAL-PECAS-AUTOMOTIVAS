@@ -168,7 +168,7 @@ export function AdminVehicleMasterImportPage() {
         />
         {fileName ? <p className="mt-2 text-sm text-fal-muted">Arquivo: {fileName}</p> : null}
         {error ? <p className="mt-2 text-sm text-fal-danger">{error}</p> : null}
-        {report ? <p className="mt-2 text-sm text-emerald-800">{report}</p> : null}
+        {report ? <p className="mt-2 text-sm text-fal-success">{report}</p> : null}
       </div>
 
       {touchedModelIds.length ? (

@@ -25,6 +25,7 @@ export async function confirmVehicleCanonicalUpsert(
       year: filter.year,
       engine: filter.engine ?? null,
       version: filter.version ?? null,
+      plate: filter.plate ?? null,
     },
   })
 
