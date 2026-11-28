@@ -459,7 +459,8 @@ export function AdminVehicleMasterConsultPage() {
         >
           <p className="m-0 text-sm text-fal-muted">
             Marque várias montadoras e modelos + anos → Montar prévia. “Comfortline / Highline”
-            vira duas linhas (checkbox independente).
+            vira duas linhas. Identificação: 1.0 / 8V / 16V / Turbo = motor · Tiggo 5X = modelo ·
+            trim = versão · 4x4/AWD = tração.
           </p>
           <div>
             <Input
@@ -632,6 +633,7 @@ export function AdminVehicleMasterConsultPage() {
           onApply={() => void onApply()}
           busy={busy}
           allowed={allowed}
+          onAssistMessage={(msg, kind) => toast.push(msg, kind === 'error' ? 'error' : 'success')}
         />
       ) : null}
     </div>

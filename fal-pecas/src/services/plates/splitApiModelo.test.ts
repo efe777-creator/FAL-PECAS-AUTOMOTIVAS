@@ -3,7 +3,7 @@ import { formatPlateModelName, sanitizeEngine, splitApiModelo } from './splitApi
 
 describe('splitApiModelo', () => {
   it('separa HB20 1.0M UNIQUE → modelo / motor / versão', () => {
-    expect(splitApiModelo('HB20 1.0M UNIQUE')).toEqual({
+    expect(splitApiModelo('HB20 1.0M UNIQUE')).toMatchObject({
       model: 'HB20',
       engine: '1.0',
       version: 'Unique',
@@ -11,7 +11,7 @@ describe('splitApiModelo', () => {
   })
 
   it('aceita casing misto pós-title-case da API', () => {
-    expect(splitApiModelo('Hb20 1.0m Unique')).toEqual({
+    expect(splitApiModelo('Hb20 1.0m Unique')).toMatchObject({
       model: 'HB20',
       engine: '1.0',
       version: 'Unique',
@@ -19,7 +19,7 @@ describe('splitApiModelo', () => {
   })
 
   it('ONIX 1.0 LT', () => {
-    expect(splitApiModelo('ONIX 1.0 LT')).toEqual({
+    expect(splitApiModelo('ONIX 1.0 LT')).toMatchObject({
       model: 'Onix',
       engine: '1.0',
       version: 'LT',
@@ -27,7 +27,7 @@ describe('splitApiModelo', () => {
   })
 
   it('GOL 1.0 sem versão', () => {
-    expect(splitApiModelo('GOL 1.0')).toEqual({
+    expect(splitApiModelo('GOL 1.0')).toMatchObject({
       model: 'Gol',
       engine: '1.0',
       version: null,
@@ -35,7 +35,7 @@ describe('splitApiModelo', () => {
   })
 
   it('não parte Cross Fox (sem token de motor)', () => {
-    expect(splitApiModelo('CROSS FOX')).toEqual({
+    expect(splitApiModelo('CROSS FOX')).toMatchObject({
       model: 'Cross Fox',
       engine: null,
       version: null,
@@ -43,7 +43,7 @@ describe('splitApiModelo', () => {
   })
 
   it('T-CROSS permanece modelo único (casing FAL)', () => {
-    expect(splitApiModelo('T-CROSS')).toEqual({
+    expect(splitApiModelo('T-CROSS')).toMatchObject({
       model: 'T-Cross',
       engine: null,
       version: null,
@@ -51,7 +51,7 @@ describe('splitApiModelo', () => {
   })
 
   it('remove prefixo MARCA/', () => {
-    expect(splitApiModelo('HYUNDAI/HB20 1.0M COMFOR')).toEqual({
+    expect(splitApiModelo('HYUNDAI/HB20 1.0M COMFOR')).toMatchObject({
       model: 'HB20',
       engine: '1.0',
       version: 'Comfort',
@@ -59,7 +59,7 @@ describe('splitApiModelo', () => {
   })
 
   it('mantém sufixo técnico no motor (2.0T)', () => {
-    expect(splitApiModelo('GOLF 2.0T GTI')).toEqual({
+    expect(splitApiModelo('GOLF 2.0T GTI')).toMatchObject({
       model: 'Golf',
       engine: '2.0T',
       version: 'GTI',
@@ -67,7 +67,7 @@ describe('splitApiModelo', () => {
   })
 
   it('nome com versões em barra → model + versão alternativa (não engole prefixo)', () => {
-    expect(splitApiModelo('Gol Comfortline / Highline 1.0')).toEqual({
+    expect(splitApiModelo('Gol Comfortline / Highline 1.0')).toMatchObject({
       model: 'Gol',
       engine: '1.0',
       version: 'Comfortline / Highline',
@@ -82,51 +82,90 @@ describe('splitApiModelo', () => {
     expect(splitApiModelo('VW/Gol 1.0')).toMatchObject({ model: 'Gol', engine: '1.0' })
   })
 
-  it('motor 2.0 + 16V → cilindrada no motor e válvulas na versão', () => {
-    expect(splitApiModelo('Gol 2.0 16V Comfortline')).toEqual({
+  it('motor 2.0 + 16V → válvulas no motor, trim na versão', () => {
+    expect(splitApiModelo('Gol 2.0 16V Comfortline')).toMatchObject({
       model: 'Gol',
-      engine: '2.0',
-      version: 'Comfortline 16V',
-    })
-    expect(splitApiModelo('Civic 2.016V EXL')).toMatchObject({
-      engine: '2.0',
+      engine: '2.0 16V',
+      version: 'Comfortline',
     })
     const stuck = splitApiModelo('Civic 2.016V EXL')
-    expect(stuck.version).toMatch(/16V/i)
+    expect(stuck.engine).toBe('2.0 16V')
     expect(stuck.version).toMatch(/EXL/i)
+    expect(stuck.version ?? '').not.toMatch(/16V/i)
   })
 
-  it('DENATRAN compacto CLIO EXP1016VH → Clio / 1.0 / Expression', () => {
-    expect(splitApiModelo('CLIO EXP1016VH')).toEqual({
-      model: 'Clio',
+  it('contrato FAL: Tiggo 5X / Onix Plus / 16 válvulas Turbo / 4x4', () => {
+    expect(splitApiModelo('Tiggo 5X')).toMatchObject({
+      model: 'Tiggo 5X',
+      engine: null,
+      version: null,
+    })
+    expect(splitApiModelo('Tiggo 5X TXS 1.5')).toMatchObject({
+      model: 'Tiggo 5X',
+      engine: '1.5',
+      version: 'TXS',
+    })
+    expect(splitApiModelo('Gol 1.0 16 válvulas Turbo Comfortline')).toMatchObject({
+      model: 'Gol',
+      engine: '1.0 16V Turbo',
+      version: 'Comfortline',
+    })
+    expect(splitApiModelo('Uno 1.0 8 válvulas')).toMatchObject({
+      model: 'Uno',
+      engine: '1.0 8V',
+      version: null,
+    })
+    expect(splitApiModelo('Onix Plus 1.0 LT')).toMatchObject({
+      model: 'Onix Plus',
       engine: '1.0',
+      version: 'LT',
+    })
+    expect(splitApiModelo('Tiggo 5X 1.5 4x4')).toMatchObject({
+      model: 'Tiggo 5X',
+      engine: '1.5',
+      traction: '4x4',
+    })
+  })
+
+  it('corpus FIPE aberto: EcoSport FREESTYLE 1.6 16V Flex 5p', () => {
+    expect(splitApiModelo('EcoSport FREESTYLE 1.6 16V Flex 5p')).toMatchObject({
+      model: 'Ecosport',
+      engine: '1.6 16V',
+      version: 'Freestyle',
+    })
+  })
+
+  it('DENATRAN compacto CLIO EXP1016VH → Clio / 1.0 16V / Expression', () => {
+    expect(splitApiModelo('CLIO EXP1016VH')).toMatchObject({
+      model: 'Clio',
+      engine: '1.0 16V',
       version: 'Expression',
     })
-    expect(splitApiModelo('Clio EXP1016VH')).toEqual({
+    expect(splitApiModelo('Clio EXP1016VH')).toMatchObject({
       model: 'Clio',
-      engine: '1.0',
+      engine: '1.0 16V',
       version: 'Expression',
     })
   })
 
   it('DENATRAN SANDERO AUTH1216V', () => {
-    expect(splitApiModelo('SANDERO AUTH1216V')).toEqual({
+    expect(splitApiModelo('SANDERO AUTH1216V')).toMatchObject({
       model: 'Sandero',
-      engine: '1.2',
+      engine: '1.2 16V',
       version: 'Authentique',
     })
   })
 
   it('DENATRAN PALIO WEEKEND ELX1418V', () => {
-    expect(splitApiModelo('PALIO WEEKEND ELX1418V')).toEqual({
+    expect(splitApiModelo('PALIO WEEKEND ELX1418V')).toMatchObject({
       model: 'Palio Weekend',
-      engine: '1.4',
+      engine: '1.4 18V',
       version: 'ELX',
     })
   })
 
   it('KWID INTENS 10MT → Kwid / 1.0 / Intense (nome comercial)', () => {
-    expect(splitApiModelo('KWID INTENS 10MT')).toEqual({
+    expect(splitApiModelo('KWID INTENS 10MT')).toMatchObject({
       model: 'Kwid',
       engine: '1.0',
       version: 'Intense',
@@ -134,7 +173,7 @@ describe('splitApiModelo', () => {
   })
 
   it('INTENSE explícito permanece Intense', () => {
-    expect(splitApiModelo('KWID INTENSE 1.0')).toEqual({
+    expect(splitApiModelo('KWID INTENSE 1.0')).toMatchObject({
       model: 'Kwid',
       engine: '1.0',
       version: 'Intense',
@@ -142,7 +181,7 @@ describe('splitApiModelo', () => {
   })
 
   it('XTZ150 CROSSER S → modelo XTZ150 / versão Crosser S (sem inventar motor)', () => {
-    expect(splitApiModelo('XTZ150 Crosser S')).toEqual({
+    expect(splitApiModelo('XTZ150 Crosser S')).toMatchObject({
       model: 'XTZ150',
       engine: null,
       version: 'Crosser S',
@@ -150,7 +189,7 @@ describe('splitApiModelo', () => {
   })
 
   it('FIESTA FLEX → Fiesta sem fuel no modelo/versão', () => {
-    expect(splitApiModelo('Fiesta Flex')).toEqual({
+    expect(splitApiModelo('Fiesta Flex')).toMatchObject({
       model: 'Fiesta',
       engine: null,
       version: null,
@@ -158,7 +197,7 @@ describe('splitApiModelo', () => {
   })
 
   it('ARGO TREKKING → Argo / Trekking', () => {
-    expect(splitApiModelo('Argo Trekking')).toEqual({
+    expect(splitApiModelo('Argo Trekking')).toMatchObject({
       model: 'Argo',
       engine: null,
       version: 'Trekking',
@@ -166,7 +205,7 @@ describe('splitApiModelo', () => {
   })
 
   it('PALIO FIRE ECONOMY → Palio / Fire Economy', () => {
-    expect(splitApiModelo('Palio Fire Economy')).toEqual({
+    expect(splitApiModelo('Palio Fire Economy')).toMatchObject({
       model: 'Palio',
       engine: null,
       version: 'Fire Economy',
@@ -174,7 +213,7 @@ describe('splitApiModelo', () => {
   })
 
   it('POLO HL AB → Polo / HL AB', () => {
-    expect(splitApiModelo('Polo HL AB')).toEqual({
+    expect(splitApiModelo('Polo HL AB')).toMatchObject({
       model: 'Polo',
       engine: null,
       version: 'HL AB',
@@ -182,7 +221,7 @@ describe('splitApiModelo', () => {
   })
 
   it('TUCSON GLSB → Tucson / GLSB', () => {
-    expect(splitApiModelo('Tucson Glsb')).toEqual({
+    expect(splitApiModelo('Tucson Glsb')).toMatchObject({
       model: 'Tucson',
       engine: null,
       version: 'GLSB',
@@ -190,12 +229,12 @@ describe('splitApiModelo', () => {
   })
 
   it('PRISMA 10MT JOYE → Prisma / 1.0 / Joy (motor no meio)', () => {
-    expect(splitApiModelo('Prisma 10MT Joye')).toEqual({
+    expect(splitApiModelo('Prisma 10MT Joye')).toMatchObject({
       model: 'Prisma',
       engine: '1.0',
       version: 'Joy',
     })
-    expect(splitApiModelo('PRISMA 10MT JOYE')).toEqual({
+    expect(splitApiModelo('PRISMA 10MT JOYE')).toMatchObject({
       model: 'Prisma',
       engine: '1.0',
       version: 'Joy',
@@ -203,17 +242,17 @@ describe('splitApiModelo', () => {
   })
 
   it('PPP8A30: HB20 1.6A 1.6 A → motor 1.6, versão null (A = câmbio, não trim)', () => {
-    expect(splitApiModelo('HB20 1.6A 1.6 A')).toEqual({
+    expect(splitApiModelo('HB20 1.6A 1.6 A')).toMatchObject({
       model: 'HB20',
       engine: '1.6',
       version: null,
     })
-    expect(splitApiModelo('HB20 1.6 A')).toEqual({
+    expect(splitApiModelo('HB20 1.6 A')).toMatchObject({
       model: 'HB20',
       engine: '1.6',
       version: null,
     })
-    expect(splitApiModelo('HB20 1.6A')).toEqual({
+    expect(splitApiModelo('HB20 1.6A')).toMatchObject({
       model: 'HB20',
       engine: '1.6',
       version: null,
@@ -256,7 +295,7 @@ describe('sanitizeEngine', () => {
 describe('assertModelClean', () => {
   it('separa Kwid Intens 10MT em modelo limpo + versão + motor', async () => {
     const { assertModelClean } = await import('./splitApiModelo')
-    expect(assertModelClean('Kwid Intens 10MT')).toEqual({
+    expect(assertModelClean('Kwid Intens 10MT')).toMatchObject({
       model: 'Kwid',
       engine: '1.0',
       version: 'Intense',
@@ -265,7 +304,7 @@ describe('assertModelClean', () => {
 
   it('extras versão 1.6 A não vira trim — motor permanece 1.6', async () => {
     const { assertModelClean } = await import('./splitApiModelo')
-    expect(assertModelClean('HB20', { engine: '1.6', version: '1.6 A' })).toEqual({
+    expect(assertModelClean('HB20', { engine: '1.6', version: '1.6 A' })).toMatchObject({
       model: 'HB20',
       engine: '1.6',
       version: null,

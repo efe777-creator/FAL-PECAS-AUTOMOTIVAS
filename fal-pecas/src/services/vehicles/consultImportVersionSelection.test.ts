@@ -16,7 +16,7 @@ const emptyCatalog: MasterCatalogSnapshot = { models: [], versions: [] }
 
 describe('consultar/importar · multi + versões + campos', () => {
   it('identifica modelo/motor/versão (barra, trim, 16V, sem Flex na versão)', () => {
-    expect(splitApiModelo('Gol Comfortline / Highline 1.0')).toEqual({
+    expect(splitApiModelo('Gol Comfortline / Highline 1.0')).toMatchObject({
       model: 'Gol',
       engine: '1.0',
       version: 'Comfortline / Highline',
@@ -26,23 +26,23 @@ describe('consultar/importar · multi + versões + campos', () => {
       engine: '1.0',
       version: 'LT / LTZ',
     })
-    expect(splitApiModelo('Polo Highline 1.0')).toEqual({
+    expect(splitApiModelo('Polo Highline 1.0')).toMatchObject({
       model: 'Polo',
       engine: '1.0',
       version: 'Highline',
     })
-    expect(splitApiModelo('HB20 1.0 Comfort')).toEqual({
+    expect(splitApiModelo('HB20 1.0 Comfort')).toMatchObject({
       model: 'HB20',
       engine: '1.0',
       version: 'Comfort',
     })
     const civic = splitApiModelo('Civic Sedan EXL 2.0 Flex 16V Aut.4p')
     expect(civic.model).toMatch(/^Civic/i)
-    expect(civic.engine).toBe('2.0')
+    expect(civic.engine).toBe('2.0 16V')
     expect(civic.version).toMatch(/EXL/i)
-    expect(civic.version).toMatch(/16V/i)
-    expect(civic.version).not.toMatch(/flex/i)
-    expect(civic.version).not.toMatch(/aut/i)
+    expect(civic.version ?? '').not.toMatch(/16V/i)
+    expect(civic.version ?? '').not.toMatch(/flex/i)
+    expect(civic.version ?? '').not.toMatch(/aut/i)
   })
 
   it('FIPE multi-modelo + barra → candidatos únicos por versão (sem duplicar anos)', () => {

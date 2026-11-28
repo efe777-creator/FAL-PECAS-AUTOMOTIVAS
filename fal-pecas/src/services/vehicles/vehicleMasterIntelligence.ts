@@ -26,6 +26,8 @@ export type MasterIntelligenceRow = {
   versao: string
   /** Opcional — sync/import com combustível. */
   combustivel?: string
+  /** Opcional — 4x2 | 4x4 | awd. */
+  tracao?: string
 }
 
 export type MasterIntelligencePrepared = {
@@ -35,6 +37,7 @@ export type MasterIntelligencePrepared = {
   engine: string | null
   version: string | null
   fuel: string | null
+  traction: string | null
   productionYearStart: number
   productionYearEnd: number
   key: string
@@ -106,6 +109,8 @@ export function prepareVehicleMasterIntelligence(
     let engine = (raw.motor ?? '').trim() || null
     let version = (raw.versao ?? '').trim() || null
     const fuel = normalizeVehicleFuel(raw.combustivel)
+    let traction = (raw.tracao ?? '').trim().toLowerCase() || null
+    if (traction && !['4x2', '4x4', 'awd'].includes(traction)) traction = null
 
     // Se motor/versão vazios, tenta extrair do texto do modelo (sem inventar).
     if (!engine && !version) {
@@ -114,6 +119,7 @@ export function prepareVehicleMasterIntelligence(
       engine = sanitizeEngine(split.engine) ?? null
       // Mantém "Comfortline / Highline" intacto para o fan-out abaixo.
       version = split.version?.trim() || null
+      if (!traction && split.traction) traction = split.traction
     }
 
     // Fan-out ANTES do sanitize (senão "A / B / C" perde o A = câmbio).
@@ -135,6 +141,7 @@ export function prepareVehicleMasterIntelligence(
           engine,
           version: verRaw || null,
           fuel,
+          traction,
           productionYearStart: year,
           productionYearEnd: year,
           key: '',
@@ -151,6 +158,7 @@ export function prepareVehicleMasterIntelligence(
       if (!ver && verRaw.trim()) {
         ver = blank(normalizeVersionLabel(verRaw.trim()))
       }
+      const rowTraction = traction ?? cleaned.traction ?? null
 
       const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}`
       const prev = rangeByModel.get(modelKey)
@@ -163,7 +171,7 @@ export function prepareVehicleMasterIntelligence(
         rangeByModel.set(modelKey, { start: year, end: year })
       }
 
-      const vvKey = [maker, model, year, eng ?? '', ver ?? '', fuel ?? '']
+      const vvKey = [maker, model, year, eng ?? '', ver ?? '', fuel ?? '', rowTraction ?? '']
         .map((x) => String(x).toLowerCase())
         .join('|')
       if (seenVv.has(vvKey)) {
@@ -180,6 +188,7 @@ export function prepareVehicleMasterIntelligence(
         engine: eng,
         version: ver,
         fuel,
+        traction: rowTraction,
         productionYearStart: range.start,
         productionYearEnd: range.end,
         key: vvKey,

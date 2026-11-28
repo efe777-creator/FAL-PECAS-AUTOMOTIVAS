@@ -44,6 +44,8 @@ export type MasterDiffCandidate = {
   version: string
   engine: string
   fuel: string
+  /** 4x2 | 4x4 | awd | '' */
+  traction: string
   yearStart: number
   yearEnd: number
   modelId: string | null
@@ -114,6 +116,7 @@ export function diffVehicleMasterCandidates(
         version: row.version ?? '',
         engine: row.engine ?? '',
         fuel: row.fuel ?? '',
+        traction: row.traction ?? '',
         yearStart: row.year,
         yearEnd: row.year,
         modelId: null,
@@ -139,6 +142,7 @@ export function diffVehicleMasterCandidates(
         version: row.version ?? '',
         engine: row.engine ?? '',
         fuel: row.fuel ?? '',
+        traction: row.traction ?? '',
         yearStart,
         yearEnd,
         modelId: null,
@@ -229,6 +233,7 @@ export function diffVehicleMasterCandidates(
       version: row.version ?? '',
       engine: row.engine ?? '',
       fuel: row.fuel ?? '',
+      traction: row.traction ?? '',
       yearStart,
       yearEnd,
       modelId: model.id,
@@ -256,7 +261,14 @@ function mergeDiffCandidatesByIdentity(rows: MasterDiffCandidate[]): MasterDiffC
       errors.push(r)
       continue
     }
-    const key = [nk(r.maker), nk(r.model), nk(r.version), nk(r.engine), fuelKey(r.fuel)].join('|')
+    const key = [
+      nk(r.maker),
+      nk(r.model),
+      nk(r.version),
+      nk(r.engine),
+      fuelKey(r.fuel),
+      nk(r.traction),
+    ].join('|')
     const prev = map.get(key)
     if (!prev) {
       map.set(key, { ...r })
@@ -265,6 +277,7 @@ function mergeDiffCandidatesByIdentity(rows: MasterDiffCandidate[]): MasterDiffC
     prev.yearStart = Math.min(prev.yearStart, r.yearStart)
     prev.yearEnd = Math.max(prev.yearEnd, r.yearEnd)
     prev.selected = prev.selected || r.selected
+    if (!prev.traction && r.traction) prev.traction = r.traction
     if (STATUS_RANK[r.status] > STATUS_RANK[prev.status]) {
       prev.status = r.status
       prev.note = r.note

@@ -14,6 +14,7 @@ function prepared(
     engine: null,
     version: null,
     fuel: null,
+    traction: null,
     productionYearStart: partial.year,
     productionYearEnd: partial.year,
     key: 'k',

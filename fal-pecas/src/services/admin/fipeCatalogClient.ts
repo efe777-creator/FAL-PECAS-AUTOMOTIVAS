@@ -115,6 +115,7 @@ export function fipeSelectionToIntelligenceRows(
     const modelo = (split.model || sel.modelName).trim()
     const motor = (split.engine ?? '').trim()
     const versao = (split.version ?? '').trim()
+    const tracao = split.traction ?? undefined
     for (const y of sel.years) {
       out.push({
         montadora: brand,
@@ -123,6 +124,7 @@ export function fipeSelectionToIntelligenceRows(
         motor,
         versao,
         combustivel: y.fuel ?? '',
+        tracao,
       })
     }
   }

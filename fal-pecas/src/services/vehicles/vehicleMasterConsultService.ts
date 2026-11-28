@@ -31,6 +31,8 @@ import {
   fipeSelectionToIntelligenceRows,
 } from '@/services/admin/fipeCatalogClient'
 import { fipeXCsvVehicleMasterSource } from '@/services/vehicles/vehicleMasterSource'
+import { enrichVehicleVersionTech } from '@/services/vehicles/enrichVehicleVersionTech'
+import { normalizeVehicleTraction } from '@/lib/vehicles/normalizeVehicleTraction'
 import { vehicleCanonicalUpsert } from '@/services/vehicles/vehicleCanonicalUpsert'
 
 export type ConsultApplyResult = {
@@ -415,6 +417,7 @@ export function candidatesToIntelligenceRows(
         motor: c.engine.trim(),
         versao: c.version.trim(),
         combustivel: c.fuel.trim(),
+        tracao: c.traction.trim() || undefined,
       })
     }
   }
@@ -451,6 +454,7 @@ export async function applySelectedMasterCandidates(
       continue
     }
     const fuel = normalizeVehicleFuel(c.fuel)
+    const traction = normalizeVehicleTraction(c.traction)
     // Segurança: se a prévia ainda trouxe "A / B", grava uma VV por alternativa.
     const versionAlts = splitVersionAlternatives(c.version.trim() || '')
     try {
@@ -469,6 +473,13 @@ export async function applySelectedMasterCandidates(
           })
           modelId = up.modelId
           result.upserted += 1
+          if (traction && up.versionId) {
+            try {
+              await enrichVehicleVersionTech(up.versionId, { traction })
+            } catch {
+              /* enrich opcional — não invalida upsert */
+            }
+          }
         }
       }
       if (modelId) {

@@ -100,12 +100,12 @@ describe('inteligência veicular smoke', () => {
     ).toBe('Saveiro')
   })
 
-  it('2.0 16V: motor = cilindrada; válvulas na versão', () => {
+  it('2.0 16V: válvulas no motor; trim na versão', () => {
     const s = splitApiModelo('Gol 2.0 16V Comfortline')
-    expect(s).toEqual({
+    expect(s).toMatchObject({
       model: 'Gol',
-      engine: '2.0',
-      version: 'Comfortline 16V',
+      engine: '2.0 16V',
+      version: 'Comfortline',
     })
   })
 
