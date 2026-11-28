@@ -288,12 +288,26 @@ export function AdminVehicleMasterConsultPage() {
       return
     }
     setSelectedModelKeys((prev) => (prev.includes(key) ? prev : [...prev, key]))
-    if (yearsByModelKey[key]?.length) return
+    const markYears = (ys: FipeYearOption[]) => {
+      setYearSelected((prev) => {
+        const next = { ...prev }
+        for (const y of ys) {
+          const yk = `${key}::${y.code}`
+          if (next[yk] == null) next[yk] = true
+        }
+        return next
+      })
+    }
+    if (yearsByModelKey[key]?.length) {
+      markYears(yearsByModelKey[key]!)
+      return
+    }
     setLoadingKeys((prev) => ({ ...prev, [key]: true }))
     setError(null)
     try {
       const ys = await fipeListYears(brandId, modelId)
       setYearsByModelKey((prev) => ({ ...prev, [key]: ys }))
+      markYears(ys)
     } catch (err) {
       setError(toUserMessage(err, 'Falha ao listar anos FIPE'))
       setSelectedModelKeys((prev) => prev.filter((x) => x !== key))
@@ -538,6 +552,9 @@ export function AdminVehicleMasterConsultPage() {
             <div>
               <p className="m-0 text-sm font-semibold text-fal-fg">
                 Montadora · Modelo · Ano · Combustível
+              </p>
+              <p className="m-0 mt-1 text-xs text-fal-muted">
+                Os anos reais da FIPE já vêm marcados. Zero KM (32000) não entra: não é ano de modelo.
               </p>
               <ul className="mt-2 max-h-56 list-none space-y-1 overflow-y-auto p-0">
                 {yearEntries.map((entry) => (

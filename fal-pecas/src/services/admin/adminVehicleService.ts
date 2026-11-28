@@ -281,12 +281,20 @@ export async function mergeModelProductionYears(
   modelId: string,
   yearStart?: number | null,
   yearEnd?: number | null,
+  inProduction = false,
 ): Promise<{ productionYearStart: number | null; productionYearEnd: number | null }> {
-  const { data, error } = await getSupabase().rpc('merge_model_production_years', {
+  const args: {
+    p_model_id: string
+    p_year_start: number | null
+    p_year_end: number | null
+    p_in_production?: boolean
+  } = {
     p_model_id: modelId,
     p_year_start: yearStart ?? null,
-    p_year_end: yearEnd ?? null,
-  })
+    p_year_end: inProduction ? null : (yearEnd ?? null),
+  }
+  if (inProduction) args.p_in_production = true
+  const { data, error } = await getSupabase().rpc('merge_model_production_years', args)
   if (error) throw error
   const row = (data ?? {}) as Record<string, unknown>
   return {

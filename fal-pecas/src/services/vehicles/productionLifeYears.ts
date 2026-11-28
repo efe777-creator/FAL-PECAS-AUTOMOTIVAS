@@ -14,6 +14,18 @@ export function productionLifeYearBounds(
   return { lo, hi }
 }
 
+/**
+ * A linha ainda sai de fábrica quando o último ano da FIPE é o ano civil
+ * ou o ano-modelo seguinte (a tabela já publica 2027 dentro de 2026).
+ * Fim null = em produção. Não fecha a linha num ano inventado.
+ */
+export function modelLineStillInProduction(
+  latestYear: number,
+  nowYear: number = new Date().getFullYear(),
+): boolean {
+  return Number.isFinite(latestYear) && latestYear >= nowYear
+}
+
 /** Anos a injetar no seletor a partir da vida (cap 40 anos de span). */
 export function yearsFromProductionLife(
   start: number,

@@ -80,7 +80,6 @@ export function prepareVehicleMasterIntelligence(
   const conflicts: string[] = []
   const prepared: MasterIntelligencePrepared[] = []
   const seenVv = new Set<string>()
-  const rangeByModel = new Map<string, { start: number; end: number }>()
   let skipped = 0
 
   if (!rows.length) {
@@ -160,17 +159,6 @@ export function prepareVehicleMasterIntelligence(
       }
       const rowTraction = traction ?? cleaned.traction ?? null
 
-      const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}|${(fuel ?? '').toLowerCase()}`
-      const prev = rangeByModel.get(modelKey)
-      if (prev) {
-        rangeByModel.set(modelKey, {
-          start: Math.min(prev.start, year),
-          end: Math.max(prev.end, year),
-        })
-      } else {
-        rangeByModel.set(modelKey, { start: year, end: year })
-      }
-
       const vvKey = [maker, model, year, eng ?? '', ver ?? '', fuel ?? '', rowTraction ?? '']
         .map((x) => String(x).toLowerCase())
         .join('|')
@@ -180,7 +168,6 @@ export function prepareVehicleMasterIntelligence(
       }
       seenVv.add(vvKey)
       anyAlt = true
-      const range = rangeByModel.get(modelKey)!
       prepared.push({
         maker,
         model,
@@ -189,25 +176,14 @@ export function prepareVehicleMasterIntelligence(
         version: ver,
         fuel,
         traction: rowTraction,
-        productionYearStart: range.start,
-        productionYearEnd: range.end,
+        productionYearStart: year,
+        productionYearEnd: year,
         key: vvKey,
         action: 'upsert',
       })
     }
     if (!anyAlt) {
       skipped += 1
-    }
-  }
-
-  // Reaplica ranges finais (após ver todos os anos do modelo).
-  for (const row of prepared) {
-    if (row.action !== 'upsert') continue
-    const mk = `${row.maker.toLowerCase()}|${row.model.toLowerCase()}|${(row.fuel ?? '').toLowerCase()}`
-    const range = rangeByModel.get(mk)
-    if (range) {
-      row.productionYearStart = range.start
-      row.productionYearEnd = range.end
     }
   }
 

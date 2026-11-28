@@ -120,6 +120,26 @@ describe('demanda qualquer termo', () => {
     expect(rows.every((r) => r.ano === '2018' && r.motor === '1.0')).toBe(true)
   })
 
+  it('modelo sem ano e sem vida de linha não vira o ano corrente', () => {
+    const semAno: MasterCatalogSnapshot = {
+      models: [
+        {
+          id: 'm-x',
+          manufacturerId: 'mk-x',
+          makerName: 'Fiat',
+          name: 'Palio',
+          productionYearStart: null,
+          productionYearEnd: null,
+          activeVersionCount: 0,
+        },
+      ],
+      versions: [],
+    }
+    const rows = collectDemandaIntelligenceFromCatalog(semAno, 'Palio')
+    expect(rows).toHaveLength(0)
+    expect(rows.some((r) => r.ano === String(new Date().getFullYear()))).toBe(false)
+  })
+
   it('VV sem ano usa vida do modelo; casca Saveiro aparece', () => {
     const trend = collectDemandaIntelligenceFromCatalog(catalog, 'Trendline')
     expect(trend.some((r) => r.versao === 'Trendline' && r.ano === '2018')).toBe(true)

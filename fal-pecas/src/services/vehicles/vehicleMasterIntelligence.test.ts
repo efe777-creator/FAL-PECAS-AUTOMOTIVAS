@@ -50,20 +50,23 @@ describe('prepareVehicleMasterIntelligence', () => {
     expect(ok[0]!.fuel).toBe('Flex')
   })
 
-  it('gasolina e álcool do mesmo modelo não compartilham os anos', () => {
+  it('cada ano fica na própria config; o período contínuo é montado depois', () => {
     const report = prepareVehicleMasterIntelligence([
       { montadora: 'VW', modelo: 'Gol', ano: '1995', motor: '1.0', versao: '', combustivel: 'Gasolina' },
       { montadora: 'VW', modelo: 'Gol', ano: '1996', motor: '1.0', versao: '', combustivel: 'Gasolina' },
-      { montadora: 'VW', modelo: 'Gol', ano: '1997', motor: '1.0', versao: '', combustivel: 'Álcool' },
-      { montadora: 'VW', modelo: 'Gol', ano: '1998', motor: '1.0', versao: '', combustivel: 'Álcool' },
+      { montadora: 'Hyundai', modelo: 'HB20', ano: '2018', motor: '1.0 12V', versao: '5 Anos', combustivel: 'Flex' },
+      { montadora: 'Hyundai', modelo: 'HB20', ano: '2027', motor: '1.0 12V', versao: 'Comfort', combustivel: 'Flex' },
     ])
     const ok = report.prepared.filter((p) => p.action === 'upsert')
-    const gas = ok.filter((p) => p.fuel === 'Gasolina')
-    const alc = ok.filter((p) => p.fuel === 'Etanol')
-    expect(gas).toHaveLength(2)
-    expect(alc).toHaveLength(2)
-    expect(gas.every((p) => p.productionYearStart === 1995 && p.productionYearEnd === 1996)).toBe(true)
-    expect(alc.every((p) => p.productionYearStart === 1997 && p.productionYearEnd === 1998)).toBe(true)
+    expect(ok.find((p) => p.fuel === 'Gasolina' && p.year === 1995)).toMatchObject({
+      productionYearStart: 1995,
+      productionYearEnd: 1995,
+    })
+    expect(ok.find((p) => p.version === '5 Anos')).toMatchObject({
+      productionYearStart: 2018,
+      productionYearEnd: 2018,
+    })
+    expect(ok.find((p) => p.year === 2027)?.productionYearStart).toBe(2027)
   })
 
   it('fan-out de versões com / e |', () => {

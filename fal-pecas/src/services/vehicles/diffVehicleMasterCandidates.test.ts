@@ -104,6 +104,42 @@ describe('diffVehicleMasterCandidates', () => {
     expect(rows[0]!.selected).toBe(true)
   })
 
+  it('vida larga do modelo não estica o ano de outra versão', () => {
+    const rows = diffVehicleMasterCandidates(
+      [
+        prepared({
+          maker: 'Hyundai',
+          model: 'HB20',
+          year: 2018,
+          version: '5 Anos',
+          engine: '1.0 12V',
+          fuel: 'Flex',
+          productionYearStart: 2013,
+          productionYearEnd: 2027,
+        }),
+        prepared({
+          maker: 'Hyundai',
+          model: 'HB20',
+          year: 2025,
+          version: 'Comfort Plus Tech',
+          engine: '1.0 12V Turbo',
+          fuel: 'Flex',
+          productionYearStart: 2013,
+          productionYearEnd: 2027,
+        }),
+      ],
+      emptyCatalog,
+    )
+    expect(rows.find((r) => r.version === '5 Anos')).toMatchObject({
+      yearStart: 2018,
+      yearEnd: 2018,
+    })
+    expect(rows.find((r) => r.version === 'Comfort Plus Tech')).toMatchObject({
+      yearStart: 2025,
+      yearEnd: 2025,
+    })
+  })
+
   it('selectedMasterDiffCandidates ignora desmarcados', () => {
     const rows = diffVehicleMasterCandidates(
       [

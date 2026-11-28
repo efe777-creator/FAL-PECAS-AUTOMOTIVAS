@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fipeSelectionToIntelligenceRows, parseFipeYearLabel } from './fipeCatalogClient'
+import { fipeSelectionToIntelligenceRows, fipeYearSpan, parseFipeYearLabel } from './fipeCatalogClient'
 
 describe('fipeCatalogClient helpers', () => {
   it('parseFipeYearLabel extrai ano e combustível', () => {
@@ -15,6 +15,22 @@ describe('fipeCatalogClient helpers', () => {
     expect(parseFipeYearLabel('2014-1', '2014')).toEqual({ year: 2014, fuel: 'Gasolina' })
     expect(parseFipeYearLabel('1998-2', '1998')).toEqual({ year: 1998, fuel: 'Etanol' })
     expect(parseFipeYearLabel('1985-3', '1985')).toEqual({ year: 1985, fuel: 'Diesel' })
+    expect(parseFipeYearLabel('2026-5', '2026 Flex')).toEqual({ year: 2026, fuel: 'Flex' })
+    expect(parseFipeYearLabel('32000-5', '32000 Flex')).toBeNull()
+    expect(parseFipeYearLabel('32000-1', '32000 Gasolina')).toBeNull()
+    expect(parseFipeYearLabel('32000-7', '32000 Gás Natural')).toBeNull()
+  })
+
+  it('guarda cada ano real e não inventa o meio do buraco', () => {
+    const span = fipeYearSpan([
+      { code: '2026-5', name: '2026 Flex', year: 2026, fuel: 'Flex' },
+      { code: '2019-5', name: '2019 Flex', year: 2019, fuel: 'Flex' },
+      { code: '2024-5', name: '2024 Flex', year: 2024, fuel: 'Flex' },
+      { code: '1997-2', name: '1997 Álcool', year: 1997, fuel: 'Etanol' },
+      { code: '1999-2', name: '1999 Álcool', year: 1999, fuel: 'Etanol' },
+    ])
+    expect(span.filter((y) => y.fuel === 'Flex').map((y) => y.year)).toEqual([2019, 2024, 2026])
+    expect(span.filter((y) => y.fuel === 'Etanol').map((y) => y.year)).toEqual([1997, 1999])
   })
 
   it('fipeSelectionToIntelligenceRows monta linhas com fuel', () => {

@@ -53,15 +53,41 @@ function fuelFromFipeYearCode(code: string): string | null {
   return m ? (FIPE_FUEL_BY_CODE[m[1]!] ?? null) : null
 }
 
+/**
+ * Ano de modelo FIPE. 32000 é o código de zero-km, não um ano (e não pode
+ * virar 2000 por causa do "2000" dentro de "32000").
+ */
+function fipeModelYear(code: string, name: string): number | null {
+  const blob = `${code} ${name}`
+  if (/(?:^|\D)32000(?:\D|$)/.test(blob)) return null
+  const m = blob.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/)
+  if (!m) return null
+  const year = Number(m[1])
+  if (!Number.isFinite(year) || year < 1950 || year > 2100) return null
+  return year
+}
+
 /** Extrai ano e combustível de "2020 Flex" / "2013 Gás Natural" / code "2020-5". */
 export function parseFipeYearLabel(code: string, name: string): { year: number; fuel: string | null } | null {
-  const fromName = name.match(/(19|20)\d{2}/)
-  const fromCode = code.match(/(19|20)\d{2}/)
-  const year = Number(fromName?.[0] ?? fromCode?.[0] ?? '')
-  if (!Number.isFinite(year) || year < 1950 || year > 2100) return null
-  const fuelPart = name.replace(String(year), '').trim()
+  const year = fipeModelYear(code, name)
+  if (year == null) return null
+  const fuelPart = name.replace(String(year), '').replace(/\b32000\b/g, '').trim()
   const fuel = normalizeVehicleFuel(fuelPart) ?? fuelFromFipeYearCode(code)
   return { year, fuel }
+}
+
+/**
+ * Todos os anos reais de cada combustível, sem inventar o meio de um buraco
+ * e sem reduzir ao primeiro e ao último (isso apagava 2014–2018).
+ */
+export function fipeYearSpan(years: FipeYearOption[], yearHint = ''): FipeYearOption[] {
+  const hinted = yearHint ? years.filter((y) => String(y.year) === yearHint) : years
+  const byFuel = new Map<string, FipeYearOption[]>()
+  for (const y of hinted) {
+    const key = `${y.fuel ?? ''}|${y.year}`
+    if (!byFuel.has(key)) byFuel.set(key, y)
+  }
+  return [...byFuel.values()].sort((a, b) => a.year - b.year || (a.fuel ?? '').localeCompare(b.fuel ?? ''))
 }
 
 export async function fipeListBrands(): Promise<FipeCodeName[]> {

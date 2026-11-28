@@ -91,9 +91,10 @@ function brandAllowed(brand: string, priority: string[]): boolean {
 function parseYear(raw: string): number | null {
   const t = raw.trim()
   if (!t) return null
-  // fipeX às vezes "2020 Gasolina" / "32000" (código ano+comb)
-  const m = t.match(/(19|20)\d{2}/)
-  if (m) return Number(m[0])
+  // 32000 é zero-km na FIPE, não o ano 2000.
+  if (/(?:^|\D)32000(?:\D|$)/.test(t)) return null
+  const m = t.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/)
+  if (m) return Number(m[1])
   const n = Number(t)
   if (Number.isInteger(n) && n >= 1900 && n <= 2100) return n
   return null

@@ -551,6 +551,136 @@ describe('splitApiModelo', () => {
   })
 })
 
+describe('splitApiModelo · FIPE colada', () => {
+  it('tira combustível do modelo e não inventa versão com Flex, híbrido ou tetrafuel', () => {
+    expect(splitApiModelo('Grand Siena TETRAFUEL 1.4 Evo F. Flex 8V')).toMatchObject({
+      model: 'Grand Siena',
+      engine: '1.4 8V',
+    })
+    expect(splitApiModelo('Grand Siena TETRAFUEL 1.4 Evo F. Flex 8V').model).not.toMatch(/tetra|flex/i)
+    expect(splitApiModelo('Saveiro Diesel (todas)')).toMatchObject({
+      model: 'Saveiro',
+      version: null,
+    })
+    expect(splitApiModelo('Corolla Altis Prem. 1.8 Aut. (Híbrido)')).toMatchObject({
+      model: 'Corolla',
+      engine: '1.8',
+      version: 'Altis Premium',
+    })
+    expect(splitApiModelo('Corolla Altis 1.8 16V Aut. (Híbrido)').version).not.toMatch(/híbrido|hibrido/i)
+  })
+
+  it('1000 Mi vira 1.0, 16V sem ponto vai para o motor, TB do Passat continua versão', () => {
+    expect(splitApiModelo('Gol 1000 Mi 16V 2p Turbo')).toMatchObject({
+      model: 'Gol',
+      engine: '1.0 16V Turbo MPI',
+    })
+    expect(splitApiModelo('Coupe 16V')).toMatchObject({ model: 'Coupe', engine: '16V', version: null })
+    expect(splitApiModelo('Corsa GSi 16V')).toMatchObject({
+      model: 'Corsa',
+      engine: '16V',
+      version: 'GSi',
+    })
+    expect(splitApiModelo('Passat TB 2.0 FSI/TSI 211cv Tiptronic 4p')).toMatchObject({
+      model: 'Passat',
+      engine: '2.0 TSI',
+      version: null,
+    })
+    expect(splitApiModelo('Passat R-Line TB 2.0 TSI Tiptronic 4p')).toMatchObject({
+      model: 'Passat',
+      engine: '2.0 TSI',
+      version: 'R-Line',
+    })
+    expect(splitApiModelo('HB20 Comfort 1.0 TB Flex 12V Mec.')).toMatchObject({
+      model: 'HB20',
+      engine: '1.0 12V Turbo',
+      version: 'Comfort',
+    })
+  })
+
+  it('descola sigla do motor e não deixa Tot.Flex na versão', () => {
+    expect(splitApiModelo('Strada Working Celeb.1.4 Fire Flex 8V CD')).toMatchObject({
+      model: 'Strada',
+      engine: '1.4 8V',
+      version: 'Working Celebration Fire Cabine Dupla',
+    })
+    expect(splitApiModelo('Fox Sportline/Sports 1.0/1.0 Tot.Flex 3p')).toMatchObject({
+      model: 'Fox',
+      engine: '1.0',
+      version: 'Sportline / Sports',
+    })
+    expect(splitApiModelo('VOYAGE I MOTION COMF/Hghli.1.6 T.Flex 8V')).toMatchObject({
+      model: 'Voyage',
+      engine: '1.6 8V',
+      version: 'Comfort / Highline',
+    })
+    expect(splitApiModelo('Gol Trendline 1.0 Total Flex 8V 5p')).toMatchObject({
+      model: 'Gol',
+      engine: '1.0 8V',
+      version: 'Trendline',
+    })
+    expect(splitApiModelo('Gol (novo) 1.6 Power/Highi T.Flex 8v 4P').version).toBe('Power / Highline')
+  })
+})
+
+describe('splitApiModelo · linhas principais', () => {
+  it('tira Hi-Flex, híbrido com acento trocado e nota de nacional', () => {
+    expect(splitApiModelo('DUSTER Dynamique 2.0 Hi-Flex 16V Mec.')).toMatchObject({
+      model: 'Duster',
+      engine: '2.0 16V',
+      version: 'Dynamique',
+    })
+    expect(splitApiModelo('SANDERO Authentique Hi-Flex 1.0 16V 5p')).toMatchObject({
+      model: 'Sandero',
+      engine: '1.0 16V',
+      version: 'Authentique',
+    })
+    expect(splitApiModelo('Civic Sedan EX 1.6 16V Aut. 4p (nacion.)')).toMatchObject({
+      model: 'Civic',
+      engine: '1.6 16V',
+      version: 'Sedan EX',
+    })
+    expect(splitApiModelo('Fastback Audace 200 TB Aut (Hibrído)')).toMatchObject({
+      model: 'Fastback',
+      engine: 'T200',
+      version: 'Audace',
+    })
+    expect(splitApiModelo('PULSE IMPETUS T. 200 Aut. (Hibrído)')).toMatchObject({
+      model: 'Pulse',
+      engine: 'T200',
+      version: 'Impetus',
+    })
+    expect(splitApiModelo('PULSE AUDACE Turbo 200 Aut. (Hibrído)')).toMatchObject({
+      model: 'Pulse',
+      engine: 'T200',
+      version: 'Audace',
+    })
+  })
+
+  it('Bi-TB fica no motor e sigla truncada de premium abre', () => {
+    expect(splitApiModelo('Frontier LE CD 4x4 2.3 Bi-TB Diesel Aut.')).toMatchObject({
+      model: 'Frontier',
+      engine: '2.3 Bi-Turbo',
+      version: 'LE Cabine Dupla',
+      traction: '4x4',
+    })
+    expect(splitApiModelo('Corolla ALTIS/A.Premiu. 2.0 Flex 16V Aut')).toMatchObject({
+      model: 'Corolla',
+      engine: '2.0 16V',
+      version: 'Altis / Altis Premium',
+    })
+    expect(splitApiModelo('SANDERO GT Line Flex/RLI 1.6.16V 5p Aut.')).toMatchObject({
+      model: 'Sandero',
+      engine: '1.6 16V',
+    })
+    expect(splitApiModelo('Uno Mille EP 2p e 4p')).toMatchObject({
+      model: 'Uno',
+      engine: '1.0',
+      version: 'EP',
+    })
+  })
+})
+
 describe('sanitizeEngine', () => {
   it('rejeita 0.1 e aceita 1.0 / 10MT', () => {
     expect(sanitizeEngine('0.1')).toBeNull()

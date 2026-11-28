@@ -28,12 +28,15 @@ import {
 import {
   fipeListBrands,
   fipeListModels,
+  fipeListYears,
   fipeSelectionToIntelligenceRows,
+  fipeYearSpan,
 } from '@/services/admin/fipeCatalogClient'
 import { fipeXCsvVehicleMasterSource } from '@/services/vehicles/vehicleMasterSource'
 import { enrichVehicleVersionTech } from '@/services/vehicles/enrichVehicleVersionTech'
 import { normalizeVehicleTraction } from '@/lib/vehicles/normalizeVehicleTraction'
 import { vehicleCanonicalUpsert } from '@/services/vehicles/vehicleCanonicalUpsert'
+import { modelLineStillInProduction } from '@/services/vehicles/productionLifeYears'
 
 export type ConsultApplyResult = {
   upserted: number
@@ -255,7 +258,7 @@ export function collectDemandaIntelligenceFromCatalog(
     } else if (end != null) {
       years = [end]
     } else {
-      years = [new Date().getFullYear()]
+      continue
     }
 
     for (const year of years) {
@@ -331,7 +334,7 @@ export async function buildCandidatesFromDemandaQuery(
         addBrand(byFold.get(foldDemanda(r.montadora)))
       }
 
-      const absorbModels = (
+      const absorbModels = async (
         brand: (typeof brands)[number],
         models: Awaited<ReturnType<typeof fipeListModels>>,
       ) => {
@@ -339,19 +342,29 @@ export async function buildCandidatesFromDemandaQuery(
           const hay = foldDemanda(`${brand.name} ${m.name}`)
           return demandaTokensMatch(hay, needle)
         })
-        for (const m of modelHits.slice(0, 12)) {
-          if (rows.length >= 40) return
-          const dedupe = `${brand.name}|${m.name}|fipe`.toLowerCase()
+        const hits = modelHits.slice(0, 8)
+        const withYears = await Promise.all(
+          hits.map(async (m) => {
+            try {
+              const years = fipeYearSpan(await fipeListYears(brand.code, m.code), yearHint)
+              return { model: m, years }
+            } catch {
+              return { model: m, years: [] }
+            }
+          }),
+        )
+        for (const { model, years } of withYears) {
+          if (!years.length || rows.length >= 40) return
+          const dedupe = `${brand.name}|${model.name}|fipe`.toLowerCase()
           if (seen.has(dedupe)) continue
           seen.add(dedupe)
-          const ano = yearHint || String(new Date().getFullYear())
-          for (const r of fipeSelectionToIntelligenceRows({
+          const built = fipeSelectionToIntelligenceRows({
             brandName: brand.name,
-            modelName: m.name,
-            years: [{ code: `${ano}-0`, name: String(ano), year: Number(ano), fuel: null }],
-          })) {
-            if (!pushDemandaRow(rows, seen, r, 40)) return
-          }
+            modelName: model.name,
+            years,
+          })
+          if (rows.length + built.length > 40) return
+          for (const r of built) pushDemandaRow(rows, seen, r, 40)
         }
       }
 
@@ -367,7 +380,7 @@ export async function buildCandidatesFromDemandaQuery(
         const lists = await Promise.all(
           toScan.slice(0, 6).map(async (brand) => ({ brand, models: await fetchModels(brand) })),
         )
-        for (const { brand, models } of lists) absorbModels(brand, models)
+        for (const { brand, models } of lists) await absorbModels(brand, models)
       } else if (!rows.length) {
         // Sem montadora no termo: lotes paralelos até achar modelo (ex.: "Gol") — máx. 40 marcas.
         const BATCH = 8
@@ -377,7 +390,7 @@ export async function buildCandidatesFromDemandaQuery(
           const lists = await Promise.all(
             batch.map(async (brand) => ({ brand, models: await fetchModels(brand) })),
           )
-          for (const { brand, models } of lists) absorbModels(brand, models)
+          for (const { brand, models } of lists) await absorbModels(brand, models)
           if (rows.length) break
         }
       }
@@ -442,7 +455,7 @@ export async function applySelectedMasterCandidates(
   }
   if (!selected.length) return result
 
-  const lifeByModel = new Map<string, { start: number; end: number }>()
+  const lifeByModel = new Map<string, { start: number; end: number | null }>()
   const touched = new Set<string>()
 
   for (const c of selected) {
@@ -485,11 +498,14 @@ export async function applySelectedMasterCandidates(
       if (modelId) {
         touched.add(modelId)
         const prev = lifeByModel.get(modelId)
-        if (!prev) lifeByModel.set(modelId, { start, end })
-        else {
+        const open = modelLineStillInProduction(end)
+        if (!prev) {
+          lifeByModel.set(modelId, { start, end: open ? null : end })
+        } else {
+          const still = open || prev.end == null
           lifeByModel.set(modelId, {
             start: Math.min(prev.start, start),
-            end: Math.max(prev.end, end),
+            end: still ? null : Math.max(prev.end ?? end, end),
           })
         }
       }
@@ -503,7 +519,7 @@ export async function applySelectedMasterCandidates(
 
   for (const [modelId, life] of lifeByModel) {
     try {
-      await mergeModelProductionYears(modelId, life.start, life.end)
+      await mergeModelProductionYears(modelId, life.start, life.end, life.end == null)
       result.productionMerged += 1
     } catch {
       /* vida expansiva — não invalida VVs */

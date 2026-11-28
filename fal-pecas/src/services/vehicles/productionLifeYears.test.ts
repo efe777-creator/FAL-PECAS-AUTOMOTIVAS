@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  modelLineStillInProduction,
   productionLifeYearBounds,
   yearsFromProductionLife,
 } from './productionLifeYears'
@@ -21,6 +22,12 @@ describe('productionLifeYears', () => {
     expect(years[0]).toBe(1993)
     expect(years[years.length - 1]).toBe(2026)
     expect(years.length).toBe(2026 - 1993 + 1)
+  })
+
+  it('HB20 com 2027 segue em produção; versão encerrada em 2019 não', () => {
+    expect(modelLineStillInProduction(2027, 2026)).toBe(true)
+    expect(modelLineStillInProduction(2026, 2026)).toBe(true)
+    expect(modelLineStillInProduction(2019, 2026)).toBe(false)
   })
 
   it('end explícito respeita descontinuação', () => {

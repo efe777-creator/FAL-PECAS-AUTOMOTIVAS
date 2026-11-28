@@ -97,6 +97,125 @@ describe('consultar/importar · multi + versões + campos', () => {
     expect(applyRows).toHaveLength(3)
   })
 
+  it('HB20: cada versão tem o próprio período, sem herdar o ano de outra', () => {
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'Hyundai',
+      selections: [
+        {
+          modelName: 'HB20 C./C.Plus/C.Style 1.6 Flex 16V Mec.',
+          years: [2013, 2014, 2015, 2016, 2017, 2018, 2019].map((year) => ({
+            code: `${year}-5`,
+            name: `${year} Flex`,
+            year,
+            fuel: 'Flex',
+          })),
+        },
+        {
+          modelName: 'HB20 Comf./C.Plus/C.Style 1.0 Flex 12V',
+          years: [2013, 2014, 2015, 2016, 2017, 2018, 2019].map((year) => ({
+            code: `${year}-5`,
+            name: `${year} Flex`,
+            year,
+            fuel: 'Flex',
+          })),
+        },
+        {
+          modelName: 'HB20 5 Anos 1.0 Flex 12V Mec.',
+          years: [{ code: '2018-5', name: '2018 Flex', year: 2018, fuel: 'Flex' }],
+        },
+        {
+          modelName: 'HB20 Comfort 1.0 Flex 12V Mec.',
+          years: [2023, 2024, 2026, 2027].map((year) => ({
+            code: `${year}-5`,
+            name: `${year} Flex`,
+            year,
+            fuel: 'Flex',
+          })),
+        },
+      ],
+    })
+    const prepared = prepareVehicleMasterIntelligence(rows).prepared.filter((p) => p.action === 'upsert')
+    const cands = diffVehicleMasterCandidates(prepared, emptyCatalog)
+    const plus16 = cands.find((c) => c.version === 'Comfort Plus' && c.engine === '1.6 16V')
+    const cinco = cands.find((c) => c.version === '5 Anos')
+    const comfort10 = cands
+      .filter((c) => c.version === 'Comfort' && c.engine === '1.0 12V')
+      .map((c) => `${c.yearStart}-${c.yearEnd}`)
+      .sort()
+    expect(plus16).toMatchObject({ yearStart: 2013, yearEnd: 2019 })
+    expect(cinco).toMatchObject({ yearStart: 2018, yearEnd: 2018 })
+    expect(comfort10).toEqual(['2013-2019', '2023-2024', '2026-2027'])
+  })
+
+  it('mesma config junta anos de linhas diferentes; motor novo abre outro período', () => {
+    const flex = (year: number) => ({ code: `${year}-5`, name: `${year} Flex`, year, fuel: 'Flex' })
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'VW',
+      selections: [
+        {
+          modelName: 'Gol Comfortline 1.0 T. Flex 8V 3p',
+          years: [flex(2015)],
+        },
+        {
+          modelName: 'Gol Comfortline 1.0 Total Flex 8V 5p',
+          years: [2015, 2016].map(flex),
+        },
+        {
+          modelName: 'Gol Comfortline 1.0 T.Flex 12V 5p',
+          years: [2016, 2017, 2018, 2019].map(flex),
+        },
+      ],
+    })
+    const prepared = prepareVehicleMasterIntelligence(rows).prepared.filter((p) => p.action === 'upsert')
+    const cands = diffVehicleMasterCandidates(prepared, emptyCatalog)
+    const spans = cands
+      .filter((c) => c.version === 'Comfortline')
+      .map((c) => `${c.engine} ${c.yearStart}-${c.yearEnd}`)
+      .sort()
+    expect(spans).toEqual(['1.0 12V 2016-2019', '1.0 8V 2015-2016'])
+  })
+
+  it('cada ano numa linha vira um período da config, e outra versão não entra', () => {
+    const line = (name: string, year: number) => ({
+      modelName: name,
+      years: [{ code: `${year}-5`, name: `${year} Flex`, year, fuel: 'Flex' }],
+    })
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'GM',
+      selections: [
+        ...[2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019].map((year) =>
+          line(`Onix LT 1.0 ${year}`, year),
+        ),
+        line('Onix LTZ 1.0 2020', 2020),
+      ],
+    })
+    const prepared = prepareVehicleMasterIntelligence(rows).prepared.filter((p) => p.action === 'upsert')
+    const cands = diffVehicleMasterCandidates(prepared, emptyCatalog)
+    const spans = cands.map((c) => `${c.model} ${c.version} ${c.engine} ${c.yearStart}-${c.yearEnd}`).sort()
+    expect(spans).toEqual(['Onix LT 1.0 2012-2019', 'Onix LTZ 1.0 2020-2020'])
+  })
+
+  it('Onix LT 8V não herda os anos do LT 12V', () => {
+    const flex = (year: number) => ({ code: `${year}-5`, name: `${year} Flex`, year, fuel: 'Flex' })
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'GM',
+      selections: [
+        {
+          modelName: 'ONIX HATCH LT 1.0 8V FlexPower 5p Mec.',
+          years: [2013, 2014, 2015, 2016, 2017, 2018, 2019].map(flex),
+        },
+        {
+          modelName: 'ONIX HATCH LT 1.0 12V Flex 5p Mec.',
+          years: [2020, 2021, 2022, 2023, 2024, 2025, 2026].map(flex),
+        },
+      ],
+    })
+    const prepared = prepareVehicleMasterIntelligence(rows).prepared.filter((p) => p.action === 'upsert')
+    const cands = diffVehicleMasterCandidates(prepared, emptyCatalog)
+    const spans = cands.map((c) => `${c.version} ${c.engine} ${c.yearStart}-${c.yearEnd}`).sort()
+    expect(spans).toEqual(['LT 1.0 12V 2020-2026', 'LT 1.0 8V 2013-2019'])
+  })
+
   it('import CSV-like: coluna versão com barra vira 2 candidatos', () => {
     const prepared = prepareVehicleMasterIntelligence([
       {

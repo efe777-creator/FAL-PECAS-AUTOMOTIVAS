@@ -190,6 +190,8 @@ const TRIM_ALIASES: Record<string, string> = {
   SENSE: 'Sense',
   STYLE: 'Style',
   SE: 'SE',
+  LE: 'LE',
+  XE: 'XE',
   SEL: 'SEL',
   SPORT: 'Sport',
   PLUS: 'Plus',
@@ -212,6 +214,9 @@ const TRIM_ALIASES: Record<string, string> = {
   GSR: 'GSR',
   FIRE: 'Fire',
   ECONOMY: 'Economy',
+  ECON: 'Economy',
+  DAKAR: 'Dakar',
+  GOPRO: 'GoPro',
   GLSB: 'GLSB',
   HL: 'HL',
   AB: 'AB',
@@ -220,6 +225,24 @@ const TRIM_ALIASES: Record<string, string> = {
   SPORTING: 'Sporting',
   EXL: 'EXL',
   PREMIUM: 'Premium',
+  PREM: 'Premium',
+  SEDAN: 'Sedan',
+  SED: 'Sedan',
+  FURGAO: 'Furgão',
+  FURG: 'Furgão',
+  EXT: 'Extreme',
+  ED: 'Edition',
+  DUALOGIC: 'Dualogic',
+  DUAL: 'Dualogic',
+  ATTRACTI: 'Attractive',
+  ATTRACT: 'Attractive',
+  LIMIT: 'Limited',
+  EXPRES: 'Expression',
+  SPORTLINE: 'Sportline',
+  SPORTS: 'Sports',
+  GSI: 'GSi',
+  ABARTH: 'Abarth',
+  'R-LINE': 'R-Line',
   DIAMOND: 'Diamond',
   /** Chevrolet Prisma Joy — API às vezes truncada Joye */
   JOY: 'Joy',
@@ -275,8 +298,37 @@ function isFuelToken(token: string): boolean {
   const key = token
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
+    .replace(/[().\-]/g, '')
     .toLocaleUpperCase('pt-BR')
-  return FUEL_WORDS.has(key)
+  if (FUEL_WORDS.has(key)) return true
+  return (
+    key === 'FLEXPOWER' ||
+    key === 'FLEXP' ||
+    key === 'TOTFLEX' ||
+    key === 'MULTIPOWER' ||
+    key === 'EFLEX' ||
+    key === 'HIFLEX'
+  )
+}
+
+/** Ano solto no nome ("Onix LT 1.0 2012"). Não é versão. 2008 do Peugeot fica no modelo. */
+function isCatalogYearToken(token: string): boolean {
+  if (!/^(19|20)\d{2}$/.test(token.trim())) return false
+  const year = Number(token)
+  return year >= 1950 && year <= 2100
+}
+
+/** Potência de catálogo (211cv) — não é versão nem motor. */
+function isPowerToken(token: string): boolean {
+  return /^\d+\s*cv$/i.test(token.replace(/\./g, '').trim())
+}
+
+function trimAliasKey(token: string): string {
+  return token
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\./g, '')
+    .toLocaleUpperCase('pt-BR')
 }
 
 /** Token de versão por extenso. C. da FIPE (HB20 C./C.Plus) é Comfort; não vira modelo. */
@@ -332,7 +384,25 @@ export function normalizeVersionLabel(raw: string | null | undefined): string | 
 
 /** Códigos de câmbio DENATRAN/API — NÃO são versão comercial. */
 const TRANSMISSION_NOISE = new Set(
-  ['A', 'M', 'AT', 'MT', 'CVT', 'AUT', 'AUTO', 'MANUAL', 'AUTOMATICO', 'AUTOMÁTICO', 'DUALOGIC'].map((w) =>
+  [
+    'A',
+    'M',
+    'AT',
+    'MT',
+    'CVT',
+    'AUT',
+    'AUTO',
+    'MANUAL',
+    'AUTOMATICO',
+    'AUTOMÁTICO',
+    'DUALOGIC',
+    'TIPTRONIC',
+    'TIPTRON',
+    'EASYTRONIC',
+    'EASYTR',
+    'IMOTION',
+    'POWERSHIFT',
+  ].map((w) =>
     w
       .normalize('NFD')
       .replace(/\p{M}/gu, '')
@@ -357,7 +427,7 @@ function isEngineTechToken(token: string): boolean {
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLocaleUpperCase('pt-BR')
-  return /^(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
+  return /^(TSI|TFSI|FSI|THP|MPI|MPFI|MI|MSI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
 }
 
 /** Número de torque VW/Audi (170 TSI, 200 TSI, 250 TSI, 350 TSI). Não é cilindrada. */
@@ -397,12 +467,14 @@ function pullTorqueBadges(tokens: string[]): { tokens: string[]; label: string |
       continue
     }
     if (isEngineTechToken(tok)) {
-      badges.push(tok.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
+      const u = tok.toUpperCase().replace(/DIG-?T/i, 'DIG-T')
+      badges.push(u === 'MI' || u === 'MPFI' ? 'MPI' : u)
       continue
     }
     kept.push(tok)
   }
-  return { tokens: kept, label: badges.length ? badges.join(' ') : null }
+  const uniqueBadges = [...new Set(badges)]
+  return { tokens: kept, label: uniqueBadges.length ? uniqueBadges.join(' ') : null }
 }
 
 function appendTorqueBadge(engine: string | null, label: string | null): string | null {
@@ -416,7 +488,8 @@ function appendTorqueBadge(engine: string | null, label: string | null): string 
 function isEngineNoiseToken(token: string): boolean {
   const t = token.trim()
   if (!t) return false
-  if (isValveToken(t) || isTurboWord(t) || isTurboBadge(t) || isEngineTechToken(t)) return true
+  if (isValveToken(t) || isTurboWord(t) || isEngineTechToken(t)) return true
+  if (isTurboBadge(t) && trimAliasKey(t) !== 'TB') return true
   if (parseEngineGearToken(t)) return true
   if (ENGINE_TOKEN.test(t) && sanitizeEngine(t)) return true
   return false
@@ -457,6 +530,9 @@ export function sanitizeVersionLabel(raw: string | null | undefined): string | n
       !isTransmissionNoiseToken(tok) &&
       !isFuelToken(tok) &&
       !isBodyDoorsToken(tok) &&
+      !isPowerToken(tok) &&
+      !isCatalogYearToken(tok) &&
+      !/^(e|ou)$/i.test(tok) &&
       !parseTractionToken(tok),
   )
   if (!kept.length) return null
@@ -576,7 +652,17 @@ export function absorbEngineExtras(tokens: string[]): {
       traction = tract
       continue
     }
-    if (isFuelToken(tok) || isTransmissionNoiseToken(tok) || isBodyDoorsToken(tok)) continue
+    if (
+      isFuelToken(tok) ||
+      isTransmissionNoiseToken(tok) ||
+      isBodyDoorsToken(tok) ||
+      isPowerToken(tok) ||
+      isCatalogYearToken(tok)
+    ) {
+      continue
+    }
+    if (ENGINE_TOKEN.test(tok) && !isValveToken(tok)) continue
+    if (/^(e|ou)$/i.test(tok)) continue
     if (isValveToken(tok)) {
       valves.push(normalizeValveLabel(tok))
       continue
@@ -597,12 +683,23 @@ export function absorbEngineExtras(tokens: string[]): {
         continue
       }
     }
-    if (isTurboWord(tok) || isTurboBadge(tok)) {
+    const turboKey = tok
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .replace(/[.\-]/g, '')
+      .toLocaleUpperCase('pt-BR')
+    if (turboKey === 'BITURBO' || turboKey === 'BITB') {
+      turbo = true
+      if (!tech.includes('Bi-Turbo')) tech.push('Bi-Turbo')
+      continue
+    }
+    if (isTurboWord(tok) || isTurboBadge(tok) || /^T\.?$/i.test(tok)) {
       turbo = true
       continue
     }
     if (isEngineTechToken(tok)) {
-      tech.push(tok.toUpperCase())
+      const u = tok.toUpperCase()
+      tech.push(u === 'MI' || u === 'MPFI' ? 'MPI' : u)
       continue
     }
     rest.push(tok)
@@ -668,7 +765,10 @@ export function parseDenatranCompactToken(
  * "Gol Comfortline / Highline 1.0" → model Gol, version "Comfortline / Highline", engine 1.0.
  */
 function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | null {
-  let tokens = s.split(/\s+/).filter(Boolean)
+  let tokens = s
+    .split(/\s+/)
+    .filter(Boolean)
+    .flatMap((tok) => (tok === '/' || tok === '|' ? [tok] : expandNameToken(tok)))
   if (tokens.length < 3) return null
   const torque = pullTorqueBadges(tokens)
   tokens = torque.tokens
@@ -750,6 +850,14 @@ function peelTrailingTrim(modelTokens: string[]): {
   model: string
   version: string | null
 } {
+  modelTokens = modelTokens.filter(
+    (t) =>
+      !isFuelToken(t) &&
+      !isPowerToken(t) &&
+      !isTransmissionNoiseToken(t) &&
+      !isBodyDoorsToken(t),
+  )
+  if (!modelTokens.length) return { model: '', version: null }
   // HB20 / HB20S / HB20X: o token da linha é o modelo; o resto é versão por extenso.
   if (modelTokens.length >= 2 && isStickyModelLine(modelTokens[0]!)) {
     return {
@@ -777,11 +885,29 @@ function peelTrailingTrim(modelTokens: string[]): {
       version: normalizeVersionLabel(modelTokens.slice(2).join(' ')),
     }
   }
+  if (modelTokens.length >= 2) {
+    const tail = `${trimAliasKey(modelTokens[modelTokens.length - 2]!)} ${trimAliasKey(modelTokens[modelTokens.length - 1]!)}`
+    const cabin =
+      tail === 'CABINE DUPLA'
+        ? 'Cabine Dupla'
+        : tail === 'CABINE ESTENDIDA'
+          ? 'Cabine Estendida'
+          : tail === 'CABINE SIMPLES'
+            ? 'Cabine Simples'
+            : null
+    if (cabin) {
+      const head = peelTrailingTrim(modelTokens.slice(0, -2))
+      return {
+        model: head.model,
+        version: [head.version, cabin].filter(Boolean).join(' '),
+      }
+    }
+  }
   if (modelTokens.length >= 3) {
     const lastTok = modelTokens[modelTokens.length - 1]!
     const prevTok = modelTokens[modelTokens.length - 2]!
-    const last = lastTok.toUpperCase()
-    const prev = prevTok.toUpperCase()
+    const last = trimAliasKey(lastTok)
+    const prev = trimAliasKey(prevTok)
     if (last === 'COUNTRY' && prev === 'HIGH') {
       return {
         model: formatPlateModelName(modelTokens.slice(0, -2).join(' ')),
@@ -819,7 +945,7 @@ function peelTrailingTrim(modelTokens: string[]): {
   }
   if (modelTokens.length >= 2) {
     const lastTok = modelTokens[modelTokens.length - 1]!
-    const last = lastTok.toUpperCase()
+    const last = trimAliasKey(lastTok)
     if (last === 'HIGH') {
       return {
         model: formatPlateModelName(modelTokens.slice(0, -1).join(' ')),
@@ -906,14 +1032,62 @@ function normalizeSpacedModelCodes(raw: string): string {
   s = s.replace(/\bAdv\.(?!\w)/gi, 'Adventure')
   s = s.replace(/\bCeleb\.(?!\w)/gi, 'Celebration')
   s = s.replace(/\bDual\.(?!\w)/gi, 'Dualogic')
+  s = s.replace(/\bDie(?:s|sel)?\.?\s*TB\b/gi, 'Diesel Turbo')
   s = s.replace(/\bDies?\.+(?=(?:Aut|Mec)\b)/gi, 'Diesel ')
   s = s.replace(/\bDies\.?(?!\w)/gi, 'Diesel')
   s = s.replace(/\bDie\.?(?!\w)/gi, 'Diesel')
   s = s.replace(/\bAlc\.?(?!\w)/gi, 'Alcool')
   s = s.replace(/\bGasol\.?(?!\w)/gi, 'Gasolina')
   s = s.replace(/\b[FT]\.\s*Flex\b/gi, 'Flex')
+  s = s.replace(/\bTot\.?\s*Flex\b/gi, 'Flex')
+  s = s.replace(/\bTotal\s+Flex\b/gi, 'Flex')
+  s = s.replace(/\bE-?\s*Flex\b/gi, 'Flex')
+  s = s.replace(/\bFlex\s*Power\b/gi, 'Flex')
+  s = s.replace(/\bFlexP\.?/gi, 'Flex')
+  s = s.replace(/\bMulti\s*Power\b/gi, 'Flex')
+  s = s.replace(/\bT\.?\s*Dies(?:el)?\.?/gi, 'Turbo Diesel')
+  s = s.replace(/\bHghl\w*\b/gi, 'Highline')
+  s = s.replace(/\bTiptron(?!ic)\.?/gi, 'Tiptronic')
+  s = s.replace(/\bTip\.(?!\w)/gi, 'Tiptronic')
+  s = s.replace(/\bI\s+MOTION\b/gi, ' ')
+  s = s.replace(/\b(FSI)\s*\/\s*(TSI)\b/gi, 'TSI')
+  s = s.replace(/(\d+\.\d+)\s*\/\s*\1\b/g, '$1')
+  s = s.replace(/([A-Za-zÀ-ÿ])\.(?=\d+\.\d)/g, '$1 ')
+  s = s.replace(/Flex(?=\d{1,2}V\b)/gi, 'Flex ')
+  s = s.replace(/(?<=\d)(?=Diesel\b)/gi, ' ')
+  s = s.replace(
+    /\b(\d)(000|300|400|500|600|800|900)\b(?=\s+(?:Mi|MPI|MPFI|16V|8V|Turbo)\b)/gi,
+    (_, lead: string, rest: string) => `${lead}.${rest.startsWith('0') ? '0' : rest[0]}`,
+  )
+  s = s.replace(
+    /\((?:[^)]*(?:h[ií]br[ií]d|el[eé]tric|flex|diesel|gasolina|todas|lugares|\bE\d+\b)[^)]*)\)/gi,
+    ' ',
+  )
   s = s.replace(/\bH[ií]b\.?(?!\w)/gi, 'Híbrido')
   s = s.replace(/\bEletr\.?(?!\w)/gi, 'Elétrico')
+  s = s.replace(/\s*\/\s*(?=\d+\.\d+\b)/g, ' ')
+  s = s.replace(/,\s*(?=\d+\.\d+\b)/g, ' ')
+  s = s.replace(/\b(\d{3})\s+TB\b/gi, 'T$1')
+  s = s.replace(/\b(\d{3})\s+T\.(?!\w)/gi, 'T$1')
+  s = s.replace(/\bT\.\s+(\d{3})\b/gi, 'T$1')
+  s = s.replace(/\bTurbo\s+(\d{3})\b/gi, 'T$1')
+  s = s.replace(/\bBi-?\s*TB\b/gi, 'Bi-Turbo')
+  s = s.replace(/\bTB-IC\b/gi, 'Turbo')
+  s = s.replace(/\bMille\b/gi, '1.0')
+  s = s.replace(/\b\d+p\s+e\s+\d+p\b/gi, ' ')
+  s = s.replace(/\bHighli(?!ne)\w*/gi, 'Highline')
+  s = s.replace(/\bHighi\b/gi, 'Highline')
+  s = s.replace(/\(\s*novo\s*\)/gi, ' ')
+  s = s.replace(/\bA\.?\s*Premiu\w*/gi, 'Altis Premium')
+  s = s.replace(/\bPremiu(?!m)\w*/gi, 'Premium')
+  s = s.replace(/\bAttac\.?(?!\w)/gi, 'Attack')
+  s = s.replace(/\bPlati\.?(?!\w)/gi, 'Platinum')
+  s = s.replace(/\bS\.?\s*Surf\b/gi, 'Super Surf')
+  s = s.replace(/\bI\s+MOTI\.?\s*Power\b/gi, ' ')
+  s = s.replace(/(\d+\.\d)\.(\d{1,2}V)\b/gi, '$1 $2')
+  s = s.replace(/\bDie\.?(?=Aut)/gi, 'Diesel ')
+  s = s.replace(/\([^)]*blind[^)]*\)/gi, ' ')
+  s = s.replace(/\((?:nacion|import)[^)]*\)/gi, ' ')
   s = s.replace(/\bC\.\s*Plus\b/gi, 'Comfort Plus')
   s = s.replace(/\bC\.\s*Style\b/gi, 'Comfort Style')
   s = s.replace(/\bC\.(?!\w)/gi, 'Comfort')
@@ -944,8 +1118,19 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
   const torque = pullTorqueBadges(tokens)
   tokens = torque.tokens
   let extraTurbo = false
+  let extraBi = false
+  const namedTurboFamily = /(?:^|\s)(TSI|TFSI|FSI)(?:\s|$)/i.test(
+    `${torque.label ?? ''} ${tokens.join(' ')}`,
+  )
   tokens = tokens.filter((tok) => {
+    const key = trimAliasKey(tok).replace(/-/g, '')
+    if (key === 'BITURBO' || key === 'BITB') {
+      extraBi = true
+      return false
+    }
     if (isTurboBadge(tok)) {
+      // "Passat TB 2.0 TSI": TB é a versão. "HB20 1.0 TB" sem TSI: TB é turbo.
+      if (trimAliasKey(tok) === 'TB' && namedTurboFamily) return false
       extraTurbo = true
       return false
     }
@@ -974,7 +1159,9 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
 
   const withTraction = (r: SplitApiModeloResult): SplitApiModeloResult => {
     let engine = r.engine ?? null
-    if (extraTurbo && !(engine && /turbo/i.test(engine))) {
+    if (extraBi && !(engine && /bi-turbo/i.test(engine))) {
+      engine = engine ? `${engine} Bi-Turbo` : 'Bi-Turbo'
+    } else if (extraTurbo && !(engine && /turbo/i.test(engine))) {
       engine = engine ? `${engine} Turbo` : 'Turbo'
     }
     return {
@@ -1078,6 +1265,22 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
       version: sanitizeVersionLabel(peeled.version),
       traction,
     })
+  }
+
+  const looseValves = tokens.filter((t) => isValveToken(t))
+  if (looseValves.length) {
+    const rest = tokens.filter((t) => !isValveToken(t))
+    const peeled = peelTrailingTrim(rest)
+    const engine = composeEngineLabel(null, {
+      valves: looseValves.map((v) => normalizeValveLabel(v)),
+    })
+    if (peeled.model && engine) {
+      return withTraction({
+        model: peeled.model,
+        engine,
+        version: sanitizeVersionLabel(peeled.version),
+      })
+    }
   }
 
   // 4) Segundo token é só trim conhecido: "HB20 UNIQUE" (não Onix Plus / Tiggo 5X)

@@ -127,8 +127,9 @@ export function diffVehicleMasterCandidates(
     if (row.action !== 'upsert') continue
 
     const model = modelByKey.get(`${nk(row.maker)}|${nk(row.model)}`)
-    const yearStart = row.productionYearStart || row.year
-    const yearEnd = row.productionYearEnd || row.year
+    // Só o ano que a fonte listou. A vida do modelo não alarga esta versão.
+    const yearStart = row.year
+    const yearEnd = row.year
 
     if (!model) {
       const status: MasterDiffStatus = 'novo'
@@ -252,9 +253,15 @@ const STATUS_RANK: Record<MasterDiffStatus, number> = {
   ja_cadastrado: 1,
 }
 
-/** Une linhas iguais (maker/modelo/versão/motor/combustível) fundindo anos. */
+/**
+ * A mesma configuração (modelo, versão, motor, combustível, tração) junta
+ * os anos seguidos em que a FIPE a listou. Uma linha com só 2015 e outra
+ * com 2015–2016 da mesma config viram 2015–2016.
+ * Motor ou versão diferente abre outro período, mesmo no ano da troca.
+ * Buraco no meio (2019 e depois 2023) não é preenchido.
+ */
 function mergeDiffCandidatesByIdentity(rows: MasterDiffCandidate[]): MasterDiffCandidate[] {
-  const map = new Map<string, MasterDiffCandidate>()
+  const groups = new Map<string, MasterDiffCandidate[]>()
   const errors: MasterDiffCandidate[] = []
   for (const r of rows) {
     if (r.id.startsWith('err-')) {
@@ -269,23 +276,38 @@ function mergeDiffCandidatesByIdentity(rows: MasterDiffCandidate[]): MasterDiffC
       fuelKey(r.fuel),
       nk(r.traction),
     ].join('|')
-    const prev = map.get(key)
-    if (!prev) {
-      map.set(key, { ...r })
-      continue
-    }
-    prev.yearStart = Math.min(prev.yearStart, r.yearStart)
-    prev.yearEnd = Math.max(prev.yearEnd, r.yearEnd)
-    prev.selected = prev.selected || r.selected
-    if (!prev.traction && r.traction) prev.traction = r.traction
-    if (STATUS_RANK[r.status] > STATUS_RANK[prev.status]) {
-      prev.status = r.status
-      prev.note = r.note
-      prev.versionId = r.versionId ?? prev.versionId
-      prev.modelId = r.modelId ?? prev.modelId
-    }
+    const list = groups.get(key)
+    if (list) list.push(r)
+    else groups.set(key, [r])
   }
-  return [...errors, ...map.values()]
+
+  const out: MasterDiffCandidate[] = []
+  for (const list of groups.values()) {
+    const sorted = [...list].sort(
+      (a, b) => Math.min(a.yearStart, a.yearEnd) - Math.min(b.yearStart, b.yearEnd),
+    )
+    let run: MasterDiffCandidate | null = null
+    for (const r of sorted) {
+      const start = Math.min(r.yearStart, r.yearEnd)
+      const end = Math.max(r.yearStart, r.yearEnd)
+      if (run && start <= run.yearEnd + 1) {
+        run.yearEnd = Math.max(run.yearEnd, end)
+        run.selected = run.selected || r.selected
+        if (!run.traction && r.traction) run.traction = r.traction
+        if (STATUS_RANK[r.status] > STATUS_RANK[run.status]) {
+          run.status = r.status
+          run.note = r.note
+          run.versionId = r.versionId ?? run.versionId
+          run.modelId = r.modelId ?? run.modelId
+        }
+        continue
+      }
+      if (run) out.push(run)
+      run = { ...r, yearStart: start, yearEnd: end }
+    }
+    if (run) out.push(run)
+  }
+  return [...errors, ...out]
 }
 
 /** Filtra só linhas marcadas para apply. */
