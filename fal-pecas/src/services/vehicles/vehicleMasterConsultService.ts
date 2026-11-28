@@ -304,8 +304,9 @@ export async function buildCandidatesFromDemandaQuery(
     ),
   )
 
-  // Complemento FIPE: marca pelo termo OU marcas já no mestre (acha "Gol" sem digitar VW).
-  if (rows.length < 40 && needle) {
+  // Complemento FIPE só se o mestre trouxe pouco — e só marcas relevantes ao termo
+  // (antes: até 14 marcas aleatórias em série → a busca “não ia”).
+  if (rows.length < 12 && needle) {
     try {
       const brands = await fipeListBrands()
       const byFold = new Map(brands.map((b) => [foldDemanda(b.name), b] as const))
@@ -316,32 +317,28 @@ export async function buildCandidatesFromDemandaQuery(
         toScan.push(b)
       }
 
+      const toks = needle.split(/\s+/).filter((t) => t.length >= 2)
       for (const b of brands) {
         const bn = foldDemanda(b.name)
-        if (
-          demandaTokensMatch(bn, needle) ||
-          needle.split(/\s+/).some((t) => t.length >= 2 && bn.includes(t))
-        ) {
+        if (demandaTokensMatch(bn, needle) || toks.some((t) => bn.includes(t) || t.includes(bn))) {
           addBrand(b)
         }
       }
-      for (const mod of catalog.models) {
-        addBrand(byFold.get(foldDemanda(mod.makerName)))
-        if (toScan.length >= 14) break
-      }
-      if (!toScan.length) {
-        for (const b of brands.slice(0, 20)) addBrand(b)
+      // Marcas já acertadas no mestre (ex.: Gol → Volkswagen).
+      for (const r of rows) {
+        addBrand(byFold.get(foldDemanda(r.montadora)))
       }
 
-      for (const brand of toScan.slice(0, 14)) {
-        if (rows.length >= 40) break
-        const models = await fipeListModels(brand.code)
+      const absorbModels = (
+        brand: (typeof brands)[number],
+        models: Awaited<ReturnType<typeof fipeListModels>>,
+      ) => {
         const modelHits = models.filter((m) => {
           const hay = foldDemanda(`${brand.name} ${m.name}`)
           return demandaTokensMatch(hay, needle)
         })
         for (const m of modelHits.slice(0, 12)) {
-          if (rows.length >= 40) break
+          if (rows.length >= 40) return
           const dedupe = `${brand.name}|${m.name}|fipe`.toLowerCase()
           if (seen.has(dedupe)) continue
           seen.add(dedupe)
@@ -351,8 +348,35 @@ export async function buildCandidatesFromDemandaQuery(
             modelName: m.name,
             years: [{ code: `${ano}-0`, name: String(ano), year: Number(ano), fuel: null }],
           })) {
-            if (!pushDemandaRow(rows, seen, r, 40)) break
+            if (!pushDemandaRow(rows, seen, r, 40)) return
           }
+        }
+      }
+
+      const fetchModels = async (brand: (typeof brands)[number]) => {
+        try {
+          return await fipeListModels(brand.code)
+        } catch {
+          return [] as Awaited<ReturnType<typeof fipeListModels>>
+        }
+      }
+
+      if (toScan.length) {
+        const lists = await Promise.all(
+          toScan.slice(0, 6).map(async (brand) => ({ brand, models: await fetchModels(brand) })),
+        )
+        for (const { brand, models } of lists) absorbModels(brand, models)
+      } else if (!rows.length) {
+        // Sem montadora no termo: lotes paralelos até achar modelo (ex.: "Gol") — máx. 40 marcas.
+        const BATCH = 8
+        const MAX = 40
+        for (let i = 0; i < brands.length && i < MAX && rows.length < 12; i += BATCH) {
+          const batch = brands.slice(i, i + BATCH)
+          const lists = await Promise.all(
+            batch.map(async (brand) => ({ brand, models: await fetchModels(brand) })),
+          )
+          for (const { brand, models } of lists) absorbModels(brand, models)
+          if (rows.length) break
         }
       }
     } catch {

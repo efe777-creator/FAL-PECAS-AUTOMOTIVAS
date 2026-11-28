@@ -67,7 +67,13 @@ export async function fipeListYears(brandId: string, modelId: string): Promise<F
     .filter((x): x is FipeYearOption => Boolean(x))
 }
 
-/** Monta linhas de inteligência a partir da seleção FIPE (1 ou N modelos + anos). */
+type FipeSelectionPiece = {
+  brandName: string
+  modelName: string
+  years: FipeYearOption[]
+}
+
+/** Monta linhas de inteligência a partir da seleção FIPE (1+ marcas · N modelos · anos). */
 export function fipeSelectionToIntelligenceRows(
   input:
     | {
@@ -78,22 +84,40 @@ export function fipeSelectionToIntelligenceRows(
     | {
         brandName: string
         selections: Array<{ modelName: string; years: FipeYearOption[] }>
+      }
+    | {
+        selections: FipeSelectionPiece[]
       },
 ): MasterIntelligenceRow[] {
-  const selections =
-    'selections' in input
-      ? input.selections
-      : [{ modelName: input.modelName, years: input.years }]
+  let pieces: FipeSelectionPiece[]
+  if ('selections' in input) {
+    const first = input.selections[0] as { brandName?: string; modelName?: string } | undefined
+    if (first && typeof first.brandName === 'string') {
+      pieces = input.selections as FipeSelectionPiece[]
+    } else if ('brandName' in input) {
+      const brandName = input.brandName
+      pieces = (
+        input.selections as Array<{ modelName: string; years: FipeYearOption[] }>
+      ).map((s) => ({ brandName, modelName: s.modelName, years: s.years }))
+    } else {
+      pieces = []
+    }
+  } else {
+    pieces = [{ brandName: input.brandName, modelName: input.modelName, years: input.years }]
+  }
+
   const out: MasterIntelligenceRow[] = []
-  for (const sel of selections) {
+  for (const sel of pieces) {
     if (!sel.years.length) continue
+    const brand = sel.brandName.trim()
+    if (!brand) continue
     const split = splitApiModelo(sel.modelName)
     const modelo = (split.model || sel.modelName).trim()
     const motor = (split.engine ?? '').trim()
     const versao = (split.version ?? '').trim()
     for (const y of sel.years) {
       out.push({
-        montadora: input.brandName.trim(),
+        montadora: brand,
         modelo,
         ano: String(y.year),
         motor,

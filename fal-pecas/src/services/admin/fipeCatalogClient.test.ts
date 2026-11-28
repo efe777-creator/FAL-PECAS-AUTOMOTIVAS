@@ -46,4 +46,23 @@ describe('fipeCatalogClient helpers', () => {
     expect(rows.every((r) => r.montadora === 'Hyundai')).toBe(true)
     expect(rows.map((r) => r.ano).sort()).toEqual(['2020', '2021', '2022'])
   })
+
+  it('fipeSelectionToIntelligenceRows aceita N montadoras', () => {
+    const rows = fipeSelectionToIntelligenceRows({
+      selections: [
+        {
+          brandName: 'Volkswagen',
+          modelName: 'Gol 1.0',
+          years: [{ code: '2018-5', name: '2018 Flex', year: 2018, fuel: 'Flex' }],
+        },
+        {
+          brandName: 'Hyundai',
+          modelName: 'HB20 1.0 Comfort',
+          years: [{ code: '2020-5', name: '2020 Flex', year: 2020, fuel: 'Flex' }],
+        },
+      ],
+    })
+    expect(rows).toHaveLength(2)
+    expect(rows.map((r) => r.montadora).sort()).toEqual(['Hyundai', 'Volkswagen'])
+  })
 })
