@@ -551,6 +551,27 @@ describe('splitApiModelo', () => {
   })
 })
 
+describe('splitApiModelo · bancada V6/V8', () => {
+  it('V6 e V8 ficam no motor, não na versão', () => {
+    expect(splitApiModelo('AMAROK Comfor. 3.0 V6 TDI 4x4 Dies. Aut.')).toMatchObject({
+      model: 'Amarok',
+      engine: '3.0 V6 TDI',
+      version: 'Comfort',
+      traction: '4x4',
+    })
+    expect(splitApiModelo('Mustang GT 5.0 V8')).toMatchObject({
+      model: 'Mustang',
+      engine: '5.0 V8',
+      version: 'GT',
+    })
+    expect(splitApiModelo('Ranger Limited 3.0V6')).toMatchObject({
+      model: 'Ranger',
+      engine: '3.0 V6',
+      version: 'Limited',
+    })
+  })
+})
+
 describe('splitApiModelo · FIPE colada', () => {
   it('tira combustível do modelo e não inventa versão com Flex, híbrido ou tetrafuel', () => {
     expect(splitApiModelo('Grand Siena TETRAFUEL 1.4 Evo F. Flex 8V')).toMatchObject({

@@ -421,12 +421,31 @@ function isTransmissionNoiseToken(token: string): boolean {
   return false
 }
 
+/** Configuração de cilindros (V6 / V8 / V12) — motor, nunca versão. */
+export function isCylinderBankToken(token: string): boolean {
+  const key = token
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\./g, '')
+    .toLocaleUpperCase('pt-BR')
+  return /^(V[468]|V10|V12|VR6|W12)$/.test(key)
+}
+
+function normalizeCylinderBankLabel(token: string): string {
+  return token
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\./g, '')
+    .toLocaleUpperCase('pt-BR')
+}
+
 /** Tecnologia de motor colada após cilindrada (1.0 TSI) — fica no motor, não na versão. */
 function isEngineTechToken(token: string): boolean {
   const key = token
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLocaleUpperCase('pt-BR')
+  if (isCylinderBankToken(token)) return true
   return /^(TSI|TFSI|FSI|THP|MPI|MPFI|MI|MSI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
 }
 
@@ -488,7 +507,7 @@ function appendTorqueBadge(engine: string | null, label: string | null): string 
 function isEngineNoiseToken(token: string): boolean {
   const t = token.trim()
   if (!t) return false
-  if (isValveToken(t) || isTurboWord(t) || isEngineTechToken(t)) return true
+  if (isValveToken(t) || isCylinderBankToken(t) || isTurboWord(t) || isEngineTechToken(t)) return true
   if (isTurboBadge(t) && trimAliasKey(t) !== 'TB') return true
   if (parseEngineGearToken(t)) return true
   if (ENGINE_TOKEN.test(t) && sanitizeEngine(t)) return true
@@ -552,16 +571,21 @@ function normalizeEngineToken(raw: string): string {
   if (/^\d{1,2}V$/i.test(suf)) return base
   // Descarta sufixo câmbio/unidade (AT/MT/L) — motor fica só a cilindrada.
   if (!suf || /^[mMaA]$/i.test(suf) || /^(MT|AT|CVT|L)$/i.test(suf)) return base
+  // V6/V8 colado (3.0V6) — a bancada sai no peel, a base fica limpa.
+  if (isCylinderBankToken(suf)) return base
   // Mantém turbo/tsi etc. no token (2.0T).
   if (/^[tT]/.test(suf) || /tsi|tfsi|thp/i.test(suf)) return `${base}${suf.toUpperCase()}`
   return base
 }
 
-/** Extrai sufixo de válvulas colado ao motor (2.016V → 16V). */
+/** Extrai sufixo de válvulas ou bancada colado ao motor (2.016V → 16V, 3.0V6 → V6). */
 export function peelValveSuffixFromEngineToken(raw: string): string | null {
+  const t = String(raw).trim()
   // 1 dígito decimal + válvulas (evita 2.01+6V por greediness de \d+).
-  const m = String(raw).trim().match(/^\d+\.\d(\d{1,2}V)$/i)
-  return m?.[1]?.toUpperCase() ?? null
+  const valve = t.match(/^\d+\.\d(\d{1,2}V)$/i)
+  if (valve?.[1]) return valve[1].toUpperCase()
+  const bank = t.match(/^\d+\.\d+(V[468]|V10|V12|VR6|W12)$/i)
+  return bank?.[1]?.toUpperCase() ?? null
 }
 
 /**
@@ -581,7 +605,8 @@ export function sanitizeEngine(raw: string | null | undefined): string | null {
     const base = sanitizeEngine(parts[0]!)
     const extras: string[] = []
     for (const p of parts.slice(base ? 1 : 0)) {
-      if (isValveToken(p)) extras.push(normalizeValveLabel(p))
+      if (isCylinderBankToken(p)) extras.push(normalizeCylinderBankLabel(p))
+      else if (isValveToken(p)) extras.push(normalizeValveLabel(p))
       else if (isTurboWord(p) || isTurboBadge(p)) {
         if (!extras.includes('Turbo') && !/turbo/i.test(base ?? '')) extras.push('Turbo')
       } else if (isEngineTechToken(p)) extras.push(p.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
@@ -608,7 +633,7 @@ export function sanitizeEngine(raw: string | null | undefined): string | null {
   return normalizeEngineToken(t)
 }
 
-/** Junta cilindrada + válvulas + Turbo + família na ordem do contrato. */
+/** Junta cilindrada + V6/V8 + válvulas + Turbo + família na ordem do contrato. */
 export function composeEngineLabel(
   base: string | null,
   bits: { valves?: string[]; turbo?: boolean; tech?: string[] },
@@ -616,13 +641,19 @@ export function composeEngineLabel(
   const parts: string[] = []
   if (base) parts.push(base)
   if (!base && !bits.valves?.length && !bits.turbo && !bits.tech?.length) return null
+  const tech = bits.tech ?? []
+  for (const bank of tech.filter((t) => isCylinderBankToken(t))) {
+    const n = normalizeCylinderBankLabel(bank)
+    if (n && !parts.includes(n)) parts.push(n)
+  }
   for (const v of bits.valves ?? []) {
     const n = normalizeValveLabel(v)
     if (n && !parts.includes(n)) parts.push(n)
   }
   if (bits.turbo && !parts.some((p) => /turbo/i.test(p))) parts.push('Turbo')
-  for (const tech of bits.tech ?? []) {
-    const u = tech.toUpperCase()
+  for (const item of tech) {
+    if (isCylinderBankToken(item)) continue
+    const u = item.toUpperCase()
     if (u && !parts.includes(u)) parts.push(u)
   }
   return parts.join(' ')
@@ -695,6 +726,11 @@ export function absorbEngineExtras(tokens: string[]): {
     }
     if (isTurboWord(tok) || isTurboBadge(tok) || /^T\.?$/i.test(tok)) {
       turbo = true
+      continue
+    }
+    if (isCylinderBankToken(tok)) {
+      const bank = normalizeCylinderBankLabel(tok)
+      if (!tech.includes(bank)) tech.push(bank)
       continue
     }
     if (isEngineTechToken(tok)) {
@@ -787,22 +823,27 @@ function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | n
   let headTokens = tokens
   const last = tokens[tokens.length - 1]!
   if (ENGINE_TOKEN.test(last) && !isValveToken(last)) {
-    const valveStuck = peelValveSuffixFromEngineToken(last)
+    const stuck = peelValveSuffixFromEngineToken(last)
+    const bank = stuck && isCylinderBankToken(stuck) ? [stuck] : []
+    const valves = stuck && !isCylinderBankToken(stuck) ? [stuck] : []
     engine = composeEngineLabel(sanitizeEngine(normalizeEngineToken(last)), {
-      valves: valveStuck ? [valveStuck] : [],
+      valves,
+      tech: bank,
     })
     headTokens = tokens.slice(0, -1)
   } else {
     const engIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t) && !isValveToken(t))
     if (engIdx >= 1) {
       const engTok = tokens[engIdx]!
-      const valveStuck = peelValveSuffixFromEngineToken(engTok)
+      const stuck = peelValveSuffixFromEngineToken(engTok)
       const after = absorbEngineExtras(tokens.slice(engIdx + 1))
       if (after.traction) traction = after.traction
+      const bank = stuck && isCylinderBankToken(stuck) ? [stuck] : []
+      const valves = stuck && !isCylinderBankToken(stuck) ? [stuck] : []
       engine = composeEngineLabel(sanitizeEngine(normalizeEngineToken(engTok)), {
-        valves: [...(valveStuck ? [valveStuck] : []), ...after.valves],
+        valves: [...valves, ...after.valves],
         turbo: after.turbo,
-        tech: after.tech,
+        tech: [...bank, ...after.tech],
       })
       headTokens = [...tokens.slice(0, engIdx), ...after.rest]
     }
@@ -1024,6 +1065,7 @@ function normalizeSpacedModelCodes(raw: string): string {
   s = s.replace(/\bT\s+CROSS\b/gi, 'T-CROSS')
   s = s.replace(/\bXC\s+(40|60|90)\b/gi, 'XC$1')
   s = s.replace(/(?<=[A-Za-z])(?=\d+\.\d)/g, ' ')
+  s = s.replace(/(\d+\.\d+)(V(?:[468]|10|12|R6)|W12)\b/gi, '$1 $2')
   s = s.replace(/\bComf\.?(?!\w)/gi, 'Comfort')
   s = s.replace(/\bCom\.(?!\w)/gi, 'Comfort')
   s = s.replace(/\bPlat\.(?!\w)/gi, 'Platinum')
@@ -1195,11 +1237,12 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
   const engineIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t) && !isValveToken(t))
   if (engineIdx >= 1) {
     const engTok = tokens[engineIdx]!
-    const valveStuck = peelValveSuffixFromEngineToken(engTok)
+    const stuck = peelValveSuffixFromEngineToken(engTok)
     const base = sanitizeEngine(normalizeEngineToken(engTok))
     const peeled = peelTrailingTrim(tokens.slice(0, engineIdx))
     const absorbed = absorbEngineExtras(tokens.slice(engineIdx + 1))
-    if (valveStuck) absorbed.valves.unshift(valveStuck)
+    if (stuck && isCylinderBankToken(stuck)) absorbed.tech.unshift(stuck)
+    else if (stuck) absorbed.valves.unshift(stuck)
     if (absorbed.traction) traction = absorbed.traction
     const engine = appendTorqueBadge(
       composeEngineLabel(base, {

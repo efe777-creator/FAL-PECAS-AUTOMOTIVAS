@@ -140,7 +140,7 @@ export function VehicleMasterConsultPreview({
       </div>
       <p className="m-0 text-sm text-fal-muted">
         {visible.length} na vista · {selectedCount} marcados no total. Linha desmarcada não grava.
-        Contrato: 1.0 / 8V / 16V / Turbo = motor · Tiggo 5X = modelo · Comfortline = versão ·
+        Contrato: 1.0 / 8V / 16V / V6 / V8 / Turbo = motor · Tiggo 5X = modelo · Comfortline = versão ·
         4x4/AWD = tração. A mesma configuração junta os anos seguidos em que ela existe.
         Se o motor ou a versão muda, começa outro período. Ano sem essa configuração não entra.
       </p>
