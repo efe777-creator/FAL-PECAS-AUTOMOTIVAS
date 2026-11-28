@@ -97,6 +97,16 @@ Writer único massa: `applySelectedMasterCandidates` → `vehicleCanonicalUpsert
 - [FAL_RUNBOOK_QUALIDADE_MESTRE_VEICULAR_2026-11-21.md](./FAL_RUNBOOK_QUALIDADE_MESTRE_VEICULAR_2026-11-21.md)
 - [FAL_MARCHA_VAL_LAYOUT_TESTES_MESTRE_2026-11-27.md](./FAL_MARCHA_VAL_LAYOUT_TESTES_MESTRE_2026-11-27.md)
 
+## Deploy produção (2026-11-27)
+
+| Peça | Tip |
+|------|-----|
+| `origin/dev` / `origin/main` | `1a201ab` (FF) |
+| Build | `pnpm run build` · tip `index-CJhprWFm.js` |
+| Hostinger | `hosting_deploy-static-website` · `falpecasautomotivas.com` · ZIP `dist_20261127_215034.zip` |
+| Smoke tip live | **PASS** · `https://falpecasautomotivas.com/` → `assets/index-CJhprWFm.js` · HTTP 200 |
+| Edge wtbp | `vehicle-confirm-upsert` · `plate-lookup` · `fipe-catalog-lookup` deployed (shared `splitApiModelo`) |
+
 ## STOP
 
 Sem Netlify nesta marcha. Sem `db push` massivo wtbp. Sem alterar pasta HF.
