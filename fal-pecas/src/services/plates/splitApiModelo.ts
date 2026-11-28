@@ -83,14 +83,14 @@ function expandNameToken(token: string): string[] {
   const glued = /^[A-Za-zÀ-ÿ]+\.[A-Za-zÀ-ÿ]/.test(token)
     ? token.split('.').map((p) => p.trim()).filter(Boolean)
     : [token.replace(/\.+$/g, '')]
-  return glued.map((part) => {
+  return glued.flatMap((part) => {
     const key = part
       .normalize('NFD')
       .replace(/\p{M}/gu, '')
       .replace(/\./g, '')
       .toLocaleUpperCase('pt-BR')
-    if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
-    return part
+    if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!.split(/\s+/)
+    return [part]
   })
 }
 
@@ -142,10 +142,50 @@ const TRIM_ALIASES: Record<string, string> = {
   COMFORT: 'Comfort',
   COMFOR: 'Comfort',
   COMF: 'Comfort',
+  /** FIPE HB20S: "Com." = Comfort */
+  COM: 'Comfort',
+  /** FIPE: "Plat." = Platinum */
+  PLAT: 'Platinum',
+  PLATINUM: 'Platinum',
+  SPEC: 'Spec',
+  COPA: 'Copa',
   TECH: 'Tech',
   ANOS: 'Anos',
   COMFORTLINE: 'Comfortline',
   HIGHLINE: 'Highline',
+  /**
+   * FIPE escreve "High" no Tera = Highline.
+   * "High Country" (S10) não usa este alias — tratado à parte.
+   */
+  ATTRACTIVE: 'Attractive',
+  ESSENCE: 'Essence',
+  /** FIPE: "ESSEN." */
+  ESSEN: 'Essence',
+  WORKING: 'Working',
+  /** FIPE: "Work." */
+  WORK: 'Working',
+  ENDURANCE: 'Endurance',
+  EXTREME: 'Extreme',
+  ADVENTURE: 'Adventure',
+  /** FIPE: "Adv." */
+  ADV: 'Adventure',
+  CELEBRATION: 'Celebration',
+  /** FIPE: "Celeb." */
+  CELEB: 'Celebration',
+  RANCH: 'Ranch',
+  /** Picapes FIPE: CS / CE / CD são a cabine, não acabamento. */
+  CS: 'Cabine Simples',
+  CE: 'Cabine Estendida',
+  CD: 'Cabine Dupla',
+  SR: 'SR',
+  XLT: 'XLT',
+  ALTIS: 'Altis',
+  LARIAT: 'Lariat',
+  TITANIUM: 'Titanium',
+  TOURING: 'Touring',
+  ULTIMATE: 'Ultimate',
+  WILDTRAK: 'Wildtrak',
+  GRIFFE: 'Griffe',
   TRENDLINE: 'Trendline',
   SENSE: 'Sense',
   STYLE: 'Style',
@@ -191,6 +231,13 @@ const TRIM_ALIASES: Record<string, string> = {
   GTI: 'GTI',
   GTS: 'GTS',
   GT: 'GT',
+  GLI: 'GLI',
+  /** Polo Track, Saveiro Robust, up! Pepper, Gol Last Edition — acabamento, não modelo. */
+  TRACK: 'Track',
+  ROBUST: 'Robust',
+  PEPPER: 'Pepper',
+  LAST: 'Last',
+  EDITION: 'Edition',
   RS: 'RS',
   SI: 'Si',
   MAX: 'Max',
@@ -216,7 +263,7 @@ const TRIM_ALIASES: Record<string, string> = {
 
 /** Combustível — remove do modelo; NÃO vira versão/filtro. */
 const FUEL_WORDS = new Set(
-  ['FLEX', 'FLEXIVEL', 'FLEXÍVEL', 'GASOLINA', 'ALCOOL', 'ÁLCOOL', 'ETANOL', 'DIESEL', 'GNV'].map((w) =>
+  ['FLEX', 'FLEXIVEL', 'FLEXÍVEL', 'GASOLINA', 'ALCOOL', 'ÁLCOOL', 'ETANOL', 'DIESEL', 'GNV', 'HIBRIDO', 'ELETRICO', 'TETRAFUEL'].map((w) =>
     w
       .normalize('NFD')
       .replace(/\p{M}/gu, '')
@@ -230,6 +277,22 @@ function isFuelToken(token: string): boolean {
     .replace(/\p{M}/gu, '')
     .toLocaleUpperCase('pt-BR')
   return FUEL_WORDS.has(key)
+}
+
+/** Token de versão por extenso. C. da FIPE (HB20 C./C.Plus) é Comfort; não vira modelo. */
+function canonicalVersionToken(tok: string): string {
+  const key = tok
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\./g, '')
+    .toLocaleUpperCase('pt-BR')
+  if (key === 'C') return 'Comfort'
+  if (key === 'HIGH') return 'Highline'
+  if (key === 'DO' || key === 'DE' || key === 'DA') return key.toLocaleLowerCase('pt-BR')
+  if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
+  if (key.length <= 4 && /^[A-Z0-9\-]+$/.test(key)) return key
+  const raw = tok.replace(/\.+$/g, '')
+  return key.charAt(0) + raw.slice(1).toLocaleLowerCase('pt-BR')
 }
 
 function expandTrim(abbr: string): string {
@@ -249,25 +312,27 @@ export function normalizeVersionLabel(raw: string | null | undefined): string | 
   if (!t) return null
   const tokens = t.split(/\s+/).filter(Boolean)
   if (!tokens.length) return null
-  if (tokens.length === 1) {
-    const key = tokens[0]!.toLocaleUpperCase('pt-BR')
-    if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
-    if (key.length <= 4 && /^[A-Z0-9\-]+$/.test(key)) return key
-    return key.charAt(0) + tokens[0]!.slice(1).toLocaleLowerCase('pt-BR')
-  }
   return tokens
-    .map((tok) => {
-      const key = tok.toLocaleUpperCase('pt-BR')
-      if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
-      if (key.length <= 4 && /^[A-Z0-9\-]+$/.test(key)) return key
-      return key.charAt(0) + tok.slice(1).toLocaleLowerCase('pt-BR')
+    .map((tok, index) => {
+      const key = tok
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/\./g, '')
+        .toLocaleUpperCase('pt-BR')
+      const next = tokens[index + 1]
+        ?.normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/\./g, '')
+        .toLocaleUpperCase('pt-BR')
+      if (key === 'HIGH' && next === 'COUNTRY') return 'High'
+      return canonicalVersionToken(tok)
     })
     .join(' ')
 }
 
 /** Códigos de câmbio DENATRAN/API — NÃO são versão comercial. */
 const TRANSMISSION_NOISE = new Set(
-  ['A', 'M', 'AT', 'MT', 'CVT', 'AUT', 'AUTO', 'MANUAL', 'AUTOMATICO', 'AUTOMÁTICO'].map((w) =>
+  ['A', 'M', 'AT', 'MT', 'CVT', 'AUT', 'AUTO', 'MANUAL', 'AUTOMATICO', 'AUTOMÁTICO', 'DUALOGIC'].map((w) =>
     w
       .normalize('NFD')
       .replace(/\p{M}/gu, '')
@@ -292,7 +357,59 @@ function isEngineTechToken(token: string): boolean {
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLocaleUpperCase('pt-BR')
-  return /^(TSI|TFSI|THP|MPI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
+  return /^(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
+}
+
+/** Número de torque VW/Audi (170 TSI, 200 TSI, 250 TSI, 350 TSI). Não é cilindrada. */
+function torqueBadgeNumber(token: string): string | null {
+  const t = token.trim()
+  if (!/^\d{3}$/.test(t)) return null
+  const n = Number(t)
+  if (n < 100 || n > 450) return null
+  return t
+}
+
+const TORQUE_FAMILY = /^(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI)$/i
+
+/**
+ * Tira do nome o selo de motor: "170 TSI", "250TSI", "T200".
+ * "C 180" e "2008" não entram — não há família de motor colada.
+ */
+function pullTorqueBadges(tokens: string[]): { tokens: string[]; label: string | null } {
+  const kept: string[] = []
+  const badges: string[] = []
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i]!
+    const glued = tok.match(/^(\d{3})(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI)$/i)
+    if (glued && torqueBadgeNumber(glued[1]!)) {
+      badges.push(`${glued[1]} ${glued[2]!.toUpperCase()}`)
+      continue
+    }
+    const stellantis = tok.match(/^T(\d{3})$/i)
+    if (stellantis && torqueBadgeNumber(stellantis[1]!)) {
+      badges.push(`T${stellantis[1]}`)
+      continue
+    }
+    const next = tokens[i + 1]
+    if (torqueBadgeNumber(tok) && next && TORQUE_FAMILY.test(next)) {
+      badges.push(`${tok} ${next.toUpperCase()}`)
+      i += 1
+      continue
+    }
+    if (isEngineTechToken(tok)) {
+      badges.push(tok.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
+      continue
+    }
+    kept.push(tok)
+  }
+  return { tokens: kept, label: badges.length ? badges.join(' ') : null }
+}
+
+function appendTorqueBadge(engine: string | null, label: string | null): string | null {
+  if (!label) return engine
+  if (!engine) return label
+  if (engine.toUpperCase().includes(label.toUpperCase())) return engine
+  return `${engine} ${label}`
 }
 
 /** Token é só motor/tech — lixo se usado como "versão". Válvulas e Turbo também saem da versão. */
@@ -386,16 +503,24 @@ export function sanitizeEngine(raw: string | null | undefined): string | null {
   const parts = t.split(/\s+/).filter(Boolean)
   if (parts.length > 1) {
     const base = sanitizeEngine(parts[0]!)
-    if (!base) return null
     const extras: string[] = []
-    for (const p of parts.slice(1)) {
+    for (const p of parts.slice(base ? 1 : 0)) {
       if (isValveToken(p)) extras.push(normalizeValveLabel(p))
       else if (isTurboWord(p) || isTurboBadge(p)) {
-        if (!extras.includes('Turbo') && !/turbo/i.test(base)) extras.push('Turbo')
-      }
-      else if (isEngineTechToken(p)) extras.push(p.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
+        if (!extras.includes('Turbo') && !/turbo/i.test(base ?? '')) extras.push('Turbo')
+      } else if (isEngineTechToken(p)) extras.push(p.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
+      else if (torqueBadgeNumber(p) || /^T\d{3}$/i.test(p)) extras.push(p.toUpperCase())
     }
+    if (!base) return extras.length ? extras.join(' ') : null
     return [base, ...extras].join(' ')
+  }
+  const gluedTorque = t.match(/^(\d{3})(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI)$/i)
+  if (gluedTorque && torqueBadgeNumber(gluedTorque[1]!)) {
+    return `${gluedTorque[1]} ${gluedTorque[2]!.toUpperCase()}`
+  }
+  const stellantisTorque = t.match(/^T(\d{3})$/i)
+  if (stellantisTorque && torqueBadgeNumber(stellantisTorque[1]!)) {
+    return `T${stellantisTorque[1]}`
   }
 
   const gear = parseEngineGearToken(t)
@@ -497,14 +622,7 @@ function parseEngineGearToken(token: string): string | null {
 
 function titleVersion(tokens: string[]): string | null {
   if (!tokens.length) return null
-  return tokens
-    .map((t) => {
-      const upper = t.toLocaleUpperCase('pt-BR')
-      if (TRIM_ALIASES[upper]) return TRIM_ALIASES[upper]!
-      if (upper.length <= 4 && /^[A-Z0-9\-]+$/.test(upper)) return upper
-      return upper.charAt(0) + t.slice(1).toLocaleLowerCase('pt-BR')
-    })
-    .join(' ')
+  return tokens.map(canonicalVersionToken).join(' ')
 }
 
 export function formatPlateModelName(raw: string): string {
@@ -552,6 +670,8 @@ export function parseDenatranCompactToken(
 function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | null {
   let tokens = s.split(/\s+/).filter(Boolean)
   if (tokens.length < 3) return null
+  const torque = pullTorqueBadges(tokens)
+  tokens = torque.tokens
 
   let traction: '4x2' | '4x4' | 'awd' | null = null
   tokens = tokens.filter((tok) => {
@@ -616,7 +736,7 @@ function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | n
 
   const version = sanitizeVersionLabel(versionParts.join(' / '))
   if (!version || versionParts.length < 2) return null
-  return { model, engine, version, traction }
+  return { model, engine: appendTorqueBadge(engine, torque.label), version, traction }
 }
 
 /**
@@ -637,6 +757,18 @@ function peelTrailingTrim(modelTokens: string[]): {
       version: normalizeVersionLabel(modelTokens.slice(1).join(' ')),
     }
   }
+  // Bronco Sport é a linha; Wildtrak e os demais acabamentos ficam na versão.
+  if (
+    modelTokens.length >= 2 &&
+    /^bronco$/i.test(modelTokens[0]!) &&
+    /^sport$/i.test(modelTokens[1]!)
+  ) {
+    const rest = modelTokens.slice(2)
+    return {
+      model: 'Bronco Sport',
+      version: rest.length ? normalizeVersionLabel(rest.join(' ')) : null,
+    }
+  }
   // Tiggo 2 / 3X / 7 / 8: número da linha fica no modelo; Pro, Plus, Max, Look ficam na versão.
   if (modelTokens.length >= 3 && /^tiggo$/i.test(modelTokens[0]!) && /^\d+[Xx]?$/.test(modelTokens[1]!)) {
     const series = modelTokens[1]!.replace(/x$/i, 'X')
@@ -650,6 +782,12 @@ function peelTrailingTrim(modelTokens: string[]): {
     const prevTok = modelTokens[modelTokens.length - 2]!
     const last = lastTok.toUpperCase()
     const prev = prevTok.toUpperCase()
+    if (last === 'COUNTRY' && prev === 'HIGH') {
+      return {
+        model: formatPlateModelName(modelTokens.slice(0, -2).join(' ')),
+        version: 'High Country',
+      }
+    }
     if (isLineageModelToken(lastTok)) {
       return { model: formatPlateModelName(modelTokens.join(' ')), version: null }
     }
@@ -682,6 +820,12 @@ function peelTrailingTrim(modelTokens: string[]): {
   if (modelTokens.length >= 2) {
     const lastTok = modelTokens[modelTokens.length - 1]!
     const last = lastTok.toUpperCase()
+    if (last === 'HIGH') {
+      return {
+        model: formatPlateModelName(modelTokens.slice(0, -1).join(' ')),
+        version: 'Highline',
+      }
+    }
     if (isLineageModelToken(lastTok) || COMPOUND_MODEL_SECONDS.has(last)) {
       return { model: formatPlateModelName(modelTokens.join(' ')), version: null }
     }
@@ -753,9 +897,21 @@ function normalizeSpacedModelCodes(raw: string): string {
   s = s.replace(/\b(HR|WR|CR|ZR)\s+V\b/gi, (_, letters: string) => `${letters.toUpperCase()}-V`)
   s = s.replace(/\bT\s+CROSS\b/gi, 'T-CROSS')
   s = s.replace(/\bXC\s+(40|60|90)\b/gi, 'XC$1')
+  s = s.replace(/(?<=[A-Za-z])(?=\d+\.\d)/g, ' ')
   s = s.replace(/\bComf\.?(?!\w)/gi, 'Comfort')
+  s = s.replace(/\bCom\.(?!\w)/gi, 'Comfort')
+  s = s.replace(/\bPlat\.(?!\w)/gi, 'Platinum')
+  s = s.replace(/\bEssen\.(?!\w)/gi, 'Essence')
+  s = s.replace(/\bWork\.(?!\w)/gi, 'Working')
+  s = s.replace(/\bAdv\.(?!\w)/gi, 'Adventure')
+  s = s.replace(/\bCeleb\.(?!\w)/gi, 'Celebration')
+  s = s.replace(/\bDual\.(?!\w)/gi, 'Dualogic')
+  s = s.replace(/\bDie\.?(?!\w)/gi, 'Diesel')
+  s = s.replace(/\bH[ií]b\.?(?!\w)/gi, 'Híbrido')
+  s = s.replace(/\bEletr\.?(?!\w)/gi, 'Elétrico')
   s = s.replace(/\bC\.\s*Plus\b/gi, 'Comfort Plus')
   s = s.replace(/\bC\.\s*Style\b/gi, 'Comfort Style')
+  s = s.replace(/\bC\.(?!\w)/gi, 'Comfort')
   s = s.replace(/\s*[|/]\s*/g, ' / ')
   return s.replace(/\s+/g, ' ').trim()
 }
@@ -780,6 +936,8 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
   }
 
   let tokens = s.split(/\s+/).filter(Boolean).flatMap(expandNameToken)
+  const torque = pullTorqueBadges(tokens)
+  tokens = torque.tokens
   let extraTurbo = false
   tokens = tokens.filter((tok) => {
     if (isTurboBadge(tok)) {
@@ -803,7 +961,11 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return true
   })
   s = tokens.join(' ')
-  if (!tokens.length) return emptySplit()
+  if (!tokens.length) {
+    return torque.label
+      ? { model: null, engine: torque.label, version: null, traction }
+      : emptySplit()
+  }
 
   const withTraction = (r: SplitApiModeloResult): SplitApiModeloResult => {
     let engine = r.engine ?? null
@@ -825,12 +987,16 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
       if (parsed) {
         return withTraction({
           model: formatPlateModelName(compactAlone[1]!),
-          engine: parsed.engine,
+          engine: appendTorqueBadge(parsed.engine, torque.label),
           version: parsed.version,
         })
       }
     }
-    return withTraction({ model: formatPlateModelName(only), engine: null, version: null })
+    return withTraction({
+      model: formatPlateModelName(only),
+      engine: torque.label,
+      version: null,
+    })
   }
 
   // 1) Motor decimal explícito: "HB20 1.0M UNIQUE" / "Gol 2.0 16V" / "1.0 16 válvulas Turbo"
@@ -843,13 +1009,16 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     const absorbed = absorbEngineExtras(tokens.slice(engineIdx + 1))
     if (valveStuck) absorbed.valves.unshift(valveStuck)
     if (absorbed.traction) traction = absorbed.traction
-    const engine = composeEngineLabel(base, {
-      valves: absorbed.valves,
-      turbo: absorbed.turbo,
-      tech: absorbed.tech,
-    })
+    const engine = appendTorqueBadge(
+      composeEngineLabel(base, {
+        valves: absorbed.valves,
+        turbo: absorbed.turbo,
+        tech: absorbed.tech,
+      }),
+      torque.label,
+    )
     const version = sanitizeVersionLabel(
-      titleVersion(absorbed.rest) ?? peeled.version,
+      [peeled.version, titleVersion(absorbed.rest)].filter(Boolean).join(' '),
     )
     return withTraction({
       model: peeled.model,
@@ -866,15 +1035,20 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     const peeled = peelTrailingTrim(tokens.slice(0, gearIdx))
     const absorbed = absorbEngineExtras(tokens.slice(gearIdx + 1))
     if (absorbed.traction) traction = absorbed.traction
-    const engine = composeEngineLabel(gearEngine, {
-      valves: absorbed.valves,
-      turbo: absorbed.turbo,
-      tech: absorbed.tech,
-    })
+    const engine = appendTorqueBadge(
+      composeEngineLabel(gearEngine, {
+        valves: absorbed.valves,
+        turbo: absorbed.turbo,
+        tech: absorbed.tech,
+      }),
+      torque.label,
+    )
     return withTraction({
       model: peeled.model,
       engine,
-      version: sanitizeVersionLabel(titleVersion(absorbed.rest) ?? peeled.version),
+      version: sanitizeVersionLabel(
+        [peeled.version, titleVersion(absorbed.rest)].filter(Boolean).join(' '),
+      ),
       traction,
     })
   }
@@ -888,6 +1062,16 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
       model: peeled.model,
       engine: compact.engine,
       version: sanitizeVersionLabel(compact.version ?? peeled.version),
+    })
+  }
+
+  if (torque.label) {
+    const peeled = peelTrailingTrim(tokens)
+    return withTraction({
+      model: peeled.model,
+      engine: torque.label,
+      version: sanitizeVersionLabel(peeled.version),
+      traction,
     })
   }
 

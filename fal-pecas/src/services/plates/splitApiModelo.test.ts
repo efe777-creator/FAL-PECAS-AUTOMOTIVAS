@@ -184,6 +184,173 @@ describe('splitApiModelo', () => {
       engine: '1.0',
       version: 'Comfort / Comfort Plus / Comfort Style',
     })
+    expect(splitApiModelo('HB20 C./C.Plus/C.Style 1.6 Flex 16V Mec.')).toMatchObject({
+      model: 'HB20',
+      engine: '1.6 16V',
+      version: 'Comfort / Comfort Plus / Comfort Style',
+    })
+    expect(splitApiModelo('HB20S C.Plus/C.Style1.0 Flex 12V Mec. 4P')).toMatchObject({
+      model: 'HB20S',
+      engine: '1.0 12V',
+      version: 'Comfort Plus / Comfort Style',
+    })
+    expect(splitApiModelo('HB20S Com. Plus Tech 1.0 TB Flex 12V Aut')).toMatchObject({
+      model: 'HB20S',
+      engine: '1.0 12V Turbo',
+      version: 'Comfort Plus Tech',
+    })
+    expect(splitApiModelo('HB20 Plat. Safety 1.0 TB Flex 12V Aut.')).toMatchObject({
+      model: 'HB20',
+      engine: '1.0 12V Turbo',
+      version: 'Platinum Safety',
+    })
+    expect(splitApiModelo('HB20 R Spec 1.6 Flex 16V Aut.')).toMatchObject({
+      model: 'HB20',
+      engine: '1.6 16V',
+      version: 'R Spec',
+    })
+    expect(splitApiModelo('HB20 Copa do Mundo 1.0 Flex 12V Mec.')).toMatchObject({
+      model: 'HB20',
+      engine: '1.0 12V',
+      version: 'Copa do Mundo',
+    })
+    expect(splitApiModelo('C 180')).toMatchObject({
+      model: 'C 180',
+      version: null,
+    })
+    expect(splitApiModelo('Tera Comfort 1.0 170 TSI Flex 12V 5p Aut')).toMatchObject({
+      model: 'Tera',
+      engine: '1.0 12V 170 TSI',
+      version: 'Comfort',
+    })
+    expect(splitApiModelo('Tera 1.0 170 TSI Flex 12V 5p Mec.')).toMatchObject({
+      model: 'Tera',
+      engine: '1.0 12V 170 TSI',
+      version: null,
+    })
+    expect(splitApiModelo('Tera High 1.0 170 TSI Flex 12V 5p Aut')).toMatchObject({
+      model: 'Tera',
+      engine: '1.0 12V 170 TSI',
+      version: 'Highline',
+    })
+    expect(splitApiModelo('Tera High')).toMatchObject({
+      model: 'Tera',
+      version: 'Highline',
+    })
+    expect(splitApiModelo('Grand Siena ESSEN. 1.6 Flex 16V')).toMatchObject({
+      model: 'Grand Siena',
+      engine: '1.6 16V',
+      version: 'Essence',
+    })
+    expect(splitApiModelo('Strada Work. 1.4')).toMatchObject({
+      model: 'Strada',
+      engine: '1.4',
+      version: 'Working',
+    })
+    expect(splitApiModelo('Strada Adv. Extreme 1.8')).toMatchObject({
+      model: 'Strada',
+      engine: '1.8',
+      version: 'Adventure Extreme',
+    })
+    expect(splitApiModelo('Hilux SRV 2.8 CD 4x4 Diesel Aut.')).toMatchObject({
+      model: 'Hilux',
+      engine: '2.8',
+      version: 'SRV Cabine Dupla',
+      traction: '4x4',
+    })
+    expect(splitApiModelo('Hilux SR 2.8 CS 4x2 Die. Mec.')).toMatchObject({
+      model: 'Hilux',
+      engine: '2.8',
+      version: 'SR Cabine Simples',
+      traction: '4x2',
+    })
+    expect(splitApiModelo('Saveiro Robust 1.6 CE')).toMatchObject({
+      model: 'Saveiro',
+      engine: '1.6',
+      version: 'Robust Cabine Estendida',
+    })
+    expect(splitApiModelo('S10 High Country 2.8 CD')).toMatchObject({
+      model: 'S10',
+      engine: '2.8',
+      version: 'High Country Cabine Dupla',
+    })
+    expect(splitApiModelo('Compass Limited 1.3 T270 Híb.')).toMatchObject({
+      model: 'Compass',
+      engine: '1.3 T270',
+      version: 'Limited',
+    })
+    expect(splitApiModelo('Ranger XLT 3.2 CD')).toMatchObject({
+      model: 'Ranger',
+      engine: '3.2',
+      version: 'XLT Cabine Dupla',
+    })
+    expect(splitApiModelo('Corolla Altis 1.8')).toMatchObject({
+      model: 'Corolla',
+      engine: '1.8',
+      version: 'Altis',
+    })
+    expect(splitApiModelo('Bronco Sport Wildtrak 2.0')).toMatchObject({
+      model: 'Bronco Sport',
+      engine: '2.0',
+      version: 'Wildtrak',
+    })
+    expect(splitApiModelo('TERA HIGH')).toMatchObject({
+      model: 'Tera',
+      version: 'Highline',
+    })
+    expect(splitApiModelo('Tera 1.0 MPI Flex 12V 5p Mec.')).toMatchObject({
+      model: 'Tera',
+      engine: '1.0 12V MPI',
+      version: null,
+    })
+    expect(splitApiModelo('Polo Track 1.0')).toMatchObject({
+      model: 'Polo',
+      engine: '1.0',
+      version: 'Track',
+    })
+    expect(splitApiModelo('Saveiro Robust')).toMatchObject({
+      model: 'Saveiro',
+      version: 'Robust',
+    })
+    expect(splitApiModelo('Jetta GLI')).toMatchObject({
+      model: 'Jetta',
+      version: 'GLI',
+    })
+    expect(splitApiModelo('Gol Last Edition')).toMatchObject({
+      model: 'Gol',
+      version: 'Last Edition',
+    })
+    expect(splitApiModelo('VIRTUS Comfort. 200 TSI 1.0 Flex 12V Aut')).toMatchObject({
+      model: 'Virtus',
+      engine: '1.0 12V 200 TSI',
+      version: 'Comfort',
+    })
+    expect(splitApiModelo('VIRTUS Exclusive 250TSI 1.4 Flex 16V Aut')).toMatchObject({
+      model: 'Virtus',
+      engine: '1.4 16V 250 TSI',
+      version: 'Exclusive',
+    })
+    expect(splitApiModelo('Polo GTS 250 TSI')).toMatchObject({
+      model: 'Polo',
+      engine: '250 TSI',
+      version: 'GTS',
+    })
+    expect(splitApiModelo('Golf GTI 350 TSI 2.0')).toMatchObject({
+      model: 'Golf',
+      engine: '2.0 350 TSI',
+      version: 'GTI',
+    })
+    expect(splitApiModelo('Pulse T200')).toMatchObject({
+      model: 'Pulse',
+      engine: 'T200',
+      version: null,
+    })
+    expect(splitApiModelo('C 200')).toMatchObject({
+      model: 'C 200',
+      version: null,
+    })
+    expect(sanitizeEngine('1.0 12V 170 TSI')).toBe('1.0 12V 170 TSI')
+    expect(sanitizeEngine('170 TSI')).toBe('170 TSI')
     expect(splitApiModelo('HR V EXL')).toMatchObject({ model: 'HR-V', version: 'EXL' })
     expect(splitApiModelo('WR V EX')).toMatchObject({ model: 'WR-V', version: 'EX' })
     expect(splitApiModelo('CR V EXL')).toMatchObject({ model: 'CR-V', version: 'EXL' })

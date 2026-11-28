@@ -4,7 +4,11 @@ import { ADMIN_CHIP } from '@/lib/adminLabels'
 import { VEHICLE_FUEL_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleFuel'
 import { VEHICLE_TRACTION_SELECT_OPTIONS } from '@/lib/vehicles/normalizeVehicleTraction'
 import type { MasterDiffCandidate, MasterDiffStatus } from '@/services/vehicles/diffVehicleMasterCandidates'
-import { suggestVehicleIdentityAssist } from '@/services/admin/vehicleIdentityAssistClient'
+import {
+  mergeIdentitySuggestion,
+  refineVehicleIdentityFields,
+  suggestVehicleIdentityAssist,
+} from '@/services/admin/vehicleIdentityAssistClient'
 
 const STATUS_LABEL: Record<MasterDiffStatus, string> = {
   novo: 'Novo',
@@ -49,35 +53,38 @@ export function VehicleMasterConsultPreview({
   }
 
   async function suggestAiForRow(r: MasterDiffCandidate) {
-    const raw = [r.maker, r.model, r.version, r.engine, r.fuel, r.traction]
+    const local = refineVehicleIdentityFields(r)
+    const raw = [r.maker, local.model, local.engine, local.version, local.fuel, local.traction]
       .filter(Boolean)
       .join(' ')
+    let ai: Awaited<ReturnType<typeof suggestVehicleIdentityAssist>> | null = null
     try {
-      const out = await suggestVehicleIdentityAssist({
+      ai = await suggestVehicleIdentityAssist({
         rawName: raw,
         maker: r.maker,
-        model: r.model,
-        engine: r.engine,
-        version: r.version,
-        fuel: r.fuel,
-        traction: r.traction,
+        model: local.model,
+        engine: local.engine,
+        version: local.version,
+        fuel: local.fuel,
+        traction: local.traction,
       })
-      if (!out.ok || !out.suggestion) {
-        onAssistMessage?.(out.message || 'IA indisponível — use as regras locais.', 'error')
-        return
-      }
-      const s = out.suggestion
-      patch(r.id, {
-        model: s.model?.trim() || r.model,
-        engine: s.engine?.trim() || r.engine,
-        version: s.version?.trim() || r.version,
-        fuel: s.fuel?.trim() || r.fuel,
-        traction: s.traction?.trim() || r.traction,
-      })
-      onAssistMessage?.('Sugestão da IA aplicada na linha — revise antes de gravar.', 'success')
-    } catch (err) {
-      onAssistMessage?.(err instanceof Error ? err.message : 'Falha na sugestão IA', 'error')
+    } catch {
+      ai = null
     }
+    const next = mergeIdentitySuggestion(local, ai?.suggestion ?? null)
+    const changes: string[] = []
+    if (next.model !== r.model) changes.push(`modelo ${next.model}`)
+    if (next.engine !== r.engine) changes.push(`motor ${next.engine || '—'}`)
+    if (next.version !== r.version) changes.push(`versão ${next.version || '—'}`)
+    if (next.fuel !== r.fuel) changes.push(`combustível ${next.fuel || '—'}`)
+    if ((next.traction || '') !== (r.traction || '')) changes.push(`tração ${next.traction || '—'}`)
+    if (!changes.length) {
+      onAssistMessage?.('Nada a corrigir nesta linha.', 'success')
+      return
+    }
+    patch(r.id, next)
+    const aiNote = ai?.suggestion ? '' : ' A IA não devolveu correção; valeu a regra local.'
+    onAssistMessage?.(`Sugestão aplicada: ${changes.join(', ')}.${aiNote} Revise antes de gravar.`, 'success')
   }
 
   function setVisibleSelected(selected: boolean) {

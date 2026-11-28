@@ -30,13 +30,26 @@ Responda APENAS JSON válido (sem markdown):
 {"model":string|null,"engine":string|null,"version":string|null,"fuel":string|null,"traction":string|null}
 
 Contrato obrigatório:
-- model = só a linha comercial (ex.: Tiggo 5X, HB20, Onix Plus). Sem cilindrada, válvulas ou turbo.
-- engine = cilindrada + válvulas + turbo + família (ex.: "1.0", "1.0 16V", "1.0 8V Turbo", "1.0 TSI", "2.0T").
-- version = só trim comercial (Comfortline, TXS, LT, Diamond). Sem 8V/16V/Turbo.
+- model = só a linha comercial (ex.: Tiggo 5X, HB20, Onix Plus, Tera). Sem cilindrada, válvulas, turbo ou acabamento.
+- engine = cilindrada + válvulas + selo de torque + família (ex.: "1.0", "1.0 16V", "1.0 12V 170 TSI", "1.0 TSI", "2.0T", "T200").
+- version = só acabamento por extenso (Highline, Comfort, Comfort Plus, Platinum, Essence, Working). Sem 8V/16V/Turbo e sem número de torque.
 - fuel = Flex|Gasolina|Etanol|Diesel|GNV|Elétrico|Híbrido se evidência no texto; senão null.
 - traction = 4x2|4x4|awd se evidência (4x4, AWD, 4x2); senão null. Não invente eixo.
 - Não invente campos sem evidência no texto.
-- Prefira completar lacunas do input parcial; não apague o que já parece certo.`
+- Corrija o campo atual quando estiver abreviado ou no lugar errado. Não devolva a sigla.
+
+Abreviações que devem sair por extenso:
+- High = Highline (não existe versão High)
+- Comf. / Com. / C. = Comfort; C.Plus = Comfort Plus; C.Style = Comfort Style
+- Plat. = Platinum
+- Essen. = Essence; Work. = Working; Adv. = Adventure; Celeb. = Celebration
+- TB / TGDI = Turbo, no motor
+- Die. = Diesel e Híb. = Híbrido, combustível, não versão
+- CS = Cabine Simples, CE = Cabine Estendida, CD = Cabine Dupla
+- High Country permanece High Country (não é Highline)
+- 170, 200, 250 e 350 antes de TSI/TFSI = motor (ex.: "170 TSI"), nunca versão
+- T200 e T270 = motor
+- Mec. e Aut. = câmbio, não versão`
 
 function sanitizeSuggestion(raw: unknown): Suggestion | null {
   if (!raw || typeof raw !== 'object') return null

@@ -5,6 +5,7 @@
 import { getSupabase } from '@/lib/supabase'
 import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { normalizeVehicleTraction } from '@/lib/vehicles/normalizeVehicleTraction'
+import { splitApiModelo } from '@/services/plates/splitApiModelo'
 
 export type VehicleIdentitySuggestion = {
   model?: string | null
@@ -37,6 +38,63 @@ export function sanitizeIdentitySuggestion(raw: unknown): VehicleIdentitySuggest
     out.traction = normalizeVehicleTraction(o.traction)
   }
   return Object.keys(out).length ? out : null
+}
+
+const TORQUE_FAMILY = /\b(TSI|TFSI|THP|MPI|MSI|TDI|CDI|GDI|ECOBOOST|DIG-T)\b/i
+
+export type VehicleIdentityFields = {
+  model: string
+  engine: string
+  version: string
+  fuel: string
+  traction: string
+}
+
+/**
+ * Reaplica o contrato local na linha já separada.
+ * "Tera High" + versão "170" + motor "1.0 12V TSI" vira Tera / 1.0 12V 170 TSI / Highline.
+ */
+export function refineVehicleIdentityFields(input: {
+  model?: string | null
+  engine?: string | null
+  version?: string | null
+  fuel?: string | null
+  traction?: string | null
+}): VehicleIdentityFields {
+  const model = (input.model ?? '').trim()
+  const engine = (input.engine ?? '').trim()
+  const version = (input.version ?? '').trim()
+  let blob: string
+  if (/^\d{3}$/.test(version) && TORQUE_FAMILY.test(engine)) {
+    blob = `${model} ${engine.replace(TORQUE_FAMILY, `${version} $1`)}`.replace(/\s+/g, ' ').trim()
+  } else {
+    blob = [model, engine, version].filter(Boolean).join(' ')
+  }
+  const split = blob ? splitApiModelo(blob) : { model: null, engine: null, version: null, traction: null }
+  return {
+    model: (split.model || model).trim(),
+    engine: (split.engine || '').trim(),
+    version: (split.version || '').trim(),
+    fuel: (input.fuel ? normalizeVehicleFuel(input.fuel) : '') || '',
+    traction: (input.traction ? normalizeVehicleTraction(input.traction) : '') || '',
+  }
+}
+
+/** A IA só preenche lacuna. Modelo, motor e versão ficam com a regra local. */
+export function mergeIdentitySuggestion(
+  local: VehicleIdentityFields,
+  ai: VehicleIdentitySuggestion | null,
+): VehicleIdentityFields {
+  if (!ai) return local
+  const fuel = (ai.fuel ? normalizeVehicleFuel(ai.fuel) : '') || local.fuel
+  const traction = (ai.traction ? normalizeVehicleTraction(ai.traction) : '') || local.traction
+  return {
+    model: local.model,
+    engine: local.engine,
+    version: local.version,
+    fuel,
+    traction,
+  }
 }
 
 export async function suggestVehicleIdentityAssist(input: {
