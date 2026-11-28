@@ -120,10 +120,105 @@ describe('splitApiModelo', () => {
       engine: '1.0',
       version: 'LT',
     })
+    expect(splitApiModelo('Tiggo 3X Plus')).toMatchObject({
+      model: 'Tiggo 3X',
+      version: 'Plus',
+    })
+    expect(splitApiModelo('Tiggo 5X Pro')).toMatchObject({
+      model: 'Tiggo 5X',
+      version: 'Pro',
+    })
+    expect(splitApiModelo('Tiggo 3X Pro')).toMatchObject({
+      model: 'Tiggo 3X',
+      version: 'Pro',
+    })
+    expect(splitApiModelo('HB20 5 Anos')).toMatchObject({
+      model: 'HB20',
+      version: '5 Anos',
+    })
+    expect(splitApiModelo('HB 20 5 anos')).toMatchObject({
+      model: 'HB20',
+      version: '5 Anos',
+    })
+    expect(splitApiModelo('HB 20S Comfort')).toMatchObject({
+      model: 'HB20S',
+      version: 'Comfort',
+    })
+    expect(splitApiModelo('HB20 Comf. Plus Tech')).toMatchObject({
+      model: 'HB20',
+      version: 'Comfort Plus Tech',
+    })
+    expect(splitApiModelo('HB20 Comf. Plus Tech TB')).toMatchObject({
+      model: 'HB20',
+      engine: 'Turbo',
+      version: 'Comfort Plus Tech',
+    })
+    expect(splitApiModelo('HB20 Comfort Plus 1.0 TB')).toMatchObject({
+      model: 'HB20',
+      engine: '1.0 Turbo',
+      version: 'Comfort Plus',
+    })
     expect(splitApiModelo('Tiggo 5X 1.5 4x4')).toMatchObject({
       model: 'Tiggo 5X',
       engine: '1.5',
       traction: '4x4',
+    })
+    expect(splitApiModelo('Tiggo 3 X Plus')).toMatchObject({
+      model: 'Tiggo 3X',
+      version: 'Plus',
+    })
+    expect(splitApiModelo('Tiggo 7 Pro')).toMatchObject({
+      model: 'Tiggo 7',
+      version: 'Pro',
+    })
+    expect(splitApiModelo('Tiggo 8 Pro Max')).toMatchObject({
+      model: 'Tiggo 8',
+      version: 'Pro Max',
+    })
+    expect(splitApiModelo('Tiggo 2 Look')).toMatchObject({
+      model: 'Tiggo 2',
+      version: 'Look',
+    })
+    expect(splitApiModelo('HB20 Comf./C.Plus/C.Style 1.0')).toMatchObject({
+      model: 'HB20',
+      engine: '1.0',
+      version: 'Comfort / Comfort Plus / Comfort Style',
+    })
+    expect(splitApiModelo('HR V EXL')).toMatchObject({ model: 'HR-V', version: 'EXL' })
+    expect(splitApiModelo('WR V EX')).toMatchObject({ model: 'WR-V', version: 'EX' })
+    expect(splitApiModelo('CR V EXL')).toMatchObject({ model: 'CR-V', version: 'EXL' })
+    expect(splitApiModelo('T CROSS Highline')).toMatchObject({
+      model: 'T-Cross',
+      version: 'Highline',
+    })
+    expect(splitApiModelo('XC 60 Momentum')).toMatchObject({
+      model: 'XC60',
+      engine: null,
+      version: 'Momentum',
+    })
+    expect(splitApiModelo('Corolla Cross XRE')).toMatchObject({
+      model: 'Corolla Cross',
+      version: 'XRE',
+    })
+    expect(splitApiModelo('Onix Plus Premier')).toMatchObject({
+      model: 'Onix Plus',
+      version: 'Premier',
+    })
+    expect(splitApiModelo('Saveiro Cross')).toMatchObject({
+      model: 'Saveiro Cross',
+      version: null,
+    })
+    expect(splitApiModelo('Compass Longitude')).toMatchObject({
+      model: 'Compass',
+      version: 'Longitude',
+    })
+    expect(splitApiModelo('Creta Action')).toMatchObject({
+      model: 'Creta',
+      version: 'Action',
+    })
+    expect(splitApiModelo('Hilux SRV')).toMatchObject({
+      model: 'Hilux',
+      version: 'SRV',
     })
   })
 

@@ -63,6 +63,37 @@ export function isTurboWord(token: string): boolean {
   return key === 'TURBO' || key === 'ASPIRADO'
 }
 
+/** Selo Hyundai/FIPE “TB” / “TGDI” — turbo no motor, nunca sigla na versão. */
+export function isTurboBadge(token: string): boolean {
+  const key = token
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\./g, '')
+    .toLocaleUpperCase('pt-BR')
+  return key === 'TB' || key === 'TGDI' || key === 'T-GDI'
+}
+
+/** Linha de um token: o resto do nome é versão (HB20 5 Anos, HB20 Comfort Plus). */
+function isStickyModelLine(token: string): boolean {
+  const key = token.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return key === 'HB20' || key === 'HB20S' || key === 'HB20X'
+}
+
+function expandNameToken(token: string): string[] {
+  const glued = /^[A-Za-zÀ-ÿ]+\.[A-Za-zÀ-ÿ]/.test(token)
+    ? token.split('.').map((p) => p.trim()).filter(Boolean)
+    : [token.replace(/\.+$/g, '')]
+  return glued.map((part) => {
+    const key = part
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .replace(/\./g, '')
+      .toLocaleUpperCase('pt-BR')
+    if (TRIM_ALIASES[key]) return TRIM_ALIASES[key]!
+    return part
+  })
+}
+
 /** Portas FIPE (5p / 4P) — ruído, não versão. */
 function isBodyDoorsToken(token: string): boolean {
   return /^\d{1,2}P$/i.test(token.trim())
@@ -110,6 +141,9 @@ const TRIM_ALIASES: Record<string, string> = {
   UNIQUE: 'Unique',
   COMFORT: 'Comfort',
   COMFOR: 'Comfort',
+  COMF: 'Comfort',
+  TECH: 'Tech',
+  ANOS: 'Anos',
   COMFORTLINE: 'Comfortline',
   HIGHLINE: 'Highline',
   TRENDLINE: 'Trendline',
@@ -119,6 +153,7 @@ const TRIM_ALIASES: Record<string, string> = {
   SEL: 'SEL',
   SPORT: 'Sport',
   PLUS: 'Plus',
+  PRO: 'Pro',
   EVOLUTION: 'Evolution',
   LIMITED: 'Limited',
   CONNECT: 'Connect',
@@ -158,6 +193,25 @@ const TRIM_ALIASES: Record<string, string> = {
   GT: 'GT',
   RS: 'RS',
   SI: 'Si',
+  MAX: 'Max',
+  LOOK: 'Look',
+  LONGITUDE: 'Longitude',
+  ACTION: 'Action',
+  EXCLUSIVE: 'Exclusive',
+  TRAILHAWK: 'Trailhawk',
+  VOLCANO: 'Volcano',
+  FREEDOM: 'Freedom',
+  AUDACE: 'Audace',
+  IMPETUS: 'Impetus',
+  FEEL: 'Feel',
+  LIVE: 'Live',
+  ALLURE: 'Allure',
+  PRESTIGE: 'Prestige',
+  LIKE: 'Like',
+  XRE: 'XRE',
+  SRV: 'SRV',
+  SRX: 'SRX',
+  MOMENTUM: 'Momentum',
 }
 
 /** Combustível — remove do modelo; NÃO vira versão/filtro. */
@@ -245,7 +299,7 @@ function isEngineTechToken(token: string): boolean {
 function isEngineNoiseToken(token: string): boolean {
   const t = token.trim()
   if (!t) return false
-  if (isValveToken(t) || isTurboWord(t) || isEngineTechToken(t)) return true
+  if (isValveToken(t) || isTurboWord(t) || isTurboBadge(t) || isEngineTechToken(t)) return true
   if (parseEngineGearToken(t)) return true
   if (ENGINE_TOKEN.test(t) && sanitizeEngine(t)) return true
   return false
@@ -326,7 +380,8 @@ export function sanitizeEngine(raw: string | null | undefined): string | null {
   if (raw == null) return null
   const t = String(raw).trim()
   if (!t) return null
-  if (isValveToken(t) || isTurboWord(t)) return null
+  if (isTurboWord(t) || isTurboBadge(t)) return 'Turbo'
+  if (isValveToken(t)) return null
 
   const parts = t.split(/\s+/).filter(Boolean)
   if (parts.length > 1) {
@@ -335,7 +390,9 @@ export function sanitizeEngine(raw: string | null | undefined): string | null {
     const extras: string[] = []
     for (const p of parts.slice(1)) {
       if (isValveToken(p)) extras.push(normalizeValveLabel(p))
-      else if (isTurboWord(p)) extras.push('Turbo')
+      else if (isTurboWord(p) || isTurboBadge(p)) {
+        if (!extras.includes('Turbo') && !/turbo/i.test(base)) extras.push('Turbo')
+      }
       else if (isEngineTechToken(p)) extras.push(p.toUpperCase().replace(/DIG-?T/i, 'DIG-T'))
     }
     return [base, ...extras].join(' ')
@@ -355,13 +412,14 @@ export function composeEngineLabel(
   base: string | null,
   bits: { valves?: string[]; turbo?: boolean; tech?: string[] },
 ): string | null {
-  if (!base) return null
-  const parts = [base]
+  const parts: string[] = []
+  if (base) parts.push(base)
+  if (!base && !bits.valves?.length && !bits.turbo && !bits.tech?.length) return null
   for (const v of bits.valves ?? []) {
     const n = normalizeValveLabel(v)
     if (n && !parts.includes(n)) parts.push(n)
   }
-  if (bits.turbo && !parts.includes('Turbo')) parts.push('Turbo')
+  if (bits.turbo && !parts.some((p) => /turbo/i.test(p))) parts.push('Turbo')
   for (const tech of bits.tech ?? []) {
     const u = tech.toUpperCase()
     if (u && !parts.includes(u)) parts.push(u)
@@ -414,7 +472,7 @@ export function absorbEngineExtras(tokens: string[]): {
         continue
       }
     }
-    if (isTurboWord(tok)) {
+    if (isTurboWord(tok) || isTurboBadge(tok)) {
       turbo = true
       continue
     }
@@ -565,17 +623,45 @@ function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | n
  * Se sobrou "Modelo Trim", separa trim conhecido.
  * Aceita trim + sufixo 1 letra (ex.: CROSSER S → Crosser S)
  * e dois trims (FIRE ECONOMY, HL AB).
- * Não peel: linhagem 5X / Onix Plus / Cross Fox (COMPOUND_MODEL_SECONDS).
+ * Plus/Pro/Max depois de linhagem (Tiggo 3X / 5X) = versão.
+ * Plus colado em linha sem código (Onix Plus) permanece no modelo.
  */
 function peelTrailingTrim(modelTokens: string[]): {
   model: string
   version: string | null
 } {
+  // HB20 / HB20S / HB20X: o token da linha é o modelo; o resto é versão por extenso.
+  if (modelTokens.length >= 2 && isStickyModelLine(modelTokens[0]!)) {
+    return {
+      model: formatPlateModelName(modelTokens[0]!),
+      version: normalizeVersionLabel(modelTokens.slice(1).join(' ')),
+    }
+  }
+  // Tiggo 2 / 3X / 7 / 8: número da linha fica no modelo; Pro, Plus, Max, Look ficam na versão.
+  if (modelTokens.length >= 3 && /^tiggo$/i.test(modelTokens[0]!) && /^\d+[Xx]?$/.test(modelTokens[1]!)) {
+    const series = modelTokens[1]!.replace(/x$/i, 'X')
+    return {
+      model: formatPlateModelName(`Tiggo ${series}`),
+      version: normalizeVersionLabel(modelTokens.slice(2).join(' ')),
+    }
+  }
   if (modelTokens.length >= 3) {
-    const last = modelTokens[modelTokens.length - 1]!.toUpperCase()
-    const prev = modelTokens[modelTokens.length - 2]!.toUpperCase()
-    if (isLineageModelToken(modelTokens[modelTokens.length - 1]!)) {
+    const lastTok = modelTokens[modelTokens.length - 1]!
+    const prevTok = modelTokens[modelTokens.length - 2]!
+    const last = lastTok.toUpperCase()
+    const prev = prevTok.toUpperCase()
+    if (isLineageModelToken(lastTok)) {
       return { model: formatPlateModelName(modelTokens.join(' ')), version: null }
+    }
+    // Tiggo 3X Plus / Tiggo 5X Pro → versão. Onix Plus (sem 3X) não entra aqui.
+    if (
+      (COMPOUND_MODEL_SECONDS.has(last) || last === 'PRO') &&
+      isLineageModelToken(prevTok)
+    ) {
+      return {
+        model: formatPlateModelName(modelTokens.slice(0, -1).join(' ')),
+        version: TRIM_ALIASES[last] ?? last,
+      }
     }
     if (COMPOUND_MODEL_SECONDS.has(last)) {
       return { model: formatPlateModelName(modelTokens.join(' ')), version: null }
@@ -654,6 +740,26 @@ export function assertModelClean(
   return { model, engine, version, traction: split.traction ?? null }
 }
 
+/**
+ * Junta código partido (HB 20, Tiggo 3 X, HR V, XC 60) e expande sigla de versão
+ * (Comf., C.Plus, C.Style) antes do split.
+ */
+function normalizeSpacedModelCodes(raw: string): string {
+  let s = raw
+  s = s.replace(/\bHB\s+20(?:\s*([SX]))?(?=\s|$)/gi, (_, suf: string | undefined) =>
+    `HB20${(suf ?? '').toUpperCase()}`,
+  )
+  s = s.replace(/(?<![\d.])(\d)\s+X\b/gi, '$1X')
+  s = s.replace(/\b(HR|WR|CR|ZR)\s+V\b/gi, (_, letters: string) => `${letters.toUpperCase()}-V`)
+  s = s.replace(/\bT\s+CROSS\b/gi, 'T-CROSS')
+  s = s.replace(/\bXC\s+(40|60|90)\b/gi, 'XC$1')
+  s = s.replace(/\bComf\.?(?!\w)/gi, 'Comfort')
+  s = s.replace(/\bC\.\s*Plus\b/gi, 'Comfort Plus')
+  s = s.replace(/\bC\.\s*Style\b/gi, 'Comfort Style')
+  s = s.replace(/\s*[|/]\s*/g, ' / ')
+  return s.replace(/\s+/g, ' ').trim()
+}
+
 function emptySplit(): SplitApiModeloResult {
   return { model: null, engine: null, version: null, traction: null }
 }
@@ -665,6 +771,7 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
 
   // Prefixo compacto MARCA/ (VW/, GM/, I/) — sem espaço. NÃO engolir "Comfortline / Highline".
   s = s.replace(/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\-]{0,12}\//, '').trim()
+  s = normalizeSpacedModelCodes(s)
 
   // Versões alternativas no nome: "Gol Comfortline / Highline 1.0" → versão com barra para fan-out.
   if (/\s[|/]\s/.test(s) || /\s[|/]$/.test(s) || /^[|/]\s/.test(s)) {
@@ -672,7 +779,15 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     if (fromAlts) return fromAlts
   }
 
-  let tokens = s.split(/\s+/).filter(Boolean)
+  let tokens = s.split(/\s+/).filter(Boolean).flatMap(expandNameToken)
+  let extraTurbo = false
+  tokens = tokens.filter((tok) => {
+    if (isTurboBadge(tok)) {
+      extraTurbo = true
+      return false
+    }
+    return true
+  })
   // Remove combustível do fim (Fiesta Flex) — nunca vira versão.
   while (tokens.length >= 2 && isFuelToken(tokens[tokens.length - 1]!)) {
     tokens = tokens.slice(0, -1)
@@ -690,10 +805,17 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
   s = tokens.join(' ')
   if (!tokens.length) return emptySplit()
 
-  const withTraction = (r: SplitApiModeloResult): SplitApiModeloResult => ({
-    ...r,
-    traction: r.traction ?? traction,
-  })
+  const withTraction = (r: SplitApiModeloResult): SplitApiModeloResult => {
+    let engine = r.engine ?? null
+    if (extraTurbo && !(engine && /turbo/i.test(engine))) {
+      engine = engine ? `${engine} Turbo` : 'Turbo'
+    }
+    return {
+      ...r,
+      engine,
+      traction: r.traction ?? traction,
+    }
+  }
 
   if (tokens.length === 1) {
     const only = tokens[0]!
