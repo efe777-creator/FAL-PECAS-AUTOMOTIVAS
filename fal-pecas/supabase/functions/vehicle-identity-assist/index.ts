@@ -44,7 +44,9 @@ Abreviações que devem sair por extenso:
 - Plat. = Platinum
 - Essen. = Essence; Work. = Working; Adv. = Adventure; Celeb. = Celebration
 - TB / TGDI = Turbo, no motor
-- Die. = Diesel e Híb. = Híbrido, combustível, não versão
+- Die. / Dies. = Diesel; Alc. = Etanol; Gasol. = Gasolina; Gás Natural e Tetrafuel = GNV. Combustível, não versão
+- Álcool da FIPE = Etanol. Gasolina, Diesel e GNV só entram quando o texto ou o ano trazem esse dado
+- Híb. = Híbrido, combustível, não versão
 - CS = Cabine Simples, CE = Cabine Estendida, CD = Cabine Dupla
 - High Country permanece High Country (não é Highline)
 - 170, 200, 250 e 350 antes de TSI/TFSI = motor (ex.: "170 TSI"), nunca versão

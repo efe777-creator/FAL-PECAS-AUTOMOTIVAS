@@ -1,7 +1,7 @@
 /**
  * Client admin → Edge fipe-catalog-lookup (token só no servidor).
  */
-import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
+import { fuelFromVehicleName, normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { getSupabase } from '@/lib/supabase'
 import { splitApiModelo } from '@/services/plates/splitApiModelo'
 import type { MasterIntelligenceRow } from '@/services/vehicles/vehicleMasterIntelligence'
@@ -37,14 +37,30 @@ function asList(raw: unknown): FipeCodeName[] {
     .filter((x): x is FipeCodeName => Boolean(x))
 }
 
-/** Extrai ano e combustível de "2020 Flex" / code "2020-5". */
+/** Sufixo oficial do ano FIPE: 2020-1 gasolina, -2 álcool, -3 diesel, -4 elétrico, -5 flex, -6 híbrido, -7 GNV. */
+const FIPE_FUEL_BY_CODE: Record<string, string> = {
+  '1': 'Gasolina',
+  '2': 'Etanol',
+  '3': 'Diesel',
+  '4': 'Elétrico',
+  '5': 'Flex',
+  '6': 'Híbrido',
+  '7': 'GNV',
+}
+
+function fuelFromFipeYearCode(code: string): string | null {
+  const m = /(?:^|-)([1-7])$/.exec(code.trim())
+  return m ? (FIPE_FUEL_BY_CODE[m[1]!] ?? null) : null
+}
+
+/** Extrai ano e combustível de "2020 Flex" / "2013 Gás Natural" / code "2020-5". */
 export function parseFipeYearLabel(code: string, name: string): { year: number; fuel: string | null } | null {
   const fromName = name.match(/(19|20)\d{2}/)
   const fromCode = code.match(/(19|20)\d{2}/)
   const year = Number(fromName?.[0] ?? fromCode?.[0] ?? '')
   if (!Number.isFinite(year) || year < 1950 || year > 2100) return null
   const fuelPart = name.replace(String(year), '').trim()
-  const fuel = normalizeVehicleFuel(fuelPart)
+  const fuel = normalizeVehicleFuel(fuelPart) ?? fuelFromFipeYearCode(code)
   return { year, fuel }
 }
 
@@ -116,6 +132,7 @@ export function fipeSelectionToIntelligenceRows(
     const motor = (split.engine ?? '').trim()
     const versao = (split.version ?? '').trim()
     const tracao = split.traction ?? undefined
+    const namedFuel = fuelFromVehicleName(sel.modelName) ?? ''
     for (const y of sel.years) {
       out.push({
         montadora: brand,
@@ -123,7 +140,7 @@ export function fipeSelectionToIntelligenceRows(
         ano: String(y.year),
         motor,
         versao,
-        combustivel: y.fuel ?? '',
+        combustivel: y.fuel || namedFuel,
         tracao,
       })
     }

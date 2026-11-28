@@ -62,6 +62,26 @@ describe('sanitizeIdentitySuggestion', () => {
     })
   })
 
+  it('Dies. vazio no combustível vira Diesel e a IA não troca por Flex', () => {
+    const local = refineVehicleIdentityFields({
+      model: 'Hilux',
+      engine: '2.8',
+      version: 'Dies.',
+    })
+    expect(local.fuel).toBe('Diesel')
+    expect(local.version.toLowerCase()).not.toContain('dies')
+    expect(
+      mergeIdentitySuggestion(local, { fuel: 'Flex' }),
+    ).toMatchObject({ fuel: 'Diesel' })
+  })
+
+  it('Gás Natural da IA vira GNV quando a linha ainda não tem combustível', () => {
+    const local = refineVehicleIdentityFields({ model: 'Grand Siena', engine: '1.4', version: '' })
+    expect(
+      mergeIdentitySuggestion(local, { fuel: 'Gás Natural' }),
+    ).toMatchObject({ fuel: 'GNV' })
+  })
+
   it('ignora payload vazio ou inválido', () => {
     expect(sanitizeIdentitySuggestion(null)).toBeNull()
     expect(sanitizeIdentitySuggestion({})).toBeNull()

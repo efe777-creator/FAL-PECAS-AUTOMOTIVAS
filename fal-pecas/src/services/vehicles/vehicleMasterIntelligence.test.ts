@@ -50,6 +50,22 @@ describe('prepareVehicleMasterIntelligence', () => {
     expect(ok[0]!.fuel).toBe('Flex')
   })
 
+  it('gasolina e álcool do mesmo modelo não compartilham os anos', () => {
+    const report = prepareVehicleMasterIntelligence([
+      { montadora: 'VW', modelo: 'Gol', ano: '1995', motor: '1.0', versao: '', combustivel: 'Gasolina' },
+      { montadora: 'VW', modelo: 'Gol', ano: '1996', motor: '1.0', versao: '', combustivel: 'Gasolina' },
+      { montadora: 'VW', modelo: 'Gol', ano: '1997', motor: '1.0', versao: '', combustivel: 'Álcool' },
+      { montadora: 'VW', modelo: 'Gol', ano: '1998', motor: '1.0', versao: '', combustivel: 'Álcool' },
+    ])
+    const ok = report.prepared.filter((p) => p.action === 'upsert')
+    const gas = ok.filter((p) => p.fuel === 'Gasolina')
+    const alc = ok.filter((p) => p.fuel === 'Etanol')
+    expect(gas).toHaveLength(2)
+    expect(alc).toHaveLength(2)
+    expect(gas.every((p) => p.productionYearStart === 1995 && p.productionYearEnd === 1996)).toBe(true)
+    expect(alc.every((p) => p.productionYearStart === 1997 && p.productionYearEnd === 1998)).toBe(true)
+  })
+
   it('fan-out de versões com / e |', () => {
     const report = prepareVehicleMasterIntelligence([
       {

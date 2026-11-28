@@ -160,7 +160,7 @@ export function prepareVehicleMasterIntelligence(
       }
       const rowTraction = traction ?? cleaned.traction ?? null
 
-      const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}`
+      const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}|${(fuel ?? '').toLowerCase()}`
       const prev = rangeByModel.get(modelKey)
       if (prev) {
         rangeByModel.set(modelKey, {
@@ -203,7 +203,7 @@ export function prepareVehicleMasterIntelligence(
   // Reaplica ranges finais (após ver todos os anos do modelo).
   for (const row of prepared) {
     if (row.action !== 'upsert') continue
-    const mk = `${row.maker.toLowerCase()}|${row.model.toLowerCase()}`
+    const mk = `${row.maker.toLowerCase()}|${row.model.toLowerCase()}|${(row.fuel ?? '').toLowerCase()}`
     const range = rangeByModel.get(mk)
     if (range) {
       row.productionYearStart = range.start

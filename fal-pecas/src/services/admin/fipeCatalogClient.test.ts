@@ -8,6 +8,13 @@ describe('fipeCatalogClient helpers', () => {
       year: 2018,
       fuel: 'Gasolina',
     })
+    expect(parseFipeYearLabel('1997-2', '1997 Álcool')).toEqual({ year: 1997, fuel: 'Etanol' })
+    expect(parseFipeYearLabel('1992-3', '1992 Diesel')).toEqual({ year: 1992, fuel: 'Diesel' })
+    expect(parseFipeYearLabel('2013-7', '2013 Gás Natural')).toEqual({ year: 2013, fuel: 'GNV' })
+    expect(parseFipeYearLabel('2016-7', '2016')).toEqual({ year: 2016, fuel: 'GNV' })
+    expect(parseFipeYearLabel('2014-1', '2014')).toEqual({ year: 2014, fuel: 'Gasolina' })
+    expect(parseFipeYearLabel('1998-2', '1998')).toEqual({ year: 1998, fuel: 'Etanol' })
+    expect(parseFipeYearLabel('1985-3', '1985')).toEqual({ year: 1985, fuel: 'Diesel' })
   })
 
   it('fipeSelectionToIntelligenceRows monta linhas com fuel', () => {
@@ -23,6 +30,31 @@ describe('fipeCatalogClient helpers', () => {
     expect(rows[0]!.ano).toBe('2020')
     expect(rows[0]!.combustivel).toBe('Flex')
     expect(rows[0]!.modelo.length).toBeGreaterThan(0)
+  })
+
+  it('GNV do ano vence o Flex escrito no nome Tetrafuel', () => {
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'Fiat',
+      modelName: 'Grand Siena TETRAFUEL 1.4 Evo F. Flex 8V',
+      years: [{ code: '2013-7', name: '2013 Gás Natural', year: 2013, fuel: 'GNV' }],
+    })
+    expect(rows[0]!.combustivel).toBe('GNV')
+    expect(rows[0]!.versao.toLowerCase()).not.toContain('flex')
+  })
+
+  it('sem rótulo no ano, o nome ainda preenche diesel ou GNV', () => {
+    const diesel = fipeSelectionToIntelligenceRows({
+      brandName: 'Toyota',
+      modelName: 'Hilux CD 4x4 2.8 Diesel',
+      years: [{ code: '1994-0', name: '1994', year: 1994, fuel: null }],
+    })
+    expect(diesel[0]!.combustivel).toBe('Diesel')
+    const gnv = fipeSelectionToIntelligenceRows({
+      brandName: 'Fiat',
+      modelName: 'Grand Siena TETRAFUEL 1.4 Evo F. Flex 8V',
+      years: [{ code: '2013-0', name: '2013', year: 2013, fuel: null }],
+    })
+    expect(gnv[0]!.combustivel).toBe('GNV')
   })
 
   it('fipeSelectionToIntelligenceRows aceita N modelos (selections)', () => {

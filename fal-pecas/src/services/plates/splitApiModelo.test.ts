@@ -264,6 +264,16 @@ describe('splitApiModelo', () => {
       version: 'SR Cabine Simples',
       traction: '4x2',
     })
+    const dies = splitApiModelo('Hilux CD 4x4 3.0 TDI Dies. Mec.')
+    expect(dies.engine).toBe('3.0 TDI')
+    expect(dies.traction).toBe('4x4')
+    expect(`${dies.model ?? ''} ${dies.version ?? ''}`).not.toMatch(/dies|diesel/i)
+    expect(splitApiModelo('Hilux CD Conquest 4x4 2.8 Die.Aut').version ?? '').not.toMatch(/die|diesel/i)
+    expect(splitApiModelo('Siena 1.4 F. Flex')).toMatchObject({
+      model: 'Siena',
+      engine: '1.4',
+    })
+    expect(splitApiModelo('Siena 1.4 F. Flex').version ?? '').not.toMatch(/flex/i)
     expect(splitApiModelo('Saveiro Robust 1.6 CE')).toMatchObject({
       model: 'Saveiro',
       engine: '1.6',

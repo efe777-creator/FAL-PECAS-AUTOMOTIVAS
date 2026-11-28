@@ -3,7 +3,7 @@
  * Só sugere campos; nunca grava sozinho.
  */
 import { getSupabase } from '@/lib/supabase'
-import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
+import { fuelFromVehicleName, normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { normalizeVehicleTraction } from '@/lib/vehicles/normalizeVehicleTraction'
 import { splitApiModelo } from '@/services/plates/splitApiModelo'
 
@@ -71,11 +71,12 @@ export function refineVehicleIdentityFields(input: {
     blob = [model, engine, version].filter(Boolean).join(' ')
   }
   const split = blob ? splitApiModelo(blob) : { model: null, engine: null, version: null, traction: null }
+  const namedFuel = fuelFromVehicleName(blob) ?? ''
   return {
     model: (split.model || model).trim(),
     engine: (split.engine || '').trim(),
     version: (split.version || '').trim(),
-    fuel: (input.fuel ? normalizeVehicleFuel(input.fuel) : '') || '',
+    fuel: (input.fuel ? normalizeVehicleFuel(input.fuel) : '') || namedFuel,
     traction: (input.traction ? normalizeVehicleTraction(input.traction) : '') || '',
   }
 }
@@ -86,7 +87,7 @@ export function mergeIdentitySuggestion(
   ai: VehicleIdentitySuggestion | null,
 ): VehicleIdentityFields {
   if (!ai) return local
-  const fuel = (ai.fuel ? normalizeVehicleFuel(ai.fuel) : '') || local.fuel
+  const fuel = local.fuel || (ai.fuel ? normalizeVehicleFuel(ai.fuel) : '') || ''
   const traction = (ai.traction ? normalizeVehicleTraction(ai.traction) : '') || local.traction
   return {
     model: local.model,
