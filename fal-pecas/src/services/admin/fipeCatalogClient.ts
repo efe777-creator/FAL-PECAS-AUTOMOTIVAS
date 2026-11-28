@@ -82,7 +82,7 @@ export function parseFipeYearLabel(code: string, name: string): { year: number; 
  */
 export function fipeYearSpan(years: FipeYearOption[], yearHint = ''): FipeYearOption[] {
   const hinted = yearHint ? years.filter((y) => String(y.year) === yearHint) : years
-  const byFuel = new Map<string, FipeYearOption[]>()
+  const byFuel = new Map<string, FipeYearOption>()
   for (const y of hinted) {
     const key = `${y.fuel ?? ''}|${y.year}`
     if (!byFuel.has(key)) byFuel.set(key, y)
