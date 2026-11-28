@@ -369,8 +369,8 @@ export function AdminVehicleIntegrationsHubPage() {
         >
           <h2 className="m-0 text-lg font-extrabold text-fal-fg">Consultar e escolher</h2>
           <p className="mb-0 mt-2 text-sm text-fal-muted">
-            Arquivo, FIPE ou demanda da loja → comparar com o mestre → marcar, editar e gravar só o
-            escolhido.
+            FIPE com vários modelos, demanda por qualquer termo ou arquivo → prévia com checkbox.
+            Versões com “/” viram linhas separadas; só o marcado grava.
           </p>
         </Link>
 
@@ -380,7 +380,8 @@ export function AdminVehicleIntegrationsHubPage() {
         >
           <h2 className="m-0 text-lg font-extrabold text-fal-fg">Importar arquivo</h2>
           <p className="mb-0 mt-2 text-sm text-fal-muted">
-            CSV FAL ou dump fipeX com prévia editável. Não cria aplicações (PVC).
+            CSV FAL ou dump fipeX → prévia editável; marque vários e aplique. Versões com “/”
+            separam. Não cria PVC.
           </p>
         </Link>
 

@@ -171,8 +171,18 @@ export function AdminVehicleMasterImportPage() {
         {report ? <p className="mt-2 text-sm text-fal-success">{report}</p> : null}
       </div>
 
-      {touchedModelIds.length ? (
+      {touchedModelIds.length || report ? (
         <div className="flex flex-wrap gap-2">
+          {report ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              onClick={() => navigate('/admin/veiculos?quality=review')}
+            >
+              Ver no cadastro
+            </Button>
+          ) : null}
           {touchedModelIds.slice(0, 8).map((id) => (
             <Button
               key={id}

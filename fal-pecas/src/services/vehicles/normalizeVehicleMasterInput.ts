@@ -15,7 +15,9 @@ import {
 import {
   assertModelClean,
   isModelNameClean,
+  isValveToken,
   normalizeVersionLabel,
+  peelValveSuffixFromEngineToken,
   sanitizeEngine,
 } from '@/services/plates/splitApiModelo'
 
@@ -130,9 +132,19 @@ function classifyToken(token: string): TokenClass {
   if (isProtectedFamilyToken(token)) return { kind: 'unknown' }
   if (FUEL_TOKENS.has(up)) return { kind: 'fuel' }
 
+  if (isValveToken(token)) {
+    return { kind: 'known', version: [token.toUpperCase()] }
+  }
+
   if (ENGINE_DECIMAL.test(token)) {
+    const valveStuck = peelValveSuffixFromEngineToken(token)
     const eng = sanitizeEngine(token)
-    return { kind: 'known', engine: eng, invalidEngine: !eng }
+    return {
+      kind: 'known',
+      engine: eng,
+      invalidEngine: !eng,
+      version: valveStuck ? [valveStuck] : undefined,
+    }
   }
 
   const digitsSuffix = up.match(ENGINE_DIGITS_SUFFIX)
@@ -230,8 +242,8 @@ export function normalizeVehicleMasterInput(input: {
   const reasons: string[] = []
   const maker = formatManufacturerDisplayName(String(input.maker ?? ''))
   let rawModel = collapse(String(input.model ?? ''))
-  // Prefixo "VW/" ou "I/" da API (igual ao splitApiModelo).
-  rawModel = rawModel.replace(/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\- ]{0,24}\//, '').trim()
+  // Prefixo compacto "VW/" / "I/" (igual ao splitApiModelo — sem espaço).
+  rawModel = rawModel.replace(/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\-]{0,12}\//, '').trim()
 
   const extras = assertModelClean('X', { engine: input.engine, version: input.version })
 

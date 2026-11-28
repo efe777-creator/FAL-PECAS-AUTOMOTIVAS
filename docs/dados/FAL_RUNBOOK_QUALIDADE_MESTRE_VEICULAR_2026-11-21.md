@@ -36,7 +36,7 @@
 
 | Writer | Caminho | Normaliza? |
 |--------|---------|------------|
-| Consultar / import CSV mestre | `applySelectedMasterCandidates` → `vehicleCanonicalUpsert` + `mergeModelProductionYears` | sim |
+| Consultar / import CSV mestre | `applySelectedMasterCandidates` → `vehicleCanonicalUpsert` + `mergeModelProductionYears` (FIPE multi; Demanda free-text; fan-out `/`; pós-apply `?quality=review`) | sim |
 | Lote import (infra; UI apply ainda não) | `adminVehicleImportBatchService` → canônico + `enrich_vehicle_version_tech` | sim |
 | Sync intelligence | `vehicleMasterIntelligence` → `vehicleCanonicalUpsert` + vida | sim |
 | Confirm placa | Edge `vehicle-confirm-upsert` → RPC | sim (Edge mirror) |

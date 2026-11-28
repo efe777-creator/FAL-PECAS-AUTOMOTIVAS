@@ -49,4 +49,59 @@ describe('prepareVehicleMasterIntelligence', () => {
     expect(ok).toHaveLength(1)
     expect(ok[0]!.fuel).toBe('Flex')
   })
+
+  it('fan-out de versões com / e |', () => {
+    const report = prepareVehicleMasterIntelligence([
+      {
+        montadora: 'VW',
+        modelo: 'Gol',
+        ano: '2018',
+        motor: '1.0',
+        versao: 'Comfortline / Highline',
+        combustivel: 'Flex',
+      },
+    ])
+    const ok = report.prepared.filter((p) => p.action === 'upsert')
+    expect(ok).toHaveLength(2)
+    expect(ok.map((p) => p.version).sort()).toEqual(['Comfortline', 'Highline'])
+  })
+
+  it('fan-out A/B/C e nome FIPE com barra no modelo', () => {
+    const abc = prepareVehicleMasterIntelligence([
+      {
+        montadora: 'VW',
+        modelo: 'Gol',
+        ano: '2018',
+        motor: '1.0',
+        versao: 'A / B / C',
+        combustivel: 'Flex',
+      },
+    ])
+    expect(abc.prepared.filter((p) => p.action === 'upsert')).toHaveLength(3)
+
+    const fromName = prepareVehicleMasterIntelligence([
+      {
+        montadora: 'Volkswagen',
+        modelo: 'Gol Comfortline / Highline 1.0',
+        ano: '2018',
+        motor: '',
+        versao: '',
+        combustivel: 'Flex',
+      },
+      {
+        montadora: 'Hyundai',
+        modelo: 'HB20 1.0',
+        ano: '2020',
+        motor: '',
+        versao: '',
+        combustivel: 'Flex',
+      },
+    ])
+    const ok = fromName.prepared.filter((p) => p.action === 'upsert')
+    expect(ok).toHaveLength(3)
+    const gol = ok.filter((p) => p.model === 'Gol')
+    expect(gol).toHaveLength(2)
+    expect(gol.map((p) => p.version).sort()).toEqual(['Comfortline', 'Highline'])
+    expect(ok.some((p) => /hb20/i.test(p.model))).toBe(true)
+  })
 })

@@ -67,22 +67,40 @@ export async function fipeListYears(brandId: string, modelId: string): Promise<F
     .filter((x): x is FipeYearOption => Boolean(x))
 }
 
-/** Monta linhas de inteligência a partir da seleção FIPE (marca/modelo + anos marcados). */
-export function fipeSelectionToIntelligenceRows(input: {
-  brandName: string
-  modelName: string
-  years: FipeYearOption[]
-}): MasterIntelligenceRow[] {
-  const split = splitApiModelo(input.modelName)
-  const modelo = (split.model || input.modelName).trim()
-  const motor = (split.engine ?? '').trim()
-  const versao = (split.version ?? '').trim()
-  return input.years.map((y) => ({
-    montadora: input.brandName.trim(),
-    modelo,
-    ano: String(y.year),
-    motor,
-    versao,
-    combustivel: y.fuel ?? '',
-  }))
+/** Monta linhas de inteligência a partir da seleção FIPE (1 ou N modelos + anos). */
+export function fipeSelectionToIntelligenceRows(
+  input:
+    | {
+        brandName: string
+        modelName: string
+        years: FipeYearOption[]
+      }
+    | {
+        brandName: string
+        selections: Array<{ modelName: string; years: FipeYearOption[] }>
+      },
+): MasterIntelligenceRow[] {
+  const selections =
+    'selections' in input
+      ? input.selections
+      : [{ modelName: input.modelName, years: input.years }]
+  const out: MasterIntelligenceRow[] = []
+  for (const sel of selections) {
+    if (!sel.years.length) continue
+    const split = splitApiModelo(sel.modelName)
+    const modelo = (split.model || sel.modelName).trim()
+    const motor = (split.engine ?? '').trim()
+    const versao = (split.version ?? '').trim()
+    for (const y of sel.years) {
+      out.push({
+        montadora: input.brandName.trim(),
+        modelo,
+        ano: String(y.year),
+        motor,
+        versao,
+        combustivel: y.fuel ?? '',
+      })
+    }
+  }
+  return out
 }

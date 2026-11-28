@@ -125,6 +125,15 @@ export function AdminVehiclesPage() {
           const bridgeId = consumeGuideBridge(VEHICLES_OPEN_GUIDE_KEY)
           const deepModel = (bridgeId || searchParams.get('model')?.trim() || '').trim()
           const wantApprove = searchParams.get('approve') === '1'
+          const qualityQ = searchParams.get('quality')?.trim() || ''
+          if (
+            qualityQ === 'verified' ||
+            qualityQ === 'review' ||
+            qualityQ === 'quarantined' ||
+            qualityQ === 'superseded'
+          ) {
+            setFilterQuality(qualityQ)
+          }
           if (deepModel) {
             const found = modelList.find((m) => m.id === deepModel)
             if (found) {
@@ -136,10 +145,11 @@ export function AdminVehiclesPage() {
               splitTabs.openTab(found.id)
             }
           }
-          if (bridgeId || searchParams.get('model') || wantApprove) {
+          if (bridgeId || searchParams.get('model') || wantApprove || qualityQ) {
             const next = new URLSearchParams(searchParams)
             next.delete('model')
             next.delete('approve')
+            next.delete('quality')
             setSearchParams(next, { replace: true })
           }
         }

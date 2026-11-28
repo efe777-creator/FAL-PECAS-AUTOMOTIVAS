@@ -130,12 +130,21 @@ export function detectSiblingModelAmbiguity(
   const baseName = split?.model?.trim() || ''
   const baseNorm = normalizeVehicleToken(baseName)
   const catalogBase = pool.find((m) => normalizeVehicleToken(m) === baseNorm)
-  const catalogExtended = pool.filter(
-    (m) =>
-      normalizeVehicleToken(m) !== baseNorm &&
-      normalizeVehicleToken(m).startsWith(baseNorm) &&
-      baseNorm.length >= 3,
-  )
+  const verNorm = split?.version ? normalizeVehicleToken(split.version) : ''
+  // Irmão de família = base + trim (Kwid Intense), NÃO sufixo colado (HB20 ⊂ HB20S).
+  const catalogExtended = pool.filter((m) => {
+    const mn = normalizeVehicleToken(m)
+    if (!baseNorm || mn === baseNorm || baseNorm.length < 3 || !mn.startsWith(baseNorm)) {
+      return false
+    }
+    const rest = mn.slice(baseNorm.length)
+    if (verNorm && (mn === baseNorm + verNorm || mn.startsWith(baseNorm + verNorm))) {
+      return true
+    }
+    // Sem versão no split: só conta se o resto parece trim (≥3), não letra sola (S de HB20S).
+    if (!verNorm && rest.length >= 3) return true
+    return false
+  })
   const splitFamilyAmbiguous =
     Boolean(split?.version || split?.engine) &&
     Boolean(catalogBase) &&

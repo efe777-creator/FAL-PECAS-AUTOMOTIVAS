@@ -66,6 +66,36 @@ describe('splitApiModelo', () => {
     })
   })
 
+  it('nome com versões em barra → model + versão alternativa (não engole prefixo)', () => {
+    expect(splitApiModelo('Gol Comfortline / Highline 1.0')).toEqual({
+      model: 'Gol',
+      engine: '1.0',
+      version: 'Comfortline / Highline',
+    })
+    expect(splitApiModelo('Onix LT / LTZ 1.0')).toMatchObject({
+      model: 'Onix',
+      engine: '1.0',
+    })
+    expect(splitApiModelo('Onix LT / LTZ 1.0').version).toMatch(/LT/i)
+    expect(splitApiModelo('Onix LT / LTZ 1.0').version).toMatch(/LTZ/i)
+    // Prefixo compacto real continua removido
+    expect(splitApiModelo('VW/Gol 1.0')).toMatchObject({ model: 'Gol', engine: '1.0' })
+  })
+
+  it('motor 2.0 + 16V → cilindrada no motor e válvulas na versão', () => {
+    expect(splitApiModelo('Gol 2.0 16V Comfortline')).toEqual({
+      model: 'Gol',
+      engine: '2.0',
+      version: 'Comfortline 16V',
+    })
+    expect(splitApiModelo('Civic 2.016V EXL')).toMatchObject({
+      engine: '2.0',
+    })
+    const stuck = splitApiModelo('Civic 2.016V EXL')
+    expect(stuck.version).toMatch(/16V/i)
+    expect(stuck.version).toMatch(/EXL/i)
+  })
+
   it('DENATRAN compacto CLIO EXP1016VH → Clio / 1.0 / Expression', () => {
     expect(splitApiModelo('CLIO EXP1016VH')).toEqual({
       model: 'Clio',

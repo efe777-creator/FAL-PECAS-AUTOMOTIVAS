@@ -8,6 +8,7 @@ import {
   formatModelDisplayName,
 } from '@/lib/entityNormalize'
 import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
+import { splitVersionAlternatives } from '@/lib/vehicles/splitVersionAlternatives'
 import {
   assertModelClean,
   normalizeVersionLabel,
@@ -111,66 +112,83 @@ export function prepareVehicleMasterIntelligence(
       const split = splitApiModelo(modelName)
       if (split.model) modelName = split.model
       engine = sanitizeEngine(split.engine) ?? null
-      version = normalizeVersionLabel(split.version) ?? null
+      // Mantém "Comfortline / Highline" intacto para o fan-out abaixo.
+      version = split.version?.trim() || null
     }
 
-    let cleaned
-    try {
-      cleaned = assertModelClean(modelName, { engine, version })
-    } catch (err) {
+    // Fan-out ANTES do sanitize (senão "A / B / C" perde o A = câmbio).
+    const versionAlts = splitVersionAlternatives(version)
+    let anyAlt = false
+
+    for (const verRaw of versionAlts) {
+      let cleaned
+      try {
+        cleaned = assertModelClean(modelName, {
+          engine,
+          version: verRaw.trim() ? verRaw : null,
+        })
+      } catch (err) {
+        prepared.push({
+          maker,
+          model: modelName,
+          year,
+          engine,
+          version: verRaw || null,
+          fuel,
+          productionYearStart: year,
+          productionYearEnd: year,
+          key: '',
+          action: 'error',
+          message: err instanceof Error ? err.message : 'Modelo inválido',
+        })
+        continue
+      }
+
+      const model = formatModelDisplayName(cleaned.model)
+      const eng = blank(sanitizeEngine(cleaned.engine))
+      // Alternativa curta (A/B/C): sanitizeVersionLabel pode zerar "A"; preserva o token do fan-out.
+      let ver = blank(normalizeVersionLabel(cleaned.version))
+      if (!ver && verRaw.trim()) {
+        ver = blank(normalizeVersionLabel(verRaw.trim()))
+      }
+
+      const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}`
+      const prev = rangeByModel.get(modelKey)
+      if (prev) {
+        rangeByModel.set(modelKey, {
+          start: Math.min(prev.start, year),
+          end: Math.max(prev.end, year),
+        })
+      } else {
+        rangeByModel.set(modelKey, { start: year, end: year })
+      }
+
+      const vvKey = [maker, model, year, eng ?? '', ver ?? '', fuel ?? '']
+        .map((x) => String(x).toLowerCase())
+        .join('|')
+      if (seenVv.has(vvKey)) {
+        skipped += 1
+        continue
+      }
+      seenVv.add(vvKey)
+      anyAlt = true
+      const range = rangeByModel.get(modelKey)!
       prepared.push({
         maker,
-        model: modelName,
+        model,
         year,
-        engine,
-        version,
+        engine: eng,
+        version: ver,
         fuel,
-        productionYearStart: year,
-        productionYearEnd: year,
-        key: '',
-        action: 'error',
-        message: err instanceof Error ? err.message : 'Modelo inválido',
+        productionYearStart: range.start,
+        productionYearEnd: range.end,
+        key: vvKey,
+        action: 'upsert',
       })
-      continue
     }
-
-    const model = formatModelDisplayName(cleaned.model)
-    engine = blank(sanitizeEngine(cleaned.engine))
-    version = blank(normalizeVersionLabel(cleaned.version))
-
-    const modelKey = `${maker.toLowerCase()}|${model.toLowerCase()}`
-    const prev = rangeByModel.get(modelKey)
-    if (prev) {
-      rangeByModel.set(modelKey, {
-        start: Math.min(prev.start, year),
-        end: Math.max(prev.end, year),
-      })
-    } else {
-      rangeByModel.set(modelKey, { start: year, end: year })
-    }
-
-    const vvKey = [maker, model, year, engine ?? '', version ?? '', fuel ?? '']
-      .map((x) => String(x).toLowerCase())
-      .join('|')
-    if (seenVv.has(vvKey)) {
+    if (!anyAlt) {
       skipped += 1
-      continue
     }
-    seenVv.add(vvKey)
-
-    const range = rangeByModel.get(modelKey)!
-    prepared.push({
-      maker,
-      model,
-      year,
-      engine,
-      version,
-      fuel,
-      productionYearStart: range.start,
-      productionYearEnd: range.end,
-      key: vvKey,
-      action: 'upsert',
-    })
   }
 
   // Reaplica ranges finais (após ver todos os anos do modelo).

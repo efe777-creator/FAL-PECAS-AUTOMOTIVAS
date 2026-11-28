@@ -18,6 +18,7 @@ Em caso de conflito: **documento proprietário da regra vence**. Docs histórico
 | **Veículo: caminhos · relações · layout** | [FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md](../arquitetura/FAL_MAPA_VEICULO_CAMINHOS_RELACOES_2026-11-21.md) |
 | Layout admin / Adaptive / tokens | [FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md](../planejamento/FAL_PADRAO_TELAS_LAYOUT_DESIGN_v1_2026-11-21.md) |
 | Mestre / seed / hub Integrações | [FAL_PLANO_MESTRE_VEICULOS_HIBRIDO…](../planejamento/FAL_PLANO_MESTRE_VEICULOS_HIBRIDO_INTEGRACOES_2026-11-21.md) |
+| Consultar multi · `/` · Demanda (VAL) | [FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md](../dados/FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md) |
 | Saber o que é MVP / done | [FAL_MVP_COMPLETO_4.0.md](../planejamento/FAL_MVP_COMPLETO_4.0.md) |
 | **Executar agora** | [FAL_MVP_PLANO_CONSOLIDACAO.md](../planejamento/FAL_MVP_PLANO_CONSOLIDACAO.md) — frente **G8** (STOP 8.3) |
 | **Deploy / domínio** | [FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md](../planejamento/FAL_DECISAO_INATIVAR_NETLIFY_HOSTINGER_ONLY_2026-11-23.md) — Hostinger only; Netlify inativo · [VAL cutover](../planejamento/FAL_MARCHA_HOSTINGER_ONLY_CUTOVER_VAL_2026-11-23.md) DONE |

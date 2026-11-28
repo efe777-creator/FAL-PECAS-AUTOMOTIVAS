@@ -236,7 +236,43 @@ export function diffVehicleMasterCandidates(
     })
   }
 
-  return out
+  // Vários anos da mesma config (ex.: Comfortline 2018+2019) → 1 candidato com vida unificada.
+  return mergeDiffCandidatesByIdentity(out)
+}
+
+const STATUS_RANK: Record<MasterDiffStatus, number> = {
+  conflito: 4,
+  enriquece: 3,
+  novo: 2,
+  ja_cadastrado: 1,
+}
+
+/** Une linhas iguais (maker/modelo/versão/motor/combustível) fundindo anos. */
+function mergeDiffCandidatesByIdentity(rows: MasterDiffCandidate[]): MasterDiffCandidate[] {
+  const map = new Map<string, MasterDiffCandidate>()
+  const errors: MasterDiffCandidate[] = []
+  for (const r of rows) {
+    if (r.id.startsWith('err-')) {
+      errors.push(r)
+      continue
+    }
+    const key = [nk(r.maker), nk(r.model), nk(r.version), nk(r.engine), fuelKey(r.fuel)].join('|')
+    const prev = map.get(key)
+    if (!prev) {
+      map.set(key, { ...r })
+      continue
+    }
+    prev.yearStart = Math.min(prev.yearStart, r.yearStart)
+    prev.yearEnd = Math.max(prev.yearEnd, r.yearEnd)
+    prev.selected = prev.selected || r.selected
+    if (STATUS_RANK[r.status] > STATUS_RANK[prev.status]) {
+      prev.status = r.status
+      prev.note = r.note
+      prev.versionId = r.versionId ?? prev.versionId
+      prev.modelId = r.modelId ?? prev.modelId
+    }
+  }
+  return [...errors, ...map.values()]
 }
 
 /** Filtra só linhas marcadas para apply. */

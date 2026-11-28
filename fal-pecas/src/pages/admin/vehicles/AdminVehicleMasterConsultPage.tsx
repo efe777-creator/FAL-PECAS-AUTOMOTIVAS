@@ -19,6 +19,7 @@ import {
 import type { MasterDiffCandidate, MasterDiffStatus } from '@/services/vehicles/diffVehicleMasterCandidates'
 import {
   applySelectedMasterCandidates,
+  buildCandidatesFromDemandaQuery,
   buildCandidatesFromFalCsvFile,
   buildCandidatesFromFipeXText,
   buildCandidatesFromIntelligenceRows,
@@ -55,9 +56,12 @@ export function AdminVehicleMasterConsultPage() {
 
   const [brands, setBrands] = useState<FipeCodeName[]>([])
   const [models, setModels] = useState<FipeCodeName[]>([])
-  const [years, setYears] = useState<FipeYearOption[]>([])
   const [brandId, setBrandId] = useState('')
-  const [modelId, setModelId] = useState('')
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([])
+  const [modelFilter, setModelFilter] = useState('')
+  /** yearsByModelId[modelId] = opções FIPE daquele modelo */
+  const [yearsByModelId, setYearsByModelId] = useState<Record<string, FipeYearOption[]>>({})
+  /** yearSelected[`${modelId}::${yearCode}`] */
   const [yearSelected, setYearSelected] = useState<Record<string, boolean>>({})
   const [demandaText, setDemandaText] = useState(demandaQ)
 
@@ -72,10 +76,22 @@ export function AdminVehicleMasterConsultPage() {
     () => brands.find((b) => b.code === brandId)?.name ?? '',
     [brands, brandId],
   )
-  const modelName = useMemo(
-    () => models.find((m) => m.code === modelId)?.name ?? '',
-    [models, modelId],
-  )
+  const filteredModels = useMemo(() => {
+    const q = modelFilter.trim().toLowerCase()
+    if (!q) return models
+    return models.filter((m) => m.name.toLowerCase().includes(q))
+  }, [models, modelFilter])
+  const yearEntries = useMemo(() => {
+    const out: Array<{ key: string; modelId: string; modelName: string; year: FipeYearOption }> =
+      []
+    for (const mid of selectedModelIds) {
+      const mName = models.find((m) => m.code === mid)?.name ?? mid
+      for (const y of yearsByModelId[mid] ?? []) {
+        out.push({ key: `${mid}::${y.code}`, modelId: mid, modelName: mName, year: y })
+      }
+    }
+    return out
+  }, [selectedModelIds, yearsByModelId, models])
 
   if (!allowed) {
     return (
@@ -151,9 +167,10 @@ export function AdminVehicleMasterConsultPage() {
 
   async function onBrandChange(id: string) {
     setBrandId(id)
-    setModelId('')
+    setSelectedModelIds([])
+    setModelFilter('')
     setModels([])
-    setYears([])
+    setYearsByModelId({})
     setYearSelected({})
     if (!id) return
     setBusy(true)
@@ -166,63 +183,65 @@ export function AdminVehicleMasterConsultPage() {
     }
   }
 
-  async function onModelChange(id: string) {
-    setModelId(id)
-    setYears([])
-    setYearSelected({})
-    if (!id || !brandId) return
+  async function toggleModel(id: string, on: boolean) {
+    if (!brandId) return
+    if (!on) {
+      setSelectedModelIds((prev) => prev.filter((x) => x !== id))
+      setYearsByModelId((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setYearSelected((prev) => {
+        const next = { ...prev }
+        for (const k of Object.keys(next)) {
+          if (k.startsWith(`${id}::`)) delete next[k]
+        }
+        return next
+      })
+      return
+    }
+    setSelectedModelIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    if (yearsByModelId[id]?.length) return
     setBusy(true)
     try {
-      setYears(await fipeListYears(brandId, id))
+      const ys = await fipeListYears(brandId, id)
+      setYearsByModelId((prev) => ({ ...prev, [id]: ys }))
     } catch (err) {
       setError(toUserMessage(err, 'Falha ao listar anos FIPE'))
+      setSelectedModelIds((prev) => prev.filter((x) => x !== id))
     } finally {
       setBusy(false)
     }
   }
 
   async function onFipeBuild() {
-    const picked = years.filter((y) => yearSelected[y.code])
-    if (!brandName || !modelName || !picked.length) {
-      setError('Selecione marca, modelo e ao menos um ano.')
+    if (!brandName || !selectedModelIds.length) {
+      setError('Selecione marca e ao menos um modelo.')
       return
     }
-    const rows = fipeSelectionToIntelligenceRows({
-      brandName,
-      modelName,
-      years: picked,
-    })
+    const selections: Array<{ modelName: string; years: FipeYearOption[] }> = []
+    for (const mid of selectedModelIds) {
+      const mName = models.find((m) => m.code === mid)?.name
+      if (!mName) continue
+      const ys = (yearsByModelId[mid] ?? []).filter((y) => yearSelected[`${mid}::${y.code}`])
+      if (ys.length) selections.push({ modelName: mName, years: ys })
+    }
+    if (!selections.length) {
+      setError('Marque ao menos um ano (por modelo).')
+      return
+    }
+    const rows = fipeSelectionToIntelligenceRows({ brandName, selections })
     await loadDiff(() => buildCandidatesFromIntelligenceRows(rows))
   }
 
   async function onDemandaBuild() {
-    const parts = demandaText.trim().split(/\s+/).filter(Boolean)
-    if (parts.length < 2) {
-      setError('Informe montadora e modelo (ex.: Volkswagen Gol 2018).')
+    const q = demandaText.trim()
+    if (!q) {
+      setError('Informe um termo (ex.: Gol, HB20 1.0, Volkswagen Gol 2018).')
       return
     }
-    const yearMatch = demandaText.match(/(19|20)\d{2}/)
-    const year = yearMatch?.[0] ?? ''
-    const withoutYear = demandaText.replace(/(19|20)\d{2}/, '').trim()
-    const toks = withoutYear.split(/\s+/).filter(Boolean)
-    const montadora = toks[0] ?? ''
-    const modelo = toks.slice(1).join(' ')
-    if (!montadora || !modelo) {
-      setError('Informe montadora e modelo.')
-      return
-    }
-    await loadDiff(() =>
-      buildCandidatesFromIntelligenceRows([
-        {
-          montadora,
-          modelo,
-          ano: year || String(new Date().getFullYear()),
-          motor: '',
-          versao: '',
-          combustivel: '',
-        },
-      ]),
-    )
+    await loadDiff(() => buildCandidatesFromDemandaQuery(q))
   }
 
   async function onApply() {
@@ -262,6 +281,10 @@ export function AdminVehicleMasterConsultPage() {
   function openGuide(modelId: string) {
     setGuideBridge(VEHICLES_OPEN_GUIDE_KEY, modelId)
     navigate(`/admin/veiculos?model=${encodeURIComponent(modelId)}`)
+  }
+
+  function openCadastroReview() {
+    navigate('/admin/veiculos?quality=review')
   }
 
   return (
@@ -338,46 +361,66 @@ export function AdminVehicleMasterConsultPage() {
       {mode === 'fipe' ? (
         <div className="space-y-3 rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <p className="m-0 text-sm text-fal-muted">
-            Consulta pontual via API FIPE (Edge). Selecione anos e monte a prévia.
+            Marque vários modelos e anos → Montar prévia. “Comfortline / Highline” vira duas linhas
+            na prévia (checkbox independente).
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Select
-              label="Marca"
-              name="fipe-brand"
-              placeholder="—"
-              options={brands.map((b) => ({ value: b.code, label: b.name }))}
-              value={brandId}
-              disabled={busy}
-              onChange={(e) => void onBrandChange(e.target.value)}
-              onFocus={() => void ensureBrands()}
-            />
-            <Select
-              label="Modelo"
-              name="fipe-model"
-              placeholder="—"
-              options={models.map((m) => ({ value: m.code, label: m.name }))}
-              value={modelId}
-              disabled={busy || !brandId}
-              onChange={(e) => void onModelChange(e.target.value)}
-            />
-          </div>
-          {years.length ? (
+          <Select
+            label="Marca"
+            name="fipe-brand"
+            placeholder="—"
+            options={brands.map((b) => ({ value: b.code, label: b.name }))}
+            value={brandId}
+            disabled={busy}
+            onChange={(e) => void onBrandChange(e.target.value)}
+            onFocus={() => void ensureBrands()}
+          />
+          {brandId ? (
             <div>
-              <p className="m-0 text-sm font-semibold text-fal-fg">Anos / combustível</p>
+              <Input
+                label="Filtrar modelos"
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                placeholder="Ex.: HB20, Gol…"
+                disabled={busy}
+              />
               <ul className="mt-2 max-h-48 list-none space-y-1 overflow-y-auto p-0">
-                {years.map((y) => (
-                  <li key={y.code} className="flex items-center gap-2 text-sm">
+                {filteredModels.map((m) => {
+                  const on = selectedModelIds.includes(m.code)
+                  return (
+                    <li key={m.code} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={busy}
+                        onChange={(e) => void toggleModel(m.code, e.target.checked)}
+                      />
+                      <span>{m.name}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : null}
+          {yearEntries.length ? (
+            <div>
+              <p className="m-0 text-sm font-semibold text-fal-fg">Modelo · Ano · Combustível</p>
+              <ul className="mt-2 max-h-56 list-none space-y-1 overflow-y-auto p-0">
+                {yearEntries.map((entry) => (
+                  <li key={entry.key} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={Boolean(yearSelected[y.code])}
+                      checked={Boolean(yearSelected[entry.key])}
                       onChange={(e) =>
-                        setYearSelected((prev) => ({ ...prev, [y.code]: e.target.checked }))
+                        setYearSelected((prev) => ({
+                          ...prev,
+                          [entry.key]: e.target.checked,
+                        }))
                       }
                     />
                     <span>
-                      {y.year}
-                      {y.fuel ? ` · ${y.fuel}` : ''}{' '}
-                      <span className="text-fal-muted">({y.name})</span>
+                      {entry.modelName} · {entry.year.year}
+                      {entry.year.fuel ? ` · ${entry.year.fuel}` : ''}{' '}
+                      <span className="text-fal-muted">({entry.year.name})</span>
                     </span>
                   </li>
                 ))}
@@ -398,15 +441,16 @@ export function AdminVehicleMasterConsultPage() {
       {mode === 'demanda' ? (
         <div className="rounded-[14px] border border-fal-line bg-fal-surface p-4">
           <p className="m-0 text-sm text-fal-muted">
-            Texto livre a partir de lookup catálogo 0 (ex.: Volkswagen Gol 2018).
+            Qualquer termo: montadora, modelo, motor, versão ou combustível. Um só termo basta (ex.:
+            Gol).
           </p>
           <div className="mt-3">
             <Input
               label="Demanda"
               value={demandaText}
               onChange={(e) => setDemandaText(e.target.value)}
-              placeholder="Montadora Modelo Ano"
-              hint="Ex.: Volkswagen Gol 2018"
+              placeholder="Ex.: Gol, HB20, 1.0, Comfortline, Volkswagen"
+              hint="Qualquer termo — não precisa montadora+modelo"
             />
           </div>
           <Button
@@ -424,8 +468,13 @@ export function AdminVehicleMasterConsultPage() {
       {applyMsg ? <p className="text-sm text-fal-success">{applyMsg}</p> : null}
       {busy ? <p className="text-sm text-fal-muted">Processando…</p> : null}
 
-      {touchedModelIds.length ? (
+      {touchedModelIds.length || applyMsg ? (
         <div className="flex flex-wrap gap-2">
+          {applyMsg ? (
+            <Button type="button" variant="light" size="sm" onClick={openCadastroReview}>
+              Ver no cadastro
+            </Button>
+          ) : null}
           {touchedModelIds.slice(0, 8).map((id) => (
             <Button key={id} type="button" variant="light" size="sm" onClick={() => openGuide(id)}>
               Abrir guia

@@ -24,4 +24,26 @@ describe('fipeCatalogClient helpers', () => {
     expect(rows[0]!.combustivel).toBe('Flex')
     expect(rows[0]!.modelo.length).toBeGreaterThan(0)
   })
+
+  it('fipeSelectionToIntelligenceRows aceita N modelos (selections)', () => {
+    const rows = fipeSelectionToIntelligenceRows({
+      brandName: 'Hyundai',
+      selections: [
+        {
+          modelName: 'HB20 1.0 Comfort',
+          years: [{ code: '2020-5', name: '2020 Flex', year: 2020, fuel: 'Flex' }],
+        },
+        {
+          modelName: 'HB20S 1.6 Premium',
+          years: [
+            { code: '2021-5', name: '2021 Flex', year: 2021, fuel: 'Flex' },
+            { code: '2022-5', name: '2022 Flex', year: 2022, fuel: 'Flex' },
+          ],
+        },
+      ],
+    })
+    expect(rows).toHaveLength(3)
+    expect(rows.every((r) => r.montadora === 'Hyundai')).toBe(true)
+    expect(rows.map((r) => r.ano).sort()).toEqual(['2020', '2021', '2022'])
+  })
 })

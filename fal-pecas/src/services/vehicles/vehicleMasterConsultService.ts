@@ -4,6 +4,7 @@
  */
 import { normalizeVehicleFuel } from '@/lib/vehicles/normalizeVehicleFuel'
 import { yearsInInclusiveRange } from '@/lib/vehicles/expandVersionYearRange'
+import { splitVersionAlternatives } from '@/lib/vehicles/splitVersionAlternatives'
 import { adminListManufacturers } from '@/services/admin/adminManufacturerService'
 import {
   adminListModels,
@@ -24,6 +25,11 @@ import {
   prepareVehicleMasterIntelligence,
   type MasterIntelligenceRow,
 } from '@/services/vehicles/vehicleMasterIntelligence'
+import {
+  fipeListBrands,
+  fipeListModels,
+  fipeSelectionToIntelligenceRows,
+} from '@/services/admin/fipeCatalogClient'
 import { fipeXCsvVehicleMasterSource } from '@/services/vehicles/vehicleMasterSource'
 import { vehicleCanonicalUpsert } from '@/services/vehicles/vehicleCanonicalUpsert'
 
@@ -74,16 +80,24 @@ export async function loadMasterCatalogSnapshot(): Promise<MasterCatalogSnapshot
 }
 
 function falRowsToIntelligence(rows: VehicleMasterRow[]): MasterIntelligenceRow[] {
-  return rows
-    .filter((r) => r.action === 'create')
-    .map((r) => ({
-      montadora: r.montadora,
-      modelo: r.modelo,
-      ano: r.anoInicio || r.ano,
-      motor: r.motor,
-      versao: r.versao,
-      combustivel: r.combustivel ?? '',
-    }))
+  const out: MasterIntelligenceRow[] = []
+  for (const r of rows) {
+    if (r.action !== 'create') continue
+    const start = Number(r.anoInicio || r.ano)
+    const end = Number(r.anoFim || r.anoInicio || r.ano)
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) continue
+    for (const year of yearsInInclusiveRange(start, end)) {
+      out.push({
+        montadora: r.montadora,
+        modelo: r.modelo,
+        ano: String(year),
+        motor: r.motor,
+        versao: r.versao,
+        combustivel: r.combustivel ?? '',
+      })
+    }
+  }
+  return out
 }
 
 /** CSV FAL clássico → candidatos com diff. */
@@ -128,6 +142,235 @@ export async function buildCandidatesFromIntelligenceRows(
     fileErrors: prepared.fileErrors,
     skipped: prepared.skipped + extraSkipped,
   }
+}
+
+export function foldDemanda(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+}
+
+/** Match contains: frase inteira OU todos os tokens (qualquer ordem). */
+export function demandaTokensMatch(hayFolded: string, needleFolded: string): boolean {
+  if (!needleFolded) return true
+  if (hayFolded.includes(needleFolded)) return true
+  const toks = needleFolded.split(/\s+/).filter(Boolean)
+  if (!toks.length) return true
+  return toks.every((t) => hayFolded.includes(t))
+}
+
+function pushDemandaRow(
+  rows: MasterIntelligenceRow[],
+  seen: Set<string>,
+  row: MasterIntelligenceRow,
+  limit: number,
+): boolean {
+  if (rows.length >= limit) return false
+  const key =
+    `${row.montadora}|${row.modelo}|${row.ano}|${row.motor}|${row.versao}|${row.combustivel}`.toLowerCase()
+  if (seen.has(key)) return true
+  seen.add(key)
+  rows.push(row)
+  return rows.length < limit
+}
+
+/**
+ * Busca pura no snapshot do mestre — qualquer termo (montadora, modelo, motor, versão, combustível).
+ * Ano no texto é opcional. 1 token ("Gol", "HB20") é válido.
+ */
+export function collectDemandaIntelligenceFromCatalog(
+  catalog: MasterCatalogSnapshot,
+  query: string,
+  limit = 80,
+): MasterIntelligenceRow[] {
+  const q = query.trim()
+  if (!q) return []
+  const yearMatch = q.match(/(19|20)\d{2}/)
+  const yearHint = yearMatch?.[0] ?? ''
+  const needle = foldDemanda(q.replace(/(19|20)\d{2}/g, ' ').replace(/\s+/g, ' ').trim())
+  const rows: MasterIntelligenceRow[] = []
+  const seen = new Set<string>()
+  const makerByModel = new Map(catalog.models.map((m) => [m.id, m]))
+  const matchedModelIds = new Set<string>()
+
+  for (const v of catalog.versions) {
+    if (v.status !== 'active') continue
+    const mod = makerByModel.get(v.modelId)
+    if (!mod) continue
+    const hay = foldDemanda(
+      [mod.makerName, mod.name, v.engine ?? '', v.versionName ?? '', v.fuel ?? '', String(v.year ?? '')].join(
+        ' ',
+      ),
+    )
+    if (!demandaTokensMatch(hay, needle)) continue
+    if (yearHint && v.year != null && String(v.year) !== yearHint) continue
+
+    let ano = ''
+    if (v.year != null) ano = String(v.year)
+    else if (yearHint) ano = yearHint
+    else if (mod.productionYearStart != null) ano = String(mod.productionYearStart)
+    else if (mod.productionYearEnd != null) ano = String(mod.productionYearEnd)
+    if (!ano) continue
+
+    matchedModelIds.add(mod.id)
+    if (
+      !pushDemandaRow(
+        rows,
+        seen,
+        {
+          montadora: mod.makerName,
+          modelo: mod.name,
+          ano,
+          motor: v.engine ?? '',
+          versao: v.versionName ?? '',
+          combustivel: v.fuel ?? '',
+        },
+        limit,
+      )
+    ) {
+      return rows
+    }
+  }
+
+  // Modelos casca / só nome (ex.: "Gol", "Volkswagen") sem VV tipada no match acima.
+  for (const mod of catalog.models) {
+    if (rows.length >= limit) break
+    if (matchedModelIds.has(mod.id)) continue
+    const hay = foldDemanda(`${mod.makerName} ${mod.name}`)
+    if (!demandaTokensMatch(hay, needle)) continue
+
+    const start = mod.productionYearStart
+    const end = mod.productionYearEnd
+    let years: number[] = []
+    if (yearHint) {
+      const y = Number(yearHint)
+      if (Number.isFinite(y)) years = [y]
+    } else if (start != null && end != null && start <= end) {
+      years = yearsInInclusiveRange(start, Math.min(end, start + 4)).slice(0, 5)
+    } else if (start != null) {
+      years = [start]
+    } else if (end != null) {
+      years = [end]
+    } else {
+      years = [new Date().getFullYear()]
+    }
+
+    for (const year of years) {
+      if (
+        !pushDemandaRow(
+          rows,
+          seen,
+          {
+            montadora: mod.makerName,
+            modelo: mod.name,
+            ano: String(year),
+            motor: '',
+            versao: '',
+            combustivel: '',
+          },
+          limit,
+        )
+      ) {
+        return rows
+      }
+    }
+    matchedModelIds.add(mod.id)
+  }
+
+  return rows
+}
+
+/**
+ * Demanda free-text: qualquer termo no mestre (+ complemento FIPE).
+ * 1 token ("Gol", "HB20", "1.0") é válido — não exige montadora+modelo.
+ */
+export async function buildCandidatesFromDemandaQuery(
+  query: string,
+): Promise<{ candidates: MasterDiffCandidate[]; fileErrors: string[]; skipped: number }> {
+  const q = query.trim()
+  if (!q) {
+    return { candidates: [], fileErrors: ['Informe um termo para buscar.'], skipped: 0 }
+  }
+  const yearMatch = q.match(/(19|20)\d{2}/)
+  const yearHint = yearMatch?.[0] ?? ''
+  const needle = foldDemanda(q.replace(/(19|20)\d{2}/g, ' ').replace(/\s+/g, ' ').trim())
+  const catalog = await loadMasterCatalogSnapshot()
+  const rows = collectDemandaIntelligenceFromCatalog(catalog, q, 80)
+  const seen = new Set(
+    rows.map(
+      (r) =>
+        `${r.montadora}|${r.modelo}|${r.ano}|${r.motor}|${r.versao}|${r.combustivel}`.toLowerCase(),
+    ),
+  )
+
+  // Complemento FIPE: marca pelo termo OU marcas já no mestre (acha "Gol" sem digitar VW).
+  if (rows.length < 40 && needle) {
+    try {
+      const brands = await fipeListBrands()
+      const byFold = new Map(brands.map((b) => [foldDemanda(b.name), b] as const))
+      const toScan: typeof brands = []
+      const addBrand = (b: (typeof brands)[number] | undefined) => {
+        if (!b) return
+        if (toScan.some((x) => x.code === b.code)) return
+        toScan.push(b)
+      }
+
+      for (const b of brands) {
+        const bn = foldDemanda(b.name)
+        if (
+          demandaTokensMatch(bn, needle) ||
+          needle.split(/\s+/).some((t) => t.length >= 2 && bn.includes(t))
+        ) {
+          addBrand(b)
+        }
+      }
+      for (const mod of catalog.models) {
+        addBrand(byFold.get(foldDemanda(mod.makerName)))
+        if (toScan.length >= 14) break
+      }
+      if (!toScan.length) {
+        for (const b of brands.slice(0, 20)) addBrand(b)
+      }
+
+      for (const brand of toScan.slice(0, 14)) {
+        if (rows.length >= 40) break
+        const models = await fipeListModels(brand.code)
+        const modelHits = models.filter((m) => {
+          const hay = foldDemanda(`${brand.name} ${m.name}`)
+          return demandaTokensMatch(hay, needle)
+        })
+        for (const m of modelHits.slice(0, 12)) {
+          if (rows.length >= 40) break
+          const dedupe = `${brand.name}|${m.name}|fipe`.toLowerCase()
+          if (seen.has(dedupe)) continue
+          seen.add(dedupe)
+          const ano = yearHint || String(new Date().getFullYear())
+          for (const r of fipeSelectionToIntelligenceRows({
+            brandName: brand.name,
+            modelName: m.name,
+            years: [{ code: `${ano}-0`, name: String(ano), year: Number(ano), fuel: null }],
+          })) {
+            if (!pushDemandaRow(rows, seen, r, 40)) break
+          }
+        }
+      }
+    } catch {
+      // FIPE opcional — mestre local já cobre o caso principal.
+    }
+  }
+
+  if (!rows.length) {
+    return {
+      candidates: [],
+      fileErrors: [
+        `Nenhum veículo para “${q}”. Tente outro termo (ex.: Gol, HB20, Volkswagen, Comfortline).`,
+      ],
+      skipped: 0,
+    }
+  }
+
+  return buildCandidatesFromIntelligenceRows(rows)
 }
 
 /** Converte candidatos editados da UI → intelligence rows (1 por ano do período). */
@@ -184,21 +427,25 @@ export async function applySelectedMasterCandidates(
       continue
     }
     const fuel = normalizeVehicleFuel(c.fuel)
+    // Segurança: se a prévia ainda trouxe "A / B", grava uma VV por alternativa.
+    const versionAlts = splitVersionAlternatives(c.version.trim() || '')
     try {
       const years = yearsInInclusiveRange(start, end)
       let modelId: string | null = null
-      for (const year of years) {
-        const up = await vehicleCanonicalUpsert({
-          maker: c.maker.trim(),
-          model: c.model.trim(),
-          year,
-          engine: c.engine.trim() || null,
-          version: c.version.trim() || null,
-          fuel,
-          source: 'import',
-        })
-        modelId = up.modelId
-        result.upserted += 1
+      for (const verAlt of versionAlts) {
+        for (const year of years) {
+          const up = await vehicleCanonicalUpsert({
+            maker: c.maker.trim(),
+            model: c.model.trim(),
+            year,
+            engine: c.engine.trim() || null,
+            version: verAlt.trim() || null,
+            fuel,
+            source: 'import',
+          })
+          modelId = up.modelId
+          result.upserted += 1
+        }
       }
       if (modelId) {
         touched.add(modelId)

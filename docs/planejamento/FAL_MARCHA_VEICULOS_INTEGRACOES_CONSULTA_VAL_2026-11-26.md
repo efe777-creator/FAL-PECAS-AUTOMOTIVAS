@@ -45,6 +45,18 @@
 | Tip JS = dist | **PASS** · `index-CXCg7fhR.js` |
 | Chunks consult/hub 200 + `consultar-mestre` no index | **PASS** |
 
+## Evolução 2026-11-27 (multi · `/` · Demanda)
+
+Ver VAL completo: [FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md](../dados/FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md).
+
+| Peça | Tip |
+|------|-----|
+| FIPE multi-modelo + anos | PASS |
+| Fan-out versões `/` `|` na prévia/apply | PASS |
+| Demanda qualquer termo | PASS |
+| `?quality=review` + Ver no cadastro | PASS |
+| Diff merge vida (sem duplicar anos) | PASS |
+
 ## STOP
 
 Sem Netlify nesta marcha. MCP FIPE Cursor fora do produto.

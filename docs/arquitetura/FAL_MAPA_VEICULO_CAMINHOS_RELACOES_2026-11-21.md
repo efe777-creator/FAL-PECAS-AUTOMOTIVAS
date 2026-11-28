@@ -149,7 +149,7 @@ Detalhe histórico: [híbrido § Camadas de ano](../planejamento/FAL_PLANO_MESTR
 | Writer | Quando | PVC? |
 |--------|--------|------|
 | `adminUpsertVersion` | Guia admin — correção manual | Não |
-| `applySelectedMasterCandidates` → `upsert_vehicle_canonical` | Consultar e importar mestre | Não |
+| `applySelectedMasterCandidates` → `upsert_vehicle_canonical` | Consultar (FIPE multi / Demanda / arquivo) e importar mestre; fan-out `/` antes do upsert | Não |
 | `vehicle-confirm-upsert` / client confirm | Pós-humano (placa/manual confirmado) | Não |
 | `merge_model_production_years` | Vida de linha | Não |
 | `enrich_vehicle_version_tech` | Só preenche NULL (RPC; lote/UI opcional) | Não |

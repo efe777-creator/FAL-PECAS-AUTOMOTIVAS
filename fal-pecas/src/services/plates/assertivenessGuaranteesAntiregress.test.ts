@@ -49,11 +49,13 @@ describe('assertividade · writers e duplicidade de escrita', () => {
   })
 
   it('writers de mestre ficam nos pontos canônicos (sem terceiro path solto)', () => {
-    const importSvc = read('src/services/admin/adminVehicleMasterImportService.ts')
+    const consultSvc = read('src/services/vehicles/vehicleMasterConsultService.ts')
     const intelligence = read('src/services/vehicles/vehicleMasterIntelligence.ts')
     const confirm = read('src/services/plates/confirmVehicleCanonicalUpsert.ts')
     const edgeConfirm = read('supabase/functions/vehicle-confirm-upsert/index.ts')
-    expect(importSvc).toMatch(/vehicleCanonicalUpsert/)
+    // Apply seletivo (Consultar/Importar UI) — CSV clássico só faz preview.
+    expect(consultSvc).toMatch(/vehicleCanonicalUpsert/)
+    expect(consultSvc).toMatch(/applySelectedMasterCandidates/)
     expect(intelligence).toMatch(/vehicleCanonicalUpsert/)
     expect(confirm).toMatch(/vehicle-confirm-upsert|confirmVehicleCanonicalUpsert/)
     expect(edgeConfirm).toMatch(/vehicleCanonicalUpsert/)
@@ -109,10 +111,13 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(src).toMatch(/verified/)
   })
 
-  it('import CSV clássico merge vida de linha após upsert', () => {
-    const src = read('src/services/admin/adminVehicleMasterImportService.ts')
+  it('import/consultar merge vida de linha após upsert seletivo', () => {
+    const src = read('src/services/vehicles/vehicleMasterConsultService.ts')
     expect(src).toMatch(/vehicleCanonicalUpsert/)
     expect(src).toMatch(/mergeModelProductionYears/)
+    expect(src).toMatch(/applySelectedMasterCandidates/)
+    const importPage = read('src/pages/admin/vehicles/AdminVehicleMasterImportPage.tsx')
+    expect(importPage).toMatch(/applySelectedMasterCandidates/)
   })
 
   it('garagem resolve só verified e revalida FKs antes de salvar', () => {
@@ -199,8 +204,9 @@ describe('assertividade · writers e duplicidade de escrita', () => {
     expect(qqFix).toMatch(/QQ/)
     expect(hub).not.toMatch(/FIPE assist \(flag\)/)
     const page = read('src/pages/admin/vehicles/AdminVehiclesPage.tsx')
-    expect(page).toMatch(/qualityBadge/)
+    expect(page).toMatch(/vehicleQualityBadge/)
     expect(page).toMatch(/searchParams\.get\('model'\)/)
+    expect(page).toMatch(/searchParams\.get\('quality'\)/)
   })
 
   it('vehicleEvidence é somente leitura (sem writers em models/VV/PVC)', () => {

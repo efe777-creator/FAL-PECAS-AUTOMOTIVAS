@@ -16,8 +16,22 @@ export type SplitApiModeloResult = {
 /** Token de motorização decimal: 1.0, 1.0m, 2.0T, 1.4TSI */
 const ENGINE_TOKEN = /^\d+\.\d+[a-zA-Z]{0,4}$/i
 
-/** Motor DENATRAN sem ponto + câmbio: 10MT, 16AT, 20CVT */
+/** Motor DENATRAN sem ponto + câmbio: 10MT, 16AT, 20CVT — NÃO casa 16V */
 const ENGINE_GEAR = /^(\d{2})(MT|AT|CVT|M|A)?$/i
+
+/** Válvulas / válvulas por escrito — vão para versão, nunca motor. */
+const VALVE_TOKEN = /^(?:\d{1,2}\s*V|\d{1,2}\s*VALVULAS?)$/i
+
+export function isValveToken(token: string): boolean {
+  const t = token.trim()
+  if (!t) return false
+  if (VALVE_TOKEN.test(t)) return true
+  const folded = t
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLocaleUpperCase('pt-BR')
+  return /^(?:\d{1,2}\s*V|\d{1,2}\s*VALVULAS?)$/.test(folded)
+}
 
 /**
  * Código DENATRAN colado: EXP1016VH, AUTH1216V, ELX1418V
@@ -48,6 +62,9 @@ const TRIM_ALIASES: Record<string, string> = {
   UNIQUE: 'Unique',
   COMFORT: 'Comfort',
   COMFOR: 'Comfort',
+  COMFORTLINE: 'Comfortline',
+  HIGHLINE: 'Highline',
+  TRENDLINE: 'Trendline',
   SENSE: 'Sense',
   STYLE: 'Style',
   SE: 'SE',
@@ -78,6 +95,9 @@ const TRIM_ALIASES: Record<string, string> = {
   TS: 'TS',
   CC: 'CC',
   SPORTING: 'Sporting',
+  EXL: 'EXL',
+  PREMIUM: 'Premium',
+  DIAMOND: 'Diamond',
   /** Chevrolet Prisma Joy — API às vezes truncada Joye */
   JOY: 'Joy',
   JOYE: 'Joy',
@@ -149,16 +169,28 @@ function isTransmissionNoiseToken(token: string): boolean {
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLocaleUpperCase('pt-BR')
-  return TRANSMISSION_NOISE.has(key)
+  if (TRANSMISSION_NOISE.has(key)) return true
+  // FIPE: Aut.4p / AUT4P / Mec.5p
+  if (/^(AUT|MEC|MAN)\.?\d*P?$/.test(key)) return true
+  return false
 }
 
-/** Token é só motor (1.6 / 1.6A / 16AT) — lixo se usado como "versão". */
+/** Tecnologia de motor colada após cilindrada (1.0 TSI) — fica no motor, não na versão. */
+function isEngineTechToken(token: string): boolean {
+  const key = token
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLocaleUpperCase('pt-BR')
+  return /^(TSI|TFSI|THP|MPI|TDI|CDI|GDI|DIG\-?T|ECOBOOST)$/.test(key)
+}
+
+/** Token é só motor (1.6 / 1.6A / 16AT) — lixo se usado como "versão". Válvulas ficam. */
 function isEngineNoiseToken(token: string): boolean {
   const t = token.trim()
   if (!t) return false
+  if (isValveToken(t)) return false
   if (parseEngineGearToken(t)) return true
   if (ENGINE_TOKEN.test(t) && sanitizeEngine(t)) return true
-  // "1.6A" já cai em ENGINE_TOKEN; "16A" em gear.
   return false
 }
 
@@ -171,6 +203,16 @@ export function sanitizeVersionLabel(raw: string | null | undefined): string | n
   const t = String(raw).trim()
   if (!t) return null
 
+  // Preserva alternativas "Comfortline / Highline" para o fan-out posterior.
+  if (/\s*[|/]\s*/.test(t)) {
+    const parts = t
+      .split(/\s*[|/]\s*/)
+      .map((p) => sanitizeVersionLabel(p.trim()))
+      .filter((p): p is string => Boolean(p))
+    if (!parts.length) return null
+    return parts.length === 1 ? parts[0]! : parts.join(' / ')
+  }
+
   // String inteira = motor (+ câmbio) sem trim real.
   const compact = t.replace(/\s+/g, '')
   if (
@@ -182,17 +224,26 @@ export function sanitizeVersionLabel(raw: string | null | undefined): string | n
 
   const tokens = t.split(/\s+/).filter(Boolean)
   const kept = tokens.filter(
-    (tok) => !isEngineNoiseToken(tok) && !isTransmissionNoiseToken(tok),
+    (tok) =>
+      !isEngineNoiseToken(tok) &&
+      !isTransmissionNoiseToken(tok) &&
+      !isFuelToken(tok),
   )
   if (!kept.length) return null
   return normalizeVersionLabel(kept.join(' '))
 }
 
 function normalizeEngineToken(raw: string): string {
+  // Válvulas coladas (2.016V / 1.616V): 1 dígito pós-ponto + NxV — não engolir 16V no motor.
+  const valveStuck = String(raw).trim().match(/^(\d+\.\d)(\d{1,2}V)$/i)
+  if (valveStuck) return valveStuck[1]!
+
   const m = raw.match(/^(\d+\.\d+)(.*)$/i)
   if (!m) return raw
   const base = m[1]!
   const suf = (m[2] ?? '').trim()
+  // Válvulas soltas após base (2.0 16V já vem tokenizado; 2.0V raro).
+  if (/^\d{1,2}V$/i.test(suf)) return base
   // Descarta sufixo câmbio/unidade (AT/MT/L) — motor fica só a cilindrada.
   if (!suf || /^[mMaA]$/i.test(suf) || /^(MT|AT|CVT|L)$/i.test(suf)) return base
   // Mantém turbo/tsi etc. no token (2.0T).
@@ -200,11 +251,19 @@ function normalizeEngineToken(raw: string): string {
   return base
 }
 
-/** Motor automotivo plausível (L); rejeita lixo tipo 0.1 da API. */
+/** Extrai sufixo de válvulas colado ao motor (2.016V → 16V). */
+export function peelValveSuffixFromEngineToken(raw: string): string | null {
+  // 1 dígito decimal + válvulas (evita 2.01+6V por greediness de \d+).
+  const m = String(raw).trim().match(/^\d+\.\d(\d{1,2}V)$/i)
+  return m?.[1]?.toUpperCase() ?? null
+}
+
+/** Motor automotivo plausível (L); rejeita lixo tipo 0.1 da API e tokens só-válvula. */
 export function sanitizeEngine(raw: string | null | undefined): string | null {
   if (raw == null) return null
   const t = String(raw).trim()
   if (!t) return null
+  if (isValveToken(t)) return null
   const gear = parseEngineGearToken(t)
   if (gear) return gear
   const m = t.match(/^(\d+\.\d+)/)
@@ -267,6 +326,59 @@ export function parseDenatranCompactToken(
   const engine = sanitizeEngine(`${engDigits[0]}.${engDigits[1]}`)
   if (!engine) return null
   return { version: expandTrim(abbr), engine }
+}
+
+/**
+ * Nome FIPE/API com trims separados por / ou |:
+ * "Gol Comfortline / Highline 1.0" → model Gol, version "Comfortline / Highline", engine 1.0.
+ */
+function splitModeloWithVersionAlternatives(s: string): SplitApiModeloResult | null {
+  const tokens = s.split(/\s+/).filter(Boolean)
+  if (tokens.length < 3) return null
+
+  let engine: string | null = null
+  let headTokens = tokens
+  const last = tokens[tokens.length - 1]!
+  if (ENGINE_TOKEN.test(last) && !isValveToken(last)) {
+    engine = sanitizeEngine(normalizeEngineToken(last))
+    headTokens = tokens.slice(0, -1)
+  } else {
+    const engIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t) && !isValveToken(t))
+    if (engIdx >= 1) {
+      engine = sanitizeEngine(normalizeEngineToken(tokens[engIdx]!))
+      headTokens = [...tokens.slice(0, engIdx), ...tokens.slice(engIdx + 1)]
+    }
+  }
+
+  const head = headTokens.join(' ')
+  if (!/\s*[|/]\s*/.test(head)) return null
+
+  const parts = head
+    .split(/\s*[|/]\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (parts.length < 2) return null
+
+  const firstTokens = parts[0]!.split(/\s+/).filter(Boolean)
+  if (!firstTokens.length) return null
+
+  const peeled = peelTrailingTrim(firstTokens)
+  let model: string
+  let versionParts: string[]
+  if (peeled.version) {
+    model = peeled.model
+    versionParts = [peeled.version, ...parts.slice(1)]
+  } else if (firstTokens.length === 1) {
+    model = formatPlateModelName(firstTokens[0]!)
+    versionParts = parts.slice(1)
+  } else {
+    model = formatPlateModelName(firstTokens[0]!)
+    versionParts = [...firstTokens.slice(1), ...parts.slice(1)]
+  }
+
+  const version = sanitizeVersionLabel(versionParts.join(' / '))
+  if (!version || versionParts.length < 2) return null
+  return { model, engine, version }
 }
 
 /**
@@ -356,7 +468,14 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
   let s = String(rawModelo).trim()
   if (!s) return { model: null, engine: null, version: null }
 
-  s = s.replace(/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\- ]{0,24}\//, '').trim()
+  // Prefixo compacto MARCA/ (VW/, GM/, I/) — sem espaço. NÃO engolir "Comfortline / Highline".
+  s = s.replace(/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\-]{0,12}\//, '').trim()
+
+  // Versões alternativas no nome: "Gol Comfortline / Highline 1.0" → versão com barra para fan-out.
+  if (/\s[|/]\s/.test(s) || /\s[|/]$/.test(s) || /^[|/]\s/.test(s)) {
+    const fromAlts = splitModeloWithVersionAlternatives(s)
+    if (fromAlts) return fromAlts
+  }
 
   let tokens = s.split(/\s+/).filter(Boolean)
   // Remove combustível do fim (Fiesta Flex) — nunca vira versão.
@@ -382,16 +501,38 @@ export function splitApiModelo(rawModelo: string | null | undefined): SplitApiMo
     return { model: formatPlateModelName(only), engine: null, version: null }
   }
 
-  // 1) Motor decimal explícito: "HB20 1.0M UNIQUE" / "HB20 1.6A 1.6 A"
-  const engineIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t))
+  // 1) Motor decimal explícito: "HB20 1.0M UNIQUE" / "HB20 1.6A 1.6 A" / "Gol 2.0 16V"
+  const engineIdx = tokens.findIndex((t) => ENGINE_TOKEN.test(t) && !isValveToken(t))
   if (engineIdx >= 1) {
-    const engine = sanitizeEngine(normalizeEngineToken(tokens[engineIdx]!))
+    const engTok = tokens[engineIdx]!
+    const valveStuck = peelValveSuffixFromEngineToken(engTok)
+    let engine = sanitizeEngine(normalizeEngineToken(engTok))
     const peeled = peelTrailingTrim(tokens.slice(0, engineIdx))
-    const after = titleVersion(tokens.slice(engineIdx + 1))
+    let afterTokens = tokens.slice(engineIdx + 1)
+    // 1.0 TSI → motor "1.0 TSI" (não vira versão)
+    if (engine && afterTokens[0] && isEngineTechToken(afterTokens[0]!)) {
+      engine = `${engine} ${afterTokens[0]!.toUpperCase()}`
+      afterTokens = afterTokens.slice(1)
+    }
+    const valveLoose = afterTokens.filter(isValveToken)
+    const restAfter = afterTokens.filter(
+      (t) =>
+        !isValveToken(t) &&
+        !isFuelToken(t) &&
+        !isTransmissionNoiseToken(t) &&
+        !isEngineTechToken(t),
+    )
+    const after = titleVersion(restAfter)
+    const valveBits = [...(valveStuck ? [valveStuck] : []), ...valveLoose.map((v) => v.toUpperCase())]
+    const versionCore = sanitizeVersionLabel(after ?? peeled.version)
+    const version =
+      versionCore || valveBits.length
+        ? sanitizeVersionLabel([versionCore, ...valveBits].filter(Boolean).join(' '))
+        : null
     return {
       model: peeled.model,
       engine,
-      version: sanitizeVersionLabel(after ?? peeled.version),
+      version,
     }
   }
 

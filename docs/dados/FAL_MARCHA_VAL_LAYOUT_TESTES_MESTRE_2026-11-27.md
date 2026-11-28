@@ -42,6 +42,18 @@
 - `Select` ganhou `hint`; Ano fim guia usa hint “Vazio = vigente”  
 - Smoke cobre import + ausência de emerald  
 
+## Follow-up consultar multi / parse / Demanda (2026-11-27)
+
+VAL: [FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md](./FAL_MARCHA_CONSULTAR_MULTI_PARSE_DEMANDA_VAL_2026-11-27.md).
+
+| Check | Resultado |
+|-------|-----------|
+| Hub copy multi-modelo + versões `/` | PASS |
+| Consultar FIPE checkboxes N modelos | PASS |
+| Prévia fan-out + apply separado | PASS |
+| Demanda 1 termo | PASS |
+| CTA Ver no cadastro `quality=review` | PASS | 
+
 ## Gaps residuais (não bloqueiam alinhamento)
 
 1. Filtros veículos sempre expandidos (sem “Mais filtros” / `@container`) — polish FL14-like.  
